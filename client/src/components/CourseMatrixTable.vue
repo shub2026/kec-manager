@@ -51,8 +51,15 @@
               <div class="cell-hours">
                 {{ getHours(course, s) || '-' }}
               </div>
-              <div class="cell-textbook" v-if="getTextbookName(course, s)">
-                {{ getTextbookName(course, s) }}
+              <div 
+                v-for="textbook in getTextbooks(course, s)" 
+                :key="textbook.id"
+                class="cell-textbook"
+                :class="{ 'textbook-disabled': !textbook.isActive }"
+                :title="!textbook.isActive ? '该教材已禁用，建议更换' : textbook.title"
+              >
+                <el-icon v-if="!textbook.isActive" class="warning-icon"><Warning /></el-icon>
+                {{ textbook.title }}
               </div>
             </template>
           </td>
@@ -139,7 +146,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { ArrowUp, ArrowDown, Setting, Delete, Check } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Setting, Delete, Check, Warning } from '@element-plus/icons-vue'
 
 const props = defineProps({
   rawCourses: { type: Array, default: () => [] },
@@ -196,11 +203,24 @@ function getHours(course, semester) {
   return sem ? sem.weeklyHours : null
 }
 
-// 获取某学期教材名
-function getTextbookName(course, semester) {
+// 获取某学期教材信息（返回数组，包含状态）
+function getTextbooks(course, semester) {
   const sem = course.semesters.find(s => s.semester === semester)
-  if (!sem || !sem.planTextbooks?.length) return ''
-  return sem.planTextbooks.map(t => t.textbooks?.title).join(', ')
+  if (!sem || !sem.planTextbooks?.length) return []
+  return sem.planTextbooks.map(t => ({
+    id: t.textbooks?.id,
+    title: t.textbooks?.title,
+    isbn: t.textbooks?.isbn,
+    publisher: t.textbooks?.publisher,
+    isActive: t.textbooks?.isActive ?? true, // 默认为激活状态
+  }))
+}
+
+// 获取某学期教材名（用于向后兼容）
+function getTextbookName(course, semester) {
+  const textbooks = getTextbooks(course, semester)
+  if (textbooks.length === 0) return ''
+  return textbooks.map(t => t.title).join(', ')
 }
 
 // 单元格样式
@@ -421,6 +441,21 @@ function isLastInGroup(course, group) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 禁用教材样式 */
+.textbook-disabled {
+  color: #c0c4cc !important;
+  text-decoration: line-through;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.warning-icon {
+  color: #e6a23c;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 /* 总课时列 */

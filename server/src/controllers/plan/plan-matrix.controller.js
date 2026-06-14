@@ -15,7 +15,7 @@ export async function listPlanCourses(req, res, next) {
         plan_course_semesters: {
           include: {
             plan_textbooks: {
-              include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
+              include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true, is_active: true } } },
             },
           },
           orderBy: { semester: 'asc' },

@@ -21,6 +21,10 @@ export function authMiddleware(req, res, next) {
       message: '下载令牌无效或已过期'
     })
   }
+  // 备选：从查询参数获取普通 token（用于 window.open 导出等场景）
+  else if (req.query.token) {
+    token = req.query.token
+  }
 
   if (!token) {
     return res.status(401).json({

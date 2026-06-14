@@ -78,6 +78,7 @@
                     <div
                       v-if="getTextbookInfo(course, s)"
                       class="cell-textbook"
+                      :class="{ 'textbook-disabled': !getTextbookInfo(course, s).isActive }"
                     >
                       <el-tooltip
                         placement="top"
@@ -87,6 +88,9 @@
                         <template #content>
                           <div class="tooltip-content">
                             <div><strong>教材名称：</strong>{{ getTextbookInfo(course, s).title }}</div>
+                            <div v-if="!getTextbookInfo(course, s).isActive" style="color: #e6a23c; margin-top: 4px;">
+                              <strong>⚠️ 该教材已禁用，建议更换</strong>
+                            </div>
                             <div v-if="getTextbookInfo(course, s).author"><strong>作者：</strong>{{ getTextbookInfo(course, s).author }}</div>
                             <div v-if="getTextbookInfo(course, s).publisher"><strong>出版社：</strong>{{ getTextbookInfo(course, s).publisher }}</div>
                             <div v-if="getTextbookInfo(course, s).isbn"><strong>ISBN：</strong>{{ getTextbookInfo(course, s).isbn }}</div>
@@ -94,7 +98,9 @@
                             <div><strong>要求：</strong>{{ getTextbookInfo(course, s).isRequired ? '必修' : '选修' }}</div>
                           </div>
                         </template>
-                        <span class="textbook-link">{{ getTextbookInfo(course, s).shortTitle }}</span>
+                        <span class="textbook-link" :class="{ 'link-disabled': !getTextbookInfo(course, s).isActive }">
+                          {{ !getTextbookInfo(course, s).isActive ? '⚠️ ' : '' }}{{ getTextbookInfo(course, s).shortTitle }}
+                        </span>
                       </el-tooltip>
                     </div>
                   </template>
@@ -231,6 +237,7 @@ function getTextbookInfo(course, semester) {
     isbn: textbook.isbn || '',
     edition: textbook.edition || '',
     isRequired: tb.isRequired,
+    isActive: textbook.isActive ?? true, // 默认为激活状态
     shortTitle,
   }
 }
@@ -501,9 +508,20 @@ onMounted(() => {
   cursor: help;
 }
 
+/* 禁用教材样式 */
+.textbook-disabled {
+  color: #c0c4cc !important;
+}
+
 .textbook-link {
   text-decoration: underline;
   text-decoration-style: dotted;
+}
+
+.textbook-link.link-disabled {
+  text-decoration: line-through;
+  color: #c0c4cc;
+  cursor: not-allowed;
 }
 
 /* 总课时列 */
