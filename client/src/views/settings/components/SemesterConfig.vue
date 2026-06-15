@@ -47,9 +47,10 @@
             v-model="localForm.organization_name"
             placeholder="请输入单位名称，如：某某职业技术学院"
             size="large"
-            maxlength="50"
+            maxlength="16"
             show-word-limit
             clearable
+            class="organization-input"
           />
           <div class="semester-hint">
             <el-icon><InfoFilled /></el-icon>
@@ -206,6 +207,7 @@ function handleSemesterChange(value) {
 
 .semester-select {
   width: 100%;
+  max-width: 320px; /* 约16个字符宽度 */
 }
 
 .semester-hint {
@@ -219,6 +221,11 @@ function handleSemesterChange(value) {
 
 .organization-section {
   margin-top: 20px;
+}
+
+.organization-input {
+  width: 100%;
+  max-width: 320px; /* 约16个字符宽度 */
 }
 
 .semester-preview {
