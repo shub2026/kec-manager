@@ -7,12 +7,13 @@
           <div class="card-header-actions">
             <el-button @click="exportData">数据导出</el-button>
             <el-button @click="downloadTemplate">下载模板</el-button>
-            <el-upload 
-              :show-file-list="false" 
-              accept=".xlsx,.xls" 
-              action="/api/import/courses" 
-              name="file" 
-              :on-success="onImportSuccess" 
+            <el-upload
+              :show-file-list="false"
+              accept=".xlsx,.xls"
+              action="/api/import/courses"
+              name="file"
+              :headers="uploadHeaders"
+              :on-success="onImportSuccess"
               :on-error="onImportError"
               :before-upload="beforeImport"
             >
@@ -98,9 +99,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { getCookie } from '@/utils/cookies'
 import { useAuthStore } from '../../stores/auth'
 import request from '../../utils/request'
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course'
@@ -109,6 +111,10 @@ import { useSortable } from '../../composables/useSortable'
 
 const list = ref([])
 const authStore = useAuthStore()
+const uploadHeaders = computed(() => {
+  const token = getCookie('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+})
 const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)

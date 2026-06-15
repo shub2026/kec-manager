@@ -15,12 +15,13 @@
             </el-select>
             <el-button @click="exportData">数据导出</el-button>
             <el-button @click="downloadTemplate">下载模板</el-button>
-            <el-upload 
-              :show-file-list="false" 
-              accept=".xlsx,.xls" 
-              action="/api/import/textbooks" 
-              name="file" 
-              :on-success="onImportSuccess" 
+            <el-upload
+              :show-file-list="false"
+              accept=".xlsx,.xls"
+              action="/api/import/textbooks"
+              name="file"
+              :headers="uploadHeaders"
+              :on-success="onImportSuccess"
               :on-error="onImportError"
               :before-upload="beforeImport"
             >
@@ -213,6 +214,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue'
+import { getCookie } from '@/utils/cookies'
 import { useAuthStore } from '../../stores/auth'
 import request from '../../utils/request'
 import { getTextbooks, createTextbook, updateTextbook, deleteTextbook, toggleTextbookStatus } from '../../api/textbook'
@@ -221,6 +223,10 @@ import { useSortable } from '../../composables/useSortable'
 
 const list = ref([])
 const authStore = useAuthStore()
+const uploadHeaders = computed(() => {
+  const token = getCookie('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+})
 const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)

@@ -94,6 +94,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
+import { getCookie } from '@/utils/cookies'
 
 const props = defineProps({
   filters: {
@@ -124,7 +125,7 @@ const props = defineProps({
 
 // 获取认证token用于上传请求
 const uploadHeaders = computed(() => {
-  const token = localStorage.getItem('token')
+  const token = getCookie('token')
   return token ? { Authorization: `Bearer ${token}` } : {}
 })
 
