@@ -45,7 +45,7 @@
 
 ```bash
 # 1. 克隆项目
-cd /opt && git clone https://github.com/shub2026/kec-manager.git && cd kec-manager
+cd /opt && git clone https://gitee.com/shub77/kec-manager.git && cd kec-manager
 
 # 2. 复制环境变量文件
 cp .env.example .env
@@ -129,7 +129,7 @@ curl -sSL https://resource.fit2cloud.com/1panel/package/quick_start.sh -o quick_
 
 ```bash
 cd /opt
-git clone https://github.com/shub2026/kec-manager.git
+git clone https://gitee.com/shub77/kec-manager.git
 cd kec-manager
 ```
 

@@ -220,7 +220,7 @@ client/src/
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/shub2026/kec-manager.git
+git clone https://gitee.com/shub77/kec-manager.git
 cd kec-manager
 ```
 
@@ -342,7 +342,7 @@ npm run preview          # 预览构建结果
 
 ```bash
 # 克隆仓库
-git clone https://github.com/shub2026/kec-manager.git /tmp/kec-manager
+git clone https://gitee.com/shub77/kec-manager.git /tmp/kec-manager
 
 # 执行部署
 cd /tmp/kec-manager && bash deploy.sh

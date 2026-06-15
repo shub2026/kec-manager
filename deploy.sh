@@ -79,7 +79,7 @@ if execute "test -d ${PROJECT_DIR}/.git"; then
 else
     echo "首次克隆代码..."
     execute "mkdir -p $(dirname ${PROJECT_DIR})"
-    execute "git clone https://github.com/shub2026/kec-manager.git ${PROJECT_DIR}"
+    execute "git clone https://gitee.com/shub77/kec-manager.git ${PROJECT_DIR}"
 fi
 echo "✓ 代码准备完成"
 

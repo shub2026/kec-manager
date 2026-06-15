@@ -74,7 +74,7 @@ LOG_LEVEL=info
 ### 1. 克隆代码
 ```bash
 cd /var/www
-git clone https://github.com/shub2026/kec-manager.git
+git clone https://gitee.com/shub77/kec-manager.git
 cd kec-manager
 ```
 
@@ -336,5 +336,5 @@ pm2 restart kec-server
 如果遇到问题：
 1. 检查 PM2 日志：`pm2 logs kec-server`
 2. 检查 Nginx 日志：`tail -f /var/log/nginx/error.log`
-3. 查看项目 Issues：https://github.com/shub2026/kec-manager/issues
+3. 查看项目 Issues：https://gitee.com/shub77/kec-manager/issues
 4. 提交新的 Issue 并附上错误日志

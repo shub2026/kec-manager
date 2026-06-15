@@ -71,7 +71,7 @@ systemctl enable nginx
 
 ```bash
 # 克隆仓库到临时位置
-git clone https://github.com/shub2026/kec-manager.git /tmp/kec-manager
+git clone https://gitee.com/shub77/kec-manager.git /tmp/kec-manager
 
 # 执行部署脚本
 cd /tmp/kec-manager

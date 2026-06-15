@@ -223,4 +223,4 @@ pm2 restart kec-server
 如果遇到问题无法解决：
 1. 查看 PM2 日志：`pm2 logs kec-server`
 2. 查看 Nginx 日志：`tail -f /var/log/nginx/error.log`
-3. 提交 Issue：https://github.com/shub2026/kec-manager/issues
+3. 提交 Issue：https://gitee.com/shub77/kec-manager/issues
