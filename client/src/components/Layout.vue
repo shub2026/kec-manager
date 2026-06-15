@@ -192,34 +192,16 @@ function handlePasswordChangeSuccess() {
 .layout-aside {
   transition: width 0.3s ease;
   background: #304156;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   flex-shrink: 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* 自定义滚动条样式 */
-.layout-aside::-webkit-scrollbar {
-  width: 6px;
-}
-
-.layout-aside::-webkit-scrollbar-track {
-  background: #2b3a4a;
-}
-
-.layout-aside::-webkit-scrollbar-thumb {
-  background: #4a5f7a;
-  border-radius: 3px;
-}
-
-.layout-aside::-webkit-scrollbar-thumb:hover {
-  background: #5a7a9a;
-}
-
 .layout-logo {
   height: 60px;
+  min-height: 60px;
   width: 100%;
   display: flex;
   align-items: center;
@@ -231,6 +213,35 @@ function handlePasswordChangeSuccess() {
   border-bottom: 1px solid #3d4c5c;
   flex-shrink: 0;
   overflow: hidden;
+  background: #304156;
+  z-index: 10;
+}
+
+/* 菜单容器可滚动 */
+.layout-aside :deep(.el-menu) {
+  width: 100%;
+  border-right: none;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 自定义滚动条样式 - 只应用于菜单 */
+.layout-aside :deep(.el-menu)::-webkit-scrollbar {
+  width: 6px;
+}
+
+.layout-aside :deep(.el-menu)::-webkit-scrollbar-track {
+  background: #2b3a4a;
+}
+
+.layout-aside :deep(.el-menu)::-webkit-scrollbar-thumb {
+  background: #4a5f7a;
+  border-radius: 3px;
+}
+
+.layout-aside :deep(.el-menu)::-webkit-scrollbar-thumb:hover {
+  background: #5a7a9a;
 }
 
 .logo-icon {
