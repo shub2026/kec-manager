@@ -52,9 +52,16 @@ currentSemesterNum = (grade - 1) * 2 + semesterIndex
 - **用途**: 开课查询、教材查询、数据导出
 
 ### 前端计算
-- **文件**: `client/src/views/class/ClassList.vue`
-- **函数**: `calcGrade(cls)`
+- **文件**: `client/src/views/class/components/ClassTable.vue`
+- **函数**: `calcGrade(row, semesterInfo)`
 - **用途**: 班级列表显示年级
+- **逻辑**: 
+  ```javascript
+  // 优先使用后端提供的学期信息
+  const startYear = semesterInfo?.startYear || estimateStartYear()
+  const grade = startYear - enrollmentYear + 1
+  return grade >= 1 ? grade : null // 始终显示年级，不限制毕业状态
+  ```
 
 ### 格式化显示
 - **后端**: `server/src/services/settings.service.js` - `formatSemesterLabel()`
@@ -63,19 +70,41 @@ currentSemesterNum = (grade - 1) * 2 + semesterIndex
 
 ## 有效性校验
 
+### 年级显示规则
+
 ```javascript
-// 年级必须在有效范围内
-if (grade < 1 || grade > cls.durationYears) {
-  return null; // 未入学或已毕业
-}
+// 前端年级显示（ClassTable.vue）
+const grade = startYear - enrollmentYear + 1
+return grade >= 1 ? grade : null // 只要年级>=1就显示，不限制上限
 ```
 
-**示例** (3年制班级):
-- 2025年入学: grade=1 ✓ 显示
-- 2024年入学: grade=2 ✓ 显示
-- 2023年入学: grade=3 ✓ 显示
-- 2022年入学: grade=4 ✗ 不显示（已毕业）
-- 2026年入学: grade=0 ✗ 不显示（未入学）
+**重要变更** (v1.3.7):
+- ✅ **修复前**: `grade >= 1 && grade <= durationYears` 导致毕业班级显示为空
+- ✅ **修复后**: `grade >= 1` 即可，毕业班级也显示年级数字
+- 📌 **设计理念**: 年级数字表示"第几年"，毕业状态由 `status` 字段单独控制
+
+**示例** (当前学期 2025-2026-2, startYear=2025):
+
+| 入学年份 | 年级计算 | 学制 | 年级显示 | 状态 | 说明 |
+|---------|---------|------|---------|------|------|
+| 2025年 | 2025-2025+1=1 | 3年 | **1年级** | 在校 | 正常显示 |
+| 2024年 | 2025-2024+1=2 | 3年 | **2年级** | 在校 | 正常显示 |
+| 2023年 | 2025-2023+1=3 | 3年 | **3年级** | 在校 | 最后学年 |
+| 2022年 | 2025-2022+1=4 | 3年 | **4年级** | 已毕业 | ✅ 也显示年级 |
+| 2026年 | 2025-2026+1=0 | 3年 | **空** | - | 未入学 |
+
+### 班级状态判断规则
+
+```javascript
+// 后端状态计算（class.controller.js）
+const grade = startYear - enrollmentYear + 1
+const status = grade <= durationYears ? 'active' : 'graduated'
+```
+
+**状态判断逻辑**:
+- **在校 (active)**: `grade <= durationYears`
+- **已毕业 (graduated)**: `grade > durationYears`
+- **离校 (left_school)**: 手动标记，优先级最高
 
 ## 班级状态计算规则
 
@@ -131,9 +160,9 @@ status = grade <= durationYears ? 'active' : 'graduated'
 ### 代码实现位置
 
 **后端计算**:
-- 文件: `server/src/routes/class.routes.js`
+- 文件: `server/src/controllers/class.controller.js`
 - 函数: `calculateClassStatus(enrollmentYear, durationYears, semesterInfo)`
-- 用途: 创建/更新班级时自动计算状态
+- 用途: 创建/更新班级时自动计算状态，列表查询时动态计算
 
 **导入计算**:
 - 文件: `server/src/routes/import.routes.js`
@@ -176,5 +205,11 @@ const planCourses = plan.planCourses.filter(
 
 ## 修改记录
 
+- **2026-06-15 (v1.3.7)**: 
+  - 修正年级计算逻辑，使用后端提供的学期信息（startYear）而非当前年份
+  - 移除年级显示的上限限制，毕业班级也显示年级数字
+  - 修正文档中的代码位置引用（ClassTable.vue, class.controller.js）
+  - 新增有效性校验章节，说明年级显示与毕业状态的分离设计
+  
 - 2026-06-08: 优化学期显示格式为 "2026年春季(第2学期)"
 - 2026-06-08: 添加计算逻辑注释和文档说明
