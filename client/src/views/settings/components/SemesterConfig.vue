@@ -260,16 +260,18 @@ function handleSemesterChange(value) {
   height: auto;
   position: relative;
   padding: 28px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #e8f4fd 0%, #d1ecff 100%);
+  border: 2px solid #b3d9ff;
   border-radius: 12px;
   text-align: center;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .semester-preview:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.35);
+  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.2);
+  border-color: #409eff;
 }
 
 .preview-badge {
@@ -277,20 +279,19 @@ function handleSemesterChange(value) {
   top: -12px;
   right: 24px;
   padding: 6px 16px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
   color: white;
   border-radius: 16px;
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
 .preview-year {
   font-size: 22px;
   font-weight: 700;
-  color: white;
+  color: #303133;
   margin-bottom: 16px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .preview-detail {
@@ -307,14 +308,14 @@ function handleSemesterChange(value) {
   gap: 8px;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid #dcdfe6;
+  color: #606266;
   font-size: 14px;
   font-weight: 500;
 }
 
 .preview-footer.saved {
-  color: rgba(255, 255, 255, 1);
+  color: #67c23a;
 }
 
 .semester-preview.empty {
