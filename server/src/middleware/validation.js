@@ -399,9 +399,11 @@ export const validatePlanTextbook = [
  */
 export const validateReset = [
   body('confirm')
+    .optional()
     .equals('DELETE')
     .withMessage('必须输入DELETE确认操作'),
   body('reason')
+    .optional()
     .trim()
     .isLength({ min: 10, max: 500 })
     .withMessage('操作原因必须在10-500个字符之间'),
