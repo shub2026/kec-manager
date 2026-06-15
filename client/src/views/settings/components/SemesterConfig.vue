@@ -49,7 +49,7 @@
             v-model="localForm.organization_name"
             placeholder="请输入单位名称，如：某某职业技术学院"
             size="large"
-            maxlength="16"
+            maxlength="20"
             show-word-limit
             clearable
             class="organization-input"
@@ -243,13 +243,21 @@ function handleSemesterChange(value) {
 
 .organization-input {
   width: 100%;
-  max-width: 320px; /* 约16个字符宽度 */
+  max-width: 400px; /* 约20个字符宽度 */
+}
+
+/* 确保配置模块宽度与输入框匹配 */
+.config-module {
+  flex: 0 0 auto;
+  min-width: 400px;
+  max-width: 480px;
 }
 
 .semester-preview {
   flex: 0 0 auto;
   min-width: 240px;
   max-width: 320px;
+  height: auto;
   position: relative;
   padding: 20px;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
@@ -303,13 +311,14 @@ function handleSemesterChange(value) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
+  min-height: 180px;
+  height: auto;
   color: #909399;
 }
 
 .semester-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   padding-top: 20px;
   border-top: 1px solid #ebeef5;
 }
