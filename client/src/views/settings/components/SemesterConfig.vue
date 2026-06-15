@@ -255,55 +255,66 @@ function handleSemesterChange(value) {
 
 .semester-preview {
   flex: 0 0 auto;
-  min-width: 240px;
-  max-width: 320px;
+  min-width: 280px;
+  max-width: 380px;
   height: auto;
   position: relative;
-  padding: 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-  border-radius: 8px;
+  padding: 28px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
   text-align: center;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.semester-preview:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.35);
 }
 
 .preview-badge {
   position: absolute;
-  top: -10px;
-  right: 20px;
-  padding: 4px 12px;
-  background: #409eff;
+  top: -12px;
+  right: 24px;
+  padding: 6px 16px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   color: white;
-  border-radius: 12px;
-  font-size: 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
 }
 
 .preview-year {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 12px;
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .preview-detail {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .preview-footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px dashed #dcdfe6;
-  color: #e6a23c;
-  font-size: 13px;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .preview-footer.saved {
-  color: #67c23a;
+  color: rgba(255, 255, 255, 1);
 }
 
 .semester-preview.empty {
@@ -311,9 +322,23 @@ function handleSemesterChange(value) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 180px;
+  min-height: 200px;
   height: auto;
+  padding: 32px 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  border-radius: 12px;
   color: #909399;
+  border: 2px dashed #dcdfe6;
+}
+
+.semester-preview.empty :deep(.el-icon) {
+  color: #c0c4cc;
+  margin-bottom: 12px;
+}
+
+.semester-preview.empty p {
+  font-size: 14px;
+  margin: 0;
 }
 
 .semester-actions {
