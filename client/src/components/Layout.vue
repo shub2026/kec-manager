@@ -220,6 +220,7 @@ function handlePasswordChangeSuccess() {
 
 .layout-logo {
   height: 60px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -229,12 +230,36 @@ function handlePasswordChangeSuccess() {
   font-weight: bold;
   border-bottom: 1px solid #3d4c5c;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .logo-icon {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
+}
+
+/* 确保菜单容器占满侧边栏宽度 */
+.layout-aside :deep(.el-menu) {
+  width: 100%;
+  border-right: none;
+}
+
+/* 确保菜单项占满宽度 */
+.layout-aside :deep(.el-menu-item),
+.layout-aside :deep(.el-sub-menu__title) {
+  width: 100%;
+}
+
+/* 折叠时隐藏文字，只显示图标 */
+.layout-aside :deep(.el-menu--collapse) .el-menu-item span,
+.layout-aside :deep(.el-menu--collapse) .el-sub-menu__title span {
+  display: none;
+}
+
+.layout-aside :deep(.el-menu--collapse) .el-menu-item .el-sub-menu__icon-arrow,
+.layout-aside :deep(.el-menu--collapse) .el-sub-menu__title .el-sub-menu__icon-arrow {
+  display: none;
 }
 
 .layout-header {
