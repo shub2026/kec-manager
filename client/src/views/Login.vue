@@ -70,7 +70,7 @@
                   <el-tag type="danger" size="small" effect="dark">管理员</el-tag>
                   <code>admin</code>
                   <span>/</span>
-                  <code>admin123</code>
+                  <code>admin@123456</code>
                 </div>
               </div>
             </el-collapse-item>

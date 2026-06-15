@@ -81,7 +81,7 @@ const allTextbooks = ref([])
 const saving = ref(false)
 
 const showSemesterDialog = ref(false)
-const semesterForm = ref({ courseId: null, startSemester: 1, endSemester: 2, weeklyHours: 4 })
+const semesterForm = ref({ courseId: null, startSemester: 1, endSemester: 2, weeklyHours: 4, weeksPerSemester: 18 })
 
 async function loadPlan() {
   // #20修复：直接获取单个培养方案，而非获取全部再查找
@@ -106,10 +106,18 @@ async function saveSemester() {
   
   saving.value = true
   try {
-    await addPlanCourse(planId, semesterForm.value)
+    // 转换字段名为snake_case以匹配后端期望
+    const courseData = {
+      course_id: semesterForm.value.courseId,
+      start_semester: semesterForm.value.startSemester,
+      end_semester: semesterForm.value.endSemester,
+      weekly_hours: semesterForm.value.weeklyHours,
+      weeks_per_semester: semesterForm.value.weeksPerSemester || 18
+    }
+    await addPlanCourse(planId, courseData)
     ElMessage.success('添加成功')
     showSemesterDialog.value = false
-    semesterForm.value = { courseId: null, startSemester: 1, endSemester: 2, weeklyHours: 4 }
+    semesterForm.value = { courseId: null, startSemester: 1, endSemester: 2, weeklyHours: 4, weeksPerSemester: 18 }
     // 刷新矩阵数据
     await refreshMatrix()
   } catch (e) {

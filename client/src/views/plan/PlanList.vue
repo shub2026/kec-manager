@@ -283,9 +283,9 @@ async function handleSave() {
   try {
     const data = {
       name: form.value.name,
-      collegeId: form.value.collegeId || null,
-      majorId: form.value.majorId || null,
-      trainingLevelId: form.value.trainingLevelId || null,
+      college_id: form.value.collegeId || null,
+      major_id: form.value.majorId || null,
+      training_level_id: form.value.trainingLevelId || null,
       version: form.value.version,
       description: form.value.description,
     }

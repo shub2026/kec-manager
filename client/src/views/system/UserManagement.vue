@@ -240,13 +240,21 @@ async function handleSubmit() {
     try {
       if (isEdit.value) {
         await request.put(`/users/${formData.value.id}`, {
-          realName: formData.value.realName,
+          real_name: formData.value.realName,
           email: formData.value.email,
           role: formData.value.role
         })
         ElMessage.success('更新成功')
       } else {
-        await request.post('/users', formData.value)
+        // 转换字段名为snake_case以匹配后端期望
+        const userData = {
+          username: formData.value.username,
+          password: formData.value.password,
+          real_name: formData.value.realName || undefined,
+          email: formData.value.email || undefined,
+          role: formData.value.role
+        }
+        await request.post('/users', userData)
         ElMessage.success('创建成功')
       }
 
@@ -270,7 +278,7 @@ async function toggleUserStatus(user) {
   })
 
   try {
-    const requestData = { isActive: !user.isActive }
+    const requestData = { is_active: !user.isActive }
     
     await request.put(`/users/${user.id}/status`, requestData)
     

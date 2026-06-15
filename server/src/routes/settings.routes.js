@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.middleware.js';
 import { sanitizeBody } from '../middleware/xss.js';
 import { validateReset } from '../middleware/validation.js';
+import { validateAuditLogReset } from '../middleware/validation-audit.js';
 import {
   getSettings,
   updateSettings,
@@ -39,6 +40,6 @@ router.post('/reset/textbooks', authMiddleware, roleMiddleware('super_admin'), v
 router.post('/reset/classes', authMiddleware, roleMiddleware('super_admin'), validateReset, resetClasses);
 router.post('/reset/plans', authMiddleware, roleMiddleware('super_admin'), validateReset, resetPlans);
 router.post('/reset/settings', authMiddleware, roleMiddleware('super_admin'), validateReset, resetSystem);
-router.post('/reset/audit-logs', authMiddleware, roleMiddleware('super_admin'), validateReset, resetAuditLogs);
+router.post('/reset/audit-logs', authMiddleware, roleMiddleware('super_admin'), validateAuditLogReset, resetAuditLogs);
 
 export default router;

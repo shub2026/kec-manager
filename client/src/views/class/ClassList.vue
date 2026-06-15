@@ -290,15 +290,28 @@ async function handleSave() {
 
   saving.value = true
   try {
+    // 转换字段名为snake_case以匹配后端期望，并过滤空值
+    const classData = {
+      name: form.value.name,
+      enrollment_year: form.value.enrollmentYear,
+      duration_years: form.value.durationYears,
+      major_id: form.value.majorId || undefined,
+      college_id: form.value.collegeId || undefined,
+      training_level_id: form.value.trainingLevelId,
+      student_count: form.value.studentCount !== null && form.value.studentCount !== undefined ? Number(form.value.studentCount) : undefined,
+      custom_plan_id: form.value.customPlanId || undefined,
+      is_left_school: form.value.isLeftSchool
+    }
+    
     if (form.value.id) {
-      await updateClass(form.value.id, form.value)
+      await updateClass(form.value.id, classData)
       ElMessage.success('更新成功')
     } else {
-      await createClass(form.value)
+      await createClass(classData)
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
-    load()
+    await load()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || '操作失败')
   } finally {
@@ -367,21 +380,21 @@ async function handleBatchSet() {
         ElMessage.error('请选择专业')
         return
       }
-      updates.majorId = batchForm.value.majorId
+      updates.major_id = batchForm.value.majorId
     } else if (batchFormType.value === 'college') {
-      updates.collegeId = batchForm.value.collegeId
+      updates.college_id = batchForm.value.collegeId
     } else if (batchFormType.value === 'level') {
       if (!batchForm.value.trainingLevelId) {
         ElMessage.error('请选择培养层次')
         return
       }
-      updates.trainingLevelId = batchForm.value.trainingLevelId
+      updates.training_level_id = batchForm.value.trainingLevelId
     } else if (batchFormType.value === 'year') {
-      updates.enrollmentYear = batchForm.value.enrollmentYear
+      updates.enrollment_year = batchForm.value.enrollmentYear
     } else if (batchFormType.value === 'duration') {
-      updates.durationYears = batchForm.value.durationYears
+      updates.duration_years = batchForm.value.durationYears
     } else if (batchFormType.value === 'leftSchool') {
-      updates.isLeftSchool = batchForm.value.isLeftSchool
+      updates.is_left_school = batchForm.value.isLeftSchool
     }
     
     for (const cls of selectedClasses.value) {

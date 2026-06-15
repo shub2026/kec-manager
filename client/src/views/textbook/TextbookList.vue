@@ -315,10 +315,25 @@ async function handleSave() {
   if (!form.value.title) return ElMessage.warning('请输入书名')
   saving.value = true
   try {
+    // 转换字段名为snake_case以匹配后端期望，并过滤空字符串
+    const textbookData = {
+      title: form.value.title,
+      isbn: form.value.isbn || undefined,
+      publisher: form.value.publisher || undefined,
+      author: form.value.author || undefined,
+      edition: form.value.edition || undefined,
+      publish_date: form.value.publishDate || undefined,
+      price: form.value.price !== null && form.value.price !== '' ? Number(form.value.price) : undefined,
+      category: form.value.category || undefined,
+      description: form.value.description || undefined,
+      is_active: form.value.isActive,
+      sort_order: form.value.sortOrder
+    }
+    
     if (form.value.id) {
-      await updateTextbook(form.value.id, form.value)
+      await updateTextbook(form.value.id, textbookData)
     } else {
-      await createTextbook(form.value)
+      await createTextbook(textbookData)
     }
     ElMessage.success('保存成功')
     dialogVisible.value = false

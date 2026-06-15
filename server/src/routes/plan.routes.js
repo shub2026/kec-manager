@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { sanitizeBody } from '../middleware/xss.js'; // H7修复：XSS防护中间件
-import { validateIdParam, validatePlan, validatePlanCourse, validateSemester, validatePlanTextbook } from '../middleware/validation.js';
+import { validateIdParam, validatePlan, validatePlanCourse, validateSemester, validatePlanTextbook, validateSortOrder, validatePlanCreate } from '../middleware/validation.js';
 import {
   listPlans,
   getPlanById,
@@ -33,10 +33,10 @@ router.get('/', listPlans);
 router.get('/:id', getPlanById);
 
 // POST /api/plans - 创建方案（admin/super_admin）
-router.post('/', roleMiddleware('admin', 'super_admin'), validatePlan, sanitizeBody, createPlan);
+router.post('/', roleMiddleware('admin', 'super_admin'), validatePlanCreate, sanitizeBody, createPlan);
 
 // PUT /api/plans/:id - 更新方案（admin/super_admin）
-router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validatePlan, sanitizeBody, updatePlan);
+router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateSortOrder, sanitizeBody, updatePlan);
 
 // DELETE /api/plans/:id - 删除方案（admin/super_admin）
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, deletePlan);

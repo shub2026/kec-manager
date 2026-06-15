@@ -7,6 +7,7 @@ import { prisma } from '../lib/prisma.js'
 import { createAuditLog } from '../services/audit.service.js'
 import { AuthenticationError, ValidationError } from '../utils/error.js'
 import { sanitizeBody } from '../middleware/xss.js' // H7修复：XSS防护中间件
+import { validateChangePassword } from '../middleware/validation.js'
 
 const router = express.Router()
 
@@ -137,7 +138,7 @@ router.post('/download-token', authMiddleware, async (req, res, next) => {
   }
 })
 
-router.put('/password', authMiddleware, passwordLimiter, sanitizeBody, async (req, res, next) => {
+router.put('/password', authMiddleware, passwordLimiter, validateChangePassword, sanitizeBody, async (req, res, next) => {
   try {
     const { old_password, new_password } = req.body
 

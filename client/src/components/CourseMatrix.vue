@@ -194,8 +194,8 @@ async function openEdit(course, semester) {
 
       await createSemester(props.planId, course.id, {
         semester,
-        weeklyHours: defaultWeeklyHours,
-        weeksCount: defaultWeeksCount,
+        weekly_hours: defaultWeeklyHours,
+        weeks_count: defaultWeeksCount,
       })
 
       // 重新加载数据以获取最新的学期记录
@@ -234,14 +234,14 @@ async function saveEdit() {
   saving.value = true
   try {
     await updateSemester(editingSemester.value.id, {
-      weeklyHours: editingSemester.value.weeklyHours,
+      weekly_hours: editingSemester.value.weeklyHours,
     })
 
     // 教材关联
     if (editingTextbookId.value) {
       await setSemesterTextbook(editingSemester.value.id, {
-        textbookId: editingTextbookId.value,
-        isRequired: true,
+        textbook_id: editingTextbookId.value,
+        is_required: true,
       })
     } else {
       await removeSemesterTextbook(editingSemester.value.id)
@@ -275,7 +275,7 @@ async function applyGlobalWeeks() {
     try {
       await Promise.all(
         semesterIds.map(id =>
-          updateSemester(id, { weeksCount: weeks }).catch(() => {})
+          updateSemester(id, { weeks_count: weeks }).catch(() => {})
         )
       )
       // 重新加载数据以反映最新状态
@@ -312,8 +312,8 @@ async function saveSemesterSettings() {
   saving.value = true
   try {
     await updatePlanCourse(editingCourseForSemester.value.id, {
-      startSemester,
-      endSemester,
+      start_semester: startSemester,
+      end_semester: endSemester,
     })
     
     ElMessage.success('保存成功')
@@ -356,8 +356,8 @@ async function handleMoveUp(course, group) {
   try {
     // 交换两个课程的 sortOrder
     await Promise.all([
-      updatePlanCourse(currentId, { sortOrder: prevSortOrder }),
-      updatePlanCourse(prevId, { sortOrder: currentSortOrder })
+      updatePlanCourse(currentId, { sort_order: prevSortOrder }),
+      updatePlanCourse(prevId, { sort_order: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
     await loadData()
