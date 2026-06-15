@@ -1,25 +1,13 @@
 import { Router } from 'express';
-import { getAuditLogs } from '../services/audit.service.js';
-import { success, fail } from '../utils/response.js';
+import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { validatePagination } from '../middleware/pagination.js';
+import { listAuditLogs } from '../controllers/audit.controller.js';
 
 const router = Router();
 
-// GET /api/audit/logs - 查询操作日志
-router.get('/logs', validatePagination(100), async (req, res, next) => {
-  try {
-    const { action, module, result, page, pageSize } = req.query;
-    const logsData = await getAuditLogs({
-      action,
-      module,
-      result,
-      page: Number(page) || 1,
-      pageSize: Number(pageSize) || 20,
-    });
-    success(res, logsData);
-  } catch (e) {
-    next(e);
-  }
-});
+/**
+ * GET /api/audit/logs - 查询操作日志（需要super_admin权限）
+ */
+router.get('/logs', roleMiddleware('super_admin'), validatePagination(100), listAuditLogs);
 
 export default router;
