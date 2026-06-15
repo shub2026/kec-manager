@@ -32,6 +32,7 @@
         :loading="loading"
         :selected-classes="selectedClasses"
         :pagination="pagination"
+        :semester-info="currentSemesterInfo"
         @selection-change="handleSelectionChange"
         @edit="openDialog"
         @delete="handleDelete"
@@ -113,6 +114,7 @@ const trainingLevels = ref([])
 const colleges = ref([])
 const allEnrollmentYears = ref([])
 const selectedClasses = ref([])
+const currentSemesterInfo = ref(null) // 当前学期信息
 
 const filters = ref({
   name: '',
@@ -208,16 +210,30 @@ async function load() {
 
 async function loadBaseData() {
   try {
-    const [majorsRes, plansRes, levelsRes, collegesRes] = await Promise.all([
+    const [majorsRes, plansRes, levelsRes, collegesRes, settingsRes] = await Promise.all([
       getMajors(),
       getPlans(),
       getTrainingLevels(),
       getColleges(),
+      request.get('/settings'),
     ])
     majors.value = majorsRes?.data || []
     plans.value = plansRes?.data || []
     trainingLevels.value = levelsRes?.data || []
     colleges.value = collegesRes?.data || []
+    
+    // 解析当前学期信息
+    if (settingsRes?.data?.currentSemester?.value) {
+      const semesterValue = settingsRes.data.currentSemester.value
+      const parts = semesterValue.split('-')
+      if (parts.length === 3) {
+        currentSemesterInfo.value = {
+          startYear: Number(parts[0]),
+          endYear: Number(parts[1]),
+          semesterIndex: Number(parts[2]),
+        }
+      }
+    }
   } catch (error) {
     console.error('加载基础数据失败:', error)
     if (error.response?.status === 401) {

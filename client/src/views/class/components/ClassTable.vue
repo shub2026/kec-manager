@@ -128,6 +128,10 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  semesterInfo: {
+    type: Object,
+    default: null,
+  },
 })
 
 const emit = defineEmits([
@@ -142,10 +146,21 @@ const emit = defineEmits([
 
 function calcGrade(row) {
   if (!row.enrollmentYear) return null
-  const currentYear = new Date().getFullYear()
-  const grade = currentYear - row.enrollmentYear + 1
-  // 始终返回年级数字，不限制是否在学制范围内
-  // 毕业状态由 status 字段单独控制
+  
+  // 优先使用后端提供的学期信息
+  let startYear
+  if (props.semesterInfo && props.semesterInfo.startYear) {
+    startYear = props.semesterInfo.startYear
+  } else {
+    // 降级方案：如果无法获取学期信息，根据当前日期估算
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1
+    startYear = currentMonth >= 9 ? currentYear : currentYear - 1
+  }
+  
+  const grade = startYear - row.enrollmentYear + 1
+  // 年级必须 >= 1 才显示
   return grade >= 1 ? grade : null
 }
 
