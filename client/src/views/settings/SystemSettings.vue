@@ -1,17 +1,9 @@
 <template>
   <div class="settings-page">
     <!-- 页面标题栏 -->
-    <div class="page-hero">
-      <div class="hero-left">
-        <div class="hero-icon">
-          <el-icon :size="28"><Setting /></el-icon>
-        </div>
-        <div class="hero-text">
-          <h1>系统设置</h1>
-          <p>配置学期参数，管理数据重置</p>
-        </div>
-      </div>
-      <div class="hero-actions">
+    <div class="card-header">
+      <span>系统设置</span>
+      <div class="card-header-actions">
         <router-link to="/audit-logs">
           <el-button plain>
             <el-icon><DocumentChecked /></el-icon>
@@ -61,7 +53,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Setting, DocumentChecked, UserFilled } from '@element-plus/icons-vue'
+import { DocumentChecked, UserFilled } from '@element-plus/icons-vue'
 import { useSettingsStore } from '../../stores/settings'
 import request from '../../utils/request'
 import SemesterConfig from './components/SemesterConfig.vue'
@@ -194,59 +186,15 @@ onMounted(() => {
   padding: 20px;
 }
 
-.page-hero {
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  color: white;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  margin-bottom: 20px;
 }
 
-.hero-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.hero-icon {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-}
-
-.hero-text h1 {
-  margin: 0 0 4px 0;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.hero-text p {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.9;
-}
-
-.hero-actions {
+.card-header-actions {
   display: flex;
   gap: 12px;
-}
-
-.hero-actions :deep(.el-button) {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: transparent;
-  color: #667eea;
-}
-
-.hero-actions :deep(.el-button:hover) {
-  background: white;
-  color: #764ba2;
 }
 </style>
