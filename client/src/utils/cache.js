@@ -76,6 +76,32 @@ export function cleanupExpired(ttl = 60000) {
 }
 
 // 定期清理过期缓存（每5分钟）
+let cleanupIntervalId = null;
+
+/**
+ * 启动缓存清理定时器
+ */
+export function startCleanupTimer() {
+  if (cleanupIntervalId) return; // 防止重复启动
+  cleanupIntervalId = setInterval(() => cleanupExpired(), 5 * 60 * 1000);
+}
+
+/**
+ * 停止缓存清理定时器
+ */
+export function stopCleanupTimer() {
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+}
+
+// 在浏览器环境中自动启动（仅在模块加载时执行一次）
 if (typeof window !== 'undefined') {
-  setInterval(() => cleanupExpired(), 5 * 60 * 1000);
+  startCleanupTimer();
+  
+  // 页面卸载时清理（SPA应用中可能不会触发，但保留以防万一）
+  window.addEventListener('beforeunload', () => {
+    stopCleanupTimer();
+  });
 }

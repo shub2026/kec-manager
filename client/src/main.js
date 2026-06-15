@@ -18,9 +18,10 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-// 初始化认证状态
+// 先挂载应用，再初始化认证状态
+app.mount('#app')
+
+// 在应用挂载后初始化认证（避免阻塞首屏渲染）
 import { useAuthStore } from './stores/auth'
 const authStore = useAuthStore()
 authStore.initAuth()
-
-app.mount('#app')

@@ -55,8 +55,6 @@ const router = createRouter({
 
 // 全局前置守卫
 router.beforeEach(async (to, from, next) => {
-  // 动态导入auth store，避免循环依赖
-  const { useAuthStore } = await import('../stores/auth')
   const authStore = useAuthStore()
 
   // 设置页面标题

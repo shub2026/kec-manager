@@ -8,15 +8,22 @@ const request = axios.create({
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json; charset=utf-8'
-  }
+  },
+  // CSRF配置（如果后端支持）
+  withCredentials: true
 })
 
-// 请求拦截器 - 自动携带Token
+// 请求拦截器 - 自动携带Token和CSRF Token
 request.interceptors.request.use(
   config => {
     const authStore = useAuthStore()
     if (authStore.token) {
       config.headers.Authorization = `Bearer ${authStore.token}`
+    }
+    // 从Cookie读取CSRF Token（如果存在）
+    const csrfToken = getCookie('XSRF-TOKEN')
+    if (csrfToken && ['post', 'put', 'delete'].includes(config.method?.toLowerCase())) {
+      config.headers['X-CSRF-Token'] = csrfToken
     }
     return config
   },
@@ -40,6 +47,20 @@ const processQueue = (error, token = null) => {
   failedQueue = []
 }
 
+// 添加辅助函数获取Cookie
+function getCookie(name) {
+  const nameEQ = name + '='
+  const ca = document.cookie.split(';')
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i]
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length)
+    if (c.indexOf(nameEQ) === 0) {
+      return decodeURIComponent(c.substring(nameEQ.length, c.length))
+    }
+  }
+  return null
+}
+
 request.interceptors.response.use(
   response => {
     const res = response.data
@@ -54,7 +75,10 @@ request.interceptors.response.use(
     const authStore = useAuthStore()
 
     // 处理401未授权
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // 标记请求已重试，防止无限循环
+      originalRequest._retry = true
+      
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
@@ -68,19 +92,26 @@ request.interceptors.response.use(
 
       isRefreshing = true
 
-      const refreshed = await authStore.refreshAccessToken()
+      try {
+        const refreshed = await authStore.refreshAccessToken()
+        isRefreshing = false
 
-      isRefreshing = false
-
-      if (refreshed) {
-        processQueue(null, authStore.token)
-        originalRequest.headers.Authorization = `Bearer ${authStore.token}`
-        return request(originalRequest)
-      } else {
-        processQueue(error, null)
+        if (refreshed) {
+          processQueue(null, authStore.token)
+          originalRequest.headers.Authorization = `Bearer ${authStore.token}`
+          return request(originalRequest)
+        } else {
+          processQueue(error, null)
+          ElMessage.error('登录已过期，请重新登录')
+          await authStore.logout()
+          return Promise.reject(error)
+        }
+      } catch (refreshError) {
+        isRefreshing = false
+        processQueue(refreshError, null)
         ElMessage.error('登录已过期，请重新登录')
         await authStore.logout()
-        return Promise.reject(error)
+        return Promise.reject(refreshError)
       }
     }
 

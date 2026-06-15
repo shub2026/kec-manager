@@ -197,21 +197,13 @@ async function exportExcel() {
       grade: filterGrade.value || undefined,
     }
     
-    const response = await fetch('/api/export/semester', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(params),
+    // 使用axios代替fetch，享受拦截器带来的自动token管理和错误处理
+    const response = await request.post('/export/semester', params, {
+      responseType: 'blob'  // 重要：指定响应类型为blob
     })
     
-    if (!response.ok) {
-      throw new Error('导出失败')
-    }
-    
     // 处理blob下载
-    const blob = await response.blob()
+    const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

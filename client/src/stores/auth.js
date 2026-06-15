@@ -2,10 +2,11 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import router from '@/router'
 import request from '@/utils/request'
+import { setCookie, getCookie, deleteCookie, clearAuthCookies } from '@/utils/cookies'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref(localStorage.getItem('token') || '')
-  const refreshToken = ref(localStorage.getItem('refreshToken') || '')
+  const token = ref(getCookie('token') || '')
+  const refreshToken = ref(getCookie('refreshToken') || '')
   
   // 添加 try-catch 防止 localStorage 被篡改导致应用崩溃
   let parsedUserInfo = null
@@ -13,7 +14,10 @@ export const useAuthStore = defineStore('auth', () => {
     const userInfoStr = localStorage.getItem('userInfo')
     parsedUserInfo = userInfoStr ? JSON.parse(userInfoStr) : null
   } catch (error) {
-    console.error('Failed to parse userInfo from localStorage:', error)
+    // 生产环境不输出详细错误信息
+    if (import.meta.env.DEV) {
+      console.warn('Failed to parse userInfo:', error.message)
+    }
     // 清除损坏的数据
     localStorage.removeItem('userInfo')
   }
@@ -39,8 +43,10 @@ export const useAuthStore = defineStore('auth', () => {
       refreshToken.value = newRefreshToken
       userInfo.value = user
 
-      localStorage.setItem('token', newToken)
-      localStorage.setItem('refreshToken', newRefreshToken)
+      // 使用Cookie存储token（更安全）
+      setCookie('token', newToken, 7)  // Access Token 7天
+      setCookie('refreshToken', newRefreshToken, 30)  // Refresh Token 30天
+      // userInfo仍然存储在localStorage（非敏感数据）
       localStorage.setItem('userInfo', JSON.stringify(user))
 
       router.push('/')
@@ -60,7 +66,9 @@ export const useAuthStore = defineStore('auth', () => {
         await request.post('/auth/logout')
       }
     } catch (error) {
-      console.error('登出请求失败:', error)
+      if (import.meta.env.DEV) {
+        console.warn('登出请求失败:', error.message)
+      }
     } finally {
       clearAuth()
       router.push('/login')
@@ -76,7 +84,7 @@ export const useAuthStore = defineStore('auth', () => {
       const { token: newToken } = response.data
 
       token.value = newToken
-      localStorage.setItem('token', newToken)
+      setCookie('token', newToken, 7)
 
       return true
     } catch (error) {
@@ -129,8 +137,9 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken.value = ''
     userInfo.value = null
 
-    localStorage.removeItem('token')
-    localStorage.removeItem('refreshToken')
+    // 清除Cookie
+    clearAuthCookies()
+    // 清除localStorage中的用户信息
     localStorage.removeItem('userInfo')
   }
 

@@ -15,7 +15,7 @@
           <th class="matrix-action-header">操作</th>
         </tr>
       </thead>
-      <tbody v-for="group in groups" :key="group.type">
+      <tbody v-for="group in groups" :key="group.type + '-' + group.label">
         <!-- 分组标题行 -->
         <tr class="matrix-group-row">
           <td :colspan="maxSemester + 3" class="matrix-group-cell" :class="group.type">
