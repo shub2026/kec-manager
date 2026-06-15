@@ -7,8 +7,17 @@ import { fail } from '../utils/response.js';
 export function handleValidationErrors(req, res, next) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const firstError = errors.array()[0];
-    return fail(res, firstError.msg || '请求参数验证失败', 422);
+    const errorDetails = errors.array().map(err => ({
+      field: err.path,
+      message: err.msg,
+      location: err.location,
+    }));
+    
+    return fail(res, {
+      code: 'VALIDATION_ERROR',
+      message: '请求参数验证失败',
+      details: errorDetails
+    }, 422);
   }
   next();
 }
@@ -163,5 +172,200 @@ export const validateTextbook = [
     .optional()
     .isFloat({ min: 0 })
     .withMessage('定价必须为非负数'),
+  handleValidationErrors
+];
+
+/**
+ * 用户创建/更新验证规则
+ */
+export const validateUser = [
+  body('username')
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('用户名不能为空且不超过50个字符'),
+  body('password')
+    .optional()
+    .isLength({ min: 8, max: 128 })
+    .withMessage('密码长度必须在8-128位之间'),
+  body('email')
+    .optional({ nullable: true })
+    .isEmail()
+    .withMessage('邮箱格式不正确'),
+  body('role')
+    .optional()
+    .isIn(['super_admin', 'admin', 'viewer'])
+    .withMessage('角色必须是super_admin、admin或viewer'),
+  body('real_name')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('真实姓名不超过100个字符'),
+  handleValidationErrors
+];
+
+/**
+ * 用户状态更新验证规则
+ */
+export const validateUserStatus = [
+  body('is_active')
+    .isBoolean()
+    .withMessage('激活状态必须为布尔值'),
+  handleValidationErrors
+];
+
+/**
+ * 学院验证规则
+ */
+export const validateCollege = [
+  body('name')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('学院名称不能为空且不超过100个字符'),
+  body('code')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('学院编码不超过50个字符'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('描述不超过500个字符'),
+  handleValidationErrors
+];
+
+/**
+ * 培养层次验证规则
+ */
+export const validateTrainingLevel = [
+  body('name')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('培养层次名称不能为空且不超过100个字符'),
+  body('code')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('培养层次编码不超过50个字符'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('描述不超过500个字符'),
+  handleValidationErrors
+];
+
+/**
+ * 教材状态切换验证规则
+ */
+export const validateTextbookStatus = [
+  body('is_active')
+    .isBoolean()
+    .withMessage('激活状态必须为布尔值'),
+  handleValidationErrors
+];
+
+/**
+ * 培养方案验证规则
+ */
+export const validatePlan = [
+  body('name')
+    .trim()
+    .isLength({ min: 1, max: 200 })
+    .withMessage('方案名称不能为空且不超过200个字符'),
+  body('majorId')
+    .optional({ nullable: true })
+    .isInt({ min: 1 })
+    .withMessage('专业ID必须为正整数'),
+  body('collegeId')
+    .optional({ nullable: true })
+    .isInt({ min: 1 })
+    .withMessage('学院ID必须为正整数'),
+  body('trainingLevelId')
+    .optional({ nullable: true })
+    .isInt({ min: 1 })
+    .withMessage('培养层次ID必须为正整数'),
+  body('version')
+    .optional()
+    .trim()
+    .isLength({ max: 50 })
+    .withMessage('版本号不超过50个字符'),
+  handleValidationErrors
+];
+
+/**
+ * 方案课程验证规则
+ */
+export const validatePlanCourse = [
+  body('courseId')
+    .isInt({ min: 1 })
+    .withMessage('课程ID必须为正整数'),
+  body('startSemester')
+    .isInt({ min: 1, max: 10 })
+    .withMessage('开始学期必须在1-10之间'),
+  body('endSemester')
+    .isInt({ min: 1, max: 10 })
+    .withMessage('结束学期必须在1-10之间'),
+  body('weeklyHours')
+    .isInt({ min: 1, max: 20 })
+    .withMessage('周课时必须在1-20之间'),
+  body('weeksPerSemester')
+    .isInt({ min: 1, max: 30 })
+    .withMessage('每学期周数必须在1-30之间'),
+  handleValidationErrors
+];
+
+/**
+ * 学期信息验证规则
+ */
+export const validateSemester = [
+  body('semester')
+    .isInt({ min: 1, max: 10 })
+    .withMessage('学期必须在1-10之间'),
+  body('weeklyHours')
+    .isInt({ min: 1, max: 20 })
+    .withMessage('周课时必须在1-20之间'),
+  body('weeksCount')
+    .isInt({ min: 1, max: 30 })
+    .withMessage('周数必须在1-30之间'),
+  handleValidationErrors
+];
+
+/**
+ * 教材分配验证规则
+ */
+export const validatePlanTextbook = [
+  body('textbookId')
+    .isInt({ min: 1 })
+    .withMessage('教材ID必须为正整数'),
+  body('isRequired')
+    .optional()
+    .isBoolean()
+    .withMessage('是否必须必须为布尔值'),
+  handleValidationErrors
+];
+
+/**
+ * 系统设置重置验证规则
+ */
+export const validateReset = [
+  body('confirm')
+    .equals('DELETE')
+    .withMessage('必须输入DELETE确认操作'),
+  body('reason')
+    .trim()
+    .isLength({ min: 10, max: 500 })
+    .withMessage('操作原因必须在10-500个字符之间'),
+  handleValidationErrors
+];
+
+/**
+ * 学期参数查询验证规则
+ */
+export const validateSemesterQuery = [
+  query('semester')
+    .optional()
+    .matches(/^\d{4}-\d{4}-[12]$/)
+    .withMessage('学期格式错误，应为YYYY-YYYY-N'),
   handleValidationErrors
 ];

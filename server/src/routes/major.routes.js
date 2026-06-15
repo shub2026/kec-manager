@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { sanitizeBody } from '../middleware/xss.js';
+import { validateIdParam, validateMajor } from '../middleware/validation.js';
 import {
   listMajors,
   createMajor,
@@ -14,8 +15,8 @@ const router = Router();
 router.get('/', listMajors);
 
 // POST/PUT/DELETE - 需要admin权限
-router.post('/', roleMiddleware('admin', 'super_admin'), sanitizeBody, createMajor);
-router.put('/:id', roleMiddleware('admin', 'super_admin'), sanitizeBody, updateMajor);
-router.delete('/:id', roleMiddleware('admin', 'super_admin'), deleteMajor);
+router.post('/', roleMiddleware('admin', 'super_admin'), validateMajor, sanitizeBody, createMajor);
+router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateMajor, sanitizeBody, updateMajor);
+router.delete('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, deleteMajor);
 
 export default router;;
