@@ -15,7 +15,7 @@
               :plans="plans"
               @change="resetPaginationAndLoad"
               @search="load"
-              @export="exportData"
+              @export="handleExport"
               @download-template="downloadTemplate"
               @import-success="onImportSuccess"
               @import-error="onImportError"
@@ -100,6 +100,7 @@ import { getMajors } from '../../api/major'
 import { getPlans } from '../../api/plan'
 import { getTrainingLevels } from '../../api/trainingLevel'
 import { getColleges } from '../../api/college'
+import { useExport } from '../../composables/useExport'
 import ClassFilterBar from './components/ClassFilterBar.vue'
 import ClassTable from './components/ClassTable.vue'
 import ClassFormDialog from './components/ClassFormDialog.vue'
@@ -151,6 +152,9 @@ const form = ref({
   isLeftSchool: false,
   customPlanId: null,
 })
+
+// 使用导出 composable
+const { exportData, downloadTemplate } = useExport('classes', '班级数据')
 
 const batchForm = ref({
   majorId: null,
@@ -379,10 +383,6 @@ async function handleBatchSet() {
   }
 }
 
-function downloadTemplate() {
-  window.open('/api/import/classes/template?token=' + localStorage.getItem('token'), '_blank')
-}
-
 function beforeImport(file) {
   progressDialogVisible.value = true
   progressPercent.value = 0
@@ -417,9 +417,18 @@ function onImportError(err) {
   }, 1500)
 }
 
-function exportData() {
-  const params = new URLSearchParams(filters.value).toString()
-  window.open(`/api/export/classes?${params}&token=${localStorage.getItem('token')}`, '_blank')
+async function handleExport() {
+  // 将filters转换为exportData需要的参数格式 to exportData需要的格式
+  const customParams = {}
+  if (filters.value.name) customParams.name = filters.value.name
+  if (filters.value.majorId) customParams.majorId = filters.value.majorId
+  if (filters.value.collegeId) customParams.collegeId = filters.value.collegeId
+  if (filters.value.trainingLevelId) customParams.trainingLevelId = filters.value.trainingLevelId
+  if (filters.value.enrollmentYear) customParams.enrollmentYear = filters.value.enrollmentYear
+  if (filters.value.status) customParams.status = filters.value.status
+  if (filters.value.planId) customParams.planId = filters.value.planId
+  
+  await exportData(customParams)
 }
 
 onMounted(() => {

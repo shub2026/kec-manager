@@ -229,7 +229,7 @@ function handleSemesterChange(value) {
 
 .semester-select {
   width: 100%;
-  max-width: 320px; /* 约16个字符宽度 */
+  max-width: 400px; /* 与系统标识输入框保持一致 */
 }
 
 .semester-hint {
