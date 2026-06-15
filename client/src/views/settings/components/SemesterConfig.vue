@@ -192,10 +192,16 @@ function handleSemesterChange(value) {
 }
 
 .semester-body {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
   padding: 20px 0;
+  align-items: flex-start;
+}
+
+.semester-selector {
+  flex: 1;
+  min-width: 300px;
 }
 
 .field-label {
@@ -229,6 +235,9 @@ function handleSemesterChange(value) {
 }
 
 .semester-preview {
+  flex: 0 0 auto;
+  min-width: 240px;
+  max-width: 320px;
   position: relative;
   padding: 20px;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
@@ -301,5 +310,18 @@ function handleSemesterChange(value) {
 
 .option-year {
   font-size: 14px;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .semester-body {
+    flex-direction: column;
+  }
+
+  .semester-selector,
+  .semester-preview {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 </style>
