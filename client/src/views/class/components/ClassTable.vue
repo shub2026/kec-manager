@@ -41,6 +41,13 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="关联类型" min-width="90">
+        <template #default="{ row }">
+          <el-tag :type="getRelationTypeTag(row)" size="small">
+            {{ getRelationTypeText(row) }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="当前方案" min-width="130" show-overflow-tooltip>
         <template #default="{ row }">
           <el-tag :type="getPlanTagType(row)" size="small">
@@ -152,21 +159,53 @@ function getStatusText(status) {
   return '已毕业'
 }
 
+// 获取关联类型文本
+function getRelationTypeText(row) {
+  if (row.customPlanId) {
+    return '自定义'
+  }
+  if (row.majorId) {
+    return '专业'
+  }
+  if (row.trainingLevelId) {
+    return '层次'
+  }
+  return '未关联'
+}
+
+// 获取关联类型标签样式
+function getRelationTypeTag(row) {
+  if (row.customPlanId) {
+    return 'warning' // 自定义方案用橙色
+  }
+  if (row.majorId) {
+    return 'success' // 专业关联用绿色
+  }
+  if (row.trainingLevelId) {
+    return 'primary' // 层次关联用蓝色
+  }
+  return 'info' // 未关联用灰色
+}
+
 function getPlanTagType(row) {
   if (row.customPlanId) return 'warning'
   return 'success'
 }
 
 function getCurrentPlanName(row) {
-  if (row.customPlanId && row.trainingPlans) {
-    return row.trainingPlans.name
+  // 使用后端返回的匹配方案名称
+  if (row.matchedPlanName) {
+    return row.matchedPlanName
   }
-  if (row.majors) {
-    return `按专业：${row.majors.name}`
+  
+  // 兜底：如果没有 matchedPlanName，显示提示信息
+  if (row.majors || row.trainingLevels) {
+    const parts = []
+    if (row.majors?.name) parts.push(row.majors.name)
+    if (row.trainingLevels?.name) parts.push(row.trainingLevels.name)
+    return parts.length > 0 ? `自动匹配 (${parts.join(', ')})` : '未关联'
   }
-  if (row.trainingLevels) {
-    return `按层次：${row.trainingLevels.name}`
-  }
+  
   return '未关联'
 }
 </script>

@@ -169,6 +169,12 @@ export async function listClasses(req, res, next) {
     });
     
     const semesterInfo = await getCurrentSemesterInfo();
+    
+    // 预加载所有培养方案，用于自动匹配
+    const allPlans = await prisma.training_plans.findMany({
+      select: { id: true, name: true, major_id: true, training_level_id: true },
+    });
+    
     const classesWithDynamicStatus = classes.map(cls => {
       let status;
       if (cls.is_left_school) {
@@ -176,7 +182,31 @@ export async function listClasses(req, res, next) {
       } else if (cls.enrollment_year && cls.duration_years) {
         status = calculateClassStatus(cls.enrollment_year, cls.duration_years, semesterInfo);
       }
-      return { ...cls, status };
+      
+      // 计算匹配的培养方案名称
+      let matchedPlanName = null;
+      if (cls.custom_plan_id && cls.training_plans) {
+        // 有自定义方案
+        matchedPlanName = cls.training_plans.name;
+      } else {
+        // 尝试根据专业或培养层次匹配方案
+        let matchedPlan = null;
+        if (cls.major_id) {
+          matchedPlan = allPlans.find(p => p.major_id === cls.major_id);
+        }
+        if (!matchedPlan && cls.training_level_id) {
+          matchedPlan = allPlans.find(p => p.training_level_id === cls.training_level_id);
+        }
+        if (matchedPlan) {
+          matchedPlanName = matchedPlan.name;
+        }
+      }
+      
+      return { 
+        ...cls, 
+        status,
+        matchedPlanName, // 添加匹配的方案名称
+      };
     });
 
     const distinctYears = await prisma.classes.findMany({
