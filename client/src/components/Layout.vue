@@ -190,11 +190,32 @@ function handlePasswordChangeSuccess() {
 }
 
 .layout-aside {
-  transition: width 0.3s;
+  transition: width 0.3s ease;
   background: #304156;
   overflow-y: auto;
   overflow-x: hidden;
   flex-shrink: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 自定义滚动条样式 */
+.layout-aside::-webkit-scrollbar {
+  width: 6px;
+}
+
+.layout-aside::-webkit-scrollbar-track {
+  background: #2b3a4a;
+}
+
+.layout-aside::-webkit-scrollbar-thumb {
+  background: #4a5f7a;
+  border-radius: 3px;
+}
+
+.layout-aside::-webkit-scrollbar-thumb:hover {
+  background: #5a7a9a;
 }
 
 .layout-logo {
