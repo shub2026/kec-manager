@@ -160,8 +160,17 @@ function calcGrade(row) {
   }
   
   const grade = startYear - row.enrollmentYear + 1
-  // 年级必须 >= 1 才显示
-  return grade >= 1 ? grade : null
+  
+  // 年级必须在有效范围内才显示：
+  // 1. 年级 >= 1（已入学）
+  // 2. 年级 <= 学制年限（未毕业）
+  const durationYears = row.durationYears || row.duration_years || 99
+  if (grade >= 1 && grade <= durationYears) {
+    return grade
+  }
+  
+  // 超出学制范围（已毕业）或未入学，显示为空
+  return null
 }
 
 function getStatusType(status) {
