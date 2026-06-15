@@ -77,6 +77,7 @@
         accept=".xlsx,.xls" 
         action="/api/import/classes" 
         name="file" 
+        :headers="uploadHeaders"
         :on-success="(res) => $emit('import-success', res)" 
         :on-error="(err) => $emit('import-error', err)"
         :before-upload="(file) => $emit('before-upload', file)"
@@ -119,6 +120,12 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+})
+
+// 获取认证token用于上传请求
+const uploadHeaders = computed(() => {
+  const token = localStorage.getItem('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
 })
 
 const emit = defineEmits([
