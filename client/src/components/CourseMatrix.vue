@@ -13,7 +13,7 @@
       :global-weeks="globalWeeks"
       :total-all-hours="totalAllHours"
       @edit="openEdit"
-      @delete-course="$emit('delete-course')"
+      @delete-course="(course) => $emit('delete-course', course)"
       @move-up="handleMoveUp"
       @move-down="handleMoveDown"
       @set-semester="openSemesterSettings"
