@@ -144,7 +144,9 @@ function calcGrade(row) {
   if (!row.enrollmentYear) return null
   const currentYear = new Date().getFullYear()
   const grade = currentYear - row.enrollmentYear + 1
-  return grade >= 1 && grade <= (row.durationYears || 99) ? grade : null
+  // 始终返回年级数字，不限制是否在学制范围内
+  // 毕业状态由 status 字段单独控制
+  return grade >= 1 ? grade : null
 }
 
 function getStatusType(status) {
