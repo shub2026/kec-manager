@@ -9,39 +9,41 @@
     </template>
 
     <div class="semester-body">
-      <!-- 左侧：选择器 -->
-      <div class="semester-selector">
-        <label class="field-label">选择当前学期</label>
-        <el-select
-          v-model="localForm.current_semester"
-          placeholder="请选择当前学期"
-          size="large"
-          filterable
-          class="semester-select"
-          @change="handleSemesterChange"
-        >
-          <el-option
-            v-for="sem in availableSemesters"
-            :key="sem.value"
-            :label="sem.label"
-            :value="sem.value"
+      <!-- 左侧：配置模块 -->
+      <div class="config-module">
+        <!-- 学期选择 -->
+        <div class="config-item">
+          <label class="field-label">选择当前学期</label>
+          <el-select
+            v-model="localForm.current_semester"
+            placeholder="请选择当前学期"
+            size="large"
+            filterable
+            class="semester-select"
+            @change="handleSemesterChange"
           >
-            <div class="semester-option">
-              <span class="option-year">{{ sem.label.split('学年')[0] }}学年</span>
-              <el-tag size="small" :type="sem.value.includes('-1') ? 'warning' : 'success'" effect="plain">
-                {{ sem.value.includes('-1') ? '秋季' : '春季' }}
-              </el-tag>
-            </div>
-          </el-option>
-        </el-select>
-
-        <div class="semester-hint">
-          <el-icon><InfoFilled /></el-icon>
-          <span>用于计算班级年级、查询当前学期开课情况。建议每学期初更新。</span>
+            <el-option
+              v-for="sem in availableSemesters"
+              :key="sem.value"
+              :label="sem.label"
+              :value="sem.value"
+            >
+              <div class="semester-option">
+                <span class="option-year">{{ sem.label.split('学年')[0] }}学年</span>
+                <el-tag size="small" :type="sem.value.includes('-1') ? 'warning' : 'success'" effect="plain">
+                  {{ sem.value.includes('-1') ? '秋季' : '春季' }}
+                </el-tag>
+              </div>
+            </el-option>
+          </el-select>
+          <div class="semester-hint">
+            <el-icon><InfoFilled /></el-icon>
+            <span>用于计算班级年级、查询当前学期开课情况。建议每学期初更新。</span>
+          </div>
         </div>
 
         <!-- 系统标识设置 -->
-        <div class="organization-section">
+        <div class="config-item organization-item">
           <label class="field-label">系统标识（单位）</label>
           <el-input
             v-model="localForm.organization_name"
@@ -194,14 +196,28 @@ function handleSemesterChange(value) {
 .semester-body {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 0;
   align-items: flex-start;
 }
 
-.semester-selector {
+/* 左侧配置模块 */
+.config-module {
   flex: 1;
-  min-width: 300px;
+  min-width: 320px;
+  max-width: 400px;
+}
+
+.config-item {
+  margin-bottom: 24px;
+}
+
+.config-item:last-child {
+  margin-bottom: 0;
+}
+
+.organization-item {
+  margin-top: 8px;
 }
 
 .field-label {
@@ -223,10 +239,6 @@ function handleSemesterChange(value) {
   margin-top: 8px;
   font-size: 13px;
   color: #909399;
-}
-
-.organization-section {
-  margin-top: 20px;
 }
 
 .organization-input {
@@ -318,10 +330,14 @@ function handleSemesterChange(value) {
     flex-direction: column;
   }
 
-  .semester-selector,
+  .config-module,
   .semester-preview {
     width: 100%;
     max-width: 100%;
+  }
+
+  .config-module {
+    min-width: auto;
   }
 }
 </style>
