@@ -81,6 +81,18 @@ router.beforeEach(async (to, from, next) => {
       return
     }
 
+    // 如果 access token 过期但 refresh token 有效，先刷新 token
+    if (authStore.token && authStore.isTokenExpired && authStore.isTokenExpired(authStore.token)) {
+      const refreshed = await authStore.refreshAccessToken()
+      if (!refreshed) {
+        next({
+          path: '/login',
+          query: { redirect: to.fullPath }
+        })
+        return
+      }
+    }
+
     // 确保用户信息已加载
     if (!authStore.userInfo) {
       await authStore.fetchUserInfo()

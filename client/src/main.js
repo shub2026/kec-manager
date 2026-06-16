@@ -7,6 +7,7 @@ import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from './stores/auth'
 
 const app = createApp(App)
 
@@ -19,10 +20,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-// 先挂载应用，再初始化认证状态
-app.mount('#app')
-
-// 在应用挂载后初始化认证（避免阻塞首屏渲染）
-import { useAuthStore } from './stores/auth'
 const authStore = useAuthStore()
-authStore.initAuth()
+await authStore.initAuth()
+
+app.mount('#app')

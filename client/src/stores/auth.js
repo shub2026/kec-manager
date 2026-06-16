@@ -7,6 +7,16 @@ import { setCookie, getCookie, deleteCookie, clearAuthCookies } from '@/utils/co
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(getCookie('token') || '')
   const refreshToken = ref(getCookie('refreshToken') || '')
+
+  function isTokenExpired(tokenStr) {
+    if (!tokenStr) return true
+    try {
+      const payload = JSON.parse(atob(tokenStr.split('.')[1]))
+      return payload.exp * 1000 < Date.now()
+    } catch {
+      return true
+    }
+  }
   
   // 添加 try-catch 防止 localStorage 被篡改导致应用崩溃
   let parsedUserInfo = null
@@ -23,7 +33,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
   const userInfo = ref(parsedUserInfo)
 
-  const isLoggedIn = computed(() => !!token.value)
+  const isLoggedIn = computed(() => {
+    if (!token.value && !refreshToken.value) return false
+    if (token.value && !isTokenExpired(token.value)) return true
+    if (refreshToken.value && !isTokenExpired(refreshToken.value)) return true
+    return false
+  })
   const isAdmin = computed(() => ['admin', 'super_admin'].includes(userInfo.value?.role))
   const isSuperAdmin = computed(() => userInfo.value?.role === 'super_admin')
   const isViewer = computed(() => userInfo.value?.role === 'viewer')
@@ -78,7 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function refreshAccessToken() {
     try {
       const response = await request.post('/auth/refresh', {
-        refreshToken: refreshToken.value
+        refresh_token: refreshToken.value
       })
 
       const { token: newToken } = response.data
@@ -143,9 +158,16 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('userInfo')
   }
 
-  function initAuth() {
-    if (token.value) {
-      fetchUserInfo()
+  async function initAuth() {
+    if (token.value && !isTokenExpired(token.value)) {
+      await fetchUserInfo()
+    } else if (refreshToken.value && !isTokenExpired(refreshToken.value)) {
+      const refreshed = await refreshAccessToken()
+      if (refreshed) {
+        await fetchUserInfo()
+      }
+    } else if (token.value || refreshToken.value) {
+      clearAuth()
     }
   }
 
@@ -159,6 +181,7 @@ export const useAuthStore = defineStore('auth', () => {
     isViewer,
     username,
     realName,
+    isTokenExpired,
     login,
     logout,
     refreshAccessToken,

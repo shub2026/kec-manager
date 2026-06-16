@@ -78,17 +78,22 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
   }
 })
 
-router.post('/logout', authMiddleware, async (req, res, next) => {
+router.post('/logout', async (req, res, next) => {
   try {
-    await createAuditLog({
-      action: 'logout',
-      module: 'auth',
-      userId: req.user.id,
-      ip: req.ip,
-      details: { username: req.user.username },
-      result: 'success',
-      message: `${req.user.username} 登出系统`,
-    })
+    const token = req.headers.authorization?.substring(7)
+    const decoded = token ? AuthService.verifyToken(token) : null
+
+    if (decoded) {
+      await createAuditLog({
+        action: 'logout',
+        module: 'auth',
+        userId: decoded.id,
+        ip: req.ip,
+        details: { username: decoded.username },
+        result: 'success',
+        message: `${decoded.username} 登出系统`,
+      })
+    }
 
     success(res, null, '登出成功')
   } catch (error) {
