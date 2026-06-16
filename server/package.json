@@ -1,6 +1,6 @@
 {
   "name": "kec-manager-server",
-  "version": "1.5.10",
+  "version": "1.5.11",
   "description": "KEC课程管理平台后端",
   "main": "src/server.js",
   "type": "module",
