@@ -52,18 +52,29 @@ export async function exportSemesterSchedule(req, res, next) {
     const activeFilter = await getActiveClassFilter();
     
     const { collegeId, majorId, trainingLevelId, enrollmentYear, grade } = req.query;
-    const whereConditions = [
-      activeFilter,
-      { OR: classWithPlanConditions },
-    ];
     
-    if (collegeId) whereConditions.push({ college_id: Number(collegeId) });
-    if (majorId) whereConditions.push({ major_id: Number(majorId) });
-    if (trainingLevelId) whereConditions.push({ training_level_id: Number(trainingLevelId) });
-    if (enrollmentYear) whereConditions.push({ enrollment_year: Number(enrollmentYear) });
+    // 构建基础查询条件：在读班级 + 有关联培养方案
+    const baseWhere = {
+      AND: [
+        activeFilter,
+        { OR: classWithPlanConditions },
+      ],
+    };
+    
+    // 添加用户筛选条件
+    const userFilters = {};
+    if (collegeId) userFilters.college_id = Number(collegeId);
+    if (majorId) userFilters.major_id = Number(majorId);
+    if (trainingLevelId) userFilters.training_level_id = Number(trainingLevelId);
+    if (enrollmentYear) userFilters.enrollment_year = Number(enrollmentYear);
+    
+    // 组合所有条件
+    const whereCondition = Object.keys(userFilters).length > 0
+      ? { AND: [baseWhere, userFilters] }
+      : baseWhere;
     
     const classes = await prisma.classes.findMany({
-      where: { AND: whereConditions },
+      where: whereCondition,
       include: {
         majors: true,
         colleges: true,
@@ -276,18 +287,28 @@ export async function exportSemesterSchedulePost(req, res, next) {
 
     const activeFilter = await getActiveClassFilter();
     
-    const whereConditions = [
-      activeFilter,
-      { OR: classWithPlanConditions },
-    ];
+    // 构建基础查询条件：在读班级 + 有关联培养方案
+    const baseWhere = {
+      AND: [
+        activeFilter,
+        { OR: classWithPlanConditions },
+      ],
+    };
     
-    if (collegeId) whereConditions.push({ college_id: Number(collegeId) });
-    if (majorId) whereConditions.push({ major_id: Number(majorId) });
-    if (trainingLevelId) whereConditions.push({ training_level_id: Number(trainingLevelId) });
-    if (enrollmentYear) whereConditions.push({ enrollment_year: Number(enrollmentYear) });
+    // 添加用户筛选条件
+    const userFilters = {};
+    if (collegeId) userFilters.college_id = Number(collegeId);
+    if (majorId) userFilters.major_id = Number(majorId);
+    if (trainingLevelId) userFilters.training_level_id = Number(trainingLevelId);
+    if (enrollmentYear) userFilters.enrollment_year = Number(enrollmentYear);
+    
+    // 组合所有条件
+    const whereCondition = Object.keys(userFilters).length > 0
+      ? { AND: [baseWhere, userFilters] }
+      : baseWhere;
     
     const classes = await prisma.classes.findMany({
-      where: { AND: whereConditions },
+      where: whereCondition,
       include: {
         majors: true,
         colleges: true,
