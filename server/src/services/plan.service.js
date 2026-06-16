@@ -1,3 +1,30 @@
+import { prisma } from '../lib/prisma.js';
+
+/**
+ * 构建"班级必须能关联到培养方案"的 Prisma 过滤条件
+ * @returns {Promise<object>} Prisma where 条件片段（{ OR: [...] }）
+ */
+export async function buildClassWithPlanFilter() {
+  const allPlans = await prisma.training_plans.findMany({
+    select: { id: true, major_id: true, college_id: true, training_level_id: true },
+  });
+
+  const conditions = [];
+  conditions.push({ custom_plan_id: { not: null } });
+
+  const majorIdsWithPlans = [...new Set(allPlans.filter(p => p.major_id).map(p => p.major_id))];
+  if (majorIdsWithPlans.length > 0) {
+    conditions.push({ major_id: { in: majorIdsWithPlans } });
+  }
+
+  const levelIdsWithPlans = [...new Set(allPlans.filter(p => p.training_level_id).map(p => p.training_level_id))];
+  if (levelIdsWithPlans.length > 0) {
+    conditions.push({ training_level_id: { in: levelIdsWithPlans } });
+  }
+
+  return { OR: conditions };
+}
+
 /**
  * M4修复：统一的方案匹配逻辑
  * 提供findBestMatchPlan和isClassMatchPlan的共享实现

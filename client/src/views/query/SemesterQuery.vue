@@ -101,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, Refresh } from '@element-plus/icons-vue'
 import { useAuthStore } from '../../stores/auth'
@@ -131,23 +131,9 @@ const pagination = ref({
   total: 0,
 })
 
-// 计算可用的入学年份列表（从数据中提取）
-const enrollmentYears = computed(() => {
-  const years = new Set()
-  data.value.forEach(item => {
-    if (item.enrollmentYear) years.add(item.enrollmentYear)
-  })
-  return Array.from(years).sort((a, b) => b - a)
-})
-
-// 计算可用的年级列表（从数据中提取）
-const grades = computed(() => {
-  const gradeSet = new Set()
-  data.value.forEach(item => {
-    if (item.grade) gradeSet.add(item.grade)
-  })
-  return Array.from(gradeSet).sort((a, b) => a - b)
-})
+// 可用的入学年份和年级列表（从服务端全量数据获取，不依赖当前页）
+const enrollmentYears = ref([])
+const grades = ref([])
 
 async function load() {
   loading.value = true
@@ -166,6 +152,8 @@ async function load() {
     semesterLabel.value = res.data?.semesterInfo?.label || ''
     totalClasses.value = res.data?.totalClasses || 0
     pagination.value.total = res.data?.total || 0
+    if (res.data?.enrollmentYears) enrollmentYears.value = res.data.enrollmentYears
+    if (res.data?.grades) grades.value = res.data.grades
   } catch (e) { console.error(e) }
   finally { loading.value = false }
 }
@@ -221,7 +209,7 @@ async function exportExcel() {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `学期开课数据_${new Date().getTime()}.xlsx`
+    a.download = `学期开课数据_${semesterLabel.value || '当前学期'}.xlsx`
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)

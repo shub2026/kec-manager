@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { getCurrentSemesterInfo, getSemesterInfoFromRequest } from '../services/settings.service.js';
 import { getActiveClassFilter } from '../services/class.service.js';
-import { findBestMatchPlan } from '../services/plan.service.js';
+import { findBestMatchPlan, buildClassWithPlanFilter } from '../services/plan.service.js';
 
 /**
  * 计算班级在当前全局学期下的相对学期序号
@@ -33,41 +33,16 @@ export async function querySemester(req, res, next) {
     const { majorId, collegeId, trainingLevelId, enrollmentYear, grade, page, pageSize } = req.query;
     const pageNum = page ? Number(page) : 1;
     const pageSizeNum = pageSize ? Number(pageSize) : 50;
-    
-    // 第一步：获取所有培养方案，确定哪些班级可以关联到方案
-    const allPlans = await prisma.training_plans.findMany({
-      select: {
-        id: true,
-        major_id: true,
-        college_id: true,
-        training_level_id: true,
-      },
-    });
 
-    // 构建可匹配的班级条件：必须能关联到至少一个培养方案
-    const classWithPlanConditions = [];
-    
-    // 条件1：班级有自定义方案
-    classWithPlanConditions.push({ custom_plan_id: { not: null } });
-    
-    // 条件2：班级的专业ID能匹配某个方案
-    const majorIdsWithPlans = [...new Set(allPlans.filter(p => p.major_id).map(p => p.major_id))];
-    if (majorIdsWithPlans.length > 0) {
-      classWithPlanConditions.push({ major_id: { in: majorIdsWithPlans } });
-    }
-    
-    // 条件3：班级的培养层次ID能匹配某个方案
-    const levelIdsWithPlans = [...new Set(allPlans.filter(p => p.training_level_id).map(p => p.training_level_id))];
-    if (levelIdsWithPlans.length > 0) {
-      classWithPlanConditions.push({ training_level_id: { in: levelIdsWithPlans } });
-    }
+    // 构建"能关联到培养方案"的过滤条件
+    const planFilter = await buildClassWithPlanFilter();
 
     // 基础过滤：在读班级 + 能关联到培养方案
     const activeFilter = await getActiveClassFilter();
     const baseWhere = {
       AND: [
         activeFilter,
-        { OR: classWithPlanConditions },
+        planFilter,
       ],
     };
 
@@ -83,6 +58,21 @@ export async function querySemester(req, res, next) {
       : baseWhere;
 
     const totalClassesCount = await prisma.classes.count({ where: classWhere });
+
+    // 查询全量班级以提取可用的入学年份和年级（用于前端筛选器下拉）
+    const allMatchingClasses = await prisma.classes.findMany({
+      where: classWhere,
+      select: { enrollment_year: true, duration_years: true },
+    });
+    const enrollmentYearSet = new Set();
+    const gradeSet = new Set();
+    for (const c of allMatchingClasses) {
+      enrollmentYearSet.add(c.enrollment_year);
+      const g = semesterInfo.startYear - c.enrollment_year + 1;
+      if (g >= 1 && g <= c.duration_years) gradeSet.add(g);
+    }
+    const availableEnrollmentYears = [...enrollmentYearSet].sort((a, b) => b - a);
+    const availableGrades = [...gradeSet].sort((a, b) => a - b);
 
     const classes = await prisma.classes.findMany({
       where: classWhere,
@@ -220,6 +210,8 @@ export async function querySemester(req, res, next) {
       total: totalClassesCount,
       page: pageNum,
       pageSize: pageSizeNum,
+      enrollmentYears: availableEnrollmentYears,
+      grades: availableGrades,
       data: results,
     });
   } catch (e) { 
