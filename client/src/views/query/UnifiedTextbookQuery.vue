@@ -249,10 +249,14 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 .semester-select {
-  width: 220px;
+  min-width: 200px;
+  flex: 1;
+  max-width: 350px;
 }
 .filter-select-wide {
-  width: 400px;
+  min-width: 300px;
+  flex: 1.5;
+  max-width: 500px;
 }
 .textbook-descriptions {
   margin-bottom: 20px;
