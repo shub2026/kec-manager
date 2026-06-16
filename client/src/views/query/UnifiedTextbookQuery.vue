@@ -249,9 +249,8 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 .semester-select {
-  min-width: 200px;
-  flex: 1;
-  max-width: 350px;
+  width: auto;
+  min-width: 240px;
 }
 .filter-select-wide {
   min-width: 300px;
