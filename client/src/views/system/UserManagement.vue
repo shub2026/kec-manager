@@ -342,12 +342,6 @@ onMounted(() => {
   padding: 20px;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .text-muted {
   color: #909399;
   font-size: 13px;

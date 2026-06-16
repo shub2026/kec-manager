@@ -117,8 +117,6 @@
 </template>
 
 <script setup>
-import { watch } from 'vue'
-
 const props = defineProps({
   popoverVisible: { type: Boolean, default: false },
   semesterDialogVisible: { type: Boolean, default: false },
@@ -144,17 +142,6 @@ defineEmits([
   'update-semester-dialog-visible',
   'update-semester-form',
 ])
-
-// 监听周课时变化，当为0时自动清除教材选择
-watch(
-  () => props.editingSemester?.weeklyHours,
-  (newHours) => {
-    if (newHours === 0 && props.editingTextbookId) {
-      // 通知父组件清除教材选择
-      // 这里通过事件传递，由父组件处理
-    }
-  }
-)
 </script>
 
 <style scoped>

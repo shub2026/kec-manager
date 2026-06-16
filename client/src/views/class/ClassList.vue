@@ -467,18 +467,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-header-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
 .progress-container {
   padding: 20px 0;
 }

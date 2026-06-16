@@ -108,10 +108,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, Refresh, Calendar } from '@element-plus/icons-vue'
-import { useAuthStore } from '../../stores/auth'
 import { getTextbooks } from '../../api/textbook'
 import { getTextbookQuery } from '../../api/query'
 import request from '../../utils/request'
+import { useSemesters, downloadBlob } from '../../composables/useSemesters'
 
 const textbooks = ref([])
 const loadingDetail = ref(false)
@@ -136,33 +136,8 @@ const paginatedClasses = computed(() => {
   return detail.value.classes.slice(start, end)
 })
 
-// 生成可选学期列表（前后各3年）
-const availableSemesters = computed(() => {
-  const currentYear = new Date().getFullYear()
-  const semesters = []
-  for (let y = currentYear - 3; y <= currentYear + 3; y++) {
-    semesters.push(
-      { value: `${y}-${y + 1}-1`, label: `${y}-${y + 1}学年 秋季(第1学期)` },
-      { value: `${y}-${y + 1}-2`, label: `${y}-${y + 1}学年 春季(第2学期)` }
-    )
-  }
-  return semesters
-})
-
-// 获取当前学期信息
-function getCurrentSemester() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1 // 1-12
-  
-  // 秋季学期：8月-次年1月，标记为当年-次年-1
-  // 春季学期：2月-7月，标记为上年-当年-2
-  if (month >= 8) {
-    return `${year}-${year + 1}-1`
-  } else {
-    return `${year - 1}-${year}-2`
-  }
-}
+// 学期相关逻辑
+const { availableSemesters, getCurrentSemester } = useSemesters()
 
 async function loadDetail(id) {
   if (!id || !selectedSemester.value) { 
@@ -241,17 +216,9 @@ async function exportExcel() {
       params: { semester: selectedSemester.value },
       responseType: 'blob'
     })
-    
-    const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `教材使用_${selectedSemester.value}_${new Date().getTime()}.xlsx`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-    
+
+    downloadBlob(response, `教材使用_${selectedSemester.value}_${new Date().getTime()}.xlsx`)
+
     ElMessage.success('导出成功')
   } catch (error) {
     console.error('导出失败:', error)
@@ -276,16 +243,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.card-header-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
 .semester-select {
   width: auto;
   min-width: 240px;
@@ -340,16 +297,7 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
-.alert-info {
-  margin-bottom: 16px;
-}
 .alert-success {
   margin-bottom: 16px;
-}
-.pagination-container {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-  padding: 12px 0;
 }
 </style>

@@ -2,6 +2,7 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { useAuthStore } from '@/stores/auth'
+import { getCookie } from './cookies'
 
 const request = axios.create({
   baseURL: '/api',
@@ -45,20 +46,6 @@ const processQueue = (error, token = null) => {
     }
   })
   failedQueue = []
-}
-
-// 添加辅助函数获取Cookie
-function getCookie(name) {
-  const nameEQ = name + '='
-  const ca = document.cookie.split(';')
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i]
-    while (c.charAt(0) === ' ') c = c.substring(1, c.length)
-    if (c.indexOf(nameEQ) === 0) {
-      return decodeURIComponent(c.substring(nameEQ.length, c.length))
-    }
-  }
-  return null
 }
 
 request.interceptors.response.use(

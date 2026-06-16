@@ -565,52 +565,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.card-header-actions {
-  display: flex;
-  gap: 12px;
-}
 .filter-title {
   width: 200px;
-}
-.sort-buttons {
-  display: flex;
-  gap: 4px;
-  justify-content: center;
-  align-items: center;
-}
-.sort-buttons .el-button.is-disabled {
-  opacity: 0.3;
 }
 .action-buttons {
   display: flex;
   gap: 6px;
   align-items: center;
   white-space: nowrap;
-}
-.form-hint {
-  color: #909399;
-  font-size: 12px;
-  margin-top: 4px;
-  line-height: 1.5;
-}
-.batch-operations {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  margin-top: 16px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-  flex-wrap: wrap;
-}
-.selected-count {
-  color: #409eff;
-  font-weight: 500;
-  margin-right: auto;
 }
 </style>

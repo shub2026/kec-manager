@@ -1,0 +1,79 @@
+/* 全局共享样式 — 抽取自各 .vue 组件中的重复 CSS */
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 排序按钮 */
+.sort-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.sort-buttons .el-button.is-disabled {
+  opacity: 0.3;
+}
+
+/* 分页容器 */
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding: 12px 0;
+}
+
+/* 提示信息 */
+.alert-info {
+  margin-bottom: 16px;
+}
+
+/* 展开行内容 */
+.expand-content {
+  padding: 12px 24px;
+}
+
+/* 批量操作栏 */
+.batch-operations {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #f5f7fa;
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+
+.selected-count {
+  color: #409eff;
+  font-weight: 500;
+  margin-right: auto;
+}
+
+/* 表单提示文字 */
+.form-hint {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* 通用全宽 */
+.full-width {
+  width: 100%;
+}
+
+/* 无教材提示 */
+.no-textbook {
+  color: #909399;
+}

@@ -72,8 +72,8 @@ export const validateLogin = [
     .isLength({ min: 1, max: 50 })
     .withMessage('用户名不能为空且不超过50个字符'),
   body('password')
-    .isLength({ min: 6 })
-    .withMessage('密码长度至少6位'),
+    .isLength({ min: 8 })
+    .withMessage('密码长度至少8位'),
   handleValidationErrors
 ];
 

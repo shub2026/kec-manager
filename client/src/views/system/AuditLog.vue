@@ -258,12 +258,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .query-toolbar {
   display: flex;
   gap: 12px;

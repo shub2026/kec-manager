@@ -284,33 +284,3 @@ onMounted(() => {
   load()
 })
 </script>
-
-<style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.card-header-actions {
-  display: flex;
-  gap: 12px;
-}
-.full-width {
-  width: 100%;
-}
-.sort-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  align-items: center;
-}
-.sort-buttons .el-button.is-disabled {
-  opacity: 0.3;
-}
-.form-hint {
-  color: #909399;
-  font-size: 12px;
-  margin-top: 4px;
-  line-height: 1.5;
-}
-</style>

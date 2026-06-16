@@ -320,21 +320,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.card-header-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
 .filter-medium {
   width: 160px;
-}
-.full-width {
-  width: 100%;
 }
 .relation-mode-group {
   display: flex;
@@ -345,14 +332,5 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
   margin-top: 4px;
   line-height: 1.5;
-}
-.sort-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  align-items: center;
-}
-.sort-buttons .el-button.is-disabled {
-  opacity: 0.3;
 }
 </style>

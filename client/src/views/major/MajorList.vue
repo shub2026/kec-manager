@@ -14,8 +14,8 @@
         <el-table-column prop="name" label="专业名称" min-width="150" />
         <el-table-column prop="code" label="编码" width="120" />
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column label="班级数" width="80">
-          <template #default="{ row }">{{ row.classCount || 0 }}</template>
+        <el-table-column label="方案数" width="80">
+          <template #default="{ row }">{{ row.planCount || 0 }}</template>
         </el-table-column>
         <el-table-column label="排序" width="120" align="center">
           <template #default="{ row, $index }">
@@ -73,94 +73,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { getMajors, createMajor, updateMajor, deleteMajor } from '../../api/major'
-import { useSortable } from '../../composables/useSortable'
+import { useCrudList } from '../../composables/useCrudList'
 
-const list = ref([])
-const loading = ref(false)
-const dialogVisible = ref(false)
-const saving = ref(false)
-const form = ref({ id: null, name: '', code: '', description: '' })
-
-// 使用排序 composable
-const { handleMoveUp, handleMoveDown } = useSortable(list, updateMajor, silentReload)
-
-async function load() {
-  loading.value = true
-  try {
-    const res = await getMajors()
-    list.value = res.data || []
-  } finally {
-    loading.value = false
-  }
-}
-
-async function silentReload() {
-  try {
-    const res = await getMajors()
-    list.value = res.data || []
-  } catch (e) {
-    console.error('刷新数据失败:', e)
-  }
-}
-
-function openDialog(row) {
-  form.value = row ? { ...row } : { id: null, name: '', code: '', description: '' }
-  dialogVisible.value = true
-}
-
-async function handleSave() {
-  if (!form.value.name) return ElMessage.warning('请输入专业名称')
-  saving.value = true
-  try {
-    if (form.value.id) {
-      await updateMajor(form.value.id, form.value)
-    } else {
-      await createMajor(form.value)
-    }
-    ElMessage.success('保存成功')
-    dialogVisible.value = false
-    await silentReload()
-  } finally {
-    saving.value = false
-  }
-}
-
-async function handleDelete(id) {
-  try {
-    await deleteMajor(id)
-    ElMessage.success('删除成功')
-    await silentReload()
-  } catch (e) {
-    console.error('删除专业失败:', e)
-    ElMessage.error('删除失败，请重试')
-  }
-}
-
-onMounted(() => {
-  load()
-})
+const {
+  list, loading, dialogVisible, saving, form,
+  handleMoveUp, handleMoveDown,
+  openDialog, handleSave, handleDelete,
+} = useCrudList(
+  { list: getMajors, create: createMajor, update: updateMajor, remove: deleteMajor },
+  { nameLabel: '专业名称' }
+)
 </script>
-
-<style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.full-width {
-  width: 100%;
-}
-.sort-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  align-items: center;
-}
-.sort-buttons .el-button.is-disabled {
-  opacity: 0.3;
-}
-</style>

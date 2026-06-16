@@ -137,13 +137,6 @@ const version = __APP_VERSION__
 
 // 修改密码相关
 const passwordDialogVisible = ref(false)
-const passwordFormRef = ref(null)
-const changingPassword = ref(false)
-const passwordForm = ref({
-  oldPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-})
 
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => route.meta?.title || '首页')
@@ -246,12 +239,6 @@ function handlePasswordChangeSuccess() {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-}
-
-/* 确保菜单容器占满侧边栏宽度 */
-.layout-aside :deep(.el-menu) {
-  width: 100%;
-  border-right: none;
 }
 
 /* 确保菜单项占满宽度 */

@@ -12,13 +12,13 @@
             第{{ s }}学期
           </th>
           <th class="matrix-total-header">总课时</th>
-          <th class="matrix-action-header">操作</th>
+          <th v-if="!readonly" class="matrix-action-header">操作</th>
         </tr>
       </thead>
       <tbody v-for="group in groups" :key="group.type + '-' + group.label">
         <!-- 分组标题行 -->
         <tr class="matrix-group-row">
-          <td :colspan="maxSemester + 3" class="matrix-group-cell" :class="group.type">
+          <td :colspan="readonly ? maxSemester + 2 : maxSemester + 3" class="matrix-group-cell" :class="group.type">
             <span class="group-label">{{ group.label }}</span>
             <span class="group-count">{{ group.courses.length }} 门</span>
           </td>
@@ -45,7 +45,7 @@
             :key="s"
             class="matrix-cell"
             :class="cellClass(course, s)"
-            @click="$emit('edit', course, s)"
+            @click="!readonly && $emit('edit', course, s)"
           >
             <template v-if="isInRange(course, s)">
               <div class="cell-hours">
@@ -68,7 +68,7 @@
             <strong>{{ calcTotalHours(course) }}</strong>
           </td>
           <!-- 操作按钮 -->
-          <td class="matrix-cell matrix-action-cell">
+          <td v-if="!readonly" class="matrix-cell matrix-action-cell">
             <div class="action-buttons">
               <el-button 
                 size="small" 
@@ -112,7 +112,7 @@
           <td class="matrix-cell matrix-subtotal-cell">
             <strong>{{ calcGroupTotal(group) }}</strong>
           </td>
-          <td></td>
+          <td v-if="!readonly"></td>
         </tr>
       </tbody>
     </table>
@@ -120,7 +120,7 @@
   </div>
 
   <!-- 底部控制栏：统一学期周数 -->
-  <div class="matrix-footer">
+  <div v-if="!readonly" class="matrix-footer">
     <div class="footer-section">
       <span class="footer-label">学期周数：</span>
       <el-input-number
@@ -153,6 +153,7 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   globalWeeks: { type: Number, default: 18 },
   totalAllHours: { type: Number, default: 0 },
+  readonly: { type: Boolean, default: false },
 })
 
 defineEmits(['edit', 'delete-course', 'move-up', 'move-down', 'set-semester', 'apply-weeks', 'update-global-weeks'])

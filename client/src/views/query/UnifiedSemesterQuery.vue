@@ -113,7 +113,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, Refresh, Calendar } from '@element-plus/icons-vue'
 import { getSemesterQuery } from '../../api/query'
@@ -121,6 +121,7 @@ import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
 import { getColleges } from '../../api/college'
 import request from '../../utils/request'
+import { useSemesters, downloadBlob } from '../../composables/useSemesters'
 
 const data = ref([])
 const loading = ref(false)
@@ -143,39 +144,14 @@ const pagination = ref({
   total: 0,
 })
 
-// 生成可选学期列表（前后各3年）
-const availableSemesters = computed(() => {
-  const currentYear = new Date().getFullYear()
-  const semesters = []
-  for (let y = currentYear - 3; y <= currentYear + 3; y++) {
-    semesters.push(
-      { value: `${y}-${y + 1}-1`, label: `${y}-${y + 1}学年 秋季(第1学期)` },
-      { value: `${y}-${y + 1}-2`, label: `${y}-${y + 1}学年 春季(第2学期)` }
-    )
-  }
-  return semesters
-})
+// 学期相关逻辑
+const { availableSemesters, getCurrentSemester } = useSemesters()
 
 // 计算可用的入学年份列表（从API全量数据读取）
 const enrollmentYears = ref([])
 
 // 计算可用的年级列表（从API全量数据读取）
 const grades = ref([])
-
-// 获取当前学期信息
-function getCurrentSemester() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1 // 1-12
-  
-  // 秋季学期：8月-次年1月，标记为当年-次年-1
-  // 春季学期：2月-7月，标记为上年-当年-2
-  if (month >= 8) {
-    return `${year}-${year + 1}-1`
-  } else {
-    return `${year - 1}-${year}-2`
-  }
-}
 
 async function load() {
   if (!selectedSemester.value) {
@@ -276,17 +252,9 @@ async function exportExcel() {
     const response = await request.post('/export/semester', params, {
       responseType: 'blob'
     })
-    
-    const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `开课数据_${semesterLabel.value || selectedSemester.value}_${new Date().getTime()}.xlsx`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-    
+
+    downloadBlob(response, `开课数据_${semesterLabel.value || selectedSemester.value}_${new Date().getTime()}.xlsx`)
+
     ElMessage.success('导出成功')
   } catch (e) {
     console.error('导出失败:', e)
@@ -313,28 +281,12 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.card-header-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
 .semester-select {
   width: auto;
   min-width: 240px;
 }
 .filter-select {
   width: 140px;
-}
-.alert-info {
-  margin-bottom: 16px;
-}
-.expand-content {
-  padding: 12px 24px;
 }
 /* 外层表格单元格防换行 */
 :deep(.el-table__body td .cell) {
@@ -345,14 +297,5 @@ onMounted(async () => {
 /* 表头单元格防换行 */
 :deep(.el-table__header th .cell) {
   white-space: nowrap;
-}
-.no-textbook {
-  color: #999;
-}
-.pagination-container {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-  padding: 12px 0;
 }
 </style>
