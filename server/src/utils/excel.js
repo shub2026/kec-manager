@@ -39,9 +39,12 @@ function normalizeCellValue(value) {
   if (typeof value === 'object') {
     // 如果是ExcelJS的RichText或其他对象，尝试提取文本
     if (value.richText && Array.isArray(value.richText)) {
-      return value.richText.map(rt => rt.text || '').join('');
+      return value.richText.map(rt => rt.text || '').join('').trim() || null;
     }
-    if (value.text) return value.text;
+    if (value.text) {
+      const text = String(value.text).trim();
+      return text || null;
+    }
     if (value.result !== undefined) return value.result;
     return String(value);
   }
@@ -49,6 +52,8 @@ function normalizeCellValue(value) {
   // 处理数字字符串（去除尾随空格）
   if (typeof value === 'string') {
     const trimmed = value.trim();
+    // 空字符串或纯空白字符串返回null
+    if (!trimmed) return null;
     // 尝试转换为数字
     if (/^\d+$/.test(trimmed)) return Number(trimmed);
     if (/^\d+\.\d+$/.test(trimmed)) return Number(trimmed);
@@ -85,9 +90,10 @@ export async function readWorkbook(filePath) {
         }
       }
       
-      // 只添加非空行（至少有一个有效字段）
-      const hasValidData = Object.values(obj).some(v => v !== null && v !== '');
-      if (hasValidData) {
+      // 修复：只有当所有字段都为空时才跳过该行
+      // 这样可以避免部分字段为空的行被错误过滤
+      const hasAnyValue = Object.values(obj).some(v => v !== null && v !== undefined && v !== '');
+      if (hasAnyValue) {
         rows.push(obj);
       }
     }

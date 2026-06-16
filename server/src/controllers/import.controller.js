@@ -26,14 +26,18 @@ function cleanupFile(path) {
 }
 
 function sanitizeInput(value) {
-  if (value === null || value === undefined) return value;
+  if (value === null || value === undefined) return null;
   const str = String(value).trim();
+  // 空字符串或纯空白字符串返回 null
+  if (!str) return null;
   return xss(str);
 }
 
 function sanitizeFormulaInjection(value) {
-  if (value === null || value === undefined) return value;
-  const str = String(value);
+  if (value === null || value === undefined) return null;
+  const str = String(value).trim();
+  // 空字符串或纯空白字符串返回 null
+  if (!str) return null;
   if (/^[=+\-@]/.test(str)) {
     return "'" + str;
   }
@@ -93,9 +97,9 @@ export async function importClasses(req, res, next) {
     const durationYears = sanitizedRow['学制(年)'];
     const majorName = sanitizedRow['专业类别'];
     const collegeName = sanitizedRow['二级学院'];
-    const trainingLevelName = row['培养层次'];
-    const studentCount = row['班级人数'];
-    const statusValue = row['状态'];
+    const trainingLevelName = sanitizedRow['培养层次'];
+    const studentCount = sanitizedRow['班级人数'];
+    const statusValue = sanitizedRow['状态'];
 
     if (!name || !enrollmentYear || !durationYears || !trainingLevelName) {
       validationErrors.push(`第${i + 2}行：缺少必填字段（班级名称、入学年份、学制、培养层次）`);

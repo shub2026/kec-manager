@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
 import { createWorkbook, workbookToBuffer } from '../../utils/excel.js';
-import { getSemesterInfoFromRequest } from '../../services/settings.service.js';
+import { getSemesterInfoFromRequest, getCurrentSemesterInfo } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
 import { isClassMatchPlan } from '../../services/plan.service.js';
@@ -74,7 +74,7 @@ export async function exportTextbooks(req, res, next) {
       '作者': textbook.author || '-',
       '版次': textbook.edition || '-',
       '出版日期': textbook.publish_date || '-',
-      '定价': textbook.price ? `¥${textbook.price}` : '-',
+      '定价': textbook.price || '-',
       '类别': textbook.category || '-',
       '状态': textbook.is_active ? '启用' : '停用',
     }));
@@ -126,7 +126,122 @@ export async function exportTextbooks(req, res, next) {
  */
 export async function exportClasses(req, res, next) {
   try {
+    const { name, majorId, collegeId, status, trainingLevelId, planId, enrollmentYear } = req.query;
+    
+    // 构建筛选条件（与 listClasses 保持一致的逻辑）
+    const where = {};
+    if (name) where.name = { contains: name };
+    
+    if (majorId === 'null') {
+      where.major_id = null;
+    } else if (majorId) {
+      where.major_id = Number(majorId);
+    }
+    
+    if (collegeId === 'null') {
+      where.college_id = null;
+    } else if (collegeId) {
+      where.college_id = Number(collegeId);
+    }
+    
+    let dynamicStatusFilter = null;
+    if (status === 'null') {
+      dynamicStatusFilter = [
+        { enrollment_year: null, is_left_school: false },
+        { duration_years: null, is_left_school: false },
+      ];
+    } else if (status === 'left_school') {
+      dynamicStatusFilter = [{ is_left_school: true }];
+    } else if (status === 'active' || status === 'graduated') {
+      const semesterInfo = await getCurrentSemesterInfo();
+      if (semesterInfo) {
+        const startYear = semesterInfo.startYear;
+        const durations = await prisma.classes.findMany({
+          select: { duration_years: true },
+          distinct: ['duration_years'],
+        });
+        const durationValues = durations.map(d => d.duration_years).filter(d => d != null);
+        
+        dynamicStatusFilter = durationValues.map(d => ({
+          duration_years: d,
+          is_left_school: false,
+          enrollment_year: status === 'active'
+            ? { gte: startYear - d + 1 }
+            : { lt: startYear - d + 1 },
+        }));
+      }
+    }
+    
+    if (trainingLevelId === 'null') {
+      where.training_level_id = null;
+    } else if (trainingLevelId) {
+      where.training_level_id = Number(trainingLevelId);
+    }
+    
+    if (enrollmentYear === 'null') {
+      where.enrollment_year = null;
+    } else if (enrollmentYear) {
+      where.enrollment_year = Number(enrollmentYear);
+    }
+    
+    if (planId) {
+      if (planId === 'none') {
+        const allPlans = await prisma.training_plans.findMany({
+          select: { id: true, major_id: true, training_level_id: true },
+        });
+        
+        where.custom_plan_id = null;
+        
+        const notConditions = [];
+        const majorIdsWithPlans = [...new Set(allPlans.filter(p => p.major_id).map(p => p.major_id))];
+        if (majorIdsWithPlans.length > 0) {
+          notConditions.push({ major_id: { in: majorIdsWithPlans } });
+        }
+        
+        const levelIdsWithPlans = [...new Set(allPlans.filter(p => p.training_level_id).map(p => p.training_level_id))];
+        if (levelIdsWithPlans.length > 0) {
+          notConditions.push({ training_level_id: { in: levelIdsWithPlans } });
+        }
+        
+        if (notConditions.length > 0) {
+          where.NOT = { OR: notConditions };
+        }
+      } else {
+        const planIdNum = Number(planId);
+        const plan = await prisma.training_plans.findUnique({
+          where: { id: planIdNum },
+          select: { major_id: true, training_level_id: true },
+        });
+        
+        if (plan) {
+          const conditions = [{ custom_plan_id: planIdNum }];
+          
+          if (plan.major_id) {
+            conditions.push({ major_id: plan.major_id, custom_plan_id: null });
+          }
+          
+          if (plan.training_level_id) {
+            conditions.push({ training_level_id: plan.training_level_id, custom_plan_id: null });
+          }
+          
+          where.OR = conditions;
+        } else {
+          // 如果没有找到方案，返回空结果
+          return success(res, { items: [], total: 0 }, '导出完成：无数据');
+        }
+      }
+    }
+    
+    let finalWhere = where;
+    if (dynamicStatusFilter) {
+      finalWhere = {
+        AND: [where, { OR: dynamicStatusFilter }],
+      };
+    }
+
+    // 获取筛选后的班级数据
     const classes = await prisma.classes.findMany({
+      where: finalWhere,
       include: {
         colleges: true,
         majors: true,
@@ -136,17 +251,78 @@ export async function exportClasses(req, res, next) {
       orderBy: { enrollment_year: 'desc' },
     });
 
-    const rows = classes.map((cls) => ({
-      '班级名称': cls.name,
-      '二级学院': cls.colleges?.name || '-',
-      '专业': cls.majors?.name || '-',
-      '培养层次': cls.training_levels?.name || '-',
-      '入学年份': cls.enrollment_year,
-      '学制(年)': cls.duration_years,
-      '人数': Number(cls.student_count) || 0,
-      '状态': cls.is_left_school ? '离校' : (cls.status === 'active' ? '在读' : '已毕业'),
-      '培养方案': cls.training_plans?.name || '-',
-    }));
+    // 预加载所有培养方案，用于自动匹配（与 listClasses 保持一致）
+    const allPlans = await prisma.training_plans.findMany({
+      select: { id: true, name: true, major_id: true, training_level_id: true },
+    });
+    
+    // 获取学期信息用于计算年级
+    const semesterInfo = await getCurrentSemesterInfo();
+
+    const rows = classes.map((cls) => {
+      // 计算匹配的培养方案名称（与前端逻辑一致）
+      let matchedPlanName = null;
+      if (cls.custom_plan_id && cls.training_plans) {
+        // 有自定义方案
+        matchedPlanName = cls.training_plans.name;
+      } else {
+        // 尝试根据专业或培养层次匹配方案
+        let matchedPlan = null;
+        if (cls.major_id) {
+          matchedPlan = allPlans.find(p => p.major_id === cls.major_id);
+        }
+        if (!matchedPlan && cls.training_level_id) {
+          matchedPlan = allPlans.find(p => p.training_level_id === cls.training_level_id);
+        }
+        if (matchedPlan) {
+          matchedPlanName = matchedPlan.name;
+        }
+      }
+      
+      // 计算年级
+      let grade = null;
+      if (semesterInfo && cls.enrollment_year && cls.duration_years) {
+        const startYear = semesterInfo.startYear;
+        grade = startYear - cls.enrollment_year + 1;
+        // 只有在有效范围内才显示年级
+        if (grade < 1 || grade > cls.duration_years) {
+          grade = null;
+        }
+      }
+      
+      // 确定关联类型
+      let relationType = '未关联';
+      if (cls.custom_plan_id) {
+        relationType = '自定义';
+      } else if (cls.major_id) {
+        relationType = '专业';
+      } else if (cls.training_level_id) {
+        relationType = '层次';
+      }
+      
+      // 确定状态文本
+      let statusText = '已毕业';
+      if (cls.is_left_school) {
+        statusText = '离校';
+      } else if (cls.enrollment_year && cls.duration_years) {
+        const calcGrade = semesterInfo ? (semesterInfo.startYear - cls.enrollment_year + 1) : null;
+        statusText = (calcGrade !== null && calcGrade >= 1 && calcGrade <= cls.duration_years) ? '在读' : '已毕业';
+      }
+
+      return {
+        '班级名称': cls.name,
+        '二级学院': cls.colleges?.name || '-',
+        '专业': cls.majors?.name || '-',
+        '培养层次': cls.training_levels?.name || '-',
+        '入学年份': cls.enrollment_year,
+        '学制(年)': cls.duration_years,
+        '人数': Number(cls.student_count) || 0,
+        '年级': grade ? `${grade}年级` : '-',
+        '状态': statusText,
+        '关联类型': relationType,
+        '当前方案': matchedPlanName || '-',
+      };
+    });
 
     const headers = [
       { label: '班级名称', key: '班级名称', width: 25 },
@@ -156,8 +332,10 @@ export async function exportClasses(req, res, next) {
       { label: '入学年份', key: '入学年份', width: 12 },
       { label: '学制(年)', key: '学制(年)', width: 10 },
       { label: '人数', key: '人数', width: 8 },
+      { label: '年级', key: '年级', width: 10 },
       { label: '状态', key: '状态', width: 10 },
-      { label: '培养方案', key: '培养方案', width: 30 },
+      { label: '关联类型', key: '关联类型', width: 10 },
+      { label: '当前方案', key: '当前方案', width: 30 },
     ];
 
     const workbook = await createWorkbook(headers, rows);
@@ -169,7 +347,7 @@ export async function exportClasses(req, res, next) {
       module: 'class',
       userId: req.user?.id,
       ip: req.ip,
-      details: { rowCount: rows.length },
+      details: { rowCount: rows.length, filters: req.query },
       result: 'success',
       message: `导出班级数据，共${rows.length}条记录`,
     });

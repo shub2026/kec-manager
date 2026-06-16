@@ -34,7 +34,44 @@ export async function querySemester(req, res, next) {
     const pageNum = page ? Number(page) : 1;
     const pageSizeNum = pageSize ? Number(pageSize) : 50;
     
+    // 第一步：获取所有培养方案，确定哪些班级可以关联到方案
+    const allPlans = await prisma.training_plans.findMany({
+      select: {
+        id: true,
+        major_id: true,
+        college_id: true,
+        training_level_id: true,
+      },
+    });
+
+    // 构建可匹配的班级条件：必须能关联到至少一个培养方案
+    const classWithPlanConditions = [];
+    
+    // 条件1：班级有自定义方案
+    classWithPlanConditions.push({ custom_plan_id: { not: null } });
+    
+    // 条件2：班级的专业ID能匹配某个方案
+    const majorIdsWithPlans = [...new Set(allPlans.filter(p => p.major_id).map(p => p.major_id))];
+    if (majorIdsWithPlans.length > 0) {
+      classWithPlanConditions.push({ major_id: { in: majorIdsWithPlans } });
+    }
+    
+    // 条件3：班级的培养层次ID能匹配某个方案
+    const levelIdsWithPlans = [...new Set(allPlans.filter(p => p.training_level_id).map(p => p.training_level_id))];
+    if (levelIdsWithPlans.length > 0) {
+      classWithPlanConditions.push({ training_level_id: { in: levelIdsWithPlans } });
+    }
+
+    // 基础过滤：在读班级 + 能关联到培养方案
     const activeFilter = await getActiveClassFilter();
+    const baseWhere = {
+      AND: [
+        activeFilter,
+        { OR: classWithPlanConditions },
+      ],
+    };
+
+    // 添加额外的筛选条件
     const extraConditions = {};
     if (majorId) extraConditions.major_id = Number(majorId);
     if (collegeId) extraConditions.college_id = Number(collegeId);
@@ -42,8 +79,8 @@ export async function querySemester(req, res, next) {
     if (enrollmentYear) extraConditions.enrollment_year = Number(enrollmentYear);
 
     const classWhere = Object.keys(extraConditions).length > 0
-      ? { AND: [activeFilter, extraConditions] }
-      : activeFilter;
+      ? { AND: [baseWhere, extraConditions] }
+      : baseWhere;
 
     const totalClassesCount = await prisma.classes.count({ where: classWhere });
 
@@ -75,6 +112,7 @@ export async function querySemester(req, res, next) {
       take: pageSizeNum,
     });
 
+    // 第二步：预加载相关培养方案
     const majorPlanIds = new Set();
     const levelPlanIds = new Set();
     const classPlanMap = new Map();
@@ -122,11 +160,20 @@ export async function querySemester(req, res, next) {
       if (grade && calc.grade !== Number(grade)) continue;
 
       const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
-      if (!plan) continue;
+      if (!plan) {
+        // 理论上不应该到这里，因为前面已经过滤了
+        console.log(`[WARN] 班级 ${cls.name} 虽满足前置条件但无匹配方案, major_id=${cls.major_id}, level_id=${cls.training_level_id}`);
+        continue;
+      }
 
       const planCourses = plan.plan_courses.filter(
         (pc) => pc.start_semester <= calc.currentSemesterNum && pc.end_semester >= calc.currentSemesterNum
       );
+
+      if (planCourses.length === 0) {
+        console.log(`[DEBUG] 班级 ${cls.name} 方案 ${plan.name} 无当前学期课程, 当前学期=${calc.currentSemesterNum}`);
+        continue;
+      }
 
       const courses = planCourses.map((pc) => {
         const semRecord = pc.plan_course_semesters?.find(s => s.semester === calc.currentSemesterNum);
@@ -161,6 +208,8 @@ export async function querySemester(req, res, next) {
         courses,
       });
     }
+
+    console.log(`[DEBUG] querySemester 最终返回 ${results.length} 个班级（总计符合条件的班级数：${totalClassesCount}）`);
 
     success(res, {
       semesterInfo: {

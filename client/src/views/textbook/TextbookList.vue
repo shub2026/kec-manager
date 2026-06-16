@@ -45,7 +45,7 @@
           <template #default="{ row }">{{ row.publishDate || '-' }}</template>
         </el-table-column>
         <el-table-column label="定价" min-width="65">
-          <template #default="{ row }">{{ row.price ? '¥' + row.price : '-' }}</template>
+          <template #default="{ row }">{{ row.price || '-' }}</template>
         </el-table-column>
         <el-table-column label="类别" min-width="65">
           <template #default="{ row }">

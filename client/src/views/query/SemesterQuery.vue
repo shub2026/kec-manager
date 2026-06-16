@@ -20,6 +20,9 @@
             <el-select v-model="filterGrade" clearable placeholder="按年级筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
             </el-select>
+            <el-button @click="resetFilters">
+              <el-icon><Refresh /></el-icon> 重置
+            </el-button>
             <el-button type="success" @click="exportExcel">
               <el-icon><Download /></el-icon> 导出Excel
             </el-button>
@@ -100,6 +103,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Download, Refresh } from '@element-plus/icons-vue'
 import { useAuthStore } from '../../stores/auth'
 import { getSemesterQuery } from '../../api/query'
 import { getMajors } from '../../api/major'
@@ -182,6 +186,16 @@ function handleSizeChange(size) {
 function resetPaginationAndLoad() {
   pagination.value.page = 1
   load()
+}
+
+// 重置所有筛选条件
+function resetFilters() {
+  filterCollege.value = null
+  filterMajor.value = null
+  filterLevel.value = null
+  filterEnrollmentYear.value = null
+  filterGrade.value = null
+  resetPaginationAndLoad()
 }
 
 const authStore = useAuthStore()
