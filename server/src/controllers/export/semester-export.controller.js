@@ -21,10 +21,41 @@ export async function exportSemesterSchedule(req, res, next) {
       }
     }
 
+    // 第一步：获取所有培养方案，确定哪些班级可以关联到方案
+    const allPlans = await prisma.training_plans.findMany({
+      select: {
+        id: true,
+        major_id: true,
+        college_id: true,
+        training_level_id: true,
+      },
+    });
+
+    // 构建可匹配的班级条件：必须能关联到至少一个培养方案
+    const classWithPlanConditions = [];
+    
+    // 条件1：班级有自定义方案
+    classWithPlanConditions.push({ custom_plan_id: { not: null } });
+    
+    // 条件2：班级的专业ID能匹配某个方案
+    const majorIdsWithPlans = [...new Set(allPlans.filter(p => p.major_id).map(p => p.major_id))];
+    if (majorIdsWithPlans.length > 0) {
+      classWithPlanConditions.push({ major_id: { in: majorIdsWithPlans } });
+    }
+    
+    // 条件3：班级的培养层次ID能匹配某个方案
+    const levelIdsWithPlans = [...new Set(allPlans.filter(p => p.training_level_id).map(p => p.training_level_id))];
+    if (levelIdsWithPlans.length > 0) {
+      classWithPlanConditions.push({ training_level_id: { in: levelIdsWithPlans } });
+    }
+
     const activeFilter = await getActiveClassFilter();
     
     const { collegeId, majorId, trainingLevelId, enrollmentYear, grade } = req.query;
-    const whereConditions = [activeFilter];
+    const whereConditions = [
+      activeFilter,
+      { OR: classWithPlanConditions },
+    ];
     
     if (collegeId) whereConditions.push({ college_id: Number(collegeId) });
     if (majorId) whereConditions.push({ major_id: Number(majorId) });
@@ -59,8 +90,15 @@ export async function exportSemesterSchedule(req, res, next) {
 
     const majorPlanIds = new Set();
     const levelPlanIds = new Set();
+    const classPlanMap = new Map();
+    
     for (const cls of classes) {
-      if (!cls.custom_plan_id) {
+      const gradeCalc = semesterInfo.startYear - cls.enrollment_year + 1;
+      if (gradeCalc < 1 || gradeCalc > cls.duration_years) continue;
+      
+      if (cls.custom_plan_id) {
+        classPlanMap.set(cls.id, cls.training_plans);
+      } else {
         if (cls.major_id) majorPlanIds.add(cls.major_id);
         if (cls.training_level_id) levelPlanIds.add(cls.training_level_id);
       }
@@ -96,7 +134,7 @@ export async function exportSemesterSchedule(req, res, next) {
       if (gradeCalc < 1 || gradeCalc > cls.duration_years) continue;
       const currentSemesterNum = (gradeCalc - 1) * 2 + semesterInfo.semesterIndex;
 
-      const plan = findBestMatchPlan(cls, matchingPlans);
+      const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
       if (!plan) continue;
 
       const planCourses = plan.plan_courses.filter(
@@ -112,7 +150,7 @@ export async function exportSemesterSchedule(req, res, next) {
           '入学年份': cls.enrollment_year,
           '年级': gradeCalc,
           '学生人数': Number(cls.student_count) || 0, 
-          '培养方案': plan?.name || '-',
+          '培养方案': plan.name || '-',
           '课程': '-', 
           '课程类型': '-',
           '周课时': '-', 
@@ -136,7 +174,7 @@ export async function exportSemesterSchedule(req, res, next) {
             '入学年份': cls.enrollment_year,
             '年级': gradeCalc,
             '学生人数': Number(cls.student_count) || 0, 
-            '培养方案': plan?.name || '-',
+            '培养方案': plan.name || '-',
             '课程': pc.courses.name,
             '课程类型': pc.courses.type === 'public' ? '公共基础课' : '专业课',
             '周课时': weeklyHours,
@@ -208,9 +246,40 @@ export async function exportSemesterSchedulePost(req, res, next) {
       return res.status(400).json({ success: false, message: '请先设置当前学期' });
     }
 
+    // 第一步：获取所有培养方案，确定哪些班级可以关联到方案
+    const allPlans = await prisma.training_plans.findMany({
+      select: {
+        id: true,
+        major_id: true,
+        college_id: true,
+        training_level_id: true,
+      },
+    });
+
+    // 构建可匹配的班级条件：必须能关联到至少一个培养方案
+    const classWithPlanConditions = [];
+    
+    // 条件1：班级有自定义方案
+    classWithPlanConditions.push({ custom_plan_id: { not: null } });
+    
+    // 条件2：班级的专业ID能匹配某个方案
+    const majorIdsWithPlans = [...new Set(allPlans.filter(p => p.major_id).map(p => p.major_id))];
+    if (majorIdsWithPlans.length > 0) {
+      classWithPlanConditions.push({ major_id: { in: majorIdsWithPlans } });
+    }
+    
+    // 条件3：班级的培养层次ID能匹配某个方案
+    const levelIdsWithPlans = [...new Set(allPlans.filter(p => p.training_level_id).map(p => p.training_level_id))];
+    if (levelIdsWithPlans.length > 0) {
+      classWithPlanConditions.push({ training_level_id: { in: levelIdsWithPlans } });
+    }
+
     const activeFilter = await getActiveClassFilter();
     
-    const whereConditions = [activeFilter];
+    const whereConditions = [
+      activeFilter,
+      { OR: classWithPlanConditions },
+    ];
     
     if (collegeId) whereConditions.push({ college_id: Number(collegeId) });
     if (majorId) whereConditions.push({ major_id: Number(majorId) });
@@ -245,8 +314,15 @@ export async function exportSemesterSchedulePost(req, res, next) {
 
     const majorPlanIds = new Set();
     const levelPlanIds = new Set();
+    const classPlanMap = new Map();
+    
     for (const cls of classes) {
-      if (!cls.custom_plan_id) {
+      const gradeCalc = semesterInfo.startYear - cls.enrollment_year + 1;
+      if (gradeCalc < 1 || gradeCalc > cls.duration_years) continue;
+      
+      if (cls.custom_plan_id) {
+        classPlanMap.set(cls.id, cls.training_plans);
+      } else {
         if (cls.major_id) majorPlanIds.add(cls.major_id);
         if (cls.training_level_id) levelPlanIds.add(cls.training_level_id);
       }
@@ -283,7 +359,7 @@ export async function exportSemesterSchedulePost(req, res, next) {
       
       const currentSemesterNum = (gradeCalc - 1) * 2 + semesterInfo.semesterIndex;
 
-      const plan = findBestMatchPlan(cls, matchingPlans);
+      const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
       if (!plan) continue;
 
       const planCourses = plan.plan_courses.filter(
@@ -299,6 +375,7 @@ export async function exportSemesterSchedulePost(req, res, next) {
           '入学年份': cls.enrollment_year,
           '年级': gradeCalc,
           '学生人数': Number(cls.student_count) || 0, 
+          '培养方案': plan.name || '-',
           '课程': '-', 
           '课程类型': '-',
           '周课时': '-', 
@@ -322,6 +399,7 @@ export async function exportSemesterSchedulePost(req, res, next) {
             '入学年份': cls.enrollment_year,
             '年级': gradeCalc,
             '学生人数': Number(cls.student_count) || 0, 
+            '培养方案': plan.name || '-',
             '课程': pc.courses.name,
             '课程类型': pc.courses.type === 'public' ? '公共基础课' : '专业课',
             '周课时': weeklyHours,
