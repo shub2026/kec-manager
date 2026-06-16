@@ -12,6 +12,9 @@ export default defineConfig({
       '@': `${__dirname}/src`
     }
   },
+  build: {
+    target: 'es2022'
+  },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version)
   },
