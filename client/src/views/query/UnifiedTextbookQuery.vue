@@ -37,21 +37,21 @@
       
       <div v-else-if="detail">
         <el-descriptions :column="3" border class="textbook-descriptions">
-          <el-descriptions-item label="书名">{{ detail.textbook?.title }}</el-descriptions-item>
-          <el-descriptions-item label="书号">{{ detail.textbook?.isbn || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="出版社">{{ detail.textbook?.publisher || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="作者">{{ detail.textbook?.author || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="出版日期">{{ detail.textbook?.publishDate || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="查询学期">{{ detail.semesterInfo?.label }}</el-descriptions-item>
+          <el-descriptions-item label="书名" :width="200">{{ detail.textbook?.title }}</el-descriptions-item>
+          <el-descriptions-item label="书号" :width="150">{{ detail.textbook?.isbn || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="出版社" :width="180">{{ detail.textbook?.publisher || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="作者" :width="180">{{ detail.textbook?.author || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="出版日期" :width="150">{{ detail.textbook?.publishDate || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="查询学期" :width="200">{{ detail.semesterInfo?.label }}</el-descriptions-item>
         </el-descriptions>
 
         <el-alert :title="`共 ${detail.totalClasses} 个班级使用，合计 ${detail.totalStudents} 名学生`" type="success" :closable="false" class="alert-success" />
 
         <el-table :data="paginatedClasses" stripe v-loading="loadingDetail">
-          <el-table-column prop="className" label="班级" min-width="180" fixed />
-          <el-table-column prop="courseName" label="对应课程" min-width="180" />
-          <el-table-column prop="majorName" label="专业" min-width="150" show-overflow-tooltip />
-          <el-table-column prop="trainingLevelName" label="培养层次" width="110" />
+          <el-table-column prop="className" label="班级" width="200" show-overflow-tooltip />
+          <el-table-column prop="courseName" label="对应课程" width="200" show-overflow-tooltip />
+          <el-table-column prop="majorName" label="专业" width="180" show-overflow-tooltip />
+          <el-table-column prop="trainingLevelName" label="培养层次" width="120" show-overflow-tooltip />
           <el-table-column label="年级" width="90" align="center">
             <template #default="{ row }">{{ row.grade }}年级</template>
           </el-table-column>
