@@ -79,23 +79,23 @@
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="起始学期" required>
-            <el-input-number 
-              :value="semesterForm?.startSemester" 
+            <el-input-number
+              :model-value="semesterForm?.startSemester"
               @update:model-value="$emit('update-semester-form', { ...semesterForm, startSemester: $event })"
-              :min="1" 
-              :max="12" 
-              class="full-width" 
+              :min="1"
+              :max="12"
+              class="full-width"
             />
           </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="结束学期" required>
-            <el-input-number 
-              :value="semesterForm?.endSemester" 
+            <el-input-number
+              :model-value="semesterForm?.endSemester"
               @update:model-value="$emit('update-semester-form', { ...semesterForm, endSemester: $event })"
-              :min="1" 
-              :max="12" 
-              class="full-width" 
+              :min="1"
+              :max="12"
+              class="full-width"
             />
           </el-form-item>
         </el-col>

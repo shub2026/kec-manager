@@ -160,6 +160,7 @@ export async function querySemester(req, res, next) {
         (pc) => pc.start_semester <= calc.currentSemesterNum && pc.end_semester >= calc.currentSemesterNum
       );
 
+      // 如果当前学期没有课程，跳过该班级（不显示在读但无课的班级）
       if (planCourses.length === 0) {
         console.log(`[DEBUG] 班级 ${cls.name} 方案 ${plan.name} 无当前学期课程, 当前学期=${calc.currentSemesterNum}`);
         continue;
@@ -171,9 +172,9 @@ export async function querySemester(req, res, next) {
           course_id: pc.courses.id,
           courseName: pc.courses.name,
           courseType: pc.courses.type,
-          weekly_hours: semRecord?.weekly_hours || pc.weekly_hours,
-          weeks_per_semester: semRecord?.weeks_count || pc.weeks_per_semester,
-          totalHoursThisSemester: (semRecord?.weekly_hours || pc.weekly_hours) * (semRecord?.weeks_count || pc.weeks_per_semester),
+          weekly_hours: semRecord?.weekly_hours ?? pc.weekly_hours,
+          weeks_per_semester: semRecord?.weeks_count ?? pc.weeks_per_semester,
+          totalHoursThisSemester: (semRecord?.weekly_hours ?? pc.weekly_hours) * (semRecord?.weeks_count ?? pc.weeks_per_semester),
           textbooks: (semRecord?.plan_textbooks || []).map((pt) => ({
             id: pt.textbooks.id,
             title: pt.textbooks.title,

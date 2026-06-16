@@ -356,8 +356,8 @@ export const validatePlanCourse = [
     .withMessage('结束学期必须在1-10之间'),
   body('weekly_hours')
     .optional()
-    .isInt({ min: 1, max: 20 })
-    .withMessage('周课时必须在1-20之间'),
+    .isInt({ min: 0, max: 20 })
+    .withMessage('周课时必须在0-20之间'),
   body('weeks_per_semester')
     .optional()
     .isInt({ min: 1, max: 30 })
@@ -371,8 +371,8 @@ export const validatePlanCourse = [
 export const validateSemester = [
   body('weekly_hours')
     .optional()
-    .isInt({ min: 1, max: 20 })
-    .withMessage('周课时必须在1-20之间'),
+    .isInt({ min: 0, max: 20 })
+    .withMessage('周课时必须在0-20之间'),
   body('weeks_count')
     .optional()
     .isInt({ min: 1, max: 30 })

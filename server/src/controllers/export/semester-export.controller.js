@@ -124,8 +124,8 @@ async function buildSemesterExportData(semesterInfo, filters) {
       for (const pc of planCourses) {
         const semRecord = pc.plan_course_semesters?.find(s => s.semester === currentSemesterNum);
         const textbooks = semRecord?.plan_textbooks || [];
-        const weeklyHours = semRecord?.weekly_hours || pc.weekly_hours;
-        const weeksCount = semRecord?.weeks_count || pc.weeks_per_semester;
+        const weeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours;
+        const weeksCount = semRecord?.weeks_count ?? pc.weeks_per_semester;
 
         rows.push({
           ...baseRow,

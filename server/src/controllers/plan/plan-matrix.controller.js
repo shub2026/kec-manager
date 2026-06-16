@@ -226,7 +226,7 @@ export async function upsertSemester(req, res, next) {
     const { planId, courseId } = req.params;
     const { semester, weekly_hours, weeks_count } = req.body;
 
-    if (!semester || !weekly_hours) {
+    if (!semester || weekly_hours === undefined || weekly_hours === null) {
       return fail(res, '学期和周课时为必填项');
     }
 

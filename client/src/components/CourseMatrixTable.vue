@@ -49,7 +49,7 @@
           >
             <template v-if="isInRange(course, s)">
               <div class="cell-hours">
-                {{ getHours(course, s) || '-' }}
+                {{ getHours(course, s) !== null ? getHours(course, s) : '-' }}
               </div>
               <div 
                 v-for="textbook in getTextbooks(course, s)" 
@@ -107,7 +107,7 @@
             :key="s"
             class="matrix-cell matrix-subtotal-cell"
           >
-            {{ calcSemesterSubtotal(group, s) || '-' }}
+            {{ calcSemesterSubtotal(group, s) }}
           </td>
           <td class="matrix-cell matrix-subtotal-cell">
             <strong>{{ calcGroupTotal(group) }}</strong>
@@ -124,7 +124,7 @@
     <div class="footer-section">
       <span class="footer-label">学期周数：</span>
       <el-input-number
-        :value="globalWeeks"
+        :model-value="globalWeeks"
         @update:model-value="$emit('update-global-weeks', $event)"
         :min="1"
         :max="30"
@@ -155,7 +155,7 @@ const props = defineProps({
   totalAllHours: { type: Number, default: 0 },
 })
 
-defineEmits(['edit', 'delete-course', 'move-up', 'move-down', 'set-semester', 'apply-weeks'])
+defineEmits(['edit', 'delete-course', 'move-up', 'move-down', 'set-semester', 'apply-weeks', 'update-global-weeks'])
 
 // 计算最大学期数
 const maxSemester = computed(() => {
@@ -258,10 +258,13 @@ function calcSemesterSubtotal(group, semester) {
   let total = 0
   group.courses.forEach(c => {
     if (isInRange(c, semester)) {
-      total += getHours(c, semester) || 0
+      const hours = getHours(c, semester)
+      if (hours !== null) {
+        total += hours
+      }
     }
   })
-  return total || null
+  return total
 }
 
 function calcGroupTotal(group) {
