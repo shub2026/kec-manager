@@ -73,35 +73,17 @@
                 >
                   <template v-if="isInRange(course, s)">
                     <div class="cell-hours">
-                      {{ getHours(course, s) || '-' }}
+                      {{ getHours(course, s) !== null ? getHours(course, s) : '-' }}
                     </div>
-                    <div
-                      v-if="getTextbookInfo(course, s)"
+                    <div 
+                      v-for="textbook in getTextbooks(course, s)" 
+                      :key="textbook.id"
                       class="cell-textbook"
-                      :class="{ 'textbook-disabled': !getTextbookInfo(course, s).isActive }"
+                      :class="{ 'textbook-disabled': !textbook.isActive }"
+                      :title="!textbook.isActive ? '该教材已禁用，建议更换' : textbook.title"
                     >
-                      <el-tooltip
-                        placement="top"
-                        :show-after="300"
-                        popper-class="textbook-tooltip"
-                      >
-                        <template #content>
-                          <div class="tooltip-content">
-                            <div><strong>教材名称：</strong>{{ getTextbookInfo(course, s).title }}</div>
-                            <div v-if="!getTextbookInfo(course, s).isActive" style="color: #e6a23c; margin-top: 4px;">
-                              <strong>⚠️ 该教材已禁用，建议更换</strong>
-                            </div>
-                            <div v-if="getTextbookInfo(course, s).author"><strong>作者：</strong>{{ getTextbookInfo(course, s).author }}</div>
-                            <div v-if="getTextbookInfo(course, s).publisher"><strong>出版社：</strong>{{ getTextbookInfo(course, s).publisher }}</div>
-                            <div v-if="getTextbookInfo(course, s).isbn"><strong>ISBN：</strong>{{ getTextbookInfo(course, s).isbn }}</div>
-                            <div v-if="getTextbookInfo(course, s).edition"><strong>版次：</strong>{{ getTextbookInfo(course, s).edition }}</div>
-                            <div><strong>要求：</strong>{{ getTextbookInfo(course, s).isRequired ? '必修' : '选修' }}</div>
-                          </div>
-                        </template>
-                        <span class="textbook-link" :class="{ 'link-disabled': !getTextbookInfo(course, s).isActive }">
-                          {{ !getTextbookInfo(course, s).isActive ? '⚠️ ' : '' }}{{ getTextbookInfo(course, s).shortTitle }}
-                        </span>
-                      </el-tooltip>
+                      <el-icon v-if="!textbook.isActive" class="warning-icon"><Warning /></el-icon>
+                      {{ textbook.title }}
                     </div>
                   </template>
                 </td>
@@ -118,7 +100,7 @@
                   :key="s"
                   class="matrix-cell matrix-subtotal-cell"
                 >
-                  {{ calcSemesterSubtotal(group, s) || '-' }}
+                  {{ calcSemesterSubtotal(group, s) }}
                 </td>
                 <td class="matrix-cell matrix-subtotal-cell">
                   <strong>{{ calcGroupTotal(group) }}</strong>
@@ -133,7 +115,7 @@
                 :key="s"
                 class="matrix-cell matrix-total-final-cell"
               >
-                {{ calcFinalSemesterTotal(s) || '-' }}
+                {{ calcFinalSemesterTotal(s) }}
               </td>
               <td class="matrix-cell matrix-total-final-cell">
                 <strong>{{ totalAllHours }}</strong>
@@ -152,6 +134,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Warning } from '@element-plus/icons-vue'
 import { getPlans, getPlanCourses } from '../../api/plan'
 
 // 状态
@@ -216,30 +199,17 @@ function getHours(course, semester) {
   return sem ? sem.weeklyHours : null
 }
 
-// 获取教材信息
-function getTextbookInfo(course, semester) {
+// 获取某学期教材信息（返回数组，包含状态）
+function getTextbooks(course, semester) {
   const sem = course.semesters.find(s => s.semester === semester)
-  if (!sem || !sem.planTextbooks?.length) return null
-
-  const tb = sem.planTextbooks[0]
-  const textbook = tb.textbooks
-  if (!textbook) return null
-
-  // 生成短标题（最多10个字符）
-  const shortTitle = textbook.title.length > 10
-    ? textbook.title.substring(0, 10) + '...'
-    : textbook.title
-
-  return {
-    title: textbook.title,
-    author: textbook.author || '',
-    publisher: textbook.publisher || '',
-    isbn: textbook.isbn || '',
-    edition: textbook.edition || '',
-    isRequired: tb.isRequired,
-    isActive: textbook.isActive ?? true, // 默认为激活状态
-    shortTitle,
-  }
+  if (!sem || !sem.planTextbooks?.length) return []
+  return sem.planTextbooks.map(t => ({
+    id: t.textbooks?.id,
+    title: t.textbooks?.title,
+    isbn: t.textbooks?.isbn,
+    publisher: t.textbooks?.publisher,
+    isActive: t.textbooks?.isActive ?? true, // 默认为激活状态
+  }))
 }
 
 // 单元格样式
@@ -275,10 +245,13 @@ function calcSemesterSubtotal(group, semester) {
   let total = 0
   group.courses.forEach(c => {
     if (isInRange(c, semester)) {
-      total += getHours(c, semester) || 0
+      const hours = getHours(c, semester)
+      if (hours !== null) {
+        total += hours
+      }
     }
   })
-  return total || null
+  return total
 }
 
 function calcGroupTotal(group) {
@@ -292,7 +265,7 @@ function calcFinalSemesterTotal(semester) {
     const subtotal = calcSemesterSubtotal(group, semester)
     if (subtotal) total += subtotal
   })
-  return total || null
+  return total
 }
 
 // 总课时
@@ -503,25 +476,27 @@ onMounted(() => {
 
 .cell-textbook {
   font-size: 11px;
-  color: #409eff;
+  color: #909399;
   margin-top: 2px;
-  cursor: help;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 禁用教材样式 */
 .textbook-disabled {
   color: #c0c4cc !important;
-}
-
-.textbook-link {
-  text-decoration: underline;
-  text-decoration-style: dotted;
-}
-
-.textbook-link.link-disabled {
   text-decoration: line-through;
-  color: #c0c4cc;
-  cursor: not-allowed;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.warning-icon {
+  color: #e6a23c;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 /* 总课时列 */
@@ -568,23 +543,5 @@ onMounted(() => {
   font-weight: 700;
   color: #303133;
   font-size: 14px;
-}
-
-/* Tooltip 样式 */
-:deep(.textbook-tooltip) {
-  max-width: 400px;
-}
-
-.tooltip-content {
-  line-height: 1.8;
-  font-size: 13px;
-}
-
-.tooltip-content div {
-  margin: 4px 0;
-}
-
-.tooltip-content strong {
-  color: #409eff;
 }
 </style>
