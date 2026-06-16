@@ -28,6 +28,9 @@
             <el-select v-model="filterGrade" clearable placeholder="按年级筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
             </el-select>
+            <el-button @click="goToCurrentSemester">
+              <el-icon><Calendar /></el-icon> 当前学期
+            </el-button>
             <el-button @click="resetFilters">
               <el-icon><Refresh /></el-icon> 重置
             </el-button>
@@ -112,7 +115,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Download, Refresh } from '@element-plus/icons-vue'
+import { Download, Refresh, Calendar } from '@element-plus/icons-vue'
 import { getSemesterQuery } from '../../api/query'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
@@ -230,6 +233,18 @@ function handleSizeChange(size) {
 function resetPaginationAndLoad() {
   pagination.value.page = 1
   load()
+}
+
+// 跳转到当前学期
+function goToCurrentSemester() {
+  selectedSemester.value = getCurrentSemester()
+  // 同时清空其他筛选条件
+  filterCollege.value = null
+  filterMajor.value = null
+  filterLevel.value = null
+  filterEnrollmentYear.value = null
+  filterGrade.value = null
+  resetPaginationAndLoad()
 }
 
 function resetFilters() {

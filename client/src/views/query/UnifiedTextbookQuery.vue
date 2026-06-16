@@ -23,6 +23,9 @@
             >
               <el-option v-for="tb in textbooks" :key="tb.id" :label="`${tb.title} - ${tb.publisher || '未知出版社'}`" :value="tb.id" />
             </el-select>
+            <el-button @click="goToCurrentSemester">
+              <el-icon><Calendar /></el-icon> 当前学期
+            </el-button>
             <el-button @click="resetFilters">
               <el-icon><Refresh /></el-icon> 重置
             </el-button>
@@ -88,7 +91,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Download, Refresh } from '@element-plus/icons-vue'
+import { Download, Refresh, Calendar } from '@element-plus/icons-vue'
 import { useAuthStore } from '../../stores/auth'
 import { getTextbooks } from '../../api/textbook'
 import { getTextbookQuery } from '../../api/query'
@@ -190,6 +193,16 @@ function resetFilters() {
   selectedTextbook.value = null
   detail.value = null
   pagination.value.total = 0
+}
+
+// 跳转到当前学期
+function goToCurrentSemester() {
+  selectedSemester.value = getCurrentSemester()
+  // 清空已选教材和其他状态
+  selectedTextbook.value = null
+  detail.value = null
+  pagination.value.total = 0
+  pagination.value.page = 1
 }
 
 async function exportExcel() {
