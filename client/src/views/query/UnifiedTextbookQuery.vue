@@ -5,6 +5,9 @@
         <div class="card-header">
           <span>教材查询</span>
           <div class="card-header-actions">
+            <el-button @click="goToCurrentSemester">
+              <el-icon><Calendar /></el-icon> 当前学期
+            </el-button>
             <el-select v-model="selectedSemester" placeholder="选择学期" @change="handleSemesterChange" class="semester-select">
               <el-option 
                 v-for="sem in availableSemesters" 
@@ -23,9 +26,6 @@
             >
               <el-option v-for="tb in textbooks" :key="tb.id" :label="`${tb.title} - ${tb.publisher || '未知出版社'}`" :value="tb.id" />
             </el-select>
-            <el-button @click="goToCurrentSemester">
-              <el-icon><Calendar /></el-icon> 当前学期
-            </el-button>
             <el-button @click="resetFilters">
               <el-icon><Refresh /></el-icon> 重置
             </el-button>

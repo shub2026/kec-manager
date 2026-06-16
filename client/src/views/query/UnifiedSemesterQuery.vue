@@ -5,6 +5,9 @@
         <div class="card-header">
           <span>开课查询</span>
           <div class="card-header-actions">
+            <el-button @click="goToCurrentSemester">
+              <el-icon><Calendar /></el-icon> 当前学期
+            </el-button>
             <el-select v-model="selectedSemester" placeholder="选择学期" @change="handleSemesterChange" class="semester-select">
               <el-option 
                 v-for="sem in availableSemesters" 
@@ -28,9 +31,6 @@
             <el-select v-model="filterGrade" clearable placeholder="按年级筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
             </el-select>
-            <el-button @click="goToCurrentSemester">
-              <el-icon><Calendar /></el-icon> 当前学期
-            </el-button>
             <el-button @click="resetFilters">
               <el-icon><Refresh /></el-icon> 重置
             </el-button>
