@@ -71,8 +71,7 @@
             <span>查询报表</span>
           </template>
           <el-menu-item index="/query/plan">培养方案查询</el-menu-item>
-          <el-menu-item index="/query/semester">当前开课查询</el-menu-item>
-          <el-menu-item index="/query/historical-semester">历史开课查询</el-menu-item>
+          <el-menu-item index="/query/semester">开课查询</el-menu-item>
           <el-menu-item index="/query/textbook">教材使用查询</el-menu-item>
           <el-menu-item index="/query/historical-textbook">历史教材查询</el-menu-item>
         </el-sub-menu>
