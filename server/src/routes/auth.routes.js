@@ -7,7 +7,7 @@ import { prisma } from '../lib/prisma.js'
 import { createAuditLog } from '../services/audit.service.js'
 import { AuthenticationError, ValidationError } from '../utils/error.js'
 import { sanitizeBody } from '../middleware/xss.js' // H7修复：XSS防护中间件
-import { validateChangePassword } from '../middleware/validation.js'
+import { validateChangePassword, validateLogin } from '../middleware/validation.js'
 
 const router = express.Router()
 
@@ -48,7 +48,7 @@ const passwordLimiter = rateLimit({
   message: { success: false, message: '修改密码请求过于频繁，请15分钟后再试' },
 })
 
-router.post('/login', loginLimiter, async (req, res, next) => {
+router.post('/login', loginLimiter, validateLogin, async (req, res, next) => {
   try {
     const { username, password } = req.body
 

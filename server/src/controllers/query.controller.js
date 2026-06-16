@@ -372,6 +372,33 @@ export async function queryAllTextbooksUsage(req, res, next) {
       prisma.classes.findMany({ where: activeFilter }),
     ]);
 
+    // Build indexes for O(1) class lookups
+    const classesByEnrollmentYear = new Map();
+    const classesByYearAndMajor = new Map();
+    const classesByYearAndLevel = new Map();
+
+    for (const c of allClasses) {
+      // Index by enrollment_year
+      if (!classesByEnrollmentYear.has(c.enrollment_year)) {
+        classesByEnrollmentYear.set(c.enrollment_year, []);
+      }
+      classesByEnrollmentYear.get(c.enrollment_year).push(c);
+
+      // Index by (enrollment_year, major_id)
+      const majorKey = `${c.enrollment_year}_${c.major_id}`;
+      if (!classesByYearAndMajor.has(majorKey)) {
+        classesByYearAndMajor.set(majorKey, []);
+      }
+      classesByYearAndMajor.get(majorKey).push(c);
+
+      // Index by (enrollment_year, training_level_id)
+      const levelKey = `${c.enrollment_year}_${c.training_level_id}`;
+      if (!classesByYearAndLevel.has(levelKey)) {
+        classesByYearAndLevel.set(levelKey, []);
+      }
+      classesByYearAndLevel.get(levelKey).push(c);
+    }
+
     const results = [];
 
     for (const tb of textbooks) {
@@ -386,20 +413,14 @@ export async function queryAllTextbooksUsage(req, res, next) {
         const gradeForThisSemester = Math.ceil(sem.semester / 2);
         const enrollmentYear = semesterInfo.startYear - gradeForThisSemester + 1;
 
-        for (const c of allClasses) {
-          if (c.enrollment_year !== enrollmentYear) continue;
-          
-          // 判断班级是否匹配培养方案
-          let isMatch = false;
+        // Use indexes to find matching classes efficiently
+        const classesInYear = classesByEnrollmentYear.get(enrollmentYear) || [];
+        for (const c of classesInYear) {
           if (c.custom_plan_id === plan.id) {
-            isMatch = true;
+            usedClasses.add(c.id);
           } else if (!c.custom_plan_id && c.major_id === plan.major_id) {
-            isMatch = true;
+            usedClasses.add(c.id);
           } else if (!c.custom_plan_id && c.training_level_id === plan.training_level_id) {
-            isMatch = true;
-          }
-          
-          if (isMatch) {
             usedClasses.add(c.id);
           }
         }

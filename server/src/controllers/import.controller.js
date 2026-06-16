@@ -108,29 +108,21 @@ export async function importClasses(req, res, next) {
 
     let trainingLevelId = levelMap[trainingLevelName];
     if (!trainingLevelId && trainingLevelName) {
-      try {
-        const newLevel = await prisma.training_levels.create({
-          data: {
-            name: String(trainingLevelName).trim(),
-            code: null,
-            description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
-            sort_order: 0,
-          },
-        });
-        trainingLevelId = newLevel.id;
-        levelMap[trainingLevelName] = trainingLevelId;
+      const levelName = String(trainingLevelName).trim();
+      const upsertedLevel = await prisma.training_levels.upsert({
+        where: { name: levelName },
+        update: {},
+        create: {
+          name: levelName,
+          code: null,
+          description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
+          sort_order: 0,
+        },
+      });
+      trainingLevelId = upsertedLevel.id;
+      if (!levelMap[levelName]) {
+        levelMap[levelName] = trainingLevelId;
         autoCreatedLevels++;
-      } catch (e) {
-        const existingLevel = await prisma.training_levels.findUnique({
-          where: { name: String(trainingLevelName).trim() },
-        });
-        if (existingLevel) {
-          trainingLevelId = existingLevel.id;
-          levelMap[trainingLevelName] = trainingLevelId;
-        } else {
-          validationErrors.push(`第${i + 2}行：创建培养层次"${trainingLevelName}"失败`);
-          continue;
-        }
       }
     }
     if (!trainingLevelId) {
@@ -140,51 +132,41 @@ export async function importClasses(req, res, next) {
 
     let majorId = majorMap[majorName];
     if (!majorId && majorName) {
-      try {
-        const newMajor = await prisma.majors.create({
-          data: {
-            name: String(majorName).trim(),
-            code: null,
-            description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
-            sort_order: 0,
-          },
-        });
-        majorId = newMajor.id;
-        majorMap[majorName] = majorId;
+      const mName = String(majorName).trim();
+      const upsertedMajor = await prisma.majors.upsert({
+        where: { name: mName },
+        update: {},
+        create: {
+          name: mName,
+          code: null,
+          description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
+          sort_order: 0,
+        },
+      });
+      majorId = upsertedMajor.id;
+      if (!majorMap[mName]) {
+        majorMap[mName] = majorId;
         autoCreatedMajors++;
-      } catch (e) {
-        const existingMajor = await prisma.majors.findFirst({
-          where: { name: String(majorName).trim() },
-        });
-        if (existingMajor) {
-          majorId = existingMajor.id;
-          majorMap[majorName] = majorId;
-        }
       }
     }
 
     let collegeId = collegeMap[collegeName];
     if (!collegeId && collegeName) {
-      try {
-        const newCollege = await prisma.colleges.create({
-          data: {
-            name: String(collegeName).trim(),
-            code: null,
-            description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
-            sort_order: 0,
-          },
-        });
-        collegeId = newCollege.id;
-        collegeMap[collegeName] = collegeId;
+      const cName = String(collegeName).trim();
+      const upsertedCollege = await prisma.colleges.upsert({
+        where: { name: cName },
+        update: {},
+        create: {
+          name: cName,
+          code: null,
+          description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
+          sort_order: 0,
+        },
+      });
+      collegeId = upsertedCollege.id;
+      if (!collegeMap[cName]) {
+        collegeMap[cName] = collegeId;
         autoCreatedColleges++;
-      } catch (e) {
-        const existingCollege = await prisma.colleges.findUnique({
-          where: { name: String(collegeName).trim() },
-        });
-        if (existingCollege) {
-          collegeId = existingCollege.id;
-          collegeMap[collegeName] = collegeId;
-        }
       }
     }
 

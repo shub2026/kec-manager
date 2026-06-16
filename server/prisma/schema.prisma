@@ -81,7 +81,7 @@ model courses {
 
 model majors {
   id             Int              @id @default(autoincrement())
-  name           String
+  name           String           @unique
   code           String?
   description    String?
   sort_order     Int              @default(0)

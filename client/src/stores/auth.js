@@ -58,9 +58,9 @@ export const useAuthStore = defineStore('auth', () => {
       refreshToken.value = newRefreshToken
       userInfo.value = user
 
-      // 使用Cookie存储token（更安全）
-      setCookie('token', newToken, 7)  // Access Token 7天
-      setCookie('refreshToken', newRefreshToken, 30)  // Refresh Token 30天
+      // Cookie过期时间与JWT有效期保持一致
+      setCookie('token', newToken, 7)  // Access Token Cookie保留7天，JWT过期由isTokenExpired检测
+      setCookie('refreshToken', newRefreshToken, 7)  // Refresh Token 7天，与JWT有效期一致
       // userInfo仍然存储在localStorage（非敏感数据）
       localStorage.setItem('userInfo', JSON.stringify(user))
 
