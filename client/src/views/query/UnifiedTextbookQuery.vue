@@ -39,13 +39,25 @@
       <el-alert v-if="!selectedSemester" title="请先选择要查询的学期，然后选择教材查看详情" type="warning" :closable="false" class="alert-info" />
       
       <div v-else-if="detail">
-        <el-descriptions :column="3" border class="textbook-descriptions">
-          <el-descriptions-item label="书名" :width="120">{{ detail.textbook?.title }}</el-descriptions-item>
-          <el-descriptions-item label="书号" :width="150">{{ detail.textbook?.isbn || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="出版社" :width="100">{{ detail.textbook?.publisher || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="作者" :width="180">{{ detail.textbook?.author || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="出版日期" :width="150">{{ detail.textbook?.publishDate || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="查询学期" :width="200">{{ detail.semesterInfo?.label }}</el-descriptions-item>
+        <el-descriptions :column="2" border class="textbook-descriptions">
+          <el-descriptions-item label="书名" :span="1">
+            <div class="description-content">{{ detail.textbook?.title }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="书号">
+            <div class="description-content">{{ detail.textbook?.isbn || '-' }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="出版社">
+            <div class="description-content">{{ detail.textbook?.publisher || '-' }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="作者">
+            <div class="description-content">{{ detail.textbook?.author || '-' }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="出版日期">
+            <div class="description-content">{{ detail.textbook?.publishDate || '-' }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="查询学期">
+            <div class="description-content">{{ detail.semesterInfo?.label }}</div>
+          </el-descriptions-item>
         </el-descriptions>
 
         <el-alert :title="`共 ${detail.totalClasses} 个班级使用，合计 ${detail.totalStudents} 名学生`" type="success" :closable="false" class="alert-success" />
@@ -273,6 +285,23 @@ onMounted(async () => {
 .textbook-descriptions {
   margin-bottom: 20px;
 }
+
+.textbook-descriptions :deep(.el-descriptions__label) {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.textbook-descriptions :deep(.el-descriptions__content) {
+  min-width: 0;
+}
+
+.description-content {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  line-height: 1.6;
+}
+
 .alert-info {
   margin-bottom: 16px;
 }
