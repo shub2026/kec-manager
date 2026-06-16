@@ -339,26 +339,30 @@ function isLastInGroup(course, group) {
   return group.courses[group.courses.length - 1]?.id === course.id
 }
 
+// 通用排序交换：按目标顺序逐个更新 sort_order，避免 SQLite 并发写锁和重复值问题
+async function swapSortOrder(group, indexA, indexB) {
+  // 先交换位置
+  const courses = [...group.courses]
+  const tmp = courses[indexA]
+  courses[indexA] = courses[indexB]
+  courses[indexB] = tmp
+
+  // 按新顺序重新分配 sort_order（基于索引，保证唯一递增）
+  const updates = courses.map((c, i) => ({ id: c.id, sortOrder: i }))
+
+  // 串行逐个更新，避免 SQLite 文件锁冲突
+  for (const { id, sortOrder } of updates) {
+    await updatePlanCourse(id, { sort_order: sortOrder })
+  }
+}
+
 // 上移
 async function handleMoveUp(course, group) {
   const index = group.courses.findIndex(c => c.id === course.id)
   if (index <= 0) return
-  
-  const currentCourse = group.courses[index]
-  const prevCourse = group.courses[index - 1]
-  
-  // 保存原始的 id 和 sortOrder
-  const currentId = currentCourse.id
-  const prevId = prevCourse.id
-  const currentSortOrder = currentCourse.sortOrder
-  const prevSortOrder = prevCourse.sortOrder
-  
+
   try {
-    // 交换两个课程的 sortOrder
-    await Promise.all([
-      updatePlanCourse(currentId, { sort_order: prevSortOrder }),
-      updatePlanCourse(prevId, { sort_order: currentSortOrder })
-    ])
+    await swapSortOrder(group, index, index - 1)
     ElMessage.success('排序已更新')
     await loadData()
   } catch (e) {
@@ -371,22 +375,9 @@ async function handleMoveUp(course, group) {
 async function handleMoveDown(course, group) {
   const index = group.courses.findIndex(c => c.id === course.id)
   if (index >= group.courses.length - 1) return
-  
-  const currentCourse = group.courses[index]
-  const nextCourse = group.courses[index + 1]
-  
-  // 保存原始的 id 和 sortOrder
-  const currentId = currentCourse.id
-  const nextId = nextCourse.id
-  const currentSortOrder = currentCourse.sortOrder
-  const nextSortOrder = nextCourse.sortOrder
-  
+
   try {
-    // 交换两个课程的 sortOrder
-    await Promise.all([
-      updatePlanCourse(currentId, { sortOrder: nextSortOrder }),
-      updatePlanCourse(nextId, { sortOrder: currentSortOrder })
-    ])
+    await swapSortOrder(group, index, index + 1)
     ElMessage.success('排序已更新')
     await loadData()
   } catch (e) {

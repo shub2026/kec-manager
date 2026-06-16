@@ -36,33 +36,38 @@
         </div>
       </template>
 
-      <el-alert v-if="!selectedSemester" title="请先选择要查询的学期，然后选择教材查看详情" type="warning" :closable="false" class="alert-info" />
-      
-      <div v-else-if="detail">
-        <el-descriptions :column="2" border class="textbook-descriptions">
-          <el-descriptions-item label="书名" :span="1">
-            <div class="description-content">{{ detail.textbook?.title }}</div>
-          </el-descriptions-item>
-          <el-descriptions-item label="书号">
-            <div class="description-content">{{ detail.textbook?.isbn || '-' }}</div>
-          </el-descriptions-item>
-          <el-descriptions-item label="出版社">
-            <div class="description-content">{{ detail.textbook?.publisher || '-' }}</div>
-          </el-descriptions-item>
-          <el-descriptions-item label="作者">
-            <div class="description-content">{{ detail.textbook?.author || '-' }}</div>
-          </el-descriptions-item>
-          <el-descriptions-item label="出版日期">
-            <div class="description-content">{{ detail.textbook?.publishDate || '-' }}</div>
-          </el-descriptions-item>
-          <el-descriptions-item label="查询学期">
-            <div class="description-content">{{ detail.semesterInfo?.label }}</div>
-          </el-descriptions-item>
-        </el-descriptions>
+      <!-- 统一使用一个容器，保持最小高度 -->
+      <div class="content-container" v-loading="loadingDetail">
+        <!-- 提示信息区 -->
+        <el-alert v-if="!selectedSemester" title="请先选择要查询的学期，然后选择教材查看详情" type="warning" :closable="false" class="alert-info" />
+        <el-alert v-else-if="!selectedTextbook && !loadingDetail" title="请选择要查询的教材" type="info" :closable="false" class="alert-info" />
+        
+        <!-- 详情内容区：用 hasDetail 控制，加载期间保持旧数据在 DOM 中不卸载 -->
+        <div v-else-if="hasDetail" class="detail-content">
+          <el-descriptions :column="3" border class="textbook-descriptions">
+            <el-descriptions-item label="书名">
+              <div class="description-content">{{ detail?.textbook?.title || '-' }}</div>
+            </el-descriptions-item>
+            <el-descriptions-item label="书号">
+              <div class="description-content">{{ detail?.textbook?.isbn || '-' }}</div>
+            </el-descriptions-item>
+            <el-descriptions-item label="出版社">
+              <div class="description-content">{{ detail?.textbook?.publisher || '-' }}</div>
+            </el-descriptions-item>
+            <el-descriptions-item label="作者">
+              <div class="description-content">{{ detail?.textbook?.author || '-' }}</div>
+            </el-descriptions-item>
+            <el-descriptions-item label="出版日期">
+              <div class="description-content">{{ detail?.textbook?.publishDate || '-' }}</div>
+            </el-descriptions-item>
+            <el-descriptions-item label="查询学期">
+              <div class="description-content">{{ detail?.semesterInfo?.label || '-' }}</div>
+            </el-descriptions-item>
+          </el-descriptions>
 
-        <el-alert :title="`共 ${detail.totalClasses} 个班级使用，合计 ${detail.totalStudents} 名学生`" type="success" :closable="false" class="alert-success" />
+          <el-alert :title="`共 ${detail?.totalClasses ?? 0} 个班级使用，合计 ${detail?.totalStudents ?? 0} 名学生`" type="success" :closable="false" class="alert-success" />
 
-        <el-table :data="paginatedClasses" stripe v-loading="loadingDetail">
+          <el-table :data="paginatedClasses" stripe>
           <el-table-column prop="className" label="班级" min-width="180" show-overflow-tooltip />
           <el-table-column prop="courseName" label="对应课程" min-width="160" show-overflow-tooltip />
           <el-table-column prop="majorName" label="专业" min-width="140" show-overflow-tooltip />
@@ -93,9 +98,8 @@
             @current-change="handlePageChange"
           />
         </div>
+        </div>
       </div>
-
-      <el-empty v-else-if="selectedSemester && !selectedTextbook" description="请选择要查询的教材" />
     </el-card>
   </div>
 </template>
@@ -114,6 +118,8 @@ const loadingDetail = ref(false)
 const selectedTextbook = ref(null)
 const selectedSemester = ref('')
 const detail = ref(null)
+// 标记是否已加载过详情，加载期间保持 true 防止 DOM 卸载导致抖动
+const hasDetail = ref(false)
 
 // 分页状态
 const pagination = ref({
@@ -161,10 +167,13 @@ function getCurrentSemester() {
 async function loadDetail(id) {
   if (!id || !selectedSemester.value) { 
     detail.value = null
+    hasDetail.value = false
     pagination.value.total = 0
     return 
   }
   
+  // 先标记 hasDetail，保持 DOM 挂载，避免切换教材时内容块卸载重挂
+  hasDetail.value = true
   loadingDetail.value = true
   try {
     const res = await getTextbookQuery(id, { semester: selectedSemester.value })
@@ -175,6 +184,7 @@ async function loadDetail(id) {
   } catch (e) { 
     ElMessage.error('加载教材使用详情失败')
     detail.value = null 
+    hasDetail.value = false
     pagination.value.total = 0
   }
   finally { 
@@ -187,6 +197,7 @@ function handleSemesterChange() {
   // 切换学期时清空已选教材和详情
   selectedTextbook.value = null
   detail.value = null
+  hasDetail.value = false
   pagination.value.total = 0
 }
 
@@ -204,6 +215,7 @@ function resetFilters() {
   // 不重置学期选择器，只重置其他筛选条件
   selectedTextbook.value = null
   detail.value = null
+  hasDetail.value = false
   pagination.value.total = 0
 }
 
@@ -213,6 +225,7 @@ function goToCurrentSemester() {
   // 清空已选教材和其他状态
   selectedTextbook.value = null
   detail.value = null
+  hasDetail.value = false
   pagination.value.total = 0
   pagination.value.page = 1
 }
@@ -282,17 +295,42 @@ onMounted(async () => {
   flex: 1.5;
   max-width: 500px;
 }
+
+/* 内容容器，保持最小高度 */
+.content-container {
+  min-height: 400px;
+  position: relative;
+}
+
+.detail-content {
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .textbook-descriptions {
   margin-bottom: 20px;
 }
 
+/* 固定标签列宽度，保证切换教材时标题不换行、不抖动 */
 .textbook-descriptions :deep(.el-descriptions__label) {
-  width: 100px;
+  width: 100px !important;
   flex-shrink: 0;
+  font-weight: 500;
+  color: #606266;
+  white-space: nowrap;
 }
 
 .textbook-descriptions :deep(.el-descriptions__content) {
   min-width: 0;
+  word-break: break-word;
 }
 
 .description-content {
