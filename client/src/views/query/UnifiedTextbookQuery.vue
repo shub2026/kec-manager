@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>教材使用查询</span>
+          <span>教材查询</span>
           <div class="card-header-actions">
             <el-select v-model="selectedSemester" placeholder="选择学期" @change="handleSemesterChange" class="semester-select">
               <el-option 

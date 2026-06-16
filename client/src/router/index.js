@@ -34,7 +34,7 @@ const routes = [
       { path: 'query/plan', name: 'PlanQuery', component: () => import('../views/query/PlanQuery.vue'), meta: { title: '培养方案查询' } },
       { path: 'query/semester', name: 'SemesterQuery', component: () => import('../views/query/UnifiedSemesterQuery.vue'), meta: { title: '开课查询' } },
       { path: 'query/historical-semester', redirect: '/query/semester' },
-      { path: 'query/textbook', name: 'TextbookQuery', component: () => import('../views/query/UnifiedTextbookQuery.vue'), meta: { title: '教材使用查询' } },
+      { path: 'query/textbook', name: 'TextbookQuery', component: () => import('../views/query/UnifiedTextbookQuery.vue'), meta: { title: '教材查询' } },
       { path: 'query/historical-textbook', redirect: '/query/textbook' },
       { path: 'settings', name: 'Settings', component: () => import('../views/settings/SystemSettings.vue'), meta: { title: '系统设置', requiresSuperAdmin: true } },
       { path: 'audit-logs', name: 'AuditLogs', component: () => import('../views/system/AuditLog.vue'), meta: { title: '操作日志', requiresSuperAdmin: true } },
