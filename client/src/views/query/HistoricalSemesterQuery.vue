@@ -112,7 +112,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '../../stores/auth'
 import { getSemesterQuery } from '../../api/query'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
@@ -153,23 +152,11 @@ const availableSemesters = computed(() => {
   return semesters
 })
 
-// 计算可用的入学年份列表（从数据中提取）
-const enrollmentYears = computed(() => {
-  const years = new Set()
-  data.value.forEach(item => {
-    if (item.enrollmentYear) years.add(item.enrollmentYear)
-  })
-  return Array.from(years).sort((a, b) => b - a)
-})
+// 计算可用的入学年份列表（从API全量数据读取）
+const enrollmentYears = ref([])
 
-// 计算可用的年级列表（从数据中提取）
-const grades = computed(() => {
-  const gradeSet = new Set()
-  data.value.forEach(item => {
-    if (item.grade) gradeSet.add(item.grade)
-  })
-  return Array.from(gradeSet).sort((a, b) => a - b)
-})
+// 计算可用的年级列表（从API全量数据读取）
+const grades = ref([])
 
 async function load() {
   if (!selectedSemester.value) {
@@ -197,6 +184,8 @@ async function load() {
     semesterLabel.value = res.data?.semesterInfo?.label || ''
     totalClasses.value = res.data?.totalClasses || 0
     pagination.value.total = res.data?.total || 0
+    if (res.data?.enrollmentYears) enrollmentYears.value = res.data.enrollmentYears
+    if (res.data?.grades) grades.value = res.data.grades
   } catch (e) { 
     console.error(e)
     ElMessage.error('查询失败')
@@ -234,8 +223,6 @@ function resetFilters() {
   totalClasses.value = 0
 }
 
-const authStore = useAuthStore()
-
 async function exportExcel() {
   if (!selectedSemester.value) {
     ElMessage.warning('请先选择学期')
@@ -243,7 +230,6 @@ async function exportExcel() {
   }
   
   try {
-    // FC2修复：使用POST请求 + Authorization Header，避免token暴露在URL中
     const params = {
       semester: selectedSemester.value,
       collegeId: filterCollege.value || undefined,
@@ -253,25 +239,15 @@ async function exportExcel() {
       grade: filterGrade.value || undefined,
     }
     
-    const response = await fetch('/api/export/semester', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(params),
+    const response = await request.post('/export/semester', params, {
+      responseType: 'blob'
     })
     
-    if (!response.ok) {
-      throw new Error('导出失败')
-    }
-    
-    // 处理blob下载
-    const blob = await response.blob()
+    const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `历史学期_${selectedSemester.value}_开课数据_${new Date().getTime()}.xlsx`
+    a.download = `历史学期_${semesterLabel.value || selectedSemester.value}_开课数据_${new Date().getTime()}.xlsx`
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)

@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
 import { createWorkbook, workbookToBuffer } from '../../utils/excel.js';
-import { getCurrentSemesterInfo, getSemesterInfoFromRequest } from '../../services/settings.service.js';
+import { getCurrentSemesterInfo, getSemesterInfoFromRequest, parseSemesterString } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
 import { findBestMatchPlan, buildClassWithPlanFilter } from '../../services/plan.service.js';
@@ -225,12 +225,22 @@ export async function exportSemesterSchedule(req, res, next) {
  */
 export async function exportSemesterSchedulePost(req, res, next) {
   try {
-    // req.body 已被命名中间件转为 snake_case
-    const { college_id, major_id, training_level_id, enrollment_year, grade } = req.body;
+    // req.body 已被命名中间件转为 snake_case，semester 单词不变
+    const { college_id, major_id, training_level_id, enrollment_year, grade, semester } = req.body;
 
-    let semesterInfo = await getCurrentSemesterInfo();
-    if (!semesterInfo) {
-      return res.status(400).json({ success: false, message: '请先设置当前学期' });
+    // 支持历史学期导出：优先使用传入的 semester，否则使用全局当前学期
+    let semesterInfo;
+    if (semester) {
+      const result = parseSemesterString(semester);
+      if (!result.success) {
+        return res.status(400).json({ success: false, message: result.error });
+      }
+      semesterInfo = result.data;
+    } else {
+      semesterInfo = await getCurrentSemesterInfo();
+      if (!semesterInfo) {
+        return res.status(400).json({ success: false, message: '请先设置当前学期' });
+      }
     }
 
     const filters = { college_id, major_id, training_level_id, enrollment_year, grade };
