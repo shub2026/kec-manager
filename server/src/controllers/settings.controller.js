@@ -115,7 +115,7 @@ export async function initializeSettings(req, res, next) {
   }
 }
 
-async function resetData(type, transactionFn, req) {
+async function resetData(type, transactionFn, req, res, next) {
   try {
     await prisma.$transaction(transactionFn);
     await createAuditLog({
