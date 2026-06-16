@@ -249,7 +249,7 @@ export async function exportSemesterSchedule(req, res, next) {
  */
 export async function exportSemesterSchedulePost(req, res, next) {
   try {
-    const { collegeId, majorId, trainingLevelId, enrollmentYear, grade } = req.body;
+    const { college_id, major_id, training_level_id, enrollment_year, grade } = req.body;
     
     let semesterInfo = await getCurrentSemesterInfo();
     
@@ -286,7 +286,7 @@ export async function exportSemesterSchedulePost(req, res, next) {
     }
 
     const activeFilter = await getActiveClassFilter();
-    
+
     // 构建基础查询条件：在读班级 + 有关联培养方案
     const baseWhere = {
       AND: [
@@ -294,13 +294,13 @@ export async function exportSemesterSchedulePost(req, res, next) {
         { OR: classWithPlanConditions },
       ],
     };
-    
-    // 添加用户筛选条件
+
+    // 添加用户筛选条件（注意：req.body已被命名中间件转为snake_case）
     const userFilters = {};
-    if (collegeId) userFilters.college_id = Number(collegeId);
-    if (majorId) userFilters.major_id = Number(majorId);
-    if (trainingLevelId) userFilters.training_level_id = Number(trainingLevelId);
-    if (enrollmentYear) userFilters.enrollment_year = Number(enrollmentYear);
+    if (college_id) userFilters.college_id = Number(college_id);
+    if (major_id) userFilters.major_id = Number(major_id);
+    if (training_level_id) userFilters.training_level_id = Number(training_level_id);
+    if (enrollment_year) userFilters.enrollment_year = Number(enrollment_year);
     
     // 组合所有条件
     const whereCondition = Object.keys(userFilters).length > 0
