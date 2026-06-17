@@ -243,7 +243,10 @@ onMounted(() => {
 }
 
 .card-header {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
   padding: 24px 0 20px;
 }
 
@@ -252,6 +255,7 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 700;
   color: #1d2129;
+  text-align: center;
 }
 
 /* ==================== 表单 ==================== */
