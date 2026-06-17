@@ -292,7 +292,7 @@ function handlePasswordChangeSuccess() {
 
 .layout-main {
   background: #f5f7fa;
-  padding: 20px;
+  padding: 16px 20px;
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;

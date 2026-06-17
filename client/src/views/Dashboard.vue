@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="dashboard-container">
     <el-card v-if="semesterLabel" class="semester-card">
       <template #header>当前学期</template>
       <el-tag size="large" type="primary">{{ semesterLabel }}</el-tag>
@@ -86,7 +86,18 @@
         
         <el-divider />
         <div class="copyright-footer">
-          <p>Copyright © 2026 Sntip.cn &nbsp; Yangshubin@ztzyxy.cn &nbsp; <a href="https://gitee.com/shub77/kec-manager" target="_blank" rel="noopener noreferrer" class="github-icon-link"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></p>
+          <p class="footer-line">
+            <span>KEC 课程管理平台</span>
+            <span class="footer-dot">·</span>
+            <span>v{{ version }}</span>
+            <span class="footer-dot">·</span>
+            <span>Vue3 + Express5 + SQLite</span>
+          </p>
+          <p class="footer-line">
+            <span>Copyright © 2026 Sntip.cn</span>
+            <span class="footer-dot">·</span>
+            <a href="mailto:Yangshubin@ztzyxy.cn">Yangshubin@ztzyxy.cn</a>
+          </p>
         </div>
       </div>
     </el-card>
@@ -149,31 +160,48 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.dashboard-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 .stat-row {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 .semester-card {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 .intro-card {
-  margin-bottom: 20px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.intro-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.intro-content {
+  padding: 4px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .title {
   font-size: 18px;
   font-weight: bold;
 }
-.intro-content {
-  padding: 10px 0;
-}
 .intro-text {
-  line-height: 1.8;
+  line-height: 1.6;
   color: #606266;
-  font-size: 14px;
-  margin: 0 0 15px 0;
+  font-size: 13px;
+  margin: 0 0 8px 0;
 }
 .feature-item {
   text-align: center;
-  padding: 15px 10px;
+  padding: 10px 8px;
   border-radius: 8px;
   background-color: #f5f7fa;
   transition: all 0.3s;
@@ -185,40 +213,46 @@ onMounted(async () => {
 }
 .feature-title {
   font-weight: bold;
-  margin-top: 10px;
+  margin-top: 6px;
   color: #303133;
-  font-size: 14px;
+  font-size: 13px;
 }
 .feature-desc {
   color: #909399;
   font-size: 12px;
-  margin-top: 5px;
-  line-height: 1.5;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.intro-content :deep(.el-divider) {
+  margin: 10px 0;
 }
 .copyright-footer {
   text-align: center;
-  padding: 16px 0 8px;
+  padding: 8px 0 0;
   color: #909399;
   font-size: 13px;
   line-height: 1.6;
+  margin-top: auto;
+}
+.footer-line {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.footer-line:last-child {
+  font-size: 12px;
+  color: #b0b3b8;
+}
+.footer-dot {
+  color: #c0c4cc;
 }
 .copyright-footer a {
   color: #909399;
   text-decoration: none;
 }
 .copyright-footer a:hover {
-  color: #409eff;
-  text-decoration: underline;
-}
-.github-icon-link {
-  display: inline-flex;
-  align-items: center;
-  vertical-align: middle;
-}
-.github-icon-link svg {
-  transition: color 0.2s;
-}
-.github-icon-link:hover svg {
   color: #409eff;
 }
 </style>

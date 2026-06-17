@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="audit-log">
     <el-card>
       <template #header>
         <div class="card-header">
@@ -258,6 +258,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.audit-log {
+  padding: 20px;
+}
+
 .query-toolbar {
   display: flex;
   gap: 12px;
