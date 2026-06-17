@@ -2,7 +2,6 @@
   <div class="settings-page">
     <!-- 页面标题栏 -->
     <div class="card-header">
-      <span>系统设置</span>
       <div class="card-header-actions">
         <router-link to="/audit-logs">
           <el-button plain>
@@ -188,7 +187,7 @@ onMounted(() => {
 
 .card-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 20px;
 }
