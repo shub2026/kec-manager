@@ -1,23 +1,5 @@
 <template>
   <div class="settings-page">
-    <!-- 页面标题栏 -->
-    <div class="card-header">
-      <div class="card-header-actions">
-        <router-link to="/audit-logs">
-          <el-button plain>
-            <el-icon><DocumentChecked /></el-icon>
-            操作日志
-          </el-button>
-        </router-link>
-        <router-link to="/users">
-          <el-button plain>
-            <el-icon><UserFilled /></el-icon>
-            用户管理
-          </el-button>
-        </router-link>
-      </div>
-    </div>
-
     <!-- 学期配置组件 -->
     <SemesterConfig
       v-model:form="form"
@@ -52,7 +34,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { DocumentChecked, UserFilled } from '@element-plus/icons-vue'
 import { useSettingsStore } from '../../stores/settings'
 import request from '../../utils/request'
 import SemesterConfig from './components/SemesterConfig.vue'
@@ -183,17 +164,5 @@ onMounted(() => {
 <style scoped>
 .settings-page {
   padding: 20px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.card-header-actions {
-  display: flex;
-  gap: 12px;
 }
 </style>
