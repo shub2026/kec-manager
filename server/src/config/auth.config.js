@@ -1,27 +1,18 @@
+// ES Module 求值顺序修复：auth.config.js 会在 server.js 的 dotenv.config() 之前被求值
+// （因为 import 声明的模块先于当前模块代码执行），必须在此处独立加载 dotenv
+import dotenv from 'dotenv'
+dotenv.config()
+
 // JWT密钥必须通过环境变量配置，生产环境禁止使用默认值
-// 如果 dotenv 已正确加载，process.env.JWT_SECRET 应该存在
 import { log } from '../utils/logger.js'; // L1修复：使用winston logger
 
 const jwtSecret = process.env.JWT_SECRET
 
 if (!jwtSecret) {
-  // 尝试动态加载 dotenv（作为后备方案）
-  try {
-    const dotenv = await import('dotenv')
-    dotenv.config()
-    const retrySecret = process.env.JWT_SECRET
-    if (retrySecret) {
-      log.warn('JWT_SECRET 通过动态加载 dotenv 获取成功');
-      log.warn('建议在入口文件顶部添加: import "dotenv/config"');
-    } else {
-      throw new Error('JWT_SECRET not found in environment variables')
-    }
-  } catch (e) {
-    log.error('错误: JWT_SECRET 环境变量未配置！');
-    log.error('请在 .env 文件中设置 JWT_SECRET，例如：JWT_SECRET=your-super-secret-key-here');
-    log.error('生成随机密钥示例：node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
-    throw new Error('JWT_SECRET 环境变量未配置')
-  }
+  log.error('错误: JWT_SECRET 环境变量未配置！');
+  log.error('请在 .env 文件中设置 JWT_SECRET，例如：JWT_SECRET=your-super-secret-key-here');
+  log.error('生成随机密钥示例：node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+  throw new Error('JWT_SECRET 环境变量未配置')
 }
 
 // M9修复：bcrypt密码哈希迭代次数配置化

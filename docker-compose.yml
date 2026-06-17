@@ -18,6 +18,8 @@ services:
       - DATABASE_URL=file:/app/data/kec.db
       - PORT=3000
       - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_DOWNLOAD_SECRET=${JWT_DOWNLOAD_SECRET}
       - CORS_ORIGINS=${CORS_ORIGINS}
     volumes:
       # 数据持久化 - 适配 1Panel 卷挂载

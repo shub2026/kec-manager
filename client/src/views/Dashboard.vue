@@ -40,74 +40,42 @@
       </el-col>
     </el-row>
     
-    <el-card class="intro-card">
-      <template #header>
-        <div class="card-header">
-          <span class="title">KEC 课程管理平台</span>
-          <el-tag type="success" size="small">v{{ version }}</el-tag>
+    <el-card class="intro-card" shadow="never">
+      <div class="intro-header">
+        <div class="intro-header-left">
+          <h2 class="intro-title">KEC 课程管理平台</h2>
+          <p class="intro-subtitle">专为中小型教育机构设计的独立教学管理系统</p>
         </div>
-      </template>
-      <div class="intro-content">
-        <p class="intro-text">
-          KEC（Knowledge Education Course）课程管理平台是一套专为中小型教育机构设计的独立教学管理系统。
-          平台提供从基础数据管理、班级编排、培养方案制定到教材调配的完整业务流程支持，帮助教务人员高效管理教学资源。
-        </p>
-        <el-divider />
-        <el-row :gutter="20">
-          <el-col :span="6">
-            <div class="feature-item">
-              <el-icon :size="24" color="#409EFF"><OfficeBuilding /></el-icon>
-              <div class="feature-title">基础数据管理</div>
-              <div class="feature-desc">学院、专业、培养层次三级管理体系</div>
-            </div>
-          </el-col>
-          <el-col :span="6">
-            <div class="feature-item">
-              <el-icon :size="24" color="#67C23A"><UserFilled /></el-icon>
-              <div class="feature-title">班级与课程管理</div>
-              <div class="feature-desc">智能年级推算，批量导入导出</div>
-            </div>
-          </el-col>
-          <el-col :span="6">
-            <div class="feature-item">
-              <el-icon :size="24" color="#E6A23C"><Document /></el-icon>
-              <div class="feature-title">培养方案</div>
-              <div class="feature-desc">可视化课程矩阵，多版本管理</div>
-            </div>
-          </el-col>
-          <el-col :span="6">
-            <div class="feature-item">
-              <el-icon :size="24" color="#F56C6C"><DataAnalysis /></el-icon>
-              <div class="feature-title">查询与统计</div>
-              <div class="feature-desc">开课查询、教材统计、审计日志</div>
-            </div>
-          </el-col>
-        </el-row>
-        
-        <el-divider />
-        <div class="copyright-footer">
-          <p class="footer-line">
-            <span>KEC 课程管理平台</span>
-            <span class="footer-dot">·</span>
-            <span>v{{ version }}</span>
-            <span class="footer-dot">·</span>
-            <span>Vue3 + Express5 + SQLite</span>
-          </p>
-          <p class="footer-line">
-            <span>Copyright © 2026 Sntip.cn</span>
-            <span class="footer-dot">·</span>
-            <a href="mailto:Yangshubin@ztzyxy.cn">Yangshubin@ztzyxy.cn</a>
-          </p>
+        <el-tag type="info" size="small" effect="plain" round>v{{ version }}</el-tag>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card" v-for="f in features" :key="f.title">
+          <div class="feature-icon" :style="{ background: f.bg, color: f.color }">
+            <el-icon :size="20"><component :is="f.icon" /></el-icon>
+          </div>
+          <div class="feature-body">
+            <div class="feature-name">{{ f.title }}</div>
+            <div class="feature-detail">{{ f.desc }}</div>
+          </div>
         </div>
+      </div>
+
+      <div class="intro-footer">
+        <span>Vue3 + Express5 + SQLite</span>
+        <span class="footer-sep">|</span>
+        <span>Copyright &copy; 2026 Sntip.cn</span>
+        <span class="footer-sep">|</span>
+        <a href="mailto:Yangshubin@ztzyxy.cn">Yangshubin@ztzyxy.cn</a>
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, markRaw } from 'vue'
 import { useSettingsStore } from '../stores/settings'
-import { OfficeBuilding, UserFilled, Document, DataAnalysis, Message } from '@element-plus/icons-vue'
+import { OfficeBuilding, UserFilled, Document, DataAnalysis } from '@element-plus/icons-vue'
 import { getMajors } from '../api/major'
 import { getCourses } from '../api/course'
 import { getTextbooks } from '../api/textbook'
@@ -119,6 +87,13 @@ const settingsStore = useSettingsStore()
 const semesterLabel = computed(() => settingsStore.semesterLabel)
 const stats = ref({ majors: 0, courses: 0, classes: 0, textbooks: 0, plans: 0, totalStudents: 0 })
 const version = __APP_VERSION__
+
+const features = [
+  { title: '基础数据管理', desc: '学院、专业、培养层次三级管理体系', icon: markRaw(OfficeBuilding), color: '#409EFF', bg: '#ecf5ff' },
+  { title: '班级与课程管理', desc: '智能年级推算，批量导入导出', icon: markRaw(UserFilled), color: '#67C23A', bg: '#f0f9eb' },
+  { title: '培养方案', desc: '可视化课程矩阵，多版本管理', icon: markRaw(Document), color: '#E6A23C', bg: '#fdf6ec' },
+  { title: '查询与统计', desc: '开课查询、教材统计、审计日志', icon: markRaw(DataAnalysis), color: '#F56C6C', bg: '#fef0f0' },
+]
 
 onMounted(async () => {
   try {
@@ -172,87 +147,109 @@ onMounted(async () => {
   margin-bottom: 12px;
   flex-shrink: 0;
 }
+
+/* 介绍卡片 */
 .intro-card {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  border: 1px solid #e8eaed;
+  border-radius: 12px;
 }
 .intro-card :deep(.el-card__body) {
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding: 24px;
 }
-.intro-content {
-  padding: 4px 0;
-  flex: 1;
+
+/* 头部区域 */
+.intro-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
 }
-.title {
-  font-size: 18px;
-  font-weight: bold;
+.intro-title {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a2e;
+  letter-spacing: 0.5px;
 }
-.intro-text {
-  line-height: 1.6;
-  color: #606266;
-  font-size: 13px;
-  margin: 0 0 8px 0;
-}
-.feature-item {
-  text-align: center;
-  padding: 10px 8px;
-  border-radius: 8px;
-  background-color: #f5f7fa;
-  transition: all 0.3s;
-}
-.feature-item:hover {
-  background-color: #ecf5ff;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-.feature-title {
-  font-weight: bold;
-  margin-top: 6px;
-  color: #303133;
-  font-size: 13px;
-}
-.feature-desc {
-  color: #909399;
-  font-size: 12px;
-  margin-top: 4px;
-  line-height: 1.4;
-}
-.intro-content :deep(.el-divider) {
-  margin: 10px 0;
-}
-.copyright-footer {
-  text-align: center;
-  padding: 8px 0 0;
-  color: #909399;
-  font-size: 13px;
-  line-height: 1.6;
-  margin-top: auto;
-}
-.footer-line {
+.intro-subtitle {
   margin: 0;
+  font-size: 13px;
+  color: #909399;
+}
+
+/* 功能模块网格 */
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.feature-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid #f0f0f0;
+  background: #fafbfc;
+  transition: all 0.25s ease;
+}
+.feature-card:hover {
+  background: #fff;
+  border-color: #dcdfe6;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+.feature-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
 }
-.footer-line:last-child {
+.feature-body {
+  min-width: 0;
+}
+.feature-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 3px;
+}
+.feature-detail {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
+}
+
+/* 底部 */
+.intro-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+  text-align: center;
   font-size: 12px;
   color: #b0b3b8;
 }
-.footer-dot {
-  color: #c0c4cc;
-}
-.copyright-footer a {
+.intro-footer a {
   color: #909399;
   text-decoration: none;
+  transition: color 0.2s;
 }
-.copyright-footer a:hover {
+.intro-footer a:hover {
   color: #409eff;
+}
+.footer-sep {
+  margin: 0 8px;
+  color: #dcdfe6;
 }
 </style>
