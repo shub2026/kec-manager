@@ -427,6 +427,7 @@ export const validateSemesterQuery = [
  */
 export const validateSortOrder = [
   body('sort_order')
+    .optional()
     .isInt({ min: 0 })
     .withMessage('排序值必须为非负整数'),
   handleValidationErrors

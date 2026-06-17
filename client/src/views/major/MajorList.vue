@@ -14,8 +14,8 @@
         <el-table-column prop="name" label="专业名称" min-width="150" />
         <el-table-column prop="code" label="编码" width="120" />
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column label="方案数" width="80">
-          <template #default="{ row }">{{ row.planCount || 0 }}</template>
+        <el-table-column label="班级数" width="80">
+          <template #default="{ row }">{{ row.classCount || 0 }}</template>
         </el-table-column>
         <el-table-column label="排序" width="120" align="center">
           <template #default="{ row, $index }">
