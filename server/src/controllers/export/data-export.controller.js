@@ -6,6 +6,7 @@ import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
 import { isClassMatchPlan } from '../../services/plan.service.js';
 import { buildClassFilter } from '../../services/class-filter.service.js';
+import { getClassesWithCourse } from '../../services/teaching-arrange.service.js';
 
 /**
  * 导出课程数据
@@ -587,6 +588,93 @@ export async function exportStatistics(req, res, next) {
       ip: req.ip,
       result: 'failed',
       message: `导出课时统计失败: ${e.message}`,
+    });
+    next(e);
+  }
+}
+
+/**
+ * 导出教学安排数据（某课程某学期的班级-教师安排表）
+ */
+export async function exportTeachingArrange(req, res, next) {
+  try {
+    const { course_id, semester } = req.query;
+    if (!course_id || !semester) {
+      return res.status(400).json({ success: false, message: '缺少课程或学期参数' });
+    }
+
+    const personnelMap = { full_time: '专职', part_time: '兼职', external: '外聘' };
+
+    // 获取课程信息
+    const course = await prisma.courses.findUnique({ where: { id: Number(course_id) } });
+    if (!course) return res.status(404).json({ success: false, message: '课程不存在' });
+
+    // 获取班级列表（含课时、学院等信息）
+    const classes = await getClassesWithCourse(course_id, semester);
+
+    // 获取教学安排
+    const assignments = await prisma.teaching_assignments.findMany({
+      where: { course_id: Number(course_id), semester },
+      include: {
+        teacher: { select: { id: true, name: true, personnel_type: true } },
+      },
+    });
+    const assignmentMap = new Map(assignments.map(a => [a.class_id, a]));
+
+    const rows = classes.map(c => {
+      const a = assignmentMap.get(c.classId);
+      return {
+        '班级名称': c.className,
+        '学院': c.collegeName || '-',
+        '专业': c.majorName || '-',
+        '年级': c.grade,
+        '层次': c.trainingLevelName || '-',
+        '周课时': c.weeklyHours,
+        '任课教师': a?.teacher?.name || '未安排',
+        '安排方式': a ? (a.is_auto ? '自动' : '手动') : '-',
+      };
+    });
+
+    // 合计行
+    const totalHours = rows.reduce((sum, r) => sum + r['周课时'], 0);
+    const assignedCount = rows.filter(r => r['任课教师'] !== '未安排').length;
+
+    const headers = [
+      { label: '班级名称', key: '班级名称', width: 25 },
+      { label: '学院', key: '学院', width: 15 },
+      { label: '专业', key: '专业', width: 15 },
+      { label: '年级', key: '年级', width: 8 },
+      { label: '层次', key: '层次', width: 10 },
+      { label: '周课时', key: '周课时', width: 8 },
+      { label: '任课教师', key: '任课教师', width: 12 },
+      { label: '安排方式', key: '安排方式', width: 10 },
+    ];
+
+    const workbook = await createWorkbook(headers, rows);
+    const buffer = await workbookToBuffer(workbook);
+    const filename = `教学安排_${course.name}_${semester}.xlsx`;
+
+    await createAuditLog({
+      action: 'export',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { course_id: Number(course_id), course_name: course.name, semester, rowCount: rows.length },
+      result: 'success',
+      message: `导出教学安排(${course.name}, ${semester})，共${rows.length}条记录`,
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.send(buffer);
+  } catch (e) {
+    await createAuditLog({
+      action: 'export',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `导出教学安排失败: ${e.message}`,
     });
     next(e);
   }

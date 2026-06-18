@@ -41,14 +41,41 @@
       </div>
     </el-card>
 
-    <!-- 预览区 -->
+    <!-- 预览区（合并课程信息 + 统计报告） -->
     <el-card v-if="selectedCourseId && courseInfo" class="preview-card">
-      <el-descriptions :column="4" size="small" border>
-        <el-descriptions-item label="课程名称">{{ courseInfo.name }}</el-descriptions-item>
-        <el-descriptions-item label="课程类型">{{ courseTypeLabel(courseInfo.type) }}</el-descriptions-item>
-        <el-descriptions-item label="班级数量">{{ summary.totalClasses }} 个</el-descriptions-item>
-        <el-descriptions-item label="教师数量">{{ teacherList.length }} 人</el-descriptions-item>
-      </el-descriptions>
+      <template #header>
+        <div class="card-header">
+          <div class="preview-title">
+            <span class="course-name">{{ courseInfo.name }}</span>
+            <el-tag size="small">{{ courseTypeLabel(courseInfo.type) }}</el-tag>
+          </div>
+          <el-button v-if="classList.length" @click="handleExportArrange" :loading="exporting">数据导出</el-button>
+        </div>
+      </template>
+      <div class="preview-stats">
+        <div class="preview-stat-item">
+          <span class="stat-label">教师</span>
+          <span class="stat-value">{{ teacherList.length }}<small>人</small></span>
+        </div>
+        <div class="preview-stat-item">
+          <span class="stat-label">班级</span>
+          <span class="stat-value">{{ summary.totalClasses }}<small>个</small></span>
+        </div>
+        <div class="preview-stat-item">
+          <span class="stat-label">已安排</span>
+          <span class="stat-value">{{ summary.assignedCount }}<small>个</small></span>
+        </div>
+        <div class="preview-stat-item">
+          <span class="stat-label">总课时</span>
+          <span class="stat-value">{{ summary.totalCourseHours }}<small>课时</small></span>
+        </div>
+        <div class="preview-stat-item">
+          <span class="stat-label">剩余课时</span>
+          <span class="stat-value" :class="summary.remainingHours >= 0 ? 'text-success' : 'text-danger'">
+            {{ summary.remainingHours }}<small>课时</small>
+          </span>
+        </div>
+      </div>
     </el-card>
 
     <!-- 内容区：矩阵表 -->
@@ -57,6 +84,18 @@
         <div class="card-header">
           <span>教学安排</span>
           <div class="card-header-actions">
+            <el-select v-model="filterCollege" placeholder="学院" clearable filterable style="width: 130px" @change="filterMajor = ''">
+              <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
+            </el-select>
+            <el-select v-model="filterMajor" placeholder="专业" clearable filterable style="width: 130px">
+              <el-option v-for="v in majorOptions" :key="v" :label="v" :value="v" />
+            </el-select>
+            <el-select v-model="filterGrade" placeholder="年级" clearable style="width: 90px">
+              <el-option v-for="v in gradeOptions" :key="v" :label="v + '年级'" :value="v" />
+            </el-select>
+            <el-select v-model="filterTrainingLevel" placeholder="层次" clearable style="width: 100px">
+              <el-option v-for="v in trainingLevelOptions" :key="v" :label="v" :value="v" />
+            </el-select>
             <el-button type="success" @click="handleAutoArrange('full')" :loading="arranging">
               <el-icon><MagicStick /></el-icon> 全量模式
             </el-button>
@@ -74,7 +113,7 @@
         </div>
       </template>
 
-      <el-table :data="classList" stripe v-loading="tableLoading" row-key="classId" :row-class-name="tableRowClassName">
+      <el-table :data="filteredClassList" stripe v-loading="tableLoading" row-key="classId" :row-class-name="tableRowClassName">
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="className" label="班级名称" min-width="120" />
         <el-table-column prop="collegeName" label="学院" width="120" show-overflow-tooltip />
@@ -110,26 +149,6 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
-
-    <!-- 底部报告区 -->
-    <el-card v-if="selectedCourseId && classList.length" class="report-card">
-      <el-row :gutter="20">
-        <el-col :span="6">
-          <el-statistic title="总班级数" :value="summary.totalClasses" />
-        </el-col>
-        <el-col :span="6">
-          <el-statistic title="已安排" :value="summary.assignedCount" />
-        </el-col>
-        <el-col :span="6">
-          <el-statistic title="总课时" :value="summary.totalCourseHours" suffix="课时" />
-        </el-col>
-        <el-col :span="6">
-          <el-statistic title="剩余课时" :value="summary.remainingHours" suffix="课时"
-            :value-style="{ color: summary.remainingHours >= 0 ? '#67C23A' : '#F56C6C' }"
-          />
-        </el-col>
-      </el-row>
     </el-card>
 
     <!-- 教师选择弹窗 -->
@@ -176,6 +195,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { Edit, MagicStick, SetUp, RefreshRight, Check } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getCourses } from '../../api/course'
+import request from '../../utils/request'
 import {
   getCourseClasses,
   getCourseTeachers,
@@ -219,6 +239,44 @@ const teacherList = ref([])
 const tableLoading = ref(false)
 const summary = ref({ totalClasses: 0, assignedCount: 0, unassignedCount: 0, totalCourseHours: 0, assignedHours: 0, remainingHours: 0 })
 
+// 筛选器
+const filterCollege = ref('')
+const filterMajor = ref('')
+const filterGrade = ref('')
+const filterTrainingLevel = ref('')
+
+const collegeOptions = computed(() => {
+  const set = new Set(classList.value.map(c => c.collegeName).filter(Boolean))
+  return [...set].sort()
+})
+
+const majorOptions = computed(() => {
+  let list = classList.value
+  if (filterCollege.value) list = list.filter(c => c.collegeName === filterCollege.value)
+  const set = new Set(list.map(c => c.majorName).filter(Boolean))
+  return [...set].sort()
+})
+
+const gradeOptions = computed(() => {
+  const set = new Set(classList.value.map(c => c.grade).filter(Boolean))
+  return [...set].sort((a, b) => a - b)
+})
+
+const trainingLevelOptions = computed(() => {
+  const set = new Set(classList.value.map(c => c.trainingLevelName).filter(Boolean))
+  return [...set].sort()
+})
+
+const filteredClassList = computed(() => {
+  return classList.value.filter(c => {
+    if (filterCollege.value && c.collegeName !== filterCollege.value) return false
+    if (filterMajor.value && c.majorName !== filterMajor.value) return false
+    if (filterGrade.value && c.grade !== filterGrade.value) return false
+    if (filterTrainingLevel.value && c.trainingLevelName !== filterTrainingLevel.value) return false
+    return true
+  })
+})
+
 // 自动排课状态
 const arranging = ref(false)
 
@@ -228,6 +286,7 @@ const currentClass = ref(null)
 const selectedTeacher = ref(null)
 const assigning = ref(false)
 const savingSettings = ref(false)
+const exporting = ref(false)
 
 function personnelLabel(type) {
   return { full_time: '专职', part_time: '兼职', external: '外聘' }[type] || type
@@ -273,7 +332,6 @@ async function handleSaveHourSettings() {
 
 async function loadSemester() {
   try {
-    const { default: request } = await import('../../utils/request')
     const res = await request.get('/settings')
     const settings = res.data || {}
     if (settings.currentSemester) {
@@ -294,6 +352,11 @@ async function loadCourses() {
 }
 
 async function onCourseChange(courseId) {
+  // 重置筛选器
+  filterCollege.value = ''
+  filterMajor.value = ''
+  filterGrade.value = ''
+  filterTrainingLevel.value = ''
   if (!courseId) {
     classList.value = []
     teacherList.value = []
@@ -402,6 +465,34 @@ async function handleReset() {
   }
 }
 
+async function handleExportArrange() {
+  if (!selectedCourseId.value || !currentSemesterLabel.value) return
+  exporting.value = true
+  try {
+    const response = await request.get('/export/teaching-arrange', {
+      params: { course_id: selectedCourseId.value, semester: currentSemesterLabel.value },
+      responseType: 'blob',
+    })
+    const blob = new Blob([response], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `教学安排_${courseInfo.value?.name || ''}_${currentSemesterLabel.value}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    console.error('导出失败:', e)
+    ElMessage.error('导出失败')
+  } finally {
+    exporting.value = false
+  }
+}
+
 onMounted(() => {
   loadSemester()
   loadCourses()
@@ -450,13 +541,59 @@ onMounted(() => {
 .preview-card {
   margin-bottom: 16px;
 }
+.preview-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.course-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+.preview-stats {
+  display: flex;
+  flex-wrap: wrap;
+}
+.preview-stat-item {
+  flex: 1 1 0;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+}
+.stat-label {
+  font-size: 12px;
+  color: #909399;
+}
+.stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+}
+.stat-value small {
+  font-size: 12px;
+  font-weight: normal;
+  color: #909399;
+  margin-left: 2px;
+}
+.text-success {
+  color: #67C23A;
+}
+.text-danger {
+  color: #F56C6C;
+}
 .matrix-card {
   margin-bottom: 16px;
 }
 .card-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 .card-header-actions {
   display: flex;
@@ -480,9 +617,6 @@ onMounted(() => {
 }
 .tag-item {
   margin: 2px;
-}
-.report-card {
-  margin-bottom: 16px;
 }
 :deep(.unassigned-row) {
   background-color: #fff5f5 !important;

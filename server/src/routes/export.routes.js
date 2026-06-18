@@ -12,6 +12,7 @@ import {
   exportTextbookUsage,
   exportTeachers,
   exportStatistics,
+  exportTeachingArrange,
 } from '../controllers/export/data-export.controller.js';
 
 const router = Router();
@@ -50,6 +51,9 @@ router.get('/teachers', exportTeachers);
 
 // GET /api/export/statistics - 导出课时统计
 router.get('/statistics', exportStatistics);
+
+// GET /api/export/teaching-arrange - 导出教学安排
+router.get('/teaching-arrange', exportTeachingArrange);
 
 // ==================== 教材使用导出 ====================
 

@@ -268,7 +268,7 @@ export async function getStatistics(req, res, next) {
     const allAssignments = await prisma.teaching_assignments.findMany({
       where: { semester, teacher_id: { in: teacherIds } },
       include: {
-        class: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true, college_id: true, colleges: { select: { id: true, name: true } } } },
         course: { select: { id: true, name: true } },
       },
       orderBy: [{ teacher_id: 'asc' }, { course_id: 'asc' }],
@@ -286,6 +286,15 @@ export async function getStatistics(req, res, next) {
     const result = stats.map(s => {
       const teacher = teacherMap.get(s.teacher_id);
       const assignments = assignmentsByTeacher.get(s.teacher_id) || [];
+
+      // 从实际授课班级中提取任课学院（去重）
+      const collegeMap = new Map();
+      for (const a of assignments) {
+        if (a.class.colleges && !collegeMap.has(a.class.colleges.id)) {
+          collegeMap.set(a.class.colleges.id, a.class.colleges);
+        }
+      }
+      const collegeList = [...collegeMap.values()];
 
       // 按课程分组
       const byCourse = new Map();
@@ -311,7 +320,7 @@ export async function getStatistics(req, res, next) {
         teacherId: s.teacher_id,
         teacherName: teacher?.name || '未知',
         personnelType: teacher?.personnel_type || null,
-        collegeList: teacher?.scheduling_colleges.map(sc => sc.college) || [],
+        collegeList,
         courseList: teacher?.courses.map(tc => tc.course) || [],
         totalWeeklyHours: s._sum.weekly_hours || 0,
         totalClassCount: s._count.id || 0,

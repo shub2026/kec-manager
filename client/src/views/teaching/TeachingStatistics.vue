@@ -6,6 +6,17 @@
           <span>课时统计</span>
           <div class="card-header-actions">
             <el-tag type="info">{{ semester }}</el-tag>
+            <el-select v-model="filterType" placeholder="类别" clearable style="width: 100px">
+              <el-option label="专职" value="full_time" />
+              <el-option label="兼职" value="part_time" />
+              <el-option label="外聘" value="external" />
+            </el-select>
+            <el-select v-model="filterSubject" placeholder="科目" clearable filterable style="width: 140px">
+              <el-option v-for="v in subjectOptions" :key="v" :label="v" :value="v" />
+            </el-select>
+            <el-select v-model="filterCollege" placeholder="任课学院" clearable filterable style="width: 130px">
+              <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
+            </el-select>
             <el-button @click="handleExport" :loading="exporting" :disabled="!statsData">数据导出</el-button>
           </div>
         </div>
@@ -28,7 +39,7 @@
       </div>
 
       <!-- 教师课时统计表 -->
-      <el-table :data="statsData?.teachers || []" stripe v-loading="loading" row-key="teacherId">
+      <el-table :data="filteredTeachers" stripe v-loading="loading" row-key="teacherId">
         <el-table-column type="expand">
           <template #default="{ row }">
             <div class="expand-content">
@@ -58,21 +69,21 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="任教科目" min-width="180">
+          <template #default="{ row }">
+            <el-tag v-for="d in row.details" :key="d.course.id" size="small" class="tag-item">{{ d.course.name }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="任课学院" min-width="160">
           <template #default="{ row }">
             <el-tag v-for="c in row.collegeList" :key="c.id" size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
             <span v-if="!row.collegeList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="任教科目" min-width="180">
-          <template #default="{ row }">
-            <el-tag v-for="d in row.details" :key="d.course.id" size="small" class="tag-item">{{ d.course.name }}</el-tag>
-          </template>
-        </el-table-column>
         <el-table-column label="上课班级数" width="100" align="center">
           <template #default="{ row }">{{ row.totalClassCount }}</template>
         </el-table-column>
-        <el-table-column label="总周课时" width="100" align="center" sortable :sort-method="(a, b) => a.totalWeeklyHours - b.totalWeeklyHours">
+        <el-table-column label="总周课时" min-width="100" align="center" sortable :sort-method="(a, b) => a.totalWeeklyHours - b.totalWeeklyHours">
           <template #default="{ row }">
             <span class="hours-value">{{ row.totalWeeklyHours }}</span>
           </template>
@@ -83,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getTeachingStatistics } from '../../api/teachingArrange'
 import request from '../../utils/request'
@@ -92,6 +103,48 @@ const semester = ref('')
 const statsData = ref(null)
 const loading = ref(false)
 const exporting = ref(false)
+
+// 筛选器
+const filterType = ref('')
+const filterSubject = ref('')
+const filterCollege = ref('')
+
+const teacherList = computed(() => statsData.value?.teachers || [])
+
+const subjectOptions = computed(() => {
+  const set = new Set()
+  for (const t of teacherList.value) {
+    for (const d of (t.details || [])) {
+      if (d.course?.name) set.add(d.course.name)
+    }
+  }
+  return [...set].sort()
+})
+
+const collegeOptions = computed(() => {
+  const set = new Set()
+  for (const t of teacherList.value) {
+    for (const c of (t.collegeList || [])) {
+      if (c.name) set.add(c.name)
+    }
+  }
+  return [...set].sort()
+})
+
+const filteredTeachers = computed(() => {
+  return teacherList.value.filter(t => {
+    if (filterType.value && t.personnelType !== filterType.value) return false
+    if (filterSubject.value) {
+      const hasSubject = (t.details || []).some(d => d.course?.name === filterSubject.value)
+      if (!hasSubject) return false
+    }
+    if (filterCollege.value) {
+      const hasCollege = (t.collegeList || []).some(c => c.name === filterCollege.value)
+      if (!hasCollege) return false
+    }
+    return true
+  })
+})
 
 function personnelLabel(type) {
   return { full_time: '专职', part_time: '兼职', external: '外聘' }[type] || type || '-'
@@ -170,6 +223,7 @@ onMounted(async () => {
 }
 .card-header-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }
