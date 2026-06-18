@@ -64,6 +64,7 @@ model colleges {
   classes                    classes[]
   training_plans             training_plans[]
   teacher_scheduling_colleges teacher_scheduling_colleges[]
+  affiliated_teachers        teachers[]               @relation("teacher_affiliated_college")
 }
 
 model courses {
@@ -182,6 +183,7 @@ model training_levels {
   updated_at     DateTime         @updatedAt
   classes        classes[]
   training_plans training_plans[]
+  scheduling_teachers teacher_training_levels[]
 }
 
 model training_plans {
@@ -233,9 +235,12 @@ model teachers {
   sort_order           Int                         @default(0)
   created_at           DateTime                    @default(now())
   updated_at           DateTime                    @updatedAt
+  affiliated_college_id  Int?
+  affiliated_college   colleges?                     @relation("teacher_affiliated_college", fields: [affiliated_college_id], references: [id], onDelete: SetNull)
   courses              teacher_courses[]
   assignments          teaching_assignments[]
   scheduling_colleges  teacher_scheduling_colleges[]
+  scheduling_levels    teacher_training_levels[]
 
   @@index([personnel_type])
   @@map("teachers")
@@ -261,6 +266,17 @@ model teacher_scheduling_colleges {
 
   @@unique([teacher_id, college_id])
   @@map("teacher_scheduling_colleges")
+}
+
+model teacher_training_levels {
+  id                 Int             @id @default(autoincrement())
+  teacher_id         Int
+  training_level_id  Int
+  teacher            teachers        @relation(fields: [teacher_id], references: [id], onDelete: Cascade)
+  training_level     training_levels @relation(fields: [training_level_id], references: [id], onDelete: Cascade)
+
+  @@unique([teacher_id, training_level_id])
+  @@map("teacher_training_levels")
 }
 
 model teaching_assignments {

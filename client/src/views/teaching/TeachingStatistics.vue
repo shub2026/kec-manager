@@ -17,6 +17,12 @@
             <el-select v-model="filterCollege" placeholder="任课学院" clearable filterable style="width: 130px">
               <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
             </el-select>
+            <el-select v-model="filterLevel" placeholder="任课层次" clearable filterable style="width: 120px">
+              <el-option v-for="v in levelOptions" :key="v" :label="v" :value="v" />
+            </el-select>
+            <el-select v-model="filterAffiliatedCollege" placeholder="归属学院" clearable filterable style="width: 130px">
+              <el-option v-for="v in affiliatedCollegeOptions" :key="v" :label="v" :value="v" />
+            </el-select>
             <el-button @click="handleExport" :loading="exporting" :disabled="!statsData">数据导出</el-button>
           </div>
         </div>
@@ -69,9 +75,20 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="归属学院" min-width="120">
+          <template #default="{ row }">
+            <span>{{ row.affiliatedCollege?.name || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="任教科目" min-width="180">
           <template #default="{ row }">
             <el-tag v-for="d in row.details" :key="d.course.id" size="small" class="tag-item">{{ d.course.name }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="任课层次" min-width="120">
+          <template #default="{ row }">
+            <el-tag v-for="l in row.trainingLevelList" :key="l.id" size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
+            <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
         <el-table-column label="任课学院" min-width="160">
@@ -108,6 +125,8 @@ const exporting = ref(false)
 const filterType = ref('')
 const filterSubject = ref('')
 const filterCollege = ref('')
+const filterLevel = ref('')
+const filterAffiliatedCollege = ref('')
 
 const teacherList = computed(() => statsData.value?.teachers || [])
 
@@ -131,6 +150,24 @@ const collegeOptions = computed(() => {
   return [...set].sort()
 })
 
+const levelOptions = computed(() => {
+  const set = new Set()
+  for (const t of teacherList.value) {
+    for (const l of (t.trainingLevelList || [])) {
+      if (l.name) set.add(l.name)
+    }
+  }
+  return [...set].sort()
+})
+
+const affiliatedCollegeOptions = computed(() => {
+  const set = new Set()
+  for (const t of teacherList.value) {
+    if (t.affiliatedCollege?.name) set.add(t.affiliatedCollege.name)
+  }
+  return [...set].sort()
+})
+
 const filteredTeachers = computed(() => {
   return teacherList.value.filter(t => {
     if (filterType.value && t.personnelType !== filterType.value) return false
@@ -141,6 +178,13 @@ const filteredTeachers = computed(() => {
     if (filterCollege.value) {
       const hasCollege = (t.collegeList || []).some(c => c.name === filterCollege.value)
       if (!hasCollege) return false
+    }
+    if (filterLevel.value) {
+      const hasLevel = (t.trainingLevelList || []).some(l => l.name === filterLevel.value)
+      if (!hasLevel) return false
+    }
+    if (filterAffiliatedCollege.value) {
+      if (t.affiliatedCollege?.name !== filterAffiliatedCollege.value) return false
     }
     return true
   })

@@ -144,7 +144,8 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     },
     include: {
       courses: { include: { course: { select: { id: true, name: true } } } },
-      scheduling_colleges: { include: { college: { select: { id: true, name: true } } } },
+      scheduling_colleges: { select: { college_id: true } },
+      scheduling_levels: { include: { training_level: { select: { id: true, name: true } } } },
     },
     orderBy: { sort_order: 'asc' },
   });
@@ -176,6 +177,24 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     w.teacher_id,
     { hours: w._sum.weekly_hours || 0, classCount: w._count.id || 0 },
   ]));
+
+  // 查询每个教师实际授课学院（从授课安排中提取，去重）
+  const teacherAssignmentsWithCollege = await prisma.teaching_assignments.findMany({
+    where: { semester: semesterStr },
+    select: {
+      teacher_id: true,
+      class: { select: { colleges: { select: { id: true, name: true } } } },
+    },
+  });
+  const teacherCollegeMap = new Map(); // teacherId -> Map<collegeId, college>
+  for (const a of teacherAssignmentsWithCollege) {
+    if (a.class?.colleges) {
+      if (!teacherCollegeMap.has(a.teacher_id)) {
+        teacherCollegeMap.set(a.teacher_id, new Map());
+      }
+      teacherCollegeMap.get(a.teacher_id).set(a.class.colleges.id, a.class.colleges);
+    }
+  }
 
   // 获取教师的教材数据（用于同教材匹配）
   const allCourseIds = [...new Set(teachers.flatMap(t => t.courses.map(tc => tc.course_id)))];
@@ -228,7 +247,10 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     qualificationType: t.qualification_type,
     defaultWeeklyHours: t.default_weekly_hours,
     courseList: t.courses.map(tc => tc.course),
-    collegeList: t.scheduling_colleges.map(sc => sc.college),
+    collegeList: [...(teacherCollegeMap.get(t.id)?.values() || [])],
+    schedulingCollegeIds: t.scheduling_colleges.map(sc => sc.college_id),
+    schedulingLevelIds: t.scheduling_levels.map(sl => sl.training_level.id),
+    trainingLevelList: t.scheduling_levels.map(sl => sl.training_level),
     textbookIds: teacherTextbookMap.get(t.id) || [],
     totalWeeklyHours: workloadMap.get(t.id) || 0,
     totalClassCount: classCountMap.get(t.id) || 0,
@@ -239,18 +261,21 @@ export async function getTeachersForCourse(courseId, semesterStr) {
 
 /**
  * 计算教师-班级匹配分数（软约束优先级）
- * @param {object} teacher - 教师对象（含 collegeList, textbookIds）
+ * @param {object} teacher - 教师对象（含 schedulingCollegeIds, textbookIds）
  * @param {object} classInfo - 班级对象（含 collegeId, textbookIds）
- * @param {string[]} conditions - 排课条件 ['same_textbook', 'same_college']
+ * @param {string[]} conditions - 排课条件 ['same_textbook']
  */
 function calcMatchScore(teacher, classInfo, conditions = []) {
   let score = 0;
 
-  // 同学院匹配：仅当勾选了"同学院"条件时才生效
-  if (conditions.includes('same_college')) {
-    if (teacher.collegeList?.some(c => c.id === classInfo.collegeId)) {
-      score += 1;
-    }
+  // 指定学院匹配：始终生效，教师配置的任课学院优先安排
+  if (teacher.schedulingCollegeIds?.length && teacher.schedulingCollegeIds.includes(classInfo.collegeId)) {
+    score += 1;
+  }
+
+  // 指定层次匹配：始终生效，教师配置的任课层次优先安排
+  if (teacher.schedulingLevelIds?.length && classInfo.trainingLevelId && teacher.schedulingLevelIds.includes(classInfo.trainingLevelId)) {
+    score += 1;
   }
 
   // 同教材匹配：仅当勾选了"同教材"条件时才生效
@@ -325,69 +350,98 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
     const autoHoursForCourse = autoHoursMap.get(t.id) || 0;
     const effectiveTotal = currentTotal - autoHoursForCourse;
 
-    // 目标课时：有默认值用默认值，否则用标准课时
-    const targetHours = t.defaultWeeklyHours != null ? t.defaultWeeklyHours : standardHours;
-    // 可新增课时上限（基于有效总课时）
-    const maxAdditional = Math.max(0, maxHours - effectiveTotal);
+    // 当前课程已有课时（含手动安排，不会被自动替换）
+    const courseExistingHours = t.courseHours - autoHoursForCourse;
+
+    // 总体容量天花板：由人员类别决定，不受 defaultWeeklyHours 影响
+    const standardCap = Math.max(0, standardHours - effectiveTotal);
+    const fullCap = Math.max(0, maxHours - effectiveTotal);
 
     return {
       ...t,
       standardHours,
       maxHours,
-      targetHours,
       currentTotal,
       effectiveTotal,
-      maxAdditional,
+      courseExistingHours,
+      standardCap,
+      fullCap,
       assignedHours: 0, // 本次自动安排已分配的课时
     };
   });
 
-  // 7. 贪心分配
+  // 7. 两轮贪心分配
   const assignments = [];
   const unassigned = [];
 
-  for (const cls of classesToAssign) {
-    // 计算每个教师的匹配分数并排序
-    const candidates = teacherConstraints
-      .filter(t => {
-        if (mode === 'standard') {
-          // 标准模式：不超过标准课时（含已有课时）
-          return t.effectiveTotal + t.assignedHours + cls.weeklyHours <= t.standardHours;
-        }
-        // 全量模式：不超过最大课时
-        return t.assignedHours + cls.weeklyHours <= t.maxAdditional;
-      })
-      .map(t => ({
-        teacher: t,
-        score: calcMatchScore(t, cls, conditions),
-        currentLoad: t.effectiveTotal + t.assignedHours,
-      }))
-      .sort((a, b) => {
-        // 先按匹配分数降序
-        if (b.score !== a.score) return b.score - a.score;
-        // 再按当前负载升序（选最空闲的）
-        return a.currentLoad - b.currentLoad;
+  /**
+   * 尝试为班级列表分配教师
+   * @param {Array} classList - 待分配的班级
+   * @returns {Array} 未能分配的班级
+   */
+  function assignRound(classList) {
+    const remaining = [];
+    for (const cls of classList) {
+      const candidates = teacherConstraints
+        .filter(t => {
+          // 总体容量检查：不超过人员类别的课时上限
+          const overallOk = mode === 'standard'
+            ? t.assignedHours + cls.weeklyHours <= t.standardCap
+            : t.assignedHours + cls.weeklyHours <= t.fullCap;
+          if (!overallOk) return false;
+
+          // 本课程课时检查：有默认周课时的，不超过该值
+          if (t.defaultWeeklyHours != null) {
+            return t.courseExistingHours + t.assignedHours + cls.weeklyHours <= t.defaultWeeklyHours;
+          }
+          return true;
+        })
+        .map(t => ({
+          teacher: t,
+          score: calcMatchScore(t, cls, conditions),
+          currentLoad: t.effectiveTotal + t.assignedHours,
+        }))
+        .sort((a, b) => {
+          // 先按匹配分数降序
+          if (b.score !== a.score) return b.score - a.score;
+          // 再按当前负载升序（选最空闲的）
+          return a.currentLoad - b.currentLoad;
+        });
+
+      if (candidates.length === 0) {
+        remaining.push(cls);
+        continue;
+      }
+
+      const selected = candidates[0].teacher;
+      selected.assignedHours += cls.weeklyHours;
+
+      assignments.push({
+        teacher_id: selected.id,
+        teacher_name: selected.name,
+        class_id: cls.classId,
+        class_name: cls.className,
+        course_id: Number(courseId),
+        semester: semesterStr,
+        weekly_hours: cls.weeklyHours,
+        is_auto: true,
       });
-
-    if (candidates.length === 0) {
-      unassigned.push(cls);
-      continue;
     }
-
-    const selected = candidates[0].teacher;
-    selected.assignedHours += cls.weeklyHours;
-
-    assignments.push({
-      teacher_id: selected.id,
-      teacher_name: selected.name,
-      class_id: cls.classId,
-      class_name: cls.className,
-      course_id: Number(courseId),
-      semester: semesterStr,
-      weekly_hours: cls.weeklyHours,
-      is_auto: true,
-    });
+    return remaining;
   }
+
+  // 第一轮：优先处理有指定学院或层次匹配的班级（确保教师优先安排到匹配的班级）
+  const isMatched = (cls) => teacherConstraints.some(t =>
+    (t.schedulingCollegeIds?.length && t.schedulingCollegeIds.includes(cls.collegeId)) ||
+    (t.schedulingLevelIds?.length && cls.trainingLevelId && t.schedulingLevelIds.includes(cls.trainingLevelId))
+  );
+  const matchedClasses = classesToAssign.filter(isMatched);
+  const otherClasses = classesToAssign.filter(cls => !isMatched(cls));
+
+  const round1Remaining = assignRound(matchedClasses);
+  // 第二轮：处理剩余班级（含第一轮未成功分配的）
+  const round2Remaining = assignRound([...otherClasses, ...round1Remaining]);
+  unassigned.push(...round2Remaining);
 
   // 8. 写入数据库（事务 + 串行）
   if (assignments.length > 0) {

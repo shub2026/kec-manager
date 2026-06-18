@@ -411,7 +411,7 @@ export async function exportTeachers(req, res, next) {
       '教师资格类型': t.qualification_type || '-',
       '默认周课时': t.default_weekly_hours != null ? t.default_weekly_hours : '-',
       '学科': t.courses.map(tc => tc.course.name).join('、') || '-',
-      '上课学院': t.scheduling_colleges.map(sc => sc.college.name).join('、') || '-',
+      '任课学院': t.scheduling_colleges.map(sc => sc.college.name).join('、') || '-',
     }));
 
     const headers = [
@@ -422,7 +422,7 @@ export async function exportTeachers(req, res, next) {
       { label: '教师资格类型', key: '教师资格类型', width: 15 },
       { label: '默认周课时', key: '默认周课时', width: 12 },
       { label: '学科', key: '学科', width: 30 },
-      { label: '上课学院', key: '上课学院', width: 30 },
+      { label: '任课学院', key: '任课学院', width: 30 },
     ];
 
     const workbook = await createWorkbook(headers, rows);
@@ -528,7 +528,7 @@ export async function exportStatistics(req, res, next) {
       rows.push({
         '教师姓名': teacher?.name || '未知',
         '人员类别': personnelMap[teacher?.personnel_type] || '-',
-        '上课学院': teacher?.scheduling_colleges.map(sc => sc.college.name).join('、') || '-',
+        '任课学院': teacher?.scheduling_colleges.map(sc => sc.college.name).join('、') || '-',
         '任教科目': teacher?.courses.map(tc => tc.course.name).join('、') || '-',
         '上课班级数': classCount,
         '总周课时': totalHours,
@@ -546,7 +546,7 @@ export async function exportStatistics(req, res, next) {
     rows.push({
       '教师姓名': '合计',
       '人员类别': '',
-      '上课学院': '',
+      '任课学院': '',
       '任教科目': '',
       '上课班级数': totalClasses,
       '总周课时': totalWeeklyHours,
@@ -556,7 +556,7 @@ export async function exportStatistics(req, res, next) {
     const headers = [
       { label: '教师姓名', key: '教师姓名', width: 12 },
       { label: '人员类别', key: '人员类别', width: 10 },
-      { label: '上课学院', key: '上课学院', width: 25 },
+      { label: '任课学院', key: '任课学院', width: 25 },
       { label: '任教科目', key: '任教科目', width: 25 },
       { label: '上课班级数', key: '上课班级数', width: 12 },
       { label: '总周课时', key: '总周课时', width: 10 },

@@ -12,11 +12,15 @@ export async function listTeachers(req, res, next) {
     await autoFixSortOrder('teachers');
     const teachers = await prisma.teachers.findMany({
       include: {
+        affiliated_college: { select: { id: true, name: true } },
         courses: {
           include: { course: { select: { id: true, name: true, code: true, type: true } } },
         },
         scheduling_colleges: {
           include: { college: { select: { id: true, name: true } } },
+        },
+        scheduling_levels: {
+          include: { training_level: { select: { id: true, name: true } } },
         },
         _count: { select: { assignments: true } },
       },
@@ -26,8 +30,10 @@ export async function listTeachers(req, res, next) {
     const formatted = teachers.map(t => ({
       ...t,
       birth_date: t.birth_date ? String(t.birth_date).substring(0, 7) : null,
+      affiliatedCollege: t.affiliated_college,
       courseList: t.courses.map(tc => tc.course),
       collegeList: t.scheduling_colleges.map(sc => sc.college),
+      trainingLevelList: t.scheduling_levels.map(sl => sl.training_level),
       assignmentCount: t._count?.assignments || 0,
     }));
 
@@ -40,7 +46,7 @@ export async function listTeachers(req, res, next) {
  */
 export async function createTeacher(req, res, next) {
   try {
-    const { name, gender, birth_date, personnel_type, qualification_type, default_weekly_hours, course_ids, college_ids } = req.body;
+    const { name, gender, birth_date, personnel_type, qualification_type, default_weekly_hours, affiliated_college_id, course_ids, college_ids, training_level_ids } = req.body;
     if (!name) return fail(res, '教师姓名不能为空');
 
     const newSortOrder = await getNextSortOrder(prisma, 'teachers');
@@ -53,6 +59,7 @@ export async function createTeacher(req, res, next) {
         personnel_type: personnel_type || 'full_time',
         qualification_type: qualification_type || null,
         default_weekly_hours: default_weekly_hours != null ? Number(default_weekly_hours) : null,
+        affiliated_college_id: affiliated_college_id != null ? Number(affiliated_college_id) : null,
         sort_order: newSortOrder,
         courses: course_ids?.length
           ? { create: course_ids.map(cid => ({ course_id: Number(cid) })) }
@@ -60,10 +67,15 @@ export async function createTeacher(req, res, next) {
         scheduling_colleges: college_ids?.length
           ? { create: college_ids.map(cid => ({ college_id: Number(cid) })) }
           : undefined,
+        scheduling_levels: training_level_ids?.length
+          ? { create: training_level_ids.map(lid => ({ training_level_id: Number(lid) })) }
+          : undefined,
       },
       include: {
+        affiliated_college: { select: { id: true, name: true } },
         courses: { include: { course: { select: { id: true, name: true } } } },
         scheduling_colleges: { include: { college: { select: { id: true, name: true } } } },
+        scheduling_levels: { include: { training_level: { select: { id: true, name: true } } } },
       },
     });
 
@@ -79,8 +91,10 @@ export async function createTeacher(req, res, next) {
 
     success(res, {
       ...teacher,
+      affiliatedCollege: teacher.affiliated_college,
       courseList: teacher.courses.map(tc => tc.course),
       collegeList: teacher.scheduling_colleges.map(sc => sc.college),
+      trainingLevelList: teacher.scheduling_levels.map(sl => sl.training_level),
     }, '创建成功');
   } catch (e) {
     await createAuditLog({
@@ -102,8 +116,13 @@ export async function createTeacher(req, res, next) {
 export async function updateTeacher(req, res, next) {
   try {
     const { id } = req.params;
-    const { course_ids, college_ids, ...rest } = req.body;
+    const { course_ids, college_ids, training_level_ids, affiliated_college_id, ...rest } = req.body;
     const data = buildUpdateData(rest, ['name', 'gender', 'birth_date', 'personnel_type', 'qualification_type', 'default_weekly_hours', 'sort_order']);
+
+    // 处理 affiliated_college_id
+    if (affiliated_college_id !== undefined) {
+      data.affiliated_college_id = affiliated_college_id != null && affiliated_college_id !== '' ? Number(affiliated_college_id) : null;
+    }
 
     // 处理 default_weekly_hours 的 null 值
     if (rest.default_weekly_hours === null || rest.default_weekly_hours === undefined || rest.default_weekly_hours === '') {
@@ -139,12 +158,24 @@ export async function updateTeacher(req, res, next) {
         }
       }
 
+      // 更新任课层次关联
+      if (training_level_ids !== undefined) {
+        await prisma.teacher_training_levels.deleteMany({ where: { teacher_id: Number(id) } });
+        if (training_level_ids.length > 0) {
+          await prisma.teacher_training_levels.createMany({
+            data: training_level_ids.map(lid => ({ teacher_id: Number(id), training_level_id: Number(lid) })),
+          });
+        }
+      }
+
       // 重新查询含关联
       const updated = await prisma.teachers.findUnique({
         where: { id: Number(id) },
         include: {
+          affiliated_college: { select: { id: true, name: true } },
           courses: { include: { course: { select: { id: true, name: true } } } },
           scheduling_colleges: { include: { college: { select: { id: true, name: true } } } },
+          scheduling_levels: { include: { training_level: { select: { id: true, name: true } } } },
           _count: { select: { assignments: true } },
         },
       });
@@ -161,8 +192,10 @@ export async function updateTeacher(req, res, next) {
 
       success(res, {
         ...updated,
+        affiliatedCollege: updated.affiliated_college,
         courseList: updated.courses.map(tc => tc.course),
         collegeList: updated.scheduling_colleges.map(sc => sc.college),
+        trainingLevelList: updated.scheduling_levels.map(sl => sl.training_level),
         assignmentCount: updated._count?.assignments || 0,
       }, '更新成功');
     } catch (e) {

@@ -258,8 +258,10 @@ export async function getStatistics(req, res, next) {
     const teachers = await prisma.teachers.findMany({
       where: { id: { in: teacherIds } },
       include: {
+        affiliated_college: { select: { id: true, name: true } },
         courses: { include: { course: { select: { id: true, name: true } } } },
         scheduling_colleges: { include: { college: { select: { id: true, name: true } } } },
+        scheduling_levels: { include: { training_level: { select: { id: true, name: true } } } },
       },
     });
     const teacherMap = new Map(teachers.map(t => [t.id, t]));
@@ -320,7 +322,9 @@ export async function getStatistics(req, res, next) {
         teacherId: s.teacher_id,
         teacherName: teacher?.name || '未知',
         personnelType: teacher?.personnel_type || null,
+        affiliatedCollege: teacher?.affiliated_college || null,
         collegeList,
+        trainingLevelList: teacher?.scheduling_levels.map(sl => sl.training_level) || [],
         courseList: teacher?.courses.map(tc => tc.course) || [],
         totalWeeklyHours: s._sum.weekly_hours || 0,
         totalClassCount: s._count.id || 0,

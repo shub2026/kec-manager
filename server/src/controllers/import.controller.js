@@ -669,7 +669,7 @@ export async function importTeachers(req, res, next) {
     const qualificationType = sanitizedRow['教师资格类型'] || null;
     const defaultWeeklyHours = sanitizedRow['默认周课时'];
     const courseNamesStr = sanitizedRow['学科'] || '';
-    const collegeNamesStr = sanitizedRow['上课学院'] || '';
+    const collegeNamesStr = sanitizedRow['任课学院'] || '';
 
     if (!name) {
       errors.push(`第${i + 2}行：缺少教师姓名`);
@@ -726,7 +726,7 @@ export async function importTeachers(req, res, next) {
       courseIds.push(courseMap[cName]);
     }
 
-    // 解析上课学院（逗号分隔）
+    // 解析任课学院（逗号分隔）
     const collegeNames = String(collegeNamesStr).split(/[,，、]/).map(s => s.trim()).filter(Boolean);
     const collegeIds = [];
     for (const cName of collegeNames) {

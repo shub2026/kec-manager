@@ -15,7 +15,6 @@
             </el-select>
             <el-checkbox-group v-model="scheduleConditions">
               <el-checkbox value="same_textbook">同教材</el-checkbox>
-              <el-checkbox value="same_college">同学院</el-checkbox>
             </el-checkbox-group>
           </div>
         </div>
@@ -161,33 +160,38 @@
     </el-card>
 
     <!-- 教师选择弹窗 -->
-    <el-dialog v-model="teacherDialogVisible" title="选择任课教师" width="600px" destroy-on-close>
+    <el-dialog v-model="teacherDialogVisible" title="选择任课教师" width="80%" destroy-on-close class="teacher-dialog">
       <el-table :data="teacherList" stripe highlight-current-row @current-change="onTeacherSelect" size="small">
-        <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column label="人员类别" width="90">
+        <el-table-column prop="name" label="姓名" min-width="70" />
+        <el-table-column label="人员类别" min-width="80">
           <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
         </el-table-column>
-        <el-table-column label="当前总课时" width="100" align="center">
+        <el-table-column label="当前总课时" min-width="90" align="center">
           <template #default="{ row }">
-            <span :class="{ 'text-warning': row.totalWeeklyHours > (hourSettings[row.personnelType || 'full_time']?.standard || 16) }">
+            <span :class="{ 'text-warning': row.totalWeeklyHours > (row.defaultWeeklyHours ?? hourSettings[row.personnelType || 'full_time']?.standard ?? 16) }">
               {{ row.totalWeeklyHours }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="班级数" width="70" align="center">
+        <el-table-column label="班级数" min-width="60" align="center">
           <template #default="{ row }">{{ row.totalClassCount }}</template>
         </el-table-column>
-        <el-table-column label="学科" min-width="120">
+        <el-table-column label="学科" min-width="140">
           <template #default="{ row }">
             <el-tag v-for="c in row.courseList" :key="c.id" size="small" class="tag-item">{{ c.name }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="上课学院" min-width="120">
+        <el-table-column label="任课学院" min-width="140">
           <template #default="{ row }">
             <el-tag v-for="c in row.collegeList" :key="c.id" size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="默认周课时" width="100" align="center">
+        <el-table-column label="任课层次" min-width="120">
+          <template #default="{ row }">
+            <el-tag v-for="l in row.trainingLevelList" :key="l.id" size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="默认周课时" min-width="90" align="center">
           <template #default="{ row }">{{ row.defaultWeeklyHours ?? '-' }}</template>
         </el-table-column>
       </el-table>
@@ -635,5 +639,11 @@ onMounted(() => {
 }
 .adaptive-table :deep(.el-table__body td .cell) {
   white-space: nowrap;
+}
+</style>
+
+<style>
+.teacher-dialog .el-dialog__body {
+  overflow-x: hidden;
 }
 </style>

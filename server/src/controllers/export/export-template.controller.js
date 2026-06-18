@@ -58,9 +58,9 @@ export async function downloadTemplate(req, res, next) {
           { label: '教师资格类型', key: 'qualification_type', width: 15 },
           { label: '默认周课时', key: 'default_weekly_hours', width: 12 },
           { label: '学科', key: 'courses', width: 25 },
-          { label: '上课学院', key: 'colleges', width: 25 },
+          { label: '任课学院', key: 'colleges', width: 25 },
         ];
-        sample = { '教师姓名': '张三', '性别': '男', '出生年月': '1990-01', '人员类别': '专职', '教师资格类型': '高中语文', '默认周课时': 16, '学科': '语文,数学', '上课学院': '教育学院,艺术学院' };
+        sample = { '教师姓名': '张三', '性别': '男', '出生年月': '1990-01', '人员类别': '专职', '教师资格类型': '高中语文', '默认周课时': 16, '学科': '语文,数学', '任课学院': '教育学院,艺术学院' };
         filename = '教师导入模板.xlsx';
         break;
       default:

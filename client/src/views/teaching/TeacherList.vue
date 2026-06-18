@@ -19,7 +19,13 @@
             <el-select v-model="filterCourseId" placeholder="学科" clearable filterable style="width: 130px">
               <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterCollegeId" placeholder="上课学院" clearable filterable style="width: 130px">
+            <el-select v-model="filterCollegeId" placeholder="任课学院" clearable filterable style="width: 130px">
+              <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
+            </el-select>
+            <el-select v-model="filterTrainingLevelId" placeholder="任课层次" clearable filterable style="width: 120px">
+              <el-option v-for="l in allTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
+            </el-select>
+            <el-select v-model="filterAffiliatedCollegeId" placeholder="归属学院" clearable filterable style="width: 130px">
               <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
             <el-button @click="exportData">数据导出</el-button>
@@ -68,16 +74,27 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="归属学院" min-width="120">
+          <template #default="{ row }">
+            <span>{{ row.affiliatedCollege?.name || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="学科" min-width="160">
           <template #default="{ row }">
             <el-tag v-for="c in row.courseList" :key="c.id" size="small" class="tag-item">{{ c.name }}</el-tag>
             <span v-if="!row.courseList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="上课学院" min-width="140">
+        <el-table-column label="任课学院" min-width="140">
           <template #default="{ row }">
             <el-tag v-for="c in row.collegeList" :key="c.id" size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
             <span v-if="!row.collegeList?.length" class="text-muted">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="任课层次" min-width="120">
+          <template #default="{ row }">
+            <el-tag v-for="l in row.trainingLevelList" :key="l.id" size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
+            <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
         <el-table-column label="默认周课时" width="100" align="center">
@@ -135,18 +152,28 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-form-item label="归属学院">
+          <el-select v-model="form.affiliatedCollegeId" placeholder="选择归属学院" clearable filterable style="width: 100%">
+            <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="学科（课程）">
           <el-select v-model="form.courseIds" multiple filterable placeholder="选择可教授的课程" style="width: 100%">
             <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="上课学院">
+        <el-form-item label="任课学院">
           <el-select v-model="form.collegeIds" multiple filterable placeholder="选择优先指定学院" style="width: 100%">
             <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
+        <el-form-item label="任课层次">
+          <el-select v-model="form.trainingLevelIds" multiple filterable placeholder="选择优先指定层次" style="width: 100%">
+            <el-option v-for="l in allTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="默认周课时">
-          <el-input-number v-model="form.defaultWeeklyHours" :min="0" :max="40" :step="1" :precision="1" placeholder="不填使用课时要求" controls-position="right" style="width: 200px" />
+          <el-input-number v-model="form.defaultWeeklyHours" :min="0" :max="40" :step="1" placeholder="不填使用课时要求" controls-position="right" style="width: 200px" />
           <span class="form-tip">不填则使用课时要求的标准周课时</span>
         </el-form-item>
       </el-form>
@@ -184,6 +211,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getCookie } from '@/utils/cookies'
 import { getTeachers, createTeacher, updateTeacher, deleteTeacher, batchUpdateDefaultHours } from '../../api/teacher'
 import { getColleges } from '../../api/college'
+import { getTrainingLevels } from '../../api/trainingLevel'
 import { getCourses } from '../../api/course'
 import { useExport } from '../../composables/useExport'
 import request from '../../utils/request'
@@ -194,6 +222,7 @@ const dialogVisible = ref(false)
 const saving = ref(false)
 const allCourses = ref([])
 const allColleges = ref([])
+const allTrainingLevels = ref([])
 
 const uploadHeaders = computed(() => {
   const token = getCookie('token')
@@ -212,6 +241,8 @@ const filterQualification = ref('')
 const filterCourseId = ref('')
 const filterPersonnelType = ref('')
 const filterCollegeId = ref('')
+const filterTrainingLevelId = ref('')
+const filterAffiliatedCollegeId = ref('')
 
 // 客户端筛选
 const filteredlist = computed(() => {
@@ -238,6 +269,14 @@ const filteredlist = computed(() => {
     const cid = Number(filterCollegeId.value)
     result = result.filter(t => t.collegeList?.some(c => c.id === cid))
   }
+  if (filterTrainingLevelId.value) {
+    const lid = Number(filterTrainingLevelId.value)
+    result = result.filter(t => t.trainingLevelList?.some(l => l.id === lid))
+  }
+  if (filterAffiliatedCollegeId.value) {
+    const cid = Number(filterAffiliatedCollegeId.value)
+    result = result.filter(t => t.affiliatedCollege?.id === cid)
+  }
   return result
 })
 
@@ -248,9 +287,11 @@ const defaultForm = {
   birthDate: null,
   personnelType: 'full_time',
   qualificationType: null,
+  affiliatedCollegeId: null,
   defaultWeeklyHours: null,
   courseIds: [],
   collegeIds: [],
+  trainingLevelIds: [],
 }
 const form = ref({ ...defaultForm })
 
@@ -304,9 +345,10 @@ async function load() {
 
 async function loadOptions() {
   try {
-    const [coursesRes, collegesRes] = await Promise.all([getCourses(), getColleges()])
+    const [coursesRes, collegesRes, levelsRes] = await Promise.all([getCourses(), getColleges(), getTrainingLevels()])
     allCourses.value = coursesRes.data || []
     allColleges.value = collegesRes.data || []
+    allTrainingLevels.value = levelsRes.data || []
   } catch (e) {
     console.error('加载选项失败:', e)
   }
@@ -317,8 +359,10 @@ function openDialog(row) {
     form.value = {
       ...row,
       birthDate: row.birthDate ? String(row.birthDate).substring(0, 7) : null,
+      affiliatedCollegeId: row.affiliatedCollege?.id || null,
       courseIds: row.courseList?.map(c => c.id) || [],
       collegeIds: row.collegeList?.map(c => c.id) || [],
+      trainingLevelIds: row.trainingLevelList?.map(l => l.id) || [],
     }
   } else {
     form.value = { ...defaultForm }
@@ -336,9 +380,11 @@ async function handleSave() {
       birthDate: form.value.birthDate,
       personnelType: form.value.personnelType,
       qualificationType: form.value.qualificationType,
+      affiliatedCollegeId: form.value.affiliatedCollegeId,
       defaultWeeklyHours: form.value.defaultWeeklyHours,
       courseIds: form.value.courseIds,
       collegeIds: form.value.collegeIds,
+      trainingLevelIds: form.value.trainingLevelIds,
     }
     if (form.value.id) {
       await updateTeacher(form.value.id, data)
