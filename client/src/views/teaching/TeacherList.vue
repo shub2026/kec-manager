@@ -5,30 +5,25 @@
         <div class="card-header">
           <span>教师信息</span>
           <div class="card-header-actions">
-            <el-input v-model="filterName" placeholder="搜索姓名" clearable class="filter-name" />
-            <el-select v-model="filterGender" placeholder="性别" clearable class="filter-small">
-              <el-option label="男" value="male" />
-              <el-option label="女" value="female" />
-            </el-select>
-            <el-input v-model="filterQualification" placeholder="教师资格类型" clearable class="filter-medium" />
-            <el-select v-model="filterPersonnelType" placeholder="人员类别" clearable class="filter-small">
+            <el-input v-model="filterName" placeholder="搜索姓名" clearable class="filter-item" />
+            <el-select v-model="filterPersonnelType" placeholder="人员类别" clearable class="filter-item">
               <el-option label="专职" value="full_time" />
               <el-option label="兼职" value="part_time" />
               <el-option label="外聘" value="external" />
             </el-select>
-            <el-select v-model="filterCourseId" placeholder="学科" clearable filterable class="filter-medium">
+            <el-select v-model="filterCourseId" placeholder="学科" clearable filterable class="filter-item">
               <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterCollegeId" placeholder="任课学院" clearable filterable class="filter-medium">
+            <el-select v-model="filterCollegeId" placeholder="任课学院" clearable filterable class="filter-item">
               <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterTrainingLevelId" placeholder="任课层次" clearable filterable class="filter-medium">
+            <el-select v-model="filterTrainingLevelId" placeholder="任课层次" clearable filterable class="filter-item">
               <el-option v-for="l in allTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
             </el-select>
-            <el-select v-model="filterAffiliatedCollegeId" placeholder="归属学院" clearable filterable class="filter-medium">
+            <el-select v-model="filterAffiliatedCollegeId" placeholder="归属学院" clearable filterable class="filter-item">
               <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterStatus" placeholder="状态" clearable class="filter-small">
+            <el-select v-model="filterStatus" placeholder="状态" clearable class="filter-item">
               <el-option label="启用" value="active" />
               <el-option label="禁用" value="disabled" />
             </el-select>
@@ -269,8 +264,6 @@ const pendingFile = ref(null)
 
 // 筛选器状态
 const filterName = ref('')
-const filterGender = ref('')
-const filterQualification = ref('')
 const filterCourseId = ref('')
 const filterPersonnelType = ref('')
 const filterCollegeId = ref('')
@@ -284,13 +277,6 @@ const filteredlist = computed(() => {
   if (filterName.value) {
     const keyword = filterName.value.toLowerCase()
     result = result.filter(t => t.name && t.name.toLowerCase().includes(keyword))
-  }
-  if (filterGender.value) {
-    result = result.filter(t => t.gender === filterGender.value)
-  }
-  if (filterQualification.value) {
-    const keyword = filterQualification.value.toLowerCase()
-    result = result.filter(t => t.qualificationType && t.qualificationType.toLowerCase().includes(keyword))
   }
   if (filterCourseId.value) {
     const cid = Number(filterCourseId.value)
@@ -585,19 +571,22 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.filter-name {
-  width: 100px;
+.teacher-list :deep(.card-header-actions) {
+  flex-wrap: nowrap;
 }
-.filter-medium {
-  width: 110px;
+.filter-item {
+  flex: 1 1 120px;
+  min-width: 90px;
 }
-.filter-small {
-  width: 80px;
+.filter-item :deep(.el-input),
+.filter-item :deep(.el-select) {
+  width: 100% !important;
 }
 .action-buttons {
   display: flex;
   gap: 8px;
   margin-left: auto;
+  flex-shrink: 0;
 }
 .tag-item {
   margin: 2px;

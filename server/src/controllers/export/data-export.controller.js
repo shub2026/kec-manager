@@ -631,6 +631,7 @@ export async function exportTeachingArrange(req, res, next) {
 
     const rows = classes.map(c => {
       const a = assignmentMap.get(c.classId);
+      const textbookNames = c.textbooks?.map(tb => tb.title).join('、') || '-';
       return {
         '班级名称': c.className,
         '学院': c.collegeName || '-',
@@ -638,6 +639,7 @@ export async function exportTeachingArrange(req, res, next) {
         '年级': c.grade,
         '层次': c.trainingLevelName || '-',
         '周课时': c.weeklyHours,
+        '教材': textbookNames,
         '任课教师': a?.teacher?.name || '未安排',
         '安排方式': a ? (a.is_auto ? '自动' : '手动') : '-',
       };
@@ -654,6 +656,7 @@ export async function exportTeachingArrange(req, res, next) {
       { label: '年级', key: '年级', width: 8 },
       { label: '层次', key: '层次', width: 10 },
       { label: '周课时', key: '周课时', width: 8 },
+      { label: '教材', key: '教材', width: 30 },
       { label: '任课教师', key: '任课教师', width: 12 },
       { label: '安排方式', key: '安排方式', width: 10 },
     ];

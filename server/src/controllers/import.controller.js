@@ -231,7 +231,7 @@ export async function importClasses(req, res, next) {
   }
 
   try {
-    if (validationErrors.length > 0) {
+    if (validationErrors.length > 0 && transactionOperations.length === 0) {
       const result = {
         imported: 0,
         overwritten: 0,
@@ -385,7 +385,7 @@ export async function importCourses(req, res, next) {
   }
 
   try {
-    if (validationErrors.length > 0) {
+    if (validationErrors.length > 0 && transactionOperations.length === 0) {
       const result = {
         imported: 0,
         overwritten: 0,
@@ -535,7 +535,7 @@ export async function importTextbooks(req, res, next) {
   }
 
   try {
-    if (validationErrors.length > 0) {
+    if (validationErrors.length > 0 && transactionOperations.length === 0) {
       const result = {
         imported: 0,
         overwritten: 0,
@@ -698,11 +698,27 @@ export async function importTeachers(req, res, next) {
     if (birthDate) {
       const raw = String(birthDate).trim();
       if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
-        birthDateStr = raw.substring(0, 7);
+        birthDateStr = raw.substring(0, 7);          // "1990-01-15" → "1990-01"
       } else if (/^\d{4}-\d{2}$/.test(raw)) {
-        birthDateStr = raw;
-      } else if (/^\d{4}/.test(raw) && raw.length >= 6) {
-        birthDateStr = raw.substring(0, 7);
+        birthDateStr = raw;                           // "1990-01" → "1990-01"
+      } else if (/^\d{6}$/.test(raw)) {
+        // 纯数字 YYYYMM 格式，如 199001 → "1990-01"
+        const y = raw.substring(0, 4);
+        const m = raw.substring(4, 6);
+        const year = parseInt(y, 10);
+        const month = parseInt(m, 10);
+        if (year >= 1900 && year <= 2100 && month >= 1 && month <= 12) {
+          birthDateStr = `${y}-${m}`;
+        }
+      } else if (typeof birthDate === 'number' && birthDate > 1000 && birthDate < 100000) {
+        // Excel 日期序列号（如 32874 = 1990-01-01），用 UTC 避免时区偏移
+        const excelEpochUTC = Date.UTC(1899, 11, 30);
+        const date = new Date(excelEpochUTC + birthDate * 86400000);
+        const y = date.getUTCFullYear();
+        const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+        if (y >= 1900 && y <= 2100) {
+          birthDateStr = `${y}-${m}`;
+        }
       }
     }
 

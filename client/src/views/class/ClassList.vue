@@ -423,15 +423,49 @@ function beforeImport(file) {
 
 function onImportSuccess(res) {
   progressPercent.value = 100
-  progressStatus.value = 'success'
-  progressText.value = '导入完成'
-  progressDetail.value = `成功导入 ${res.data?.count || 0} 条记录`
-  
-  setTimeout(() => {
-    progressDialogVisible.value = false
-    ElMessage.success('导入成功')
-    load()
-  }, 1500)
+  const data = res.data || {}
+  const message = res.message || '导入完成'
+
+  // 构建详细消息
+  let detailMsg = message
+
+  // 添加失败详情
+  if (data.errors && data.errors.length > 0) {
+    detailMsg += '\n\n❌ 失败详情：'
+    data.errors.forEach((error, index) => {
+      detailMsg += `\n${index + 1}. ${error}`
+    })
+  }
+
+  // 根据结果显示不同类型的消息
+  if (data.failed && data.failed > 0) {
+    progressStatus.value = 'warning'
+    progressText.value = '导入部分完成'
+    progressDetail.value = detailMsg
+    setTimeout(() => {
+      progressDialogVisible.value = false
+      ElMessage({ message: detailMsg, type: 'warning', duration: 10000, showClose: true })
+      load()
+    }, 1500)
+  } else if (data.imported > 0 || data.overwritten > 0) {
+    progressStatus.value = 'success'
+    progressText.value = '导入完成'
+    progressDetail.value = detailMsg
+    setTimeout(() => {
+      progressDialogVisible.value = false
+      ElMessage({ message: detailMsg, type: 'success', duration: 8000, showClose: true })
+      load()
+    }, 1500)
+  } else {
+    progressStatus.value = 'exception'
+    progressText.value = '导入失败'
+    progressDetail.value = detailMsg
+    setTimeout(() => {
+      progressDialogVisible.value = false
+      ElMessage({ message: detailMsg, type: 'info', duration: 6000, showClose: true })
+      load()
+    }, 1500)
+  }
 }
 
 function onImportError(err) {

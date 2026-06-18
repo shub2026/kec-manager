@@ -13,9 +13,6 @@
                 <span style="color: #999; font-size: 12px; margin-left: 8px">{{ c.code }}</span>
               </el-option>
             </el-select>
-            <el-checkbox-group v-model="scheduleConditions">
-              <el-checkbox value="same_textbook">同教材</el-checkbox>
-            </el-checkbox-group>
           </div>
         </div>
       </template>
@@ -112,7 +109,7 @@
         </div>
       </template>
 
-      <el-table :data="filteredClassList" stripe v-loading="tableLoading" row-key="classId" :row-class-name="tableRowClassName" class="adaptive-table">
+      <el-table :data="filteredClassList" :key="filterCollege + filterMajor + filterGrade + filterTrainingLevel" stripe v-loading="tableLoading" row-key="classId" :row-class-name="tableRowClassName" class="adaptive-table">
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="className" label="班级名称" min-width="140" show-overflow-tooltip />
         <el-table-column prop="collegeName" label="学院" min-width="100" show-overflow-tooltip />
@@ -133,6 +130,14 @@
         <el-table-column label="周课时" min-width="70" align="center">
           <template #default="{ row }">{{ row.weeklyHours }}</template>
         </el-table-column>
+        <el-table-column label="教材" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">
+            <template v-if="row.textbooks?.length">
+              <el-tag v-for="tb in row.textbooks" :key="tb.id" size="small" type="info" class="tag-item">{{ tb.title }}</el-tag>
+            </template>
+            <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="任课教师" min-width="140">
           <template #default="{ row }">
             <div
@@ -147,13 +152,6 @@
               </template>
               <span v-else class="text-placeholder">点击安排</span>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="设置" width="60" align="center">
-          <template #default="{ row }">
-            <el-button size="small" link type="primary" @click="openTeacherSelect(row)">
-              <el-icon><Edit /></el-icon>
-            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -205,7 +203,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { Edit, MagicStick, SetUp, RefreshRight, Check } from '@element-plus/icons-vue'
+import { MagicStick, SetUp, RefreshRight, Check } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getCourses } from '../../api/course'
 import request from '../../utils/request'
@@ -242,9 +240,6 @@ const hourSettings = reactive({
   part_time: { standard: 12, max: 16 },
   external: { standard: 12, max: 16 },
 })
-
-// 排课条件
-const scheduleConditions = ref([])
 
 // 数据
 const classList = ref([])
@@ -452,7 +447,6 @@ async function handleAutoArrange(mode) {
       semester: currentSemesterLabel.value,
       mode,
       hourSettings,
-      scheduleConditions: scheduleConditions.value,
     })
     const data = res.data || {}
     ElMessage.success(res.message || `自动排课完成：安排${data.autoCount || 0}个班级`)

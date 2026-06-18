@@ -553,8 +553,8 @@ export const validateTeacherCreate = [
     .withMessage('性别必须是male或female'),
   body('birth_date')
     .optional({ nullable: true })
-    .matches(/^\d{4}-\d{2}-\d{2}$/)
-    .withMessage('出生年月格式错误，应为YYYY-MM-DD'),
+    .matches(/^\d{4}-\d{2}$/)
+    .withMessage('出生年月格式错误，应为YYYY-MM'),
   body('personnel_type')
     .optional()
     .isIn(['full_time', 'part_time', 'external'])
@@ -586,8 +586,8 @@ export const validateTeacherUpdate = [
     .withMessage('性别必须是male或female'),
   body('birth_date')
     .optional({ nullable: true })
-    .matches(/^\d{4}-\d{2}-\d{2}$/)
-    .withMessage('出生年月格式错误，应为YYYY-MM-DD'),
+    .matches(/^\d{4}-\d{2}$/)
+    .withMessage('出生年月格式错误，应为YYYY-MM'),
   body('personnel_type')
     .optional()
     .isIn(['full_time', 'part_time', 'external'])

@@ -35,22 +35,36 @@ export async function listPlans(req, res, next) {
 
     const classCountMap = {};
     plans.forEach(p => { classCountMap[p.id] = 0; });
+    const matchedClassIds = new Set();
 
+    // 第一轮：custom_plan_id 直接匹配（最高优先级）
     for (const cls of allClasses) {
-      if (cls.custom_plan_id) {
-        if (classCountMap[cls.custom_plan_id] !== undefined) {
-          classCountMap[cls.custom_plan_id]++;
+      if (cls.custom_plan_id && classCountMap[cls.custom_plan_id] !== undefined) {
+        classCountMap[cls.custom_plan_id]++;
+        matchedClassIds.add(cls.id);
+      }
+    }
+
+    // 第二轮：按专业（major_id）匹配 —— 专业比层次更具体，优先匹配
+    for (const cls of allClasses) {
+      if (matchedClassIds.has(cls.id) || !cls.major_id) continue;
+      for (const plan of plans) {
+        if (plan.major_id && cls.major_id === plan.major_id) {
+          classCountMap[plan.id]++;
+          matchedClassIds.add(cls.id);
+          break;
         }
-      } else {
-        for (const plan of plans) {
-          if (plan.major_id && cls.major_id === plan.major_id) {
-            classCountMap[plan.id]++;
-            break;
-          }
-          if (plan.training_level_id && cls.training_level_id === plan.training_level_id) {
-            classCountMap[plan.id]++;
-            break;
-          }
+      }
+    }
+
+    // 第三轮：按培养层次（training_level_id）匹配剩余未分配的班级
+    for (const cls of allClasses) {
+      if (matchedClassIds.has(cls.id) || !cls.training_level_id) continue;
+      for (const plan of plans) {
+        if (plan.training_level_id && cls.training_level_id === plan.training_level_id) {
+          classCountMap[plan.id]++;
+          matchedClassIds.add(cls.id);
+          break;
         }
       }
     }

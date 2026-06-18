@@ -73,6 +73,7 @@ export async function getClassesWithCourse(courseId, semesterStr) {
   });
 
   const results = [];
+  const addedClassIds = new Set();
 
   for (const pc of planCourses) {
     const plan = pc.training_plans;
@@ -89,6 +90,7 @@ export async function getClassesWithCourse(courseId, semesterStr) {
 
       for (const cls of allClasses) {
         if (cls.enrollment_year !== enrollmentYear) continue;
+        if (addedClassIds.has(cls.id)) continue;
 
         // 方案匹配逻辑（三级优先）
         let isMatch = false;
@@ -104,6 +106,8 @@ export async function getClassesWithCourse(courseId, semesterStr) {
         // 验证学期号
         const calc = calcClassSemester(cls, semesterInfo);
         if (!calc || calc.currentSemesterNum !== sem.semester) continue;
+
+        addedClassIds.add(cls.id);
 
         const weeklyHours = sem.weekly_hours ?? pc.weekly_hours;
         const weeksCount = sem.weeks_count ?? pc.weeks_per_semester;
@@ -264,7 +268,7 @@ export async function getTeachersForCourse(courseId, semesterStr) {
  * 计算教师-班级匹配分数（软约束优先级）
  * @param {object} teacher - 教师对象（含 schedulingCollegeIds, textbookIds）
  * @param {object} classInfo - 班级对象（含 collegeId, textbookIds）
- * @param {string[]} conditions - 排课条件 ['same_textbook']
+ * @param {string[]} conditions - 排课条件（预留扩展）
  */
 function calcMatchScore(teacher, classInfo, conditions = []) {
   let score = 0;
@@ -279,11 +283,11 @@ function calcMatchScore(teacher, classInfo, conditions = []) {
     score += 1;
   }
 
-  // 同教材匹配：仅当勾选了"同教材"条件时才生效
-  if (conditions.includes('same_textbook') && teacher.textbookIds?.length && classInfo.textbookIds?.length) {
+  // 同教材匹配：始终生效，尽量避免跨教材教学
+  if (teacher.textbookIds?.length && classInfo.textbookIds?.length) {
     const hasSameTextbook = teacher.textbookIds.some(tid => classInfo.textbookIds.includes(tid));
     if (hasSameTextbook) {
-      score += 2;
+      score += 3;
     }
   }
 
@@ -376,15 +380,61 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
   const unassigned = [];
 
   /**
+   * 分层选择最佳教师
+   * 优先级：学院偏好 > 层次偏好 > 教材匹配 > 负载平衡
+   * 确保配置了任课学院/层次的教师始终优先安排到匹配的班级
+   */
+  function selectBestTeacher(candidates) {
+    // 第一层：有学院偏好的教师（教师配置了任课学院 且 匹配当前班级）
+    const collegeMatched = candidates.filter(c =>
+      c.teacher.schedulingCollegeIds?.length &&
+      c.teacher.schedulingCollegeIds.includes(c.cls.collegeId)
+    );
+    if (collegeMatched.length > 0) {
+      collegeMatched.sort((a, b) => b.score - a.score || a.currentLoad - b.currentLoad);
+      return collegeMatched[0];
+    }
+
+    // 第二层：有层次偏好的教师
+    const levelMatched = candidates.filter(c =>
+      c.teacher.schedulingLevelIds?.length &&
+      c.cls.trainingLevelId &&
+      c.teacher.schedulingLevelIds.includes(c.cls.trainingLevelId)
+    );
+    if (levelMatched.length > 0) {
+      levelMatched.sort((a, b) => b.score - a.score || a.currentLoad - b.currentLoad);
+      return levelMatched[0];
+    }
+
+    // 第三层：有教材匹配的教师
+    const textbookMatched = candidates.filter(c => {
+      if (!c.teacher.textbookIds?.length || !c.cls.textbookIds?.length) return false;
+      return c.teacher.textbookIds.some(tid => c.cls.textbookIds.includes(tid));
+    });
+    if (textbookMatched.length > 0) {
+      textbookMatched.sort((a, b) => b.score - a.score || a.currentLoad - b.currentLoad);
+      return textbookMatched[0];
+    }
+
+    // 第四层：无偏好匹配，按分数和负载排序
+    candidates.sort((a, b) => b.score - a.score || a.currentLoad - b.currentLoad);
+    return candidates[0];
+  }
+
+  /**
    * 尝试为班级列表分配教师
    * @param {Array} classList - 待分配的班级
+   * @param {Function} [eligibilityFilter] - 可选的教师资格过滤 (teacher, cls) => boolean
    * @returns {Array} 未能分配的班级
    */
-  function assignRound(classList) {
+  function assignRound(classList, eligibilityFilter = null) {
     const remaining = [];
     for (const cls of classList) {
       const candidates = teacherConstraints
         .filter(t => {
+          // 资格过滤：只允许匹配的教师参与本轮
+          if (eligibilityFilter && !eligibilityFilter(t, cls)) return false;
+
           // 总体容量检查：不超过人员类别的课时上限
           const overallOk = mode === 'standard'
             ? t.assignedHours + cls.weeklyHours <= t.standardCap
@@ -401,20 +451,15 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
           teacher: t,
           score: calcMatchScore(t, cls, conditions),
           currentLoad: t.effectiveTotal + t.assignedHours,
-        }))
-        .sort((a, b) => {
-          // 先按匹配分数降序
-          if (b.score !== a.score) return b.score - a.score;
-          // 再按当前负载升序（选最空闲的）
-          return a.currentLoad - b.currentLoad;
-        });
+          cls,
+        }));
 
       if (candidates.length === 0) {
         remaining.push(cls);
         continue;
       }
 
-      const selected = candidates[0].teacher;
+      const selected = selectBestTeacher(candidates).teacher;
       selected.assignedHours += cls.weeklyHours;
 
       assignments.push({
@@ -431,18 +476,22 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
     return remaining;
   }
 
-  // 第一轮：优先处理有指定学院或层次匹配的班级（确保教师优先安排到匹配的班级）
-  const isMatched = (cls) => teacherConstraints.some(t =>
-    (t.schedulingCollegeIds?.length && t.schedulingCollegeIds.includes(cls.collegeId)) ||
-    (t.schedulingLevelIds?.length && cls.trainingLevelId && t.schedulingLevelIds.includes(cls.trainingLevelId))
-  );
-  const matchedClasses = classesToAssign.filter(isMatched);
-  const otherClasses = classesToAssign.filter(cls => !isMatched(cls));
+  // === 三阶段分配 ===
+  // 阶段1：仅处理学院偏好匹配的 教师-班级 对
+  // 有学院偏好的教师在此阶段只参与匹配学院的班级，不会被分配到其他学院
+  const collegePairs = (t, cls) =>
+    t.schedulingCollegeIds?.length && t.schedulingCollegeIds.includes(cls.collegeId);
+  const round1Remaining = assignRound(classesToAssign, collegePairs);
 
-  const round1Remaining = assignRound(matchedClasses);
-  // 第二轮：处理剩余班级（含第一轮未成功分配的）
-  const round2Remaining = assignRound([...otherClasses, ...round1Remaining]);
-  unassigned.push(...round2Remaining);
+  // 阶段2：处理层次偏好匹配（剩余班级中）
+  const levelPairs = (t, cls) =>
+    t.schedulingLevelIds?.length && cls.trainingLevelId &&
+    t.schedulingLevelIds.includes(cls.trainingLevelId);
+  const round2Remaining = assignRound(round1Remaining, levelPairs);
+
+  // 阶段3：所有剩余班级，不限教师（常规分配）
+  const round3Remaining = assignRound(round2Remaining);
+  unassigned.push(...round3Remaining);
 
   // 8. 写入数据库（事务 + 串行）
   if (assignments.length > 0) {

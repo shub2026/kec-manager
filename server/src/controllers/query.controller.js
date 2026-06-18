@@ -267,6 +267,7 @@ export async function queryTextbookUsage(req, res, next) {
     ]);
 
     const classResults = [];
+    const addedClassIds = new Set();
 
     for (const pt of planTextbooks) {
       const sem = pt.plan_course_semesters;
@@ -279,7 +280,8 @@ export async function queryTextbookUsage(req, res, next) {
 
       for (const cls of allClasses) {
         if (cls.enrollment_year !== enrollmentYear) continue;
-        
+        if (addedClassIds.has(cls.id)) continue;
+
         // 使用统一的方案匹配逻辑
         let isMatch = false;
         if (cls.custom_plan_id === plan.id) {
@@ -289,11 +291,13 @@ export async function queryTextbookUsage(req, res, next) {
         } else if (!cls.custom_plan_id && cls.training_level_id === plan.training_level_id) {
           isMatch = true;
         }
-        
+
         if (!isMatch) continue;
-        
+
         const calc = calcClassSemester(cls, semesterInfo);
         if (!calc || calc.currentSemesterNum !== sem.semester) continue;
+
+        addedClassIds.add(cls.id);
 
         classResults.push({
           classId: cls.id,
