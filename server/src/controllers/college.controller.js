@@ -91,6 +91,44 @@ export async function updateCollege(req, res, next) {
   } catch (e) { next(e); }
 }
 
+export async function getCollegeLevelMapping(req, res, next) {
+  try {
+    const classes = await prisma.classes.findMany({
+      select: { college_id: true, training_level_id: true },
+      where: {
+        college_id: { not: null },
+        training_level_id: { not: null },
+      },
+    });
+
+    // collegeId -> [trainingLevelId, ...]
+    const collegeToLevels = {};
+    // trainingLevelId -> [collegeId, ...]
+    const levelToColleges = {};
+
+    for (const c of classes) {
+      const cid = c.college_id;
+      const lid = c.training_level_id;
+      if (!collegeToLevels[cid]) collegeToLevels[cid] = new Set();
+      collegeToLevels[cid].add(lid);
+      if (!levelToColleges[lid]) levelToColleges[lid] = new Set();
+      levelToColleges[lid].add(cid);
+    }
+
+    // Convert sets to arrays
+    const mapping = {
+      collegeToLevels: Object.fromEntries(
+        Object.entries(collegeToLevels).map(([k, v]) => [k, [...v]])
+      ),
+      levelToColleges: Object.fromEntries(
+        Object.entries(levelToColleges).map(([k, v]) => [k, [...v]])
+      ),
+    };
+
+    success(res, mapping);
+  } catch (e) { next(e); }
+}
+
 export async function deleteCollege(req, res, next) {
   try {
     const { id } = req.params;

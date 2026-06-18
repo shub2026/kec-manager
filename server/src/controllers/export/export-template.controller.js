@@ -49,6 +49,23 @@ export async function downloadTemplate(req, res, next) {
         sample = { '书名': '大学语文', '书号': '978-7-04-012345-6', '出版社': '高等教育出版社', '作者': '张三', '版次': '第3版', '出版日期': '2024-01', '定价': 45.00, '类别': '技工' };
         filename = '教材导入模板.xlsx';
         break;
+      case 'teachers':
+        headers = [
+          { label: '教师姓名', key: 'name', width: 15, required: true },
+          { label: '性别', key: 'gender', width: 8 },
+          { label: '出生年月', key: 'birth_date', width: 12 },
+          { label: '人员类别', key: 'personnel_type', width: 12, required: true },
+          { label: '状态', key: 'status', width: 8 },
+          { label: '教师资格类型', key: 'qualification_type', width: 15 },
+          { label: '归属学院', key: 'affiliated_college', width: 15 },
+          { label: '特定周课时', key: 'default_weekly_hours', width: 12 },
+          { label: '学科', key: 'courses', width: 25 },
+          { label: '任课学院', key: 'colleges', width: 25 },
+          { label: '任课层次', key: 'levels', width: 20 },
+        ];
+        sample = { '教师姓名': '张三', '性别': '男', '出生年月': '1990-01', '人员类别': '专职', '状态': '启用', '教师资格类型': '高中语文', '归属学院': '教育学院', '特定周课时': 16, '学科': '语文,数学', '任课学院': '教育学院,艺术学院', '任课层次': '大专,中专' };
+        filename = '教师导入模板.xlsx';
+        break;
       default:
         return res.status(400).json({ success: false, message: '不支持的模板类型' });
     }

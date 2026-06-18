@@ -39,10 +39,11 @@ model classes {
   is_left_school    Boolean          @default(false)
   created_at        DateTime         @default(now())
   updated_at        DateTime         @updatedAt
-  majors            majors?          @relation(fields: [major_id], references: [id])
-  colleges          colleges?        @relation(fields: [college_id], references: [id])
-  training_levels   training_levels? @relation(fields: [training_level_id], references: [id])
-  training_plans    training_plans?  @relation(fields: [custom_plan_id], references: [id])
+  majors               majors?                    @relation(fields: [major_id], references: [id])
+  colleges             colleges?                  @relation(fields: [college_id], references: [id])
+  training_levels      training_levels?           @relation(fields: [training_level_id], references: [id])
+  training_plans       training_plans?            @relation(fields: [custom_plan_id], references: [id])
+  teaching_assignments teaching_assignments[]
 
   @@index([status])
   @@index([enrollment_year])
@@ -53,27 +54,31 @@ model classes {
 }
 
 model colleges {
-  id             Int              @id @default(autoincrement())
-  name           String           @unique
-  code           String?
-  description    String?
-  sort_order     Int              @default(0)
-  created_at     DateTime         @default(now())
-  updated_at     DateTime         @updatedAt
-  classes        classes[]
-  training_plans training_plans[]
+  id                         Int                         @id @default(autoincrement())
+  name                       String                      @unique
+  code                       String?
+  description                String?
+  sort_order                 Int                         @default(0)
+  created_at                 DateTime                    @default(now())
+  updated_at                 DateTime                    @updatedAt
+  classes                    classes[]
+  training_plans             training_plans[]
+  teacher_scheduling_colleges teacher_scheduling_colleges[]
+  affiliated_teachers        teachers[]               @relation("teacher_affiliated_college")
 }
 
 model courses {
-  id           Int            @id @default(autoincrement())
-  name         String
-  code         String?
-  type         String         @default("public")
-  description  String?
-  sort_order   Int            @default(0)
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @updatedAt
-  plan_courses plan_courses[]
+  id                   Int                    @id @default(autoincrement())
+  name                 String
+  code                 String?
+  type                 String                 @default("public")
+  description          String?
+  sort_order           Int                    @default(0)
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  plan_courses         plan_courses[]
+  teacher_courses      teacher_courses[]
+  teaching_assignments teaching_assignments[]
 
   @@index([type])
   @@index([code])
@@ -178,6 +183,7 @@ model training_levels {
   updated_at     DateTime         @updatedAt
   classes        classes[]
   training_plans training_plans[]
+  scheduling_teachers teacher_training_levels[]
 }
 
 model training_plans {
@@ -216,4 +222,81 @@ model users {
   audit_logs    audit_logs[]
 
   @@index([role])
+}
+
+model teachers {
+  id                   Int                         @id @default(autoincrement())
+  name                 String
+  gender               String?
+  birth_date           String?
+  personnel_type       String                      @default("full_time")
+  qualification_type   String?
+  default_weekly_hours Float?
+  status               String                      @default("active")
+  sort_order           Int                         @default(0)
+  created_at           DateTime                    @default(now())
+  updated_at           DateTime                    @updatedAt
+  affiliated_college_id  Int?
+  affiliated_college   colleges?                     @relation("teacher_affiliated_college", fields: [affiliated_college_id], references: [id], onDelete: SetNull)
+  courses              teacher_courses[]
+  assignments          teaching_assignments[]
+  scheduling_colleges  teacher_scheduling_colleges[]
+  scheduling_levels    teacher_training_levels[]
+
+  @@index([personnel_type])
+  @@map("teachers")
+}
+
+model teacher_courses {
+  id         Int      @id @default(autoincrement())
+  teacher_id Int
+  course_id  Int
+  teacher    teachers @relation(fields: [teacher_id], references: [id], onDelete: Cascade)
+  course     courses  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@unique([teacher_id, course_id])
+  @@map("teacher_courses")
+}
+
+model teacher_scheduling_colleges {
+  id         Int      @id @default(autoincrement())
+  teacher_id Int
+  college_id Int
+  teacher    teachers @relation(fields: [teacher_id], references: [id], onDelete: Cascade)
+  college    colleges @relation(fields: [college_id], references: [id], onDelete: Cascade)
+
+  @@unique([teacher_id, college_id])
+  @@map("teacher_scheduling_colleges")
+}
+
+model teacher_training_levels {
+  id                 Int             @id @default(autoincrement())
+  teacher_id         Int
+  training_level_id  Int
+  teacher            teachers        @relation(fields: [teacher_id], references: [id], onDelete: Cascade)
+  training_level     training_levels @relation(fields: [training_level_id], references: [id], onDelete: Cascade)
+
+  @@unique([teacher_id, training_level_id])
+  @@map("teacher_training_levels")
+}
+
+model teaching_assignments {
+  id           Int      @id @default(autoincrement())
+  teacher_id   Int
+  class_id     Int
+  course_id    Int
+  semester     String
+  weekly_hours Float    @default(0)
+  is_auto      Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  teacher      teachers @relation(fields: [teacher_id], references: [id], onDelete: Cascade)
+  class        classes  @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  course       courses  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@unique([class_id, course_id, semester])
+  @@index([teacher_id])
+  @@index([semester])
+  @@index([course_id, semester])
+  @@map("teaching_assignments")
 }

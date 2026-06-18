@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware.js';
 import { downloadTemplate } from '../controllers/export/export-template.controller.js';
 import {
   exportSemesterSchedule,
@@ -10,12 +9,14 @@ import {
   exportTextbooks,
   exportClasses,
   exportTextbookUsage,
+  exportTeachers,
+  exportStatistics,
+  exportTeachingArrange,
 } from '../controllers/export/data-export.controller.js';
 
 const router = Router();
 
-// FC2修复：所有导出路由需要认证
-router.use(authMiddleware);
+// authMiddleware 已在 app.js 挂载处统一应用
 
 // ==================== 模板下载 ====================
 
@@ -40,6 +41,17 @@ router.get('/textbooks', exportTextbooks);
 
 // GET /api/export/classes - 导出班级数据
 router.get('/classes', exportClasses);
+
+// GET /api/export/teachers - 导出教师数据
+router.get('/teachers', exportTeachers);
+
+// ==================== 教学统计导出 ====================
+
+// GET /api/export/statistics - 导出课时统计
+router.get('/statistics', exportStatistics);
+
+// GET /api/export/teaching-arrange - 导出教学安排
+router.get('/teaching-arrange', exportTeachingArrange);
 
 // ==================== 教材使用导出 ====================
 

@@ -101,13 +101,14 @@ function showResetDialog(type) {
 
 async function handleReset() {
   const expectedTextMap = {
-    majors: '清空专业',
-    colleges: '清空学院',
-    levels: '清空层次',
-    courses: '清空课程',
-    textbooks: '清空教材',
-    classes: '清空班级',
-    plans: '清空培养方案',
+    teachers: '确认',
+    majors: '确认',
+    colleges: '确认',
+    levels: '确认',
+    courses: '确认',
+    textbooks: '确认',
+    classes: '确认',
+    plans: '确认',
     settings: '系统重置',
   }
   
@@ -119,6 +120,7 @@ async function handleReset() {
   resetting.value = true
   try {
     const endpoints = {
+      teachers: '/settings/reset/teachers',
       majors: '/settings/reset/majors',
       colleges: '/settings/reset/colleges',
       levels: '/settings/reset/levels',
@@ -130,7 +132,8 @@ async function handleReset() {
     }
 
     await request.post(endpoints[resetType.value])
-    ElMessage.success(`${expectedTextMap[resetType.value]}成功`)
+    const successMsg = expectedTextMap[resetType.value] === '确认' ? '数据已清空' : `${expectedTextMap[resetType.value]}成功`
+    ElMessage.success(successMsg)
     dialogVisible.value = false
 
     if (resetType.value === 'settings') {

@@ -31,6 +31,10 @@ const routes = [
       { path: 'classes', name: 'Classes', component: () => import('../views/class/ClassList.vue'), meta: { title: '班级管理', requiresAdmin: true } },
       { path: 'plans', name: 'Plans', component: () => import('../views/plan/PlanList.vue'), meta: { title: '培养方案', requiresAdmin: true } },
       { path: 'plans/:id', name: 'PlanDetail', component: () => import('../views/plan/PlanDetail.vue'), meta: { title: '方案明细', requiresAdmin: true } },
+      // 教学安排模块
+      { path: 'teaching/teachers', name: 'Teachers', component: () => import('../views/teaching/TeacherList.vue'), meta: { title: '教师信息', requiresAdmin: true } },
+      { path: 'teaching/arrange', name: 'TeachingArrange', component: () => import('../views/teaching/TeachingArrange.vue'), meta: { title: '教学安排', requiresAdmin: true } },
+      { path: 'teaching/statistics', name: 'TeachingStatistics', component: () => import('../views/teaching/TeachingStatistics.vue'), meta: { title: '课时统计', requiresAdmin: true } },
       { path: 'query/plan', name: 'PlanQuery', component: () => import('../views/query/PlanQuery.vue'), meta: { title: '方案查询' } },
       { path: 'query/semester', name: 'SemesterQuery', component: () => import('../views/query/UnifiedSemesterQuery.vue'), meta: { title: '开课查询' } },
       { path: 'query/historical-semester', redirect: '/query/semester' },

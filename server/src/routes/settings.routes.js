@@ -14,6 +14,7 @@ import {
   resetCourses,
   resetTextbooks,
   resetClasses,
+  resetTeachers,
   resetPlans,
   resetSystem,
   resetAuditLogs,
@@ -38,6 +39,7 @@ router.post('/reset/levels', authMiddleware, roleMiddleware('super_admin'), vali
 router.post('/reset/courses', authMiddleware, roleMiddleware('super_admin'), validateReset, resetCourses);
 router.post('/reset/textbooks', authMiddleware, roleMiddleware('super_admin'), validateReset, resetTextbooks);
 router.post('/reset/classes', authMiddleware, roleMiddleware('super_admin'), validateReset, resetClasses);
+router.post('/reset/teachers', authMiddleware, roleMiddleware('super_admin'), validateReset, resetTeachers);
 router.post('/reset/plans', authMiddleware, roleMiddleware('super_admin'), validateReset, resetPlans);
 router.post('/reset/settings', authMiddleware, roleMiddleware('super_admin'), validateReset, resetSystem);
 router.post('/reset/audit-logs', authMiddleware, roleMiddleware('super_admin'), validateAuditLogReset, resetAuditLogs);

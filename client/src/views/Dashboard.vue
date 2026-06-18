@@ -39,6 +39,23 @@
         </el-card>
       </el-col>
     </el-row>
+    <el-row :gutter="20" class="stat-row">
+      <el-col :span="8">
+        <el-card shadow="hover" class="teaching-stat-card">
+          <el-statistic title="参与教师" :value="stats.teachingTeachers" suffix="人" />
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card shadow="hover" class="teaching-stat-card">
+          <el-statistic title="总周课时" :value="stats.totalWeeklyHours" suffix="课时" />
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card shadow="hover" class="teaching-stat-card">
+          <el-statistic title="总安排班级数" :value="stats.teachingClasses" suffix="个" />
+        </el-card>
+      </el-col>
+    </el-row>
     
     <el-card class="intro-card" shadow="never">
       <div class="intro-header">
@@ -81,11 +98,12 @@ import { getCourses } from '../api/course'
 import { getTextbooks } from '../api/textbook'
 import { getClassStats } from '../api/class'
 import { getPlans } from '../api/plan'
+import { getTeachingStatistics } from '../api/teachingArrange'
 import { getWithCache } from '../utils/cache'
 
 const settingsStore = useSettingsStore()
 const semesterLabel = computed(() => settingsStore.semesterLabel)
-const stats = ref({ majors: 0, courses: 0, classes: 0, textbooks: 0, plans: 0, totalStudents: 0 })
+const stats = ref({ majors: 0, courses: 0, classes: 0, textbooks: 0, plans: 0, totalStudents: 0, teachingTeachers: 0, totalWeeklyHours: 0, teachingClasses: 0 })
 const version = __APP_VERSION__
 
 const features = [
@@ -117,7 +135,23 @@ onMounted(async () => {
       stats.value.totalStudents = results[3].value.data?.totalStudents || 0
     }
     if (results[4].status === 'fulfilled') stats.value.plans = results[4].value.data?.length || 0
-    
+
+    // 获取课时统计（需要当前学期）
+    const semester = settingsStore.settings?.currentSemester?.value
+    if (semester) {
+      try {
+        const teachRes = await getWithCache(() => getTeachingStatistics({ semester }), 'dashboard:teachingStats', CACHE_TTL)
+        const summary = teachRes.data?.summary
+        if (summary) {
+          stats.value.teachingTeachers = summary.totalTeachers || 0
+          stats.value.totalWeeklyHours = summary.totalWeeklyHours || 0
+          stats.value.teachingClasses = summary.totalClasses || 0
+        }
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn('Teaching stats fetch failed:', e)
+      }
+    }
+
     // 记录失败的请求（开发环境）
     if (import.meta.env.DEV) {
       results.forEach((result, index) => {
@@ -142,6 +176,9 @@ onMounted(async () => {
 }
 .stat-row {
   margin-bottom: 12px;
+}
+.teaching-stat-card {
+  border-top: 3px solid #E6A23C;
 }
 .semester-card {
   margin-bottom: 12px;
