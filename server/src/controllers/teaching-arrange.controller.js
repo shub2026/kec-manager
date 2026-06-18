@@ -40,10 +40,10 @@ export async function getCourseClasses(req, res, next) {
       } : null,
     }));
 
-    // 汇总统计
-    const totalCourseHours = classList.reduce((sum, c) => sum + c.totalHours, 0);
+    // 汇总统计（基于周课时）
+    const totalCourseHours = classList.reduce((sum, c) => sum + c.weeklyHours, 0);
     const assignedClasses = classList.filter(c => c.assignment);
-    const assignedHours = assignedClasses.reduce((sum, c) => sum + c.totalHours, 0);
+    const assignedHours = assignedClasses.reduce((sum, c) => sum + c.weeklyHours, 0);
 
     success(res, {
       classes: classList,

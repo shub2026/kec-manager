@@ -120,11 +120,12 @@ export async function getClassesWithCourse(courseId, semesterStr) {
           trainingLevelName: cls.training_levels?.name || null,
           grade: calc.grade,
           enrollmentYear: cls.enrollment_year,
+          studentCount: cls.student_count || 0,
+          currentSemester: sem.semester,
           weeklyHours,
           weeksCount,
           totalHours: weeklyHours * weeksCount,
           textbooks,
-          semester: sem.semester,
         });
       }
     }

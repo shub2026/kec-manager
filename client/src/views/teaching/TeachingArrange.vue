@@ -113,19 +113,28 @@
         </div>
       </template>
 
-      <el-table :data="filteredClassList" stripe v-loading="tableLoading" row-key="classId" :row-class-name="tableRowClassName">
+      <el-table :data="filteredClassList" stripe v-loading="tableLoading" row-key="classId" :row-class-name="tableRowClassName" class="adaptive-table">
         <el-table-column type="index" label="#" width="50" />
-        <el-table-column prop="className" label="班级名称" min-width="120" />
-        <el-table-column prop="collegeName" label="学院" width="120" show-overflow-tooltip />
-        <el-table-column prop="majorName" label="专业" width="120" show-overflow-tooltip />
-        <el-table-column label="年级" width="70">
+        <el-table-column prop="className" label="班级名称" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="collegeName" label="学院" min-width="100" show-overflow-tooltip />
+        <el-table-column prop="majorName" label="专业" min-width="100" show-overflow-tooltip />
+        <el-table-column prop="trainingLevelName" label="培养层次" min-width="80" show-overflow-tooltip />
+        <el-table-column label="入学年份" min-width="80" align="center">
+          <template #default="{ row }">{{ row.enrollmentYear }}</template>
+        </el-table-column>
+        <el-table-column label="年级" min-width="60" align="center">
           <template #default="{ row }">{{ row.grade }}</template>
         </el-table-column>
-        <el-table-column prop="trainingLevelName" label="层次" width="80" />
-        <el-table-column label="周课时" width="80" align="center">
+        <el-table-column label="在读学期" min-width="80" align="center">
+          <template #default="{ row }">第{{ row.currentSemester }}学期</template>
+        </el-table-column>
+        <el-table-column label="人数" min-width="60" align="center">
+          <template #default="{ row }">{{ row.studentCount }}</template>
+        </el-table-column>
+        <el-table-column label="周课时" min-width="70" align="center">
           <template #default="{ row }">{{ row.weeklyHours }}</template>
         </el-table-column>
-        <el-table-column label="任课教师" min-width="160">
+        <el-table-column label="任课教师" min-width="140">
           <template #default="{ row }">
             <div
               class="teacher-cell"
@@ -141,7 +150,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="设置" width="80" align="center">
+        <el-table-column label="设置" width="60" align="center">
           <template #default="{ row }">
             <el-button size="small" link type="primary" @click="openTeacherSelect(row)">
               <el-icon><Edit /></el-icon>
@@ -620,5 +629,11 @@ onMounted(() => {
 }
 :deep(.unassigned-row) {
   background-color: #fff5f5 !important;
+}
+.adaptive-table :deep(.el-table__header th .cell) {
+  white-space: nowrap;
+}
+.adaptive-table :deep(.el-table__body td .cell) {
+  white-space: nowrap;
 }
 </style>

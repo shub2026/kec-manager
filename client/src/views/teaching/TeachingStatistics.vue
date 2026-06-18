@@ -26,13 +26,13 @@
       <div v-if="statsData" class="summary-section">
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-statistic title="参与教师" :value="statsData.summary.totalTeachers" suffix="人" />
+            <el-statistic title="参与教师" :value="filteredSummary.totalTeachers" suffix="人" />
           </el-col>
           <el-col :span="8">
-            <el-statistic title="总周课时" :value="statsData.summary.totalWeeklyHours" suffix="课时" />
+            <el-statistic title="总周课时" :value="filteredSummary.totalWeeklyHours" suffix="课时" />
           </el-col>
           <el-col :span="8">
-            <el-statistic title="总安排班级数" :value="statsData.summary.totalClasses" suffix="个" />
+            <el-statistic title="总安排班级数" :value="filteredSummary.totalClasses" suffix="个" />
           </el-col>
         </el-row>
         <el-divider />
@@ -144,6 +144,15 @@ const filteredTeachers = computed(() => {
     }
     return true
   })
+})
+
+const filteredSummary = computed(() => {
+  const list = filteredTeachers.value
+  return {
+    totalTeachers: list.length,
+    totalWeeklyHours: list.reduce((sum, t) => sum + t.totalWeeklyHours, 0),
+    totalClasses: list.reduce((sum, t) => sum + t.totalClassCount, 0),
+  }
 })
 
 function personnelLabel(type) {
