@@ -221,6 +221,16 @@ export async function resetClasses(req, res, next) {
   }, req, res, next);
 }
 
+export async function resetTeachers(req, res, next) {
+  await resetData('teachers', async (tx) => {
+    await tx.teaching_assignments.deleteMany();
+    await tx.teacher_courses.deleteMany();
+    await tx.teacher_scheduling_colleges.deleteMany();
+    await tx.teacher_training_levels.deleteMany();
+    await tx.teachers.deleteMany();
+  }, req, res, next);
+}
+
 export async function resetPlans(req, res, next) {
   await resetData('plans', async (tx) => {
     await tx.plan_textbooks.deleteMany();

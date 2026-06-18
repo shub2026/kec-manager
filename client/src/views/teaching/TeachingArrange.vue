@@ -191,7 +191,7 @@
             <el-tag v-for="l in row.trainingLevelList" :key="l.id" size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="默认周课时" min-width="90" align="center">
+        <el-table-column label="特定周课时" min-width="90" align="center">
           <template #default="{ row }">{{ row.defaultWeeklyHours ?? '-' }}</template>
         </el-table-column>
       </el-table>

@@ -68,16 +68,16 @@
         </el-table-column>
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="teacherName" label="姓名" width="100" />
+        <el-table-column label="归属学院" min-width="120">
+          <template #default="{ row }">
+            <span>{{ row.affiliatedCollege?.name || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="人员类别" width="90">
           <template #default="{ row }">
             <el-tag :type="personnelTagType(row.personnelType)" size="small">
               {{ personnelLabel(row.personnelType) }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="归属学院" min-width="120">
-          <template #default="{ row }">
-            <span>{{ row.affiliatedCollege?.name || '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="任教科目" min-width="180">

@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware.js';
 import { downloadTemplate } from '../controllers/export/export-template.controller.js';
 import {
   exportSemesterSchedule,
@@ -17,8 +16,7 @@ import {
 
 const router = Router();
 
-// FC2修复：所有导出路由需要认证
-router.use(authMiddleware);
+// authMiddleware 已在 app.js 挂载处统一应用
 
 // ==================== 模板下载 ====================
 

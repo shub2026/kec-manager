@@ -140,6 +140,7 @@ export async function getClassesWithCourse(courseId, semesterStr) {
 export async function getTeachersForCourse(courseId, semesterStr) {
   const teachers = await prisma.teachers.findMany({
     where: {
+      status: 'active',
       courses: { some: { course_id: Number(courseId) } },
     },
     include: {
@@ -390,7 +391,7 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
             : t.assignedHours + cls.weeklyHours <= t.fullCap;
           if (!overallOk) return false;
 
-          // 本课程课时检查：有默认周课时的，不超过该值
+          // 本课程课时检查：有特定周课时的，不超过该值
           if (t.defaultWeeklyHours != null) {
             return t.courseExistingHours + t.assignedHours + cls.weeklyHours <= t.defaultWeeklyHours;
           }

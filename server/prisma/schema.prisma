@@ -232,6 +232,7 @@ model teachers {
   personnel_type       String                      @default("full_time")
   qualification_type   String?
   default_weekly_hours Float?
+  status               String                      @default("active")
   sort_order           Int                         @default(0)
   created_at           DateTime                    @default(now())
   updated_at           DateTime                    @updatedAt

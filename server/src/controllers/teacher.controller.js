@@ -46,7 +46,7 @@ export async function listTeachers(req, res, next) {
  */
 export async function createTeacher(req, res, next) {
   try {
-    const { name, gender, birth_date, personnel_type, qualification_type, default_weekly_hours, affiliated_college_id, course_ids, college_ids, training_level_ids } = req.body;
+    const { name, gender, birth_date, personnel_type, qualification_type, default_weekly_hours, affiliated_college_id, course_ids, college_ids, training_level_ids, status } = req.body;
     if (!name) return fail(res, '教师姓名不能为空');
 
     const newSortOrder = await getNextSortOrder(prisma, 'teachers');
@@ -60,6 +60,7 @@ export async function createTeacher(req, res, next) {
         qualification_type: qualification_type || null,
         default_weekly_hours: default_weekly_hours != null ? Number(default_weekly_hours) : null,
         affiliated_college_id: affiliated_college_id != null ? Number(affiliated_college_id) : null,
+        status: status === 'disabled' ? 'disabled' : 'active',
         sort_order: newSortOrder,
         courses: course_ids?.length
           ? { create: course_ids.map(cid => ({ course_id: Number(cid) })) }
@@ -117,7 +118,7 @@ export async function updateTeacher(req, res, next) {
   try {
     const { id } = req.params;
     const { course_ids, college_ids, training_level_ids, affiliated_college_id, ...rest } = req.body;
-    const data = buildUpdateData(rest, ['name', 'gender', 'birth_date', 'personnel_type', 'qualification_type', 'default_weekly_hours', 'sort_order']);
+    const data = buildUpdateData(rest, ['name', 'gender', 'birth_date', 'personnel_type', 'qualification_type', 'default_weekly_hours', 'sort_order', 'status']);
 
     // 处理 affiliated_college_id
     if (affiliated_college_id !== undefined) {
@@ -257,7 +258,7 @@ export async function deleteTeacher(req, res, next) {
 }
 
 /**
- * 批量修改默认周课时
+ * 批量修改特定周课时
  */
 export async function batchUpdateDefaultHours(req, res, next) {
   try {
@@ -278,9 +279,45 @@ export async function batchUpdateDefaultHours(req, res, next) {
       ip: req.ip,
       details: { teacher_ids, default_weekly_hours: hours },
       result: 'success',
-      message: `批量修改${teacher_ids.length}名教师的默认周课时为${hours ?? '空'}`,
+      message: `批量修改${teacher_ids.length}名教师的特定周课时为${hours ?? '空'}`,
     });
 
-    success(res, null, `已修改${teacher_ids.length}名教师的默认周课时`);
+    success(res, null, `已修改${teacher_ids.length}名教师的特定周课时`);
+  } catch (e) { next(e); }
+}
+
+/**
+ * 切换教师启用/禁用状态
+ */
+export async function toggleTeacherStatus(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['active', 'disabled'].includes(status)) {
+      return fail(res, '状态值无效，应为 active 或 disabled');
+    }
+
+    const teacher = await prisma.teachers.findUnique({ where: { id: Number(id) } });
+    if (!teacher) return fail(res, '教师不存在', 404);
+
+    await prisma.teachers.update({
+      where: { id: Number(id) },
+      data: { status },
+    });
+
+    const statusLabel = status === 'active' ? '启用' : '禁用';
+
+    await createAuditLog({
+      action: 'update',
+      module: 'teacher',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { id: Number(id), name: teacher.name, status },
+      result: 'success',
+      message: `${statusLabel}教师：${teacher.name}`,
+    });
+
+    success(res, { id: Number(id), status }, `${statusLabel}成功`);
   } catch (e) { next(e); }
 }

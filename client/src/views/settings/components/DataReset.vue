@@ -31,17 +31,32 @@
         </template>
 
         <div class="reset-group-desc">
-          清空基础数据表（班级、课程、教材、专业、学院、层次），请按推荐顺序执行。
+          清空基础数据表（教师、班级、课程、教材、专业、学院、层次），请按推荐顺序执行。
         </div>
 
         <div class="reset-grid">
           <div class="reset-item" :class="{ 'is-primary': true }">
             <div class="reset-item-icon">
+              <el-icon :size="22"><UserFilled /></el-icon>
+            </div>
+            <div class="reset-item-info">
+              <div class="reset-item-name">清空教师</div>
+              <div class="reset-item-desc">仅删除教师数据及教学安排，不影响其他基础数据。建议优先执行。</div>
+            </div>
+            <div class="reset-item-action">
+              <el-button type="danger" plain size="small" @click="$emit('reset', 'teachers')" :loading="resetting">
+                清空
+              </el-button>
+            </div>
+          </div>
+
+          <div class="reset-item">
+            <div class="reset-item-icon">
               <el-icon :size="22"><User /></el-icon>
             </div>
             <div class="reset-item-info">
               <div class="reset-item-name">清空班级</div>
-              <div class="reset-item-desc">仅删除班级数据，不影响其他数据。这是第一步。</div>
+              <div class="reset-item-desc">仅删除班级数据，不影响其他数据。</div>
             </div>
             <div class="reset-item-action">
               <el-button type="danger" plain size="small" @click="$emit('reset', 'classes')" :loading="resetting">
@@ -133,7 +148,7 @@
           class="order-tip"
         >
           <template #title>
-            推荐清理顺序：班级 → 课程 / 教材 → 培养方案 → 专业 / 学院 / 层次
+            推荐清理顺序：教师 → 班级 → 课程 / 教材 → 培养方案 → 专业 / 学院 / 层次
           </template>
         </el-alert>
       </el-tab-pane>
@@ -234,7 +249,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { WarningFilled, Grid, Document, Setting, DocumentChecked, Delete, User, Reading, Notebook, Collection, OfficeBuilding, Rank } from '@element-plus/icons-vue'
+import { WarningFilled, Grid, Document, Setting, DocumentChecked, Delete, User, UserFilled, Reading, Notebook, Collection, OfficeBuilding, Rank } from '@element-plus/icons-vue'
 
 const props = defineProps({
   resetting: {

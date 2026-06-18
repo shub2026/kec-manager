@@ -5,56 +5,66 @@
         <div class="card-header">
           <span>教师信息</span>
           <div class="card-header-actions">
-            <el-input v-model="filterName" placeholder="搜索姓名" clearable style="width: 140px" />
-            <el-select v-model="filterGender" placeholder="性别" clearable style="width: 90px">
+            <el-input v-model="filterName" placeholder="搜索姓名" clearable class="filter-name" />
+            <el-select v-model="filterGender" placeholder="性别" clearable class="filter-small">
               <el-option label="男" value="male" />
               <el-option label="女" value="female" />
             </el-select>
-            <el-input v-model="filterQualification" placeholder="教师资格类型" clearable style="width: 140px" />
-            <el-select v-model="filterPersonnelType" placeholder="人员类别" clearable style="width: 110px">
+            <el-input v-model="filterQualification" placeholder="教师资格类型" clearable class="filter-medium" />
+            <el-select v-model="filterPersonnelType" placeholder="人员类别" clearable class="filter-small">
               <el-option label="专职" value="full_time" />
               <el-option label="兼职" value="part_time" />
               <el-option label="外聘" value="external" />
             </el-select>
-            <el-select v-model="filterCourseId" placeholder="学科" clearable filterable style="width: 130px">
+            <el-select v-model="filterCourseId" placeholder="学科" clearable filterable class="filter-medium">
               <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterCollegeId" placeholder="任课学院" clearable filterable style="width: 130px">
+            <el-select v-model="filterCollegeId" placeholder="任课学院" clearable filterable class="filter-medium">
               <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterTrainingLevelId" placeholder="任课层次" clearable filterable style="width: 120px">
+            <el-select v-model="filterTrainingLevelId" placeholder="任课层次" clearable filterable class="filter-medium">
               <el-option v-for="l in allTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
             </el-select>
-            <el-select v-model="filterAffiliatedCollegeId" placeholder="归属学院" clearable filterable style="width: 130px">
+            <el-select v-model="filterAffiliatedCollegeId" placeholder="归属学院" clearable filterable class="filter-medium">
               <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-button @click="exportData">数据导出</el-button>
-            <el-button @click="downloadTemplate">下载模板</el-button>
-            <el-upload
-              :show-file-list="false"
-              accept=".xlsx,.xls"
-              action="/api/import/teachers"
-              name="file"
-              :headers="uploadHeaders"
-              :on-success="onImportSuccess"
-              :on-error="onImportError"
-              :before-upload="beforeImport"
-            >
-              <el-button>导入Excel</el-button>
-            </el-upload>
-            <el-button type="primary" @click="openDialog()">
-              <el-icon><Plus /></el-icon> 新增教师
-            </el-button>
-            <el-button @click="batchDialogVisible = true">
-              <el-icon><Edit /></el-icon> 批量修改周课时
-            </el-button>
+            <el-select v-model="filterStatus" placeholder="状态" clearable class="filter-small">
+              <el-option label="启用" value="active" />
+              <el-option label="禁用" value="disabled" />
+            </el-select>
+            <div class="action-buttons">
+              <el-button @click="exportData">数据导出</el-button>
+              <el-button @click="downloadTemplate">下载模板</el-button>
+              <el-upload
+                :show-file-list="false"
+                accept=".xlsx,.xls"
+                action="/api/import/teachers"
+                name="file"
+                :headers="uploadHeaders"
+                :on-success="onImportSuccess"
+                :on-error="onImportError"
+                :before-upload="beforeImport"
+              >
+                <el-button>导入Excel</el-button>
+              </el-upload>
+              <el-button type="primary" @click="openDialog()">
+                <el-icon><Plus /></el-icon> 新增教师
+              </el-button>
+              <el-button @click="batchDialogVisible = true">
+                <el-icon><Edit /></el-icon> 批量修改周课时
+              </el-button>
+            </div>
           </div>
         </div>
       </template>
 
       <el-table :data="filteredlist" stripe v-loading="loading" row-key="id">
         <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column prop="name" label="姓名" width="100" />
+        <el-table-column prop="name" label="姓名" width="100">
+          <template #default="{ row }">
+            <span :style="row.status === 'disabled' ? 'color: #999; text-decoration: line-through' : ''">{{ row.name }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="性别" width="70" align="center">
           <template #default="{ row }">{{ row.gender === 'male' ? '男' : row.gender === 'female' ? '女' : '-' }}</template>
         </el-table-column>
@@ -67,16 +77,16 @@
         <el-table-column prop="qualificationType" label="教师资格类型" min-width="120">
           <template #default="{ row }">{{ row.qualificationType || '-' }}</template>
         </el-table-column>
+        <el-table-column label="归属学院" min-width="120">
+          <template #default="{ row }">
+            <span>{{ row.affiliatedCollege?.name || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="人员类别" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="personnelTagType(row.personnelType)" size="small">
               {{ personnelLabel(row.personnelType) }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="归属学院" min-width="120">
-          <template #default="{ row }">
-            <span>{{ row.affiliatedCollege?.name || '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="学科" min-width="160">
@@ -97,17 +107,29 @@
             <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="默认周课时" width="100" align="center">
+        <el-table-column label="特定周课时" width="100" align="center">
           <template #default="{ row }">
             <span>{{ row.defaultWeeklyHours != null ? row.defaultWeeklyHours : '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
-            <el-button size="small" @click="openDialog(row)">编辑</el-button>
+            <el-switch
+              :model-value="row.status !== 'disabled'"
+              @change="(val) => handleToggleStatus(row, val)"
+              inline-prompt
+              active-text="启"
+              inactive-text="禁"
+              size="small"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button size="small" :icon="Edit" circle @click="openDialog(row)" />
             <el-popconfirm title="确定删除该教师？" @confirm="handleDelete(row.id)">
               <template #reference>
-                <el-button size="small" type="danger">删除</el-button>
+                <el-button size="small" type="danger" :icon="Delete" circle />
               </template>
             </el-popconfirm>
           </template>
@@ -138,6 +160,15 @@
         </el-row>
         <el-row :gutter="16">
           <el-col :span="12">
+            <el-form-item label="归属学院">
+              <el-select v-model="form.affiliatedCollegeId" placeholder="选择归属学院" clearable filterable style="width: 100%">
+                <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="8">
             <el-form-item label="人员类别">
               <el-select v-model="form.personnelType" placeholder="请选择" style="width: 100%">
                 <el-option label="专职" value="full_time" />
@@ -146,16 +177,17 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="教师资格类型">
-              <el-input v-model="form.qualificationType" placeholder="如：高中语文" clearable />
+          <el-col :span="8">
+            <el-form-item label="状态">
+              <el-select v-model="form.status" style="width: 100%">
+                <el-option label="启用" value="active" />
+                <el-option label="禁用" value="disabled" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="归属学院">
-          <el-select v-model="form.affiliatedCollegeId" placeholder="选择归属学院" clearable filterable style="width: 100%">
-            <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
-          </el-select>
+        <el-form-item label="教师资格类型">
+          <el-input v-model="form.qualificationType" placeholder="如：高中语文" clearable />
         </el-form-item>
         <el-form-item label="学科（课程）">
           <el-select v-model="form.courseIds" multiple filterable placeholder="选择可教授的课程" style="width: 100%">
@@ -164,15 +196,15 @@
         </el-form-item>
         <el-form-item label="任课学院">
           <el-select v-model="form.collegeIds" multiple filterable placeholder="选择优先指定学院" style="width: 100%">
-            <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
+            <el-option v-for="c in availableColleges" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="任课层次">
           <el-select v-model="form.trainingLevelIds" multiple filterable placeholder="选择优先指定层次" style="width: 100%">
-            <el-option v-for="l in allTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
+            <el-option v-for="l in availableTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="默认周课时">
+        <el-form-item label="特定周课时">
           <el-input-number v-model="form.defaultWeeklyHours" :min="0" :max="40" :step="1" placeholder="不填使用课时要求" controls-position="right" style="width: 200px" />
           <span class="form-tip">不填则使用课时要求的标准周课时</span>
         </el-form-item>
@@ -183,17 +215,17 @@
       </template>
     </el-dialog>
 
-    <!-- 批量修改默认周课时弹窗 -->
-    <el-dialog v-model="batchDialogVisible" title="批量修改默认周课时" width="500px" destroy-on-close>
+    <!-- 批量修改特定周课时弹窗 -->
+    <el-dialog v-model="batchDialogVisible" title="批量修改特定周课时" width="500px" destroy-on-close>
       <el-form label-width="100px">
         <el-form-item label="选择教师">
           <el-select v-model="batchTeacherIds" multiple filterable placeholder="选择要修改的教师" style="width: 100%">
             <el-option v-for="t in list" :key="t.id" :label="t.name" :value="t.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="默认周课时">
+        <el-form-item label="特定周课时">
           <el-input-number v-model="batchHours" :min="0" :max="40" :step="1" :precision="1" controls-position="right" style="width: 200px" />
-          <span class="form-tip">设为空值可清除默认周课时</span>
+          <span class="form-tip">设为空值可清除特定周课时</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -205,12 +237,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { Plus, Edit } from '@element-plus/icons-vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getCookie } from '@/utils/cookies'
-import { getTeachers, createTeacher, updateTeacher, deleteTeacher, batchUpdateDefaultHours } from '../../api/teacher'
-import { getColleges } from '../../api/college'
+import { getTeachers, createTeacher, updateTeacher, deleteTeacher, batchUpdateDefaultHours, toggleTeacherStatus } from '../../api/teacher'
+import { getColleges, getCollegeLevelMapping } from '../../api/college'
 import { getTrainingLevels } from '../../api/trainingLevel'
 import { getCourses } from '../../api/course'
 import { useExport } from '../../composables/useExport'
@@ -223,6 +255,7 @@ const saving = ref(false)
 const allCourses = ref([])
 const allColleges = ref([])
 const allTrainingLevels = ref([])
+const collegeLevelMapping = ref({ collegeToLevels: {}, levelToColleges: {} })
 
 const uploadHeaders = computed(() => {
   const token = getCookie('token')
@@ -243,6 +276,7 @@ const filterPersonnelType = ref('')
 const filterCollegeId = ref('')
 const filterTrainingLevelId = ref('')
 const filterAffiliatedCollegeId = ref('')
+const filterStatus = ref('')
 
 // 客户端筛选
 const filteredlist = computed(() => {
@@ -277,6 +311,9 @@ const filteredlist = computed(() => {
     const cid = Number(filterAffiliatedCollegeId.value)
     result = result.filter(t => t.affiliatedCollege?.id === cid)
   }
+  if (filterStatus.value) {
+    result = result.filter(t => (t.status || 'active') === filterStatus.value)
+  }
   return result
 })
 
@@ -289,11 +326,37 @@ const defaultForm = {
   qualificationType: null,
   affiliatedCollegeId: null,
   defaultWeeklyHours: null,
+  status: 'active',
   courseIds: [],
   collegeIds: [],
   trainingLevelIds: [],
 }
 const form = ref({ ...defaultForm })
+
+// 任课学院/任课层次双向联动筛选
+const availableColleges = computed(() => {
+  const selectedLevelIds = form.value.trainingLevelIds || []
+  if (!selectedLevelIds.length) return allColleges.value
+  const mapping = collegeLevelMapping.value.levelToColleges
+  const allowedIds = new Set()
+  for (const lid of selectedLevelIds) {
+    const cids = mapping[lid] || []
+    cids.forEach(id => allowedIds.add(id))
+  }
+  return allColleges.value.filter(c => allowedIds.has(c.id))
+})
+
+const availableTrainingLevels = computed(() => {
+  const selectedCollegeIds = form.value.collegeIds || []
+  if (!selectedCollegeIds.length) return allTrainingLevels.value
+  const mapping = collegeLevelMapping.value.collegeToLevels
+  const allowedIds = new Set()
+  for (const cid of selectedCollegeIds) {
+    const lids = mapping[cid] || []
+    lids.forEach(id => allowedIds.add(id))
+  }
+  return allTrainingLevels.value.filter(l => allowedIds.has(l.id))
+})
 
 // 批量修改相关
 const batchDialogVisible = ref(false)
@@ -345,10 +408,13 @@ async function load() {
 
 async function loadOptions() {
   try {
-    const [coursesRes, collegesRes, levelsRes] = await Promise.all([getCourses(), getColleges(), getTrainingLevels()])
+    const [coursesRes, collegesRes, levelsRes, mappingRes] = await Promise.all([
+      getCourses(), getColleges(), getTrainingLevels(), getCollegeLevelMapping()
+    ])
     allCourses.value = coursesRes.data || []
     allColleges.value = collegesRes.data || []
     allTrainingLevels.value = levelsRes.data || []
+    collegeLevelMapping.value = mappingRes.data || { collegeToLevels: {}, levelToColleges: {} }
   } catch (e) {
     console.error('加载选项失败:', e)
   }
@@ -382,6 +448,7 @@ async function handleSave() {
       qualificationType: form.value.qualificationType,
       affiliatedCollegeId: form.value.affiliatedCollegeId,
       defaultWeeklyHours: form.value.defaultWeeklyHours,
+      status: form.value.status || 'active',
       courseIds: form.value.courseIds,
       collegeIds: form.value.collegeIds,
       trainingLevelIds: form.value.trainingLevelIds,
@@ -406,6 +473,17 @@ async function handleDelete(id) {
     await load()
   } catch (e) {
     ElMessage.error(e?.response?.data?.message || '删除失败')
+  }
+}
+
+async function handleToggleStatus(row, val) {
+  const newStatus = val ? 'active' : 'disabled'
+  try {
+    await toggleTeacherStatus(row.id, newStatus)
+    ElMessage.success(val ? '已启用' : '已禁用')
+    await load()
+  } catch (e) {
+    ElMessage.error('状态切换失败')
   }
 }
 
@@ -507,16 +585,19 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.filter-name {
+  width: 100px;
 }
-.card-header-actions {
+.filter-medium {
+  width: 110px;
+}
+.filter-small {
+  width: 80px;
+}
+.action-buttons {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
+  margin-left: auto;
 }
 .tag-item {
   margin: 2px;

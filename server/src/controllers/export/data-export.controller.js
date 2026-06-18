@@ -208,11 +208,11 @@ export async function exportClasses(req, res, next) {
       return {
         '班级名称': cls.name,
         '二级学院': cls.colleges?.name || '-',
-        '专业': cls.majors?.name || '-',
+        '专业类别': cls.majors?.name || '-',
         '培养层次': cls.training_levels?.name || '-',
         '入学年份': cls.enrollment_year,
         '学制(年)': cls.duration_years,
-        '人数': Number(cls.student_count) || 0,
+        '班级人数': Number(cls.student_count) || 0,
         '年级': grade ? `${grade}年级` : '-',
         '状态': statusText,
         '关联类型': relationType,
@@ -223,11 +223,11 @@ export async function exportClasses(req, res, next) {
     const headers = [
       { label: '班级名称', key: '班级名称', width: 25 },
       { label: '二级学院', key: '二级学院', width: 15 },
-      { label: '专业', key: '专业', width: 15 },
+      { label: '专业类别', key: '专业类别', width: 15 },
       { label: '培养层次', key: '培养层次', width: 12 },
       { label: '入学年份', key: '入学年份', width: 12 },
       { label: '学制(年)', key: '学制(年)', width: 10 },
-      { label: '人数', key: '人数', width: 8 },
+      { label: '班级人数', key: '班级人数', width: 8 },
       { label: '年级', key: '年级', width: 10 },
       { label: '状态', key: '状态', width: 10 },
       { label: '关联类型', key: '关联类型', width: 10 },
@@ -270,7 +270,6 @@ export async function exportClasses(req, res, next) {
 export async function exportTextbookUsage(req, res, next) {
   try {
     const { id } = req.params;
-    const { semester } = req.query;
     let semesterInfo = await getSemesterInfoFromRequest(req);
     
     if (!semesterInfo) {
@@ -394,24 +393,30 @@ export async function exportTeachers(req, res, next) {
   try {
     const teachers = await prisma.teachers.findMany({
       include: {
+        affiliated_college: { select: { name: true } },
         courses: { include: { course: { select: { name: true } } } },
         scheduling_colleges: { include: { college: { select: { name: true } } } },
+        scheduling_levels: { include: { training_level: { select: { name: true } } } },
       },
       orderBy: { sort_order: 'asc' },
     });
 
     const personnelMap = { full_time: '专职', part_time: '兼职', external: '外聘' };
     const genderMap = { male: '男', female: '女' };
+    const statusMap = { active: '启用', disabled: '禁用' };
 
     const rows = teachers.map((t) => ({
       '教师姓名': t.name,
       '性别': genderMap[t.gender] || '-',
       '出生年月': t.birth_date ? String(t.birth_date).substring(0, 7) : '-',
       '人员类别': personnelMap[t.personnel_type] || t.personnel_type,
+      '状态': statusMap[t.status] || '启用',
       '教师资格类型': t.qualification_type || '-',
-      '默认周课时': t.default_weekly_hours != null ? t.default_weekly_hours : '-',
+      '归属学院': t.affiliated_college?.name || '-',
+      '特定周课时': t.default_weekly_hours != null ? t.default_weekly_hours : '-',
       '学科': t.courses.map(tc => tc.course.name).join('、') || '-',
       '任课学院': t.scheduling_colleges.map(sc => sc.college.name).join('、') || '-',
+      '任课层次': t.scheduling_levels.map(sl => sl.training_level.name).join('、') || '-',
     }));
 
     const headers = [
@@ -419,10 +424,13 @@ export async function exportTeachers(req, res, next) {
       { label: '性别', key: '性别', width: 8 },
       { label: '出生年月', key: '出生年月', width: 12 },
       { label: '人员类别', key: '人员类别', width: 12 },
+      { label: '状态', key: '状态', width: 8 },
       { label: '教师资格类型', key: '教师资格类型', width: 15 },
-      { label: '默认周课时', key: '默认周课时', width: 12 },
+      { label: '归属学院', key: '归属学院', width: 15 },
+      { label: '特定周课时', key: '特定周课时', width: 12 },
       { label: '学科', key: '学科', width: 30 },
       { label: '任课学院', key: '任课学院', width: 30 },
+      { label: '任课层次', key: '任课层次', width: 20 },
     ];
 
     const workbook = await createWorkbook(headers, rows);
