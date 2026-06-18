@@ -10,6 +10,8 @@ import {
   exportTextbooks,
   exportClasses,
   exportTextbookUsage,
+  exportTeachers,
+  exportStatistics,
 } from '../controllers/export/data-export.controller.js';
 
 const router = Router();
@@ -40,6 +42,14 @@ router.get('/textbooks', exportTextbooks);
 
 // GET /api/export/classes - 导出班级数据
 router.get('/classes', exportClasses);
+
+// GET /api/export/teachers - 导出教师数据
+router.get('/teachers', exportTeachers);
+
+// ==================== 教学统计导出 ====================
+
+// GET /api/export/statistics - 导出课时统计
+router.get('/statistics', exportStatistics);
 
 // ==================== 教材使用导出 ====================
 

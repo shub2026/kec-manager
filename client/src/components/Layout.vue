@@ -36,6 +36,17 @@
             <template #title>培养方案</template>
           </el-menu-item>
 
+          <!-- 教学安排模块 -->
+          <el-sub-menu index="teaching">
+            <template #title>
+              <el-icon><Calendar /></el-icon>
+              <span>教学安排</span>
+            </template>
+            <el-menu-item index="/teaching/teachers">教师信息</el-menu-item>
+            <el-menu-item index="/teaching/arrange">教学安排</el-menu-item>
+            <el-menu-item index="/teaching/statistics">课时统计</el-menu-item>
+          </el-sub-menu>
+
           <!-- 系统管理菜单（所有管理员可见） -->
           <el-sub-menu index="system">
             <template #title>

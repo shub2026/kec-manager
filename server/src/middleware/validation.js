@@ -538,3 +538,68 @@ export const validatePlanCreate = [
     .withMessage('版本号不超过50个字符'),
   handleValidationErrors
 ];
+
+/**
+ * 教师创建验证规则（name必填）
+ */
+export const validateTeacherCreate = [
+  body('name')
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('教师姓名不能为空且不超过50个字符'),
+  body('gender')
+    .optional({ nullable: true })
+    .isIn(['male', 'female'])
+    .withMessage('性别必须是male或female'),
+  body('birth_date')
+    .optional({ nullable: true })
+    .matches(/^\d{4}-\d{2}-\d{2}$/)
+    .withMessage('出生年月格式错误，应为YYYY-MM-DD'),
+  body('personnel_type')
+    .optional()
+    .isIn(['full_time', 'part_time', 'external'])
+    .withMessage('人员类别必须是full_time、part_time或external'),
+  body('qualification_type')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('教师资格类型不超过100个字符'),
+  body('default_weekly_hours')
+    .optional({ nullable: true })
+    .isFloat({ min: 0, max: 40 })
+    .withMessage('默认周课时必须在0-40之间'),
+  handleValidationErrors
+];
+
+/**
+ * 教师更新验证规则（所有字段可选）
+ */
+export const validateTeacherUpdate = [
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('教师姓名不能为空且不超过50个字符'),
+  body('gender')
+    .optional({ nullable: true })
+    .isIn(['male', 'female'])
+    .withMessage('性别必须是male或female'),
+  body('birth_date')
+    .optional({ nullable: true })
+    .matches(/^\d{4}-\d{2}-\d{2}$/)
+    .withMessage('出生年月格式错误，应为YYYY-MM-DD'),
+  body('personnel_type')
+    .optional()
+    .isIn(['full_time', 'part_time', 'external'])
+    .withMessage('人员类别必须是full_time、part_time或external'),
+  body('qualification_type')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('教师资格类型不超过100个字符'),
+  body('default_weekly_hours')
+    .optional({ nullable: true })
+    .isFloat({ min: 0, max: 40 })
+    .withMessage('默认周课时必须在0-40之间'),
+  handleValidationErrors
+];

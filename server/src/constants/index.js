@@ -43,7 +43,16 @@ export const AUDIT_MODULES = {
   CLASS: 'class',
   PLAN: 'trainingPlan',
   TRAINING_LEVEL: 'training_level',
-  SYSTEM: 'system'
+  SYSTEM: 'system',
+  TEACHER: 'teacher',
+  TEACHING_ARRANGE: 'teachingArrange'
+};
+
+// 人员类别
+export const PERSONNEL_TYPE = {
+  FULL_TIME: 'full_time',
+  PART_TIME: 'part_time',
+  EXTERNAL: 'external'
 };
 
 // 审计操作

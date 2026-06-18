@@ -16,6 +16,8 @@ import settingsRoutes from './routes/settings.routes.js';
 import trainingLevelRoutes from './routes/trainingLevel.routes.js';
 import collegeRoutes from './routes/college.routes.js';
 import auditRoutes from './routes/audit.routes.js';
+import teacherRoutes from './routes/teacher.routes.js';
+import teachingArrangeRoutes from './routes/teaching-arrange.routes.js';
 import { authMiddleware, roleMiddleware } from './middleware/auth.middleware.js';
 import { errorHandler } from './middleware/error.js';
 import { convertResponseNaming, convertRequestNaming } from './middleware/naming.middleware.js';
@@ -113,6 +115,12 @@ app.use('/api/import', authMiddleware, roleMiddleware('admin', 'super_admin'), i
 
 // 系统设置 - GET公开访问（登录页需要），其他操作需要super_admin权限
 app.use('/api/settings', settingsRoutes);
+
+// 教师管理 - 所有登录用户GET可访问，修改需要admin权限
+app.use('/api/teachers', authMiddleware, teacherRoutes);
+
+// 教学安排 - 所有登录用户GET可访问，修改需要admin权限
+app.use('/api/teaching-arrange', authMiddleware, teachingArrangeRoutes);
 
 // 审计日志 - 仅超级管理员可访问
 app.use('/api/audit', authMiddleware, roleMiddleware('super_admin'), auditRoutes);

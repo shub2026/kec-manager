@@ -603,3 +603,226 @@ export async function importTextbooks(req, res, next) {
 
 // 导出multer中间件供路由使用
 export { upload };
+
+/**
+ * POST /api/import/teachers - 批量导入教师
+ */
+export async function importTeachers(req, res, next) {
+  if (!req.file) throw new ValidationError('请上传文件');
+
+  let rows;
+  try {
+    rows = await readWorkbook(req.file.path);
+    cleanupFile(req.file.path);
+  } catch (e) {
+    cleanupFile(req.file.path);
+    throw new ValidationError('Excel文件读取失败: ' + e.message);
+  }
+
+  const errors = [];
+  let imported = 0;
+  let overwritten = 0;
+
+  // 预加载课程和学院数据
+  let courses = await prisma.courses.findMany();
+  const courseMap = {};
+  courses.forEach((c) => { courseMap[c.name] = c.id; });
+
+  let colleges = await prisma.colleges.findMany();
+  const collegeMap = {};
+  colleges.forEach((c) => { collegeMap[c.name] = c.id; });
+
+  let autoCreatedCourses = 0;
+
+  // 人员类别映射
+  const personnelTypeMap = {
+    '专职': 'full_time',
+    '兼职': 'part_time',
+    '外聘': 'external',
+    'full_time': 'full_time',
+    'part_time': 'part_time',
+    'external': 'external',
+  };
+
+  // 性别映射
+  const genderMap = {
+    '男': 'male',
+    '女': 'female',
+    'male': 'male',
+    'female': 'female',
+  };
+
+  const createdTeachers = []; // 收集创建/更新的教师，后续处理关联
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+
+    const sanitizedRow = {};
+    for (const [key, value] of Object.entries(row)) {
+      sanitizedRow[key] = sanitizeFormulaInjection(sanitizeInput(value));
+    }
+
+    const name = sanitizedRow['教师姓名'];
+    const genderRaw = sanitizedRow['性别'];
+    const birthDate = sanitizedRow['出生年月'];
+    const personnelTypeRaw = sanitizedRow['人员类别'];
+    const qualificationType = sanitizedRow['教师资格类型'] || null;
+    const defaultWeeklyHours = sanitizedRow['默认周课时'];
+    const courseNamesStr = sanitizedRow['学科'] || '';
+    const collegeNamesStr = sanitizedRow['上课学院'] || '';
+
+    if (!name) {
+      errors.push(`第${i + 2}行：缺少教师姓名`);
+      continue;
+    }
+
+    const personnelType = personnelTypeMap[String(personnelTypeRaw || '').trim()] || 'full_time';
+    const gender = genderMap[String(genderRaw || '').trim()] || null;
+
+    // 解析出生年月（存储为 YYYY-MM 格式）
+    let birthDateStr = null;
+    if (birthDate) {
+      const raw = String(birthDate).trim();
+      // 如果是完整日期 YYYY-MM-DD，截取 YYYY-MM
+      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        birthDateStr = raw.substring(0, 7);
+      }
+      // 如果已经是 YYYY-MM 格式
+      else if (/^\d{4}-\d{2}$/.test(raw)) {
+        birthDateStr = raw;
+      }
+      // 尝试解析 Excel 日期序列号或其他格式
+      else if (/^\d{4}/.test(raw) && raw.length >= 6) {
+        birthDateStr = raw.substring(0, 7);
+      }
+    }
+
+    // 解析默认周课时
+    let defHours = null;
+    if (defaultWeeklyHours !== null && defaultWeeklyHours !== undefined && defaultWeeklyHours !== '') {
+      const parsed = Number(defaultWeeklyHours);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 40) {
+        defHours = parsed;
+      }
+    }
+
+    // 解析学科（逗号分隔）
+    const courseNames = String(courseNamesStr).split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+    const courseIds = [];
+    for (const cName of courseNames) {
+      if (!courseMap[cName]) {
+        // 自动创建课程
+        let existingCourse = await prisma.courses.findFirst({ where: { name: cName } });
+        if (!existingCourse) {
+          existingCourse = await prisma.courses.create({
+            data: { name: cName, sort_order: 0 },
+          });
+        }
+        courseMap[cName] = existingCourse.id;
+        if (!courses.find(c => c.name === cName)) {
+          autoCreatedCourses++;
+        }
+      }
+      courseIds.push(courseMap[cName]);
+    }
+
+    // 解析上课学院（逗号分隔）
+    const collegeNames = String(collegeNamesStr).split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+    const collegeIds = [];
+    for (const cName of collegeNames) {
+      if (collegeMap[cName]) {
+        collegeIds.push(collegeMap[cName]);
+      }
+      // 学院不存在则跳过，不自动创建
+    }
+
+    // 查找是否已存在同名教师
+    const existing = await prisma.teachers.findFirst({
+      where: { name: String(name).trim() },
+    });
+
+    if (existing) {
+      // 更新教师基本信息
+      await prisma.teachers.update({
+        where: { id: existing.id },
+        data: {
+          gender,
+          birth_date: birthDateStr,
+          personnel_type: personnelType,
+          qualification_type: qualificationType,
+          default_weekly_hours: defHours,
+        },
+      });
+      // 重建课程关联
+      await prisma.teacher_courses.deleteMany({ where: { teacher_id: existing.id } });
+      if (courseIds.length > 0) {
+        await prisma.teacher_courses.createMany({
+          data: courseIds.map(cid => ({ teacher_id: existing.id, course_id: cid })),
+        });
+      }
+      // 重建学院关联
+      await prisma.teacher_scheduling_colleges.deleteMany({ where: { teacher_id: existing.id } });
+      if (collegeIds.length > 0) {
+        await prisma.teacher_scheduling_colleges.createMany({
+          data: collegeIds.map(cid => ({ teacher_id: existing.id, college_id: cid })),
+        });
+      }
+      overwritten++;
+    } else {
+      const teacher = await prisma.teachers.create({
+        data: {
+          name: String(name).trim(),
+          gender,
+          birth_date: birthDateStr,
+          personnel_type: personnelType,
+          qualification_type: qualificationType,
+          default_weekly_hours: defHours,
+          sort_order: 0,
+          courses: courseIds.length > 0
+            ? { create: courseIds.map(cid => ({ course_id: cid })) }
+            : undefined,
+          scheduling_colleges: collegeIds.length > 0
+            ? { create: collegeIds.map(cid => ({ college_id: cid })) }
+            : undefined,
+        },
+      });
+      imported++;
+    }
+  }
+
+  try {
+    const result = {
+      imported,
+      overwritten,
+      failed: errors.length,
+      total: rows.length,
+      errors,
+      autoCreated: { courses: autoCreatedCourses },
+    };
+    let message = `导入完成：新增${imported}条`;
+    if (overwritten > 0) message += `，覆盖${overwritten}条`;
+    if (errors.length > 0) message += `，失败${errors.length}条`;
+    if (autoCreatedCourses > 0) message += `（自动创建${autoCreatedCourses}门课程）`;
+
+    await createAuditLog({
+      action: 'import',
+      module: 'teacher',
+      userId: req.user?.id,
+      details: result,
+      result: (imported + overwritten) > 0 ? 'success' : 'failed',
+      message,
+    });
+
+    success(res, result, message);
+  } catch (e) {
+    log.error('[教师导入] 失败', { error: e.message, stack: e.stack });
+    await createAuditLog({
+      action: 'import',
+      module: 'teacher',
+      userId: req.user?.id,
+      result: 'failed',
+      message: `教师导入失败: ${e.message}`,
+    });
+    next(e);
+  }
+}

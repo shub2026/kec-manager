@@ -4,6 +4,7 @@ import {
   importClasses,
   importCourses,
   importTextbooks,
+  importTeachers,
   upload,
 } from '../controllers/import.controller.js';
 
@@ -23,5 +24,10 @@ router.post('/courses', roleMiddleware('admin', 'super_admin'), upload.single('f
  * POST /api/import/textbooks - 批量导入教材
  */
 router.post('/textbooks', roleMiddleware('admin', 'super_admin'), upload.single('file'), importTextbooks);
+
+/**
+ * POST /api/import/teachers - 批量导入教师
+ */
+router.post('/teachers', roleMiddleware('admin', 'super_admin'), upload.single('file'), importTeachers);
 
 export default router;

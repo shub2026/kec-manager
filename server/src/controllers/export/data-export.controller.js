@@ -385,3 +385,209 @@ export async function exportTextbookUsage(req, res, next) {
     next(e);
   }
 }
+
+/**
+ * 导出教师数据
+ */
+export async function exportTeachers(req, res, next) {
+  try {
+    const teachers = await prisma.teachers.findMany({
+      include: {
+        courses: { include: { course: { select: { name: true } } } },
+        scheduling_colleges: { include: { college: { select: { name: true } } } },
+      },
+      orderBy: { sort_order: 'asc' },
+    });
+
+    const personnelMap = { full_time: '专职', part_time: '兼职', external: '外聘' };
+    const genderMap = { male: '男', female: '女' };
+
+    const rows = teachers.map((t) => ({
+      '教师姓名': t.name,
+      '性别': genderMap[t.gender] || '-',
+      '出生年月': t.birth_date ? String(t.birth_date).substring(0, 7) : '-',
+      '人员类别': personnelMap[t.personnel_type] || t.personnel_type,
+      '教师资格类型': t.qualification_type || '-',
+      '默认周课时': t.default_weekly_hours != null ? t.default_weekly_hours : '-',
+      '学科': t.courses.map(tc => tc.course.name).join('、') || '-',
+      '上课学院': t.scheduling_colleges.map(sc => sc.college.name).join('、') || '-',
+    }));
+
+    const headers = [
+      { label: '教师姓名', key: '教师姓名', width: 15 },
+      { label: '性别', key: '性别', width: 8 },
+      { label: '出生年月', key: '出生年月', width: 12 },
+      { label: '人员类别', key: '人员类别', width: 12 },
+      { label: '教师资格类型', key: '教师资格类型', width: 15 },
+      { label: '默认周课时', key: '默认周课时', width: 12 },
+      { label: '学科', key: '学科', width: 30 },
+      { label: '上课学院', key: '上课学院', width: 30 },
+    ];
+
+    const workbook = await createWorkbook(headers, rows);
+    const buffer = await workbookToBuffer(workbook);
+    const filename = `教师数据_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    await createAuditLog({
+      action: 'export',
+      module: 'teacher',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { rowCount: rows.length },
+      result: 'success',
+      message: `导出教师数据，共${rows.length}条记录`,
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.send(buffer);
+  } catch (e) {
+    await createAuditLog({
+      action: 'export',
+      module: 'teacher',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `导出教师数据失败: ${e.message}`,
+    });
+    next(e);
+  }
+}
+
+/**
+ * 导出课时统计
+ */
+export async function exportStatistics(req, res, next) {
+  try {
+    const { semester } = req.query;
+    if (!semester) {
+      return res.status(400).json({ success: false, message: '请选择学期' });
+    }
+
+    const personnelMap = { full_time: '专职', part_time: '兼职', external: '外聘' };
+
+    // 按教师聚合统计
+    const stats = await prisma.teaching_assignments.groupBy({
+      by: ['teacher_id'],
+      where: { semester },
+      _sum: { weekly_hours: true },
+      _count: { id: true },
+    });
+
+    const teacherIds = stats.map(s => s.teacher_id);
+    const teachers = await prisma.teachers.findMany({
+      where: { id: { in: teacherIds } },
+      include: {
+        courses: { include: { course: { select: { name: true } } } },
+        scheduling_colleges: { include: { college: { select: { name: true } } } },
+      },
+    });
+    const teacherMap = new Map(teachers.map(t => [t.id, t]));
+
+    // 获取每个教师的安排明细
+    const allAssignments = await prisma.teaching_assignments.findMany({
+      where: { semester, teacher_id: { in: teacherIds } },
+      include: {
+        class: { select: { name: true } },
+        course: { select: { name: true } },
+      },
+      orderBy: [{ teacher_id: 'asc' }, { course_id: 'asc' }],
+    });
+
+    const assignmentsByTeacher = new Map();
+    for (const a of allAssignments) {
+      if (!assignmentsByTeacher.has(a.teacher_id)) {
+        assignmentsByTeacher.set(a.teacher_id, []);
+      }
+      assignmentsByTeacher.get(a.teacher_id).push(a);
+    }
+
+    const rows = [];
+    for (const s of stats) {
+      const teacher = teacherMap.get(s.teacher_id);
+      const assignments = assignmentsByTeacher.get(s.teacher_id) || [];
+      const totalHours = s._sum.weekly_hours || 0;
+      const classCount = s._count.id || 0;
+
+      // 按课程分组
+      const byCourse = new Map();
+      for (const a of assignments) {
+        if (!byCourse.has(a.course_id)) {
+          byCourse.set(a.course_id, { course: a.course.name, classes: [], hours: 0 });
+        }
+        const g = byCourse.get(a.course_id);
+        g.classes.push(a.class.name);
+        g.hours += a.weekly_hours;
+      }
+
+      const courseDetail = Array.from(byCourse.values())
+        .map(g => `${g.course}(${g.hours}课时/${g.classes.length}班)`)
+        .join('、');
+
+      rows.push({
+        '教师姓名': teacher?.name || '未知',
+        '人员类别': personnelMap[teacher?.personnel_type] || '-',
+        '上课学院': teacher?.scheduling_colleges.map(sc => sc.college.name).join('、') || '-',
+        '任教科目': teacher?.courses.map(tc => tc.course.name).join('、') || '-',
+        '上课班级数': classCount,
+        '总周课时': totalHours,
+        '课程明细': courseDetail || '-',
+      });
+    }
+
+    // 按总课时降序
+    rows.sort((a, b) => b['总周课时'] - a['总周课时']);
+
+    // 合计行
+    const totalTeachers = rows.length;
+    const totalWeeklyHours = rows.reduce((sum, r) => sum + r['总周课时'], 0);
+    const totalClasses = rows.reduce((sum, r) => sum + r['上课班级数'], 0);
+    rows.push({
+      '教师姓名': '合计',
+      '人员类别': '',
+      '上课学院': '',
+      '任教科目': '',
+      '上课班级数': totalClasses,
+      '总周课时': totalWeeklyHours,
+      '课程明细': `${totalTeachers}位教师`,
+    });
+
+    const headers = [
+      { label: '教师姓名', key: '教师姓名', width: 12 },
+      { label: '人员类别', key: '人员类别', width: 10 },
+      { label: '上课学院', key: '上课学院', width: 25 },
+      { label: '任教科目', key: '任教科目', width: 25 },
+      { label: '上课班级数', key: '上课班级数', width: 12 },
+      { label: '总周课时', key: '总周课时', width: 10 },
+      { label: '课程明细', key: '课程明细', width: 50 },
+    ];
+
+    const workbook = await createWorkbook(headers, rows);
+    const buffer = await workbookToBuffer(workbook);
+    const filename = `课时统计_${semester}.xlsx`;
+
+    await createAuditLog({
+      action: 'export',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { semester, rowCount: rows.length },
+      result: 'success',
+      message: `导出课时统计(${semester})，共${rows.length}条记录`,
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.send(buffer);
+  } catch (e) {
+    await createAuditLog({
+      action: 'export',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `导出课时统计失败: ${e.message}`,
+    });
+    next(e);
+  }
+}
