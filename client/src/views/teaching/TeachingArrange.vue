@@ -98,6 +98,17 @@
             <el-button type="warning" @click="handleAutoArrange('standard')" :loading="arranging">
               <el-icon><SetUp /></el-icon> 标准模式
             </el-button>
+            <el-dropdown @command="handleBatchAutoArrange" :disabled="batchArranging" style="margin-left: 4px">
+              <el-button type="primary" :loading="batchArranging">
+                批量排课<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="full">全量模式（所有课程）</el-dropdown-item>
+                  <el-dropdown-item command="standard">标准模式（所有课程）</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
             <el-popconfirm title="确定重置所有自动安排？" @confirm="handleReset">
               <template #reference>
                 <el-button type="danger">
@@ -203,8 +214,8 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { MagicStick, SetUp, RefreshRight, Check } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { MagicStick, SetUp, RefreshRight, Check, ArrowDown } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getCourses } from '../../api/course'
 import request from '../../utils/request'
 import {
@@ -213,6 +224,7 @@ import {
   assignTeacher,
   deleteAssignment,
   runAutoArrange,
+  runBatchAutoArrange,
   resetAutoAssignments,
   getHourSettings,
   saveHourSettings,
@@ -287,6 +299,7 @@ const filteredClassList = computed(() => {
 
 // 自动排课状态
 const arranging = ref(false)
+const batchArranging = ref(false)
 
 // 教师选择弹窗
 const teacherDialogVisible = ref(false)
@@ -440,6 +453,17 @@ async function handleRemoveAssignment(row) {
 }
 
 async function handleAutoArrange(mode) {
+  const modeLabel = mode === 'full' ? '全量模式' : '标准模式'
+  try {
+    await ElMessageBox.confirm(
+      `将以「${modeLabel}」自动安排当前课程的所有班级（已有手动安排不会被覆盖）。确定继续？`,
+      `自动排课 - ${modeLabel}`,
+      { confirmButtonText: '确定排课', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch {
+    return
+  }
+
   arranging.value = true
   try {
     const res = await runAutoArrange({
@@ -449,13 +473,105 @@ async function handleAutoArrange(mode) {
       hourSettings,
     })
     const data = res.data || {}
-    ElMessage.success(res.message || `自动排课完成：安排${data.autoCount || 0}个班级`)
+    showArrangeResult(modeLabel, data)
     await loadData()
   } catch (e) {
     ElMessage.error('自动排课失败')
     console.error('自动排课失败:', e)
   } finally {
     arranging.value = false
+  }
+}
+
+function showArrangeResult(modeLabel, data) {
+  const parts = []
+  parts.push(`安排 ${data.autoCount || 0} 个班级`)
+  if (data.manualCount) parts.push(`手动 ${data.manualCount} 个`)
+  if (data.unassignedCount > 0) {
+    parts.push(`未分配 ${data.unassignedCount} 个`)
+  }
+
+  const warnings = data.warnings || []
+  const unassignedDetails = data.unassigned || []
+
+  let detailMsg = parts.join('，')
+  if (warnings.length > 0) {
+    detailMsg += '\n\n⚠ 警告：\n' + warnings.join('\n')
+  }
+  if (unassignedDetails.length > 0) {
+    detailMsg += '\n\n未分配班级：'
+    detailMsg += unassignedDetails.map(u =>
+      `\n  • ${u.className}（${u.weeklyHours}课时）${u.reason ? '— ' + u.reason : ''}`
+    ).join('')
+  }
+
+  if (data.unassignedCount > 0 || warnings.length > 0) {
+    ElMessageBox.alert(detailMsg, `${modeLabel}排课结果`, {
+      confirmButtonText: '知道了',
+      type: data.unassignedCount > 0 ? 'warning' : 'info',
+      whiteSpace: 'pre-line',
+      customStyle: { whiteSpace: 'pre-line' },
+    })
+  } else {
+    ElMessage.success(`${modeLabel}排课完成：${detailMsg}`)
+  }
+}
+
+async function handleBatchAutoArrange(mode) {
+  const modeLabel = mode === 'full' ? '全量模式' : '标准模式'
+  try {
+    await ElMessageBox.confirm(
+      `将以「${modeLabel}」自动安排当前学期下所有课程的班级。这会覆盖所有课程的自动安排（手动安排不受影响）。确定继续？`,
+      `批量排课 - ${modeLabel}`,
+      { confirmButtonText: '确定批量排课', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch {
+    return
+  }
+
+  batchArranging.value = true
+  try {
+    const res = await runBatchAutoArrange({
+      semester: currentSemesterLabel.value,
+      mode,
+      hourSettings,
+    })
+    const data = res.data || {}
+    const s = data.summary || {}
+    let msg = `批量排课完成：${s.totalCourses || 0} 门课程`
+    msg += `，安排 ${s.totalAssigned || 0} 个班级`
+    if (s.totalUnassigned > 0) msg += `，未分配 ${s.totalUnassigned} 个`
+    if (s.errorCount > 0) msg += `，${s.errorCount} 门课程出错`
+
+    const errorCourses = (data.courseResults || []).filter(r => r.error)
+    const unassignedCourses = (data.courseResults || []).filter(r => r.unassignedCount > 0)
+
+    if (errorCourses.length > 0 || unassignedCourses.length > 0) {
+      let detail = msg
+      if (errorCourses.length > 0) {
+        detail += '\n\n出错的课程：'
+        detail += errorCourses.map(r => `\n  • ${r.courseName}: ${r.error}`).join('')
+      }
+      if (unassignedCourses.length > 0) {
+        detail += '\n\n有未分配班级的课程：'
+        detail += unassignedCourses.map(r => `\n  • ${r.courseName}: ${r.unassignedCount} 个未分配`).join('')
+      }
+      ElMessageBox.alert(detail, '批量排课结果', {
+        confirmButtonText: '知道了',
+        type: 'warning',
+        whiteSpace: 'pre-line',
+        customStyle: { whiteSpace: 'pre-line' },
+      })
+    } else {
+      ElMessage.success(msg)
+    }
+
+    await loadData()
+  } catch (e) {
+    ElMessage.error('批量排课失败')
+    console.error('批量排课失败:', e)
+  } finally {
+    batchArranging.value = false
   }
 }
 

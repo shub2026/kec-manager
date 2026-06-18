@@ -10,6 +10,8 @@ export const assignTeacher = (data) => request.post('/teaching-arrange/assign', 
 export const deleteAssignment = (id) => request.delete(`/teaching-arrange/assignments/${id}`)
 // 自动排课
 export const runAutoArrange = (data) => request.post('/teaching-arrange/auto-arrange', data)
+// 批量自动排课（所有课程）
+export const runBatchAutoArrange = (data) => request.post('/teaching-arrange/batch-auto-arrange', data)
 // 重置自动安排
 export const resetAutoAssignments = (data) => request.post('/teaching-arrange/reset', data)
 // 课时统计
