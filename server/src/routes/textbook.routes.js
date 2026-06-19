@@ -17,7 +17,7 @@ router.get('/', listTextbooks);
 
 // POST/PUT/DELETE - 需要admin权限
 router.post('/', roleMiddleware('admin', 'super_admin'), validateTextbookCreate, sanitizeBody, createTextbook);
-router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateSortOrder, sanitizeBody, updateTextbook);
+router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateTextbook, sanitizeBody, updateTextbook);
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, deleteTextbook);
 router.post('/:id/toggle-status', roleMiddleware('admin', 'super_admin'), validateIdParam, validateTextbookStatus, sanitizeBody, toggleTextbookStatus);
 

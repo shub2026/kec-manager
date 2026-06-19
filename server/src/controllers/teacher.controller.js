@@ -27,9 +27,11 @@ export async function listTeachers(req, res, next) {
       orderBy: { sort_order: 'asc' },
     });
 
+    // viewer 角色脱敏教师 PII（出生年月），仅 admin/super_admin 可见
+    const canViewPII = req.user?.role === 'admin' || req.user?.role === 'super_admin';
     const formatted = teachers.map(t => ({
       ...t,
-      birth_date: t.birth_date ? String(t.birth_date).substring(0, 7) : null,
+      birth_date: canViewPII ? (t.birth_date ? String(t.birth_date).substring(0, 7) : null) : null,
       affiliatedCollege: t.affiliated_college,
       courseList: t.courses.map(tc => tc.course),
       collegeList: t.scheduling_colleges.map(sc => sc.college),
@@ -103,7 +105,7 @@ export async function createTeacher(req, res, next) {
       module: 'teacher',
       userId: req.user?.id,
       ip: req.ip,
-      details: req.body,
+      details: { name: req.body.name, error: e.message },
       result: 'failed',
       message: `创建教师失败：${e.message}`,
     });
@@ -133,52 +135,55 @@ export async function updateTeacher(req, res, next) {
     }
 
     try {
-      // 更新主表
-      const teacher = await prisma.teachers.update({
-        where: { id: Number(id) },
-        data,
-      });
+      // 关联表重建与主表更新置于同一事务，避免中途失败导致关联丢失
+      const updated = await prisma.$transaction(async (tx) => {
+        // 更新主表
+        const teacher = await tx.teachers.update({
+          where: { id: Number(id) },
+          data,
+        });
 
-      // 更新课程关联
-      if (course_ids !== undefined) {
-        await prisma.teacher_courses.deleteMany({ where: { teacher_id: Number(id) } });
-        if (course_ids.length > 0) {
-          await prisma.teacher_courses.createMany({
-            data: course_ids.map(cid => ({ teacher_id: Number(id), course_id: Number(cid) })),
-          });
+        // 更新课程关联
+        if (course_ids !== undefined) {
+          await tx.teacher_courses.deleteMany({ where: { teacher_id: Number(id) } });
+          if (course_ids.length > 0) {
+            await tx.teacher_courses.createMany({
+              data: course_ids.map(cid => ({ teacher_id: Number(id), course_id: Number(cid) })),
+            });
+          }
         }
-      }
 
-      // 更新学院关联
-      if (college_ids !== undefined) {
-        await prisma.teacher_scheduling_colleges.deleteMany({ where: { teacher_id: Number(id) } });
-        if (college_ids.length > 0) {
-          await prisma.teacher_scheduling_colleges.createMany({
-            data: college_ids.map(cid => ({ teacher_id: Number(id), college_id: Number(cid) })),
-          });
+        // 更新学院关联
+        if (college_ids !== undefined) {
+          await tx.teacher_scheduling_colleges.deleteMany({ where: { teacher_id: Number(id) } });
+          if (college_ids.length > 0) {
+            await tx.teacher_scheduling_colleges.createMany({
+              data: college_ids.map(cid => ({ teacher_id: Number(id), college_id: Number(cid) })),
+            });
+          }
         }
-      }
 
-      // 更新任课层次关联
-      if (training_level_ids !== undefined) {
-        await prisma.teacher_training_levels.deleteMany({ where: { teacher_id: Number(id) } });
-        if (training_level_ids.length > 0) {
-          await prisma.teacher_training_levels.createMany({
-            data: training_level_ids.map(lid => ({ teacher_id: Number(id), training_level_id: Number(lid) })),
-          });
+        // 更新任课层次关联
+        if (training_level_ids !== undefined) {
+          await tx.teacher_training_levels.deleteMany({ where: { teacher_id: Number(id) } });
+          if (training_level_ids.length > 0) {
+            await tx.teacher_training_levels.createMany({
+              data: training_level_ids.map(lid => ({ teacher_id: Number(id), training_level_id: Number(lid) })),
+            });
+          }
         }
-      }
 
-      // 重新查询含关联
-      const updated = await prisma.teachers.findUnique({
-        where: { id: Number(id) },
-        include: {
-          affiliated_college: { select: { id: true, name: true } },
-          courses: { include: { course: { select: { id: true, name: true } } } },
-          scheduling_colleges: { include: { college: { select: { id: true, name: true } } } },
-          scheduling_levels: { include: { training_level: { select: { id: true, name: true } } } },
-          _count: { select: { assignments: true } },
-        },
+        // 重新查询含关联
+        return tx.teachers.findUnique({
+          where: { id: Number(id) },
+          include: {
+            affiliated_college: { select: { id: true, name: true } },
+            courses: { include: { course: { select: { id: true, name: true } } } },
+            scheduling_colleges: { include: { college: { select: { id: true, name: true } } } },
+            scheduling_levels: { include: { training_level: { select: { id: true, name: true } } } },
+            _count: { select: { assignments: true } },
+          },
+        });
       });
 
       await createAuditLog({
@@ -186,9 +191,9 @@ export async function updateTeacher(req, res, next) {
         module: 'teacher',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: teacher.id, name: data.name || teacher.name },
+        details: { id: updated.id, name: data.name || updated.name },
         result: 'success',
-        message: `更新教师：${data.name || teacher.name}`,
+        message: `更新教师：${data.name || updated.name}`,
       });
 
       success(res, {
@@ -205,7 +210,7 @@ export async function updateTeacher(req, res, next) {
         module: 'teacher',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id, ...req.body },
+        details: { id: Number(id), name: req.body.name, error: e.message },
         result: 'failed',
         message: `更新教师失败：${e.message}`,
       });

@@ -16,7 +16,7 @@ router.get('/', listCourses);
 
 // POST/PUT/DELETE - 需要admin权限
 router.post('/', roleMiddleware('admin', 'super_admin'), validateCourseCreate, sanitizeBody, createCourse);
-router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateSortOrder, sanitizeBody, updateCourse);
+router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateCourse, sanitizeBody, updateCourse);
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, deleteCourse);
 
 export default router;

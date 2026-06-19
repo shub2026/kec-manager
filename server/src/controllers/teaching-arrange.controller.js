@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
+import { log } from '../utils/logger.js';
 import { DEFAULT_HOUR_SETTINGS, HOUR_SETTINGS_PREFIX } from '../constants/index.js';
 import {
   getClassesWithCourse,
@@ -8,7 +9,21 @@ import {
   autoArrange,
   batchAutoArrange,
   parseSemester,
+  validateHourSettings,
 } from '../services/teaching-arrange.service.js';
+
+/**
+ * 安全解析 JSON 字符串，失败时返回 fallback 并记录告警
+ */
+function safeParseJSON(str, fallback = null) {
+  if (!str) return fallback;
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    log.warn('system_settings 值 JSON 解析失败，回退到默认值', { error: e.message });
+    return fallback;
+  }
+}
 
 /**
  * GET /classes - 获取某课程在某学期下的班级列表（矩阵表数据）
@@ -88,6 +103,41 @@ export async function assignTeacher(req, res, next) {
       return fail(res, '缺少必要参数');
     }
 
+    // 校验教师存在且处于启用状态
+    const teacher = await prisma.teachers.findUnique({ where: { id: Number(teacher_id) } });
+    if (!teacher) return fail(res, '教师不存在', 404);
+    if (teacher.status === 'disabled') return fail(res, '该教师已禁用，无法安排');
+
+    // 校验教师可教该课程（teacher_courses 关联存在）
+    const canTeach = await prisma.teacher_courses.findUnique({
+      where: { teacher_id_course_id: { teacher_id: Number(teacher_id), course_id: Number(course_id) } },
+    });
+    if (!canTeach) return fail(res, '该教师未关联此课程，无法安排');
+
+    // update 分支：未传 weekly_hours 时保留原值，避免静默清零
+    const updateData = { teacher_id: Number(teacher_id), is_auto: false };
+    if (weekly_hours != null && weekly_hours !== '') {
+      updateData.weekly_hours = Number(weekly_hours);
+    }
+
+    // create 分支：必须有 weekly_hours，缺失时从培养方案学期推导
+    let createWeeklyHours = weekly_hours != null && weekly_hours !== '' ? Number(weekly_hours) : null;
+    if (createWeeklyHours === null) {
+      // 尝试从 plan_course_semesters 推导周课时
+      const cls = await prisma.classes.findUnique({ where: { id: Number(class_id) } });
+      const planId = cls?.custom_plan_id;
+      if (planId) {
+        const pc = await prisma.plan_courses.findUnique({
+          where: { plan_id_course_id: { plan_id: planId, course_id: Number(course_id) } },
+          include: { plan_course_semesters: { where: { semester: null } } },
+        });
+        // 取方案课程默认周课时作为兜底
+        createWeeklyHours = pc?.weekly_hours ?? 0;
+      } else {
+        createWeeklyHours = 0;
+      }
+    }
+
     const assignment = await prisma.teaching_assignments.upsert({
       where: {
         class_id_course_id_semester: {
@@ -96,17 +146,13 @@ export async function assignTeacher(req, res, next) {
           semester,
         },
       },
-      update: {
-        teacher_id: Number(teacher_id),
-        weekly_hours: weekly_hours != null ? Number(weekly_hours) : 0,
-        is_auto: false,
-      },
+      update: updateData,
       create: {
         teacher_id: Number(teacher_id),
         class_id: Number(class_id),
         course_id: Number(course_id),
         semester,
-        weekly_hours: weekly_hours != null ? Number(weekly_hours) : 0,
+        weekly_hours: createWeeklyHours,
         is_auto: false,
       },
       include: {
@@ -120,7 +166,7 @@ export async function assignTeacher(req, res, next) {
       module: 'teachingArrange',
       userId: req.user?.id,
       ip: req.ip,
-      details: { class_id, course_id, semester, teacher_id },
+      details: { class_id: Number(class_id), course_id: Number(course_id), semester, teacher_id: Number(teacher_id), weekly_hours: assignment.weekly_hours },
       result: 'success',
       message: `手动安排教师：${assignment.teacher?.name} → ${assignment.class?.name}`,
     });
@@ -148,17 +194,20 @@ export async function deleteAssignment(req, res, next) {
 
     await prisma.teaching_assignments.delete({ where: { id: Number(id) } });
 
+    // 自动安排被删除后提示重新排课（M-8 修复）
+    const hint = assignment.is_auto ? '（该班级自动安排已删除，建议重新排课）' : '';
+
     await createAuditLog({
       action: 'delete',
       module: 'teachingArrange',
       userId: req.user?.id,
       ip: req.ip,
-      details: { id, teacher: assignment.teacher?.name, class: assignment.class?.name },
+      details: { id: Number(id), teacher: assignment.teacher?.name, class: assignment.class?.name, is_auto: assignment.is_auto },
       result: 'success',
-      message: `删除教学安排：${assignment.teacher?.name} ← ${assignment.class?.name}`,
+      message: `删除教学安排：${assignment.teacher?.name} ← ${assignment.class?.name}${hint}`,
     });
 
-    success(res, null, '删除成功');
+    success(res, null, `删除成功${hint}`);
   } catch (e) { next(e); }
 }
 
@@ -179,12 +228,12 @@ export async function runAutoArrange(req, res, next) {
       });
 
       if (courseSettings) {
-        hourSettings = JSON.parse(courseSettings.value);
+        hourSettings = safeParseJSON(courseSettings.value, DEFAULT_HOUR_SETTINGS);
       } else {
         const globalSettings = await prisma.system_settings.findUnique({
           where: { key: HOUR_SETTINGS_PREFIX },
         });
-        hourSettings = globalSettings ? JSON.parse(globalSettings.value) : DEFAULT_HOUR_SETTINGS;
+        hourSettings = globalSettings ? safeParseJSON(globalSettings.value, DEFAULT_HOUR_SETTINGS) : DEFAULT_HOUR_SETTINGS;
       }
     }
 
@@ -217,7 +266,7 @@ export async function runAutoArrange(req, res, next) {
       module: 'teachingArrange',
       userId: req.user?.id,
       ip: req.ip,
-      details: req.body,
+      details: { course_id: req.body.course_id, semester: req.body.semester, mode: req.body.mode, error: e.message },
       result: 'failed',
       message: `自动排课失败：${e.message}`,
     });
@@ -342,8 +391,8 @@ export async function getStatistics(req, res, next) {
         personnelType: teacher?.personnel_type || null,
         affiliatedCollege: teacher?.affiliated_college || null,
         collegeList,
-        trainingLevelList: teacher?.scheduling_levels.map(sl => sl.training_level) || [],
-        courseList: teacher?.courses.map(tc => tc.course) || [],
+        trainingLevelList: teacher?.scheduling_levels?.map(sl => sl.training_level) ?? [],
+        courseList: teacher?.courses?.map(tc => tc.course) ?? [],
         totalWeeklyHours: s._sum.weekly_hours || 0,
         totalClassCount: s._count.id || 0,
         details: Array.from(byCourse.values()),
@@ -374,7 +423,7 @@ export async function getHourSettings(req, res, next) {
     const key = course_id ? `${HOUR_SETTINGS_PREFIX}_${course_id}` : HOUR_SETTINGS_PREFIX;
     const record = await prisma.system_settings.findUnique({ where: { key } });
     if (record) {
-      success(res, JSON.parse(record.value));
+      success(res, safeParseJSON(record.value, null));
     } else {
       success(res, null);
     }
@@ -388,6 +437,13 @@ export async function saveHourSettings(req, res, next) {
   try {
     const { hour_settings, course_id } = req.body;
     if (!hour_settings) return fail(res, '缺少课时设置数据');
+
+    // 保存前校验，避免无效设置静默持久化
+    try {
+      validateHourSettings(hour_settings);
+    } catch (ve) {
+      return fail(res, ve.message);
+    }
 
     const key = course_id ? `${HOUR_SETTINGS_PREFIX}_${course_id}` : HOUR_SETTINGS_PREFIX;
     const description = course_id ? `课程${course_id}课时要求设置` : '教学安排课时要求设置';
@@ -427,7 +483,7 @@ export async function runBatchAutoArrange(req, res, next) {
       const globalSettings = await prisma.system_settings.findUnique({
         where: { key: HOUR_SETTINGS_PREFIX },
       });
-      hourSettings = globalSettings ? JSON.parse(globalSettings.value) : DEFAULT_HOUR_SETTINGS;
+      hourSettings = globalSettings ? safeParseJSON(globalSettings.value, DEFAULT_HOUR_SETTINGS) : DEFAULT_HOUR_SETTINGS;
     }
 
     const conditions = schedule_conditions || [];
@@ -458,7 +514,7 @@ export async function runBatchAutoArrange(req, res, next) {
       module: 'teachingArrange',
       userId: req.user?.id,
       ip: req.ip,
-      details: req.body,
+      details: { semester: req.body.semester, mode: req.body.mode, error: e.message },
       result: 'failed',
       message: `批量排课失败：${e.message}`,
     });

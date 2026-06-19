@@ -44,17 +44,21 @@ export async function importClasses(req, res, next) {
   let autoCreatedMajors = 0;
   let autoCreatedColleges = 0;
 
-  const transactionOperations = [];
+  // 待建基础数据名（事务内统一创建）与班级操作描述
+  const pendingLevelNames = new Set();
+  const pendingMajorNames = new Set();
+  const pendingCollegeNames = new Set();
+  const classOps = [];
   const validationErrors = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    
+
     const sanitizedRow = {};
     for (const [key, value] of Object.entries(row)) {
       sanitizedRow[key] = sanitizeFormulaInjection(sanitizeInput(value));
     }
-    
+
     const name = sanitizedRow['班级名称'];
     const enrollmentYear = sanitizedRow['入学年份'];
     const durationYears = sanitizedRow['学制(年)'];
@@ -69,68 +73,32 @@ export async function importClasses(req, res, next) {
       continue;
     }
 
-    let trainingLevelId = levelMap[trainingLevelName];
-    if (!trainingLevelId && trainingLevelName) {
-      const levelName = String(trainingLevelName).trim();
-      const upsertedLevel = await prisma.training_levels.upsert({
-        where: { name: levelName },
-        update: {},
-        create: {
-          name: levelName,
-          code: null,
-          description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
-          sort_order: 0,
-        },
-      });
-      trainingLevelId = upsertedLevel.id;
-      if (!levelMap[levelName]) {
-        levelMap[levelName] = trainingLevelId;
-        autoCreatedLevels++;
-      }
+    // 行级数值范围校验，与单条 API 一致（H-2 修复）
+    const ey = Number(enrollmentYear);
+    const dy = Number(durationYears);
+    const sc = studentCount ? Number(studentCount) : 0;
+    if (!Number.isFinite(ey) || ey < 2000 || ey > 2100) {
+      validationErrors.push(`第${i + 2}行：入学年份必须在2000-2100之间`);
+      continue;
     }
-    if (!trainingLevelId) {
-      validationErrors.push(`第${i + 2}行：培养层次不能为空`);
+    if (!Number.isFinite(dy) || dy < 1 || dy > 10) {
+      validationErrors.push(`第${i + 2}行：学制必须在1-10年之间`);
+      continue;
+    }
+    if (!Number.isFinite(sc) || sc < 0 || sc > 999) {
+      validationErrors.push(`第${i + 2}行：班级人数必须在0-999之间`);
       continue;
     }
 
-    let majorId = majorMap[majorName];
-    if (!majorId && majorName) {
-      const mName = String(majorName).trim();
-      const upsertedMajor = await prisma.majors.upsert({
-        where: { name: mName },
-        update: {},
-        create: {
-          name: mName,
-          code: null,
-          description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
-          sort_order: 0,
-        },
-      });
-      majorId = upsertedMajor.id;
-      if (!majorMap[mName]) {
-        majorMap[mName] = majorId;
-        autoCreatedMajors++;
-      }
+    // 记录待建基础数据名（事务内统一创建，避免回滚后残留孤儿，H-13 修复）
+    if (trainingLevelName && !levelMap[trainingLevelName] && !pendingLevelNames.has(trainingLevelName)) {
+      pendingLevelNames.add(trainingLevelName);
     }
-
-    let collegeId = collegeMap[collegeName];
-    if (!collegeId && collegeName) {
-      const cName = String(collegeName).trim();
-      const upsertedCollege = await prisma.colleges.upsert({
-        where: { name: cName },
-        update: {},
-        create: {
-          name: cName,
-          code: null,
-          description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
-          sort_order: 0,
-        },
-      });
-      collegeId = upsertedCollege.id;
-      if (!collegeMap[cName]) {
-        collegeMap[cName] = collegeId;
-        autoCreatedColleges++;
-      }
+    if (majorName && !majorMap[majorName] && !pendingMajorNames.has(majorName)) {
+      pendingMajorNames.add(majorName);
+    }
+    if (collegeName && !collegeMap[collegeName] && !pendingCollegeNames.has(collegeName)) {
+      pendingCollegeNames.add(collegeName);
     }
 
     let status = 'active';
@@ -147,54 +115,21 @@ export async function importClasses(req, res, next) {
       status = grade !== null && grade <= Number(durationYears) ? 'active' : 'graduated';
     }
 
-    const existingClass = await prisma.classes.findFirst({
-      where: { name: String(name).trim() }
+    // 收集班级操作描述（含原始名，事务内解析 ID）
+    classOps.push({
+      name: String(name).trim(),
+      enrollmentYear: ey,
+      durationYears: dy,
+      studentCount: sc,
+      status,
+      majorName: majorName || null,
+      collegeName: collegeName || null,
+      trainingLevelName: trainingLevelName || null,
     });
-
-    if (existingClass) {
-      const updateData = {
-        name: String(name).trim(),
-        enrollment_year: Number(enrollmentYear),
-        duration_years: Number(durationYears),
-        student_count: studentCount ? Number(studentCount) : 0,
-        status,
-      };
-      
-      if (majorId) updateData.majors = { connect: { id: majorId } };
-      if (collegeId) updateData.colleges = { connect: { id: collegeId } };
-      if (trainingLevelId) updateData.training_levels = { connect: { id: trainingLevelId } };
-      
-      transactionOperations.push(
-        prisma.classes.update({
-          where: { id: existingClass.id },
-          data: updateData,
-        })
-      );
-      overwritten++;
-    } else {
-      const classData = {
-        name: String(name).trim(),
-        enrollment_year: Number(enrollmentYear),
-        duration_years: Number(durationYears),
-        student_count: studentCount ? Number(studentCount) : 0,
-        status,
-      };
-      
-      if (majorId) classData.majors = { connect: { id: majorId } };
-      if (collegeId) classData.colleges = { connect: { id: collegeId } };
-      if (trainingLevelId) classData.training_levels = { connect: { id: trainingLevelId } };
-      
-      transactionOperations.push(
-        prisma.classes.create({
-          data: classData,
-        })
-      );
-      imported++;
-    }
   }
 
   try {
-    if (validationErrors.length > 0 && transactionOperations.length === 0) {
+    if (validationErrors.length > 0 && classOps.length === 0) {
       const result = {
         imported: 0,
         overwritten: 0,
@@ -220,8 +155,83 @@ export async function importClasses(req, res, next) {
       return success(res, result, `验证失败：${validationErrors.length}条错误`);
     }
 
-    if (transactionOperations.length > 0) {
-      await prisma.$transaction(transactionOperations);
+    // 交互式事务：先创建基础数据，再处理班级，确保回滚一致（H-13 修复）
+    if (classOps.length > 0) {
+      await prisma.$transaction(async (tx) => {
+        // 1. 事务内创建待建基础数据
+        for (const levelName of pendingLevelNames) {
+          const existing = await tx.training_levels.findUnique({ where: { name: levelName } });
+          if (existing) {
+            levelMap[levelName] = existing.id;
+          } else {
+            const created = await tx.training_levels.create({
+              data: { name: levelName, code: null, description: `由班级导入自动创建 (${new Date().toLocaleString()})`, sort_order: 0 },
+            });
+            levelMap[levelName] = created.id;
+            autoCreatedLevels++;
+          }
+        }
+        for (const majorName of pendingMajorNames) {
+          const existing = await tx.majors.findUnique({ where: { name: majorName } });
+          if (existing) {
+            majorMap[majorName] = existing.id;
+          } else {
+            const created = await tx.majors.create({
+              data: { name: majorName, code: null, description: `由班级导入自动创建 (${new Date().toLocaleString()})`, sort_order: 0 },
+            });
+            majorMap[majorName] = created.id;
+            autoCreatedMajors++;
+          }
+        }
+        for (const collegeName of pendingCollegeNames) {
+          const existing = await tx.colleges.findUnique({ where: { name: collegeName } });
+          if (existing) {
+            collegeMap[collegeName] = existing.id;
+          } else {
+            const created = await tx.colleges.create({
+              data: { name: collegeName, code: null, description: `由班级导入自动创建 (${new Date().toLocaleString()})`, sort_order: 0 },
+            });
+            collegeMap[collegeName] = created.id;
+            autoCreatedColleges++;
+          }
+        }
+
+        // 2. 处理班级操作
+        for (const op of classOps) {
+          const existingClass = await tx.classes.findFirst({ where: { name: op.name } });
+          const majorId = op.majorName ? majorMap[op.majorName] : null;
+          const collegeId = op.collegeName ? collegeMap[op.collegeName] : null;
+          const trainingLevelId = op.trainingLevelName ? levelMap[op.trainingLevelName] : null;
+
+          if (existingClass) {
+            const updateData = {
+              name: op.name,
+              enrollment_year: op.enrollmentYear,
+              duration_years: op.durationYears,
+              student_count: op.studentCount,
+              status: op.status,
+            };
+            if (majorId) updateData.majors = { connect: { id: majorId } };
+            if (collegeId) updateData.colleges = { connect: { id: collegeId } };
+            if (trainingLevelId) updateData.training_levels = { connect: { id: trainingLevelId } };
+            await tx.classes.update({ where: { id: existingClass.id }, data: updateData });
+            overwritten++;
+          } else {
+            const classData = {
+              name: op.name,
+              enrollment_year: op.enrollmentYear,
+              duration_years: op.durationYears,
+              student_count: op.studentCount,
+              status: op.status,
+            };
+            if (majorId) classData.majors = { connect: { id: majorId } };
+            if (collegeId) classData.colleges = { connect: { id: collegeId } };
+            if (trainingLevelId) classData.training_levels = { connect: { id: trainingLevelId } };
+            await tx.classes.create({ data: classData });
+            imported++;
+          }
+        }
+      });
     }
 
     const result = {

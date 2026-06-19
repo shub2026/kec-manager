@@ -142,21 +142,15 @@ export async function importTeachers(req, res, next) {
 
     // 解析学科（逗号分隔）
     const courseNames = String(courseNamesStr).split(/[,，、]/).map(s => s.trim()).filter(Boolean);
-    const courseIds = [];
+    // 收集课程名（已知课程的 ID 已在 courseMap，未知课程名待事务内创建）
+    const resolvedCourseIds = [];
+    const pendingNewCourseNames = [];
     for (const cName of courseNames) {
-      if (!courseMap[cName]) {
-        const alreadyKnown = await prisma.courses.findFirst({ where: { name: cName } });
-        if (!alreadyKnown) {
-          const newCourse = await prisma.courses.create({
-            data: { name: cName, sort_order: 0 },
-          });
-          courseMap[cName] = newCourse.id;
-          autoCreatedCourses++;
-        } else {
-          courseMap[cName] = alreadyKnown.id;
-        }
+      if (courseMap[cName]) {
+        resolvedCourseIds.push(courseMap[cName]);
+      } else {
+        pendingNewCourseNames.push(cName);
       }
-      courseIds.push(courseMap[cName]);
     }
 
     // 解析任课学院（逗号分隔）
@@ -178,11 +172,19 @@ export async function importTeachers(req, res, next) {
     }
 
     // 查找是否已存在同名教师
-    const existing = await prisma.teachers.findFirst({
+    const sameNameTeachers = await prisma.teachers.findMany({
       where: { name: String(name).trim() },
+      select: { id: true },
     });
 
-    if (existing) {
+    if (sameNameTeachers.length > 1) {
+      // 同名教师多条，跳过避免张冠李戴（M-8 修复）
+      errors.push(`第${i + 2}行：存在${sameNameTeachers.length}个同名教师"${name}"，请先合并或区分后导入`);
+      continue;
+    }
+
+    if (sameNameTeachers.length === 1) {
+      const existing = sameNameTeachers[0];
       // 收集更新操作（在事务中统一执行）
       teacherOps.push({
         type: 'update',
@@ -196,13 +198,14 @@ export async function importTeachers(req, res, next) {
           affiliated_college_id: affiliatedCollegeId,
           status,
         },
-        courseIds,
+        resolvedCourseIds,
+        pendingNewCourseNames,
         collegeIds,
         levelIds,
       });
       overwritten++;
     } else {
-      // 收集创建操作
+      // 收集创建操作（课程关联在事务内解析，确保待建课程 ID 可用）
       teacherOps.push({
         type: 'create',
         data: {
@@ -215,9 +218,7 @@ export async function importTeachers(req, res, next) {
           affiliated_college_id: affiliatedCollegeId,
           status,
           sort_order: 0,
-          courses: courseIds.length > 0
-            ? { create: courseIds.map(cid => ({ course_id: cid })) }
-            : undefined,
+          // courses 关联在事务内补建（因可能依赖待创建课程）
           scheduling_colleges: collegeIds.length > 0
             ? { create: collegeIds.map(cid => ({ college_id: cid })) }
             : undefined,
@@ -225,6 +226,8 @@ export async function importTeachers(req, res, next) {
             ? { create: levelIds.map(lid => ({ training_level_id: lid })) }
             : undefined,
         },
+        resolvedCourseIds,
+        pendingNewCourseNames,
       });
       imported++;
     }
@@ -253,10 +256,33 @@ export async function importTeachers(req, res, next) {
       return success(res, result, `验证失败：${errors.length}条错误`);
     }
 
-    // 事务执行所有教师操作
+    // 事务执行所有教师操作（含课程 auto-create，确保回滚一致，H-13 修复）
     if (teacherOps.length > 0) {
       await prisma.$transaction(async (tx) => {
+        // 1. 先在事务内创建所有待建课程，更新 courseMap
+        const allPendingNames = [...new Set(
+          teacherOps.flatMap(op => op.pendingNewCourseNames || [])
+        )];
+        for (const cName of allPendingNames) {
+          // 事务内再次查重（防止并发导入同名校验）
+          const existing = await tx.courses.findFirst({ where: { name: cName } });
+          if (existing) {
+            courseMap[cName] = existing.id;
+          } else {
+            const newCourse = await tx.courses.create({ data: { name: cName, sort_order: 0 } });
+            courseMap[cName] = newCourse.id;
+            autoCreatedCourses++;
+          }
+        }
+
+        // 2. 处理教师操作
         for (const op of teacherOps) {
+          // 合并已知课程 ID 与新建课程 ID
+          const allCourseIds = [
+            ...(op.resolvedCourseIds || []),
+            ...(op.pendingNewCourseNames || []).map(n => courseMap[n]).filter(Boolean),
+          ];
+
           if (op.type === 'update') {
             // 更新基本信息
             await tx.teachers.update({
@@ -265,9 +291,9 @@ export async function importTeachers(req, res, next) {
             });
             // 重建课程关联
             await tx.teacher_courses.deleteMany({ where: { teacher_id: op.teacherId } });
-            if (op.courseIds.length > 0) {
+            if (allCourseIds.length > 0) {
               await tx.teacher_courses.createMany({
-                data: op.courseIds.map(cid => ({ teacher_id: op.teacherId, course_id: cid })),
+                data: allCourseIds.map(cid => ({ teacher_id: op.teacherId, course_id: cid })),
               });
             }
             // 重建任课学院关联
@@ -285,8 +311,12 @@ export async function importTeachers(req, res, next) {
               });
             }
           } else {
-            // 创建新教师（含关联）
-            await tx.teachers.create({ data: op.data });
+            // 创建新教师（含课程关联）
+            const createData = { ...op.data };
+            if (allCourseIds.length > 0) {
+              createData.courses = { create: allCourseIds.map(cid => ({ course_id: cid })) };
+            }
+            await tx.teachers.create({ data: createData });
           }
         }
       });

@@ -4,6 +4,13 @@
  */
 
 /**
+ * 判断当前是否 HTTPS 环境（生产环境应部署在 HTTPS 下）
+ */
+function isSecureContext() {
+  return window.location.protocol === 'https:'
+}
+
+/**
  * 设置Cookie
  * @param {string} name - Cookie名称
  * @param {string} value - Cookie值
@@ -12,9 +19,9 @@
 export function setCookie(name, value, days = 7) {
   const expires = new Date()
   expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
-  // HttpOnly无法通过JS设置，需要后端配合
-  // 这里使用Secure + SameSite增强安全性
-  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;SameSite=Strict`
+  // HttpOnly无法通过JS设置，需要后端配合；HTTPS 环境下增加 Secure 标志防止明文传输
+  const secureFlag = isSecureContext() ? ';Secure' : ''
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;SameSite=Strict${secureFlag}`
 }
 
 /**
@@ -40,7 +47,8 @@ export function getCookie(name) {
  * @param {string} name - Cookie名称
  */
 export function deleteCookie(name) {
-  document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Strict'
+  const secureFlag = isSecureContext() ? ';Secure' : ''
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Strict${secureFlag}`
 }
 
 /**

@@ -67,6 +67,8 @@ request.interceptors.response.use(
       originalRequest._retry = true
       
       if (isRefreshing) {
+        // 入队前标记 _retry，防止重放后再次触发刷新逻辑（L-7 子项修复）
+        originalRequest._retry = true
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
         })

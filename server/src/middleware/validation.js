@@ -13,15 +13,16 @@ export function handleValidationErrors(req, res, next) {
       message: err.msg,
       location: err.location,
     }));
-    
-    // 调试日志：打印验证失败的详细信息
+
+    // 调试日志：打印验证失败的详细信息（脱敏，剔除密码等敏感字段）
+    const { password, old_password, new_password, ...safeBody } = req.body || {};
     log.warn('验证参数失败', {
       method: req.method,
       path: req.path,
-      body: req.body,
+      body: safeBody,
       errors: errorDetails
     });
-    
+
     return fail(res, {
       code: 'VALIDATION_ERROR',
       message: '请求参数验证失败',
@@ -47,6 +48,42 @@ export const validateClass = [
     .withMessage('学制必须在1-10年之间'),
   body('training_level_id')
     .optional()
+    .isInt({ min: 1 })
+    .withMessage('培养层次ID必须为正整数'),
+  body('major_id')
+    .optional({ nullable: true })
+    .isInt({ min: 1 })
+    .withMessage('专业ID必须为正整数'),
+  body('college_id')
+    .optional({ nullable: true })
+    .isInt({ min: 1 })
+    .withMessage('学院ID必须为正整数'),
+  body('student_count')
+    .optional()
+    .isInt({ min: 0, max: 999 })
+    .withMessage('学生人数必须在0-999之间'),
+  handleValidationErrors
+];
+
+/**
+ * 班级更新验证规则（所有字段可选，用于部分更新）
+ */
+export const validateClassUpdate = [
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('班级名称不能为空且不超过100个字符'),
+  body('enrollment_year')
+    .optional()
+    .isInt({ min: 2000, max: 2100 })
+    .withMessage('入学年份必须在2000-2100之间'),
+  body('duration_years')
+    .optional()
+    .isInt({ min: 1, max: 10 })
+    .withMessage('学制必须在1-10年之间'),
+  body('training_level_id')
+    .optional({ nullable: true })
     .isInt({ min: 1 })
     .withMessage('培养层次ID必须为正整数'),
   body('major_id')
@@ -182,8 +219,13 @@ export const validateTextbook = [
     .withMessage('作者不超过100个字符'),
   body('price')
     .optional()
-    .isFloat({ min: 0 })
-    .withMessage('定价必须为非负数'),
+    .isFloat({ min: 0, max: 100000 })
+    .withMessage('定价必须为0-100000之间的非负数'),
+  body('publish_date')
+    .optional({ nullable: true })
+    .trim()
+    .matches(/^\d{4}(-\d{2}(-\d{2})?)?$/)
+    .withMessage('出版日期格式应为YYYY-MM-DD或YYYY-MM或YYYY'),
   handleValidationErrors
 ];
 
@@ -212,8 +254,13 @@ export const validateTextbookCreate = [
     .withMessage('作者不超过100个字符'),
   body('price')
     .optional()
-    .isFloat({ min: 0 })
-    .withMessage('定价必须为非负数'),
+    .isFloat({ min: 0, max: 100000 })
+    .withMessage('定价必须为0-100000之间的非负数'),
+  body('publish_date')
+    .optional({ nullable: true })
+    .trim()
+    .matches(/^\d{4}(-\d{2}(-\d{2})?)?$/)
+    .withMessage('出版日期格式应为YYYY-MM-DD或YYYY-MM或YYYY'),
   handleValidationErrors
 ];
 
@@ -400,7 +447,8 @@ export const validatePlanTextbook = [
  */
 export const validateReset = [
   body('confirm')
-    .optional()
+    .notEmpty()
+    .withMessage('必须提供confirm字段')
     .equals('DELETE')
     .withMessage('必须输入DELETE确认操作'),
   body('reason')
@@ -602,5 +650,66 @@ export const validateTeacherUpdate = [
     .optional({ nullable: true })
     .isFloat({ min: 0, max: 40 })
     .withMessage('特定周课时必须在0-40之间'),
+  handleValidationErrors
+];
+
+/**
+ * 教学安排 - 手动安排教师验证规则
+ */
+export const validateAssignTeacher = [
+  body('class_id').isInt({ min: 1 }).withMessage('班级ID必须为正整数'),
+  body('course_id').isInt({ min: 1 }).withMessage('课程ID必须为正整数'),
+  body('teacher_id').isInt({ min: 1 }).withMessage('教师ID必须为正整数'),
+  body('semester').matches(/^\d{4}-\d{4}-[12]$/).withMessage('学期格式错误，应为YYYY-YYYY-N'),
+  body('weekly_hours').optional().isFloat({ min: 0, max: 40 }).withMessage('周课时必须在0-40之间'),
+  handleValidationErrors
+];
+
+/**
+ * 教学安排 - 自动排课验证规则
+ */
+export const validateAutoArrange = [
+  body('course_id').isInt({ min: 1 }).withMessage('课程ID必须为正整数'),
+  body('semester').matches(/^\d{4}-\d{4}-[12]$/).withMessage('学期格式错误，应为YYYY-YYYY-N'),
+  body('mode').isIn(['full', 'standard']).withMessage('排课模式必须是full或standard'),
+  body('preview').optional().isBoolean().withMessage('preview必须为布尔值'),
+  handleValidationErrors
+];
+
+/**
+ * 教学安排 - 批量排课验证规则
+ */
+export const validateBatchAutoArrange = [
+  body('semester').matches(/^\d{4}-\d{4}-[12]$/).withMessage('学期格式错误，应为YYYY-YYYY-N'),
+  body('mode').isIn(['full', 'standard']).withMessage('排课模式必须是full或standard'),
+  body('preview').optional().isBoolean().withMessage('preview必须为布尔值'),
+  handleValidationErrors
+];
+
+/**
+ * 教学安排 - 重置自动安排验证规则
+ */
+export const validateResetAuto = [
+  body('course_id').isInt({ min: 1 }).withMessage('课程ID必须为正整数'),
+  body('semester').matches(/^\d{4}-\d{4}-[12]$/).withMessage('学期格式错误，应为YYYY-YYYY-N'),
+  handleValidationErrors
+];
+
+/**
+ * 教学安排 - 课时设置验证规则
+ */
+export const validateHourSettings = [
+  body('hour_settings').isObject().withMessage('课时设置必须为对象'),
+  body('course_id').optional().isInt({ min: 1 }).withMessage('课程ID必须为正整数'),
+  handleValidationErrors
+];
+
+/**
+ * 教师批量修改周课时验证规则
+ */
+export const validateBatchUpdateHours = [
+  body('teacher_ids').isArray({ min: 1, max: 500 }).withMessage('教师ID数组必须包含1-500个元素'),
+  body('teacher_ids.*').isInt({ min: 1 }).withMessage('教师ID必须为正整数'),
+  body('default_weekly_hours').optional({ nullable: true }).isFloat({ min: 0, max: 40 }).withMessage('特定周课时必须在0-40之间'),
   handleValidationErrors
 ];

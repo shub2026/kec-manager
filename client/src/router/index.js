@@ -49,6 +49,7 @@ const routes = [
   {
     path: '/:pathMatch(.*)*',
     component: () => import('@/views/NotFound.vue'),
+    meta: { title: '页面不存在', requiresAuth: false }
   },
 ]
 

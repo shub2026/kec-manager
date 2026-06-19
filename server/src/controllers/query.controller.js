@@ -32,8 +32,14 @@ export async function querySemester(req, res, next) {
     }
 
     const { majorId, collegeId, trainingLevelId, enrollmentYear, grade, page, pageSize } = req.query;
-    const pageNum = page ? Number(page) : 1;
-    const pageSizeNum = pageSize ? Number(pageSize) : 50;
+    // 安全解析数字参数，非数字时回退到默认值，避免 NaN 致 500
+    const safeInt = (v, def = undefined) => {
+      if (v == null || v === '') return def;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : def;
+    };
+    const pageNum = safeInt(page, 1) || 1;
+    const pageSizeNum = safeInt(pageSize, 50) || 50;
 
     // 构建"能关联到培养方案"的过滤条件
     const planFilter = await buildClassWithPlanFilter();
@@ -47,12 +53,16 @@ export async function querySemester(req, res, next) {
       ],
     };
 
-    // 添加额外的筛选条件
+    // 添加额外的筛选条件（仅当值为有效整数时）
     const extraConditions = {};
-    if (majorId) extraConditions.major_id = Number(majorId);
-    if (collegeId) extraConditions.college_id = Number(collegeId);
-    if (trainingLevelId) extraConditions.training_level_id = Number(trainingLevelId);
-    if (enrollmentYear) extraConditions.enrollment_year = Number(enrollmentYear);
+    const majorIdNum = safeInt(majorId);
+    const collegeIdNum = safeInt(collegeId);
+    const trainingLevelIdNum = safeInt(trainingLevelId);
+    const enrollmentYearNum = safeInt(enrollmentYear);
+    if (majorIdNum != null) extraConditions.major_id = majorIdNum;
+    if (collegeIdNum != null) extraConditions.college_id = collegeIdNum;
+    if (trainingLevelIdNum != null) extraConditions.training_level_id = trainingLevelIdNum;
+    if (enrollmentYearNum != null) extraConditions.enrollment_year = enrollmentYearNum;
 
     const classWhere = Object.keys(extraConditions).length > 0
       ? { AND: [baseWhere, extraConditions] }

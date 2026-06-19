@@ -16,7 +16,7 @@ router.get('/', listMajors);
 
 // POST/PUT/DELETE - 需要admin权限
 router.post('/', roleMiddleware('admin', 'super_admin'), validateMajorCreate, sanitizeBody, createMajor);
-router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateSortOrder, sanitizeBody, updateMajor);
+router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateMajor, sanitizeBody, updateMajor);
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, deleteMajor);
 
 export default router;;

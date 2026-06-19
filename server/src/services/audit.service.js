@@ -14,25 +14,34 @@ import logger from '../utils/logger.js';
  */
 export async function createAuditLog({ action, module, userId, ip, details, result, message }) {
   try {
+    // details 序列化并限制最大长度，防止审计表膨胀
+    let detailsStr = details;
+    if (typeof details === 'object' && details !== null) {
+      detailsStr = JSON.stringify(details);
+    }
+    if (typeof detailsStr === 'string' && detailsStr.length > 2000) {
+      detailsStr = detailsStr.slice(0, 1997) + '...';
+    }
+
     await prisma.audit_logs.create({
       data: {
         action,
         module,
         operator_id: userId || null,
         ip: ip || null,
-        details: typeof details === 'object' ? JSON.stringify(details) : details,
+        details: detailsStr,
         result,
         message: message || null,
       },
     });
   } catch (error) {
     // 安全修复：使用winston记录审计失败，便于生产环境追踪
-    logger.error('创建审计日志失败:', { 
-      error: error.message, 
-      action, 
-      module, 
+    logger.error('创建审计日志失败:', {
+      error: error.message,
+      action,
+      module,
       userId,
-      result 
+      result
     });
     // 注意：不抛出错误以避免中断主业务流程
     // 但生产环境应监控此错误日志并告警

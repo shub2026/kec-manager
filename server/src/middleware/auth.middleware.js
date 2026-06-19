@@ -1,5 +1,25 @@
 import { AuthService } from '../services/auth.service.js'
+import { prisma } from '../lib/prisma.js'
 import { log } from '../utils/logger.js' // L1修复：使用winston logger
+
+// 用户状态缓存：短期内复用查询结果，避免每个请求都查库（TTL 30s）
+const userStatusCache = new Map()
+const USER_STATUS_TTL = 30 * 1000
+
+async function getActiveUserStatus(userId) {
+  const now = Date.now()
+  const cached = userStatusCache.get(userId)
+  if (cached && cached.expireAt > now) {
+    return cached
+  }
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, is_active: true },
+  })
+  const result = user ? { role: user.role, is_active: user.is_active } : null
+  userStatusCache.set(userId, { ...result, expireAt: now + USER_STATUS_TTL })
+  return result
+}
 
 export function authMiddleware(req, res, next) {
   let token = null
@@ -38,8 +58,21 @@ export function authMiddleware(req, res, next) {
     })
   }
 
-  req.user = decoded
-  next()
+  // 校验用户是否仍存在且处于激活状态，并获取最新角色（防止降级/禁用后旧 token 仍生效）
+  getActiveUserStatus(decoded.id).then(status => {
+    if (!status || !status.is_active) {
+      return res.status(401).json({
+        success: false,
+        message: '账号不存在或已被禁用，请重新登录'
+      })
+    }
+    // 使用数据库中的最新角色，避免旧 token 中的角色信息过期
+    req.user = { ...decoded, role: status.role }
+    next()
+  }).catch(err => {
+    log.error('用户状态校验失败', { message: err.message })
+    next(err)
+  })
 }
 
 export function roleMiddleware(...allowedRoles) {

@@ -3,9 +3,9 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# 复制 package.json 并安装依赖
+# 复制 package.json 并安装全部依赖（构建需要 devDependencies 中的 vite 等）
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # 复制源代码
 COPY . .

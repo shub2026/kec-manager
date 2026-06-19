@@ -97,6 +97,7 @@ export class AuthService {
         throw new AuthenticationError('用户不存在或已被禁用')
       }
 
+      // 校验账号当前角色，避免 refresh 后使用过期角色
       const newToken = this.generateToken(user)
       return { token: newToken }
     } catch (error) {

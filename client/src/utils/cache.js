@@ -3,6 +3,7 @@
  * 用于减少重复请求，提升性能
  */
 
+const MAX_CACHE_SIZE = 50; // 最大缓存条目，防止内存无限增长
 const cache = new Map();
 
 /**
@@ -23,7 +24,13 @@ export async function getWithCache(apiCall, key, ttl = 60000) {
 
   // 执行API调用
   const data = await apiCall();
-  
+
+  // 达到上限时先清理最旧的一条（简易 LRU）
+  if (cache.size >= MAX_CACHE_SIZE) {
+    const oldestKey = cache.keys().next().value;
+    cache.delete(oldestKey);
+  }
+
   // 更新缓存
   cache.set(key, {
     data,

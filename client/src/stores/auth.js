@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import router from '@/router'
 import request from '@/utils/request'
 import { setCookie, getCookie, deleteCookie, clearAuthCookies } from '@/utils/cookies'
+import { clearAllCache } from '@/utils/cache'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(getCookie('token') || '')
@@ -156,6 +157,8 @@ export const useAuthStore = defineStore('auth', () => {
     clearAuthCookies()
     // 清除localStorage中的用户信息
     localStorage.removeItem('userInfo')
+    // 清除API响应缓存，防止公共机器上残留前一位用户的查询数据
+    clearAllCache()
   }
 
   async function initAuth() {

@@ -1,5 +1,16 @@
 import ExcelJS from 'exceljs';
 
+/**
+ * 防止 CSV/Excel 公式注入：以 = + - @ 开头的字符串加单引号前缀
+ * 在导出写入单元格前统一调用，覆盖所有单条 CRUD 创建的数据
+ */
+function sanitizeCellFormula(value) {
+  if (typeof value === 'string' && /^[=+\-@]/.test(value.trim())) {
+    return "'" + value;
+  }
+  return value;
+}
+
 export async function createWorkbook(headers, rows) {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('数据');
@@ -10,7 +21,14 @@ export async function createWorkbook(headers, rows) {
     width: h.width || 20,
   }));
 
-  rows.forEach((row) => sheet.addRow(row));
+  // 导出前对每个单元格做公式注入防护
+  rows.forEach((row) => {
+    const safeRow = {};
+    for (const [k, v] of Object.entries(row)) {
+      safeRow[k] = sanitizeCellFormula(v);
+    }
+    sheet.addRow(safeRow);
+  });
 
   sheet.getRow(1).font = { bold: true };
   sheet.getRow(1).fill = {
@@ -70,6 +88,9 @@ export async function readWorkbook(filePath) {
   const headers = [];
   const rows = [];
 
+  // 行数上限，防止恶意大文件（zip 炸弹）导致 OOM
+  const MAX_ROWS = 20000;
+
   sheet.eachRow((row, rowNum) => {
     if (rowNum === 1) {
       // 读取表头,去除可能的 * 前缀(模板中的必填标记)
@@ -78,9 +99,12 @@ export async function readWorkbook(filePath) {
         // 去除开头的 * 号
         headers[colNum - 1] = headerValue.startsWith('*') ? headerValue.substring(1).trim() : headerValue;
       });
+    } else if (rowNum - 1 > MAX_ROWS) {
+      // 超过上限停止读取
+      return;
     } else {
       const obj = {};
-      
+
       // 关键修复: 基于表头数量遍历列,而不是只遍历有值的单元格
       for (let colNum = 1; colNum <= headers.length; colNum++) {
         const header = headers[colNum - 1];
@@ -89,7 +113,7 @@ export async function readWorkbook(filePath) {
           obj[header] = normalizeCellValue(cell.value);
         }
       }
-      
+
       // 修复：只有当所有字段都为空时才跳过该行
       // 这样可以避免部分字段为空的行被错误过滤
       const hasAnyValue = Object.values(obj).some(v => v !== null && v !== undefined && v !== '');

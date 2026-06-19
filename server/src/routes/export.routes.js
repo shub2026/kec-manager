@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import { validateIdParam } from '../middleware/validation.js';
+import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { downloadTemplate } from '../controllers/export/export-template.controller.js';
 import {
   exportSemesterSchedule,
@@ -14,9 +17,19 @@ import {
   exportTeachingArrange,
 } from '../controllers/export/data-export.controller.js';
 
+// 导出接口限流：防止并发全量导出导致 OOM（H-10 修复）
+const exportLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: '导出请求过于频繁，请稍后再试' },
+});
+
 const router = Router();
 
 // authMiddleware 已在 app.js 挂载处统一应用
+router.use(exportLimiter);
 
 // ==================== 模板下载 ====================
 
@@ -42,20 +55,20 @@ router.get('/textbooks', exportTextbooks);
 // GET /api/export/classes - 导出班级数据
 router.get('/classes', exportClasses);
 
-// GET /api/export/teachers - 导出教师数据
-router.get('/teachers', exportTeachers);
+// GET /api/export/teachers - 导出教师数据（含PII，需admin权限）
+router.get('/teachers', roleMiddleware('admin', 'super_admin'), exportTeachers);
 
 // ==================== 教学统计导出 ====================
 
-// GET /api/export/statistics - 导出课时统计
-router.get('/statistics', exportStatistics);
+// GET /api/export/statistics - 导出课时统计（含教师负荷，需admin权限）
+router.get('/statistics', roleMiddleware('admin', 'super_admin'), exportStatistics);
 
 // GET /api/export/teaching-arrange - 导出教学安排
-router.get('/teaching-arrange', exportTeachingArrange);
+router.get('/teaching-arrange', roleMiddleware('admin', 'super_admin'), exportTeachingArrange);
 
 // ==================== 教材使用导出 ====================
 
 // GET /api/export/textbook/:id - 导出教材使用情况
-router.get('/textbook/:id', exportTextbookUsage);
+router.get('/textbook/:id', validateIdParam, exportTextbookUsage);
 
 export default router;

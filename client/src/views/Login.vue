@@ -61,16 +61,13 @@
           </el-form-item>
         </el-form>
 
-        <!-- 账号提示（仅开发环境显示） -->
-        <div v-if="showTestAccounts" class="account-hint">
+        <!-- 账号提示（仅开发环境显示，凭据从本地环境变量读取） -->
+        <div v-if="showTestAccounts && devAccountHint" class="account-hint">
           <el-collapse>
             <el-collapse-item title="测试账号" name="1">
               <div class="hint-body">
                 <div class="hint-row">
-                  <el-tag type="danger" size="small" effect="dark">管理员</el-tag>
-                  <code>admin</code>
-                  <span>/</span>
-                  <code>admin@123456</code>
+                  <span>{{ devAccountHint }}</span>
                 </div>
               </div>
             </el-collapse-item>
@@ -92,7 +89,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { ElMessage } from 'element-plus'
-import packageJson from '../../package.json'
 
 const router = useRouter()
 const route = useRoute()
@@ -103,7 +99,8 @@ const formRef = ref(null)
 const loading = ref(false)
 const organizationName = ref('欢迎回来')
 const showTestAccounts = import.meta.env.DEV
-const appVersion = ref(packageJson.version)
+const devAccountHint = import.meta.env.VITE_DEV_ACCOUNT_HINT || ''
+const appVersion = ref(__APP_VERSION__)
 
 const loginForm = reactive({
   username: '',
@@ -133,8 +130,12 @@ async function handleLogin() {
 
       if (result.success) {
         ElMessage.success('登录成功')
-        const redirect = route.query.redirect || '/'
-        router.push(redirect)
+        // 仅允许站内相对路径跳转，防止开放重定向
+        const redirect = route.query.redirect
+        const safeRedirect = typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+          ? redirect
+          : '/'
+        router.push(safeRedirect)
       } else {
         ElMessage.error(result.message)
       }

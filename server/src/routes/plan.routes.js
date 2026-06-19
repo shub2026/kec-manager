@@ -36,7 +36,7 @@ router.get('/:id', getPlanById);
 router.post('/', roleMiddleware('admin', 'super_admin'), validatePlanCreate, sanitizeBody, createPlan);
 
 // PUT /api/plans/:id - 更新方案（admin/super_admin）
-router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateSortOrder, sanitizeBody, updatePlan);
+router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validatePlan, sanitizeBody, updatePlan);
 
 // DELETE /api/plans/:id - 删除方案（admin/super_admin）
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, deletePlan);
