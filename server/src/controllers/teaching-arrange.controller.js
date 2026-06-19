@@ -167,12 +167,31 @@ export async function runAutoArrange(req, res, next) {
     if (!course_id || !semester) return fail(res, '缺少课程或学期参数');
     if (!['full', 'standard'].includes(mode)) return fail(res, '排课模式必须是full或standard');
 
+    // P0-1: 课时设置加载优先级：前端传递 > 课程特定设置 > 全局设置 > 硬编码默认值
     const defaultHourSettings = {
       full_time: { standard: 16, max: 20 },
       part_time: { standard: 12, max: 16 },
       external: { standard: 12, max: 16 },
     };
-    const hourSettings = hour_settings || defaultHourSettings;
+
+    let hourSettings = hour_settings;
+
+    if (!hourSettings) {
+      // 尝试从数据库加载
+      const courseSettings = await prisma.system_settings.findUnique({
+        where: { key: `teaching_hour_settings_${course_id}` },
+      });
+
+      if (courseSettings) {
+        hourSettings = JSON.parse(courseSettings.value);
+      } else {
+        const globalSettings = await prisma.system_settings.findUnique({
+          where: { key: 'teaching_hour_settings' },
+        });
+        hourSettings = globalSettings ? JSON.parse(globalSettings.value) : defaultHourSettings;
+      }
+    }
+
     const conditions = schedule_conditions || [];
 
     const result = await autoArrange(course_id, semester, mode, hourSettings, conditions, { preview: !!preview });
@@ -408,12 +427,23 @@ export async function runBatchAutoArrange(req, res, next) {
     if (!semester) return fail(res, '缺少学期参数');
     if (!['full', 'standard'].includes(mode)) return fail(res, '排课模式必须是full或standard');
 
+    // P0-1: 课时设置加载优先级：前端传递 > 全局设置 > 硬编码默认值
     const defaultHourSettings = {
       full_time: { standard: 16, max: 20 },
       part_time: { standard: 12, max: 16 },
       external: { standard: 12, max: 16 },
     };
-    const hourSettings = hour_settings || defaultHourSettings;
+
+    let hourSettings = hour_settings;
+
+    if (!hourSettings) {
+      // 批量排课只使用全局设置
+      const globalSettings = await prisma.system_settings.findUnique({
+        where: { key: 'teaching_hour_settings' },
+      });
+      hourSettings = globalSettings ? JSON.parse(globalSettings.value) : defaultHourSettings;
+    }
+
     const conditions = schedule_conditions || [];
 
     const result = await batchAutoArrange(semester, mode, hourSettings, conditions, { preview: !!preview });
