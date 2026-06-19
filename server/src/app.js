@@ -21,6 +21,7 @@ import teachingArrangeRoutes from './routes/teaching-arrange.routes.js';
 import { authMiddleware, roleMiddleware } from './middleware/auth.middleware.js';
 import { errorHandler } from './middleware/error.js';
 import { convertResponseNaming, convertRequestNaming } from './middleware/naming.middleware.js';
+import { sanitizeQuery } from './middleware/xss.js';
 import { log } from './utils/logger.js'; // L1修复：使用winston logger
 
 const app = express();
@@ -63,6 +64,7 @@ app.use((req, res, next) => {
 // #25修复：注册命名转换中间件（在所有路由之前）
 app.use(convertRequestNaming);   // 请求：camelCase → snake_case
 app.use(convertResponseNaming);  // 响应：snake_case → camelCase
+app.use(sanitizeQuery);          // 查询参数 XSS 过滤
 
 // 公开路由（无需认证）
 app.use('/api/auth', authRoutes);

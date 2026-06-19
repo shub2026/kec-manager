@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js';
-import logger from '../config/logger.js';
+import logger from '../utils/logger.js';
 
 /**
  * 记录操作日志

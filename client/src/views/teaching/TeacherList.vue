@@ -375,7 +375,7 @@ async function loadOptions() {
     allTrainingLevels.value = levelsRes.data || []
     collegeLevelMapping.value = mappingRes.data || { collegeToLevels: {}, levelToColleges: {} }
   } catch (e) {
-    console.error('加载选项失败:', e)
+    if (import.meta.env.DEV) { console.error('加载选项失败:', e) }
   }
 }
 
@@ -515,7 +515,7 @@ function onImportSuccess(res) {
 }
 
 function onImportError(err) {
-  console.error('导入错误:', err)
+  if (import.meta.env.DEV) { console.error('导入错误:', err) }
   ElMessage.error('导入失败，请检查文件格式或联系管理员')
 }
 

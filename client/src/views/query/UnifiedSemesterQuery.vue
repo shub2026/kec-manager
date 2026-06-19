@@ -182,7 +182,7 @@ async function load() {
     if (res.data?.enrollmentYears) enrollmentYears.value = res.data.enrollmentYears
     if (res.data?.grades) grades.value = res.data.grades
   } catch (e) { 
-    console.error(e)
+    if (import.meta.env.DEV) console.error(e)
     ElMessage.error('查询失败')
   }
   finally { loading.value = false }
@@ -257,7 +257,7 @@ async function exportExcel() {
 
     ElMessage.success('导出成功')
   } catch (e) {
-    console.error('导出失败:', e)
+    if (import.meta.env.DEV) { console.error('导出失败:', e) }
     ElMessage.error(e.message || '导出失败，请重试')
   }
 }

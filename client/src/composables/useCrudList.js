@@ -45,7 +45,7 @@ export function useCrudList(api, options = {}) {
       const res = await api.list()
       list.value = res.data || []
     } catch (e) {
-      console.error('刷新数据失败:', e)
+      if (import.meta.env.DEV) { console.error('刷新数据失败:', e) }
     }
   }
 
@@ -77,7 +77,7 @@ export function useCrudList(api, options = {}) {
       ElMessage.success('删除成功')
       await silentReload()
     } catch (e) {
-      console.error(`删除失败:`, e)
+      if (import.meta.env.DEV) { console.error(`删除失败:`, e) }
       ElMessage.error('删除失败，请重试')
     }
   }

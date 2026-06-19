@@ -121,7 +121,7 @@ async function saveSemester() {
     // 刷新矩阵数据
     await refreshMatrix()
   } catch (e) {
-    console.error(e)
+    if (import.meta.env.DEV) console.error(e)
     ElMessage.error('添加失败')
   } finally {
     saving.value = false
@@ -142,7 +142,7 @@ async function handleDeleteCourse(course) {
     await refreshMatrix()
   } catch (e) {
     if (e !== 'cancel') {
-      console.error(e)
+      if (import.meta.env.DEV) console.error(e)
       ElMessage.error('删除失败')
     }
   }

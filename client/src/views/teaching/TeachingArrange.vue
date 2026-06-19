@@ -492,7 +492,7 @@ async function loadHourSettings(courseId) {
       Object.assign(hourSettings, res.data)
     }
   } catch (e) {
-    console.error('加载课时设置失败:', e)
+    if (import.meta.env.DEV) { console.error('加载课时设置失败:', e) }
   }
 }
 
@@ -506,7 +506,7 @@ async function handleSaveHourSettings() {
     ElMessage.success('课时要求已保存')
   } catch (e) {
     ElMessage.error('保存失败')
-    console.error('保存课时设置失败:', e)
+    if (import.meta.env.DEV) { console.error('保存课时设置失败:', e) }
   } finally {
     savingSettings.value = false
   }
@@ -520,7 +520,7 @@ async function loadSemester() {
       currentSemesterLabel.value = settings.currentSemester.value
     }
   } catch (e) {
-    console.error('获取学期失败:', e)
+    if (import.meta.env.DEV) { console.error('获取学期失败:', e) }
   }
 }
 
@@ -529,7 +529,7 @@ async function loadCourses() {
     const res = await getCourses()
     allCourses.value = res.data || []
   } catch (e) {
-    console.error('加载课程列表失败:', e)
+    if (import.meta.env.DEV) { console.error('加载课程列表失败:', e) }
   }
 }
 
@@ -565,7 +565,7 @@ async function loadData() {
     teacherList.value = teachersRes.data || []
   } catch (e) {
     ElMessage.error('加载数据失败')
-    console.error('加载数据失败:', e)
+    if (import.meta.env.DEV) { console.error('加载数据失败:', e) }
   } finally {
     tableLoading.value = false
   }
@@ -640,7 +640,7 @@ async function handleAutoArrange(mode) {
     await loadData()
   } catch (e) {
     ElMessage.error('自动排课失败')
-    console.error('自动排课失败:', e)
+    if (import.meta.env.DEV) { console.error('自动排课失败:', e) }
   } finally {
     arranging.value = false
   }
@@ -682,7 +682,7 @@ async function handleBatchAutoArrange(mode) {
     await loadData()
   } catch (e) {
     ElMessage.error('批量排课失败')
-    console.error('批量排课失败:', e)
+    if (import.meta.env.DEV) { console.error('批量排课失败:', e) }
   } finally {
     batchArranging.value = false
   }
@@ -722,7 +722,7 @@ async function handleExportArrange() {
     document.body.removeChild(a)
     ElMessage.success('导出成功')
   } catch (e) {
-    console.error('导出失败:', e)
+    if (import.meta.env.DEV) { console.error('导出失败:', e) }
     ElMessage.error('导出失败')
   } finally {
     exporting.value = false

@@ -156,7 +156,7 @@ async function loadOrganizationName() {
       organizationName.value = '欢迎回来'
     }
   } catch (e) {
-    console.error('加载系统标识失败:', e)
+    if (import.meta.env.DEV) { console.error('加载系统标识失败:', e) }
     organizationName.value = '欢迎回来'
   }
 }

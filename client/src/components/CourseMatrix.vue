@@ -50,6 +50,7 @@ import { ElMessage } from 'element-plus'
 import CourseMatrixToolbar from './CourseMatrixToolbar.vue'
 import CourseMatrixTable from './CourseMatrixTable.vue'
 import CourseEditPopover from './CourseEditPopover.vue'
+import { useMatrixCalculations } from '../composables/useMatrixCalculations'
 import {
   getPlanCourses,
   createSemester,
@@ -96,11 +97,9 @@ const maxSemester = computed(() => {
 // 构建学期周数数组（统一值）
 function buildSemesterWeeks(planSemesters, courses) {
   let defaultWeeks = 18
-  // 优先取第一个课程的 weeksPerSemester
   if (courses.length > 0 && courses[0].weeksPerSemester) {
     defaultWeeks = courses[0].weeksPerSemester
   }
-  // 或取学期记录中第一个值
   if (planSemesters.length > 0) {
     defaultWeeks = planSemesters[0].weeksCount || defaultWeeks
   }
@@ -108,68 +107,14 @@ function buildSemesterWeeks(planSemesters, courses) {
   return Array(maxSemester.value).fill(defaultWeeks)
 }
 
-// 按类型分组（用于计算总课时）
-const groups = computed(() => {
-  const map = { public: [], professional: [] }
-  rawCourses.value.forEach(c => {
-    const type = c.courses?.type || 'public'
-    map[type].push({
-      id: c.id,
-      courseName: c.courses?.name || '未知课程',
-      courseCode: c.courses?.code || '',
-      startSemester: c.startSemester,
-      endSemester: c.endSemester,
-      weeklyHours: c.weeklyHours,
-      weeksPerSemester: c.weeksPerSemester,
-      semesters: c.planCourseSemesters || [],
-      sortOrder: c.sortOrder ?? 0,
-    })
-  })
-  
-  // 在每个分组内按 sortOrder 排序
-  map.public.sort((a, b) => a.sortOrder - b.sortOrder)
-  map.professional.sort((a, b) => a.sortOrder - b.sortOrder)
-  
-  return [
-    { type: 'public', label: '公共基础课', courses: map.public },
-    { type: 'professional', label: '专业课', courses: map.professional },
-  ]
-})
-
-// 判断学期是否在课程范围内
-function isInRange(course, semester) {
-  return semester >= course.startSemester && semester <= course.endSemester
-}
-
-// 获取某学期周课时
-function getHours(course, semester) {
-  const sem = course.semesters.find(s => s.semester === semester)
-  return sem ? sem.weeklyHours : null
-}
-
-// 计算总课时
-function calcTotalHours(course) {
-  let total = 0
-  for (let s = course.startSemester; s <= course.endSemester; s++) {
-    const sem = course.semesters.find(x => x.semester === s)
-    // 如果学期记录存在，使用记录的周课时和周数
-    if (sem) {
-      const hours = sem.weeklyHours || 0
-      const weeks = sem.weeksCount || semesterWeeks.value[s - 1] || 18
-      total += hours * weeks
-    } else {
-      // 如果学期记录不存在，使用课程默认的周课时
-      const hours = course.weeklyHours || 0
-      const weeks = course.weeksPerSemester || semesterWeeks.value[s - 1] || 18
-      total += hours * weeks
-    }
-  }
-  return Math.round(total)
-}
-
-function calcGroupTotal(group) {
-  return group.courses.reduce((sum, c) => sum + calcTotalHours(c), 0)
-}
+// 使用共享计算逻辑（传入 semesterWeeks ref 支持动态回退）
+const {
+  groups,
+  isInRange,
+  getHours,
+  calcTotalHours,
+  calcGroupTotal,
+} = useMatrixCalculations(rawCourses, semesterWeeks)
 
 // 总课时
 const totalAllHours = computed(() => {
@@ -209,7 +154,7 @@ async function openEdit(course, semester) {
         return
       }
     } catch (e) {
-      console.error(e)
+      if (import.meta.env.DEV) console.error(e)
       ElMessage.error('创建学期记录失败')
       return
     }
@@ -251,7 +196,7 @@ async function saveEdit() {
     popoverVisible.value = false
     await loadData()
   } catch (e) {
-    console.error(e)
+    if (import.meta.env.DEV) console.error(e)
     ElMessage.error('保存失败')
   } finally {
     saving.value = false
@@ -282,7 +227,7 @@ async function applyGlobalWeeks() {
       await loadData()
       ElMessage.success('已应用学期周数设置')
     } catch (e) {
-      console.error('批量更新学期周数失败', e)
+      if (import.meta.env.DEV) { console.error('批量更新学期周数失败', e) }
       ElMessage.error('应用失败')
     }
   } else {
@@ -320,7 +265,7 @@ async function saveSemesterSettings() {
     semesterDialogVisible.value = false
     await loadData()
   } catch (e) {
-    console.error(e)
+    if (import.meta.env.DEV) console.error(e)
     ElMessage.error('保存失败')
   } finally {
     saving.value = false
@@ -366,7 +311,7 @@ async function handleMoveUp(course, group) {
     ElMessage.success('排序已更新')
     await loadData()
   } catch (e) {
-    console.error('排序更新失败:', e)
+    if (import.meta.env.DEV) { console.error('排序更新失败:', e) }
     ElMessage.error('排序更新失败')
   }
 }
@@ -381,7 +326,7 @@ async function handleMoveDown(course, group) {
     ElMessage.success('排序已更新')
     await loadData()
   } catch (e) {
-    console.error('排序更新失败:', e)
+    if (import.meta.env.DEV) { console.error('排序更新失败:', e) }
     ElMessage.error('排序更新失败')
   }
 }
@@ -401,7 +346,7 @@ async function loadData() {
     rawCourses.value = coursesRes.data || []
     semesterWeeks.value = buildSemesterWeeks(semestersRes.data || [], rawCourses.value)
   } catch (e) {
-    console.error('CourseMatrix load error:', e)
+    if (import.meta.env.DEV) { console.error('CourseMatrix load error:', e) }
   } finally {
     loading.value = false
   }

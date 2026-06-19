@@ -221,7 +221,7 @@ async function exportExcel() {
 
     ElMessage.success('导出成功')
   } catch (error) {
-    console.error('导出失败:', error)
+    if (import.meta.env.DEV) { console.error('导出失败:', error) }
     ElMessage.error(error.message || '导出失败，请重试')
   }
 }

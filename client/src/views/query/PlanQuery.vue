@@ -120,7 +120,7 @@ async function loadPlans() {
     const res = await getPlans()
     plans.value = res.data || []
   } catch (e) {
-    console.error(e)
+    if (import.meta.env.DEV) console.error(e)
     ElMessage.error('加载培养方案失败')
   }
 }
@@ -137,7 +137,7 @@ async function handlePlanChange() {
     const res = await getPlanCourses(selectedPlanId.value)
     planCourses.value = res.data || []
   } catch (e) {
-    console.error(e)
+    if (import.meta.env.DEV) console.error(e)
     ElMessage.error('加载方案课程失败')
     planCourses.value = []
   } finally {

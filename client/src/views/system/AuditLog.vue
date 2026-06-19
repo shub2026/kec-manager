@@ -246,7 +246,7 @@ async function loadLogs() {
     total.value = res.data.total
   } catch (e) {
     ElMessage.error('加载操作日志失败')
-    console.error('加载操作日志失败:', e)
+    if (import.meta.env.DEV) { console.error('加载操作日志失败:', e) }
   } finally {
     loading.value = false
   }

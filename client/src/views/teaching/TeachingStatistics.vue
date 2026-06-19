@@ -216,7 +216,7 @@ async function loadSemester() {
       semester.value = settings.currentSemester.value
     }
   } catch (e) {
-    console.error('获取学期失败:', e)
+    if (import.meta.env.DEV) { console.error('获取学期失败:', e) }
   }
 }
 
@@ -228,7 +228,7 @@ async function loadStats() {
     statsData.value = res.data || null
   } catch (e) {
     ElMessage.error('加载统计数据失败')
-    console.error('加载统计数据失败:', e)
+    if (import.meta.env.DEV) { console.error('加载统计数据失败:', e) }
   } finally {
     loading.value = false
   }
@@ -255,7 +255,7 @@ async function handleExport() {
     document.body.removeChild(a)
     ElMessage.success('导出成功')
   } catch (error) {
-    console.error('导出失败:', error)
+    if (import.meta.env.DEV) { console.error('导出失败:', error) }
     ElMessage.error('导出失败')
   } finally {
     exporting.value = false

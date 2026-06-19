@@ -176,7 +176,7 @@ async function handleDelete(id) {
     ElMessage.success('删除成功')
     await silentReload()
   } catch (e) {
-    console.error('删除课程失败:', e)
+    if (import.meta.env.DEV) { console.error('删除课程失败:', e) }
     ElMessage.error('删除失败，请重试')
   }
 }
@@ -276,7 +276,7 @@ function onImportSuccess(res) {
 }
 
 function onImportError(err) {
-  console.error('导入错误:', err)
+  if (import.meta.env.DEV) { console.error('导入错误:', err) }
   ElMessage.error('导入失败，请检查文件格式或联系管理员')
 }
 

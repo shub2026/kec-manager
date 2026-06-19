@@ -1,11 +1,14 @@
 import winston from 'winston';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // 确保logs目录存在
-const logDir = path.join(process.cwd(), 'logs');
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
+const logsDir = path.join(__dirname, '../../logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
 }
 
 // 定义日志格式
@@ -16,42 +19,47 @@ const logFormat = winston.format.combine(
   winston.format.json()
 );
 
-// 控制台输出格式（带颜色）
+// 控制台输出格式（开发环境使用）
 const consoleFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.colorize(),
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    let msg = `${timestamp} [${level}]: ${message}`;
-    if (Object.keys(meta).length > 0) {
-      msg += ' ' + JSON.stringify(meta);
-    }
-    return msg;
+    return `${timestamp} [${level}]: ${message} ${
+      Object.keys(meta).length ? JSON.stringify(meta) : ''
+    }`;
   })
 );
 
-// 创建logger实例
+// 创建logger实例（统一配置，包含审计日志通道）
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
   format: logFormat,
-  defaultMeta: { service: 'kec-manager' },
+  defaultMeta: { service: 'kec-course-platform' },
   transports: [
     // 错误日志文件
     new winston.transports.File({
-      filename: path.join(logDir, 'error.log'),
+      filename: path.join(logsDir, 'error.log'),
       level: 'error',
       maxsize: 5242880, // 5MB
-      maxFiles: 5,
+      maxFiles: 10,
     }),
-    // 组合日志文件（所有级别）
+    // 组合日志文件
     new winston.transports.File({
-      filename: path.join(logDir, 'combined.log'),
+      filename: path.join(logsDir, 'combined.log'),
       maxsize: 5242880, // 5MB
-      maxFiles: 5,
+      maxFiles: 10,
+    }),
+    // 审计日志文件
+    new winston.transports.File({
+      filename: path.join(logsDir, 'audit.log'),
+      level: 'info',
+      maxsize: 5242880,
+      maxFiles: 20,
     }),
   ],
 });
 
-// 在生产环境外添加控制台输出
+// 开发环境下添加控制台输出
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new winston.transports.Console({
     format: consoleFormat,
@@ -72,10 +80,9 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-// 导出便捷的日志方法
+// 导出默认 logger 和便捷方法
 export default logger;
 
-// 导出便捷函数
 export const log = {
   error: (message, meta) => logger.error(message, meta),
   warn: (message, meta) => logger.warn(message, meta),

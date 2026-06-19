@@ -147,6 +147,7 @@
 <script setup>
 import { computed } from 'vue'
 import { ArrowUp, ArrowDown, Setting, Delete, Check, Warning } from '@element-plus/icons-vue'
+import { useMatrixCalculations } from '../composables/useMatrixCalculations'
 
 const props = defineProps({
   rawCourses: { type: Array, default: () => [] },
@@ -165,44 +166,19 @@ const maxSemester = computed(() => {
   return Math.max(max, 8)
 })
 
-// 按类型分组
-const groups = computed(() => {
-  const map = { public: [], professional: [] }
-  props.rawCourses.forEach(c => {
-    const type = c.courses?.type || 'public'
-    map[type].push({
-      id: c.id,
-      courseName: c.courses?.name || '未知课程',
-      courseCode: c.courses?.code || '',
-      startSemester: c.startSemester,
-      endSemester: c.endSemester,
-      weeklyHours: c.weeklyHours,
-      weeksPerSemester: c.weeksPerSemester,
-      semesters: c.planCourseSemesters || [],
-      sortOrder: c.sortOrder ?? 0,
-    })
-  })
-  
-  // 在每个分组内按 sortOrder 排序
-  map.public.sort((a, b) => a.sortOrder - b.sortOrder)
-  map.professional.sort((a, b) => a.sortOrder - b.sortOrder)
-  
-  return [
-    { type: 'public', label: '公共基础课', courses: map.public },
-    { type: 'professional', label: '专业课', courses: map.professional },
-  ]
-})
+// 将 prop 包装为 computed ref 供 composable 使用
+const rawCoursesRef = computed(() => props.rawCourses)
 
-// 判断学期是否在课程范围内
-function isInRange(course, semester) {
-  return semester >= course.startSemester && semester <= course.endSemester
-}
-
-// 获取某学期周课时
-function getHours(course, semester) {
-  const sem = course.semesters.find(s => s.semester === semester)
-  return sem ? sem.weeklyHours : null
-}
+// 使用共享计算逻辑
+const {
+  groups,
+  isInRange,
+  getHours,
+  calcTotalHours,
+  calcGroupTotal,
+  isFirstInGroup,
+  isLastInGroup,
+} = useMatrixCalculations(rawCoursesRef)
 
 // 获取某学期教材信息（返回数组，包含状态）
 function getTextbooks(course, semester) {
@@ -213,7 +189,7 @@ function getTextbooks(course, semester) {
     title: t.textbooks?.title,
     isbn: t.textbooks?.isbn,
     publisher: t.textbooks?.publisher,
-    isActive: t.textbooks?.isActive ?? true, // 默认为激活状态
+    isActive: t.textbooks?.isActive ?? true,
   }))
 }
 
@@ -234,27 +210,7 @@ function cellClass(course, semester) {
   return 'cell-high'
 }
 
-// 计算总课时
-function calcTotalHours(course) {
-  let total = 0
-  for (let s = course.startSemester; s <= course.endSemester; s++) {
-    const sem = course.semesters.find(x => x.semester === s)
-    // 如果学期记录存在，使用记录的周课时和周数
-    if (sem) {
-      const hours = sem.weeklyHours || 0
-      const weeks = sem.weeksCount || 18
-      total += hours * weeks
-    } else {
-      // 如果学期记录不存在，使用课程默认的周课时
-      const hours = course.weeklyHours || 0
-      const weeks = course.weeksPerSemester || 18
-      total += hours * weeks
-    }
-  }
-  return Math.round(total)
-}
-
-// 分组小计
+// 分组学期小计
 function calcSemesterSubtotal(group, semester) {
   let total = 0
   group.courses.forEach(c => {
@@ -266,20 +222,6 @@ function calcSemesterSubtotal(group, semester) {
     }
   })
   return total
-}
-
-function calcGroupTotal(group) {
-  return group.courses.reduce((sum, c) => sum + calcTotalHours(c), 0)
-}
-
-// 判断是否是分组中的第一项
-function isFirstInGroup(course, group) {
-  return group.courses[0]?.id === course.id
-}
-
-// 判断是否是分组中的最后一项
-function isLastInGroup(course, group) {
-  return group.courses[group.courses.length - 1]?.id === course.id
 }
 </script>
 

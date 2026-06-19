@@ -3,6 +3,7 @@ import { success, fail } from '../utils/response.js';
 import { getCurrentSemesterInfo, getSemesterInfoFromRequest } from '../services/settings.service.js';
 import { getActiveClassFilter } from '../services/class.service.js';
 import { findBestMatchPlan, buildClassWithPlanFilter } from '../services/plan.service.js';
+import { log } from '../utils/logger.js';
 
 /**
  * 计算班级在当前全局学期下的相对学期序号
@@ -152,7 +153,7 @@ export async function querySemester(req, res, next) {
       const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
       if (!plan) {
         // 理论上不应该到这里，因为前面已经过滤了
-        console.log(`[WARN] 班级 ${cls.name} 虽满足前置条件但无匹配方案, major_id=${cls.major_id}, level_id=${cls.training_level_id}`);
+        log.warn('班级无匹配方案', { className: cls.name, major_id: cls.major_id, level_id: cls.training_level_id });
         continue;
       }
 
@@ -162,7 +163,7 @@ export async function querySemester(req, res, next) {
 
       // 如果当前学期没有课程，跳过该班级（不显示在读但无课的班级）
       if (planCourses.length === 0) {
-        console.log(`[DEBUG] 班级 ${cls.name} 方案 ${plan.name} 无当前学期课程, 当前学期=${calc.currentSemesterNum}`);
+        log.debug('方案无当前学期课程', { className: cls.name, planName: plan.name, currentSemester: calc.currentSemesterNum });
         continue;
       }
 
@@ -200,7 +201,7 @@ export async function querySemester(req, res, next) {
       });
     }
 
-    console.log(`[DEBUG] querySemester 最终返回 ${results.length} 个班级（总计符合条件的班级数：${totalClassesCount}）`);
+    log.debug('查询学期返回班级数量', { resultCount: results.length, totalClassesCount });
 
     success(res, {
       semesterInfo: {

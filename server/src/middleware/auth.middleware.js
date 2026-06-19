@@ -4,12 +4,12 @@ import { log } from '../utils/logger.js' // L1修复：使用winston logger
 export function authMiddleware(req, res, next) {
   let token = null
 
-  // 优先从 Authorization 头获取
+  // 从 Authorization 头获取
   const authHeader = req.headers.authorization
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.substring(7)
   }
-  // 备选：从查询参数获取短期下载令牌（用于 window.open 等场景）
+  // 备选：从查询参数获取短期下载令牌（用于 window.open 等场景，有效期60秒）
   else if (req.query.downloadToken) {
     const decoded = AuthService.verifyDownloadToken(req.query.downloadToken)
     if (decoded) {
@@ -20,10 +20,6 @@ export function authMiddleware(req, res, next) {
       success: false,
       message: '下载令牌无效或已过期'
     })
-  }
-  // 备选：从查询参数获取普通 token（用于 window.open 导出等场景）
-  else if (req.query.token) {
-    token = req.query.token
   }
 
   if (!token) {

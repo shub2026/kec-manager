@@ -1,5 +1,6 @@
 import { body, param, query, validationResult } from 'express-validator';
 import { fail } from '../utils/response.js';
+import { log } from '../utils/logger.js';
 
 /**
  * 验证结果处理中间件
@@ -14,7 +15,7 @@ export function handleValidationErrors(req, res, next) {
     }));
     
     // 调试日志：打印验证失败的详细信息
-    console.log('[VALIDATION ERROR]', {
+    log.warn('验证参数失败', {
       method: req.method,
       path: req.path,
       body: req.body,

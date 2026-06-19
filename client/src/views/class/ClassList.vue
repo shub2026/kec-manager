@@ -235,7 +235,7 @@ async function loadBaseData() {
       }
     }
   } catch (error) {
-    console.error('加载基础数据失败:', error)
+    if (import.meta.env.DEV) { console.error('加载基础数据失败:', error) }
     if (error.response?.status === 401) {
       ElMessage.warning('请先登录后再使用班级管理功能')
     } else {
