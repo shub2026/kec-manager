@@ -209,12 +209,142 @@
         <el-button type="primary" @click="confirmTeacherSelect" :disabled="!selectedTeacher" :loading="assigning">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 批量排课结果弹窗 -->
+    <el-dialog v-model="batchResultVisible" title="批量排课结果" width="900px" destroy-on-close class="batch-result-dialog" top="6vh">
+      <!-- 汇总统计 -->
+      <div class="batch-summary">
+        <div class="batch-stat-card" :class="{ 'is-success': true }">
+          <div class="batch-stat-num">{{ batchResult.summary?.totalCourses || 0 }}</div>
+          <div class="batch-stat-label">课程总数</div>
+        </div>
+        <div class="batch-stat-card is-success">
+          <div class="batch-stat-num text-success">{{ batchResult.summary?.totalAssigned || 0 }}</div>
+          <div class="batch-stat-label">已安排班级</div>
+        </div>
+        <div class="batch-stat-card" :class="{ 'is-warning': (batchResult.summary?.totalUnassigned || 0) > 0 }">
+          <div class="batch-stat-num" :class="(batchResult.summary?.totalUnassigned || 0) > 0 ? 'text-warning' : ''">{{ batchResult.summary?.totalUnassigned || 0 }}</div>
+          <div class="batch-stat-label">未分配班级</div>
+        </div>
+        <div class="batch-stat-card" :class="{ 'is-danger': (batchResult.summary?.errorCount || 0) > 0 }">
+          <div class="batch-stat-num" :class="(batchResult.summary?.errorCount || 0) > 0 ? 'text-danger' : ''">{{ batchResult.summary?.errorCount || 0 }}</div>
+          <div class="batch-stat-label">出错课程</div>
+        </div>
+      </div>
+
+      <!-- 筛选标签 -->
+      <div class="batch-filter-tabs">
+        <el-radio-group v-model="batchResultFilter" size="small">
+          <el-radio-button value="all">全部 ({{ (batchResult.courseResults || []).length }})</el-radio-button>
+          <el-radio-button value="issue">有问题 ({{ batchIssueCount }})</el-radio-button>
+        </el-radio-group>
+      </div>
+
+      <!-- 课程结果列表 -->
+      <div class="batch-course-list">
+        <div
+          v-for="r in filteredBatchResults"
+          :key="r.courseId"
+          class="batch-course-item"
+          :class="{ 'has-error': r.error, 'has-unassigned': r.unassignedCount > 0 }"
+        >
+          <div class="course-item-header" @click="toggleCourseDetail(r.courseId)">
+            <div class="course-item-left">
+              <el-icon class="expand-icon" :class="{ expanded: expandedCourses.has(r.courseId) }"><ArrowRight /></el-icon>
+              <span class="course-item-name">{{ r.courseName }}</span>
+            </div>
+            <div class="course-item-right">
+              <el-tag v-if="r.error" type="danger" size="small">出错</el-tag>
+              <el-tag v-if="r.unassignedCount > 0" type="warning" size="small">{{ r.unassignedCount }} 未分配</el-tag>
+              <el-tag v-if="!r.error && r.unassignedCount === 0" type="success" size="small">完成</el-tag>
+              <span class="course-item-stat">{{ r.autoCount || 0 }}/{{ r.totalClasses || 0 }}</span>
+            </div>
+          </div>
+          <div v-if="expandedCourses.has(r.courseId)" class="course-item-detail">
+            <div v-if="r.error" class="detail-error">
+              <el-icon><WarningFilled /></el-icon> {{ r.error }}
+            </div>
+            <div v-if="r.warnings?.length" class="detail-warnings">
+              <div v-for="(w, i) in r.warnings" :key="i" class="detail-warning-item">
+                <el-icon><Warning /></el-icon> {{ w }}
+              </div>
+            </div>
+            <div v-if="r.unassigned?.length" class="detail-unassigned">
+              <div class="detail-section-title">未分配班级</div>
+              <div v-for="u in r.unassigned" :key="u.classId" class="detail-unassigned-item">
+                <span class="unassigned-class-name">{{ u.className }}</span>
+                <span class="unassigned-hours">{{ u.weeklyHours }} 课时</span>
+                <span v-if="u.reason" class="unassigned-reason">{{ u.reason }}</span>
+              </div>
+            </div>
+            <div v-if="!r.error && !r.unassigned?.length && !r.warnings?.length" class="detail-ok">
+              所有 {{ r.autoCount || 0 }} 个班级均已安排
+            </div>
+          </div>
+        </div>
+        <el-empty v-if="filteredBatchResults.length === 0" description="没有匹配的课程" :image-size="60" />
+      </div>
+
+      <template #footer>
+        <el-button type="primary" @click="batchResultVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 单课程排课结果弹窗 -->
+    <el-dialog v-model="arrangeResultVisible" :title="`${arrangeResultMode}排课结果`" width="640px" destroy-on-close class="arrange-result-dialog" top="10vh">
+      <!-- 汇总统计 -->
+      <div class="arrange-summary">
+        <div class="arrange-stat-card is-success">
+          <div class="arrange-stat-num text-success">{{ arrangeResult.autoCount || 0 }}</div>
+          <div class="arrange-stat-label">自动安排</div>
+        </div>
+        <div class="arrange-stat-card">
+          <div class="arrange-stat-num">{{ arrangeResult.manualCount || 0 }}</div>
+          <div class="arrange-stat-label">手动安排</div>
+        </div>
+        <div class="arrange-stat-card" :class="{ 'is-warning': (arrangeResult.unassignedCount || 0) > 0 }">
+          <div class="arrange-stat-num" :class="(arrangeResult.unassignedCount || 0) > 0 ? 'text-warning' : ''">{{ arrangeResult.unassignedCount || 0 }}</div>
+          <div class="arrange-stat-label">未分配</div>
+        </div>
+        <div class="arrange-stat-card">
+          <div class="arrange-stat-num">{{ arrangeResult.totalClasses || 0 }}</div>
+          <div class="arrange-stat-label">班级总数</div>
+        </div>
+      </div>
+
+      <!-- 警告信息 -->
+      <div v-if="arrangeResult.warnings?.length" class="arrange-warnings">
+        <div v-for="(w, i) in arrangeResult.warnings" :key="i" class="arrange-warning-item">
+          <el-icon><Warning /></el-icon> {{ w }}
+        </div>
+      </div>
+
+      <!-- 未分配班级详情 -->
+      <div v-if="arrangeResult.unassigned?.length" class="arrange-unassigned">
+        <div class="arrange-section-title">未分配班级</div>
+        <div v-for="u in arrangeResult.unassigned" :key="u.classId" class="arrange-unassigned-item">
+          <span class="unassigned-class-name">{{ u.className }}</span>
+          <span class="unassigned-hours">{{ u.weeklyHours }} 课时</span>
+          <span v-if="u.reason" class="unassigned-reason">{{ u.reason }}</span>
+        </div>
+      </div>
+
+      <!-- 全部完成 -->
+      <div v-if="!arrangeResult.unassigned?.length && !arrangeResult.warnings?.length" class="arrange-all-done">
+        <el-icon :size="24" color="#67C23A"><CircleCheckFilled /></el-icon>
+        <span>所有班级均已安排</span>
+      </div>
+
+      <template #footer>
+        <el-button type="primary" @click="arrangeResultVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { MagicStick, SetUp, RefreshRight, Check, ArrowDown } from '@element-plus/icons-vue'
+import { MagicStick, SetUp, RefreshRight, Check, ArrowDown, ArrowRight, WarningFilled, Warning, CircleCheckFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getCourses } from '../../api/course'
 import request from '../../utils/request'
@@ -308,6 +438,37 @@ const selectedTeacher = ref(null)
 const assigning = ref(false)
 const savingSettings = ref(false)
 const exporting = ref(false)
+
+// 批量排课结果弹窗
+const batchResultVisible = ref(false)
+const batchResult = ref({})
+const batchResultFilter = ref('all')
+const expandedCourses = ref(new Set())
+
+const batchIssueCount = computed(() => {
+  const results = batchResult.value.courseResults || []
+  return results.filter(r => r.error || r.unassignedCount > 0).length
+})
+
+const filteredBatchResults = computed(() => {
+  const results = batchResult.value.courseResults || []
+  if (batchResultFilter.value === 'issue') {
+    return results.filter(r => r.error || r.unassignedCount > 0)
+  }
+  return results
+})
+
+function toggleCourseDetail(courseId) {
+  const s = new Set(expandedCourses.value)
+  if (s.has(courseId)) s.delete(courseId)
+  else s.add(courseId)
+  expandedCourses.value = s
+}
+
+// 单课程排课结果弹窗
+const arrangeResultVisible = ref(false)
+const arrangeResult = ref({})
+const arrangeResultMode = ref('')
 
 function personnelLabel(type) {
   return { full_time: '专职', part_time: '兼职', external: '外聘' }[type] || type
@@ -473,47 +634,15 @@ async function handleAutoArrange(mode) {
       hourSettings,
     })
     const data = res.data || {}
-    showArrangeResult(modeLabel, data)
+    arrangeResult.value = data
+    arrangeResultMode.value = modeLabel
+    arrangeResultVisible.value = true
     await loadData()
   } catch (e) {
     ElMessage.error('自动排课失败')
     console.error('自动排课失败:', e)
   } finally {
     arranging.value = false
-  }
-}
-
-function showArrangeResult(modeLabel, data) {
-  const parts = []
-  parts.push(`安排 ${data.autoCount || 0} 个班级`)
-  if (data.manualCount) parts.push(`手动 ${data.manualCount} 个`)
-  if (data.unassignedCount > 0) {
-    parts.push(`未分配 ${data.unassignedCount} 个`)
-  }
-
-  const warnings = data.warnings || []
-  const unassignedDetails = data.unassigned || []
-
-  let detailMsg = parts.join('，')
-  if (warnings.length > 0) {
-    detailMsg += '\n\n⚠ 警告：\n' + warnings.join('\n')
-  }
-  if (unassignedDetails.length > 0) {
-    detailMsg += '\n\n未分配班级：'
-    detailMsg += unassignedDetails.map(u =>
-      `\n  • ${u.className}（${u.weeklyHours}课时）${u.reason ? '— ' + u.reason : ''}`
-    ).join('')
-  }
-
-  if (data.unassignedCount > 0 || warnings.length > 0) {
-    ElMessageBox.alert(detailMsg, `${modeLabel}排课结果`, {
-      confirmButtonText: '知道了',
-      type: data.unassignedCount > 0 ? 'warning' : 'info',
-      whiteSpace: 'pre-line',
-      customStyle: { whiteSpace: 'pre-line' },
-    })
-  } else {
-    ElMessage.success(`${modeLabel}排课完成：${detailMsg}`)
   }
 }
 
@@ -538,33 +667,17 @@ async function handleBatchAutoArrange(mode) {
     })
     const data = res.data || {}
     const s = data.summary || {}
-    let msg = `批量排课完成：${s.totalCourses || 0} 门课程`
-    msg += `，安排 ${s.totalAssigned || 0} 个班级`
-    if (s.totalUnassigned > 0) msg += `，未分配 ${s.totalUnassigned} 个`
-    if (s.errorCount > 0) msg += `，${s.errorCount} 门课程出错`
 
-    const errorCourses = (data.courseResults || []).filter(r => r.error)
-    const unassignedCourses = (data.courseResults || []).filter(r => r.unassignedCount > 0)
-
-    if (errorCourses.length > 0 || unassignedCourses.length > 0) {
-      let detail = msg
-      if (errorCourses.length > 0) {
-        detail += '\n\n出错的课程：'
-        detail += errorCourses.map(r => `\n  • ${r.courseName}: ${r.error}`).join('')
-      }
-      if (unassignedCourses.length > 0) {
-        detail += '\n\n有未分配班级的课程：'
-        detail += unassignedCourses.map(r => `\n  • ${r.courseName}: ${r.unassignedCount} 个未分配`).join('')
-      }
-      ElMessageBox.alert(detail, '批量排课结果', {
-        confirmButtonText: '知道了',
-        type: 'warning',
-        whiteSpace: 'pre-line',
-        customStyle: { whiteSpace: 'pre-line' },
-      })
-    } else {
-      ElMessage.success(msg)
-    }
+    // 设置批量结果数据并打开弹窗
+    batchResult.value = data
+    batchResultFilter.value = (s.totalUnassigned > 0 || s.errorCount > 0) ? 'issue' : 'all'
+    const issueIds = new Set(
+      (data.courseResults || [])
+        .filter(r => r.error || r.unassignedCount > 0)
+        .map(r => r.courseId)
+    )
+    expandedCourses.value = issueIds
+    batchResultVisible.value = true
 
     await loadData()
   } catch (e) {
@@ -755,5 +868,252 @@ onMounted(() => {
 <style>
 .teacher-dialog .el-dialog__body {
   overflow-x: hidden;
+}
+
+/* 批量排课结果弹窗 */
+.batch-result-dialog .el-dialog__body {
+  padding: 16px 20px;
+}
+.batch-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.batch-stat-card {
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 12px 8px;
+  text-align: center;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.batch-stat-card.is-warning {
+  background: #fdf6ec;
+  border-color: #faecd8;
+}
+.batch-stat-card.is-danger {
+  background: #fef0f0;
+  border-color: #fde2e2;
+}
+.batch-stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: #303133;
+  line-height: 1.2;
+}
+.batch-stat-num.text-success { color: #67C23A; }
+.batch-stat-num.text-warning { color: #E6A23C; }
+.batch-stat-num.text-danger { color: #F56C6C; }
+.batch-stat-label {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+.batch-filter-tabs {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+.batch-course-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+}
+.batch-course-item {
+  border-bottom: 1px solid #ebeef5;
+}
+.batch-course-item:last-child {
+  border-bottom: none;
+}
+.batch-course-item.has-error {
+  background: #fff5f5;
+}
+.batch-course-item.has-unassigned {
+  background: #fffbf0;
+}
+.course-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.course-item-header:hover {
+  background: rgba(0,0,0,0.03);
+}
+.course-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.expand-icon {
+  transition: transform 0.2s;
+  color: #909399;
+  flex-shrink: 0;
+}
+.expand-icon.expanded {
+  transform: rotate(90deg);
+}
+.course-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.course-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.course-item-stat {
+  font-size: 12px;
+  color: #909399;
+}
+.course-item-detail {
+  padding: 8px 14px 12px 34px;
+  border-top: 1px dashed #ebeef5;
+  font-size: 13px;
+}
+.detail-error {
+  color: #F56C6C;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.detail-warnings {
+  margin-bottom: 8px;
+}
+.detail-warning-item {
+  color: #E6A23C;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.detail-unassigned {
+  margin-top: 4px;
+}
+.detail-section-title {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.detail-unassigned-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid #f5f7fa;
+}
+.detail-unassigned-item:last-child {
+  border-bottom: none;
+}
+.unassigned-class-name {
+  font-weight: 500;
+  color: #303133;
+}
+.unassigned-hours {
+  font-size: 12px;
+  color: #909399;
+  white-space: nowrap;
+}
+.unassigned-reason {
+  font-size: 12px;
+  color: #E6A23C;
+  margin-left: auto;
+}
+.detail-ok {
+  color: #67C23A;
+  font-size: 13px;
+}
+
+/* 单课程排课结果弹窗 */
+.arrange-result-dialog .el-dialog__body {
+  padding: 16px 20px;
+}
+.arrange-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.arrange-stat-card {
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 10px 6px;
+  text-align: center;
+  border: 1px solid transparent;
+}
+.arrange-stat-card.is-warning {
+  background: #fdf6ec;
+  border-color: #faecd8;
+}
+.arrange-stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: #303133;
+  line-height: 1.2;
+}
+.arrange-stat-num.text-success { color: #67C23A; }
+.arrange-stat-num.text-warning { color: #E6A23C; }
+.arrange-stat-label {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+.arrange-warnings {
+  margin-bottom: 12px;
+}
+.arrange-warning-item {
+  color: #E6A23C;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #fdf6ec;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.arrange-unassigned {
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+.arrange-unassigned .arrange-section-title {
+  font-size: 12px;
+  color: #909399;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.arrange-unassigned-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f5f7fa;
+}
+.arrange-unassigned-item:last-child {
+  border-bottom: none;
+}
+.arrange-all-done {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: #67C23A;
+  font-size: 14px;
+  font-weight: 500;
 }
 </style>

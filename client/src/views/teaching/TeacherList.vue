@@ -5,25 +5,25 @@
         <div class="card-header">
           <span>教师信息</span>
           <div class="card-header-actions">
-            <el-input v-model="filterName" placeholder="搜索姓名" clearable class="filter-item" />
-            <el-select v-model="filterPersonnelType" placeholder="人员类别" clearable class="filter-item">
+            <el-input v-model="filterName" placeholder="搜索姓名" clearable class="filter-name" />
+            <el-select v-model="filterPersonnelType" placeholder="人员类别" clearable class="filter-small">
               <el-option label="专职" value="full_time" />
               <el-option label="兼职" value="part_time" />
               <el-option label="外聘" value="external" />
             </el-select>
-            <el-select v-model="filterCourseId" placeholder="学科" clearable filterable class="filter-item">
+            <el-select v-model="filterCourseId" placeholder="学科" clearable filterable class="filter-medium">
               <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterCollegeId" placeholder="任课学院" clearable filterable class="filter-item">
+            <el-select v-model="filterCollegeId" placeholder="任课学院" clearable filterable class="filter-medium">
               <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterTrainingLevelId" placeholder="任课层次" clearable filterable class="filter-item">
+            <el-select v-model="filterTrainingLevelId" placeholder="任课层次" clearable filterable class="filter-narrow">
               <el-option v-for="l in allTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
             </el-select>
-            <el-select v-model="filterAffiliatedCollegeId" placeholder="归属学院" clearable filterable class="filter-item">
+            <el-select v-model="filterAffiliatedCollegeId" placeholder="归属学院" clearable filterable class="filter-medium">
               <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterStatus" placeholder="状态" clearable class="filter-item">
+            <el-select v-model="filterStatus" placeholder="状态" clearable class="filter-small">
               <el-option label="启用" value="active" />
               <el-option label="禁用" value="disabled" />
             </el-select>
@@ -44,9 +44,6 @@
               </el-upload>
               <el-button type="primary" @click="openDialog()">
                 <el-icon><Plus /></el-icon> 新增教师
-              </el-button>
-              <el-button @click="batchDialogVisible = true">
-                <el-icon><Edit /></el-icon> 批量修改周课时
               </el-button>
             </div>
           </div>
@@ -210,24 +207,6 @@
       </template>
     </el-dialog>
 
-    <!-- 批量修改特定周课时弹窗 -->
-    <el-dialog v-model="batchDialogVisible" title="批量修改特定周课时" width="500px" destroy-on-close>
-      <el-form label-width="100px">
-        <el-form-item label="选择教师">
-          <el-select v-model="batchTeacherIds" multiple filterable placeholder="选择要修改的教师" style="width: 100%">
-            <el-option v-for="t in list" :key="t.id" :label="t.name" :value="t.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="特定周课时">
-          <el-input-number v-model="batchHours" :min="0" :max="40" :step="1" :precision="1" controls-position="right" style="width: 200px" />
-          <span class="form-tip">设为空值可清除特定周课时</span>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="batchDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleBatchUpdate" :loading="batchSaving">保存</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -236,7 +215,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getCookie } from '@/utils/cookies'
-import { getTeachers, createTeacher, updateTeacher, deleteTeacher, batchUpdateDefaultHours, toggleTeacherStatus } from '../../api/teacher'
+import { getTeachers, createTeacher, updateTeacher, deleteTeacher, toggleTeacherStatus } from '../../api/teacher'
 import { getColleges, getCollegeLevelMapping } from '../../api/college'
 import { getTrainingLevels } from '../../api/trainingLevel'
 import { getCourses } from '../../api/course'
@@ -343,12 +322,6 @@ const availableTrainingLevels = computed(() => {
   }
   return allTrainingLevels.value.filter(l => allowedIds.has(l.id))
 })
-
-// 批量修改相关
-const batchDialogVisible = ref(false)
-const batchTeacherIds = ref([])
-const batchHours = ref(null)
-const batchSaving = ref(false)
 
 function personnelLabel(type) {
   return { full_time: '专职', part_time: '兼职', external: '外聘' }[type] || type
@@ -473,24 +446,6 @@ async function handleToggleStatus(row, val) {
   }
 }
 
-async function handleBatchUpdate() {
-  if (!batchTeacherIds.value.length) return ElMessage.warning('请选择教师')
-  batchSaving.value = true
-  try {
-    await batchUpdateDefaultHours({
-      teacherIds: batchTeacherIds.value,
-      defaultWeeklyHours: batchHours.value,
-    })
-    ElMessage.success('批量修改成功')
-    batchDialogVisible.value = false
-    batchTeacherIds.value = []
-    batchHours.value = null
-    await load()
-  } finally {
-    batchSaving.value = false
-  }
-}
-
 // 导入前拦截，显示确认提示
 async function beforeImport(file) {
   const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
@@ -571,22 +526,22 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.teacher-list :deep(.card-header-actions) {
-  flex-wrap: nowrap;
+.filter-name {
+  width: 200px;
 }
-.filter-item {
-  flex: 1 1 120px;
-  min-width: 90px;
+.filter-medium {
+  width: 160px;
 }
-.filter-item :deep(.el-input),
-.filter-item :deep(.el-select) {
-  width: 100% !important;
+.filter-narrow {
+  width: 120px;
+}
+.filter-small {
+  width: 100px;
 }
 .action-buttons {
   display: flex;
   gap: 8px;
   margin-left: auto;
-  flex-shrink: 0;
 }
 .tag-item {
   margin: 2px;

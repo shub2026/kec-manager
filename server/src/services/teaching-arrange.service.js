@@ -404,33 +404,74 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
   const assignments = [];
   const unassigned = [];
 
+  /** 教材兼容性检查 */
+  function isTextbookMatch(teacher, cls) {
+    if (!teacher.textbookIds?.length || !cls.textbookIds?.length) return false;
+    return teacher.textbookIds.some(tid => cls.textbookIds.includes(tid));
+  }
+
+  /**
+   * 分层选择最佳教师
+   * 优先级：(学院+教材) > 学院 > (教材) > (层次+教材) > 层次 > 教材 > 兜底
+   * 核心原则：同一偏好层级内，教材匹配始终优先于不匹配
+   */
   function selectBestTeacher(candidates) {
-    const collegeMatched = candidates.filter(c =>
+    const byScore = (a, b) => b.score - a.score || a.loadRate - b.loadRate;
+
+    // 1. 学院+教材 双匹配（最优解）
+    const collegeAndTextbook = candidates.filter(c =>
+      c.teacher.schedulingCollegeIds?.length &&
+      c.teacher.schedulingCollegeIds.includes(c.cls.collegeId) &&
+      isTextbookMatch(c.teacher, c.cls)
+    );
+    if (collegeAndTextbook.length > 0) {
+      return [...collegeAndTextbook].sort(byScore)[0];
+    }
+
+    // 2. 学院匹配（无教材匹配候选人时回退）
+    const collegeOnly = candidates.filter(c =>
       c.teacher.schedulingCollegeIds?.length &&
       c.teacher.schedulingCollegeIds.includes(c.cls.collegeId)
     );
-    if (collegeMatched.length > 0) {
-      return [...collegeMatched].sort((a, b) => b.score - a.score || a.loadRate - b.loadRate)[0];
+    if (collegeOnly.length > 0) {
+      return [...collegeOnly].sort(byScore)[0];
     }
 
-    const levelMatched = candidates.filter(c =>
+    // 3. 教材匹配（不要求学院）
+    const textbookOnly = candidates.filter(c => isTextbookMatch(c.teacher, c.cls));
+    if (textbookOnly.length > 0) {
+      return [...textbookOnly].sort(byScore)[0];
+    }
+
+    // 4. 层次+教材 双匹配
+    const levelAndTextbook = candidates.filter(c =>
+      c.teacher.schedulingLevelIds?.length &&
+      c.cls.trainingLevelId &&
+      c.teacher.schedulingLevelIds.includes(c.cls.trainingLevelId) &&
+      isTextbookMatch(c.teacher, c.cls)
+    );
+    if (levelAndTextbook.length > 0) {
+      return [...levelAndTextbook].sort(byScore)[0];
+    }
+
+    // 5. 层次匹配（无教材匹配候选人时回退）
+    const levelOnly = candidates.filter(c =>
       c.teacher.schedulingLevelIds?.length &&
       c.cls.trainingLevelId &&
       c.teacher.schedulingLevelIds.includes(c.cls.trainingLevelId)
     );
-    if (levelMatched.length > 0) {
-      return [...levelMatched].sort((a, b) => b.score - a.score || a.loadRate - b.loadRate)[0];
+    if (levelOnly.length > 0) {
+      return [...levelOnly].sort(byScore)[0];
     }
 
-    const textbookMatched = candidates.filter(c => {
-      if (!c.teacher.textbookIds?.length || !c.cls.textbookIds?.length) return false;
-      return c.teacher.textbookIds.some(tid => c.cls.textbookIds.includes(tid));
-    });
-    if (textbookMatched.length > 0) {
-      return [...textbookMatched].sort((a, b) => b.score - a.score || a.loadRate - b.loadRate)[0];
+    // 6. 仅教材匹配
+    const textbookFallback = candidates.filter(c => isTextbookMatch(c.teacher, c.cls));
+    if (textbookFallback.length > 0) {
+      return [...textbookFallback].sort(byScore)[0];
     }
 
-    return [...candidates].sort((a, b) => b.score - a.score || a.loadRate - b.loadRate)[0];
+    // 7. 兜底：无偏好匹配，按分数和负载率排序
+    return [...candidates].sort(byScore)[0];
   }
 
   function countEligibleTeachers(cls, eligibilityFilter) {
@@ -491,17 +532,50 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
     return remaining;
   }
 
-  // === 三阶段分配 ===
-  const collegePairs = (t, cls) =>
+  // === 四阶段分配 ===
+  // 基础资格检查函数
+  const collegeEligible = (t, cls) =>
     t.schedulingCollegeIds?.length > 0 && t.schedulingCollegeIds.includes(cls.collegeId);
-  const levelPairs = (t, cls) =>
+  const levelEligible = (t, cls) =>
     t.schedulingLevelIds?.length > 0 && cls.trainingLevelId &&
     t.schedulingLevelIds.includes(cls.trainingLevelId);
 
+  // 阶段1：学院偏好匹配 + 教材兼容二级过滤
+  // 若候选池中存在学院匹配且教材匹配的教师，则排除学院匹配但教材不匹配的教师
+  const collegePairs = (t, cls) => {
+    if (!collegeEligible(t, cls)) return false;
+    if (cls.textbookIds?.length > 0) {
+      const hasBetter = teacherConstraints.some(
+        tc => collegeEligible(tc, cls) && isTextbookMatch(tc, cls)
+      );
+      if (hasBetter && !isTextbookMatch(t, cls)) return false;
+    }
+    return true;
+  };
   const round1Remaining = assignRound(classesToAssign, collegePairs);
+
+  // 阶段2：层次偏好匹配 + 教材兼容二级过滤
+  const levelPairs = (t, cls) => {
+    if (!levelEligible(t, cls)) return false;
+    if (cls.textbookIds?.length > 0) {
+      const hasBetter = teacherConstraints.some(
+        tc => levelEligible(tc, cls) && isTextbookMatch(tc, cls)
+      );
+      if (hasBetter && !isTextbookMatch(t, cls)) return false;
+    }
+    return true;
+  };
   const round2Remaining = assignRound(round1Remaining, levelPairs);
-  const round3Remaining = assignRound(round2Remaining);
-  unassigned.push(...round3Remaining);
+
+  // 阶段3：同教材硬过滤（剩余班级中，仅允许教材匹配的教师）
+  const textbookPairs = (t, cls) =>
+    t.textbookIds?.length > 0 && cls.textbookIds?.length > 0 &&
+    t.textbookIds.some(tid => cls.textbookIds.includes(tid));
+  const round3Remaining = assignRound(round2Remaining, textbookPairs);
+
+  // 阶段4：所有剩余班级，不限教师（常规分配）
+  const round4Remaining = assignRound(round3Remaining);
+  unassigned.push(...round4Remaining);
 
   // === 预览模式：只返回结果不写库 ===
   if (preview) {
@@ -611,7 +685,9 @@ export async function batchAutoArrange(semesterStr, mode, hourSettings, schedule
   const courses = await prisma.courses.findMany({
     where: {
       plan_courses: {
-        plan_course_semesters: { some: {} },
+        some: {
+          plan_course_semesters: { some: {} },
+        },
       },
     },
     select: { id: true, name: true, code: true },
