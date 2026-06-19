@@ -4,7 +4,14 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import './styles/global.css'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import {
+  ArrowDown, ArrowRight, ArrowUp, Calendar, Check, CircleCheck,
+  CircleCheckFilled, Collection, DataAnalysis, Delete, Document,
+  DocumentChecked, Download, Edit, Grid, HomeFilled, InfoFilled,
+  Loading, MagicStick, Notebook, OfficeBuilding, Plus, Rank,
+  Reading, Refresh, RefreshRight, Setting, SetUp, Tools, User,
+  UserFilled, Warning, WarningFilled,
+} from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
 import { useAuthStore } from './stores/auth'
@@ -16,7 +23,6 @@ app.config.errorHandler = (err, instance, info) => {
   if (import.meta.env.DEV) {
     console.error('[Vue Error]', info, err)
   }
-  // 生产环境下静默处理，避免信息泄露；可在此接入错误上报服务
 }
 
 app.config.warnHandler = (msg, instance, trace) => {
@@ -30,7 +36,16 @@ app.use(pinia)
 app.use(router)
 app.use(ElementPlus, { locale: zhCn })
 
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+// 只注册实际使用的图标（34个），替代全量注册（280+个）
+const icons = {
+  ArrowDown, ArrowRight, ArrowUp, Calendar, Check, CircleCheck,
+  CircleCheckFilled, Collection, DataAnalysis, Delete, Document,
+  DocumentChecked, Download, Edit, Grid, HomeFilled, InfoFilled,
+  Loading, MagicStick, Notebook, OfficeBuilding, Plus, Rank,
+  Reading, Refresh, RefreshRight, Setting, SetUp, Tools, User,
+  UserFilled, Warning, WarningFilled,
+}
+for (const [key, component] of Object.entries(icons)) {
   app.component(key, component)
 }
 
