@@ -75,8 +75,10 @@ function isClassMatchPlan(cls, plan) {
 }
 
 function isTextbookMatch(teacher, cls) {
-  if (!teacher.textbookIds?.length || !cls.textbookIds?.length) return false;
-  return teacher.textbookIds.some(tid => cls.textbookIds.includes(tid));
+  // P1-A 修复：教材匹配始终使用教师固有教材快照，不受本次分配累加污染
+  const inherentIds = teacher.inherentTextbookIds ?? teacher.textbookIds;
+  if (!inherentIds?.length || !cls.textbookIds?.length) return false;
+  return inherentIds.some(tid => cls.textbookIds.includes(tid));
 }
 
 function isCollegeEligible(t, cls) {
@@ -612,6 +614,11 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
   const round4Remaining = assignRound(round3Remaining);
   unassigned.push(...round4Remaining);
 
+  // P2 修复：阶段4 后置换回溯
+  // 对未分配班级尝试"置换"：若某教师 T 已满，但 T 当前某班级 V 能被其他教师 T'' 接管，
+  // 且 T 腾出容量后能容纳未分配班级 U，则执行置换，提升全局分配率
+  trySwapUnassigned(unassigned, assignments, teacherConstraints, mode, courseId, semesterStr);
+
   if (preview) {
     return buildResult(assignments, unassigned, validClassesToAssign, manualAssignments.length, null, true, warnings, teacherConstraints, mode);
   }
@@ -685,6 +692,114 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
   return buildResult(assignments, unassigned, validClassesToAssign, manualAssignments.length, null, false, warnings, teacherConstraints, mode);
 }
 
+/**
+ * P2 修复：置换回溯
+ * 对未分配班级尝试置换已分配教师，腾出容量接纳未分配班级，提升全局分配率
+ * 单轮置换（不递归），复杂度 O(U × T × A)，U=未分配数，T=教师数，A=分配数
+ */
+function trySwapUnassigned(unassigned, assignments, teacherConstraints, mode, courseId, semesterStr) {
+  if (!unassigned.length || !assignments.length) return;
+
+  const teacherMap = new Map(teacherConstraints.map(t => [t.id, t]));
+  // 按教师分组已分配记录，便于查找可置换的班级
+  const assignmentsByTeacher = new Map();
+  for (const a of assignments) {
+    if (!assignmentsByTeacher.has(a.teacher_id)) assignmentsByTeacher.set(a.teacher_id, []);
+    assignmentsByTeacher.get(a.teacher_id).push(a);
+  }
+
+  const stillUnassigned = [];
+  for (const u of unassigned) {
+    if (trySwapOne(u, assignments, assignmentsByTeacher, teacherMap, teacherConstraints, mode, courseId, semesterStr)) {
+      // 置换成功，u 已移入 assignments，不加入 stillUnassigned
+    } else {
+      stillUnassigned.push(u);
+    }
+  }
+
+  // 用剩余未分配替换原 unassigned
+  unassigned.length = 0;
+  unassigned.push(...stillUnassigned);
+}
+
+/**
+ * 尝试为单个未分配班级 U 执行一次置换
+ * @returns {boolean} 是否置换成功
+ */
+function trySwapOne(u, assignments, assignmentsByTeacher, teacherMap, teacherConstraints, mode, courseId, semesterStr) {
+  const uHours = u.weeklyHours;
+
+  // 遍历所有教师 T（含已满的），找能教 U 且置换后可容纳的场景
+  for (const t of teacherConstraints) {
+    // T 必须能教 U（基本资格：本课程上限未因 defaultWeeklyHours 卡死）
+    // 容量不足没关系，置换后可能腾出空间
+    if (t.defaultWeeklyHours != null && t.courseExistingHours + uHours > t.defaultWeeklyHours) {
+      continue; // 即使置换也超本课程上限
+    }
+
+    // T 当前已分配的班级记录
+    const tAssignments = assignmentsByTeacher.get(t.id) || [];
+    if (!tAssignments.length) continue; // T 无已分配班级，无需置换
+
+    // T 当前已用课时（含 effectiveTotal 之外的本次新增）
+    const tCurrentNew = t.assignedHours;
+
+    // 遍历 T 的已分配班级 V，找能被其他教师 T'' 接管的
+    for (const vAssign of tAssignments) {
+      const vHours = vAssign.weekly_hours;
+      // T 移除 V 后剩余本次新增课时
+      const tAfterRemove = tCurrentNew - vHours;
+      // T 加上 U 后
+      const tAfterAdd = tAfterRemove + uHours;
+      const tCap = mode === 'standard' ? t.standardCap : t.fullCap;
+      if (tAfterAdd > tCap) continue; // 置换后 T 仍超载
+
+      // 找接管 V 的教师 T''
+      for (const t2 of teacherConstraints) {
+        if (t2.id === t.id) continue;
+        // T'' 需有剩余容量接纳 V
+        const t2Cap = mode === 'standard' ? t2.standardCap : t2.fullCap;
+        if (t2.assignedHours + vHours > t2Cap) continue;
+        // T'' 的本课程上限
+        if (t2.defaultWeeklyHours != null && t2.courseExistingHours + t2.assignedHours + vHours > t2.defaultWeeklyHours) continue;
+        // T'' 需能教 V：由于 assignment 不含完整 class 偏好信息，
+        // 此处用容量允许作为接管条件（兜底性质，匹配质量降级可接受，
+        // 因阶段1-4 已尽力匹配，置换仅用于提升分配率）
+        // 如需更严格匹配质量，可在此处通过 classId 反查 class 偏好做判断
+
+        // === 执行置换 ===
+        // 1. T 减 V、加 U
+        t.assignedHours = tAfterAdd;
+        // 2. T'' 加 V
+        t2.assignedHours += vHours;
+        // 3. 更新 assignments：V 的 teacher_id 改为 T''
+        vAssign.teacher_id = t2.id;
+        vAssign.teacher_name = t2.name;
+        // 4. 维护 assignmentsByTeacher
+        assignmentsByTeacher.get(t.id) = tAssignments.filter(a => a !== vAssign);
+        if (!assignmentsByTeacher.has(t2.id)) assignmentsByTeacher.set(t2.id, []);
+        assignmentsByTeacher.get(t2.id).push(vAssign);
+        // 5. U 移入 assignments
+        assignments.push({
+          teacher_id: t.id,
+          teacher_name: t.name,
+          class_id: u.classId,
+          class_name: u.className,
+          course_id: Number(courseId),
+          semester: semesterStr,
+          weekly_hours: uHours,
+          is_auto: true,
+        });
+        if (!assignmentsByTeacher.has(t.id)) assignmentsByTeacher.set(t.id, []);
+        assignmentsByTeacher.get(t.id).push(assignments[assignments.length - 1]);
+
+        return true; // 置换成功
+      }
+    }
+  }
+  return false; // 无可行置换
+}
+
 function isTeacherEligible(t, cls, mode) {
   const cap = mode === 'standard' ? t.standardCap : t.fullCap;
   if (t.assignedHours + cls.weeklyHours > cap) return false;
@@ -713,6 +828,8 @@ function buildTeacherConstraints(teachers, hourSettings, autoHoursMap, mode, ext
       standardCap: Math.max(0, setting.standard - effectiveTotal),
       fullCap: Math.max(0, setting.max - effectiveTotal),
       assignedHours: 0,
+      // P1-A 修复：固化固有教材快照，运行时累加不污染匹配判断
+      inherentTextbookIds: [...(t.textbookIds || [])],
     };
   });
 }
@@ -894,12 +1011,40 @@ export async function batchAutoArrange(semesterStr, mode, hourSettings, schedule
   });
   const teacherCountMap = new Map(teacherCounts.map(r => [r.course_id, r._count.teacher_id]));
 
-  // 班级数通过 plan_courses 关联估算
+  // P1-B 修复：优先级改用"供需比"（班级总课时需求 / 可用教师剩余容量）
+  // 比值大的课程资源更紧张，应优先处理，避免因靠后排队而容量耗尽
+  // 班级总课时：聚合该课程所有 plan_course_semesters 的 weekly_hours（粗略估算，作相对优先级足够）
+  const courseHourDemands = await prisma.plan_course_semesters.groupBy({
+    by: ['plan_course_id'],
+    where: { plan_courses: { course_id: { in: courses.map(c => c.id) } } },
+    _sum: { weekly_hours: true },
+  });
+  // plan_course_id → course_id 映射
+  const planCourseToCourse = await prisma.plan_courses.findMany({
+    where: { course_id: { in: courses.map(c => c.id) } },
+    select: { id: true, course_id: true },
+  });
+  const courseDemandMap = new Map(); // course_id → 总课时需求
+  for (const pc of planCourseToCourse) {
+    const demand = courseHourDemands.find(d => d.plan_course_id === pc.id);
+    if (demand) {
+      courseDemandMap.set(pc.course_id, (courseDemandMap.get(pc.course_id) || 0) + (demand._sum.weekly_hours || 0));
+    }
+  }
+
+  // 默认标准课时（full_time=16），用于估算剩余容量
+  const defaultStandard = hourSettings.full_time?.standard || DEFAULT_HOUR_SETTINGS.full_time.standard;
+
   const coursePriorities = courses.map(course => {
     const teacherCount = teacherCountMap.get(course.id) || 0;
-    // 优先级：教师少的课程优先处理（教师数为0时排最前）；用 MAX_SAFE_INTEGER 替代 Infinity 避免 NaN 排序
-    const priority = teacherCount === 0 ? Number.MAX_SAFE_INTEGER : 1 / teacherCount;
-    return { courseId: course.id, courseName: course.name, priority };
+    const demand = courseDemandMap.get(course.id) || 0;
+    // 可用教师剩余容量估算 = 教师数 × 标准课时
+    const supplyCapacity = teacherCount * defaultStandard;
+    // 供需比：需求/容量。教师数为0时供需比无穷大（最优先）；否则比值越大越紧张
+    const supplyDemandRatio = teacherCount === 0
+      ? Number.MAX_SAFE_INTEGER
+      : (supplyCapacity > 0 ? demand / supplyCapacity : demand > 0 ? Number.MAX_SAFE_INTEGER : 0);
+    return { courseId: course.id, courseName: course.name, priority: supplyDemandRatio };
   });
 
   coursePriorities.sort((a, b) => b.priority - a.priority);
