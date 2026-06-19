@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import { DEFAULT_HOUR_SETTINGS, WORKLOAD_BALANCE } from '../constants/index.js';
 
 /**
  * 计算班级在指定学期下的相对学期序号
@@ -20,8 +21,8 @@ function validateHourSettings(hourSettings) {
       throw new Error(`缺少 ${type} 的课时设置`);
     }
     const { standard, max } = hourSettings[type];
-    if (typeof standard !== 'number' || typeof max !== 'number') {
-      throw new Error(`${type} 的课时设置必须是数字`);
+    if (!Number.isFinite(standard) || !Number.isFinite(max)) {
+      throw new Error(`${type} 的课时设置必须是有效数字`);
     }
     if (standard < 0 || max < 0) {
       throw new Error(`${type} 的课时设置不能为负数`);
@@ -52,6 +53,22 @@ export function parseSemester(semesterStr) {
   };
 }
 
+// === 模块级匹配工具函数 ===
+
+function isTextbookMatch(teacher, cls) {
+  if (!teacher.textbookIds?.length || !cls.textbookIds?.length) return false;
+  return teacher.textbookIds.some(tid => cls.textbookIds.includes(tid));
+}
+
+function isCollegeEligible(t, cls) {
+  return t.schedulingCollegeIds?.length > 0 && t.schedulingCollegeIds.includes(cls.collegeId);
+}
+
+function isLevelEligible(t, cls) {
+  return t.schedulingLevelIds?.length > 0 && cls.trainingLevelId &&
+    t.schedulingLevelIds.includes(cls.trainingLevelId);
+}
+
 /**
  * 获取指定学期下开设某课程的班级列表（含课时、教材、学院等完整信息）
  */
@@ -59,7 +76,6 @@ export async function getClassesWithCourse(courseId, semesterStr) {
   const semesterInfo = parseSemester(semesterStr);
   if (!semesterInfo) throw new Error('学期格式错误');
 
-  // 查找包含该课程的所有培养方案课程
   const planCourses = await prisma.plan_courses.findMany({
     where: { course_id: Number(courseId) },
     include: {
@@ -73,7 +89,6 @@ export async function getClassesWithCourse(courseId, semesterStr) {
     },
   });
 
-  // 获取所有在读班级
   const durations = await prisma.classes.findMany({
     select: { duration_years: true },
     distinct: ['duration_years'],
@@ -98,7 +113,6 @@ export async function getClassesWithCourse(courseId, semesterStr) {
   const results = [];
   const addedClassIds = new Set();
 
-  // 按入学年份建立索引，避免内层 O(C) 遍历
   const classesByYear = new Map();
   for (const cls of allClasses) {
     if (!classesByYear.has(cls.enrollment_year)) {
@@ -213,7 +227,7 @@ export async function getTeachersForCourse(courseId, semesterStr) {
       class: { select: { colleges: { select: { id: true, name: true } } } },
     },
   });
-  const teacherCollegeMap = new Map(); // teacherId -> Map<collegeId, college>
+  const teacherCollegeMap = new Map();
   for (const a of teacherAssignmentsWithCollege) {
     if (a.class?.colleges) {
       if (!teacherCollegeMap.has(a.teacher_id)) {
@@ -224,8 +238,7 @@ export async function getTeachersForCourse(courseId, semesterStr) {
   }
 
   // 获取教师的教材数据（基于当前学期实际授课安排，仅当前课程）
-  // 从已有的教学安排中提取教师正在使用的教材，比从培养方案静态推导更准确
-  const teacherTextbookMap = new Map(); // teacherId -> textbookIds[]
+  const teacherTextbookMap = new Map();
 
   const currentAssignments = await prisma.teaching_assignments.findMany({
     where: {
@@ -259,7 +272,6 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     }
   }
 
-  // 查询每个安排对应的班级使用了哪些教材
   if (currentAssignments.length > 0) {
     const classIds = currentAssignments.map(a => a.class_id);
     const planCoursesForClasses = await prisma.plan_courses.findMany({
@@ -274,8 +286,7 @@ export async function getTeachersForCourse(courseId, semesterStr) {
       },
     });
 
-    // 为每个班级匹配其培养方案，提取对应的教材
-    const classTextbookMap = new Map(); // classId -> textbookIds[]
+    const classTextbookMap = new Map();
     const allClassesForTextbooks = await prisma.classes.findMany({
       where: { id: { in: classIds } },
       select: { id: true, custom_plan_id: true, major_id: true, training_level_id: true },
@@ -303,7 +314,6 @@ export async function getTeachersForCourse(courseId, semesterStr) {
       classTextbookMap.set(cls.id, [...textbookIds]);
     }
 
-    // 按教师聚合其已授课班级的教材
     for (const a of currentAssignments) {
       if (!teacherTextbookMap.has(a.teacher_id)) {
         teacherTextbookMap.set(a.teacher_id, new Set());
@@ -317,7 +327,6 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     }
   }
 
-  // 生成最终的教材映射：有授课安排的教师用实际教材，无安排的用培养方案兜底
   const fallbackTextbookIds = [...fallbackTextbookSet];
   for (const t of teachers) {
     if (!teacherTextbookMap.has(t.id)) {
@@ -347,29 +356,20 @@ export async function getTeachersForCourse(courseId, semesterStr) {
 
 /**
  * 计算教师-班级匹配分数（软约束优先级）
- * @param {object} teacher - 教师对象（含 schedulingCollegeIds, textbookIds）
- * @param {object} classInfo - 班级对象（含 collegeId, textbookIds）
- * @param {string[]} conditions - 排课条件（预留扩展）
  */
 function calcMatchScore(teacher, classInfo, conditions = []) {
   let score = 0;
 
-  // 指定学院匹配：始终生效，教师配置的任课学院优先安排
-  if (teacher.schedulingCollegeIds?.length && teacher.schedulingCollegeIds.includes(classInfo.collegeId)) {
+  if (isCollegeEligible(teacher, classInfo)) {
     score += 1;
   }
 
-  // 指定层次匹配：始终生效，教师配置的任课层次优先安排
-  if (teacher.schedulingLevelIds?.length && classInfo.trainingLevelId && teacher.schedulingLevelIds.includes(classInfo.trainingLevelId)) {
+  if (isLevelEligible(teacher, classInfo)) {
     score += 1;
   }
 
-  // 同教材匹配：始终生效，尽量避免跨教材教学
-  if (teacher.textbookIds?.length && classInfo.textbookIds?.length) {
-    const hasSameTextbook = teacher.textbookIds.some(tid => classInfo.textbookIds.includes(tid));
-    if (hasSameTextbook) {
-      score += 3;
-    }
+  if (isTextbookMatch(teacher, classInfo)) {
+    score += 3;
   }
 
   return score;
@@ -388,10 +388,8 @@ function calcMatchScore(teacher, classInfo, conditions = []) {
 export async function autoArrange(courseId, semesterStr, mode, hourSettings, scheduleConditions, options = {}) {
   const { preview = false } = options;
 
-  // === 参数验证 ===
   validateHourSettings(hourSettings);
 
-  // === 数据加载 ===
   const teachers = await getTeachersForCourse(courseId, semesterStr);
   if (!teachers.length) return buildResult([], [], [], 0, '该课程没有可用教师', preview);
 
@@ -414,10 +412,8 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
     .filter(c => !manualClassIds.has(c.classId))
     .map(c => ({ ...c, textbookIds: (c.textbooks || []).map(tb => tb.id) }));
 
-  // === 约束计算 ===
   const teacherConstraints = buildTeacherConstraints(teachers, hourSettings, autoHoursMap, mode);
 
-  // === 容量可行性预检 ===
   const totalClassHours = classesToAssign.reduce((s, c) => s + c.weeklyHours, 0);
   const totalTeacherCapacity = teacherConstraints.reduce((s, t) =>
     s + (mode === 'standard' ? t.standardCap : t.fullCap), 0);
@@ -426,31 +422,19 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
     warnings.push(`班级总课时(${totalClassHours})超过教师总容量(${totalTeacherCapacity})，部分班级可能无法分配`);
   }
 
-  // === 分配算法 ===
   const assignments = [];
   const unassigned = [];
 
-  /** 教材兼容性检查 */
-  function isTextbookMatch(teacher, cls) {
-    if (!teacher.textbookIds?.length || !cls.textbookIds?.length) return false;
-    return teacher.textbookIds.some(tid => cls.textbookIds.includes(tid));
-  }
-
-  // === P1-3: 预计算每个班级的"学院+教材"和"层次+教材"匹配教师数量，优化二次筛选 ===
+  // 预计算每个班级的"学院+教材"和"层次+教材"匹配教师数量，优化二次筛选
   const collegeTextbookMatchCount = new Map();
   const levelTextbookMatchCount = new Map();
-  const collegeEligible = (t, cls) =>
-    t.schedulingCollegeIds?.length > 0 && t.schedulingCollegeIds.includes(cls.collegeId);
-  const levelEligible = (t, cls) =>
-    t.schedulingLevelIds?.length > 0 && cls.trainingLevelId &&
-    t.schedulingLevelIds.includes(cls.trainingLevelId);
 
   for (const cls of classesToAssign) {
     let collegeTextbookCount = 0;
     let levelTextbookCount = 0;
     for (const t of teacherConstraints) {
-      if (collegeEligible(t, cls) && isTextbookMatch(t, cls)) collegeTextbookCount++;
-      if (levelEligible(t, cls) && isTextbookMatch(t, cls)) levelTextbookCount++;
+      if (isCollegeEligible(t, cls) && isTextbookMatch(t, cls)) collegeTextbookCount++;
+      if (isLevelEligible(t, cls) && isTextbookMatch(t, cls)) levelTextbookCount++;
     }
     collegeTextbookMatchCount.set(cls.classId, collegeTextbookCount);
     levelTextbookMatchCount.set(cls.classId, levelTextbookCount);
@@ -458,38 +442,25 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
 
   /**
    * 分层选择最佳教师（含工作量平衡约束）
-   * 优先级：(学院+教材) > 学院 > (教材) > (层次+教材) > 层次 > 教材 > 兜底
-   * 核心原则：同一偏好层级内，教材匹配始终优先于不匹配
-   * P2-1: 在评分相同时，优先分配给负荷率低的教师，平衡工作量
+   * 优先级：(学院+教材) > 学院 > (教材) > (层次+教材) > 层次 > 兜底
    */
   function selectBestTeacher(candidates) {
-    // 计算平均负荷率用于平衡约束
-    const avgLoadRate = candidates.reduce((sum, c) => sum + c.loadRate, 0) / candidates.length;
-
     const byScore = (a, b) => {
-      // 评分差异较大时按评分排序
-      if (Math.abs(b.score - a.score) >= 1) return b.score - a.score;
-      // 评分接近时，优先分配给负荷率显著低的教师（差异 > 20%）
-      if (Math.abs(a.loadRate - b.loadRate) > 0.2) return a.loadRate - b.loadRate;
-      // 负荷率接近时按评分排序
+      if (Math.abs(b.score - a.score) >= WORKLOAD_BALANCE.SCORE_THRESHOLD) return b.score - a.score;
+      if (Math.abs(a.loadRate - b.loadRate) > WORKLOAD_BALANCE.LOAD_RATE_THRESHOLD) return a.loadRate - b.loadRate;
       return b.score - a.score || a.loadRate - b.loadRate;
     };
 
     // 1. 学院+教材 双匹配（最优解）
     const collegeAndTextbook = candidates.filter(c =>
-      c.teacher.schedulingCollegeIds?.length &&
-      c.teacher.schedulingCollegeIds.includes(c.cls.collegeId) &&
-      isTextbookMatch(c.teacher, c.cls)
+      isCollegeEligible(c.teacher, c.cls) && isTextbookMatch(c.teacher, c.cls)
     );
     if (collegeAndTextbook.length > 0) {
       return [...collegeAndTextbook].sort(byScore)[0];
     }
 
-    // 2. 学院匹配（无教材匹配候选人时回退）
-    const collegeOnly = candidates.filter(c =>
-      c.teacher.schedulingCollegeIds?.length &&
-      c.teacher.schedulingCollegeIds.includes(c.cls.collegeId)
-    );
+    // 2. 学院匹配
+    const collegeOnly = candidates.filter(c => isCollegeEligible(c.teacher, c.cls));
     if (collegeOnly.length > 0) {
       return [...collegeOnly].sort(byScore)[0];
     }
@@ -502,32 +473,19 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
 
     // 4. 层次+教材 双匹配
     const levelAndTextbook = candidates.filter(c =>
-      c.teacher.schedulingLevelIds?.length &&
-      c.cls.trainingLevelId &&
-      c.teacher.schedulingLevelIds.includes(c.cls.trainingLevelId) &&
-      isTextbookMatch(c.teacher, c.cls)
+      isLevelEligible(c.teacher, c.cls) && isTextbookMatch(c.teacher, c.cls)
     );
     if (levelAndTextbook.length > 0) {
       return [...levelAndTextbook].sort(byScore)[0];
     }
 
-    // 5. 层次匹配（无教材匹配候选人时回退）
-    const levelOnly = candidates.filter(c =>
-      c.teacher.schedulingLevelIds?.length &&
-      c.cls.trainingLevelId &&
-      c.teacher.schedulingLevelIds.includes(c.cls.trainingLevelId)
-    );
+    // 5. 层次匹配
+    const levelOnly = candidates.filter(c => isLevelEligible(c.teacher, c.cls));
     if (levelOnly.length > 0) {
       return [...levelOnly].sort(byScore)[0];
     }
 
-    // 6. 仅教材匹配
-    const textbookFallback = candidates.filter(c => isTextbookMatch(c.teacher, c.cls));
-    if (textbookFallback.length > 0) {
-      return [...textbookFallback].sort(byScore)[0];
-    }
-
-    // 7. 兜底：无偏好匹配，按分数和负载率排序
+    // 6. 兜底：无偏好匹配，按分数和负载率排序
     return [...candidates].sort(byScore)[0];
   }
 
@@ -589,10 +547,9 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
     return remaining;
   }
 
-  // === 四阶段分配 ===
-  // 阶段1：学院偏好匹配 + 教材兼容二级筛选（使用预计算结果 O(1)）
+  // 阶段1：学院偏好匹配 + 教材兼容二级筛选
   const collegePairs = (t, cls) => {
-    if (!collegeEligible(t, cls)) return false;
+    if (!isCollegeEligible(t, cls)) return false;
     if (cls.textbookIds?.length > 0) {
       const hasBetter = collegeTextbookMatchCount.get(cls.classId) > 0;
       if (hasBetter && !isTextbookMatch(t, cls)) return false;
@@ -601,9 +558,9 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
   };
   const round1Remaining = assignRound(classesToAssign, collegePairs);
 
-  // 阶段2：层次偏好匹配 + 教材兼容二级筛选（使用预计算结果 O(1)）
+  // 阶段2：层次偏好匹配 + 教材兼容二级筛选
   const levelPairs = (t, cls) => {
-    if (!levelEligible(t, cls)) return false;
+    if (!isLevelEligible(t, cls)) return false;
     if (cls.textbookIds?.length > 0) {
       const hasBetter = levelTextbookMatchCount.get(cls.classId) > 0;
       if (hasBetter && !isTextbookMatch(t, cls)) return false;
@@ -612,39 +569,35 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
   };
   const round2Remaining = assignRound(round1Remaining, levelPairs);
 
-  // 阶段3：同教材硬过滤（剩余班级中，仅允许教材匹配的教师）
+  // 阶段3：同教材硬过滤
   const textbookPairs = (t, cls) =>
     t.textbookIds?.length > 0 && cls.textbookIds?.length > 0 &&
     t.textbookIds.some(tid => cls.textbookIds.includes(tid));
   const round3Remaining = assignRound(round2Remaining, textbookPairs);
 
-  // 阶段4：所有剩余班级，不限教师（常规分配）
+  // 阶段4：所有剩余班级，不限教师
   const round4Remaining = assignRound(round3Remaining);
   unassigned.push(...round4Remaining);
 
-  // === 预览模式：只返回结果不写库 ===
   if (preview) {
     return buildResult(assignments, unassigned, classesToAssign, manualAssignments.length, null, true, warnings, teacherConstraints, mode);
   }
 
-  // === 持久化：批量写入 ===
   if (assignments.length > 0) {
     await prisma.$transaction(async (tx) => {
       await tx.teaching_assignments.deleteMany({
         where: { course_id: Number(courseId), semester: semesterStr, is_auto: true },
       });
-      if (assignments.length > 0) {
-        await tx.teaching_assignments.createMany({
-          data: assignments.map(a => ({
-            teacher_id: a.teacher_id,
-            class_id: a.class_id,
-            course_id: a.course_id,
-            semester: a.semester,
-            weekly_hours: a.weekly_hours,
-            is_auto: true,
-          })),
-        });
-      }
+      await tx.teaching_assignments.createMany({
+        data: assignments.map(a => ({
+          teacher_id: a.teacher_id,
+          class_id: a.class_id,
+          course_id: a.course_id,
+          semester: a.semester,
+          weekly_hours: a.weekly_hours,
+          is_auto: true,
+        })),
+      });
     });
   }
 
@@ -663,7 +616,7 @@ function isTeacherEligible(t, cls, mode) {
 function buildTeacherConstraints(teachers, hourSettings, autoHoursMap, mode) {
   return teachers.map(t => {
     const personnelType = t.personnelType || 'full_time';
-    const setting = hourSettings[personnelType] || { standard: 16, max: 20 };
+    const setting = hourSettings[personnelType] || DEFAULT_HOUR_SETTINGS[personnelType] || DEFAULT_HOUR_SETTINGS.full_time;
     const autoHoursForCourse = autoHoursMap.get(t.id) || 0;
     const effectiveTotal = t.totalWeeklyHours - autoHoursForCourse;
     const courseExistingHours = t.courseHours - autoHoursForCourse;
@@ -687,7 +640,6 @@ function diagnoseFailure(cls, teacherConstraints, mode) {
     return { reason: '没有可教此课程的教师', details: null };
   }
 
-  // 检查容量约束
   const capFullTeachers = allTeachers.filter(t => {
     const cap = mode === 'standard' ? t.standardCap : t.fullCap;
     return t.assignedHours + cls.weeklyHours > cap;
@@ -704,7 +656,6 @@ function diagnoseFailure(cls, teacherConstraints, mode) {
     };
   }
 
-  // 检查本课程课时上限
   const courseLimitTeachers = allTeachers.filter(t =>
     t.defaultWeeklyHours != null &&
     t.courseExistingHours + t.assignedHours + cls.weeklyHours > t.defaultWeeklyHours
@@ -721,10 +672,8 @@ function diagnoseFailure(cls, teacherConstraints, mode) {
     };
   }
 
-  // 检查资格筛选（学院/层次偏好）
   const eligibleTeachers = allTeachers.filter(t => isTeacherEligible(t, cls, mode));
   if (eligibleTeachers.length > 0) {
-    // 有资格的教师存在，但可能因为容量或课程上限被排除
     const afterCapacity = eligibleTeachers.filter(t => {
       const cap = mode === 'standard' ? t.standardCap : t.fullCap;
       return t.assignedHours + cls.weeklyHours <= cap;
@@ -741,17 +690,13 @@ function diagnoseFailure(cls, teacherConstraints, mode) {
     }
   }
 
-  // 偏好筛选后无候选
   return {
     reason: '无匹配的教师（学院/层次偏好筛选后无候选）',
     details: {
       totalTeachers: allTeachers.length,
       collegeMatchCount: allTeachers.filter(t => t.schedulingCollegeIds?.includes(cls.collegeId)).length,
       levelMatchCount: allTeachers.filter(t => t.schedulingLevelIds?.includes(cls.trainingLevelId)).length,
-      textbookMatchCount: allTeachers.filter(t =>
-        t.textbookIds?.length && cls.textbookIds?.length &&
-        t.textbookIds.some(tid => cls.textbookIds.includes(tid))
-      ).length,
+      textbookMatchCount: allTeachers.filter(t => isTextbookMatch(t, cls)).length,
     },
   };
 }
@@ -777,11 +722,15 @@ function buildResult(assignments, unassigned, classesToAssign, manualCount, mess
     warnings: warnings || [],
   };
 
-  // 预览模式下添加详细统计信息
   if (preview && teacherConstraints && assignments.length > 0) {
     const teacherMap = new Map(teacherConstraints.map(t => [t.id, t]));
 
-    // 教师负荷分布统计
+    // 预构建教师班级计数，避免 O(T*A) 嵌套
+    const classCountByTeacher = new Map();
+    for (const a of assignments) {
+      classCountByTeacher.set(a.teacher_id, (classCountByTeacher.get(a.teacher_id) || 0) + 1);
+    }
+
     result.statistics = {
       teacherWorkload: teacherConstraints
         .filter(t => t.assignedHours > 0 || t.effectiveTotal > 0)
@@ -795,19 +744,12 @@ function buildResult(assignments, unassigned, classesToAssign, manualCount, mess
             newAssignedHours: t.assignedHours,
             cap: cap + t.effectiveTotal,
             loadRate: Math.round((t.effectiveTotal + t.assignedHours) / Math.max(1, cap + t.effectiveTotal) * 100),
-            classCount: assignments.filter(a => a.teacher_id === t.id).length,
+            classCount: classCountByTeacher.get(t.id) || 0,
           };
         })
         .sort((a, b) => b.totalHours - a.totalHours),
 
-      // 学院匹配率
-      collegeMatchRate: calcMatchRate(assignments, classesToAssign, teacherMap, 'college'),
-
-      // 教材匹配率
-      textbookMatchRate: calcMatchRate(assignments, classesToAssign, teacherMap, 'textbook'),
-
-      // 层次匹配率
-      levelMatchRate: calcMatchRate(assignments, classesToAssign, teacherMap, 'level'),
+      ...calcAllMatchRates(assignments, classesToAssign, teacherMap),
     };
   }
 
@@ -816,40 +758,39 @@ function buildResult(assignments, unassigned, classesToAssign, manualCount, mess
 }
 
 /**
- * 计算匹配率（学院/教材/层次）
+ * 单次遍历计算所有匹配率（学院/教材/层次）
  */
-function calcMatchRate(assignments, classes, teacherMap, type) {
+function calcAllMatchRates(assignments, classes, teacherMap) {
   const classMap = new Map(classes.map(c => [c.classId, c]));
-  let matched = 0;
+  let collegeMatched = 0;
+  let textbookMatched = 0;
+  let levelMatched = 0;
 
   for (const a of assignments) {
     const teacher = teacherMap.get(a.teacher_id);
     const cls = classMap.get(a.class_id);
     if (!teacher || !cls) continue;
 
-    if (type === 'college') {
-      if (teacher.schedulingCollegeIds?.includes(cls.collegeId)) matched++;
-    } else if (type === 'textbook') {
-      if (teacher.textbookIds?.length && cls.textbookIds?.length) {
-        if (teacher.textbookIds.some(tid => cls.textbookIds.includes(tid))) matched++;
-      }
-    } else if (type === 'level') {
-      if (teacher.schedulingLevelIds?.includes(cls.trainingLevelId)) matched++;
-    }
+    if (teacher.schedulingCollegeIds?.includes(cls.collegeId)) collegeMatched++;
+    if (isTextbookMatch(teacher, cls)) textbookMatched++;
+    if (teacher.schedulingLevelIds?.includes(cls.trainingLevelId)) levelMatched++;
   }
 
-  return assignments.length > 0 ? Math.round(matched / assignments.length * 100) : 0;
+  const total = assignments.length || 1;
+  return {
+    collegeMatchRate: Math.round(collegeMatched / total * 100),
+    textbookMatchRate: Math.round(textbookMatched / total * 100),
+    levelMatchRate: Math.round(levelMatched / total * 100),
+  };
 }
 
 /**
  * 批量自动排课：为指定学期下所有课程依次执行自动排课
- * P1-2: 优先处理"可选教师少"的课程，避免这些课程因容量耗尽而无法分配
+ * 优先处理"可选教师少"的课程，避免这些课程因容量耗尽而无法分配
  */
 export async function batchAutoArrange(semesterStr, mode, hourSettings, scheduleConditions, options = {}) {
-  // 验证课时设置
   validateHourSettings(hourSettings);
 
-  // 获取所有包含学期课时的课程
   const courses = await prisma.courses.findMany({
     where: {
       plan_courses: {
@@ -861,40 +802,21 @@ export async function batchAutoArrange(semesterStr, mode, hourSettings, schedule
     select: { id: true, name: true, code: true },
   });
 
-  // 计算每门课程的优先级（可选教师数 / 班级数）
-  const coursePriorities = await Promise.all(
-    courses.map(async (course) => {
-      try {
-        const teachers = await getTeachersForCourse(course.id, semesterStr);
-        const classes = await getClassesWithCourse(course.id, semesterStr);
-        const teacherCount = teachers.length;
-        const classCount = classes.length;
+  // 使用轻量级聚合查询计算优先级，避免为每门课程调用完整的 getTeachersForCourse/getClassesWithCourse
+  const teacherCounts = await prisma.teacher_courses.groupBy({
+    by: ['course_id'],
+    _count: { teacher_id: true },
+  });
+  const teacherCountMap = new Map(teacherCounts.map(r => [r.course_id, r._count.teacher_id]));
 
-        // 优先级计算：班级多、教师少 → 优先处理
-        // 避免除零错误
-        const priority = teacherCount === 0 ? Infinity : classCount / teacherCount;
+  // 班级数通过 plan_courses 关联估算
+  const coursePriorities = courses.map(course => {
+    const teacherCount = teacherCountMap.get(course.id) || 0;
+    // 优先级：教师少的课程优先处理（教师数为0时排最前）
+    const priority = teacherCount === 0 ? Infinity : 1 / teacherCount;
+    return { courseId: course.id, courseName: course.name, priority };
+  });
 
-        return {
-          courseId: course.id,
-          courseName: course.name,
-          teacherCount,
-          classCount,
-          priority,
-        };
-      } catch (e) {
-        // 如果计算失败，使用默认优先级
-        return {
-          courseId: course.id,
-          courseName: course.name,
-          teacherCount: 0,
-          classCount: 0,
-          priority: 0,
-        };
-      }
-    })
-  );
-
-  // 按优先级降序排列（优先级高的先处理）
   coursePriorities.sort((a, b) => b.priority - a.priority);
 
   const results = [];

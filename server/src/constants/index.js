@@ -55,6 +55,28 @@ export const PERSONNEL_TYPE = {
   EXTERNAL: 'external'
 };
 
+// 默认课时要求设置
+export const DEFAULT_HOUR_SETTINGS = {
+  full_time: { standard: 16, max: 20 },
+  part_time: { standard: 12, max: 16 },
+  external: { standard: 12, max: 16 },
+};
+
+// 课时设置存储键前缀
+export const HOUR_SETTINGS_PREFIX = 'teaching_hour_settings';
+
+// 排课模式
+export const ARRANGE_MODE = {
+  FULL: 'full',
+  STANDARD: 'standard',
+};
+
+// 工作量平衡阈值
+export const WORKLOAD_BALANCE = {
+  SCORE_THRESHOLD: 1,
+  LOAD_RATE_THRESHOLD: 0.2,
+};
+
 // 审计操作
 export const AUDIT_ACTIONS = {
   LOGIN: 'login',

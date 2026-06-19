@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
+import { DEFAULT_HOUR_SETTINGS, HOUR_SETTINGS_PREFIX } from '../constants/index.js';
 import {
   getClassesWithCourse,
   getTeachersForCourse,
@@ -30,16 +31,19 @@ export async function getCourseClasses(req, res, next) {
     const assignmentMap = new Map(assignments.map(a => [a.class_id, a]));
 
     // 合并安排信息到班级列表
-    const classList = classes.map(c => ({
-      ...c,
-      assignment: assignmentMap.has(c.classId) ? {
-        id: assignmentMap.get(c.classId).id,
-        teacherId: assignmentMap.get(c.classId).teacher_id,
-        teacherName: assignmentMap.get(c.classId).teacher?.name || null,
-        teacherPersonnelType: assignmentMap.get(c.classId).teacher?.personnel_type || null,
-        isAuto: assignmentMap.get(c.classId).is_auto,
-      } : null,
-    }));
+    const classList = classes.map(c => {
+      const a = assignmentMap.get(c.classId);
+      return {
+        ...c,
+        assignment: a ? {
+          id: a.id,
+          teacherId: a.teacher_id,
+          teacherName: a.teacher?.name || null,
+          teacherPersonnelType: a.teacher?.personnel_type || null,
+          isAuto: a.is_auto,
+        } : null,
+      };
+    });
 
     // 汇总统计（基于周课时）
     const totalCourseHours = classList.reduce((sum, c) => sum + c.weeklyHours, 0);
@@ -167,28 +171,20 @@ export async function runAutoArrange(req, res, next) {
     if (!course_id || !semester) return fail(res, '缺少课程或学期参数');
     if (!['full', 'standard'].includes(mode)) return fail(res, '排课模式必须是full或standard');
 
-    // P0-1: 课时设置加载优先级：前端传递 > 课程特定设置 > 全局设置 > 硬编码默认值
-    const defaultHourSettings = {
-      full_time: { standard: 16, max: 20 },
-      part_time: { standard: 12, max: 16 },
-      external: { standard: 12, max: 16 },
-    };
-
     let hourSettings = hour_settings;
 
     if (!hourSettings) {
-      // 尝试从数据库加载
       const courseSettings = await prisma.system_settings.findUnique({
-        where: { key: `teaching_hour_settings_${course_id}` },
+        where: { key: `${HOUR_SETTINGS_PREFIX}_${course_id}` },
       });
 
       if (courseSettings) {
         hourSettings = JSON.parse(courseSettings.value);
       } else {
         const globalSettings = await prisma.system_settings.findUnique({
-          where: { key: 'teaching_hour_settings' },
+          where: { key: HOUR_SETTINGS_PREFIX },
         });
-        hourSettings = globalSettings ? JSON.parse(globalSettings.value) : defaultHourSettings;
+        hourSettings = globalSettings ? JSON.parse(globalSettings.value) : DEFAULT_HOUR_SETTINGS;
       }
     }
 
@@ -369,8 +365,6 @@ export async function getStatistics(req, res, next) {
   } catch (e) { next(e); }
 }
 
-const HOUR_SETTINGS_PREFIX = 'teaching_hour_settings';
-
 /**
  * GET /hour-settings - 获取课时要求设置（按课程）
  */
@@ -427,21 +421,13 @@ export async function runBatchAutoArrange(req, res, next) {
     if (!semester) return fail(res, '缺少学期参数');
     if (!['full', 'standard'].includes(mode)) return fail(res, '排课模式必须是full或standard');
 
-    // P0-1: 课时设置加载优先级：前端传递 > 全局设置 > 硬编码默认值
-    const defaultHourSettings = {
-      full_time: { standard: 16, max: 20 },
-      part_time: { standard: 12, max: 16 },
-      external: { standard: 12, max: 16 },
-    };
-
     let hourSettings = hour_settings;
 
     if (!hourSettings) {
-      // 批量排课只使用全局设置
       const globalSettings = await prisma.system_settings.findUnique({
-        where: { key: 'teaching_hour_settings' },
+        where: { key: HOUR_SETTINGS_PREFIX },
       });
-      hourSettings = globalSettings ? JSON.parse(globalSettings.value) : defaultHourSettings;
+      hourSettings = globalSettings ? JSON.parse(globalSettings.value) : DEFAULT_HOUR_SETTINGS;
     }
 
     const conditions = schedule_conditions || [];
