@@ -92,8 +92,9 @@ echo ""
 echo -e "${GREEN}[4/9] 安装依赖...${NC}"
 # server: 需要安装全部依赖（含 devDependencies 中的 prisma CLI），构建阶段用完再清理
 execute "cd ${PROJECT_DIR}/server && npm install"
-# client: 构建前端需要 devDependencies 中的 vite 等
-execute "cd ${PROJECT_DIR}/client && npm install"
+# client: 构建前端需要 devDependencies 中的 vite/esbuild 等
+# 使用 --no-cache 避免 npm 缓存中损坏的 esbuild 平台二进制
+execute "cd ${PROJECT_DIR}/client && npm install --no-cache"
 echo "✓ 依赖安装完成"
 
 echo ""
@@ -175,6 +176,11 @@ echo "✓ 系统设置初始化完成"
 
 echo ""
 echo -e "${GREEN}[8/9] 构建前端...${NC}"
+# 验证 esbuild 平台二进制是否可用（Vite 依赖 esbuild，二进制缺失会导致构建崩溃）
+if ! execute "cd ${PROJECT_DIR}/client && node -e \"require('esbuild').version\"" 2>/dev/null; then
+    echo -e "${YELLOW}⚠  esbuild 二进制异常，尝试重新安装...${NC}"
+    execute "cd ${PROJECT_DIR}/client && rm -rf node_modules/esbuild node_modules/@esbuild && npm install esbuild --no-cache"
+fi
 execute "cd ${PROJECT_DIR}/client && npm run build"
 echo "✓ 前端构建完成"
 # 前端构建完成后清理 client 的 devDependencies，减少生产环境体积
