@@ -67,8 +67,7 @@ request.interceptors.response.use(
       originalRequest._retry = true
       
       if (isRefreshing) {
-        // 入队前标记 _retry，防止重放后再次触发刷新逻辑（L-7 子项修复）
-        originalRequest._retry = true
+        // 入队等待刷新完成，刷新成功后用新 token 重发
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
         })
@@ -90,7 +89,7 @@ request.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${authStore.token}`
           return request(originalRequest)
         } else {
-          processQueue(error, null)
+          processQueue(new Error('登录已过期，请重新登录'), null)
           ElMessage.error('登录已过期，请重新登录')
           await authStore.logout()
           return Promise.reject(error)

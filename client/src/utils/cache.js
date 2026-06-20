@@ -25,10 +25,17 @@ export async function getWithCache(apiCall, key, ttl = 60000) {
   // 执行API调用
   const data = await apiCall();
 
-  // 达到上限时先清理最旧的一条（简易 LRU）
+  // 达到上限时淘汰时间戳最旧的一条（按 timestamp 真正的 LRU）
   if (cache.size >= MAX_CACHE_SIZE) {
-    const oldestKey = cache.keys().next().value;
-    cache.delete(oldestKey);
+    let oldestKey = null;
+    let oldestTime = Infinity;
+    for (const [k, v] of cache.entries()) {
+      if (v.timestamp < oldestTime) {
+        oldestTime = v.timestamp;
+        oldestKey = k;
+      }
+    }
+    if (oldestKey) cache.delete(oldestKey);
   }
 
   // 更新缓存

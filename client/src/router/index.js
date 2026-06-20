@@ -58,88 +58,96 @@ const router = createRouter({
   routes,
 })
 
-// 全局前置守卫
+// 全局前置守卫（包 try-catch 防止守卫异常导致白屏）
 router.beforeEach(async (to, from, next) => {
-  const authStore = useAuthStore()
+  try {
+    const authStore = useAuthStore()
 
-  // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - KEC课程管理平台` : 'KEC课程管理平台'
+    // 设置页面标题
+    document.title = to.meta.title ? `${to.meta.title} - KEC课程管理平台` : 'KEC课程管理平台'
 
-  // 如果访问登录页且已登录，跳转到首页
-  if (to.path === '/login') {
-    if (authStore.isLoggedIn) {
-      next('/')
-    } else {
-      next()
-    }
-    return
-  }
-
-  // 检查是否需要认证
-  if (to.meta.requiresAuth !== false) {
-    // 未登录，跳转到登录页
-    if (!authStore.isLoggedIn) {
-      next({
-        path: '/login',
-        query: { redirect: to.fullPath }
-      })
+    // 如果访问登录页且已登录，跳转到首页
+    if (to.path === '/login') {
+      if (authStore.isLoggedIn) {
+        next('/')
+      } else {
+        next()
+      }
       return
     }
 
-    // 如果 access token 过期或为空但 refresh token 有效，先刷新 token
-    if (!authStore.token || authStore.isTokenExpired(authStore.token)) {
-      if (authStore.refreshToken && !authStore.isTokenExpired(authStore.refreshToken)) {
-        const refreshed = await authStore.refreshAccessToken()
-        if (!refreshed) {
-          next({
-            path: '/login',
-            query: { redirect: to.fullPath }
-          })
-          return
-        }
-      } else {
+    // 检查是否需要认证
+    if (to.meta.requiresAuth !== false) {
+      // 未登录，跳转到登录页
+      if (!authStore.isLoggedIn) {
         next({
           path: '/login',
           query: { redirect: to.fullPath }
         })
         return
       }
+
+      // 如果 access token 过期或为空但 refresh token 有效，先刷新 token
+      if (!authStore.token || authStore.isTokenExpired(authStore.token)) {
+        if (authStore.refreshToken && !authStore.isTokenExpired(authStore.refreshToken)) {
+          const refreshed = await authStore.refreshAccessToken()
+          if (!refreshed) {
+            next({
+              path: '/login',
+              query: { redirect: to.fullPath }
+            })
+            return
+          }
+        } else {
+          next({
+            path: '/login',
+            query: { redirect: to.fullPath }
+          })
+          return
+        }
+      }
+
+      // 确保用户信息已加载
+      if (!authStore.userInfo) {
+        await authStore.fetchUserInfo()
+      }
+
+      // 再次检查用户信息是否加载成功
+      if (!authStore.userInfo) {
+        next({
+          path: '/login',
+          query: { redirect: to.fullPath }
+        })
+        return
+      }
+
+      // 检查是否需要超级管理员权限
+      if (to.meta.requiresSuperAdmin && authStore.userInfo.role !== 'super_admin') {
+        sessionStorage.setItem('permissionWarning', '此功能仅限超级管理员访问')
+        next('/query/semester')
+        return
+      }
+
+      // 检查是否需要管理员权限（admin或super_admin）
+      // 使用 userInfo.role 直接判断，避免计算属性的时序问题
+      const userRole = authStore.userInfo.role
+      const hasAdminRole = userRole === 'admin' || userRole === 'super_admin'
+
+      if (to.meta.requiresAdmin && !hasAdminRole) {
+        sessionStorage.setItem('permissionWarning', '您没有权限访问此页面')
+        next('/query/semester')
+        return
+      }
     }
 
-    // 确保用户信息已加载
-    if (!authStore.userInfo) {
-      await authStore.fetchUserInfo()
+    next()
+  } catch (err) {
+    // 守卫异常时安全降级，跳登录页避免白屏
+    if (import.meta.env.DEV) {
+      console.error('[Router Guard Error]', err)
     }
-
-    // 再次检查用户信息是否加载成功
-    if (!authStore.userInfo) {
-      next({
-        path: '/login',
-        query: { redirect: to.fullPath }
-      })
-      return
-    }
-
-    // 检查是否需要超级管理员权限
-    if (to.meta.requiresSuperAdmin && authStore.userInfo.role !== 'super_admin') {
-      sessionStorage.setItem('permissionWarning', '此功能仅限超级管理员访问')
-      next('/query/semester')
-      return
-    }
-
-    // 检查是否需要管理员权限（admin或super_admin）
-    // 使用userInfo.role直接判断，避免计算属性的时序问题
-    const userRole = authStore.userInfo.role
-    const hasAdminRole = userRole === 'admin' || userRole === 'super_admin'
-    
-    if (to.meta.requiresAdmin && !hasAdminRole) {
-      sessionStorage.setItem('permissionWarning', '您没有权限访问此页面')
-      next('/query/semester')
-      return
-    }
+    next('/login')
   }
-
-  next()
 })
 
 export default router

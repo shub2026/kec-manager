@@ -97,15 +97,20 @@ export const useAuthStore = defineStore('auth', () => {
         refresh_token: refreshToken.value
       })
 
-      const { token: newToken } = response.data
+      const { token: newToken, refreshToken: newRefreshToken } = response.data
 
       token.value = newToken
       setCookie('token', newToken, 7)
 
+      // 若后端返回了新的 refreshToken，同步更新，避免长期登录后 refreshToken 过期失效
+      if (newRefreshToken) {
+        refreshToken.value = newRefreshToken
+        setCookie('refreshToken', newRefreshToken, 7)
+      }
+
       return true
     } catch (error) {
       clearAuth()
-      router.push('/login')
       return false
     }
   }

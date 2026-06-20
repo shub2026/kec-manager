@@ -1,5 +1,5 @@
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useSortable } from './useSortable'
 
 /**
@@ -72,6 +72,16 @@ export function useCrudList(api, options = {}) {
   }
 
   async function handleDelete(id) {
+    try {
+      await ElMessageBox.confirm('确定要删除此条目吗？此操作不可撤销。', '确认删除', {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      })
+    } catch (action) {
+      // 用户取消删除
+      return
+    }
     try {
       await api.remove(id)
       ElMessage.success('删除成功')

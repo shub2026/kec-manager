@@ -1,6 +1,11 @@
 /**
  * Cookie工具函数
  * 用于安全地存储token等敏感信息
+ *
+ * 安全说明：JavaScript 无法设置 HttpOnly Cookie（防 XSS 窃取 token）。
+ * 生产环境最佳实践是后端登录接口通过 Set-Cookie 头设置 HttpOnly+Secure+SameSite=Strict，
+ * 前端仅依赖 withCredentials 自动携带。当前实现仍由 JS 写入 Cookie，属过渡方案，
+ * 建议后续与后端配合迁移为 HttpOnly Cookie 模式。
  */
 
 /**

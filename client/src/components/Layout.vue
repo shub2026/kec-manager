@@ -153,8 +153,8 @@ const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => route.meta?.title || '首页')
 const semesterLabel = computed(() => settingsStore.semesterLabel)
 
-onMounted(() => {
-  settingsStore.load()
+onMounted(async () => {
+  await settingsStore.load()
   
   // 检查是否有权限警告
   const warning = sessionStorage.getItem('permissionWarning')
