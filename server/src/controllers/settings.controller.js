@@ -276,11 +276,20 @@ export async function resetPlans(req, res, next) {
 }
 
 export async function resetSystem(req, res, next) {
+  const reason = req.body.reason || null;
   await prisma.$transaction(async (tx) => {
-    await tx.classes.deleteMany();
+    // 1. 先删所有子表/关联表（依赖其他表的外键的表）
+    await tx.teaching_assignments.deleteMany();
+    await tx.teacher_courses.deleteMany();
+    await tx.teacher_scheduling_colleges.deleteMany();
+    await tx.teacher_training_levels.deleteMany();
     await tx.plan_textbooks.deleteMany();
     await tx.plan_course_semesters.deleteMany();
     await tx.plan_courses.deleteMany();
+
+    // 2. 再删主表
+    await tx.teachers.deleteMany();
+    await tx.classes.deleteMany();
     await tx.training_plans.deleteMany();
     await tx.textbooks.deleteMany();
     await tx.courses.deleteMany();
@@ -288,7 +297,8 @@ export async function resetSystem(req, res, next) {
     await tx.colleges.deleteMany();
     await tx.training_levels.deleteMany();
     await tx.system_settings.deleteMany();
-    // 先清空业务数据，再删除审计日志，最后在事务内重新写入本次重置记录，确保破坏性操作留痕
+
+    // 3. 先清空审计日志，再在事务内重新写入本次重置记录，确保破坏性操作留痕
     await tx.audit_logs.deleteMany();
     await tx.audit_logs.create({
       data: {
@@ -296,13 +306,13 @@ export async function resetSystem(req, res, next) {
         module: 'system',
         operator_id: req.user?.id || null,
         ip: req.ip || null,
-        details: JSON.stringify({ type: 'system_reset' }),
+        details: JSON.stringify({ type: 'system_reset', reason }),
         result: 'success',
-        message: '执行系统重置',
+        message: '执行系统重置' + (reason ? `，原因：${reason}` : ''),
       },
     });
   });
-  success(res, null, '系统已重置，所有业务数据已清空，用户账号已保留');
+  success(res, null, '系统已重置，所有业务数据和教师信息已清空，用户账号已保留');
 }
 
 export async function resetAuditLogs(req, res, next) {

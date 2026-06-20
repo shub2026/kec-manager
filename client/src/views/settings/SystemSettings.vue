@@ -1,5 +1,18 @@
 <template>
   <div class="settings-page">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <el-icon :size="28"><Setting /></el-icon>
+        </div>
+        <div class="header-info">
+          <h2 class="page-title">系统设置</h2>
+          <p class="page-desc">配置学期、管理系统数据、查看操作日志</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 学期配置组件 -->
     <SemesterConfig
       v-model:form="form"
@@ -21,6 +34,7 @@
       v-model:simple-dialog-visible="clearAuditDialogVisible"
       v-model:save-dialog-visible="saveConfirmVisible"
       v-model:confirm-input="confirmInput"
+      v-model:reason-input="reasonInput"
       :reset-type="resetType"
       :resetting="resetting"
       :saving="saving"
@@ -34,6 +48,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Setting } from '@element-plus/icons-vue'
 import { useSettingsStore } from '../../stores/settings'
 import request from '../../utils/request'
 import SemesterConfig from './components/SemesterConfig.vue'
@@ -56,6 +71,7 @@ const savedSemester = ref('')
 const dialogVisible = ref(false)
 const resetType = ref('')
 const confirmInput = ref('')
+const reasonInput = ref('')
 const clearAuditDialogVisible = ref(false)
 const saveConfirmVisible = ref(false)
 
@@ -96,6 +112,7 @@ function showResetDialog(type) {
   
   resetType.value = type
   confirmInput.value = ''
+  reasonInput.value = ''
   dialogVisible.value = true
 }
 
@@ -131,7 +148,10 @@ async function handleReset() {
       settings: '/settings/reset/settings',
     }
 
-    await request.post(endpoints[resetType.value])
+    await request.post(endpoints[resetType.value], {
+      confirm: 'DELETE',
+      ...(reasonInput.value.length >= 10 ? { reason: reasonInput.value } : {}),
+    })
     const successMsg = expectedTextMap[resetType.value] === '确认' ? '数据已清空' : `${expectedTextMap[resetType.value]}成功`
     ElMessage.success(successMsg)
     dialogVisible.value = false
@@ -167,5 +187,71 @@ onMounted(() => {
 <style scoped>
 .settings-page {
   padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* 页面头部 */
+.page-header {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  padding: 24px 28px;
+  margin-bottom: 20px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ecf5ff;
+  border-radius: 8px;
+  color: #409eff;
+}
+
+.header-info {
+  flex: 1;
+}
+
+.page-title {
+  margin: 0 0 6px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.page-desc {
+  margin: 0;
+  font-size: 14px;
+  color: #909399;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 12px;
+  }
+
+  .page-header {
+    padding: 16px 20px;
+  }
+
+  .header-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
 }
 </style>

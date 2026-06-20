@@ -38,6 +38,20 @@
             @keyup.enter="handleConfirm"
           />
         </div>
+
+        <!-- 操作原因（系统重置时显示） -->
+        <div v-if="resetType === 'settings'" class="reason-area">
+          <label>操作原因（可选，需≥10字符）：</label>
+          <el-input
+            v-model="reasonInput"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入操作原因（至少10个字符）"
+            maxlength="500"
+            show-word-limit
+            @keyup.enter="handleConfirm"
+          />
+        </div>
       </div>
 
       <template #footer>
@@ -120,6 +134,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  reasonInput: {
+    type: String,
+    default: '',
+  },
   resetting: {
     type: Boolean,
     default: false,
@@ -135,6 +153,7 @@ const emit = defineEmits([
   'update:simpleDialogVisible',
   'update:saveDialogVisible',
   'update:confirmInput',
+  'update:reasonInput',
   'confirm',
   'confirm-simple',
   'confirm-save',
@@ -158,6 +177,11 @@ const saveDialogVisible = computed({
 const confirmInput = computed({
   get: () => props.confirmInput,
   set: (val) => emit('update:confirmInput', val),
+})
+
+const reasonInput = computed({
+  get: () => props.reasonInput,
+  set: (val) => emit('update:reasonInput', val),
 })
 
 const dialogTitle = computed(() => {
@@ -278,5 +302,16 @@ function handleConfirm() {
   font-size: 14px;
   color: #606266;
   line-height: 1.6;
+}
+
+.reason-area {
+  margin-top: 16px;
+}
+
+.reason-area label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #606266;
 }
 </style>

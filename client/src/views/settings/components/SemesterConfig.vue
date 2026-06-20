@@ -194,9 +194,9 @@ function handleSemesterChange(value) {
 
 /* 左侧配置模块 */
 .config-module {
-  flex: 1;
-  min-width: 320px;
-  max-width: 400px;
+  flex: 0 0 auto;
+  min-width: 400px;
+  max-width: 480px;
 }
 
 .config-item {
@@ -220,7 +220,7 @@ function handleSemesterChange(value) {
 
 .semester-select {
   width: 100%;
-  max-width: 400px; /* 与系统标识输入框保持一致 */
+  max-width: 400px;
 }
 
 .semester-hint {
@@ -234,16 +234,10 @@ function handleSemesterChange(value) {
 
 .organization-input {
   width: 100%;
-  max-width: 400px; /* 约20个字符宽度 */
+  max-width: 400px;
 }
 
-/* 确保配置模块宽度与输入框匹配 */
-.config-module {
-  flex: 0 0 auto;
-  min-width: 400px;
-  max-width: 480px;
-}
-
+/* 右侧：学期预览 */
 .semester-preview {
   flex: 0 0 auto;
   min-width: 280px;
@@ -251,31 +245,27 @@ function handleSemesterChange(value) {
   height: auto;
   position: relative;
   padding: 28px 24px;
-  background: linear-gradient(135deg, #e8f4fd 0%, #d1ecff 100%);
-  border: 2px solid #b3d9ff;
-  border-radius: 12px;
+  background: #fafafa;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
   text-align: center;
-  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.12);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow 0.2s ease;
 }
 
 .semester-preview:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.2);
-  border-color: #409eff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 .preview-badge {
   position: absolute;
   top: -12px;
   right: 24px;
-  padding: 6px 16px;
-  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  padding: 4px 12px;
+  background: #409eff;
   color: white;
-  border-radius: 16px;
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .preview-year {
@@ -317,10 +307,10 @@ function handleSemesterChange(value) {
   min-height: 200px;
   height: auto;
   padding: 32px 24px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-  border-radius: 12px;
+  background: #fafafa;
+  border-radius: 4px;
   color: #909399;
-  border: 2px dashed #dcdfe6;
+  border: 1px dashed #dcdfe6;
 }
 
 .semester-preview.empty :deep(.el-icon) {
