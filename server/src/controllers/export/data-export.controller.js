@@ -493,11 +493,11 @@ export async function exportStatistics(req, res, next) {
     });
     const teacherMap = new Map(teachers.map(t => [t.id, t]));
 
-    // 获取每个教师的安排明细
+    // 获取每个教师的安排明细（含班级学院信息，用于推导任课学院）
     const allAssignments = await prisma.teaching_assignments.findMany({
       where: { semester, teacher_id: { in: teacherIds } },
       include: {
-        class: { select: { name: true } },
+        class: { select: { name: true, colleges: { select: { id: true, name: true } } } },
         course: { select: { name: true } },
       },
       orderBy: [{ teacher_id: 'asc' }, { course_id: 'asc' }],
@@ -533,10 +533,19 @@ export async function exportStatistics(req, res, next) {
         .map(g => `${g.course}(${g.hours}课时/${g.classes.length}班)`)
         .join('、');
 
+      // 从实际授课班级中提取任课学院（与前端 getStatistics 逻辑一致）
+      const collegeMap = new Map();
+      for (const a of assignments) {
+        if (a.class.colleges && !collegeMap.has(a.class.colleges.id)) {
+          collegeMap.set(a.class.colleges.id, a.class.colleges);
+        }
+      }
+      const teachingColleges = [...collegeMap.values()].map(c => c.name).join('、') || '-';
+
       rows.push({
         '教师姓名': teacher?.name || '未知',
         '人员类别': personnelMap[teacher?.personnel_type] || '-',
-        '任课学院': teacher?.scheduling_colleges.map(sc => sc.college.name).join('、') || '-',
+        '任课学院': teachingColleges,
         '任教科目': teacher?.courses.map(tc => tc.course.name).join('、') || '-',
         '上课班级数': classCount,
         '总周课时': totalHours,

@@ -75,23 +75,23 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="任教科目" min-width="140">
+        <el-table-column label="任教科目" min-width="115">
           <template #default="{ row }">
             <el-tag v-for="d in row.details" :key="d.course.id" size="small" class="tag-item">{{ d.course.name }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="归属学院" min-width="100">
+        <el-table-column label="归属学院" min-width="80">
           <template #default="{ row }">
             <span>{{ row.affiliatedCollege?.name || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="任课层次" min-width="110">
+        <el-table-column label="任课层次" min-width="90">
           <template #default="{ row }">
             <el-tag v-for="l in row.trainingLevelList" :key="l.id" size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
             <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="任课学院" min-width="140">
+        <el-table-column label="任课学院" min-width="180">
           <template #default="{ row }">
             <el-tag v-for="c in row.collegeList" :key="c.id" size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
             <span v-if="!row.collegeList?.length" class="text-muted">-</span>
