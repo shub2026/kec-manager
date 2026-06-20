@@ -42,6 +42,10 @@ export function convertResponseNaming(req, res, next) {
     if (data && typeof data === 'object' && Array.isArray(data.logs)) {
       data.logs = data.logs.map(log => snakeToCamel(log));
     }
+    // 如果 data.data 是分页对象且包含 list 数组，转换 list 中每个对象
+    if (data && typeof data === 'object' && data.data && typeof data.data === 'object' && Array.isArray(data.data.list)) {
+      data.data.list = data.data.list.map(item => snakeToCamel(item));
+    }
     // 转换顶层的其他字段（如 errors、message 等保持不变）
     return originalJson(data);
   };

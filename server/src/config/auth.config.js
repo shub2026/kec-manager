@@ -19,19 +19,33 @@ if (!jwtSecret) {
 const bcryptRounds = parseInt(process.env.BCRYPT_ROUNDS || '12', 10)
 
 // M10修复：Token密钥分离 - Access/Refresh/Download使用不同密钥
-const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || jwtSecret + '_refresh'
-const jwtDownloadSecret = process.env.JWT_DOWNLOAD_SECRET || jwtSecret + '_download'
+const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET
+const jwtDownloadSecret = process.env.JWT_DOWNLOAD_SECRET
 
-// 警告：生产环境应使用独立的JWT_REFRESH_SECRET和JWT_DOWNLOAD_SECRET
-if (jwtRefreshSecret === jwtSecret + '_refresh' || jwtDownloadSecret === jwtSecret + '_download') {
-  log.warn('M10警告: Refresh或Download Token使用派生密钥，建议在生产环境设置独立密钥');
-  log.warn('请在.env中添加: JWT_REFRESH_SECRET 和 JWT_DOWNLOAD_SECRET');
+// 安全加固：生产环境强制要求独立的 refresh/download 密钥，禁止派生
+const isProduction = process.env.NODE_ENV === 'production'
+const usingDerivedRefresh = !jwtRefreshSecret
+const usingDerivedDownload = !jwtDownloadSecret
+
+if (usingDerivedRefresh || usingDerivedDownload) {
+  const msg = '安全警告: JWT_REFRESH_SECRET 或 JWT_DOWNLOAD_SECRET 未独立配置，当前使用主密钥派生值（存在密钥关联风险）'
+  if (isProduction) {
+    log.error(msg)
+    log.error('生产环境必须设置独立的 JWT_REFRESH_SECRET 和 JWT_DOWNLOAD_SECRET')
+  } else {
+    log.warn(msg)
+    log.warn('请在.env中添加: JWT_REFRESH_SECRET 和 JWT_DOWNLOAD_SECRET')
+  }
 }
+
+// 开发环境 fallback：派生自主密钥（仅用于本地调试，生产环境上方已要求必须配置）
+const finalRefreshSecret = jwtRefreshSecret || (jwtSecret + '_refresh')
+const finalDownloadSecret = jwtDownloadSecret || (jwtSecret + '_download')
 
 export const authConfig = {
   jwtSecret,              // Access Token密钥
-  jwtRefreshSecret,       // M10修复: Refresh Token密钥
-  jwtDownloadSecret,      // M10修复: Download Token密钥
+  jwtRefreshSecret: finalRefreshSecret,       // M10修复: Refresh Token密钥
+  jwtDownloadSecret: finalDownloadSecret,     // M10修复: Download Token密钥
   jwtExpiresIn: '15m',    // 安全修复: 缩短为15分钟
   jwtRefreshExpiresIn: '7d',
   jwtDownloadExpiresIn: '30s', // Download Token短期有效（缩短降低日志/Referer泄露风险）

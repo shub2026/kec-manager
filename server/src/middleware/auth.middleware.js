@@ -21,7 +21,7 @@ async function getActiveUserStatus(userId) {
   return result
 }
 
-export function authMiddleware(req, res, next) {
+export async function authMiddleware(req, res, next) {
   let token = null
 
   // 从 Authorization 头获取
@@ -59,7 +59,8 @@ export function authMiddleware(req, res, next) {
   }
 
   // 校验用户是否仍存在且处于激活状态，并获取最新角色（防止降级/禁用后旧 token 仍生效）
-  getActiveUserStatus(decoded.id).then(status => {
+  try {
+    const status = await getActiveUserStatus(decoded.id)
     if (!status || !status.is_active) {
       return res.status(401).json({
         success: false,
@@ -69,10 +70,10 @@ export function authMiddleware(req, res, next) {
     // 使用数据库中的最新角色，避免旧 token 中的角色信息过期
     req.user = { ...decoded, role: status.role }
     next()
-  }).catch(err => {
+  } catch (err) {
     log.error('用户状态校验失败', { message: err.message })
     next(err)
-  })
+  }
 }
 
 export function roleMiddleware(...allowedRoles) {

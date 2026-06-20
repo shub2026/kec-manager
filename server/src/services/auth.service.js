@@ -99,7 +99,9 @@ export class AuthService {
 
       // 校验账号当前角色，避免 refresh 后使用过期角色
       const newToken = this.generateToken(user)
-      return { token: newToken }
+      const newRefreshToken = this.generateRefreshToken(user)
+      // 返回新的 refreshToken 实现轮换，避免长期使用同一 refresh token 导致无法续期
+      return { token: newToken, refreshToken: newRefreshToken }
     } catch (error) {
       throw new AuthenticationError('Refresh Token已过期或无效')
     }

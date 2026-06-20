@@ -19,4 +19,4 @@ router.post('/', roleMiddleware('admin', 'super_admin'), validateMajorCreate, sa
 router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateMajor, sanitizeBody, updateMajor);
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, deleteMajor);
 
-export default router;;
+export default router;
