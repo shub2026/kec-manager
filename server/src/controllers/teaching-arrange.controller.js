@@ -432,12 +432,6 @@ export async function getStatistics(req, res, next) {
     // 按总课时降序排列
     result.sort((a, b) => b.totalWeeklyHours - a.totalWeeklyHours);
 
-    // DEBUG: 打印前3位教师的trainingLevelList
-    console.log('[DEBUG getStatistics] 前3位教师的trainingLevelList:');
-    result.slice(0, 3).forEach(t => {
-      console.log(`  ${t.teacherName}: ${JSON.stringify(t.trainingLevelList)}`);
-    });
-
     success(res, {
       semester,
       teachers: result,

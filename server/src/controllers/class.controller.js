@@ -5,6 +5,7 @@ import { NotFoundError, ValidationError } from '../utils/error.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
 import { getActiveClassFilter } from '../services/class.service.js';
 import { buildClassFilter } from '../services/class-filter.service.js';
+import { isClassMatchPlan } from '../services/plan.service.js';
 
 function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null) {
   let startYear;
@@ -87,14 +88,8 @@ export async function listClasses(req, res, next) {
         // 有自定义方案
         matchedPlanName = cls.training_plans.name;
       } else {
-        // 尝试根据专业或培养层次匹配方案
-        let matchedPlan = null;
-        if (cls.major_id) {
-          matchedPlan = allPlans.find(p => p.major_id === cls.major_id);
-        }
-        if (!matchedPlan && cls.training_level_id) {
-          matchedPlan = allPlans.find(p => p.training_level_id === cls.training_level_id);
-        }
+        // 使用统一的三级互斥匹配，避免 null===null 误匹配
+        const matchedPlan = allPlans.find(p => isClassMatchPlan(cls, p));
         if (matchedPlan) {
           matchedPlanName = matchedPlan.name;
         }

@@ -12,12 +12,20 @@ const DEFAULT_SETTINGS = {
 /**
  * 可选认证：识别请求是否携带有效 token，有则返回用户信息，无则返回 null
  * 用于 settings GET 接口（登录页匿名访问 + 登录用户访问需区分返回内容）
+ * 会查询数据库验证用户是否仍处于激活状态，避免被禁用的用户通过有效 JWT 绕过检查
  */
-function tryGetAuthUser(req) {
+async function tryGetAuthUser(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   const token = authHeader.substring(7);
-  return AuthService.verifyToken(token);
+  const decoded = AuthService.verifyToken(token);
+  if (!decoded) return null;
+  const user = await prisma.users.findUnique({
+    where: { id: decoded.id },
+    select: { id: true, role: true, is_active: true },
+  });
+  if (!user || !user.is_active) return null;
+  return { ...decoded, role: user.role };
 }
 
 export async function getSettings(req, res, next) {
@@ -35,7 +43,7 @@ export async function getSettings(req, res, next) {
     }
 
     // 尝试识别登录用户：无有效 token（匿名，登录页）只返回非敏感的系统标识
-    const authUser = tryGetAuthUser(req);
+    const authUser = await tryGetAuthUser(req);
     if (!authUser) {
       const publicMap = {};
       if (map.organization_name) publicMap.organization_name = map.organization_name;
@@ -52,7 +60,7 @@ export async function getSettings(req, res, next) {
       defaultMap[key] = { value: def.value, description: def.description, isDefault: true };
     }
     // 未登录仅返回系统标识
-    if (!tryGetAuthUser(req)) {
+    if (!(await tryGetAuthUser(req))) {
       return res.status(200).json({
         code: 200,
         message: '使用默认设置',

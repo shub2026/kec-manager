@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { getCurrentSemesterInfo, getSemesterInfoFromRequest } from '../services/settings.service.js';
 import { getActiveClassFilter } from '../services/class.service.js';
-import { findBestMatchPlan, buildClassWithPlanFilter } from '../services/plan.service.js';
+import { findBestMatchPlan, buildClassWithPlanFilter, isClassMatchPlan } from '../services/plan.service.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -293,17 +293,8 @@ export async function queryTextbookUsage(req, res, next) {
         if (cls.enrollment_year !== enrollmentYear) continue;
         if (addedClassIds.has(cls.id)) continue;
 
-        // 使用统一的方案匹配逻辑
-        let isMatch = false;
-        if (cls.custom_plan_id === plan.id) {
-          isMatch = true;
-        } else if (!cls.custom_plan_id && cls.major_id === plan.major_id) {
-          isMatch = true;
-        } else if (!cls.custom_plan_id && cls.training_level_id === plan.training_level_id) {
-          isMatch = true;
-        }
-
-        if (!isMatch) continue;
+        // 使用统一的方案匹配逻辑（三级互斥，null-safe）
+        if (!isClassMatchPlan(cls, plan)) continue;
 
         const calc = calcClassSemester(cls, semesterInfo);
         if (!calc || calc.currentSemesterNum !== sem.semester) continue;
@@ -431,11 +422,7 @@ export async function queryAllTextbooksUsage(req, res, next) {
         // Use indexes to find matching classes efficiently
         const classesInYear = classesByEnrollmentYear.get(enrollmentYear) || [];
         for (const c of classesInYear) {
-          if (c.custom_plan_id === plan.id) {
-            usedClasses.add(c.id);
-          } else if (!c.custom_plan_id && c.major_id === plan.major_id) {
-            usedClasses.add(c.id);
-          } else if (!c.custom_plan_id && c.training_level_id === plan.training_level_id) {
+          if (isClassMatchPlan(c, plan)) {
             usedClasses.add(c.id);
           }
         }

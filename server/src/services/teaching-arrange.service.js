@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { DEFAULT_HOUR_SETTINGS, WORKLOAD_BALANCE, TEXTBOOK_COHESION } from '../constants/index.js';
 import logger from '../utils/logger.js';
+import { isClassMatchPlan } from './plan.service.js';
 
 /**
  * 计算班级在指定学期下的相对学期序号
@@ -55,25 +56,6 @@ export function parseSemester(semesterStr) {
 }
 
 // === 模块级匹配工具函数 ===
-
-/**
- * 班级与培养方案的三级互斥匹配（与 plan.service.isClassMatchPlan 保持一致）
- * 优先级：自定义方案 > 按专业 > 按培养层次
- * 注意：major_id/training_level_id 为可空字段，必须做真值守卫，避免 null===null 误匹配
- */
-function isClassMatchPlan(cls, plan) {
-  // 1. 自定义方案优先
-  if (cls.custom_plan_id === plan.id) return true;
-  // 未设置自定义方案的班级才走通用匹配
-  if (!cls.custom_plan_id) {
-    // 2. 按专业匹配（要求班级和方案都有专业且相同）
-    if (cls.major_id && plan.major_id && cls.major_id === plan.major_id) return true;
-    // 3. 按培养层次匹配（仅当班级未按专业命中、且班级和方案都有层次时）
-    if (!cls.major_id && cls.training_level_id && plan.training_level_id &&
-        cls.training_level_id === plan.training_level_id) return true;
-  }
-  return false;
-}
 
 function isTextbookMatch(teacher, cls) {
   // P1-A 修复：教材匹配始终使用教师固有教材快照，不受本次分配累加污染
@@ -422,14 +404,6 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     const inherentTextbookIds = [...(teacherTextbookMap.get(t.id) || [])];
     const assignedIds = [...(assignedOnlyTextbookMap.get(t.id) || [])];
     const assignedTextbooks = assignedIds.map(id => ({ id, title: textbookTitleMap.get(id) || `教材#${id}` }));
-    
-    // DEBUG: 打印教师教材信息
-    if (t.id <= 10) {
-      console.log(`[DEBUG getTeachersForCourse] Teacher ${t.name}:`);
-      console.log(`  inherentTextbookIds: [${inherentTextbookIds.join(', ')}]`);
-      console.log(`  assignedTextbooks: [${assignedTextbooks.map(tb => tb.title).join(', ')}]`);
-      console.log(`  assignedIds: [${assignedIds.join(', ')}]`);
-    }
     
     return {
     id: t.id,
