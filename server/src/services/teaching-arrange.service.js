@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js';
-import { DEFAULT_HOUR_SETTINGS, WORKLOAD_BALANCE } from '../constants/index.js';
+import { DEFAULT_HOUR_SETTINGS, WORKLOAD_BALANCE, TEXTBOOK_COHESION } from '../constants/index.js';
 
 /**
  * 计算班级在指定学期下的相对学期序号
@@ -340,7 +340,28 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     }
   }
 
-  const fallbackTextbookIds = [...fallbackTextbookSet];
+  // 快照：仅含实际已安排教师的教材（fallback 之前）
+  const assignedOnlyTextbookMap = new Map();
+  for (const [tid, idSet] of teacherTextbookMap) {
+    assignedOnlyTextbookMap.set(tid, new Set(idSet));
+  }
+
+  // 批量获取已安排教材的标题
+  const allAssignedTextbookIds = new Set();
+  for (const idSet of assignedOnlyTextbookMap.values()) {
+    for (const id of idSet) allAssignedTextbookIds.add(id);
+  }
+  const assignedTextbookRows = allAssignedTextbookIds.size > 0
+    ? await prisma.textbooks.findMany({
+        where: { id: { in: [...allAssignedTextbookIds] } },
+        select: { id: true, title: true },
+      })
+    : [];
+  const textbookTitleMap = new Map(assignedTextbookRows.map(t => [t.id, t.title]));
+
+  const fallbackTextbookIds = TEXTBOOK_COHESION.FALLBACK_EMPTY
+    ? [] // 修复1：收紧兜底推导 —— 无排课记录教师教材为空，避免 isTextbookMatch 对新教师全通过
+    : [...fallbackTextbookSet];
   for (const t of teachers) {
     if (!teacherTextbookMap.has(t.id)) {
       teacherTextbookMap.set(t.id, new Set(fallbackTextbookIds));
@@ -349,6 +370,8 @@ export async function getTeachersForCourse(courseId, semesterStr) {
 
   return teachers.map(t => {
     const inherentTextbookIds = [...(teacherTextbookMap.get(t.id) || [])];
+    const assignedIds = [...(assignedOnlyTextbookMap.get(t.id) || [])];
+    const assignedTextbooks = assignedIds.map(id => ({ id, title: textbookTitleMap.get(id) || `教材#${id}` }));
     return {
     id: t.id,
     name: t.name,
@@ -361,9 +384,10 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     schedulingCollegeIds: t.scheduling_colleges.map(sc => sc.college_id),
     schedulingLevelIds: t.scheduling_levels.map(sl => sl.training_level.id),
     trainingLevelList: t.scheduling_levels.map(sl => sl.training_level),
-    textbookIds: [...inherentTextbookIds],
-    inherentTextbookIds,
-    assignedTextbookIds: new Set(),
+      textbookIds: [...inherentTextbookIds],
+      inherentTextbookIds,
+      assignedTextbooks,
+      assignedTextbookIds: new Set(),
     totalWeeklyHours: workloadMap.get(t.id) || 0,
     totalClassCount: classCountMap.get(t.id) || 0,
     courseHours: courseAssignmentMap.get(t.id)?.hours || 0,
@@ -374,35 +398,65 @@ export async function getTeachersForCourse(courseId, semesterStr) {
 
 /**
  * 计算教师-班级匹配分数（优先级 + 教材内聚）
- * 权重: 学院匹配 +5, 层次匹配 +5, 本轮已分配教材 +6, 固有教材 +3
+ * 权重由 TEXTBOOK_COHESION 配置：
+ *   学院匹配 +COLLEGE_WEIGHT, 层次匹配 +LEVEL_WEIGHT,
+ *   本轮已分配教材 +ASSIGNED_WEIGHT, 固有教材 +INHERENT_WEIGHT,
+ *   新增教材惩罚 -PENALTY_PER_NEW × N（修复3，强制内聚）
  */
-function calcMatchScore(teacher, classInfo, conditions = []) {
+function calcMatchScore(teacher, classInfo) {
   let score = 0;
+
+  const cw = TEXTBOOK_COHESION.COLLEGE_WEIGHT;
+  const lw = TEXTBOOK_COHESION.LEVEL_WEIGHT;
+  const aw = TEXTBOOK_COHESION.ASSIGNED_WEIGHT;
+  const iw = TEXTBOOK_COHESION.INHERENT_WEIGHT;
+  const penalty = TEXTBOOK_COHESION.PENALTY_PER_NEW;
 
   if (teacher.schedulingCollegeIds && teacher.schedulingCollegeIds.length > 0) {
     if (teacher.schedulingCollegeIds.includes(classInfo.collegeId)) {
-      score += 5;
+      score += cw;
     }
   }
 
   if (teacher.schedulingLevelIds && teacher.schedulingLevelIds.length > 0) {
     if (classInfo.trainingLevelId && teacher.schedulingLevelIds.includes(classInfo.trainingLevelId)) {
-      score += 5;
+      score += lw;
     }
   }
 
   if (classInfo.textbookIds && classInfo.textbookIds.length > 0 && teacher.assignedTextbookIds) {
     const hasAssigned = classInfo.textbookIds.some(tid => teacher.assignedTextbookIds.has(tid));
     if (hasAssigned) {
-      score += 6;
+      score += aw;
     }
   }
 
   if (isTextbookMatch(teacher, classInfo)) {
-    score += 3;
+    score += iw;
+  }
+
+  // 修复3：教材内聚惩罚
+  // 教师接此班级需新增 N 本教材时，每本扣 PENALTY_PER_NEW 分
+  // 使"零新增教材"的候选教师在评分上优先
+  if (TEXTBOOK_COHESION.ENABLED && penalty > 0 &&
+      classInfo.textbookIds && classInfo.textbookIds.length > 0 && teacher.assignedTextbookIds) {
+    const newTextbookCount = classInfo.textbookIds.filter(
+      tid => !teacher.assignedTextbookIds.has(tid)
+    ).length;
+    score -= newTextbookCount * penalty;
   }
 
   return score;
+}
+
+/**
+ * 辅助函数：教师接此班级是否"零新增教材"
+ * 用于 phase2.5 内聚优先阶段筛选
+ */
+function isNewTextbookZero(teacher, cls) {
+  if (!cls.textbookIds || cls.textbookIds.length === 0) return true;
+  if (!teacher.assignedTextbookIds) return false;
+  return cls.textbookIds.every(tid => teacher.assignedTextbookIds.has(tid));
 }
 
 /**
@@ -523,9 +577,19 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
   }
 
   function assignRound(classList, eligibilityFilter = null) {
-    const sorted = [...classList].sort((a, b) =>
-      countEligibleTeachers(a, eligibilityFilter) - countEligibleTeachers(b, eligibilityFilter)
-    );
+    // 修复5：班级排序加入"教材签名"次要键
+    // 教材组合相同的班级连续分配，让教师 assignedTextbookIds 快速累积，+6 分权重尽早生效
+    // 主键仍是"可选教师数升序"（稀缺优先），次键为教材签名
+    const textbookSignature = (cls) => (cls.textbookIds && cls.textbookIds.length > 0)
+      ? cls.textbookIds.slice().sort().join(',')
+      : '';
+    const sorted = [...classList].sort((a, b) => {
+      const ea = countEligibleTeachers(a, eligibilityFilter);
+      const eb = countEligibleTeachers(b, eligibilityFilter);
+      if (ea !== eb) return ea - eb;
+      // 教材签名相同的班级聚在一起
+      return textbookSignature(a).localeCompare(textbookSignature(b));
+    });
 
     const remaining = [];
     for (const cls of sorted) {
@@ -595,8 +659,17 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
   const phase2Filter = (t, cls) => hasAnyPref(t) && prefMatch(t, cls) && hasAssignedTextbook(t, cls);
   const phase2Remaining = assignRound(phase1Remaining, phase2Filter);
 
+  // 修复2：phase2.5 教材内聚优先阶段
+  // 偏好匹配 + 本轮零新增教材 —— 让偏好教师优先接已用教材班级，避免被迫开新教材
+  // 可通过 TEXTBOOK_COHESION.COHESION_PHASE_ENABLED 关闭
+  let phase2_5Remaining = phase2Remaining;
+  if (TEXTBOOK_COHESION.ENABLED && TEXTBOOK_COHESION.COHESION_PHASE_ENABLED) {
+    const phase2_5Filter = (t, cls) => hasAnyPref(t) && prefMatch(t, cls) && isNewTextbookZero(t, cls);
+    phase2_5Remaining = assignRound(phase2Remaining, phase2_5Filter);
+  }
+
   const phase3Filter = (t, cls) => hasAnyPref(t) && prefMatch(t, cls);
-  const phase3Remaining = assignRound(phase2Remaining, phase3Filter);
+  const phase3Remaining = assignRound(phase2_5Remaining, phase3Filter);
 
   const phase4Filter = (t, cls) => !hasAnyPref(t) && (isTextbookMatch(t, cls) || hasAssignedTextbook(t, cls));
   const phase4Remaining = assignRound(phase3Remaining, phase4Filter);
@@ -964,13 +1037,17 @@ function buildResult(assignments, unassigned, classesToAssign, manualCount, mess
 }
 
 /**
- * 单次遍历计算所有匹配率（学院/教材/层次）
+ * 单次遍历计算所有匹配率（学院/教材/层次）+ 教材内聚度统计（修复4）
  */
 function calcAllMatchRates(assignments, classes, teacherMap) {
   const classMap = new Map(classes.map(c => [c.classId, c]));
   let collegeMatched = 0;
   let textbookMatched = 0;
   let levelMatched = 0;
+
+  // 内聚度统计所需数据
+  const teacherTextbookSet = new Map();   // teacherId → Set<textbookId>
+  const teacherClassCount = new Map();    // teacherId → 班级数
 
   for (const a of assignments) {
     const teacher = teacherMap.get(a.teacher_id);
@@ -980,13 +1057,46 @@ function calcAllMatchRates(assignments, classes, teacherMap) {
     if (teacher.schedulingCollegeIds?.includes(cls.collegeId)) collegeMatched++;
     if (isTextbookMatch(teacher, cls)) textbookMatched++;
     if (teacher.schedulingLevelIds?.includes(cls.trainingLevelId)) levelMatched++;
+
+    // 累积教师教材集合与班级计数
+    if (!teacherTextbookSet.has(a.teacher_id)) teacherTextbookSet.set(a.teacher_id, new Set());
+    const tbSet = teacherTextbookSet.get(a.teacher_id);
+    for (const tid of (cls.textbookIds || [])) tbSet.add(tid);
+    teacherClassCount.set(a.teacher_id, (teacherClassCount.get(a.teacher_id) || 0) + 1);
   }
 
   const total = assignments.length || 1;
+
+  // 内聚度计算：每位教师 cohesion = 1 - (教材数 - 1) / 班级数，clamp [0,1]
+  // 教材数=1 或 班级数=0 时 cohesion=1（最内聚）
+  let cohesionSum = 0;
+  let teacherCount = 0;
+  let totalTextbookCount = 0;
+  let scatteredCount = 0;
+  const scatteredThreshold = TEXTBOOK_COHESION.SCATTERED_THRESHOLD;
+  for (const [tid, tbSet] of teacherTextbookSet) {
+    const classCount = teacherClassCount.get(tid) || 1;
+    const tbSize = tbSet.size;
+    const cohesion = classCount > 0
+      ? Math.max(0, 1 - (tbSize - 1) / classCount)
+      : 1;
+    cohesionSum += cohesion;
+    teacherCount++;
+    totalTextbookCount += tbSize;
+    if (tbSize >= scatteredThreshold) scatteredCount++;
+  }
+
   return {
     collegeMatchRate: Math.round(collegeMatched / total * 100),
     textbookMatchRate: Math.round(textbookMatched / total * 100),
     levelMatchRate: Math.round(levelMatched / total * 100),
+    // 修复4：教材内聚度统计
+    textbookCohesionRate: teacherCount > 0 ? Math.round(cohesionSum / teacherCount * 100) : 100,
+    avgTextbookPerTeacher: teacherCount > 0
+      ? +(totalTextbookCount / teacherCount).toFixed(2)
+      : 0,
+    scatteredTeacherCount: scatteredCount,
+    involvedTeacherCount: teacherCount,
   };
 }
 

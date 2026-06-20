@@ -21,13 +21,13 @@
           </div>
         </div>
       </template>
-      <el-table :data="filteredlist" stripe v-loading="loading" row-key="id">
+      <el-table :data="filteredlist" stripe v-loading="loading" row-key="id" style="width: 100%">
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="方案名称" min-width="200" />
         <el-table-column label="使用部门" min-width="120">
           <template #default="{ row }">{{ row.colleges?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="关联类型" width="90">
+        <el-table-column label="关联类型" min-width="90">
           <template #default="{ row }">
             <el-tag v-if="row.majorId" type="success" size="small">按专业</el-tag>
             <el-tag v-else-if="row.trainingLevelId" type="info" size="small">按层次</el-tag>
@@ -40,13 +40,13 @@
           <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
         </el-table-column>
         <el-table-column prop="version" label="版本" width="80" />
-        <el-table-column label="课程数" width="80">
+        <el-table-column label="课程数" width="80" align="center">
           <template #default="{ row }">{{ row.courseCount || 0 }}</template>
         </el-table-column>
-        <el-table-column label="使用班级" width="90">
+        <el-table-column label="使用班级" width="90" align="center">
           <template #default="{ row }">{{ row.classCount || 0 }}</template>
         </el-table-column>
-        <el-table-column label="排序" width="120" align="center">
+        <el-table-column label="排序" min-width="100" align="center">
           <template #default="{ row, $index }">
             <div class="sort-buttons">
               <el-button 
@@ -68,13 +68,19 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" min-width="220" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" @click="$router.push(`/plans/${row.id}`)">编辑明细</el-button>
-            <el-button size="small" @click="openDialog(row)">编辑信息</el-button>
+            <el-button size="small" type="primary" @click="$router.push(`/plans/${row.id}`)" title="编辑明细">
+              <el-icon><Edit /></el-icon>编辑明细
+            </el-button>
+            <el-button size="small" @click="openDialog(row)" title="编辑信息">
+              <el-icon><Edit /></el-icon>
+            </el-button>
             <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
               <template #reference>
-                <el-button size="small" type="danger">删除</el-button>
+                <el-button size="small" type="danger" title="删除">
+                  <el-icon><Delete /></el-icon>
+                </el-button>
               </template>
             </el-popconfirm>
           </template>
@@ -142,7 +148,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue'
 import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'

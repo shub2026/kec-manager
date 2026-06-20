@@ -77,6 +77,25 @@ export const WORKLOAD_BALANCE = {
   LOAD_RATE_THRESHOLD: 0.2,
 };
 
+// 教材内聚优化配置（2026-06-20 新增）
+// 用于解决"教师同时上多本教材、内聚度低"问题
+// 关闭时（ENABLED=false）回退到原有评分逻辑
+export const TEXTBOOK_COHESION = {
+  ENABLED: true,                // 总开关：是否启用内聚优化
+  // 评分权重（calcMatchScore）
+  COLLEGE_WEIGHT: 5,            // 学院匹配权重
+  LEVEL_WEIGHT: 5,              // 层次匹配权重
+  ASSIGNED_WEIGHT: 6,           // 本轮已用教材权重（强化内聚，保留原值）
+  INHERENT_WEIGHT: 4,           // 固有教材权重（原值 3，提升以鼓励历史教材）
+  PENALTY_PER_NEW: 2,           // 每新增一本教材的扣分（新增项，0 表示禁用惩罚）
+  // 阶段链
+  COHESION_PHASE_ENABLED: true, // 是否启用 phase2.5 内聚优先阶段
+  // 兜底推导
+  FALLBACK_EMPTY: true,         // true=无排课记录教师教材为空集合；false=保留全量并集兜底
+  // 统计
+  SCATTERED_THRESHOLD: 3,       // 教师教材数 ≥ 此值视为"分散"
+};
+
 // 审计操作
 export const AUDIT_ACTIONS = {
   LOGIN: 'login',

@@ -14,14 +14,14 @@
             <el-select v-model="filterSubject" placeholder="科目" clearable filterable style="width: 140px">
               <el-option v-for="v in subjectOptions" :key="v" :label="v" :value="v" />
             </el-select>
-            <el-select v-model="filterCollege" placeholder="任课学院" clearable filterable style="width: 130px">
-              <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
-            </el-select>
-            <el-select v-model="filterLevel" placeholder="任课层次" clearable filterable style="width: 120px">
-              <el-option v-for="v in levelOptions" :key="v" :label="v" :value="v" />
-            </el-select>
             <el-select v-model="filterAffiliatedCollege" placeholder="归属学院" clearable filterable style="width: 130px">
               <el-option v-for="v in affiliatedCollegeOptions" :key="v" :label="v" :value="v" />
+            </el-select>
+            <el-select v-model="filterLevel" placeholder="任课层次" clearable filterable style="width: 110px">
+              <el-option v-for="v in levelOptions" :key="v" :label="v" :value="v" />
+            </el-select>
+            <el-select v-model="filterCollege" placeholder="任课学院" clearable filterable style="width: 120px">
+              <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
             </el-select>
             <el-button @click="handleExport" :loading="exporting" :disabled="!statsData">数据导出</el-button>
           </div>
@@ -45,7 +45,7 @@
       </div>
 
       <!-- 教师课时统计表 -->
-      <el-table :data="filteredTeachers" stripe v-loading="loading" row-key="teacherId">
+      <el-table :data="filteredTeachers" stripe v-loading="loading" row-key="teacherId" style="width: 100%">
         <el-table-column type="expand">
           <template #default="{ row }">
             <div class="expand-content">
@@ -67,40 +67,40 @@
           </template>
         </el-table-column>
         <el-table-column type="index" label="#" width="50" />
-        <el-table-column prop="teacherName" label="姓名" width="100" />
-        <el-table-column label="归属学院" min-width="120">
-          <template #default="{ row }">
-            <span>{{ row.affiliatedCollege?.name || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="人员类别" width="90">
+        <el-table-column prop="teacherName" label="姓名" width="80" />
+        <el-table-column label="人员类别" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="personnelTagType(row.personnelType)" size="small">
               {{ personnelLabel(row.personnelType) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="任教科目" min-width="180">
+        <el-table-column label="任教科目" min-width="140">
           <template #default="{ row }">
             <el-tag v-for="d in row.details" :key="d.course.id" size="small" class="tag-item">{{ d.course.name }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="任课层次" min-width="120">
+        <el-table-column label="归属学院" min-width="100">
+          <template #default="{ row }">
+            <span>{{ row.affiliatedCollege?.name || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="任课层次" min-width="110">
           <template #default="{ row }">
             <el-tag v-for="l in row.trainingLevelList" :key="l.id" size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
             <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="任课学院" min-width="160">
+        <el-table-column label="任课学院" min-width="140">
           <template #default="{ row }">
             <el-tag v-for="c in row.collegeList" :key="c.id" size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
             <span v-if="!row.collegeList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="上课班级数" width="100" align="center">
+        <el-table-column label="班级数" width="70" align="center">
           <template #default="{ row }">{{ row.totalClassCount }}</template>
         </el-table-column>
-        <el-table-column label="总周课时" min-width="100" align="center" sortable :sort-method="(a, b) => a.totalWeeklyHours - b.totalWeeklyHours">
+        <el-table-column label="总周课时" width="120" align="center" sortable :sort-method="(a, b) => a.totalWeeklyHours - b.totalWeeklyHours">
           <template #default="{ row }">
             <span class="hours-value">{{ row.totalWeeklyHours }}</span>
           </template>

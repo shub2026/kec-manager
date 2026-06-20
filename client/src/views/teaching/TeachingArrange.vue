@@ -80,17 +80,20 @@
         <div class="card-header">
           <span>教学安排</span>
           <div class="card-header-actions">
-            <el-select v-model="filterCollege" placeholder="学院" clearable filterable style="width: 130px" @change="filterMajor = ''">
+            <el-select v-model="filterCollege" placeholder="学院" clearable filterable style="width: 130px" @change="filterMajor = ''; filterTextbook = ''">
               <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
             </el-select>
-            <el-select v-model="filterMajor" placeholder="专业" clearable filterable style="width: 130px">
+            <el-select v-model="filterMajor" placeholder="专业" clearable filterable style="width: 130px" @change="filterTextbook = ''">
               <el-option v-for="v in majorOptions" :key="v" :label="v" :value="v" />
+            </el-select>
+            <el-select v-model="filterTrainingLevel" placeholder="层次" clearable style="width: 100px">
+              <el-option v-for="v in trainingLevelOptions" :key="v" :label="v" :value="v" />
             </el-select>
             <el-select v-model="filterGrade" placeholder="年级" clearable style="width: 90px">
               <el-option v-for="v in gradeOptions" :key="v" :label="v + '年级'" :value="v" />
             </el-select>
-            <el-select v-model="filterTrainingLevel" placeholder="层次" clearable style="width: 100px">
-              <el-option v-for="v in trainingLevelOptions" :key="v" :label="v" :value="v" />
+            <el-select v-model="filterTextbook" placeholder="教材" clearable filterable style="width: 140px">
+              <el-option v-for="v in textbookOptions" :key="v" :label="v" :value="v" />
             </el-select>
             <el-button type="success" @click="handleAutoArrange('full')" :loading="arranging">
               <el-icon><MagicStick /></el-icon> 全量模式
@@ -120,7 +123,7 @@
         </div>
       </template>
 
-      <el-table :data="filteredClassList" :key="filterCollege + filterMajor + filterGrade + filterTrainingLevel" stripe v-loading="tableLoading" row-key="classId" :row-class-name="tableRowClassName" class="adaptive-table">
+      <el-table :data="filteredClassList" :key="filterCollege + filterMajor + filterGrade + filterTrainingLevel + filterTextbook" stripe v-loading="tableLoading" row-key="classId" :row-class-name="tableRowClassName" class="adaptive-table">
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="className" label="班级名称" min-width="140" show-overflow-tooltip />
         <el-table-column prop="collegeName" label="学院" min-width="100" show-overflow-tooltip />
@@ -171,26 +174,26 @@
     <!-- 教师选择弹窗 -->
     <el-dialog v-model="teacherDialogVisible" title="选择任课教师" width="80%" destroy-on-close class="teacher-dialog">
       <el-table :data="teacherList" stripe highlight-current-row @current-change="onTeacherSelect" size="small">
-        <el-table-column prop="name" label="姓名" min-width="70" />
-        <el-table-column label="人员类别" min-width="80">
+        <el-table-column prop="name" label="姓名" width="55" />
+        <el-table-column label="人员类别" width="80" align="center">
           <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
         </el-table-column>
-        <el-table-column label="当前总课时" min-width="90" align="center">
+        <el-table-column label="当前总课时" width="90" align="center">
           <template #default="{ row }">
             <span :class="{ 'text-warning': row.totalWeeklyHours > (row.defaultWeeklyHours ?? hourSettings[row.personnelType || 'full_time']?.standard ?? 16) }">
               {{ row.totalWeeklyHours }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="班级数" min-width="60" align="center">
+        <el-table-column label="班级数" width="70" align="center">
           <template #default="{ row }">{{ row.totalClassCount }}</template>
         </el-table-column>
-        <el-table-column label="学科" min-width="140">
+        <el-table-column label="学科" min-width="100">
           <template #default="{ row }">
             <el-tag v-for="c in row.courseList" :key="c.id" size="small" class="tag-item">{{ c.name }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="任课学院" min-width="140">
+        <el-table-column label="任课学院" min-width="120">
           <template #default="{ row }">
             <el-tag v-for="c in row.collegeList" :key="c.id" size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
           </template>
@@ -198,6 +201,14 @@
         <el-table-column label="任课层次" min-width="120">
           <template #default="{ row }">
             <el-tag v-for="l in row.trainingLevelList" :key="l.id" size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="已用教材" min-width="220">
+          <template #default="{ row }">
+            <template v-if="row.assignedTextbooks?.length">
+              <el-tag v-for="tb in row.assignedTextbooks" :key="tb.id" size="small" type="info" class="tag-item">{{ tb.title }}</el-tag>
+            </template>
+            <span v-else class="text-placeholder">-</span>
           </template>
         </el-table-column>
         <el-table-column label="特定周课时" min-width="90" align="center">
@@ -312,6 +323,26 @@
         </div>
       </div>
 
+      <!-- 教材内聚度指标（预览模式下后端透出 statistics） -->
+      <div v-if="arrangeResult.statistics" class="arrange-cohesion">
+        <div class="cohesion-title">教材内聚度</div>
+        <div class="cohesion-metrics">
+          <div class="cohesion-metric">
+            <span class="cohesion-num" :class="cohesionRateClass">{{ arrangeResult.statistics.textbookCohesionRate ?? '-' }}%</span>
+            <span class="cohesion-label">内聚率</span>
+          </div>
+          <div class="cohesion-metric">
+            <span class="cohesion-num">{{ arrangeResult.statistics.avgTextbookPerTeacher ?? '-' }}</span>
+            <span class="cohesion-label">人均教材数</span>
+          </div>
+          <div class="cohesion-metric">
+            <span class="cohesion-num" :class="{ 'text-warning': (arrangeResult.statistics.scatteredTeacherCount || 0) > 0 }">{{ arrangeResult.statistics.scatteredTeacherCount ?? 0 }}</span>
+            <span class="cohesion-label">分散教师数</span>
+          </div>
+        </div>
+        <div class="cohesion-hint">内聚率越高表示教师教材越集中；分散教师数指教材数≥3 的教师</div>
+      </div>
+
       <!-- 警告信息 -->
       <div v-if="arrangeResult.warnings?.length" class="arrange-warnings">
         <div v-for="(w, i) in arrangeResult.warnings" :key="i" class="arrange-warning-item">
@@ -394,6 +425,7 @@ const filterCollege = ref('')
 const filterMajor = ref('')
 const filterGrade = ref('')
 const filterTrainingLevel = ref('')
+const filterTextbook = ref('')
 
 const collegeOptions = computed(() => {
   const set = new Set(classList.value.map(c => c.collegeName).filter(Boolean))
@@ -417,12 +449,26 @@ const trainingLevelOptions = computed(() => {
   return [...set].sort()
 })
 
+const textbookOptions = computed(() => {
+  const set = new Set()
+  classList.value.forEach(c => {
+    (c.textbooks || []).forEach(tb => {
+      if (tb.title) set.add(tb.title)
+    })
+  })
+  return [...set].sort()
+})
+
 const filteredClassList = computed(() => {
   return classList.value.filter(c => {
     if (filterCollege.value && c.collegeName !== filterCollege.value) return false
     if (filterMajor.value && c.majorName !== filterMajor.value) return false
     if (filterGrade.value && c.grade !== filterGrade.value) return false
     if (filterTrainingLevel.value && c.trainingLevelName !== filterTrainingLevel.value) return false
+    if (filterTextbook.value) {
+      const titles = (c.textbooks || []).map(tb => tb.title)
+      if (!titles.includes(filterTextbook.value)) return false
+    }
     return true
   })
 })
@@ -470,6 +516,15 @@ const arrangeResultVisible = ref(false)
 const arrangeResult = ref({})
 const arrangeResultMode = ref('')
 
+// 教材内聚率颜色分级
+const cohesionRateClass = computed(() => {
+  const rate = arrangeResult.value?.statistics?.textbookCohesionRate
+  if (rate == null) return ''
+  if (rate >= 70) return 'text-success'
+  if (rate >= 40) return 'text-warning'
+  return 'text-danger'
+})
+
 function personnelLabel(type) {
   return { full_time: '专职', part_time: '兼职', external: '外聘' }[type] || type
 }
@@ -489,7 +544,12 @@ async function loadHourSettings(courseId) {
   try {
     const res = await getHourSettings({ course_id: courseId })
     if (res.data) {
-      Object.assign(hourSettings, res.data)
+      // 后端响应会被命名中间件转成 camelCase（fullTime/partTime），
+      // 这里映射回前端使用的 snake_case key
+      const d = res.data
+      if (d.fullTime) hourSettings.full_time = { ...d.fullTime }
+      if (d.partTime) hourSettings.part_time = { ...d.partTime }
+      if (d.external) hourSettings.external = { ...d.external }
     }
   } catch (e) {
     if (import.meta.env.DEV) { console.error('加载课时设置失败:', e) }
@@ -539,6 +599,7 @@ async function onCourseChange(courseId) {
   filterMajor.value = ''
   filterGrade.value = ''
   filterTrainingLevel.value = ''
+  filterTextbook.value = ''
   if (!courseId) {
     classList.value = []
     teacherList.value = []
@@ -1069,6 +1130,49 @@ onMounted(() => {
 .arrange-stat-label {
   font-size: 12px;
   color: #909399;
+  margin-top: 4px;
+}
+/* 教材内聚度指标区块 */
+.arrange-cohesion {
+  margin: 12px 0;
+  padding: 12px 14px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  border-left: 3px solid #409EFF;
+}
+.cohesion-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 8px;
+}
+.cohesion-metrics {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 6px;
+}
+.cohesion-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.cohesion-num {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.2;
+}
+.cohesion-num.text-success { color: #67C23A; }
+.cohesion-num.text-warning { color: #E6A23C; }
+.cohesion-num.text-danger { color: #F56C6C; }
+.cohesion-label {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 2px;
+}
+.cohesion-hint {
+  font-size: 11px;
+  color: #C0C4CC;
   margin-top: 4px;
 }
 .arrange-warnings {

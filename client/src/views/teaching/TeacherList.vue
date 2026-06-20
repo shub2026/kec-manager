@@ -14,10 +14,10 @@
             <el-select v-model="filterCourseId" placeholder="学科" clearable filterable class="filter-medium">
               <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterCollegeId" placeholder="任课学院" clearable filterable class="filter-medium">
+            <el-select v-model="filterCollegeId" placeholder="意向学院" clearable filterable class="filter-medium">
               <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterTrainingLevelId" placeholder="任课层次" clearable filterable class="filter-narrow">
+            <el-select v-model="filterTrainingLevelId" placeholder="意向层次" clearable filterable class="filter-narrow">
               <el-option v-for="l in allTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
             </el-select>
             <el-select v-model="filterAffiliatedCollegeId" placeholder="归属学院" clearable filterable class="filter-medium">
@@ -87,13 +87,13 @@
             <span v-if="!row.courseList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="任课学院" min-width="140">
+        <el-table-column label="意向学院" min-width="140">
           <template #default="{ row }">
             <el-tag v-for="c in row.collegeList" :key="c.id" size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
             <span v-if="!row.collegeList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="任课层次" min-width="120">
+        <el-table-column label="意向层次" min-width="120">
           <template #default="{ row }">
             <el-tag v-for="l in row.trainingLevelList" :key="l.id" size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
             <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
@@ -186,12 +186,12 @@
             <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="任课学院">
+        <el-form-item label="意向学院">
           <el-select v-model="form.collegeIds" multiple filterable placeholder="选择优先指定学院" style="width: 100%">
             <el-option v-for="c in availableColleges" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="任课层次">
+        <el-form-item label="意向层次">
           <el-select v-model="form.trainingLevelIds" multiple filterable placeholder="选择优先指定层次" style="width: 100%">
             <el-option v-for="l in availableTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
           </el-select>
@@ -298,7 +298,7 @@ const defaultForm = {
 }
 const form = ref({ ...defaultForm })
 
-// 任课学院/任课层次双向联动筛选
+// 意向学院/意向层次双向联动筛选
 const availableColleges = computed(() => {
   const selectedLevelIds = form.value.trainingLevelIds || []
   if (!selectedLevelIds.length) return allColleges.value
