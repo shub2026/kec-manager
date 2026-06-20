@@ -331,16 +331,16 @@ export async function getTeachersForCourse(courseId, semesterStr) {
   if (currentAssignments.length > 0) {
     const classIds = currentAssignments.map(a => a.class_id);
     
-    // 获取当前学期对应的数字格式（用于匹配plan_course_semesters.semester）
-    // semesterStr 格式: '2025-2026-2' -> 提取最后的数字 2
-    const semNum = parseInt(semesterStr.split('-').pop());
+    // 解析学期信息，用于 calcClassSemester 计算每个班级的程序学期号
+    const semesterInfo = parseSemester(semesterStr);
     
+    // 加载所有培养方案课程的学期教材（不在 SQL 层按日历学期号过滤，
+    // 而是在 JS 层按每个班级的实际程序学期号过滤，与 getClassesWithCourse 保持一致）
     const planCoursesForClasses = await prisma.plan_courses.findMany({
       where: { course_id: Number(courseId) },
       include: {
         training_plans: { select: { id: true, major_id: true, training_level_id: true } },
         plan_course_semesters: {
-          where: { semester: semNum }, // 关键修复：只查询当前学期的教材（1, 2, 3, 4）
           include: {
             plan_textbooks: { select: { textbook_id: true } },
           },
@@ -351,17 +351,24 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     const classTextbookMap = new Map();
     const allClassesForTextbooks = await prisma.classes.findMany({
       where: { id: { in: classIds } },
-      select: { id: true, custom_plan_id: true, major_id: true, training_level_id: true },
+      select: { id: true, custom_plan_id: true, major_id: true, training_level_id: true, enrollment_year: true, duration_years: true },
     });
 
     for (const cls of allClassesForTextbooks) {
+      // 计算班级在当前学期的程序学期号（如大二下=4），替代之前错误的日历学期号
+      const calc = semesterInfo ? calcClassSemester(cls, semesterInfo) : null;
+      const clsSemesterNum = calc?.currentSemesterNum;
+
       const textbookIds = new Set();
       for (const pc of planCoursesForClasses) {
         const plan = pc.training_plans;
         // 使用统一的三级互斥匹配，避免 null===null 误匹配
         if (!isClassMatchPlan(cls, plan)) continue;
-        // 由于已经过滤了学期，这里只需要遍历当前学期的教材
         for (const sem of pc.plan_course_semesters) {
+          // 按班级程序学期号精确匹配（与 getClassesWithCourse 的 calc.currentSemesterNum !== sem.semester 对应）
+          if (clsSemesterNum == null || sem.semester !== clsSemesterNum) continue;
+          // 同时在 start_semester/end_semester 范围内（与 getClassesWithCourse 的区间过滤对应）
+          if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
           for (const pt of sem.plan_textbooks) {
             textbookIds.add(pt.textbook_id);
           }
