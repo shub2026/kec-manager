@@ -203,7 +203,6 @@ const filteredSummary = computed(() => {
 
 async function loadSemester() {
   try {
-    const { default: request } = await import('../../utils/request')
     const res = await request.get('/settings')
     const settings = res.data || {}
     if (settings.currentSemester) {

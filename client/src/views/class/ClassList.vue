@@ -339,9 +339,7 @@ async function handleBatchDelete() {
       type: 'warning',
     })
     
-    for (const cls of selectedClasses.value) {
-      await deleteClass(cls.id)
-    }
+    await Promise.all(selectedClasses.value.map(cls => deleteClass(cls.id)))
     
     ElMessage.success('批量删除成功')
     selectedClasses.value = []

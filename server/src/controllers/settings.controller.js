@@ -3,9 +3,10 @@ import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { AuthService } from '../services/auth.service.js';
 import { log } from '../utils/logger.js';
+import { DEFAULT_SEMESTER } from '../constants/index.js';
 
 const DEFAULT_SETTINGS = {
-  current_semester: { value: '2025-2026-2', description: '当前学期' },
+  current_semester: { value: DEFAULT_SEMESTER, description: '当前学期' },
   organization_name: { value: '欢迎回来', description: '系统标识' },
 };
 

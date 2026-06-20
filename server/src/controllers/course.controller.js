@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
-import { autoFixSortOrder } from '../utils/sort.js';
+import { autoFixSortOrder, invalidateSortOrderCache } from '../utils/sort.js';
 import { getNextSortOrder, buildUpdateData } from '../utils/sort-helper.js';
 
 export async function listCourses(req, res, next) {
@@ -34,6 +34,7 @@ export async function createCourse(req, res, next) {
       message: `创建课程：${name}`,
     });
 
+    invalidateSortOrderCache('courses');
     success(res, course, '创建成功');
   } catch (e) {
     await createAuditLog({
@@ -66,6 +67,7 @@ export async function updateCourse(req, res, next) {
         message: `更新课程：${data.name || course.name}`,
       });
 
+      invalidateSortOrderCache('courses');
       success(res, course, '更新成功');
     } catch (e) {
       await createAuditLog({
@@ -102,6 +104,7 @@ export async function deleteCourse(req, res, next) {
         message: `删除课程：${course?.name}`,
       });
 
+      invalidateSortOrderCache('courses');
       success(res, null, '删除成功');
     } catch (e) {
       await createAuditLog({

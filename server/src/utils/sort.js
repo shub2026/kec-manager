@@ -3,9 +3,21 @@
  *
  * 当检测到所有记录的 sort_order 都为 0（或大量重复）时，
  * 自动按当前列表顺序分配递增的排序值。
+ * 使用 TTL 缓存避免每次列表请求都重复检查。
  */
 import { prisma } from '../lib/prisma.js';
-import { log } from './logger.js'; // L1修复：使用winston logger
+import { log } from './logger.js';
+
+const CACHE_TTL = 5 * 60 * 1000;
+const sortCache = new Map();
+
+export function invalidateSortOrderCache(modelName) {
+  if (modelName) {
+    sortCache.delete(modelName);
+  } else {
+    sortCache.clear();
+  }
+}
 
 /**
  * 检查并自动修复重复的 sort_order 值
@@ -14,6 +26,10 @@ import { log } from './logger.js'; // L1修复：使用winston logger
  * @returns {Promise<boolean>} 是否执行了修复
  */
 export async function autoFixSortOrder(modelName, where = {}) {
+  const cacheKey = `${modelName}:${JSON.stringify(where)}`;
+  const cached = sortCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < CACHE_TTL) return false;
+
   try {
     const items = await prisma[modelName].findMany({
       where,
@@ -21,18 +37,21 @@ export async function autoFixSortOrder(modelName, where = {}) {
       orderBy: { id: 'asc' },
     });
 
-    if (!items || items.length <= 1) return false;
+    if (!items || items.length <= 1) {
+      sortCache.set(cacheKey, { at: Date.now() });
+      return false;
+    }
 
-    // 检查是否存在 sort_order 重复（所有值都是 0，或超过一半的值重复）
     const sortValues = items.map(i => i.sort_order);
     const uniqueValues = new Set(sortValues);
 
-    // 如果所有值都相同（特别是都为 0），或者超过 50% 的值重复，则需要修复
     const needsFix = uniqueValues.size === 1 || uniqueValues.size < items.length * 0.5;
 
-    if (!needsFix) return false;
+    if (!needsFix) {
+      sortCache.set(cacheKey, { at: Date.now() });
+      return false;
+    }
 
-    // 按当前顺序分配递增的 sort_order
     const updates = items.map((item, index) =>
       prisma[modelName].update({
         where: { id: item.id },
@@ -41,6 +60,7 @@ export async function autoFixSortOrder(modelName, where = {}) {
     );
 
     await prisma.$transaction(updates);
+    sortCache.set(cacheKey, { at: Date.now() });
     return true;
   } catch (e) {
     log.error(`自动修复 ${modelName} 排序失败`, { error: e.message });

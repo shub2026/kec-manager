@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
-import { autoFixSortOrder } from '../utils/sort.js';
+import { autoFixSortOrder, invalidateSortOrderCache } from '../utils/sort.js';
 import { getNextSortOrder, buildUpdateData } from '../utils/sort-helper.js';
 
 export async function listTextbooks(req, res, next) {
@@ -40,6 +40,7 @@ export async function createTextbook(req, res, next) {
       message: `创建教材：${title}`,
     });
 
+    invalidateSortOrderCache('textbooks');
     success(res, textbook, '创建成功');
   } catch (e) {
     await createAuditLog({
@@ -80,6 +81,7 @@ export async function updateTextbook(req, res, next) {
         message: `更新教材：${updateData.title || textbook.title}`,
       });
 
+      invalidateSortOrderCache('textbooks');
       success(res, textbook, '更新成功');
     } catch (e) {
       await createAuditLog({
@@ -116,6 +118,7 @@ export async function deleteTextbook(req, res, next) {
         message: `删除教材：${textbook?.title}`,
       });
 
+      invalidateSortOrderCache('textbooks');
       success(res, null, '删除成功');
     } catch (e) {
       await createAuditLog({
@@ -157,6 +160,7 @@ export async function toggleTextbookStatus(req, res, next) {
         message: `${updated.is_active ? '启用' : '停用'}教材：${current.title}`,
       });
 
+      invalidateSortOrderCache('textbooks');
       success(res, updated, updated.is_active ? '已启用' : '已停用');
     } catch (e) {
       await createAuditLog({

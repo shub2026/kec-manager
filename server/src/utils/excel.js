@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { IMPORT } from '../constants/index.js';
 
 /**
  * 防止 CSV/Excel 公式注入：以 = + - @ 开头的字符串加单引号前缀
@@ -88,8 +89,7 @@ export async function readWorkbook(filePath) {
   const headers = [];
   const rows = [];
 
-  // 行数上限，防止恶意大文件（zip 炸弹）导致 OOM
-  const MAX_ROWS = 20000;
+  const MAX_ROWS = IMPORT.MAX_ROWS;
 
   sheet.eachRow((row, rowNum) => {
     if (rowNum === 1) {

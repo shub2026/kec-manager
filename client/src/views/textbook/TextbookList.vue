@@ -5,12 +5,12 @@
         <div class="card-header">
           <span>教材管理</span>
           <div class="card-header-actions">
-            <el-input v-model="filterTitle" clearable placeholder="按书名筛选" @input="handleFilter" class="filter-title" />
-            <el-select v-model="filterCategory" placeholder="类别筛选" clearable style="width: 120px" @change="handleFilter">
+            <el-input v-model="filterTitle" clearable placeholder="按书名筛选" class="filter-title" />
+            <el-select v-model="filterCategory" placeholder="类别筛选" clearable style="width: 120px">
               <el-option label="技工" value="技工" />
               <el-option label="非技工" value="非技工" />
             </el-select>
-            <el-select v-model="filterPublisher" placeholder="出版社筛选" clearable filterable style="width: 160px" @change="handleFilter">
+            <el-select v-model="filterPublisher" placeholder="出版社筛选" clearable filterable style="width: 160px">
               <el-option v-for="pub in publishers" :key="pub" :label="pub" :value="pub" />
             </el-select>
             <el-button @click="exportData">数据导出</el-button>
@@ -306,10 +306,6 @@ async function silentReload() {
   } catch (e) {
     // silently ignore
   }
-}
-
-function handleFilter() {
-  // 筛选由computed自动处理
 }
 
 function openDialog(row) {

@@ -5,6 +5,7 @@ import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
 import { cleanupFile, sanitizeInput, sanitizeFormulaInjection } from '../import-shared.js';
+import { DEFAULT_TEXTBOOK_CATEGORY } from '../../constants/index.js';
 
 /**
  * POST /api/import/textbooks - 批量导入教材
@@ -54,7 +55,7 @@ export async function importTextbooks(req, res, next) {
       edition: edition ? String(edition).trim() : null,
       publish_date: publish_date ? String(publish_date).trim() : null,
       price: price && !isNaN(price) ? price : null,
-      category: String(category).trim() || '技工',
+      category: String(category).trim() || DEFAULT_TEXTBOOK_CATEGORY,
     });
   }
 

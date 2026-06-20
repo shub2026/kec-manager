@@ -22,8 +22,15 @@ export const PAGINATION = {
 // 导入配置
 export const IMPORT = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
-  ALLOWED_FILE_TYPES: ['xlsx', 'xls']
+  ALLOWED_FILE_TYPES: ['xlsx', 'xls'],
+  MAX_ROWS: 20000,
 };
+
+// 默认教材类别
+export const DEFAULT_TEXTBOOK_CATEGORY = '技工';
+
+// 默认学期（系统初始化时使用）
+export const DEFAULT_SEMESTER = '2025-2026-2';
 
 // 密码策略
 export const PASSWORD_POLICY = {

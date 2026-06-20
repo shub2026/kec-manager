@@ -193,13 +193,6 @@ function getTextbooks(course, semester) {
   }))
 }
 
-// 获取某学期教材名（用于向后兼容）
-function getTextbookName(course, semester) {
-  const textbooks = getTextbooks(course, semester)
-  if (textbooks.length === 0) return ''
-  return textbooks.map(t => t.title).join(', ')
-}
-
 // 单元格样式
 function cellClass(course, semester) {
   if (!isInRange(course, semester)) return 'cell-out-of-range'

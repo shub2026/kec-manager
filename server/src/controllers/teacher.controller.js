@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
-import { autoFixSortOrder } from '../utils/sort.js';
+import { autoFixSortOrder, invalidateSortOrderCache } from '../utils/sort.js';
 import { getNextSortOrder, buildUpdateData } from '../utils/sort-helper.js';
 
 /**
@@ -92,6 +92,7 @@ export async function createTeacher(req, res, next) {
       message: `创建教师：${name}`,
     });
 
+    invalidateSortOrderCache('teachers');
     success(res, {
       ...teacher,
       affiliatedCollege: teacher.affiliated_college,
@@ -196,6 +197,7 @@ export async function updateTeacher(req, res, next) {
         message: `更新教师：${data.name || updated.name}`,
       });
 
+      invalidateSortOrderCache('teachers');
       success(res, {
         ...updated,
         affiliatedCollege: updated.affiliated_college,
@@ -245,6 +247,7 @@ export async function deleteTeacher(req, res, next) {
         message: `删除教师：${teacher?.name}`,
       });
 
+      invalidateSortOrderCache('teachers');
       success(res, null, '删除成功');
     } catch (e) {
       await createAuditLog({
@@ -287,6 +290,7 @@ export async function batchUpdateDefaultHours(req, res, next) {
       message: `批量修改${teacher_ids.length}名教师的特定周课时为${hours ?? '空'}`,
     });
 
+    invalidateSortOrderCache('teachers');
     success(res, null, `已修改${teacher_ids.length}名教师的特定周课时`);
   } catch (e) { next(e); }
 }
@@ -323,6 +327,7 @@ export async function toggleTeacherStatus(req, res, next) {
       message: `${statusLabel}教师：${teacher.name}`,
     });
 
+    invalidateSortOrderCache('teachers');
     success(res, { id: Number(id), status }, `${statusLabel}成功`);
   } catch (e) { next(e); }
 }

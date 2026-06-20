@@ -2,7 +2,7 @@ import { prisma } from '../../lib/prisma.js';
 import { success, fail } from '../../utils/response.js';
 import { NotFoundError, ValidationError, ConflictError } from '../../utils/error.js';
 import { createAuditLog } from '../../services/audit.service.js';
-import { autoFixSortOrder } from '../../utils/sort.js';
+import { autoFixSortOrder, invalidateSortOrderCache } from '../../utils/sort.js';
 
 /**
  * 获取培养方案列表（含班级使用统计）
@@ -164,6 +164,7 @@ export async function createPlan(req, res, next) {
       message: `创建培养方案：${plan.name}${plan.colleges?.name ? `（使用部门：${plan.colleges.name}）` : ''}`,
     });
     
+    invalidateSortOrderCache('training_plans');
     success(res, plan, '创建成功');
   } catch (e) {
     await createAuditLog({
@@ -198,6 +199,7 @@ export async function updatePlan(req, res, next) {
             training_levels: true,
           },
         });
+        invalidateSortOrderCache('training_plans');
         return success(res, plan, '更新成功');
       } catch (e) {
         if (e.code === 'P2025') return fail(res, '培养方案不存在', 404);
@@ -263,6 +265,7 @@ export async function updatePlan(req, res, next) {
         message: `更新培养方案：${plan.name}${plan.colleges?.name ? `（使用部门：${plan.colleges.name}）` : ''}`,
       });
       
+      invalidateSortOrderCache('training_plans');
       success(res, plan, '更新成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '方案不存在', 404);
@@ -301,6 +304,7 @@ export async function deletePlan(req, res, next) {
         details: { plan_id: Number(id) },
       });
       
+      invalidateSortOrderCache('training_plans');
       success(res, null, '删除成功');
     } catch (e) {
       if (e.code === 'P2025') throw new NotFoundError('培养方案');

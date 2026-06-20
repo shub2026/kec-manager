@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
-import { autoFixSortOrder } from '../utils/sort.js';
+import { autoFixSortOrder, invalidateSortOrderCache } from '../utils/sort.js';
 import { getNextSortOrder, buildUpdateData } from '../utils/sort-helper.js';
 
 export async function listTrainingLevels(req, res, next) {
@@ -38,6 +38,7 @@ export async function createTrainingLevel(req, res, next) {
       result: 'success',
       message: `创建培养层次：${name}`,
     });
+    invalidateSortOrderCache('training_levels');
     success(res, level, '创建成功');
   } catch (e) {
     await createAuditLog({
@@ -69,6 +70,7 @@ export async function updateTrainingLevel(req, res, next) {
         result: 'success',
         message: `更新培养层次：${data.name || level.name}`,
       });
+      invalidateSortOrderCache('training_levels');
       success(res, level, '更新成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '层次不存在', 404);
@@ -105,6 +107,7 @@ export async function deleteTrainingLevel(req, res, next) {
         result: 'success',
         message: `删除培养层次 ID: ${id}`,
       });
+      invalidateSortOrderCache('training_levels');
       success(res, null, '删除成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '层次不存在', 404);
