@@ -7,7 +7,7 @@ import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import {
   ArrowDown, ArrowRight, ArrowUp, Calendar, Check, CircleCheck,
   CircleCheckFilled, Collection, DataAnalysis, Delete, Document,
-  DocumentChecked, Download, Edit, Grid, HomeFilled, InfoFilled,
+  DocumentChecked, Download, Edit, Expand, Fold, Grid, HomeFilled, InfoFilled,
   Loading, MagicStick, Notebook, OfficeBuilding, Plus, Rank,
   Reading, Refresh, RefreshRight, Setting, SetUp, Tools, User,
   UserFilled, Warning, WarningFilled,
@@ -36,11 +36,11 @@ app.use(pinia)
 app.use(router)
 app.use(ElementPlus, { locale: zhCn })
 
-// 只注册实际使用的图标（34个），替代全量注册（280+个）
+// 只注册实际使用的图标（36个），替代全量注册（280+个）
 const icons = {
   ArrowDown, ArrowRight, ArrowUp, Calendar, Check, CircleCheck,
   CircleCheckFilled, Collection, DataAnalysis, Delete, Document,
-  DocumentChecked, Download, Edit, Grid, HomeFilled, InfoFilled,
+  DocumentChecked, Download, Edit, Expand, Fold, Grid, HomeFilled, InfoFilled,
   Loading, MagicStick, Notebook, OfficeBuilding, Plus, Rank,
   Reading, Refresh, RefreshRight, Setting, SetUp, Tools, User,
   UserFilled, Warning, WarningFilled,

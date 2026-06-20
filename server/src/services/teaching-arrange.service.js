@@ -82,12 +82,13 @@ function isTextbookMatch(teacher, cls) {
 }
 
 function isCollegeEligible(t, cls) {
-  return t.schedulingCollegeIds?.length > 0 && t.schedulingCollegeIds.includes(cls.collegeId);
+  if (!t.schedulingCollegeIds || t.schedulingCollegeIds.length === 0) return true;
+  return t.schedulingCollegeIds.includes(cls.collegeId);
 }
 
 function isLevelEligible(t, cls) {
-  return t.schedulingLevelIds?.length > 0 && cls.trainingLevelId &&
-    t.schedulingLevelIds.includes(cls.trainingLevelId);
+  if (!t.schedulingLevelIds || t.schedulingLevelIds.length === 0) return true;
+  return cls.trainingLevelId && t.schedulingLevelIds.includes(cls.trainingLevelId);
 }
 
 /**
@@ -346,7 +347,9 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     }
   }
 
-  return teachers.map(t => ({
+  return teachers.map(t => {
+    const inherentTextbookIds = [...(teacherTextbookMap.get(t.id) || [])];
+    return {
     id: t.id,
     name: t.name,
     gender: t.gender,
@@ -358,26 +361,41 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     schedulingCollegeIds: t.scheduling_colleges.map(sc => sc.college_id),
     schedulingLevelIds: t.scheduling_levels.map(sl => sl.training_level.id),
     trainingLevelList: t.scheduling_levels.map(sl => sl.training_level),
-    textbookIds: [...(teacherTextbookMap.get(t.id) || [])],
+    textbookIds: [...inherentTextbookIds],
+    inherentTextbookIds,
+    assignedTextbookIds: new Set(),
     totalWeeklyHours: workloadMap.get(t.id) || 0,
     totalClassCount: classCountMap.get(t.id) || 0,
     courseHours: courseAssignmentMap.get(t.id)?.hours || 0,
     courseClassCount: courseAssignmentMap.get(t.id)?.classCount || 0,
-  }));
+    };
+  });
 }
 
 /**
- * 计算教师-班级匹配分数（软约束优先级）
+ * 计算教师-班级匹配分数（优先级 + 教材内聚）
+ * 权重: 学院匹配 +5, 层次匹配 +5, 本轮已分配教材 +6, 固有教材 +3
  */
 function calcMatchScore(teacher, classInfo, conditions = []) {
   let score = 0;
 
-  if (isCollegeEligible(teacher, classInfo)) {
-    score += 1;
+  if (teacher.schedulingCollegeIds && teacher.schedulingCollegeIds.length > 0) {
+    if (teacher.schedulingCollegeIds.includes(classInfo.collegeId)) {
+      score += 5;
+    }
   }
 
-  if (isLevelEligible(teacher, classInfo)) {
-    score += 1;
+  if (teacher.schedulingLevelIds && teacher.schedulingLevelIds.length > 0) {
+    if (classInfo.trainingLevelId && teacher.schedulingLevelIds.includes(classInfo.trainingLevelId)) {
+      score += 5;
+    }
+  }
+
+  if (classInfo.textbookIds && classInfo.textbookIds.length > 0 && teacher.assignedTextbookIds) {
+    const hasAssigned = classInfo.textbookIds.some(tid => teacher.assignedTextbookIds.has(tid));
+    if (hasAssigned) {
+      score += 6;
+    }
   }
 
   if (isTextbookMatch(teacher, classInfo)) {
@@ -435,6 +453,9 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
     .filter(c => !manualClassIds.has(c.classId))
     .map(c => ({ ...c, textbookIds: (c.textbooks || []).map(tb => tb.id) }));
 
+  const assignments = [];
+  const unassigned = [];
+
   // 校验周课时合法性：0 或负数的班级不参与排课，避免污染容量统计（M-10 修复）
   const invalidHourClasses = classesToAssign.filter(c => !c.weeklyHours || c.weeklyHours <= 0);
   for (const c of invalidHourClasses) {
@@ -457,9 +478,6 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
     warnings.push(`班级总课时(${totalClassHours})超过教师总容量(${totalTeacherCapacity})，部分班级可能无法分配`);
   }
 
-  const assignments = [];
-  const unassigned = [];
-
   // 预计算每个班级的"学院+教材"和"层次+教材"匹配教师数量，优化二次筛选
   const collegeTextbookMatchCount = new Map();
   const levelTextbookMatchCount = new Map();
@@ -476,52 +494,25 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
   }
 
   /**
-   * 分层选择最佳教师（含工作量平衡约束）
-   * 优先级：(学院+教材) > 学院 > (教材) > (层次+教材) > 层次 > 兜底
+   * 选择最佳教师（综合评分制）
+   * 综合考虑：优先级分数（高优）+ 负载率（低优）
    */
   function selectBestTeacher(candidates) {
-    const byScore = (a, b) => {
-      if (Math.abs(b.score - a.score) >= WORKLOAD_BALANCE.SCORE_THRESHOLD) return b.score - a.score;
-      if (Math.abs(a.loadRate - b.loadRate) > WORKLOAD_BALANCE.LOAD_RATE_THRESHOLD) return a.loadRate - b.loadRate;
-      return b.score - a.score || a.loadRate - b.loadRate;
-    };
+    // 对所有候选教师排序：分数降序 > 负载率升序
+    const sorted = [...candidates].sort((a, b) => {
+      // 1. 分数差异大于阈值，按分数降序
+      if (Math.abs(b.score - a.score) >= WORKLOAD_BALANCE.SCORE_THRESHOLD) {
+        return b.score - a.score;
+      }
+      // 2. 负载率差异大于阈值，按负载率升序（低负载优先）
+      if (Math.abs(a.loadRate - b.loadRate) > WORKLOAD_BALANCE.LOAD_RATE_THRESHOLD) {
+        return a.loadRate - b.loadRate;
+      }
+      // 3. 综合排序：分数降序 > 负载率升序
+      return (b.score - a.score) || (a.loadRate - b.loadRate);
+    });
 
-    // 1. 学院+教材 双匹配（最优解）
-    const collegeAndTextbook = candidates.filter(c =>
-      isCollegeEligible(c.teacher, c.cls) && isTextbookMatch(c.teacher, c.cls)
-    );
-    if (collegeAndTextbook.length > 0) {
-      return [...collegeAndTextbook].sort(byScore)[0];
-    }
-
-    // 2. 学院匹配
-    const collegeOnly = candidates.filter(c => isCollegeEligible(c.teacher, c.cls));
-    if (collegeOnly.length > 0) {
-      return [...collegeOnly].sort(byScore)[0];
-    }
-
-    // 3. 教材匹配（不要求学院）
-    const textbookOnly = candidates.filter(c => isTextbookMatch(c.teacher, c.cls));
-    if (textbookOnly.length > 0) {
-      return [...textbookOnly].sort(byScore)[0];
-    }
-
-    // 4. 层次+教材 双匹配
-    const levelAndTextbook = candidates.filter(c =>
-      isLevelEligible(c.teacher, c.cls) && isTextbookMatch(c.teacher, c.cls)
-    );
-    if (levelAndTextbook.length > 0) {
-      return [...levelAndTextbook].sort(byScore)[0];
-    }
-
-    // 5. 层次匹配
-    const levelOnly = candidates.filter(c => isLevelEligible(c.teacher, c.cls));
-    if (levelOnly.length > 0) {
-      return [...levelOnly].sort(byScore)[0];
-    }
-
-    // 6. 兜底：无偏好匹配，按分数和负载率排序
-    return [...candidates].sort(byScore)[0];
+    return sorted[0];
   }
 
   function countEligibleTeachers(cls, eligibilityFilter) {
@@ -566,6 +557,7 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
         if (!selected.textbookIds.includes(tid)) {
           selected.textbookIds.push(tid);
         }
+        selected.assignedTextbookIds.add(tid);
       }
 
       assignments.push({
@@ -582,37 +574,38 @@ export async function autoArrange(courseId, semesterStr, mode, hourSettings, sch
     return remaining;
   }
 
-  // 阶段1：学院偏好匹配 + 教材兼容二级筛选
-  const collegePairs = (t, cls) => {
-    if (!isCollegeEligible(t, cls)) return false;
-    if (cls.textbookIds?.length > 0) {
-      const hasBetter = collegeTextbookMatchCount.get(cls.classId) > 0;
-      if (hasBetter && !isTextbookMatch(t, cls)) return false;
-    }
+  const hasCollegePref = t => t.schedulingCollegeIds && t.schedulingCollegeIds.length > 0;
+  const hasLevelPref = t => t.schedulingLevelIds && t.schedulingLevelIds.length > 0;
+  const hasAnyPref = t => hasCollegePref(t) || hasLevelPref(t);
+
+  const hasAssignedTextbook = (t, cls) =>
+    cls.textbookIds?.length > 0 && t.assignedTextbookIds &&
+    cls.textbookIds.some(tid => t.assignedTextbookIds.has(tid));
+
+  const prefMatch = (t, cls) => {
+    if (hasCollegePref(t) && !t.schedulingCollegeIds.includes(cls.collegeId)) return false;
+    if (hasLevelPref(t) && cls.trainingLevelId &&
+        !t.schedulingLevelIds.includes(cls.trainingLevelId)) return false;
     return true;
   };
-  const round1Remaining = assignRound(validClassesToAssign, collegePairs);
 
-  // 阶段2：层次偏好匹配 + 教材兼容二级筛选
-  const levelPairs = (t, cls) => {
-    if (!isLevelEligible(t, cls)) return false;
-    if (cls.textbookIds?.length > 0) {
-      const hasBetter = levelTextbookMatchCount.get(cls.classId) > 0;
-      if (hasBetter && !isTextbookMatch(t, cls)) return false;
-    }
-    return true;
-  };
-  const round2Remaining = assignRound(round1Remaining, levelPairs);
+  const phase1Filter = (t, cls) => hasAnyPref(t) && prefMatch(t, cls) && isTextbookMatch(t, cls);
+  const phase1Remaining = assignRound(validClassesToAssign, phase1Filter);
 
-  // 阶段3：同教材硬过滤
-  const textbookPairs = (t, cls) =>
-    t.textbookIds?.length > 0 && cls.textbookIds?.length > 0 &&
-    t.textbookIds.some(tid => cls.textbookIds.includes(tid));
-  const round3Remaining = assignRound(round2Remaining, textbookPairs);
+  const phase2Filter = (t, cls) => hasAnyPref(t) && prefMatch(t, cls) && hasAssignedTextbook(t, cls);
+  const phase2Remaining = assignRound(phase1Remaining, phase2Filter);
 
-  // 阶段4：所有剩余班级，不限教师
-  const round4Remaining = assignRound(round3Remaining);
-  unassigned.push(...round4Remaining);
+  const phase3Filter = (t, cls) => hasAnyPref(t) && prefMatch(t, cls);
+  const phase3Remaining = assignRound(phase2Remaining, phase3Filter);
+
+  const phase4Filter = (t, cls) => !hasAnyPref(t) && (isTextbookMatch(t, cls) || hasAssignedTextbook(t, cls));
+  const phase4Remaining = assignRound(phase3Remaining, phase4Filter);
+
+  const phase5Filter = (t, cls) => !hasAnyPref(t);
+  const phase5Remaining = assignRound(phase4Remaining, phase5Filter);
+
+  const phase6Remaining = assignRound(phase5Remaining);
+  unassigned.push(...phase6Remaining);
 
   // P2 修复：阶段4 后置换回溯
   // 对未分配班级尝试"置换"：若某教师 T 已满，但 T 当前某班级 V 能被其他教师 T'' 接管，
@@ -775,8 +768,12 @@ function trySwapOne(u, assignments, assignmentsByTeacher, teacherMap, teacherCon
         // 3. 更新 assignments：V 的 teacher_id 改为 T''
         vAssign.teacher_id = t2.id;
         vAssign.teacher_name = t2.name;
+        // 4. 维护 assignedTextbookIds（U 的教材加入 T）
+        if (u.textbookIds) {
+          for (const tid of u.textbookIds) t.assignedTextbookIds.add(tid);
+        }
         // 4. 维护 assignmentsByTeacher
-        assignmentsByTeacher.get(t.id) = tAssignments.filter(a => a !== vAssign);
+        assignmentsByTeacher.set(t.id, tAssignments.filter(a => a !== vAssign));
         if (!assignmentsByTeacher.has(t2.id)) assignmentsByTeacher.set(t2.id, []);
         assignmentsByTeacher.get(t2.id).push(vAssign);
         // 5. U 移入 assignments
@@ -804,7 +801,16 @@ function isTeacherEligible(t, cls, mode) {
   const cap = mode === 'standard' ? t.standardCap : t.fullCap;
   if (t.assignedHours + cls.weeklyHours > cap) return false;
   if (t.defaultWeeklyHours != null) {
-    return t.courseExistingHours + t.assignedHours + cls.weeklyHours <= t.defaultWeeklyHours;
+    if (t.courseExistingHours + t.assignedHours + cls.weeklyHours > t.defaultWeeklyHours) return false;
+  }
+  if (t.schedulingCollegeIds && t.schedulingCollegeIds.length > 0 &&
+      !t.schedulingCollegeIds.includes(cls.collegeId)) {
+    return false;
+  }
+  if (t.schedulingLevelIds && t.schedulingLevelIds.length > 0 &&
+      cls.trainingLevelId &&
+      !t.schedulingLevelIds.includes(cls.trainingLevelId)) {
+    return false;
   }
   return true;
 }
