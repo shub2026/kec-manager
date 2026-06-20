@@ -371,6 +371,19 @@ function resetBatchForm() {
 }
 
 async function handleBatchSet() {
+  // 批量标记离校时确认级联删除排课
+  if (batchFormType.value === 'leftSchool' && batchForm.value.isLeftSchool) {
+    try {
+      await ElMessageBox.confirm(
+        `标记为"离校"将自动删除所选 ${selectedClasses.value.length} 个班级在当前学期的所有排课记录，释放教师课时容量。确定继续？`,
+        '确认批量离校',
+        { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' }
+      )
+    } catch {
+      return
+    }
+  }
+
   batchSaving.value = true
   try {
     const updates = {}
