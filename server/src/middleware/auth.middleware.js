@@ -5,6 +5,14 @@ import { log } from '../utils/logger.js' // L1修复：使用winston logger
 // 用户状态缓存：短期内复用查询结果，避免每个请求都查库（TTL 30s）
 const userStatusCache = new Map()
 const USER_STATUS_TTL = 30 * 1000
+const CACHE_CLEANUP_INTERVAL = 5 * 60 * 1000
+
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, value] of userStatusCache) {
+    if (value.expireAt <= now) userStatusCache.delete(key)
+  }
+}, CACHE_CLEANUP_INTERVAL).unref()
 
 async function getActiveUserStatus(userId) {
   const now = Date.now()

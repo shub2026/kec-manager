@@ -11,7 +11,7 @@ import { cleanupFile, sanitizeInput, sanitizeFormulaInjection } from '../import-
  */
 export async function importTextbooks(req, res, next) {
   if (!req.file) throw new ValidationError('请上传文件');
-  
+
   let rows;
   try {
     rows = await readWorkbook(req.file.path);
@@ -22,19 +22,16 @@ export async function importTextbooks(req, res, next) {
   }
 
   const validationErrors = [];
-  let imported = 0;
-  let overwritten = 0;
-
-  const transactionOperations = [];
+  const validRows = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    
+
     const sanitizedRow = {};
     for (const [key, value] of Object.entries(row)) {
       sanitizedRow[key] = sanitizeFormulaInjection(sanitizeInput(value));
     }
-    
+
     const title = sanitizedRow['书名'];
     const isbn = sanitizedRow['书号'] || null;
     const publisher = sanitizedRow['出版社'] || null;
@@ -49,48 +46,20 @@ export async function importTextbooks(req, res, next) {
       continue;
     }
 
-    const existingTextbook = await prisma.textbooks.findFirst({
-      where: { title: String(title).trim() }
+    validRows.push({
+      title: String(title).trim(),
+      isbn: isbn ? String(isbn).trim() : null,
+      publisher: publisher ? String(publisher).trim() : null,
+      author: author ? String(author).trim() : null,
+      edition: edition ? String(edition).trim() : null,
+      publish_date: publish_date ? String(publish_date).trim() : null,
+      price: price && !isNaN(price) ? price : null,
+      category: String(category).trim() || '技工',
     });
-
-    if (existingTextbook) {
-      transactionOperations.push(
-        prisma.textbooks.update({
-          where: { id: existingTextbook.id },
-          data: {
-            title: String(title).trim(),
-            isbn: isbn ? String(isbn).trim() : null,
-            publisher: publisher ? String(publisher).trim() : null,
-            author: author ? String(author).trim() : null,
-            edition: edition ? String(edition).trim() : null,
-            publish_date: publish_date ? String(publish_date).trim() : null,
-            price: price && !isNaN(price) ? price : null,
-            category: String(category).trim() || '技工',
-          },
-        })
-      );
-      overwritten++;
-    } else {
-      transactionOperations.push(
-        prisma.textbooks.create({
-          data: {
-            title: String(title).trim(),
-            isbn: isbn ? String(isbn).trim() : null,
-            publisher: publisher ? String(publisher).trim() : null,
-            author: author ? String(author).trim() : null,
-            edition: edition ? String(edition).trim() : null,
-            publish_date: publish_date ? String(publish_date).trim() : null,
-            price: price && !isNaN(price) ? price : null,
-            category: String(category).trim() || '技工',
-          },
-        })
-      );
-      imported++;
-    }
   }
 
   try {
-    if (validationErrors.length > 0 && transactionOperations.length === 0) {
+    if (validationErrors.length > 0 && validRows.length === 0) {
       const result = {
         imported: 0,
         overwritten: 0,
@@ -111,8 +80,27 @@ export async function importTextbooks(req, res, next) {
       return success(res, result, `验证失败：${validationErrors.length}条错误`);
     }
 
-    if (transactionOperations.length > 0) {
-      await prisma.$transaction(transactionOperations);
+    let imported = 0;
+    let overwritten = 0;
+
+    if (validRows.length > 0) {
+      const counts = await prisma.$transaction(async (tx) => {
+        let created = 0;
+        let updated = 0;
+        for (const r of validRows) {
+          const existing = await tx.textbooks.findFirst({ where: { title: r.title } });
+          if (existing) {
+            await tx.textbooks.update({ where: { id: existing.id }, data: r });
+            updated++;
+          } else {
+            await tx.textbooks.create({ data: r });
+            created++;
+          }
+        }
+        return { created, updated };
+      });
+      imported = counts.created;
+      overwritten = counts.updated;
     }
 
     const result = {
@@ -143,7 +131,7 @@ export async function importTextbooks(req, res, next) {
     success(res, result, message);
   } catch (e) {
     log.error('[教材导入] 事务执行失败，已回滚', { error: e.message, stack: e.stack });
-    
+
     await createAuditLog({
       action: 'import',
       module: 'textbook',
@@ -151,7 +139,7 @@ export async function importTextbooks(req, res, next) {
       result: 'failed',
       message: `教材导入事务失败: ${e.message}`,
     });
-    
+
     next(e);
   }
 }

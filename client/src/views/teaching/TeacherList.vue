@@ -221,6 +221,7 @@ import { getTrainingLevels } from '../../api/trainingLevel'
 import { getCourses } from '../../api/course'
 import { useExport } from '../../composables/useExport'
 import request from '../../utils/request'
+import { personnelLabel, personnelTagType } from '../../utils/personnel'
 
 const list = ref([])
 const loading = ref(false)
@@ -322,14 +323,6 @@ const availableTrainingLevels = computed(() => {
   }
   return allTrainingLevels.value.filter(l => allowedIds.has(l.id))
 })
-
-function personnelLabel(type) {
-  return { full_time: '专职', part_time: '兼职', external: '外聘' }[type] || type
-}
-
-function personnelTagType(type) {
-  return { full_time: 'success', part_time: 'warning', external: 'info' }[type] || ''
-}
 
 function formatBirthDate(birthDate) {
   if (!birthDate) return '-'

@@ -15,9 +15,10 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  log.error('[unhandledRejection] 未处理的Promise拒绝', {
+  log.error('[unhandledRejection] 未处理的Promise拒绝，进程即将退出', {
     reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : String(reason),
   });
+  process.exit(1);
 });
 
 const server = app.listen(PORT, () => {

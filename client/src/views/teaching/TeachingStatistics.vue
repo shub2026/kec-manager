@@ -115,6 +115,8 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getTeachingStatistics } from '../../api/teachingArrange'
 import request from '../../utils/request'
+import { downloadBlob } from '../../utils/download'
+import { personnelLabel, personnelTagType } from '../../utils/personnel'
 
 const semester = ref('')
 const statsData = ref(null)
@@ -199,14 +201,6 @@ const filteredSummary = computed(() => {
   }
 })
 
-function personnelLabel(type) {
-  return { full_time: '专职', part_time: '兼职', external: '外聘' }[type] || type || '-'
-}
-
-function personnelTagType(type) {
-  return { full_time: 'success', part_time: 'warning', external: 'info' }[type] || ''
-}
-
 async function loadSemester() {
   try {
     const { default: request } = await import('../../utils/request')
@@ -242,17 +236,7 @@ async function handleExport() {
       params: { semester: semester.value },
       responseType: 'blob',
     })
-    const blob = new Blob([response], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `课时统计_${semester.value}.xlsx`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
+    downloadBlob(response, `课时统计_${semester.value}.xlsx`)
     ElMessage.success('导出成功')
   } catch (error) {
     if (import.meta.env.DEV) { console.error('导出失败:', error) }

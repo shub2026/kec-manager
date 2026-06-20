@@ -380,6 +380,8 @@ import { MagicStick, SetUp, RefreshRight, Check, ArrowDown, ArrowRight, WarningF
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getCourses } from '../../api/course'
 import request from '../../utils/request'
+import { downloadBlob } from '../../utils/download'
+import { personnelLabel } from '../../utils/personnel'
 import {
   getCourseClasses,
   getCourseTeachers,
@@ -526,10 +528,6 @@ const cohesionRateClass = computed(() => {
   if (rate >= 40) return 'text-warning'
   return 'text-danger'
 })
-
-function personnelLabel(type) {
-  return { full_time: '专职', part_time: '兼职', external: '外聘' }[type] || type
-}
 
 function courseTypeLabel(type) {
   return { public: '公共课', professional: '专业课', elective: '选修课' }[type] || type
@@ -778,17 +776,7 @@ async function handleExportArrange() {
       params: { course_id: selectedCourseId.value, semester: currentSemesterLabel.value },
       responseType: 'blob',
     })
-    const blob = new Blob([response], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `教学安排_${courseInfo.value?.name || ''}_${currentSemesterLabel.value}.xlsx`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
+    downloadBlob(response, `教学安排_${courseInfo.value?.name || ''}_${currentSemesterLabel.value}.xlsx`)
     ElMessage.success('导出成功')
   } catch (e) {
     if (import.meta.env.DEV) { console.error('导出失败:', e) }

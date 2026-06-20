@@ -11,7 +11,7 @@ import { cleanupFile, sanitizeInput, sanitizeFormulaInjection } from '../import-
  */
 export async function importCourses(req, res, next) {
   if (!req.file) throw new ValidationError('请上传文件');
-  
+
   let rows;
   try {
     rows = await readWorkbook(req.file.path);
@@ -22,19 +22,16 @@ export async function importCourses(req, res, next) {
   }
 
   const validationErrors = [];
-  let imported = 0;
-  let overwritten = 0;
-
-  const transactionOperations = [];
+  const validRows = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    
+
     const sanitizedRow = {};
     for (const [key, value] of Object.entries(row)) {
       sanitizedRow[key] = sanitizeFormulaInjection(sanitizeInput(value));
     }
-    
+
     const name = sanitizedRow['课程名称'];
     const code = sanitizedRow['课程编码'] || null;
     const typeValue = sanitizedRow['课程类型'];
@@ -45,38 +42,11 @@ export async function importCourses(req, res, next) {
       continue;
     }
 
-    const existingCourse = await prisma.courses.findFirst({
-      where: { name: String(name).trim() }
-    });
-
-    if (existingCourse) {
-      transactionOperations.push(
-        prisma.courses.update({
-          where: { id: existingCourse.id },
-          data: {
-            name: String(name).trim(),
-            code: code ? String(code).trim() : null,
-            type,
-          },
-        })
-      );
-      overwritten++;
-    } else {
-      transactionOperations.push(
-        prisma.courses.create({
-          data: {
-            name: String(name).trim(),
-            code: code ? String(code).trim() : null,
-            type,
-          },
-        })
-      );
-      imported++;
-    }
+    validRows.push({ name: String(name).trim(), code: code ? String(code).trim() : null, type });
   }
 
   try {
-    if (validationErrors.length > 0 && transactionOperations.length === 0) {
+    if (validationErrors.length > 0 && validRows.length === 0) {
       const result = {
         imported: 0,
         overwritten: 0,
@@ -97,8 +67,27 @@ export async function importCourses(req, res, next) {
       return success(res, result, `验证失败：${validationErrors.length}条错误`);
     }
 
-    if (transactionOperations.length > 0) {
-      await prisma.$transaction(transactionOperations);
+    let imported = 0;
+    let overwritten = 0;
+
+    if (validRows.length > 0) {
+      const counts = await prisma.$transaction(async (tx) => {
+        let created = 0;
+        let updated = 0;
+        for (const r of validRows) {
+          const existing = await tx.courses.findFirst({ where: { name: r.name } });
+          if (existing) {
+            await tx.courses.update({ where: { id: existing.id }, data: r });
+            updated++;
+          } else {
+            await tx.courses.create({ data: r });
+            created++;
+          }
+        }
+        return { created, updated };
+      });
+      imported = counts.created;
+      overwritten = counts.updated;
     }
 
     const result = {
@@ -129,7 +118,7 @@ export async function importCourses(req, res, next) {
     success(res, result, message);
   } catch (e) {
     log.error('[课程导入] 事务执行失败，已回滚', { error: e.message, stack: e.stack });
-    
+
     await createAuditLog({
       action: 'import',
       module: 'course',
@@ -137,7 +126,7 @@ export async function importCourses(req, res, next) {
       result: 'failed',
       message: `课程导入事务失败: ${e.message}`,
     });
-    
+
     next(e);
   }
 }
