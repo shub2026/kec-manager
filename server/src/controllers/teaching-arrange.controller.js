@@ -216,30 +216,37 @@ export async function deleteAssignment(req, res, next) {
  */
 export async function runAutoArrange(req, res, next) {
   try {
-    const { course_id, semester, mode, hour_settings, schedule_conditions, preview } = req.body;
-    if (!course_id || !semester) return fail(res, '缺少课程或学期参数');
+    // 兼容驼峰和下划线命名
+    const courseId = req.body.course_id || req.body.courseId;
+    const semester = req.body.semester;
+    const mode = req.body.mode;
+    const hourSettings = req.body.hour_settings || req.body.hourSettings;
+    const scheduleConditions = req.body.schedule_conditions || req.body.scheduleConditions;
+    const preview = req.body.preview;
+    
+    if (!courseId || !semester) return fail(res, '缺少课程或学期参数');
     if (!['full', 'standard'].includes(mode)) return fail(res, '排课模式必须是full或standard');
 
-    let hourSettings = hour_settings;
+    let finalHourSettings = hourSettings;
 
-    if (!hourSettings) {
+    if (!finalHourSettings) {
       const courseSettings = await prisma.system_settings.findUnique({
-        where: { key: `${HOUR_SETTINGS_PREFIX}_${course_id}` },
+        where: { key: `${HOUR_SETTINGS_PREFIX}_${courseId}` },
       });
 
       if (courseSettings) {
-        hourSettings = safeParseJSON(courseSettings.value, DEFAULT_HOUR_SETTINGS);
+        finalHourSettings = safeParseJSON(courseSettings.value, DEFAULT_HOUR_SETTINGS);
       } else {
         const globalSettings = await prisma.system_settings.findUnique({
           where: { key: HOUR_SETTINGS_PREFIX },
         });
-        hourSettings = globalSettings ? safeParseJSON(globalSettings.value, DEFAULT_HOUR_SETTINGS) : DEFAULT_HOUR_SETTINGS;
+        finalHourSettings = globalSettings ? safeParseJSON(globalSettings.value, DEFAULT_HOUR_SETTINGS) : DEFAULT_HOUR_SETTINGS;
       }
     }
 
-    const conditions = schedule_conditions || [];
+    const conditions = scheduleConditions || [];
 
-    const result = await autoArrange(course_id, semester, mode, hourSettings, conditions, { preview: !!preview });
+    const result = await autoArrange(courseId, semester, mode, finalHourSettings, conditions, { preview: !!preview });
 
     if (!preview) {
       await createAuditLog({
@@ -248,7 +255,7 @@ export async function runAutoArrange(req, res, next) {
         userId: req.user?.id,
         ip: req.ip,
         details: {
-          course_id,
+          course_id: courseId,
           semester,
           mode,
           autoCount: result.autoCount,
@@ -266,7 +273,7 @@ export async function runAutoArrange(req, res, next) {
       module: 'teachingArrange',
       userId: req.user?.id,
       ip: req.ip,
-      details: { course_id: req.body.course_id, semester: req.body.semester, mode: req.body.mode, error: e.message },
+      details: { course_id: courseId, semester, mode, error: e.message },
       result: 'failed',
       message: `自动排课失败：${e.message}`,
     });
@@ -337,7 +344,7 @@ export async function getStatistics(req, res, next) {
     const allAssignments = await prisma.teaching_assignments.findMany({
       where: { semester, teacher_id: { in: teacherIds } },
       include: {
-        class: { select: { id: true, name: true, college_id: true, colleges: { select: { id: true, name: true } } } },
+        class: { select: { id: true, name: true, college_id: true, training_level_id: true, colleges: { select: { id: true, name: true } } } },
         course: { select: { id: true, name: true } },
       },
       orderBy: [{ teacher_id: 'asc' }, { course_id: 'asc' }],
@@ -352,7 +359,7 @@ export async function getStatistics(req, res, next) {
       assignmentsByTeacher.get(a.teacher_id).push(a);
     }
 
-    const result = stats.map(s => {
+    const result = await Promise.all(stats.map(async s => {
       const teacher = teacherMap.get(s.teacher_id);
       const assignments = assignmentsByTeacher.get(s.teacher_id) || [];
 
@@ -364,6 +371,29 @@ export async function getStatistics(req, res, next) {
         }
       }
       const collegeList = [...collegeMap.values()];
+
+      // 从实际授课班级中提取任课层次（去重）
+      const levelIdSet = new Set();
+      for (const a of assignments) {
+        if (a.class.training_level_id) {
+          levelIdSet.add(a.class.training_level_id);
+        }
+      }
+      
+      // 优先使用实际授课层次，如果为空则使用意向设置
+      let trainingLevelList;
+      if (levelIdSet.size > 0) {
+        // 需要查询层次名称
+        const levelIds = [...levelIdSet];
+        const levels = await prisma.training_levels.findMany({
+          where: { id: { in: levelIds } },
+          select: { id: true, name: true },
+        });
+        const levelMap = new Map(levels.map(l => [l.id, l]));
+        trainingLevelList = levelIds.map(lid => levelMap.get(lid)).filter(Boolean);
+      } else {
+        trainingLevelList = teacher?.scheduling_levels?.map(sl => sl.training_level) ?? [];
+      }
 
       // 按课程分组
       const byCourse = new Map();
@@ -391,16 +421,22 @@ export async function getStatistics(req, res, next) {
         personnelType: teacher?.personnel_type || null,
         affiliatedCollege: teacher?.affiliated_college || null,
         collegeList,
-        trainingLevelList: teacher?.scheduling_levels?.map(sl => sl.training_level) ?? [],
+        trainingLevelList,
         courseList: teacher?.courses?.map(tc => tc.course) ?? [],
         totalWeeklyHours: s._sum.weekly_hours || 0,
         totalClassCount: s._count.id || 0,
         details: Array.from(byCourse.values()),
       };
-    });
+    }));
 
     // 按总课时降序排列
     result.sort((a, b) => b.totalWeeklyHours - a.totalWeeklyHours);
+
+    // DEBUG: 打印前3位教师的trainingLevelList
+    console.log('[DEBUG getStatistics] 前3位教师的trainingLevelList:');
+    result.slice(0, 3).forEach(t => {
+      console.log(`  ${t.teacherName}: ${JSON.stringify(t.trainingLevelList)}`);
+    });
 
     success(res, {
       semester,
@@ -473,22 +509,28 @@ export async function saveHourSettings(req, res, next) {
  */
 export async function runBatchAutoArrange(req, res, next) {
   try {
-    const { semester, mode, hour_settings, schedule_conditions, preview } = req.body;
+    // 兼容驼峰和下划线命名
+    const semester = req.body.semester;
+    const mode = req.body.mode;
+    const hourSettings = req.body.hour_settings || req.body.hourSettings;
+    const scheduleConditions = req.body.schedule_conditions || req.body.scheduleConditions;
+    const preview = req.body.preview;
+    
     if (!semester) return fail(res, '缺少学期参数');
     if (!['full', 'standard'].includes(mode)) return fail(res, '排课模式必须是full或standard');
 
-    let hourSettings = hour_settings;
+    let finalHourSettings = hourSettings;
 
-    if (!hourSettings) {
+    if (!finalHourSettings) {
       const globalSettings = await prisma.system_settings.findUnique({
         where: { key: HOUR_SETTINGS_PREFIX },
       });
-      hourSettings = globalSettings ? safeParseJSON(globalSettings.value, DEFAULT_HOUR_SETTINGS) : DEFAULT_HOUR_SETTINGS;
+      finalHourSettings = globalSettings ? safeParseJSON(globalSettings.value, DEFAULT_HOUR_SETTINGS) : DEFAULT_HOUR_SETTINGS;
     }
 
-    const conditions = schedule_conditions || [];
+    const conditions = scheduleConditions || [];
 
-    const result = await batchAutoArrange(semester, mode, hourSettings, conditions, { preview: !!preview });
+    const result = await batchAutoArrange(semester, mode, finalHourSettings, conditions, { preview: !!preview });
 
     if (!preview) {
       await createAuditLog({
