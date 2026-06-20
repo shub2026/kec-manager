@@ -1317,11 +1317,6 @@ function trySwapOne(u, assignments, assignmentsByTeacher, teacherMap, teacherCon
 
   // 遍历所有教师 T（含已满的），找能教 U 且置换后可容纳的场景
   for (const t of teacherConstraints) {
-    // T 必须能教 U（基本资格：本课程上限未因 defaultWeeklyHours 卡死）
-    if (t.defaultWeeklyHours != null && t.courseExistingHours + uHours > t.defaultWeeklyHours) {
-      continue;
-    }
-
     // T 当前已分配的班级记录
     const tAssignments = assignmentsByTeacher.get(t.id) || [];
     if (!tAssignments.length) continue;
@@ -1344,7 +1339,6 @@ function trySwapOne(u, assignments, assignmentsByTeacher, teacherMap, teacherCon
         if (t2.id === t.id) continue;
         const t2Cap = mode === 'standard' ? t2.standardCap : t2.fullCap;
         if (t2.assignedHours + vHours > t2Cap) continue;
-        if (t2.defaultWeeklyHours != null && t2.courseExistingHours + t2.assignedHours + vHours > t2.defaultWeeklyHours) continue;
     
         // 修复：教材上限检查（防止置换越狱）
         // 必须计算 V 的教材对 T 是否"独有"（T 的其他班级不再使用），置换后需清理
@@ -1407,10 +1401,8 @@ function trySwapOne(u, assignments, assignmentsByTeacher, teacherMap, teacherCon
 
 function isTeacherEligible(t, cls, mode) {
   const cap = mode === 'standard' ? t.standardCap : t.fullCap;
+  // 全局容量检查（已包含 defaultWeeklyHours 天花板）
   if (t.assignedHours + cls.weeklyHours > cap) return false;
-  if (t.defaultWeeklyHours != null) {
-    if (t.courseExistingHours + t.assignedHours + cls.weeklyHours > t.defaultWeeklyHours) return false;
-  }
   if (t.schedulingCollegeIds && t.schedulingCollegeIds.length > 0 &&
       !t.schedulingCollegeIds.includes(cls.collegeId)) {
     return false;
@@ -1440,14 +1432,24 @@ function buildTeacherConstraints(teachers, hourSettings, autoHoursMap, mode, ext
     const effectiveTotal = t.totalWeeklyHours - autoHoursForCourse + extraHours;
     const courseExistingHours = t.courseHours - autoHoursForCourse;
 
+    // 教师特定周课时上限：覆盖系统课时设置，标准/最大模式均以此为天花板
+    const teacherHourCap = t.defaultWeeklyHours != null
+      ? Math.max(0, t.defaultWeeklyHours - effectiveTotal)
+      : null;
+
     return {
       ...t,
       standardHours: setting.standard,
       maxHours: setting.max,
       effectiveTotal,
       courseExistingHours,
-      standardCap: Math.max(0, setting.standard - effectiveTotal),
-      fullCap: Math.max(0, setting.max - effectiveTotal),
+      standardCap: teacherHourCap != null
+        ? Math.min(teacherHourCap, Math.max(0, setting.standard - effectiveTotal))
+        : Math.max(0, setting.standard - effectiveTotal),
+      fullCap: teacherHourCap != null
+        ? Math.min(teacherHourCap, Math.max(0, setting.max - effectiveTotal))
+        : Math.max(0, setting.max - effectiveTotal),
+      teacherHourCap,
       assignedHours: 0,
       // P1-A 修复：固化固有教材快照，运行时累加不污染匹配判断
       inherentTextbookIds: [...(t.textbookIds || [])],
