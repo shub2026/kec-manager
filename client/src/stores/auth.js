@@ -167,15 +167,23 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initAuth() {
-    if (token.value && !isTokenExpired(token.value)) {
-      await fetchUserInfo()
-    } else if (refreshToken.value && !isTokenExpired(refreshToken.value)) {
-      const refreshed = await refreshAccessToken()
-      if (refreshed) {
+    try {
+      if (token.value && !isTokenExpired(token.value)) {
         await fetchUserInfo()
+      } else if (refreshToken.value && !isTokenExpired(refreshToken.value)) {
+        const refreshed = await refreshAccessToken()
+        if (refreshed) {
+          await fetchUserInfo()
+        }
+      } else if (token.value || refreshToken.value) {
+        clearAuth()
       }
-    } else if (token.value || refreshToken.value) {
+    } catch (error) {
+      // 安全兜底：认证初始化异常时清除所有状态，确保应用能正常挂载
       clearAuth()
+      if (import.meta.env.DEV) {
+        console.warn('[Auth] 初始化失败，已清除认证状态:', error.message)
+      }
     }
   }
 

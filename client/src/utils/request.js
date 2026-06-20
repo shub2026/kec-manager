@@ -63,6 +63,14 @@ request.interceptors.response.use(
 
     // 处理401未授权
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // 对认证相关接口本身不触发刷新，防止死循环
+      // 这些接口返回401是正常业务逻辑（token过期/凭证错误）
+      const skipRefreshEndpoints = ['/auth/refresh', '/auth/login', '/auth/logout']
+      const isAuthEndpoint = skipRefreshEndpoints.some(ep => originalRequest.url?.includes(ep))
+      if (isAuthEndpoint) {
+        return Promise.reject(error)
+      }
+
       // 标记请求已重试，防止无限循环
       originalRequest._retry = true
       
