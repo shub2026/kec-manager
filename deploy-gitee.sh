@@ -57,9 +57,14 @@ fi
 
 if command -v node &> /dev/null; then
     NODE_VERSION=$(node -v)
+    NODE_MAJOR=$(echo "$NODE_VERSION" | sed 's/v//' | cut -d. -f1)
     echo "✓ Node.js 版本: $NODE_VERSION"
+    if [ "$NODE_MAJOR" -lt "20" ] 2>/dev/null; then
+        echo -e "${RED}✗ Node.js 版本过低，需要 20+，当前为 ${NODE_VERSION}${NC}"
+        exit 1
+    fi
 else
-    echo -e "${RED}✗ 请先安装 Node.js 18+${NC}"
+    echo -e "${RED}✗ 请先安装 Node.js 20+${NC}"
     exit 1
 fi
 
@@ -85,8 +90,9 @@ echo "✓ 代码准备完成"
 
 echo ""
 echo -e "${GREEN}[4/9] 安装依赖...${NC}"
-execute "cd ${PROJECT_DIR} && npm install"
-execute "cd ${PROJECT_DIR}/server && npm install --production"
+# server: 需要安装全部依赖（含 devDependencies 中的 prisma CLI），构建阶段用完再清理
+execute "cd ${PROJECT_DIR}/server && npm install"
+# client: 构建前端需要 devDependencies 中的 vite 等
 execute "cd ${PROJECT_DIR}/client && npm install"
 echo "✓ 依赖安装完成"
 
@@ -141,7 +147,11 @@ fi
 echo ""
 echo -e "${GREEN}[6/9] 初始化数据库...${NC}"
 echo "执行 Prisma 迁移..."
-execute "cd ${PROJECT_DIR}/server && npx prisma migrate deploy || (echo '迁移失败，尝试重置数据库...' && npx prisma migrate reset --force)"
+# migrate deploy 安全应用已有迁移，不会清空数据
+if ! execute "cd ${PROJECT_DIR}/server && npx prisma migrate deploy"; then
+    echo -e "${YELLOW}⚠️  Prisma 迁移未完全成功，可能是数据库已存在部分表${NC}"
+    echo -e "${YELLOW}    将继续生成 Client 并尝试启动，如遇问题请手动检查迁移状态${NC}"
+fi
 echo "生成 Prisma Client..."
 execute "cd ${PROJECT_DIR}/server && npx prisma generate"
 echo "初始化种子数据..."
@@ -167,6 +177,11 @@ echo ""
 echo -e "${GREEN}[8/9] 构建前端...${NC}"
 execute "cd ${PROJECT_DIR}/client && npm run build"
 echo "✓ 前端构建完成"
+# 前端构建完成后清理 client 的 devDependencies，减少生产环境体积
+execute "cd ${PROJECT_DIR}/client && npm prune --production 2>/dev/null || true"
+# server 的 devDependencies（prisma CLI）在迁移阶段已用完，清理
+execute "cd ${PROJECT_DIR}/server && npm prune --production 2>/dev/null || true"
+echo "✓ 清理开发依赖完成"
 
 echo ""
 echo -e "${GREEN}[9/9] 启动服务...${NC}"
