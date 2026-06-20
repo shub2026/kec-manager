@@ -36,14 +36,22 @@ app.use(helmet({
 }));
 
 // CORS 配置：生产环境使用白名单，开发环境允许 localhost
-const allowedOrigins = process.env.CORS_ORIGINS 
+const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
   : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:3000'];
+
+// 开发环境允许所有localhost端口
+const isDev = process.env.NODE_ENV !== 'production';
 
 app.use(cors({
   origin: function (origin, callback) {
     // 允许无 origin 的请求（如移动应用、Postman）
     if (!origin) return callback(null, true);
+    
+    // 开发环境：允许所有 localhost 端口
+    if (isDev && origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);

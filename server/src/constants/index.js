@@ -85,11 +85,19 @@ export const TEXTBOOK_COHESION = {
   // 评分权重（calcMatchScore）
   COLLEGE_WEIGHT: 5,            // 学院匹配权重
   LEVEL_WEIGHT: 5,              // 层次匹配权重
-  ASSIGNED_WEIGHT: 6,           // 本轮已用教材权重（强化内聚，保留原值）
-  INHERENT_WEIGHT: 4,           // 固有教材权重（原值 3，提升以鼓励历史教材）
-  PENALTY_PER_NEW: 2,           // 每新增一本教材的扣分（新增项，0 表示禁用惩罚）
+  ASSIGNED_WEIGHT: 10,          // 本轮已用教材权重（提高，促进内聚）
+  INHERENT_WEIGHT: 4,           // 固有教材权重
+  PENALTY_PER_NEW: 10,          // 新增教材每本扣分（提高）
+  // 教材数量分级奖惩（2026-06-20 十二轮：强化内聚）
+  ZERO_TEXTBOOK_BONUS: 30,      // 0本教师加分（提高）
+  TEXTBOOK_COUNT_PENALTY_1_NEW: 200, // 1本教师接新课极重惩罚（大幅提高）
+  TEXTBOOK_COUNT_BONUS_1_SAME: 8,   // 1本教师接同类加分（给同教材奖励）
+  TEXTBOOK_COUNT_PENALTY_2: 20, // 已有2本教材扣分（提高）
+  TEXTBOOK_COUNT_PENALTY_3PLUS: 150, // 已有3+本教材惩戒（实质禁止）
+  MAX_TEXTBOOKS_PER_TEACHER: 2, // 硬上限：教师最多同时教几本教材（0=不限制）
   // 阶段链
   COHESION_PHASE_ENABLED: true, // 是否启用 phase2.5 内聚优先阶段
+  PHASE0_ENABLED: false,        // 关闭旧 Phase 0，改用教材分组优先
   // 兜底推导
   FALLBACK_EMPTY: true,         // true=无排课记录教师教材为空集合；false=保留全量并集兜底
   // 统计

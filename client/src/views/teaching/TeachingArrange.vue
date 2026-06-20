@@ -95,6 +95,7 @@
             <el-select v-model="filterTextbook" placeholder="教材" clearable filterable style="width: 140px">
               <el-option v-for="v in textbookOptions" :key="v" :label="v" :value="v" />
             </el-select>
+            <el-checkbox v-model="previewMode" style="margin-left: 8px">预览模式</el-checkbox>
             <el-button type="success" @click="handleAutoArrange('full')" :loading="arranging">
               <el-icon><MagicStick /></el-icon> 全量模式
             </el-button>
@@ -426,6 +427,7 @@ const filterMajor = ref('')
 const filterGrade = ref('')
 const filterTrainingLevel = ref('')
 const filterTextbook = ref('')
+const previewMode = ref(false)
 
 const collegeOptions = computed(() => {
   const set = new Set(classList.value.map(c => c.collegeName).filter(Boolean))
@@ -676,9 +678,10 @@ async function handleRemoveAssignment(row) {
 
 async function handleAutoArrange(mode) {
   const modeLabel = mode === 'full' ? '全量模式' : '标准模式'
+  const previewTip = previewMode.value ? '（预览模式：不会实际写入数据库）' : ''
   try {
     await ElMessageBox.confirm(
-      `将以「${modeLabel}」自动安排当前课程的所有班级（已有手动安排不会被覆盖）。确定继续？`,
+      `将以「${modeLabel}」自动安排当前课程的所有班级（已有手动安排不会被覆盖）。${previewTip}确定继续？`,
       `自动排课 - ${modeLabel}`,
       { confirmButtonText: '确定排课', cancelButtonText: '取消', type: 'warning' }
     )
@@ -693,12 +696,17 @@ async function handleAutoArrange(mode) {
       semester: currentSemesterLabel.value,
       mode,
       hourSettings,
+      preview: previewMode.value, // 传递预览模式参数
     })
     const data = res.data || {}
     arrangeResult.value = data
     arrangeResultMode.value = modeLabel
     arrangeResultVisible.value = true
-    await loadData()
+    
+    // 如果不是预览模式，才刷新数据
+    if (!previewMode.value) {
+      await loadData()
+    }
   } catch (e) {
     ElMessage.error('自动排课失败')
     if (import.meta.env.DEV) { console.error('自动排课失败:', e) }
