@@ -33,7 +33,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="filteredlist" stripe v-loading="loading" row-key="id" @selection-change="handleSelectionChange">
+      <el-table v-if="filteredlist.length > 0" :data="filteredlist" stripe v-loading="loading" row-key="id" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="title" label="书名" min-width="150" show-overflow-tooltip />
@@ -100,6 +100,8 @@
           </template>
         </el-table-column>
       </el-table>
+      
+      <el-empty v-else description="暂无教材数据" />
       
       <!-- 批量操作栏 -->
       <div v-if="selectedTextbooks.length > 0" class="batch-operations">

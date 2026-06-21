@@ -44,8 +44,13 @@
         <el-divider />
       </div>
 
+      <!-- 空状态 -->
+      <el-empty v-if="!loading && !statsData" description="暂无课时统计数据" />
+      <el-empty v-else-if="!loading && statsData && filteredTeachers.length === 0" description="没有符合条件的教师" />
+
       <!-- 教师课时统计表 -->
-      <el-table :data="filteredTeachers" stripe v-loading="loading" row-key="teacherId" style="width: 100%">
+      <div v-if="filteredTeachers.length > 0">
+        <el-table :data="filteredTeachers" stripe v-loading="loading" row-key="teacherId" style="width: 100%">
         <el-table-column type="expand">
           <template #default="{ row }">
             <div class="expand-content">
@@ -106,6 +111,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
     </el-card>
   </div>
 </template>

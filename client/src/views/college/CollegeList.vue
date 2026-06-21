@@ -9,7 +9,7 @@
           </el-button>
         </div>
       </template>
-      <el-table :data="list" stripe v-loading="loading" row-key="id">
+      <el-table v-if="list.length > 0" :data="list" stripe v-loading="loading" row-key="id">
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="学院名称" min-width="150" />
         <el-table-column prop="code" label="编码" width="120" />
@@ -50,6 +50,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <el-empty v-else description="暂无学院数据" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑学院' : '新增学院'" width="500px">

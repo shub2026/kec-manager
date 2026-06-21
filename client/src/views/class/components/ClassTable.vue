@@ -1,9 +1,9 @@
 <template>
-  <div>
+  <div v-loading="loading">
     <el-table 
+      v-if="classes.length > 0"
       :data="classes" 
       stripe 
-      v-loading="loading" 
       row-key="id" 
       @selection-change="$emit('selection-change', $event)"
     >
@@ -65,7 +65,8 @@
           </el-popconfirm>
         </template>
       </el-table-column>
-    </el-table>
+      </el-table>
+      <el-empty v-else description="暂无班级数据" />
     
     <!-- 批量操作栏 -->
     <div v-if="selectedClasses.length > 0" class="batch-operations">
@@ -94,7 +95,7 @@
     </div>
     
     <!-- 分页 -->
-    <div class="pagination-container">
+    <div v-if="pagination.total > 0" class="pagination-container">
       <el-pagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"

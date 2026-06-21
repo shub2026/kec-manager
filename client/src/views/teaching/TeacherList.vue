@@ -50,7 +50,7 @@
         </div>
       </template>
 
-      <el-table :data="filteredlist" stripe v-loading="loading" row-key="id">
+      <el-table v-if="filteredlist.length > 0" :data="filteredlist" stripe v-loading="loading" row-key="id">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="name" label="姓名" width="100">
           <template #default="{ row }">
@@ -127,6 +127,7 @@
           </template>
         </el-table-column>
       </el-table>
+      <el-empty v-else description="暂无教师数据" />
     </el-card>
 
     <!-- 新增/编辑弹窗 -->

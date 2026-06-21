@@ -5,6 +5,7 @@
         <div class="card-header">
           <span>课程管理</span>
           <div class="card-header-actions">
+            <el-input v-model="filterName" clearable placeholder="搜索课程名称" class="filter-input" />
             <el-button @click="exportData">数据导出</el-button>
             <el-button @click="downloadTemplate">下载模板</el-button>
             <el-upload
@@ -25,7 +26,8 @@
           </div>
         </div>
       </template>
-      <el-table :data="list" stripe v-loading="loading" row-key="id">
+
+      <el-table v-if="filteredList.length > 0" :data="filteredList" stripe v-loading="loading" row-key="id">
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="课程名称" min-width="150" />
         <el-table-column prop="code" label="编码" width="120" />
@@ -40,18 +42,18 @@
         <el-table-column label="排序" width="120" align="center">
           <template #default="{ row, $index }">
             <div class="sort-buttons">
-              <el-button 
-                size="small" 
-                :icon="ArrowUp" 
+              <el-button
+                size="small"
+                :icon="ArrowUp"
                 :disabled="$index === 0"
                 @click="handleMoveUp(row, $index)"
                 circle
                 title="上移"
               />
-              <el-button 
-                size="small" 
-                :icon="ArrowDown" 
-                :disabled="$index === list.length - 1"
+              <el-button
+                size="small"
+                :icon="ArrowDown"
+                :disabled="$index === filteredList.length - 1"
                 @click="handleMoveDown(row, $index)"
                 circle
                 title="下移"
@@ -70,6 +72,8 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <el-empty v-else description="暂无课程数据" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑课程' : '新增课程'" width="500px">
@@ -99,18 +103,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { getCookie } from '@/utils/cookies'
-import { useAuthStore } from '../../stores/auth'
 import request from '../../utils/request'
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course'
 import { useExport } from '../../composables/useExport'
 import { useSortable } from '../../composables/useSortable'
 
 const list = ref([])
-const authStore = useAuthStore()
+const filterName = ref('')
 const uploadHeaders = computed(() => {
   const token = getCookie('token')
   return token ? { Authorization: `Bearer ${token}` } : {}
@@ -126,8 +129,22 @@ const pendingFile = ref(null)
 // 使用导出 composable
 const { exportData, downloadTemplate } = useExport('courses', '课程数据')
 
-// 使用排序 composable
-const { handleMoveUp, handleMoveDown } = useSortable(list, updateCourse, silentReload)
+// 筛选后的列表
+const filteredList = computed(() => {
+  if (!filterName.value) return list.value
+  const keyword = filterName.value.toLowerCase()
+  return list.value.filter(item => item.name && item.name.toLowerCase().includes(keyword))
+})
+
+// 使用排序 composable（注意：CourseList 使用 filteredList 而非 list）
+const { handleMoveUp, handleMoveDown } = useSortable(
+  filteredList,
+  updateCourse,
+  silentReload,
+  {
+    indexFinder: (item) => filteredList.value.findIndex(i => i.id === item.id)
+  }
+)
 
 async function load() {
   loading.value = true
@@ -213,7 +230,6 @@ async function beforeImport(file) {
 // 确认导入
 async function confirmImport() {
   try {
-    // 创建 FormData 并手动上传
     const formData = new FormData()
     formData.append('file', pendingFile.value)
     
@@ -235,10 +251,8 @@ function onImportSuccess(res) {
   const data = res.data || {}
   const message = res.message || '导入完成'
   
-  // 构建详细消息
   let detailMsg = message
   
-  // 添加失败详情，每条一行
   if (data.errors && data.errors.length > 0) {
     detailMsg += '\n\n❌ 失败详情：'
     data.errors.forEach((error, index) => {
@@ -246,9 +260,7 @@ function onImportSuccess(res) {
     })
   }
   
-  // 根据结果显示不同类型的消息
   if (data.failed && data.failed > 0) {
-    // 有失败记录，显示警告消息
     ElMessage({
       message: detailMsg,
       type: 'warning',
@@ -256,7 +268,6 @@ function onImportSuccess(res) {
       showClose: true,
     })
   } else if (data.imported > 0 || data.overwritten > 0) {
-    // 成功导入，显示成功消息（带详细信息）
     ElMessage({
       message: detailMsg,
       type: 'success',
@@ -264,7 +275,6 @@ function onImportSuccess(res) {
       showClose: true,
     })
   } else {
-    // 其他情况
     ElMessage({
       message: detailMsg,
       type: 'info',
@@ -284,3 +294,14 @@ onMounted(() => {
   load()
 })
 </script>
+
+<style scoped>
+.filter-input {
+  width: 180px;
+}
+.sort-buttons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+</style>
