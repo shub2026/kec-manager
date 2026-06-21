@@ -37,6 +37,11 @@
       </div>
     </el-card>
 
+    <!-- 未选课程时的空状态提示 -->
+    <el-card v-if="!selectedCourseId" class="empty-card">
+      <el-empty description="请选择课程查看教学安排" />
+    </el-card>
+
     <!-- 预览区（合并课程信息 + 统计报告） -->
     <el-card v-if="selectedCourseId && courseInfo" class="preview-card">
       <template #header>
@@ -831,6 +836,10 @@ onMounted(() => {
   font-size: 12px;
   color: #606266;
 }
+.empty-card {
+  margin-bottom: 16px;
+}
+
 .preview-card {
   margin-bottom: 16px;
 }

@@ -38,9 +38,9 @@
 
       <!-- 统一使用一个容器，保持最小高度 -->
       <div class="content-container" v-loading="loadingDetail">
-        <!-- 提示信息区 -->
-        <el-alert v-if="!selectedSemester" title="请先选择要查询的学期，然后选择教材查看详情" type="warning" :closable="false" class="alert-info" />
-        <el-alert v-else-if="!selectedTextbook && !loadingDetail" title="请选择要查询的教材" type="info" :closable="false" class="alert-info" />
+        <!-- 空状态提示 -->
+        <el-empty v-if="!selectedSemester" description="请先选择要查询的学期，然后选择教材查看详情" />
+        <el-empty v-else-if="!selectedTextbook && !loadingDetail" description="请选择要查询的教材查看详情" />
         
         <!-- 详情内容区：用 hasDetail 控制，加载期间保持旧数据在 DOM 中不卸载 -->
         <div v-else-if="hasDetail" class="detail-content">
