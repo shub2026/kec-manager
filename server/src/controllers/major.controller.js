@@ -14,8 +14,8 @@ export async function listMajors(req, res, next) {
       include: { _count: { select: { classes: true, training_plans: true } } },
       orderBy: { sort_order: 'asc' },
     });
-    
-    const formattedMajors = majors.map(major => ({
+
+    const formattedMajors = majors.map((major) => ({
       ...major,
       classCount: major._count?.classes || 0,
       planCount: major._count?.training_plans || 0,
@@ -33,14 +33,14 @@ export async function createMajor(req, res, next) {
   try {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '专业名称不能为空');
-    
+
     const newSortOrder = await getNextSortOrder(prisma, 'majors');
     const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
-    
-    const major = await prisma.majors.create({ 
-      data: { name, code, description, sort_order: finalSortOrder } 
+
+    const major = await prisma.majors.create({
+      data: { name, code, description, sort_order: finalSortOrder },
     });
-    
+
     await createAuditLog({
       action: 'create',
       module: 'major',
@@ -50,7 +50,7 @@ export async function createMajor(req, res, next) {
       result: 'success',
       message: `创建专业：${name}`,
     });
-    
+
     invalidateSortOrderCache('majors');
     success(res, major, '创建成功');
   } catch (e) {
@@ -73,15 +73,15 @@ export async function createMajor(req, res, next) {
 export async function updateMajor(req, res, next) {
   try {
     const { id } = req.params;
-    
+
     const data = buildUpdateData(req.body, ['name', 'code', 'description', 'sort_order']);
-    
+
     try {
       const major = await prisma.majors.update({
         where: { id: Number(id) },
         data,
       });
-      
+
       await createAuditLog({
         action: 'update',
         module: 'major',
@@ -91,7 +91,7 @@ export async function updateMajor(req, res, next) {
         result: 'success',
         message: `更新专业：${data.name || major.name}`,
       });
-      
+
       invalidateSortOrderCache('majors');
       success(res, major, '更新成功');
     } catch (e) {
@@ -120,11 +120,11 @@ export async function deleteMajor(req, res, next) {
     const { id } = req.params;
     const classCount = await prisma.classes.count({ where: { major_id: Number(id) } });
     if (classCount > 0) return fail(res, '该专业下存在班级，无法删除');
-    
+
     try {
       const major = await prisma.majors.findUnique({ where: { id: Number(id) } });
       await prisma.majors.delete({ where: { id: Number(id) } });
-      
+
       await createAuditLog({
         action: 'delete',
         module: 'major',
@@ -134,7 +134,7 @@ export async function deleteMajor(req, res, next) {
         result: 'success',
         message: `删除专业：${major?.name}`,
       });
-      
+
       invalidateSortOrderCache('majors');
       success(res, null, '删除成功');
     } catch (e) {

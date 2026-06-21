@@ -34,8 +34,8 @@ async function resetDatabase() {
         role: 'super_admin',
         real_name: '系统管理员',
         email: 'admin@example.com',
-        is_active: true
-      }
+        is_active: true,
+      },
     });
     console.log(`✓ 超级管理员已创建: ${adminUser.username} (密码: admin@123456)\n`);
 
@@ -45,38 +45,38 @@ async function resetDatabase() {
       {
         key: 'system.name',
         value: 'KEC课程管理平台',
-        description: '系统名称'
+        description: '系统名称',
       },
       {
         key: 'system.version',
         value: '1.0.0',
-        description: '系统版本'
+        description: '系统版本',
       },
       {
         key: 'upload.maxFileSize',
         value: '10',
-        description: '最大上传文件大小(MB)'
+        description: '最大上传文件大小(MB)',
       },
       {
         key: 'upload.allowedTypes',
         value: 'xlsx,xls,csv,pdf,jpg,png',
-        description: '允许上传的文件类型'
+        description: '允许上传的文件类型',
       },
       {
         key: 'semester.current',
         value: '2026-1',
-        description: '当前学期'
+        description: '当前学期',
       },
       {
         key: 'academic.year',
         value: '2026',
-        description: '当前学年'
-      }
+        description: '当前学年',
+      },
     ];
 
     for (const setting of defaultSettings) {
       await prisma.system_settings.create({
-        data: setting
+        data: setting,
       });
     }
     console.log(`✓ 已创建 ${defaultSettings.length} 条系统设置\n`);
@@ -91,7 +91,6 @@ async function resetDatabase() {
     console.log('  用户名: admin');
     console.log('  密码: admin@123456');
     console.log('  角色: super_admin\n');
-
   } catch (error) {
     console.error('❌ 数据库重置失败:', error.message);
     throw error;
@@ -101,7 +100,7 @@ async function resetDatabase() {
 }
 
 // 执行重置
-resetDatabase().catch(err => {
+resetDatabase().catch((err) => {
   console.error(err);
   process.exit(1);
 });

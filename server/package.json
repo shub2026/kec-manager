@@ -1,6 +1,6 @@
 {
   "name": "kec-manager-server",
-  "version": "2.6.14",
+  "version": "2.7.0",
   "description": "KEC课程管理平台后端",
   "main": "src/server.js",
   "type": "module",
@@ -17,7 +17,9 @@
     "db:generate": "npx prisma generate",
     "db:seed": "node prisma/seed.js",
     "db:seed:dev": "DEV_SEEDS=true node prisma/seed.js",
-    "db:seed:reset": "FORCE_RESET=true node prisma/seed.js"
+    "db:seed:reset": "FORCE_RESET=true node prisma/seed.js",
+    "format": "prettier --write \"src/**/*.{js,json}\" \"scripts/**/*.js\"",
+    "lint": "eslint src scripts --ext .js --fix"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -35,6 +37,9 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.5.0",
+    "prettier": "^3.8.4",
     "prisma": "^6.19.3"
   }
 }

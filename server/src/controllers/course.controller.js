@@ -11,7 +11,9 @@ export async function listCourses(req, res, next) {
     await autoFixSortOrder('courses', type ? { type } : {});
     const courses = await prisma.courses.findMany({ where, orderBy: { sort_order: 'asc' } });
     success(res, courses);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function createCourse(req, res, next) {
@@ -82,7 +84,9 @@ export async function updateCourse(req, res, next) {
       if (e.code === 'P2025') return fail(res, '课程不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function deleteCourse(req, res, next) {
@@ -119,5 +123,7 @@ export async function deleteCourse(req, res, next) {
       if (e.code === 'P2025') return fail(res, '课程不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }

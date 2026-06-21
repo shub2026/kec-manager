@@ -48,17 +48,22 @@ export async function createWorkbook(headers, rows) {
  */
 function normalizeCellValue(value) {
   if (value === null || value === undefined) return null;
-  
+
   // 处理日期对象
   if (value instanceof Date) {
     return value.toISOString().split('T')[0];
   }
-  
+
   // 处理对象（ExcelJS可能返回的对象）
   if (typeof value === 'object') {
     // 如果是ExcelJS的RichText或其他对象，尝试提取文本
     if (value.richText && Array.isArray(value.richText)) {
-      return value.richText.map(rt => rt.text || '').join('').trim() || null;
+      return (
+        value.richText
+          .map((rt) => rt.text || '')
+          .join('')
+          .trim() || null
+      );
     }
     if (value.text) {
       const text = String(value.text).trim();
@@ -67,7 +72,7 @@ function normalizeCellValue(value) {
     if (value.result !== undefined) return value.result;
     return String(value);
   }
-  
+
   // 处理数字字符串（去除尾随空格）
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -78,7 +83,7 @@ function normalizeCellValue(value) {
     if (/^\d+\.\d+$/.test(trimmed)) return Number(trimmed);
     return trimmed;
   }
-  
+
   return value;
 }
 
@@ -97,7 +102,9 @@ export async function readWorkbook(filePath) {
       row.eachCell((cell, colNum) => {
         const headerValue = String(cell.value || '').trim();
         // 去除开头的 * 号
-        headers[colNum - 1] = headerValue.startsWith('*') ? headerValue.substring(1).trim() : headerValue;
+        headers[colNum - 1] = headerValue.startsWith('*')
+          ? headerValue.substring(1).trim()
+          : headerValue;
       });
     } else if (rowNum - 1 > MAX_ROWS) {
       // 超过上限停止读取
@@ -116,7 +123,7 @@ export async function readWorkbook(filePath) {
 
       // 修复：只有当所有字段都为空时才跳过该行
       // 这样可以避免部分字段为空的行被错误过滤
-      const hasAnyValue = Object.values(obj).some(v => v !== null && v !== undefined && v !== '');
+      const hasAnyValue = Object.values(obj).some((v) => v !== null && v !== undefined && v !== '');
       if (hasAnyValue) {
         rows.push(obj);
       }
@@ -145,7 +152,7 @@ export function createTemplateWorkbook(headers, sampleData = []) {
   // 设置表头样式
   const headerRow = sheet.getRow(1);
   headerRow.font = { bold: true };
-  
+
   // 为每个单元格设置背景色
   headers.forEach((h, index) => {
     const cell = headerRow.getCell(index + 1);

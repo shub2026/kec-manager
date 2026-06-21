@@ -3,13 +3,21 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span><el-icon><Collection /></el-icon> 专业类别管理</span>
+          <span
+            ><el-icon><Collection /></el-icon> 专业类别管理</span
+          >
           <el-button type="primary" @click="openDialog()">
             <el-icon><Plus /></el-icon> 新增专业
           </el-button>
         </div>
       </template>
-      <el-table :data="list" stripe v-loading="loading" row-key="id" default-sort="{ prop: 'name', order: 'ascending' }">
+      <el-table
+        v-loading="loading"
+        :data="list"
+        stripe
+        row-key="id"
+        default-sort="{ prop: 'name', order: 'ascending' }"
+      >
         <template #empty>
           <el-empty description="暂无专业数据，请点击右上角新增" />
         </template>
@@ -23,21 +31,21 @@
         <el-table-column label="排序" width="120" align="center">
           <template #default="{ row, $index }">
             <div class="sort-buttons">
-              <el-button 
-                size="small" 
-                :icon="ArrowUp" 
+              <el-button
+                size="small"
+                :icon="ArrowUp"
                 :disabled="$index === 0"
-                @click="handleMoveUp(row, $index)"
                 circle
                 title="上移"
+                @click="handleMoveUp(row, $index)"
               />
-              <el-button 
-                size="small" 
-                :icon="ArrowDown" 
+              <el-button
+                size="small"
+                :icon="ArrowDown"
                 :disabled="$index === list.length - 1"
-                @click="handleMoveDown(row, $index)"
                 circle
                 title="下移"
+                @click="handleMoveDown(row, $index)"
               />
             </div>
           </template>
@@ -64,28 +72,39 @@
           <el-input v-model="form.code" placeholder="请输入编码（可选）" />
         </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" placeholder="请输入描述信息（可选）" />
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            placeholder="请输入描述信息（可选）"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
-import { getMajors, createMajor, updateMajor, deleteMajor } from '../../api/major'
-import { useCrudList } from '../../composables/useCrudList'
+import { ArrowUp, ArrowDown } from '@element-plus/icons-vue';
+import { getMajors, createMajor, updateMajor, deleteMajor } from '../../api/major';
+import { useCrudList } from '../../composables/useCrudList';
 
 const {
-  list, loading, dialogVisible, saving, form,
-  handleMoveUp, handleMoveDown,
-  openDialog, handleSave, handleDelete,
+  list,
+  loading,
+  dialogVisible,
+  saving,
+  form,
+  handleMoveUp,
+  handleMoveDown,
+  openDialog,
+  handleSave,
+  handleDelete,
 } = useCrudList(
   { list: getMajors, create: createMajor, update: updateMajor, remove: deleteMajor },
   { nameLabel: '专业名称' }
-)
+);
 </script>

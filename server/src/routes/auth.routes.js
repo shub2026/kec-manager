@@ -1,15 +1,15 @@
-import express from 'express'
-import rateLimit from 'express-rate-limit'
-import { AuthService } from '../services/auth.service.js'
-import { authMiddleware } from '../middleware/auth.middleware.js'
-import { success, fail } from '../utils/response.js'
-import { prisma } from '../lib/prisma.js'
-import { createAuditLog } from '../services/audit.service.js'
-import { AuthenticationError, ValidationError } from '../utils/error.js'
-import { sanitizeBody } from '../middleware/xss.js' // H7修复：XSS防护中间件
-import { validateChangePassword, validateLogin } from '../middleware/validation.js'
+import express from 'express';
+import rateLimit from 'express-rate-limit';
+import { AuthService } from '../services/auth.service.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
+import { success, fail } from '../utils/response.js';
+import { prisma } from '../lib/prisma.js';
+import { createAuditLog } from '../services/audit.service.js';
+import { AuthenticationError, ValidationError } from '../utils/error.js';
+import { sanitizeBody } from '../middleware/xss.js'; // H7修复：XSS防护中间件
+import { validateChangePassword, validateLogin } from '../middleware/validation.js';
 
-const router = express.Router()
+const router = express.Router();
 
 // 速率限制配置
 const loginLimiter = rateLimit({
@@ -18,7 +18,7 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: '登录尝试过于频繁，请15分钟后再试' },
-})
+});
 
 const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -26,17 +26,17 @@ const refreshLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: '刷新Token请求过于频繁，请稍后再试' },
-})
+});
 
 // 自定义限流key生成器：优先使用用户ID，降级到IP
 const generateKeyByUserOrIp = (req) => {
   // 如果用户已认证，使用用户ID作为限流key
   if (req.user && req.user.id) {
-    return `user:${req.user.id}`
+    return `user:${req.user.id}`;
   }
   // 否则返回null，让express-rate-limit使用默认的IP检测
-  return null
-}
+  return null;
+};
 
 const passwordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -46,42 +46,42 @@ const passwordLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: '修改密码请求过于频繁，请15分钟后再试' },
-})
+});
 
 router.post('/login', loginLimiter, validateLogin, async (req, res, next) => {
   try {
-    const { username, password } = req.body
+    const { username, password } = req.body;
 
     if (!username || !password) {
-      throw new ValidationError('请输入用户名和密码')
+      throw new ValidationError('请输入用户名和密码');
     }
 
-    const result = await AuthService.login(username, password, req.ip)
-    success(res, result, '登录成功')
+    const result = await AuthService.login(username, password, req.ip);
+    success(res, result, '登录成功');
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
 router.post('/refresh', refreshLimiter, async (req, res, next) => {
   try {
-    const { refresh_token } = req.body
+    const { refresh_token } = req.body;
 
     if (!refresh_token) {
-      throw new ValidationError('请提供Refresh Token')
+      throw new ValidationError('请提供Refresh Token');
     }
 
-    const result = await AuthService.refreshToken(refresh_token)
-    success(res, result)
+    const result = await AuthService.refreshToken(refresh_token);
+    success(res, result);
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
 router.post('/logout', async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.substring(7)
-    const decoded = token ? AuthService.verifyToken(token) : null
+    const token = req.headers.authorization?.substring(7);
+    const decoded = token ? AuthService.verifyToken(token) : null;
 
     if (decoded) {
       await createAuditLog({
@@ -92,14 +92,14 @@ router.post('/logout', async (req, res, next) => {
         details: { username: decoded.username },
         result: 'success',
         message: `${decoded.username} 登出系统`,
-      })
+      });
     }
 
-    success(res, null, '登出成功')
+    success(res, null, '登出成功');
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
 router.get('/me', authMiddleware, async (req, res, next) => {
   try {
@@ -112,21 +112,21 @@ router.get('/me', authMiddleware, async (req, res, next) => {
         real_name: true,
         email: true,
         last_login_at: true,
-        created_at: true
-      }
-    })
+        created_at: true,
+      },
+    });
 
-    success(res, user)
+    success(res, user);
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
 // 生成短期下载令牌（用于 window.open 等无法设置 Authorization 头的场景）
 router.post('/download-token', authMiddleware, async (req, res, next) => {
   try {
-    const downloadToken = AuthService.generateDownloadToken(req.user)
-    
+    const downloadToken = AuthService.generateDownloadToken(req.user);
+
     await createAuditLog({
       action: 'generate_token',
       module: 'auth',
@@ -135,31 +135,38 @@ router.post('/download-token', authMiddleware, async (req, res, next) => {
       details: { username: req.user.username, token_type: 'download' },
       result: 'success',
       message: `${req.user.username} 生成下载令牌`,
-    })
-    
-    success(res, { downloadToken })
+    });
+
+    success(res, { downloadToken });
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
-router.put('/password', authMiddleware, passwordLimiter, validateChangePassword, sanitizeBody, async (req, res, next) => {
-  try {
-    const { old_password, new_password } = req.body
+router.put(
+  '/password',
+  authMiddleware,
+  passwordLimiter,
+  validateChangePassword,
+  sanitizeBody,
+  async (req, res, next) => {
+    try {
+      const { old_password, new_password } = req.body;
 
-    if (!old_password || !new_password) {
-      throw new ValidationError('请提供原密码和新密码')
+      if (!old_password || !new_password) {
+        throw new ValidationError('请提供原密码和新密码');
+      }
+
+      if (new_password.length < 8) {
+        throw new ValidationError('新密码长度至少8位');
+      }
+
+      await AuthService.changePassword(req.user.id, old_password, new_password, req.ip);
+      success(res, null, '密码修改成功');
+    } catch (error) {
+      next(error);
     }
-
-    if (new_password.length < 8) {
-      throw new ValidationError('新密码长度至少8位')
-    }
-
-    await AuthService.changePassword(req.user.id, old_password, new_password, req.ip)
-    success(res, null, '密码修改成功')
-  } catch (error) {
-    next(error)
   }
-})
+);
 
-export default router
+export default router;

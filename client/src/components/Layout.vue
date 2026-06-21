@@ -97,12 +97,16 @@
           <span class="header-title">{{ currentTitle }}</span>
         </div>
         <div class="layout-header-right">
-          <el-tag type="info" v-if="semesterLabel">{{ semesterLabel }}</el-tag>
+          <el-tag v-if="semesterLabel" type="info">{{ semesterLabel }}</el-tag>
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-icon><User /></el-icon>
               {{ authStore.realName || authStore.username }}
-              <el-tag size="small" :type="authStore.isAdmin ? 'success' : 'info'" style="margin-left: 5px;">
+              <el-tag
+                size="small"
+                :type="authStore.isAdmin ? 'success' : 'info'"
+                style="margin-left: 5px"
+              >
                 {{ authStore.isAdmin ? '管理员' : '访客' }}
               </el-tag>
             </span>
@@ -125,57 +129,54 @@
   </el-container>
 
   <!-- 修改密码对话框 -->
-  <ChangePasswordDialog 
-    v-model="passwordDialogVisible"
-    @success="handlePasswordChangeSuccess"
-  />
+  <ChangePasswordDialog v-model="passwordDialogVisible" @success="handlePasswordChangeSuccess" />
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useSettingsStore } from '../stores/settings'
-import { useAuthStore } from '../stores/auth'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import ChangePasswordDialog from './ChangePasswordDialog.vue'
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useSettingsStore } from '../stores/settings';
+import { useAuthStore } from '../stores/auth';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import ChangePasswordDialog from './ChangePasswordDialog.vue';
 
-const route = useRoute()
-const router = useRouter()
-const settingsStore = useSettingsStore()
-const authStore = useAuthStore()
-const isCollapse = ref(false)
-const version = __APP_VERSION__
+const route = useRoute();
+const router = useRouter();
+const settingsStore = useSettingsStore();
+const authStore = useAuthStore();
+const isCollapse = ref(false);
+const version = __APP_VERSION__;
 
 // 修改密码相关
-const passwordDialogVisible = ref(false)
+const passwordDialogVisible = ref(false);
 
-const activeMenu = computed(() => route.path)
-const currentTitle = computed(() => route.meta?.title || '首页')
-const semesterLabel = computed(() => settingsStore.semesterLabel)
+const activeMenu = computed(() => route.path);
+const currentTitle = computed(() => route.meta?.title || '首页');
+const semesterLabel = computed(() => settingsStore.semesterLabel);
 
 onMounted(async () => {
-  await settingsStore.load()
-  
+  await settingsStore.load();
+
   // 检查是否有权限警告
-  const warning = sessionStorage.getItem('permissionWarning')
+  const warning = sessionStorage.getItem('permissionWarning');
   if (warning) {
-    ElMessage.warning(warning)
-    sessionStorage.removeItem('permissionWarning')
+    ElMessage.warning(warning);
+    sessionStorage.removeItem('permissionWarning');
   }
-})
+});
 
 async function handleCommand(command) {
   if (command === 'password') {
-    passwordDialogVisible.value = true
+    passwordDialogVisible.value = true;
   } else if (command === 'logout') {
     await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      type: 'warning'
-    })
-    
-    await authStore.logout()
-    ElMessage.success('已退出登录')
+      type: 'warning',
+    });
+
+    await authStore.logout();
+    ElMessage.success('已退出登录');
   }
 }
 

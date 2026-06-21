@@ -56,7 +56,7 @@ export function errorHandler(err, req, res, next) {
 
   res.status(status).json({
     success: false,
-    message: isProduction ? getSafeMessage(err) : (err.message || '服务器内部错误'),
+    message: isProduction ? getSafeMessage(err) : err.message || '服务器内部错误',
     ...(isProduction ? {} : { stack: err.stack }),
   });
 }

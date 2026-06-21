@@ -1,11 +1,11 @@
 <template>
   <div v-loading="loading">
-    <el-table 
-      :data="classes" 
-      stripe 
-      row-key="id" 
-      @selection-change="$emit('selection-change', $event)"
+    <el-table
+      :data="classes"
+      stripe
+      row-key="id"
       default-sort="{ prop: 'name', order: 'ascending' }"
+      @selection-change="$emit('selection-change', $event)"
     >
       <template #empty>
         <el-empty description="暂无班级数据" />
@@ -33,7 +33,7 @@
       </el-table-column>
       <el-table-column label="年级" min-width="75">
         <template #default="{ row }">
-          <el-tag size="small" v-if="calcGrade(row)">{{ calcGrade(row) }}年级</el-tag>
+          <el-tag v-if="calcGrade(row)" size="small">{{ calcGrade(row) }}年级</el-tag>
           <span v-else>-</span>
         </template>
       </el-table-column>
@@ -60,7 +60,7 @@
       </el-table-column>
       <el-table-column label="操作" width="100" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" :icon="Edit" @click="$emit('edit', row)" circle title="编辑" />
+          <el-button size="small" :icon="Edit" circle title="编辑" @click="$emit('edit', row)" />
           <el-popconfirm title="确定删除？" @confirm="$emit('delete', row.id)">
             <template #reference>
               <el-button size="small" :icon="Delete" type="danger" circle title="删除" />
@@ -68,7 +68,7 @@
           </el-popconfirm>
         </template>
       </el-table-column>
-      </el-table>
+    </el-table>
 
     <!-- 批量操作栏 -->
     <div v-if="selectedClasses.length > 0" class="batch-operations">
@@ -95,7 +95,7 @@
         <el-icon><Edit /></el-icon> 批量设置离校
       </el-button>
     </div>
-    
+
     <!-- 分页 -->
     <div v-if="pagination.total > 0" class="pagination-container">
       <el-pagination
@@ -112,7 +112,7 @@
 </template>
 
 <script setup>
-import { Edit, Delete } from '@element-plus/icons-vue'
+import { Edit, Delete } from '@element-plus/icons-vue';
 
 const props = defineProps({
   classes: {
@@ -135,7 +135,7 @@ const props = defineProps({
     type: Object,
     default: null,
   },
-})
+});
 
 const emit = defineEmits([
   'selection-change',
@@ -145,97 +145,97 @@ const emit = defineEmits([
   'batch-set',
   'size-change',
   'page-change',
-])
+]);
 
 function calcGrade(row) {
-  if (!row.enrollmentYear) return null
-  
+  if (!row.enrollmentYear) return null;
+
   // 优先使用后端提供的学期信息
-  let startYear
+  let startYear;
   if (props.semesterInfo && props.semesterInfo.startYear) {
-    startYear = props.semesterInfo.startYear
+    startYear = props.semesterInfo.startYear;
   } else {
     // 降级方案：如果无法获取学期信息，根据当前日期估算
-    const now = new Date()
-    const currentYear = now.getFullYear()
-    const currentMonth = now.getMonth() + 1
-    startYear = currentMonth >= 9 ? currentYear : currentYear - 1
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    startYear = currentMonth >= 9 ? currentYear : currentYear - 1;
   }
-  
-  const grade = startYear - row.enrollmentYear + 1
-  
+
+  const grade = startYear - row.enrollmentYear + 1;
+
   // 年级必须在有效范围内才显示：
   // 1. 年级 >= 1（已入学）
   // 2. 年级 <= 学制年限（未毕业）
-  const durationYears = row.durationYears || row.duration_years || 99
+  const durationYears = row.durationYears || row.duration_years || 99;
   if (grade >= 1 && grade <= durationYears) {
-    return grade
+    return grade;
   }
-  
+
   // 超出学制范围（已毕业）或未入学，显示为空
-  return null
+  return null;
 }
 
 function getStatusType(status) {
-  if (status === 'left_school') return 'danger'
-  if (status === 'active') return 'success'
-  return 'info'
+  if (status === 'left_school') return 'danger';
+  if (status === 'active') return 'success';
+  return 'info';
 }
 
 function getStatusText(status) {
-  if (status === 'left_school') return '离校'
-  if (status === 'active') return '在读'
-  return '已毕业'
+  if (status === 'left_school') return '离校';
+  if (status === 'active') return '在读';
+  return '已毕业';
 }
 
 // 获取关联类型文本
 function getRelationTypeText(row) {
   if (row.customPlanId) {
-    return '自定义'
+    return '自定义';
   }
   if (row.majorId) {
-    return '专业'
+    return '专业';
   }
   if (row.trainingLevelId) {
-    return '层次'
+    return '层次';
   }
-  return '未关联'
+  return '未关联';
 }
 
 // 获取关联类型标签样式
 function getRelationTypeTag(row) {
   if (row.customPlanId) {
-    return 'warning' // 自定义方案用橙色
+    return 'warning'; // 自定义方案用橙色
   }
   if (row.majorId) {
-    return 'success' // 专业关联用绿色
+    return 'success'; // 专业关联用绿色
   }
   if (row.trainingLevelId) {
-    return 'primary' // 层次关联用蓝色
+    return 'primary'; // 层次关联用蓝色
   }
-  return 'info' // 未关联用灰色
+  return 'info'; // 未关联用灰色
 }
 
 function getPlanTagType(row) {
-  if (row.customPlanId) return 'warning'
-  return 'success'
+  if (row.customPlanId) return 'warning';
+  return 'success';
 }
 
 function getCurrentPlanName(row) {
   // 使用后端返回的匹配方案名称
   if (row.matchedPlanName) {
-    return row.matchedPlanName
+    return row.matchedPlanName;
   }
-  
+
   // 兜底：如果没有 matchedPlanName，显示提示信息
   if (row.majors || row.trainingLevels) {
-    const parts = []
-    if (row.majors?.name) parts.push(row.majors.name)
-    if (row.trainingLevels?.name) parts.push(row.trainingLevels.name)
-    return parts.length > 0 ? `自动匹配 (${parts.join(', ')})` : '未关联'
+    const parts = [];
+    if (row.majors?.name) parts.push(row.majors.name);
+    if (row.trainingLevels?.name) parts.push(row.trainingLevels.name);
+    return parts.length > 0 ? `自动匹配 (${parts.join(', ')})` : '未关联';
   }
-  
-  return '未关联'
+
+  return '未关联';
 }
 </script>
 

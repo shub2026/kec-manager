@@ -23,7 +23,16 @@ export async function downloadTemplate(req, res, next) {
           { label: '班级人数', key: 'count', width: 10 },
           { label: '状态', key: 'status', width: 10 },
         ];
-        sample = { '班级名称': '2024级学前1班', '入学年份': 2024, '学制(年)': 3, '专业类别': '学前教育', '二级学院': '教育学院', '培养层次': '大专', '班级人数': 45, '状态': '在读' };
+        sample = {
+          班级名称: '2024级学前1班',
+          入学年份: 2024,
+          '学制(年)': 3,
+          专业类别: '学前教育',
+          二级学院: '教育学院',
+          培养层次: '大专',
+          班级人数: 45,
+          状态: '在读',
+        };
         filename = '班级导入模板.xlsx';
         break;
       case 'courses':
@@ -32,7 +41,7 @@ export async function downloadTemplate(req, res, next) {
           { label: '课程编码', key: 'code', width: 15 },
           { label: '课程类型', key: 'type', width: 15 },
         ];
-        sample = { '课程名称': '语文', '课程编码': 'CHN001', '课程类型': '公共基础课' };
+        sample = { 课程名称: '语文', 课程编码: 'CHN001', 课程类型: '公共基础课' };
         filename = '课程导入模板.xlsx';
         break;
       case 'textbooks':
@@ -46,7 +55,16 @@ export async function downloadTemplate(req, res, next) {
           { label: '定价', key: 'price', width: 10 },
           { label: '类别', key: 'category', width: 10 },
         ];
-        sample = { '书名': '大学语文', '书号': '978-7-04-012345-6', '出版社': '高等教育出版社', '作者': '张三', '版次': '第3版', '出版日期': '2024-01', '定价': 45.00, '类别': '技工' };
+        sample = {
+          书名: '大学语文',
+          书号: '978-7-04-012345-6',
+          出版社: '高等教育出版社',
+          作者: '张三',
+          版次: '第3版',
+          出版日期: '2024-01',
+          定价: 45.0,
+          类别: '技工',
+        };
         filename = '教材导入模板.xlsx';
         break;
       case 'teachers':
@@ -63,7 +81,19 @@ export async function downloadTemplate(req, res, next) {
           { label: '任课学院', key: 'colleges', width: 25 },
           { label: '任课层次', key: 'levels', width: 20 },
         ];
-        sample = { '教师姓名': '张三', '性别': '男', '出生年月': '1990-01', '人员类别': '专职', '状态': '启用', '教师资格类型': '高中语文', '归属学院': '教育学院', '特定周课时': 16, '学科': '语文,数学', '任课学院': '教育学院,艺术学院', '任课层次': '大专,中专' };
+        sample = {
+          教师姓名: '张三',
+          性别: '男',
+          出生年月: '1990-01',
+          人员类别: '专职',
+          状态: '启用',
+          教师资格类型: '高中语文',
+          归属学院: '教育学院',
+          特定周课时: 16,
+          学科: '语文,数学',
+          任课学院: '教育学院,艺术学院',
+          任课层次: '大专,中专',
+        };
         filename = '教师导入模板.xlsx';
         break;
       default:
@@ -72,7 +102,7 @@ export async function downloadTemplate(req, res, next) {
 
     const workbook = createTemplateWorkbook(headers, [sample]);
     const buffer = await workbookToBuffer(workbook);
-    
+
     await createAuditLog({
       action: 'export',
       module: 'system',
@@ -82,9 +112,15 @@ export async function downloadTemplate(req, res, next) {
       result: 'success',
       message: `下载${type}导入模板`,
     });
-    
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
     res.send(buffer);
   } catch (e) {
     await createAuditLog({

@@ -11,13 +11,15 @@ export async function listColleges(req, res, next) {
       include: { _count: { select: { classes: true } } },
       orderBy: { sort_order: 'asc' },
     });
-    
-    const formattedColleges = colleges.map(college => ({
+
+    const formattedColleges = colleges.map((college) => ({
       ...college,
       classCount: college._count?.classes || 0,
     }));
     success(res, formattedColleges);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function createCollege(req, res, next) {
@@ -29,7 +31,7 @@ export async function createCollege(req, res, next) {
     const college = await prisma.colleges.create({
       data: { name, code, description, sort_order: finalSortOrder },
     });
-    
+
     await createAuditLog({
       action: 'create',
       module: 'college',
@@ -39,7 +41,7 @@ export async function createCollege(req, res, next) {
       result: 'success',
       message: `创建学院：${name}`,
     });
-    
+
     invalidateSortOrderCache('colleges');
     success(res, college, '创建成功');
   } catch (e) {
@@ -63,7 +65,7 @@ export async function updateCollege(req, res, next) {
     const data = buildUpdateData(req.body, ['name', 'code', 'description', 'sort_order']);
     try {
       const college = await prisma.colleges.update({ where: { id: Number(id) }, data });
-      
+
       await createAuditLog({
         action: 'update',
         module: 'college',
@@ -73,7 +75,7 @@ export async function updateCollege(req, res, next) {
         result: 'success',
         message: `更新学院：${data.name || college.name}`,
       });
-      
+
       invalidateSortOrderCache('colleges');
       success(res, college, '更新成功');
     } catch (e) {
@@ -90,7 +92,9 @@ export async function updateCollege(req, res, next) {
       if (e.code === 'P2002') return fail(res, '该学院名称已存在');
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function getCollegeLevelMapping(req, res, next) {
@@ -128,7 +132,9 @@ export async function getCollegeLevelMapping(req, res, next) {
     };
 
     success(res, mapping);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function deleteCollege(req, res, next) {
@@ -139,7 +145,7 @@ export async function deleteCollege(req, res, next) {
     try {
       const college = await prisma.colleges.findUnique({ where: { id: Number(id) } });
       await prisma.colleges.delete({ where: { id: Number(id) } });
-      
+
       await createAuditLog({
         action: 'delete',
         module: 'college',
@@ -149,7 +155,7 @@ export async function deleteCollege(req, res, next) {
         result: 'success',
         message: `删除学院：${college?.name}`,
       });
-      
+
       invalidateSortOrderCache('colleges');
       success(res, null, '删除成功');
     } catch (e) {
@@ -165,5 +171,7 @@ export async function deleteCollege(req, res, next) {
       if (e.code === 'P2025') return fail(res, '学院不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }

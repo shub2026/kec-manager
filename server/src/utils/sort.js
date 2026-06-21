@@ -42,7 +42,7 @@ export async function autoFixSortOrder(modelName, where = {}) {
       return false;
     }
 
-    const sortValues = items.map(i => i.sort_order);
+    const sortValues = items.map((i) => i.sort_order);
     const uniqueValues = new Set(sortValues);
 
     const needsFix = uniqueValues.size === 1 || uniqueValues.size < items.length * 0.5;

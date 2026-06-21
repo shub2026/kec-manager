@@ -5,6 +5,39 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.7.0] - 2026-06-21
+
+### 代码质量提升
+
+- **新增代码格式化支持**：集成 Prettier 和 ESLint，统一代码风格
+  - 前端：配置 Vue 3 + Element Plus 格式化规则
+  - 后端：配置 Node.js + Express 格式化规则
+  - 添加 `npm run format` 和 `npm run lint` 脚本
+  - 创建 CODE_FORMATTING.md 详细使用指南
+- **代码格式化执行**：对全部前端（57个文件）和后端（68个文件）进行格式化
+- **ESLint 配置升级**：迁移到 ESLint v9+ flat config 格式（eslint.config.js）
+
+### 项目清理
+
+- **删除冗余文档**：清理 docs/archive/ 目录中的 8 个历史报告文件
+- **删除过时文档**：移除 4 个重复或过时的技术文档
+- **删除临时脚本**：清理 server/scripts/ 中的 15 个一次性诊断脚本
+- **删除根目录脚本**：移除 scripts/ 目录中的 3 个临时脚本
+- **删除重复文件**：移除 deploy-gitee.sh（与 deploy.sh 重复）
+- **删除空文件**：移除 nul 空文件
+- **总计清理**：删除 31 个冗余文件，释放数百KB空间
+
+### 文档更新
+
+- **README 更新**：添加代码格式化章节，更新项目结构图
+- **新增 CODE_FORMATTING.md**：详细的代码格式化使用指南
+- **相关文档链接**：在 README 中添加代码格式化指南链接
+
+### 依赖更新
+
+- **前端新增依赖**：prettier ^3.8.4, eslint ^10.5.0, eslint-plugin-vue ^10.9.2, @vue/eslint-config-prettier ^10.2.0, @eslint/js ^10.0.1
+- **后端新增依赖**：prettier ^3.8.4, eslint ^10.5.0, @eslint/js ^10.0.1
+
 ## [2.6.1] - 2026-06-20
 
 ### 排课算法优化

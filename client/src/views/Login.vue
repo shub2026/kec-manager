@@ -84,87 +84,88 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useSettingsStore } from '@/stores/settings'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useSettingsStore } from '@/stores/settings';
+import { ElMessage } from 'element-plus';
 
-const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
-const settingsStore = useSettingsStore()
+const router = useRouter();
+const route = useRoute();
+const authStore = useAuthStore();
+const settingsStore = useSettingsStore();
 
-const formRef = ref(null)
-const loading = ref(false)
-const organizationName = ref('欢迎回来')
-const showTestAccounts = import.meta.env.DEV
-const devAccountHint = import.meta.env.VITE_DEV_ACCOUNT_HINT || ''
-const appVersion = ref(__APP_VERSION__)
+const formRef = ref(null);
+const loading = ref(false);
+const organizationName = ref('欢迎回来');
+const showTestAccounts = import.meta.env.DEV;
+const devAccountHint = import.meta.env.VITE_DEV_ACCOUNT_HINT || '';
+const appVersion = ref(__APP_VERSION__);
 
 const loginForm = reactive({
   username: '',
-  password: ''
-})
+  password: '',
+});
 
 const rules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' }
-  ],
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 8, message: '密码长度至少8位', trigger: 'blur' }
-  ]
-}
+    { min: 8, message: '密码长度至少8位', trigger: 'blur' },
+  ],
+};
 
 async function handleLogin() {
-  if (!formRef.value) return
+  if (!formRef.value) return;
 
   await formRef.value.validate(async (valid) => {
-    if (!valid) return
+    if (!valid) return;
 
-    loading.value = true
+    loading.value = true;
 
     try {
-      const result = await authStore.login(loginForm.username, loginForm.password)
+      const result = await authStore.login(loginForm.username, loginForm.password);
 
       if (result.success) {
-        ElMessage.success('登录成功')
+        ElMessage.success('登录成功');
         // 仅允许站内相对路径跳转，防止开放重定向
-        const redirect = route.query.redirect
-        const safeRedirect = typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
-          ? redirect
-          : '/'
-        router.push(safeRedirect)
+        const redirect = route.query.redirect;
+        const safeRedirect =
+          typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+            ? redirect
+            : '/';
+        router.push(safeRedirect);
       } else {
-        ElMessage.error(result.message)
+        ElMessage.error(result.message);
       }
     } catch (error) {
-      ElMessage.error('登录失败，请稍后重试')
+      ElMessage.error('登录失败，请稍后重试');
     } finally {
-      loading.value = false
+      loading.value = false;
     }
-  })
+  });
 }
 
 async function loadOrganizationName() {
   try {
-    await settingsStore.load()
-    const orgName = settingsStore.settings.organizationName?.value
+    await settingsStore.load();
+    const orgName = settingsStore.settings.organizationName?.value;
     if (orgName && orgName.trim() !== '') {
-      organizationName.value = orgName
+      organizationName.value = orgName;
     } else {
-      organizationName.value = '欢迎回来'
+      organizationName.value = '欢迎回来';
     }
   } catch (e) {
-    if (import.meta.env.DEV) { console.error('加载系统标识失败:', e) }
-    organizationName.value = '欢迎回来'
+    if (import.meta.env.DEV) {
+      console.error('加载系统标识失败:', e);
+    }
+    organizationName.value = '欢迎回来';
   }
 }
 
 onMounted(() => {
-  loadOrganizationName()
-})
+  loadOrganizationName();
+});
 </script>
 
 <style scoped>

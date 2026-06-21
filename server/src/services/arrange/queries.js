@@ -42,7 +42,7 @@ export function isTextbookMatch(teacher, cls) {
   //       原逻辑 !inherentIds?.length → true → return false → Phase 1-3 全部屏蔽
   if (!cls.textbookIds?.length) return false; // 班级无教材，不需要匹配
   if (!inherentIds?.length) return true; // 教师无固有教材约束，能教任何教材
-  return inherentIds.some(tid => cls.textbookIds.includes(tid));
+  return inherentIds.some((tid) => cls.textbookIds.includes(tid));
 }
 
 export function isCollegeEligible(t, cls) {
@@ -74,21 +74,18 @@ export async function getClassesWithCourse(courseId, semesterStr) {
       },
     },
     // 显式排序，保证多方案匹配时周课时/教材取值确定，结果可复现
-    orderBy: [
-      { training_plans: { sort_order: 'asc' } },
-      { id: 'asc' },
-    ],
+    orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
   });
 
   const durations = await prisma.classes.findMany({
     select: { duration_years: true },
     distinct: ['duration_years'],
   });
-  const durationValues = durations.map(d => d.duration_years).filter(d => d != null);
+  const durationValues = durations.map((d) => d.duration_years).filter((d) => d != null);
 
   const allClasses = await prisma.classes.findMany({
     where: {
-      OR: durationValues.map(d => ({
+      OR: durationValues.map((d) => ({
         duration_years: d,
         is_left_school: false,
         enrollment_year: { gte: semesterInfo.startYear - d + 1 },
@@ -115,8 +112,8 @@ export async function getClassesWithCourse(courseId, semesterStr) {
   for (const pc of planCourses) {
     const plan = pc.training_plans;
 
-    const semRecords = pc.plan_course_semesters.filter(s =>
-      s.semester >= pc.start_semester && s.semester <= pc.end_semester
+    const semRecords = pc.plan_course_semesters.filter(
+      (s) => s.semester >= pc.start_semester && s.semester <= pc.end_semester
     );
 
     for (const sem of semRecords) {
@@ -137,7 +134,7 @@ export async function getClassesWithCourse(courseId, semesterStr) {
 
         const weeklyHours = sem.weekly_hours ?? pc.weekly_hours;
         const weeksCount = sem.weeks_count ?? pc.weeks_per_semester;
-        const textbooks = sem.plan_textbooks.map(pt => pt.textbooks);
+        const textbooks = sem.plan_textbooks.map((pt) => pt.textbooks);
 
         results.push({
           classId: cls.id,
@@ -188,8 +185,10 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     _sum: { weekly_hours: true },
     _count: { id: true },
   });
-  const workloadMap = new Map(teacherWorkloadStats.map(w => [w.teacher_id, w._sum.weekly_hours || 0]));
-  const classCountMap = new Map(teacherWorkloadStats.map(w => [w.teacher_id, w._count.id || 0]));
+  const workloadMap = new Map(
+    teacherWorkloadStats.map((w) => [w.teacher_id, w._sum.weekly_hours || 0])
+  );
+  const classCountMap = new Map(teacherWorkloadStats.map((w) => [w.teacher_id, w._count.id || 0]));
 
   // 查询每个教师在当前课程下的安排
   const courseAssignments = await prisma.teaching_assignments.groupBy({
@@ -198,10 +197,12 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     _sum: { weekly_hours: true },
     _count: { id: true },
   });
-  const courseAssignmentMap = new Map(courseAssignments.map(w => [
-    w.teacher_id,
-    { hours: w._sum.weekly_hours || 0, classCount: w._count.id || 0 },
-  ]));
+  const courseAssignmentMap = new Map(
+    courseAssignments.map((w) => [
+      w.teacher_id,
+      { hours: w._sum.weekly_hours || 0, classCount: w._count.id || 0 },
+    ])
+  );
 
   // 查询每个教师实际授课学院（从授课安排中提取，去重）
   const teacherAssignmentsWithCollege = await prisma.teaching_assignments.findMany({
@@ -244,13 +245,14 @@ export async function getTeachersForCourse(courseId, semesterStr) {
   for (const levelSet of teacherLevelMap.values()) {
     for (const lid of levelSet) allLevelIds.add(lid);
   }
-  const levelRows = allLevelIds.size > 0
-    ? await prisma.training_levels.findMany({
-        where: { id: { in: [...allLevelIds] } },
-        select: { id: true, name: true },
-      })
-    : [];
-  const levelNameMap = new Map(levelRows.map(l => [l.id, l.name]));
+  const levelRows =
+    allLevelIds.size > 0
+      ? await prisma.training_levels.findMany({
+          where: { id: { in: [...allLevelIds] } },
+          select: { id: true, name: true },
+        })
+      : [];
+  const levelNameMap = new Map(levelRows.map((l) => [l.id, l.name]));
 
   // 获取教师的教材数据（基于当前学期实际授课安排，仅当前课程）
   const teacherTextbookMap = new Map();
@@ -288,7 +290,7 @@ export async function getTeachersForCourse(courseId, semesterStr) {
   }
 
   if (currentAssignments.length > 0) {
-    const classIds = currentAssignments.map(a => a.class_id);
+    const classIds = currentAssignments.map((a) => a.class_id);
 
     // 解析学期信息，用于 calcClassSemester 计算每个班级的程序学期号
     const semesterInfo = parseSemester(semesterStr);
@@ -310,7 +312,14 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     const classTextbookMap = new Map();
     const allClassesForTextbooks = await prisma.classes.findMany({
       where: { id: { in: classIds } },
-      select: { id: true, custom_plan_id: true, major_id: true, training_level_id: true, enrollment_year: true, duration_years: true },
+      select: {
+        id: true,
+        custom_plan_id: true,
+        major_id: true,
+        training_level_id: true,
+        enrollment_year: true,
+        duration_years: true,
+      },
     });
 
     for (const cls of allClassesForTextbooks) {
@@ -360,13 +369,14 @@ export async function getTeachersForCourse(courseId, semesterStr) {
   for (const idSet of assignedOnlyTextbookMap.values()) {
     for (const id of idSet) allAssignedTextbookIds.add(id);
   }
-  const assignedTextbookRows = allAssignedTextbookIds.size > 0
-    ? await prisma.textbooks.findMany({
-        where: { id: { in: [...allAssignedTextbookIds] } },
-        select: { id: true, title: true },
-      })
-    : [];
-  const textbookTitleMap = new Map(assignedTextbookRows.map(t => [t.id, t.title]));
+  const assignedTextbookRows =
+    allAssignedTextbookIds.size > 0
+      ? await prisma.textbooks.findMany({
+          where: { id: { in: [...allAssignedTextbookIds] } },
+          select: { id: true, title: true },
+        })
+      : [];
+  const textbookTitleMap = new Map(assignedTextbookRows.map((t) => [t.id, t.title]));
 
   const fallbackTextbookIds = TEXTBOOK_COHESION.FALLBACK_EMPTY
     ? [] // 修复1：收紧兜底推导 —— 无排课记录教师教材为空，避免 isTextbookMatch 对新教师全通过
@@ -377,39 +387,42 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     }
   }
 
-  return teachers.map(t => {
+  return teachers.map((t) => {
     const inherentTextbookIds = [...(teacherTextbookMap.get(t.id) || [])];
     const assignedIds = [...(assignedOnlyTextbookMap.get(t.id) || [])];
-    const assignedTextbooks = assignedIds.map(id => ({ id, title: textbookTitleMap.get(id) || `教材#${id}` }));
+    const assignedTextbooks = assignedIds.map((id) => ({
+      id,
+      title: textbookTitleMap.get(id) || `教材#${id}`,
+    }));
 
     return {
-    id: t.id,
-    name: t.name,
-    gender: t.gender,
-    personnelType: t.personnel_type,
-    qualificationType: t.qualification_type,
-    defaultWeeklyHours: t.default_weekly_hours,
-    courseList: t.courses.map(tc => tc.course),
-    collegeList: [...(teacherCollegeMap.get(t.id)?.values() || [])],
-    schedulingCollegeIds: t.scheduling_colleges.map(sc => sc.college_id),
-    schedulingLevelIds: t.scheduling_levels.map(sl => sl.training_level.id),
-    // 优先使用实际授课层次，如果为空则使用意向设置
-    trainingLevelList: (() => {
-      const actualLevelIds = teacherLevelMap.get(t.id);
-      if (actualLevelIds && actualLevelIds.size > 0) {
-        return [...actualLevelIds].map(lid => ({ id: lid, name: levelNameMap.get(lid) }));
-      }
-      return t.scheduling_levels.map(sl => sl.training_level);
-    })(),
+      id: t.id,
+      name: t.name,
+      gender: t.gender,
+      personnelType: t.personnel_type,
+      qualificationType: t.qualification_type,
+      defaultWeeklyHours: t.default_weekly_hours,
+      courseList: t.courses.map((tc) => tc.course),
+      collegeList: [...(teacherCollegeMap.get(t.id)?.values() || [])],
+      schedulingCollegeIds: t.scheduling_colleges.map((sc) => sc.college_id),
+      schedulingLevelIds: t.scheduling_levels.map((sl) => sl.training_level.id),
+      // 优先使用实际授课层次，如果为空则使用意向设置
+      trainingLevelList: (() => {
+        const actualLevelIds = teacherLevelMap.get(t.id);
+        if (actualLevelIds && actualLevelIds.size > 0) {
+          return [...actualLevelIds].map((lid) => ({ id: lid, name: levelNameMap.get(lid) }));
+        }
+        return t.scheduling_levels.map((sl) => sl.training_level);
+      })(),
       textbookIds: [...inherentTextbookIds],
       inherentTextbookIds,
       assignedTextbooks,
       assignedTextbookIds: new Set(),
       assignedCollegeIds: new Set(),
-    totalWeeklyHours: workloadMap.get(t.id) || 0,
-    totalClassCount: classCountMap.get(t.id) || 0,
-    courseHours: courseAssignmentMap.get(t.id)?.hours || 0,
-    courseClassCount: courseAssignmentMap.get(t.id)?.classCount || 0,
+      totalWeeklyHours: workloadMap.get(t.id) || 0,
+      totalClassCount: classCountMap.get(t.id) || 0,
+      courseHours: courseAssignmentMap.get(t.id)?.hours || 0,
+      courseClassCount: courseAssignmentMap.get(t.id)?.classCount || 0,
     };
   });
 }

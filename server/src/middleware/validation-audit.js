@@ -5,9 +5,6 @@ import { body } from 'express-validator';
 import { handleValidationErrors } from './validation.js';
 
 export const validateAuditLogReset = [
-  body('confirm')
-    .optional()
-    .equals('DELETE')
-    .withMessage('必须输入DELETE确认操作'),
-  handleValidationErrors
+  body('confirm').optional().equals('DELETE').withMessage('必须输入DELETE确认操作'),
+  handleValidationErrors,
 ];

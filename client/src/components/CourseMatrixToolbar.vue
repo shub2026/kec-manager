@@ -10,13 +10,13 @@
 </template>
 
 <script setup>
-import { Plus } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue';
 
 defineProps({
   allCourses: { type: Array, default: () => [] },
-})
+});
 
-defineEmits(['add-course'])
+defineEmits(['add-course']);
 </script>
 
 <style scoped>

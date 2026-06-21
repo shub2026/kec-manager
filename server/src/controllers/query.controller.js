@@ -1,8 +1,15 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
-import { getCurrentSemesterInfo, getSemesterInfoFromRequest } from '../services/settings.service.js';
+import {
+  getCurrentSemesterInfo,
+  getSemesterInfoFromRequest,
+} from '../services/settings.service.js';
 import { getActiveClassFilter } from '../services/class.service.js';
-import { findBestMatchPlan, buildClassWithPlanFilter, isClassMatchPlan } from '../services/plan.service.js';
+import {
+  findBestMatchPlan,
+  buildClassWithPlanFilter,
+  isClassMatchPlan,
+} from '../services/plan.service.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -21,7 +28,7 @@ function calcClassSemester(cls, semesterInfo) {
 export async function querySemester(req, res, next) {
   try {
     let semesterInfo = await getSemesterInfoFromRequest(req);
-    
+
     if (!semesterInfo) {
       const { semester } = req.query;
       if (semester) {
@@ -31,7 +38,8 @@ export async function querySemester(req, res, next) {
       }
     }
 
-    const { majorId, collegeId, trainingLevelId, enrollmentYear, grade, page, pageSize } = req.query;
+    const { majorId, collegeId, trainingLevelId, enrollmentYear, grade, page, pageSize } =
+      req.query;
     // 安全解析数字参数，非数字时回退到默认值，避免 NaN 致 500
     const safeInt = (v, def = undefined) => {
       if (v == null || v === '') return def;
@@ -47,10 +55,7 @@ export async function querySemester(req, res, next) {
     // 基础过滤：在读班级 + 能关联到培养方案
     const activeFilter = await getActiveClassFilter();
     const baseWhere = {
-      AND: [
-        activeFilter,
-        planFilter,
-      ],
+      AND: [activeFilter, planFilter],
     };
 
     // 添加额外的筛选条件（仅当值为有效整数时）
@@ -64,9 +69,8 @@ export async function querySemester(req, res, next) {
     if (trainingLevelIdNum != null) extraConditions.training_level_id = trainingLevelIdNum;
     if (enrollmentYearNum != null) extraConditions.enrollment_year = enrollmentYearNum;
 
-    const classWhere = Object.keys(extraConditions).length > 0
-      ? { AND: [baseWhere, extraConditions] }
-      : baseWhere;
+    const classWhere =
+      Object.keys(extraConditions).length > 0 ? { AND: [baseWhere, extraConditions] } : baseWhere;
 
     const totalClassesCount = await prisma.classes.count({ where: classWhere });
 
@@ -99,7 +103,11 @@ export async function querySemester(req, res, next) {
                 plan_course_semesters: {
                   include: {
                     plan_textbooks: {
-                      include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
+                      include: {
+                        textbooks: {
+                          select: { id: true, title: true, isbn: true, publisher: true },
+                        },
+                      },
                     },
                   },
                 },
@@ -143,7 +151,9 @@ export async function querySemester(req, res, next) {
             plan_course_semesters: {
               include: {
                 plan_textbooks: {
-                  include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
+                  include: {
+                    textbooks: { select: { id: true, title: true, isbn: true, publisher: true } },
+                  },
                 },
               },
             },
@@ -163,29 +173,42 @@ export async function querySemester(req, res, next) {
       const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
       if (!plan) {
         // 理论上不应该到这里，因为前面已经过滤了
-        log.warn('班级无匹配方案', { className: cls.name, major_id: cls.major_id, level_id: cls.training_level_id });
+        log.warn('班级无匹配方案', {
+          className: cls.name,
+          major_id: cls.major_id,
+          level_id: cls.training_level_id,
+        });
         continue;
       }
 
       const planCourses = plan.plan_courses.filter(
-        (pc) => pc.start_semester <= calc.currentSemesterNum && pc.end_semester >= calc.currentSemesterNum
+        (pc) =>
+          pc.start_semester <= calc.currentSemesterNum && pc.end_semester >= calc.currentSemesterNum
       );
 
       // 如果当前学期没有课程，跳过该班级（不显示在读但无课的班级）
       if (planCourses.length === 0) {
-        log.debug('方案无当前学期课程', { className: cls.name, planName: plan.name, currentSemester: calc.currentSemesterNum });
+        log.debug('方案无当前学期课程', {
+          className: cls.name,
+          planName: plan.name,
+          currentSemester: calc.currentSemesterNum,
+        });
         continue;
       }
 
       const courses = planCourses.map((pc) => {
-        const semRecord = pc.plan_course_semesters?.find(s => s.semester === calc.currentSemesterNum);
+        const semRecord = pc.plan_course_semesters?.find(
+          (s) => s.semester === calc.currentSemesterNum
+        );
         return {
           course_id: pc.courses.id,
           courseName: pc.courses.name,
           courseType: pc.courses.type,
           weekly_hours: semRecord?.weekly_hours ?? pc.weekly_hours,
           weeks_per_semester: semRecord?.weeks_count ?? pc.weeks_per_semester,
-          totalHoursThisSemester: (semRecord?.weekly_hours ?? pc.weekly_hours) * (semRecord?.weeks_count ?? pc.weeks_per_semester),
+          totalHoursThisSemester:
+            (semRecord?.weekly_hours ?? pc.weekly_hours) *
+            (semRecord?.weeks_count ?? pc.weeks_per_semester),
           textbooks: (semRecord?.plan_textbooks || []).map((pt) => ({
             id: pt.textbooks.id,
             title: pt.textbooks.title,
@@ -226,8 +249,8 @@ export async function querySemester(req, res, next) {
       grades: availableGrades,
       data: results,
     });
-  } catch (e) { 
-    next(e); 
+  } catch (e) {
+    next(e);
   }
 }
 
@@ -238,7 +261,7 @@ export async function queryTextbookUsage(req, res, next) {
   try {
     const { id } = req.params;
     let semesterInfo = await getSemesterInfoFromRequest(req);
-    
+
     if (!semesterInfo) {
       const { semester } = req.query;
       if (semester) {
@@ -270,7 +293,7 @@ export async function queryTextbookUsage(req, res, next) {
       }),
       prisma.classes.findMany({
         where: activeFilter,
-        include: { 
+        include: {
           majors: { select: { name: true } },
           training_levels: true,
         },
@@ -333,8 +356,8 @@ export async function queryTextbookUsage(req, res, next) {
       totalClasses: classResults.length,
       totalStudents,
     });
-  } catch (e) { 
-    next(e); 
+  } catch (e) {
+    next(e);
   }
 }
 
@@ -344,7 +367,7 @@ export async function queryTextbookUsage(req, res, next) {
 export async function queryAllTextbooksUsage(req, res, next) {
   try {
     let semesterInfo = await getSemesterInfoFromRequest(req);
-    
+
     if (!semesterInfo) {
       const { semester } = req.query;
       if (semester) {
@@ -430,7 +453,7 @@ export async function queryAllTextbooksUsage(req, res, next) {
 
       let totalStudents = 0;
       for (const classId of usedClasses) {
-        const cls = allClasses.find(c => c.id === classId);
+        const cls = allClasses.find((c) => c.id === classId);
         if (cls) {
           totalStudents += cls.student_count;
         }
@@ -447,7 +470,7 @@ export async function queryAllTextbooksUsage(req, res, next) {
     }
 
     success(res, results);
-  } catch (e) { 
-    next(e); 
+  } catch (e) {
+    next(e);
   }
 }

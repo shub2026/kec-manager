@@ -40,14 +40,13 @@ export async function buildClassFilter(query) {
         select: { duration_years: true },
         distinct: ['duration_years'],
       });
-      const durationValues = durations.map(d => d.duration_years).filter(d => d != null);
+      const durationValues = durations.map((d) => d.duration_years).filter((d) => d != null);
 
-      dynamicStatusFilter = durationValues.map(d => ({
+      dynamicStatusFilter = durationValues.map((d) => ({
         duration_years: d,
         is_left_school: false,
-        enrollment_year: status === 'active'
-          ? { gte: startYear - d + 1 }
-          : { lt: startYear - d + 1 },
+        enrollment_year:
+          status === 'active' ? { gte: startYear - d + 1 } : { lt: startYear - d + 1 },
       }));
     }
   }
@@ -73,12 +72,16 @@ export async function buildClassFilter(query) {
       where.custom_plan_id = null;
 
       const notConditions = [];
-      const majorIdsWithPlans = [...new Set(allPlans.filter(p => p.major_id).map(p => p.major_id))];
+      const majorIdsWithPlans = [
+        ...new Set(allPlans.filter((p) => p.major_id).map((p) => p.major_id)),
+      ];
       if (majorIdsWithPlans.length > 0) {
         notConditions.push({ major_id: { in: majorIdsWithPlans } });
       }
 
-      const levelIdsWithPlans = [...new Set(allPlans.filter(p => p.training_level_id).map(p => p.training_level_id))];
+      const levelIdsWithPlans = [
+        ...new Set(allPlans.filter((p) => p.training_level_id).map((p) => p.training_level_id)),
+      ];
       if (levelIdsWithPlans.length > 0) {
         notConditions.push({ training_level_id: { in: levelIdsWithPlans } });
       }

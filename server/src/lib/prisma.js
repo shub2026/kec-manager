@@ -5,14 +5,17 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // 测试环境下显式指定数据源，确保使用测试数据库
 const prismaOptions = {
-  log: isDevelopment 
-    ? [{ emit: 'event', level: 'error' }, { emit: 'event', level: 'warn' }]
+  log: isDevelopment
+    ? [
+        { emit: 'event', level: 'error' },
+        { emit: 'event', level: 'warn' },
+      ]
     : [{ emit: 'event', level: 'error' }],
 };
 
 if (process.env.NODE_ENV === 'test' && process.env.DATABASE_URL) {
   prismaOptions.datasources = {
-    db: { url: process.env.DATABASE_URL }
+    db: { url: process.env.DATABASE_URL },
   };
 }
 
@@ -23,7 +26,7 @@ if (isDevelopment) {
   prisma.$on('error', (e) => {
     log.error('[Prisma Error]', { message: e.message });
   });
-  
+
   prisma.$on('warn', (e) => {
     log.warn('[Prisma Warning]', { message: e.message });
   });

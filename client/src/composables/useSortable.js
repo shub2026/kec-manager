@@ -1,4 +1,4 @@
-import { ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus';
 
 /**
  * 通用排序 Composable
@@ -11,44 +11,48 @@ import { ElMessage } from 'element-plus'
  * @returns {object} { handleMoveUp, handleMoveDown }
  */
 export function useSortable(list, updateFn, reloadFn, options = {}) {
-  const sortField = options.sortField || 'sortOrder'
-  const indexFinder = options.indexFinder || null
+  const sortField = options.sortField || 'sortOrder';
+  const indexFinder = options.indexFinder || null;
 
   /**
    * 获取项目索引
    */
   function getItemIndex(item) {
     if (indexFinder) {
-      return indexFinder(item)
+      return indexFinder(item);
     }
-    return list.value.findIndex(i => i.id === item.id)
+    return list.value.findIndex((i) => i.id === item.id);
   }
 
   /**
    * 上移
    */
   async function handleMoveUp(item, providedIndex) {
-    const index = providedIndex !== undefined ? providedIndex : getItemIndex(item)
-    if (index === 0 || index === -1) return
+    const index = providedIndex !== undefined ? providedIndex : getItemIndex(item);
+    if (index === 0 || index === -1) return;
 
-    const currentItem = list.value[index]
-    const prevItem = list.value[index - 1]
+    const currentItem = list.value[index];
+    const prevItem = list.value[index - 1];
 
     try {
       // 如果排序值相同，使用基于位置的值
-      const newCurrentSort = currentItem[sortField] === prevItem[sortField] ? index - 1 : prevItem[sortField]
-      const newPrevSort = currentItem[sortField] === prevItem[sortField] ? index : currentItem[sortField]
+      const newCurrentSort =
+        currentItem[sortField] === prevItem[sortField] ? index - 1 : prevItem[sortField];
+      const newPrevSort =
+        currentItem[sortField] === prevItem[sortField] ? index : currentItem[sortField];
 
       await Promise.all([
         updateFn(currentItem.id, { [sortField]: newCurrentSort }),
-        updateFn(prevItem.id, { [sortField]: newPrevSort })
-      ])
-      
-      ElMessage.success('排序已更新')
-      await reloadFn()
+        updateFn(prevItem.id, { [sortField]: newPrevSort }),
+      ]);
+
+      ElMessage.success('排序已更新');
+      await reloadFn();
     } catch (e) {
-      if (import.meta.env.DEV) { console.error('排序更新失败:', e) }
-      ElMessage.error('排序更新失败')
+      if (import.meta.env.DEV) {
+        console.error('排序更新失败:', e);
+      }
+      ElMessage.error('排序更新失败');
     }
   }
 
@@ -56,29 +60,33 @@ export function useSortable(list, updateFn, reloadFn, options = {}) {
    * 下移
    */
   async function handleMoveDown(item, providedIndex) {
-    const index = providedIndex !== undefined ? providedIndex : getItemIndex(item)
-    if (index === -1 || index === list.value.length - 1) return
+    const index = providedIndex !== undefined ? providedIndex : getItemIndex(item);
+    if (index === -1 || index === list.value.length - 1) return;
 
-    const currentItem = list.value[index]
-    const nextItem = list.value[index + 1]
+    const currentItem = list.value[index];
+    const nextItem = list.value[index + 1];
 
     try {
       // 如果排序值相同，使用基于位置的值
-      const newCurrentSort = currentItem[sortField] === nextItem[sortField] ? index + 1 : nextItem[sortField]
-      const newNextSort = currentItem[sortField] === nextItem[sortField] ? index : currentItem[sortField]
+      const newCurrentSort =
+        currentItem[sortField] === nextItem[sortField] ? index + 1 : nextItem[sortField];
+      const newNextSort =
+        currentItem[sortField] === nextItem[sortField] ? index : currentItem[sortField];
 
       await Promise.all([
         updateFn(currentItem.id, { [sortField]: newCurrentSort }),
-        updateFn(nextItem.id, { [sortField]: newNextSort })
-      ])
-      
-      ElMessage.success('排序已更新')
-      await reloadFn()
+        updateFn(nextItem.id, { [sortField]: newNextSort }),
+      ]);
+
+      ElMessage.success('排序已更新');
+      await reloadFn();
     } catch (e) {
-      if (import.meta.env.DEV) { console.error('排序更新失败:', e) }
-      ElMessage.error('排序更新失败')
+      if (import.meta.env.DEV) {
+        console.error('排序更新失败:', e);
+      }
+      ElMessage.error('排序更新失败');
     }
   }
 
-  return { handleMoveUp, handleMoveDown }
+  return { handleMoveUp, handleMoveDown };
 }

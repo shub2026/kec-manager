@@ -20,7 +20,14 @@ router.get('/stats', getClassStats);
 
 router.get('/', validatePagination(100), listClasses);
 router.post('/', roleMiddleware('admin', 'super_admin'), validateClass, sanitizeBody, createClass);
-router.put('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, validateClassUpdate, sanitizeBody, updateClass);
+router.put(
+  '/:id',
+  roleMiddleware('admin', 'super_admin'),
+  validateIdParam,
+  validateClassUpdate,
+  sanitizeBody,
+  updateClass
+);
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, deleteClass);
 
 export default router;

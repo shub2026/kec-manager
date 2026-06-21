@@ -61,23 +61,27 @@ const logger = winston.createLogger({
 
 // 开发环境下添加控制台输出
 if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: consoleFormat,
-  }));
+  logger.add(
+    new winston.transports.Console({
+      format: consoleFormat,
+    })
+  );
 } else {
   // 生产环境也添加控制台输出（无颜色）
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-      winston.format.printf(({ timestamp, level, message, ...meta }) => {
-        let msg = `${timestamp} [${level}]: ${message}`;
-        if (Object.keys(meta).length > 0) {
-          msg += ' ' + JSON.stringify(meta);
-        }
-        return msg;
-      })
-    ),
-  }));
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.printf(({ timestamp, level, message, ...meta }) => {
+          let msg = `${timestamp} [${level}]: ${message}`;
+          if (Object.keys(meta).length > 0) {
+            msg += ' ' + JSON.stringify(meta);
+          }
+          return msg;
+        })
+      ),
+    })
+  );
 }
 
 // 导出默认 logger 和便捷方法

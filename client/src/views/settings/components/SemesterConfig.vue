@@ -30,7 +30,11 @@
             >
               <div class="semester-option">
                 <span class="option-year">{{ sem.label.split('学年')[0] }}学年</span>
-                <el-tag size="small" :type="sem.value.includes('-1') ? 'warning' : 'success'" effect="plain">
+                <el-tag
+                  size="small"
+                  :type="sem.value.includes('-1') ? 'warning' : 'success'"
+                  effect="plain"
+                >
                   {{ sem.value.includes('-1') ? '秋季' : '春季' }}
                 </el-tag>
               </div>
@@ -62,7 +66,7 @@
       </div>
 
       <!-- 右侧：学期预览 -->
-      <div class="semester-preview" v-if="currentSemesterPreview">
+      <div v-if="currentSemesterPreview" class="semester-preview">
         <div class="preview-badge">当前设置</div>
         <div class="preview-main">
           <div class="preview-year">{{ currentSemesterPreview.yearRange }}</div>
@@ -78,23 +82,23 @@
             <span class="preview-semester-index">第{{ currentSemesterPreview.index }}学期</span>
           </div>
         </div>
-        <div class="preview-footer" v-if="!isCurrentSemesterSaved">
+        <div v-if="!isCurrentSemesterSaved" class="preview-footer">
           <el-icon><Warning /></el-icon>
           <span>未生效</span>
         </div>
-        <div class="preview-footer saved" v-else>
+        <div v-else class="preview-footer saved">
           <el-icon><CircleCheck /></el-icon>
           <span>已生效</span>
         </div>
       </div>
-      <div class="semester-preview empty" v-else>
+      <div v-else class="semester-preview empty">
         <el-icon :size="48"><Calendar /></el-icon>
         <p>请选择学期后查看预览</p>
       </div>
     </div>
 
     <div class="semester-actions">
-      <el-button type="primary" size="large" @click="$emit('save')" :loading="saving">
+      <el-button type="primary" size="large" :loading="saving" @click="$emit('save')">
         <el-icon><Check /></el-icon>
         保存设置
       </el-button>
@@ -103,9 +107,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { InfoFilled, Warning, CircleCheck, Check, Calendar } from '@element-plus/icons-vue'
-import { useSemesters } from '../../../composables/useSemesters'
+import { computed } from 'vue';
+import { InfoFilled, Warning, CircleCheck, Check, Calendar } from '@element-plus/icons-vue';
+import { useSemesters } from '../../../composables/useSemesters';
 
 const props = defineProps({
   form: {
@@ -124,37 +128,37 @@ const props = defineProps({
     type: String,
     default: '',
   },
-})
+});
 
-const emit = defineEmits(['update:form', 'save'])
+const emit = defineEmits(['update:form', 'save']);
 
 // 本地表单副本
 const localForm = computed({
   get: () => props.form,
   set: (val) => emit('update:form', val),
-})
+});
 
 // 生成可选学期列表
-const { availableSemesters } = useSemesters({ rangeBefore: 5 })
+const { availableSemesters } = useSemesters({ rangeBefore: 5 });
 
 // 学期预览
 const currentSemesterPreview = computed(() => {
-  if (!localForm.value.current_semester) return null
-  const parts = localForm.value.current_semester.split('-')
-  const season = parts[2] === '1' ? '秋季' : '春季'
+  if (!localForm.value.current_semester) return null;
+  const parts = localForm.value.current_semester.split('-');
+  const season = parts[2] === '1' ? '秋季' : '春季';
   return {
     yearRange: `${parts[0]} - ${parts[1]} 学年`,
     season,
     index: parts[2],
-  }
-})
+  };
+});
 
 const isCurrentSemesterSaved = computed(() => {
-  return props.selectedSemester !== '' && props.selectedSemester === props.savedSemester
-})
+  return props.selectedSemester !== '' && props.selectedSemester === props.savedSemester;
+});
 
 function handleSemesterChange(value) {
-  emit('update:selectedSemester', value)
+  emit('update:selectedSemester', value);
 }
 </script>
 

@@ -18,7 +18,7 @@ export async function getWithCache(apiCall, key, ttl = 60000) {
   const cached = cache.get(key);
 
   // 检查缓存是否有效
-  if (cached && (now - cached.timestamp) < ttl) {
+  if (cached && now - cached.timestamp < ttl) {
     return cached.data;
   }
 
@@ -41,7 +41,7 @@ export async function getWithCache(apiCall, key, ttl = 60000) {
   // 更新缓存
   cache.set(key, {
     data,
-    timestamp: now
+    timestamp: now,
   });
 
   return data;
@@ -73,7 +73,7 @@ export function clearAllCache() {
 export function getCacheStats() {
   return {
     size: cache.size,
-    keys: Array.from(cache.keys())
+    keys: Array.from(cache.keys()),
   };
 }
 
@@ -83,7 +83,7 @@ export function getCacheStats() {
 export function cleanupExpired(ttl = 60000) {
   const now = Date.now();
   for (const [key, value] of cache.entries()) {
-    if ((now - value.timestamp) >= ttl) {
+    if (now - value.timestamp >= ttl) {
       cache.delete(key);
     }
   }
@@ -113,7 +113,7 @@ export function stopCleanupTimer() {
 // 在浏览器环境中自动启动（仅在模块加载时执行一次）
 if (typeof window !== 'undefined') {
   startCleanupTimer();
-  
+
   // 页面卸载时清理（SPA应用中可能不会触发，但保留以防万一）
   window.addEventListener('beforeunload', () => {
     stopCleanupTimer();

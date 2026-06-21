@@ -41,10 +41,18 @@
             </div>
             <div class="reset-item-info">
               <div class="reset-item-name">清空教师</div>
-              <div class="reset-item-desc">仅删除教师数据及教学安排，不影响其他基础数据。建议优先执行。</div>
+              <div class="reset-item-desc">
+                仅删除教师数据及教学安排，不影响其他基础数据。建议优先执行。
+              </div>
             </div>
             <div class="reset-item-action">
-              <el-button type="danger" plain size="small" @click="$emit('reset', 'teachers')" :loading="resetting">
+              <el-button
+                type="danger"
+                plain
+                size="small"
+                :loading="resetting"
+                @click="$emit('reset', 'teachers')"
+              >
                 清空
               </el-button>
             </div>
@@ -59,7 +67,13 @@
               <div class="reset-item-desc">仅删除班级数据，不影响其他数据。</div>
             </div>
             <div class="reset-item-action">
-              <el-button type="danger" plain size="small" @click="$emit('reset', 'classes')" :loading="resetting">
+              <el-button
+                type="danger"
+                plain
+                size="small"
+                :loading="resetting"
+                @click="$emit('reset', 'classes')"
+              >
                 清空
               </el-button>
             </div>
@@ -74,7 +88,13 @@
               <div class="reset-item-desc">级联清空培养方案中的课程安排</div>
             </div>
             <div class="reset-item-action">
-              <el-button type="warning" plain size="small" @click="$emit('reset', 'courses')" :loading="resetting">
+              <el-button
+                type="warning"
+                plain
+                size="small"
+                :loading="resetting"
+                @click="$emit('reset', 'courses')"
+              >
                 清空
               </el-button>
             </div>
@@ -89,7 +109,13 @@
               <div class="reset-item-desc">级联清空培养方案中的教材关联</div>
             </div>
             <div class="reset-item-action">
-              <el-button type="warning" plain size="small" @click="$emit('reset', 'textbooks')" :loading="resetting">
+              <el-button
+                type="warning"
+                plain
+                size="small"
+                :loading="resetting"
+                @click="$emit('reset', 'textbooks')"
+              >
                 清空
               </el-button>
             </div>
@@ -104,7 +130,13 @@
               <div class="reset-item-desc">需先清空班级。级联清空所有培养方案</div>
             </div>
             <div class="reset-item-action">
-              <el-button type="info" plain size="small" @click="$emit('reset', 'majors')" :loading="resetting">
+              <el-button
+                type="info"
+                plain
+                size="small"
+                :loading="resetting"
+                @click="$emit('reset', 'majors')"
+              >
                 清空
               </el-button>
             </div>
@@ -119,7 +151,13 @@
               <div class="reset-item-desc">需先清空班级。级联清空所有培养方案</div>
             </div>
             <div class="reset-item-action">
-              <el-button type="info" plain size="small" @click="$emit('reset', 'colleges')" :loading="resetting">
+              <el-button
+                type="info"
+                plain
+                size="small"
+                :loading="resetting"
+                @click="$emit('reset', 'colleges')"
+              >
                 清空
               </el-button>
             </div>
@@ -134,19 +172,20 @@
               <div class="reset-item-desc">需先清空班级。级联清空所有培养方案</div>
             </div>
             <div class="reset-item-action">
-              <el-button type="info" plain size="small" @click="$emit('reset', 'levels')" :loading="resetting">
+              <el-button
+                type="info"
+                plain
+                size="small"
+                :loading="resetting"
+                @click="$emit('reset', 'levels')"
+              >
                 清空
               </el-button>
             </div>
           </div>
         </div>
 
-        <el-alert
-          type="info"
-          :closable="false"
-          show-icon
-          class="order-tip"
-        >
+        <el-alert type="info" :closable="false" show-icon class="order-tip">
           <template #title>
             推荐清理顺序：教师 → 班级 → 课程 / 教材 → 培养方案 → 专业 / 学院 / 层次
           </template>
@@ -175,7 +214,7 @@
             <p>包括培养方案主表、课程安排、教材关联数据。基础数据（课程/教材/班级等）不受影响。</p>
           </div>
           <div class="reset-single-action">
-            <el-button type="danger" @click="$emit('reset', 'plans')" :loading="resetting">
+            <el-button type="danger" :loading="resetting" @click="$emit('reset', 'plans')">
               <el-icon><Delete /></el-icon>
               清空培养方案
             </el-button>
@@ -202,11 +241,13 @@
           </div>
           <div class="reset-single-body">
             <h4>系统重置（恢复初始状态）</h4>
-            <p>清空所有业务数据（教师、班级、培养方案、课程、教材、专业、学院、培养层次、系统设置、操作日志），仅保留用户账号。</p>
+            <p>
+              清空所有业务数据（教师、班级、培养方案、课程、教材、专业、学院、培养层次、系统设置、操作日志），仅保留用户账号。
+            </p>
             <p class="highlight-text">适用场景：更换测试环境、重新导入数据、系统初始化调试</p>
           </div>
           <div class="reset-single-action">
-            <el-button type="danger" @click="$emit('reset', 'settings')" :loading="resetting">
+            <el-button type="danger" :loading="resetting" @click="$emit('reset', 'settings')">
               <el-icon><Delete /></el-icon>
               系统重置
             </el-button>
@@ -236,7 +277,7 @@
             <p>删除所有审计日志记录。此操作不可恢复，但不会影响任何业务数据。</p>
           </div>
           <div class="reset-single-action">
-            <el-button type="danger" @click="$emit('reset', 'audit-logs')" :loading="resetting">
+            <el-button type="danger" :loading="resetting" @click="$emit('reset', 'audit-logs')">
               <el-icon><Delete /></el-icon>
               清空操作日志
             </el-button>
@@ -248,19 +289,33 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { WarningFilled, Grid, Document, Setting, DocumentChecked, Delete, User, UserFilled, Reading, Notebook, Collection, OfficeBuilding, Rank } from '@element-plus/icons-vue'
+import { ref } from 'vue';
+import {
+  WarningFilled,
+  Grid,
+  Document,
+  Setting,
+  DocumentChecked,
+  Delete,
+  User,
+  UserFilled,
+  Reading,
+  Notebook,
+  Collection,
+  OfficeBuilding,
+  Rank,
+} from '@element-plus/icons-vue';
 
 const props = defineProps({
   resetting: {
     type: Boolean,
     default: false,
   },
-})
+});
 
-const emit = defineEmits(['reset'])
+const emit = defineEmits(['reset']);
 
-const activeTab = ref('basic')
+const activeTab = ref('basic');
 </script>
 
 <style scoped>

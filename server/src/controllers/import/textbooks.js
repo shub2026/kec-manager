@@ -125,7 +125,7 @@ export async function importTextbooks(req, res, next) {
         overwritten,
         failed: validationErrors.length,
       },
-      result: (imported + overwritten) > 0 ? 'success' : 'failed',
+      result: imported + overwritten > 0 ? 'success' : 'failed',
       message: `导入完成：新增${imported}条，覆盖${overwritten}条，失败${validationErrors.length}条`,
     });
 

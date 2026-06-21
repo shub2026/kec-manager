@@ -1,7 +1,10 @@
 import { prisma } from '../../lib/prisma.js';
 import { success } from '../../utils/response.js';
 import { createWorkbook, workbookToBuffer } from '../../utils/excel.js';
-import { getSemesterInfoFromRequest, getCurrentSemesterInfo } from '../../services/settings.service.js';
+import {
+  getSemesterInfoFromRequest,
+  getCurrentSemesterInfo,
+} from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
 import { isClassMatchPlan } from '../../services/plan.service.js';
@@ -18,10 +21,10 @@ export async function exportCourses(req, res, next) {
     });
 
     const rows = courses.map((course) => ({
-      '课程名称': course.name,
-      '编码': course.code || '-',
-      '类型': course.type === 'public' ? '公共基础课' : '专业课',
-      '描述': course.description || '-',
+      课程名称: course.name,
+      编码: course.code || '-',
+      类型: course.type === 'public' ? '公共基础课' : '专业课',
+      描述: course.description || '-',
     }));
 
     const headers = [
@@ -34,7 +37,7 @@ export async function exportCourses(req, res, next) {
     const workbook = await createWorkbook(headers, rows);
     const buffer = await workbookToBuffer(workbook);
     const filename = `课程数据_${new Date().toISOString().split('T')[0]}.xlsx`;
-    
+
     await createAuditLog({
       action: 'export',
       module: 'course',
@@ -44,9 +47,15 @@ export async function exportCourses(req, res, next) {
       result: 'success',
       message: `导出课程数据，共${rows.length}条记录`,
     });
-    
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
     res.send(buffer);
   } catch (e) {
     await createAuditLog({
@@ -71,15 +80,15 @@ export async function exportTextbooks(req, res, next) {
     });
 
     const rows = textbooks.map((textbook) => ({
-      '书名': textbook.title,
-      '书号': textbook.isbn || '-',
-      '出版社': textbook.publisher || '-',
-      '作者': textbook.author || '-',
-      '版次': textbook.edition || '-',
-      '出版日期': textbook.publish_date || '-',
-      '定价': textbook.price || '-',
-      '类别': textbook.category || '-',
-      '状态': textbook.is_active ? '启用' : '停用',
+      书名: textbook.title,
+      书号: textbook.isbn || '-',
+      出版社: textbook.publisher || '-',
+      作者: textbook.author || '-',
+      版次: textbook.edition || '-',
+      出版日期: textbook.publish_date || '-',
+      定价: textbook.price || '-',
+      类别: textbook.category || '-',
+      状态: textbook.is_active ? '启用' : '停用',
     }));
 
     const headers = [
@@ -97,7 +106,7 @@ export async function exportTextbooks(req, res, next) {
     const workbook = await createWorkbook(headers, rows);
     const buffer = await workbookToBuffer(workbook);
     const filename = `教材数据_${new Date().toISOString().split('T')[0]}.xlsx`;
-    
+
     await createAuditLog({
       action: 'export',
       module: 'textbook',
@@ -107,9 +116,15 @@ export async function exportTextbooks(req, res, next) {
       result: 'success',
       message: `导出教材数据，共${rows.length}条记录`,
     });
-    
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
     res.send(buffer);
   } catch (e) {
     await createAuditLog({
@@ -151,7 +166,7 @@ export async function exportClasses(req, res, next) {
     const allPlans = await prisma.training_plans.findMany({
       select: { id: true, name: true, major_id: true, training_level_id: true },
     });
-    
+
     // 获取学期信息用于计算年级
     const semesterInfo = await getCurrentSemesterInfo();
 
@@ -165,16 +180,16 @@ export async function exportClasses(req, res, next) {
         // 尝试根据专业或培养层次匹配方案
         let matchedPlan = null;
         if (cls.major_id) {
-          matchedPlan = allPlans.find(p => p.major_id === cls.major_id);
+          matchedPlan = allPlans.find((p) => p.major_id === cls.major_id);
         }
         if (!matchedPlan && cls.training_level_id) {
-          matchedPlan = allPlans.find(p => p.training_level_id === cls.training_level_id);
+          matchedPlan = allPlans.find((p) => p.training_level_id === cls.training_level_id);
         }
         if (matchedPlan) {
           matchedPlanName = matchedPlan.name;
         }
       }
-      
+
       // 计算年级
       let grade = null;
       if (semesterInfo && cls.enrollment_year && cls.duration_years) {
@@ -185,7 +200,7 @@ export async function exportClasses(req, res, next) {
           grade = null;
         }
       }
-      
+
       // 确定关联类型
       let relationType = '未关联';
       if (cls.custom_plan_id) {
@@ -195,28 +210,31 @@ export async function exportClasses(req, res, next) {
       } else if (cls.training_level_id) {
         relationType = '层次';
       }
-      
+
       // 确定状态文本
       let statusText = '已毕业';
       if (cls.is_left_school) {
         statusText = '离校';
       } else if (cls.enrollment_year && cls.duration_years) {
-        const calcGrade = semesterInfo ? (semesterInfo.startYear - cls.enrollment_year + 1) : null;
-        statusText = (calcGrade !== null && calcGrade >= 1 && calcGrade <= cls.duration_years) ? '在读' : '已毕业';
+        const calcGrade = semesterInfo ? semesterInfo.startYear - cls.enrollment_year + 1 : null;
+        statusText =
+          calcGrade !== null && calcGrade >= 1 && calcGrade <= cls.duration_years
+            ? '在读'
+            : '已毕业';
       }
 
       return {
-        '班级名称': cls.name,
-        '二级学院': cls.colleges?.name || '-',
-        '专业类别': cls.majors?.name || '-',
-        '培养层次': cls.training_levels?.name || '-',
-        '入学年份': cls.enrollment_year,
+        班级名称: cls.name,
+        二级学院: cls.colleges?.name || '-',
+        专业类别: cls.majors?.name || '-',
+        培养层次: cls.training_levels?.name || '-',
+        入学年份: cls.enrollment_year,
         '学制(年)': cls.duration_years,
-        '班级人数': Number(cls.student_count) || 0,
-        '年级': grade ? `${grade}年级` : '-',
-        '状态': statusText,
-        '关联类型': relationType,
-        '当前方案': matchedPlanName || '-',
+        班级人数: Number(cls.student_count) || 0,
+        年级: grade ? `${grade}年级` : '-',
+        状态: statusText,
+        关联类型: relationType,
+        当前方案: matchedPlanName || '-',
       };
     });
 
@@ -237,7 +255,7 @@ export async function exportClasses(req, res, next) {
     const workbook = await createWorkbook(headers, rows);
     const buffer = await workbookToBuffer(workbook);
     const filename = `班级数据_${new Date().toISOString().split('T')[0]}.xlsx`;
-    
+
     await createAuditLog({
       action: 'export',
       module: 'class',
@@ -247,9 +265,15 @@ export async function exportClasses(req, res, next) {
       result: 'success',
       message: `导出班级数据，共${rows.length}条记录`,
     });
-    
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
     res.send(buffer);
   } catch (e) {
     await createAuditLog({
@@ -271,7 +295,7 @@ export async function exportTextbookUsage(req, res, next) {
   try {
     const { id } = req.params;
     let semesterInfo = await getSemesterInfoFromRequest(req);
-    
+
     if (!semesterInfo) {
       const { semester } = req.query;
       if (semester) {
@@ -290,11 +314,11 @@ export async function exportTextbookUsage(req, res, next) {
             include: {
               plan_course_semesters: {
                 include: {
-                  plan_courses: { 
-                    include: { 
-                      training_plans: { include: { majors: true, training_levels: true } }, 
-                      courses: true 
-                    } 
+                  plan_courses: {
+                    include: {
+                      training_plans: { include: { majors: true, training_levels: true } },
+                      courses: true,
+                    },
                   },
                 },
               },
@@ -325,21 +349,32 @@ export async function exportTextbookUsage(req, res, next) {
         if (!isClassMatchPlan(cls, plan)) continue;
 
         rows.push({
-          '教材名称': textbook.title, '书号': textbook.isbn || '-',
-          '课程': pc.courses.name, '使用班级': cls.name,
-          '专业': cls.majors?.name || '-', '培养层次': cls.training_levels?.name || '-',
-          '年级': grade, '学生人数': Number(cls.student_count) || 0,
-          '使用学期': `第${sem.semester}学期`,
-          '是否必订': pt.is_required ? '是' : '否',
+          教材名称: textbook.title,
+          书号: textbook.isbn || '-',
+          课程: pc.courses.name,
+          使用班级: cls.name,
+          专业: cls.majors?.name || '-',
+          培养层次: cls.training_levels?.name || '-',
+          年级: grade,
+          学生人数: Number(cls.student_count) || 0,
+          使用学期: `第${sem.semester}学期`,
+          是否必订: pt.is_required ? '是' : '否',
         });
       }
     }
 
     const totalStudents = rows.reduce((sum, r) => sum + (Number(r['学生人数']) || 0), 0);
     rows.push({
-      '教材名称': '合计', '书号': '', '课程': '',
-      '使用班级': `${rows.length}个班级`, '专业': '', '培养层次': '',
-      '年级': '', '学生人数': totalStudents, '使用学期': '', '是否必订': '',
+      教材名称: '合计',
+      书号: '',
+      课程: '',
+      使用班级: `${rows.length}个班级`,
+      专业: '',
+      培养层次: '',
+      年级: '',
+      学生人数: totalStudents,
+      使用学期: '',
+      是否必订: '',
     });
 
     const headers = [
@@ -358,7 +393,7 @@ export async function exportTextbookUsage(req, res, next) {
     const workbook = await createWorkbook(headers, rows);
     const buffer = await workbookToBuffer(workbook);
     const filename = `教材使用_${textbook.title}.xlsx`;
-    
+
     await createAuditLog({
       action: 'export',
       module: 'textbook',
@@ -368,9 +403,15 @@ export async function exportTextbookUsage(req, res, next) {
       result: 'success',
       message: `导出教材"${textbook.title}"使用情况，共${rows.length}条记录`,
     });
-    
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
     res.send(buffer);
   } catch (e) {
     await createAuditLog({
@@ -406,17 +447,17 @@ export async function exportTeachers(req, res, next) {
     const statusMap = { active: '启用', disabled: '禁用' };
 
     const rows = teachers.map((t) => ({
-      '教师姓名': t.name,
-      '性别': genderMap[t.gender] || '-',
-      '出生年月': t.birth_date ? String(t.birth_date).substring(0, 7) : '-',
-      '人员类别': personnelMap[t.personnel_type] || t.personnel_type,
-      '状态': statusMap[t.status] || '启用',
-      '教师资格类型': t.qualification_type || '-',
-      '归属学院': t.affiliated_college?.name || '-',
-      '特定周课时': t.default_weekly_hours != null ? t.default_weekly_hours : '-',
-      '学科': t.courses.map(tc => tc.course.name).join('、') || '-',
-      '任课学院': t.scheduling_colleges.map(sc => sc.college.name).join('、') || '-',
-      '任课层次': t.scheduling_levels.map(sl => sl.training_level.name).join('、') || '-',
+      教师姓名: t.name,
+      性别: genderMap[t.gender] || '-',
+      出生年月: t.birth_date ? String(t.birth_date).substring(0, 7) : '-',
+      人员类别: personnelMap[t.personnel_type] || t.personnel_type,
+      状态: statusMap[t.status] || '启用',
+      教师资格类型: t.qualification_type || '-',
+      归属学院: t.affiliated_college?.name || '-',
+      特定周课时: t.default_weekly_hours != null ? t.default_weekly_hours : '-',
+      学科: t.courses.map((tc) => tc.course.name).join('、') || '-',
+      任课学院: t.scheduling_colleges.map((sc) => sc.college.name).join('、') || '-',
+      任课层次: t.scheduling_levels.map((sl) => sl.training_level.name).join('、') || '-',
     }));
 
     const headers = [
@@ -447,8 +488,14 @@ export async function exportTeachers(req, res, next) {
       message: `导出教师数据，共${rows.length}条记录`,
     });
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
     res.send(buffer);
   } catch (e) {
     await createAuditLog({
@@ -483,7 +530,7 @@ export async function exportStatistics(req, res, next) {
       _count: { id: true },
     });
 
-    const teacherIds = stats.map(s => s.teacher_id);
+    const teacherIds = stats.map((s) => s.teacher_id);
     const teachers = await prisma.teachers.findMany({
       where: { id: { in: teacherIds } },
       include: {
@@ -491,7 +538,7 @@ export async function exportStatistics(req, res, next) {
         scheduling_colleges: { include: { college: { select: { name: true } } } },
       },
     });
-    const teacherMap = new Map(teachers.map(t => [t.id, t]));
+    const teacherMap = new Map(teachers.map((t) => [t.id, t]));
 
     // 获取每个教师的安排明细（含班级学院信息，用于推导任课学院）
     const allAssignments = await prisma.teaching_assignments.findMany({
@@ -530,7 +577,7 @@ export async function exportStatistics(req, res, next) {
       }
 
       const courseDetail = Array.from(byCourse.values())
-        .map(g => `${g.course}(${g.hours}课时/${g.classes.length}班)`)
+        .map((g) => `${g.course}(${g.hours}课时/${g.classes.length}班)`)
         .join('、');
 
       // 从实际授课班级中提取任课学院（与前端 getStatistics 逻辑一致）
@@ -540,16 +587,16 @@ export async function exportStatistics(req, res, next) {
           collegeMap.set(a.class.colleges.id, a.class.colleges);
         }
       }
-      const teachingColleges = [...collegeMap.values()].map(c => c.name).join('、') || '-';
+      const teachingColleges = [...collegeMap.values()].map((c) => c.name).join('、') || '-';
 
       rows.push({
-        '教师姓名': teacher?.name || '未知',
-        '人员类别': personnelMap[teacher?.personnel_type] || '-',
-        '任课学院': teachingColleges,
-        '任教科目': teacher?.courses.map(tc => tc.course.name).join('、') || '-',
-        '上课班级数': classCount,
-        '总周课时': totalHours,
-        '课程明细': courseDetail || '-',
+        教师姓名: teacher?.name || '未知',
+        人员类别: personnelMap[teacher?.personnel_type] || '-',
+        任课学院: teachingColleges,
+        任教科目: teacher?.courses.map((tc) => tc.course.name).join('、') || '-',
+        上课班级数: classCount,
+        总周课时: totalHours,
+        课程明细: courseDetail || '-',
       });
     }
 
@@ -561,13 +608,13 @@ export async function exportStatistics(req, res, next) {
     const totalWeeklyHours = rows.reduce((sum, r) => sum + r['总周课时'], 0);
     const totalClasses = rows.reduce((sum, r) => sum + r['上课班级数'], 0);
     rows.push({
-      '教师姓名': '合计',
-      '人员类别': '',
-      '任课学院': '',
-      '任教科目': '',
-      '上课班级数': totalClasses,
-      '总周课时': totalWeeklyHours,
-      '课程明细': `${totalTeachers}位教师`,
+      教师姓名: '合计',
+      人员类别: '',
+      任课学院: '',
+      任教科目: '',
+      上课班级数: totalClasses,
+      总周课时: totalWeeklyHours,
+      课程明细: `${totalTeachers}位教师`,
     });
 
     const headers = [
@@ -594,8 +641,14 @@ export async function exportStatistics(req, res, next) {
       message: `导出课时统计(${semester})，共${rows.length}条记录`,
     });
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
     res.send(buffer);
   } catch (e) {
     await createAuditLog({
@@ -636,27 +689,27 @@ export async function exportTeachingArrange(req, res, next) {
         teacher: { select: { id: true, name: true, personnel_type: true } },
       },
     });
-    const assignmentMap = new Map(assignments.map(a => [a.class_id, a]));
+    const assignmentMap = new Map(assignments.map((a) => [a.class_id, a]));
 
-    const rows = classes.map(c => {
+    const rows = classes.map((c) => {
       const a = assignmentMap.get(c.classId);
-      const textbookNames = c.textbooks?.map(tb => tb.title).join('、') || '-';
+      const textbookNames = c.textbooks?.map((tb) => tb.title).join('、') || '-';
       return {
-        '班级名称': c.className,
-        '学院': c.collegeName || '-',
-        '专业': c.majorName || '-',
-        '年级': c.grade,
-        '层次': c.trainingLevelName || '-',
-        '周课时': c.weeklyHours,
-        '教材': textbookNames,
-        '任课教师': a?.teacher?.name || '未安排',
-        '安排方式': a ? (a.is_auto ? '自动' : '手动') : '-',
+        班级名称: c.className,
+        学院: c.collegeName || '-',
+        专业: c.majorName || '-',
+        年级: c.grade,
+        层次: c.trainingLevelName || '-',
+        周课时: c.weeklyHours,
+        教材: textbookNames,
+        任课教师: a?.teacher?.name || '未安排',
+        安排方式: a ? (a.is_auto ? '自动' : '手动') : '-',
       };
     });
 
     // 合计行
     const totalHours = rows.reduce((sum, r) => sum + r['周课时'], 0);
-    const assignedCount = rows.filter(r => r['任课教师'] !== '未安排').length;
+    const assignedCount = rows.filter((r) => r['任课教师'] !== '未安排').length;
 
     const headers = [
       { label: '班级名称', key: '班级名称', width: 25 },
@@ -679,13 +732,24 @@ export async function exportTeachingArrange(req, res, next) {
       module: 'teachingArrange',
       userId: req.user?.id,
       ip: req.ip,
-      details: { course_id: Number(course_id), course_name: course.name, semester, rowCount: rows.length },
+      details: {
+        course_id: Number(course_id),
+        course_name: course.name,
+        semester,
+        rowCount: rows.length,
+      },
       result: 'success',
       message: `导出教学安排(${course.name}, ${semester})，共${rows.length}条记录`,
     });
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
     res.send(buffer);
   } catch (e) {
     await createAuditLog({

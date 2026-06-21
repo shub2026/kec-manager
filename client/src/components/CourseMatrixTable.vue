@@ -1,16 +1,10 @@
 <template>
-  <div class="matrix-scroll" v-loading="loading">
-    <table class="matrix-table" v-if="rawCourses.length > 0">
+  <div v-loading="loading" class="matrix-scroll">
+    <table v-if="rawCourses.length > 0" class="matrix-table">
       <thead>
         <tr>
           <th class="matrix-fixed-col matrix-course-header">课程名称</th>
-          <th
-            v-for="s in maxSemester"
-            :key="s"
-            class="matrix-semester-header"
-          >
-            第{{ s }}学期
-          </th>
+          <th v-for="s in maxSemester" :key="s" class="matrix-semester-header">第{{ s }}学期</th>
           <th class="matrix-total-header">总课时</th>
           <th v-if="!readonly" class="matrix-action-header">操作</th>
         </tr>
@@ -18,17 +12,17 @@
       <tbody v-for="group in groups" :key="group.type + '-' + group.label">
         <!-- 分组标题行 -->
         <tr class="matrix-group-row">
-          <td :colspan="readonly ? maxSemester + 2 : maxSemester + 3" class="matrix-group-cell" :class="group.type">
+          <td
+            :colspan="readonly ? maxSemester + 2 : maxSemester + 3"
+            class="matrix-group-cell"
+            :class="group.type"
+          >
             <span class="group-label">{{ group.label }}</span>
             <span class="group-count">{{ group.courses.length }} 门</span>
           </td>
         </tr>
         <!-- 课程行 -->
-        <tr
-          v-for="course in group.courses"
-          :key="course.id"
-          class="matrix-course-row"
-        >
+        <tr v-for="course in group.courses" :key="course.id" class="matrix-course-row">
           <td class="matrix-fixed-col matrix-course-name">
             <span class="course-name-text">{{ course.courseName }}</span>
             <el-tag
@@ -51,8 +45,8 @@
               <div class="cell-hours">
                 {{ getHours(course, s) !== null ? getHours(course, s) : '-' }}
               </div>
-              <div 
-                v-for="textbook in getTextbooks(course, s)" 
+              <div
+                v-for="textbook in getTextbooks(course, s)"
                 :key="textbook.id"
                 class="cell-textbook"
                 :class="{ 'textbook-disabled': !textbook.isActive }"
@@ -70,23 +64,23 @@
           <!-- 操作按钮 -->
           <td v-if="!readonly" class="matrix-cell matrix-action-cell">
             <div class="action-buttons">
-              <el-button 
-                size="small" 
-                :icon="ArrowUp" 
+              <el-button
+                size="small"
+                :icon="ArrowUp"
                 :disabled="isFirstInGroup(course, group)"
-                @click="$emit('move-up', course, group)"
                 circle
                 title="上移"
+                @click="$emit('move-up', course, group)"
               />
-              <el-button 
-                size="small" 
-                :icon="ArrowDown" 
+              <el-button
+                size="small"
+                :icon="ArrowDown"
                 :disabled="isLastInGroup(course, group)"
-                @click="$emit('move-down', course, group)"
                 circle
                 title="下移"
+                @click="$emit('move-down', course, group)"
               />
-              <el-button size="small" @click="$emit('set-semester', course)" title="设置学期">
+              <el-button size="small" title="设置学期" @click="$emit('set-semester', course)">
                 <el-icon><Setting /></el-icon>
               </el-button>
               <el-popconfirm title="确定删除该课程？" @confirm="$emit('delete-course', course)">
@@ -102,11 +96,7 @@
         <!-- 分组小计 -->
         <tr class="matrix-subtotal-row">
           <td class="matrix-fixed-col matrix-subtotal-label">小计</td>
-          <td
-            v-for="s in maxSemester"
-            :key="s"
-            class="matrix-cell matrix-subtotal-cell"
-          >
+          <td v-for="s in maxSemester" :key="s" class="matrix-cell matrix-subtotal-cell">
             {{ calcSemesterSubtotal(group, s) }}
           </td>
           <td class="matrix-cell matrix-subtotal-cell">
@@ -125,11 +115,11 @@
       <span class="footer-label">学期周数：</span>
       <el-input-number
         :model-value="globalWeeks"
-        @update:model-value="$emit('update-global-weeks', $event)"
         :min="1"
         :max="30"
         size="small"
         controls-position="right"
+        @update:model-value="$emit('update-global-weeks', $event)"
       />
       <el-button type="primary" size="small" @click="$emit('apply-weeks')">
         <el-icon><Check /></el-icon> 应用
@@ -145,9 +135,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { ArrowUp, ArrowDown, Setting, Delete, Check, Warning } from '@element-plus/icons-vue'
-import { useMatrixCalculations } from '../composables/useMatrixCalculations'
+import { computed } from 'vue';
+import { ArrowUp, ArrowDown, Setting, Delete, Check, Warning } from '@element-plus/icons-vue';
+import { useMatrixCalculations } from '../composables/useMatrixCalculations';
 
 const props = defineProps({
   rawCourses: { type: Array, default: () => [] },
@@ -155,19 +145,27 @@ const props = defineProps({
   globalWeeks: { type: Number, default: 18 },
   totalAllHours: { type: Number, default: 0 },
   readonly: { type: Boolean, default: false },
-})
+});
 
-defineEmits(['edit', 'delete-course', 'move-up', 'move-down', 'set-semester', 'apply-weeks', 'update-global-weeks'])
+defineEmits([
+  'edit',
+  'delete-course',
+  'move-up',
+  'move-down',
+  'set-semester',
+  'apply-weeks',
+  'update-global-weeks',
+]);
 
 // 计算最大学期数
 const maxSemester = computed(() => {
-  if (!props.rawCourses.length) return 8
-  const max = Math.max(...props.rawCourses.map(c => c.endSemester), 0)
-  return Math.max(max, 8)
-})
+  if (!props.rawCourses.length) return 8;
+  const max = Math.max(...props.rawCourses.map((c) => c.endSemester), 0);
+  return Math.max(max, 8);
+});
 
 // 将 prop 包装为 computed ref 供 composable 使用
-const rawCoursesRef = computed(() => props.rawCourses)
+const rawCoursesRef = computed(() => props.rawCourses);
 
 // 使用共享计算逻辑
 const {
@@ -178,43 +176,43 @@ const {
   calcGroupTotal,
   isFirstInGroup,
   isLastInGroup,
-} = useMatrixCalculations(rawCoursesRef)
+} = useMatrixCalculations(rawCoursesRef);
 
 // 获取某学期教材信息（返回数组，包含状态）
 function getTextbooks(course, semester) {
-  const sem = course.semesters.find(s => s.semester === semester)
-  if (!sem || !sem.planTextbooks?.length) return []
-  return sem.planTextbooks.map(t => ({
+  const sem = course.semesters.find((s) => s.semester === semester);
+  if (!sem || !sem.planTextbooks?.length) return [];
+  return sem.planTextbooks.map((t) => ({
     id: t.textbooks?.id,
     title: t.textbooks?.title,
     isbn: t.textbooks?.isbn,
     publisher: t.textbooks?.publisher,
     isActive: t.textbooks?.isActive ?? true,
-  }))
+  }));
 }
 
 // 单元格样式
 function cellClass(course, semester) {
-  if (!isInRange(course, semester)) return 'cell-out-of-range'
-  const hours = getHours(course, semester) || 0
-  if (hours === 0) return 'cell-zero'
-  if (hours <= 2) return 'cell-low'
-  if (hours <= 4) return 'cell-mid'
-  return 'cell-high'
+  if (!isInRange(course, semester)) return 'cell-out-of-range';
+  const hours = getHours(course, semester) || 0;
+  if (hours === 0) return 'cell-zero';
+  if (hours <= 2) return 'cell-low';
+  if (hours <= 4) return 'cell-mid';
+  return 'cell-high';
 }
 
 // 分组学期小计
 function calcSemesterSubtotal(group, semester) {
-  let total = 0
-  group.courses.forEach(c => {
+  let total = 0;
+  group.courses.forEach((c) => {
     if (isInRange(c, semester)) {
-      const hours = getHours(c, semester)
+      const hours = getHours(c, semester);
       if (hours !== null) {
-        total += hours
+        total += hours;
       }
     }
-  })
-  return total
+  });
+  return total;
 }
 </script>
 

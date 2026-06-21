@@ -30,34 +30,40 @@ export async function importTeachers(req, res, next) {
   // 预加载课程、学院、培养层次数据
   let courses = await prisma.courses.findMany();
   const courseMap = {};
-  courses.forEach((c) => { courseMap[c.name] = c.id; });
+  courses.forEach((c) => {
+    courseMap[c.name] = c.id;
+  });
 
   let colleges = await prisma.colleges.findMany();
   const collegeMap = {};
-  colleges.forEach((c) => { collegeMap[c.name] = c.id; });
+  colleges.forEach((c) => {
+    collegeMap[c.name] = c.id;
+  });
 
   let levels = await prisma.training_levels.findMany();
   const levelMap = {};
-  levels.forEach((l) => { levelMap[l.name] = l.id; });
+  levels.forEach((l) => {
+    levelMap[l.name] = l.id;
+  });
 
   let autoCreatedCourses = 0;
 
   // 人员类别映射
   const personnelTypeMap = {
-    '专职': 'full_time',
-    '兼职': 'part_time',
-    '外聘': 'external',
-    'full_time': 'full_time',
-    'part_time': 'part_time',
-    'external': 'external',
+    专职: 'full_time',
+    兼职: 'part_time',
+    外聘: 'external',
+    full_time: 'full_time',
+    part_time: 'part_time',
+    external: 'external',
   };
 
   // 性别映射
   const genderMap = {
-    '男': 'male',
-    '女': 'female',
-    'male': 'male',
-    'female': 'female',
+    男: 'male',
+    女: 'female',
+    male: 'male',
+    female: 'female',
   };
 
   // 收集所有待执行的教师操作（在事务中统一执行）
@@ -85,7 +91,7 @@ export async function importTeachers(req, res, next) {
 
     // 解析状态
     const statusStr = String(statusRaw).trim();
-    const status = (statusStr === '禁用' || statusStr === 'disabled') ? 'disabled' : 'active';
+    const status = statusStr === '禁用' || statusStr === 'disabled' ? 'disabled' : 'active';
 
     if (!name) {
       errors.push(`第${i + 2}行：缺少教师姓名`);
@@ -100,9 +106,9 @@ export async function importTeachers(req, res, next) {
     if (birthDate) {
       const raw = String(birthDate).trim();
       if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
-        birthDateStr = raw.substring(0, 7);          // "1990-01-15" → "1990-01"
+        birthDateStr = raw.substring(0, 7); // "1990-01-15" → "1990-01"
       } else if (/^\d{4}-\d{2}$/.test(raw)) {
-        birthDateStr = raw;                           // "1990-01" → "1990-01"
+        birthDateStr = raw; // "1990-01" → "1990-01"
       } else if (/^\d{6}$/.test(raw)) {
         // 纯数字 YYYYMM 格式，如 199001 → "1990-01"
         const y = raw.substring(0, 4);
@@ -126,7 +132,11 @@ export async function importTeachers(req, res, next) {
 
     // 解析特定周课时
     let defHours = null;
-    if (defaultWeeklyHours !== null && defaultWeeklyHours !== undefined && defaultWeeklyHours !== '') {
+    if (
+      defaultWeeklyHours !== null &&
+      defaultWeeklyHours !== undefined &&
+      defaultWeeklyHours !== ''
+    ) {
       const parsed = Number(defaultWeeklyHours);
       if (!isNaN(parsed) && parsed >= 0 && parsed <= 40) {
         defHours = parsed;
@@ -141,7 +151,10 @@ export async function importTeachers(req, res, next) {
     }
 
     // 解析学科（逗号分隔）
-    const courseNames = String(courseNamesStr).split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+    const courseNames = String(courseNamesStr)
+      .split(/[,，、]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
     // 收集课程名（已知课程的 ID 已在 courseMap，未知课程名待事务内创建）
     const resolvedCourseIds = [];
     const pendingNewCourseNames = [];
@@ -154,7 +167,10 @@ export async function importTeachers(req, res, next) {
     }
 
     // 解析任课学院（逗号分隔）
-    const collegeNames = String(collegeNamesStr).split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+    const collegeNames = String(collegeNamesStr)
+      .split(/[,，、]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
     const collegeIds = [];
     for (const cName of collegeNames) {
       if (collegeMap[cName]) {
@@ -163,7 +179,10 @@ export async function importTeachers(req, res, next) {
     }
 
     // 解析任课层次（逗号分隔）
-    const levelNames = String(levelNamesStr).split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+    const levelNames = String(levelNamesStr)
+      .split(/[,，、]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
     const levelIds = [];
     for (const lName of levelNames) {
       if (levelMap[lName]) {
@@ -179,7 +198,9 @@ export async function importTeachers(req, res, next) {
 
     if (sameNameTeachers.length > 1) {
       // 同名教师多条，跳过避免张冠李戴（M-8 修复）
-      errors.push(`第${i + 2}行：存在${sameNameTeachers.length}个同名教师"${name}"，请先合并或区分后导入`);
+      errors.push(
+        `第${i + 2}行：存在${sameNameTeachers.length}个同名教师"${name}"，请先合并或区分后导入`
+      );
       continue;
     }
 
@@ -219,12 +240,14 @@ export async function importTeachers(req, res, next) {
           status,
           sort_order: 0,
           // courses 关联在事务内补建（因可能依赖待创建课程）
-          scheduling_colleges: collegeIds.length > 0
-            ? { create: collegeIds.map(cid => ({ college_id: cid })) }
-            : undefined,
-          scheduling_levels: levelIds.length > 0
-            ? { create: levelIds.map(lid => ({ training_level_id: lid })) }
-            : undefined,
+          scheduling_colleges:
+            collegeIds.length > 0
+              ? { create: collegeIds.map((cid) => ({ college_id: cid })) }
+              : undefined,
+          scheduling_levels:
+            levelIds.length > 0
+              ? { create: levelIds.map((lid) => ({ training_level_id: lid })) }
+              : undefined,
         },
         resolvedCourseIds,
         pendingNewCourseNames,
@@ -260,9 +283,9 @@ export async function importTeachers(req, res, next) {
     if (teacherOps.length > 0) {
       await prisma.$transaction(async (tx) => {
         // 1. 先在事务内创建所有待建课程，更新 courseMap
-        const allPendingNames = [...new Set(
-          teacherOps.flatMap(op => op.pendingNewCourseNames || [])
-        )];
+        const allPendingNames = [
+          ...new Set(teacherOps.flatMap((op) => op.pendingNewCourseNames || [])),
+        ];
         for (const cName of allPendingNames) {
           // 事务内再次查重（防止并发导入同名校验）
           const existing = await tx.courses.findFirst({ where: { name: cName } });
@@ -280,7 +303,7 @@ export async function importTeachers(req, res, next) {
           // 合并已知课程 ID 与新建课程 ID
           const allCourseIds = [
             ...(op.resolvedCourseIds || []),
-            ...(op.pendingNewCourseNames || []).map(n => courseMap[n]).filter(Boolean),
+            ...(op.pendingNewCourseNames || []).map((n) => courseMap[n]).filter(Boolean),
           ];
 
           if (op.type === 'update') {
@@ -293,28 +316,33 @@ export async function importTeachers(req, res, next) {
             await tx.teacher_courses.deleteMany({ where: { teacher_id: op.teacherId } });
             if (allCourseIds.length > 0) {
               await tx.teacher_courses.createMany({
-                data: allCourseIds.map(cid => ({ teacher_id: op.teacherId, course_id: cid })),
+                data: allCourseIds.map((cid) => ({ teacher_id: op.teacherId, course_id: cid })),
               });
             }
             // 重建任课学院关联
-            await tx.teacher_scheduling_colleges.deleteMany({ where: { teacher_id: op.teacherId } });
+            await tx.teacher_scheduling_colleges.deleteMany({
+              where: { teacher_id: op.teacherId },
+            });
             if (op.collegeIds.length > 0) {
               await tx.teacher_scheduling_colleges.createMany({
-                data: op.collegeIds.map(cid => ({ teacher_id: op.teacherId, college_id: cid })),
+                data: op.collegeIds.map((cid) => ({ teacher_id: op.teacherId, college_id: cid })),
               });
             }
             // 重建任课层次关联
             await tx.teacher_training_levels.deleteMany({ where: { teacher_id: op.teacherId } });
             if (op.levelIds.length > 0) {
               await tx.teacher_training_levels.createMany({
-                data: op.levelIds.map(lid => ({ teacher_id: op.teacherId, training_level_id: lid })),
+                data: op.levelIds.map((lid) => ({
+                  teacher_id: op.teacherId,
+                  training_level_id: lid,
+                })),
               });
             }
           } else {
             // 创建新教师（含课程关联）
             const createData = { ...op.data };
             if (allCourseIds.length > 0) {
-              createData.courses = { create: allCourseIds.map(cid => ({ course_id: cid })) };
+              createData.courses = { create: allCourseIds.map((cid) => ({ course_id: cid })) };
             }
             await tx.teachers.create({ data: createData });
           }
@@ -340,7 +368,7 @@ export async function importTeachers(req, res, next) {
       module: 'teacher',
       userId: req.user?.id,
       details: result,
-      result: (imported + overwritten) > 0 ? 'success' : 'failed',
+      result: imported + overwritten > 0 ? 'success' : 'failed',
       message,
     });
 

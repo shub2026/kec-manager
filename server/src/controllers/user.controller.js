@@ -112,7 +112,7 @@ export async function updateUser(req, res, next) {
     }
 
     const updateData = { real_name, email };
-    
+
     if (req.user.role === 'super_admin' && role) {
       updateData.role = role;
     }

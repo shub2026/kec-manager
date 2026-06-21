@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Prisma
+prisma/migrations/
+prisma/data/
+
+# Uploads
+uploads/
+
+# Database
+*.db
+*.sqlite
+
+# Test files
+test-*.js
+check-*.js
+diagnose.js

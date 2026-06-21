@@ -28,11 +28,13 @@
         />
 
         <div class="confirm-input-area">
-          <label v-if="!isSimpleConfirmType">请输入 <strong>{{ expectedConfirmText }}</strong> 以确认操作：</label>
+          <label v-if="!isSimpleConfirmType"
+            >请输入 <strong>{{ expectedConfirmText }}</strong> 以确认操作：</label
+          >
           <label v-else>请输入 <strong>确认</strong> 以继续：</label>
           <el-input
             v-model="confirmInput"
-            :placeholder="isSimpleConfirmType ? '请输入：确认' : ('请输入：' + expectedConfirmText)"
+            :placeholder="isSimpleConfirmType ? '请输入：确认' : '请输入：' + expectedConfirmText"
             size="large"
             clearable
             @keyup.enter="handleConfirm"
@@ -55,13 +57,13 @@
       </div>
 
       <template #footer>
-        <el-button @click="dialogVisible = false" size="large">取消</el-button>
+        <el-button size="large" @click="dialogVisible = false">取消</el-button>
         <el-button
           type="danger"
           size="large"
-          @click="handleConfirm"
           :loading="resetting"
           :disabled="!canConfirm"
+          @click="handleConfirm"
         >
           <el-icon><WarningFilled /></el-icon>
           确认清空
@@ -76,16 +78,11 @@
       width="500px"
       :close-on-click-modal="false"
     >
-      <el-alert
-        title="此操作不可恢复！"
-        type="error"
-        :closable="false"
-        show-icon
-      />
+      <el-alert title="此操作不可恢复！" type="error" :closable="false" show-icon />
       <p class="confirm-text">确定要清空所有操作日志吗？此操作将永久删除所有日志记录。</p>
       <template #footer>
         <el-button @click="simpleDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="$emit('confirm-simple')" :loading="resetting">
+        <el-button type="danger" :loading="resetting" @click="$emit('confirm-simple')">
           确认清空
         </el-button>
       </template>
@@ -101,7 +98,7 @@
       <p class="confirm-text">确定要保存当前配置吗？这将更新学期设置和系统标识。</p>
       <template #footer>
         <el-button @click="saveDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="$emit('confirm-save')" :loading="saving">
+        <el-button type="primary" :loading="saving" @click="$emit('confirm-save')">
           确认保存
         </el-button>
       </template>
@@ -110,8 +107,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { WarningFilled } from '@element-plus/icons-vue'
+import { computed } from 'vue';
+import { WarningFilled } from '@element-plus/icons-vue';
 
 const props = defineProps({
   dialogVisible: {
@@ -146,7 +143,7 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-})
+});
 
 const emit = defineEmits([
   'update:dialogVisible',
@@ -157,32 +154,32 @@ const emit = defineEmits([
   'confirm',
   'confirm-simple',
   'confirm-save',
-])
+]);
 
 const dialogVisible = computed({
   get: () => props.dialogVisible,
   set: (val) => emit('update:dialogVisible', val),
-})
+});
 
 const simpleDialogVisible = computed({
   get: () => props.simpleDialogVisible,
   set: (val) => emit('update:simpleDialogVisible', val),
-})
+});
 
 const saveDialogVisible = computed({
   get: () => props.saveDialogVisible,
   set: (val) => emit('update:saveDialogVisible', val),
-})
+});
 
 const confirmInput = computed({
   get: () => props.confirmInput,
   set: (val) => emit('update:confirmInput', val),
-})
+});
 
 const reasonInput = computed({
   get: () => props.reasonInput,
   set: (val) => emit('update:reasonInput', val),
-})
+});
 
 const dialogTitle = computed(() => {
   const titles = {
@@ -195,9 +192,9 @@ const dialogTitle = computed(() => {
     classes: '清空班级数据',
     plans: '清空培养方案',
     settings: '系统重置',
-  }
-  return titles[props.resetType] || '确认操作'
-})
+  };
+  return titles[props.resetType] || '确认操作';
+});
 
 const confirmTextMap = {
   teachers: '将永久删除所有教师数据及教学安排。',
@@ -208,10 +205,11 @@ const confirmTextMap = {
   textbooks: '将永久删除所有教材数据，级联清空培养方案中的教材关联。',
   classes: '将永久删除所有班级数据。',
   plans: '将永久删除所有培养方案及其课程安排、教材关联数据。',
-  settings: '将系统恢复到初始化状态，清空所有业务数据（教师、班级、培养方案、课程、教材、专业、学院、培养层次、系统设置、操作日志），仅保留用户账号。此操作不可恢复！',
-}
+  settings:
+    '将系统恢复到初始化状态，清空所有业务数据（教师、班级、培养方案、课程、教材、专业、学院、培养层次、系统设置、操作日志），仅保留用户账号。此操作不可恢复！',
+};
 
-const confirmText = computed(() => confirmTextMap[props.resetType] || '')
+const confirmText = computed(() => confirmTextMap[props.resetType] || '');
 
 const cascadeInfoMap = {
   teachers: null,
@@ -223,36 +221,45 @@ const cascadeInfoMap = {
   classes: null,
   plans: null,
   settings: null,
-}
+};
 
-const cascadeInfo = computed(() => cascadeInfoMap[props.resetType] || null)
+const cascadeInfo = computed(() => cascadeInfoMap[props.resetType] || null);
 
 // 判断是否为简单确认类型(只需输入"确认")
 const isSimpleConfirmType = computed(() => {
-  const simpleTypes = ['teachers', 'majors', 'colleges', 'levels', 'courses', 'textbooks', 'classes', 'plans']
-  return simpleTypes.includes(props.resetType)
-})
+  const simpleTypes = [
+    'teachers',
+    'majors',
+    'colleges',
+    'levels',
+    'courses',
+    'textbooks',
+    'classes',
+    'plans',
+  ];
+  return simpleTypes.includes(props.resetType);
+});
 
 const expectedConfirmText = computed(() => {
   // 简单确认类型统一使用"确认"
   if (isSimpleConfirmType.value) {
-    return '确认'
+    return '确认';
   }
-  
+
   // 系统设置使用原有的详细确认文本
   const texts = {
     settings: '系统重置',
-  }
-  return texts[props.resetType] || '确认'
-})
+  };
+  return texts[props.resetType] || '确认';
+});
 
 const canConfirm = computed(() => {
-  return props.confirmInput === expectedConfirmText.value
-})
+  return props.confirmInput === expectedConfirmText.value;
+});
 
 function handleConfirm() {
   if (canConfirm.value) {
-    emit('confirm')
+    emit('confirm');
   }
 }
 </script>

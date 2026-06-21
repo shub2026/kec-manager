@@ -1,6 +1,10 @@
 import { prisma } from '../../lib/prisma.js';
 import { createWorkbook, workbookToBuffer } from '../../utils/excel.js';
-import { getCurrentSemesterInfo, getSemesterInfoFromRequest, parseSemesterString } from '../../services/settings.service.js';
+import {
+  getCurrentSemesterInfo,
+  getSemesterInfoFromRequest,
+  parseSemesterString,
+} from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
 import { findBestMatchPlan, buildClassWithPlanFilter } from '../../services/plan.service.js';
@@ -25,9 +29,8 @@ async function buildSemesterExportData(semesterInfo, filters) {
   if (filters.training_level_id) userFilters.training_level_id = Number(filters.training_level_id);
   if (filters.enrollment_year) userFilters.enrollment_year = Number(filters.enrollment_year);
 
-  const whereCondition = Object.keys(userFilters).length > 0
-    ? { AND: [baseWhere, userFilters] }
-    : baseWhere;
+  const whereCondition =
+    Object.keys(userFilters).length > 0 ? { AND: [baseWhere, userFilters] } : baseWhere;
 
   const classes = await prisma.classes.findMany({
     where: whereCondition,
@@ -108,33 +111,41 @@ async function buildSemesterExportData(semesterInfo, filters) {
     );
 
     const baseRow = {
-      '班级名称': cls.name,
-      '二级学院': cls.colleges?.name || '-',
-      '专业': cls.majors?.name || '-',
-      '培养层次': cls.training_levels?.name || '-',
-      '入学年份': cls.enrollment_year,
-      '年级': gradeCalc,
-      '学生人数': Number(cls.student_count) || 0,
-      '培养方案': plan.name || '-',
+      班级名称: cls.name,
+      二级学院: cls.colleges?.name || '-',
+      专业: cls.majors?.name || '-',
+      培养层次: cls.training_levels?.name || '-',
+      入学年份: cls.enrollment_year,
+      年级: gradeCalc,
+      学生人数: Number(cls.student_count) || 0,
+      培养方案: plan.name || '-',
     };
 
     if (planCourses.length === 0) {
-      rows.push({ ...baseRow, '课程': '-', '课程类型': '-', '周课时': '-', '学期总课时': '-', '使用教材': '-', '书号': '-' });
+      rows.push({
+        ...baseRow,
+        课程: '-',
+        课程类型: '-',
+        周课时: '-',
+        学期总课时: '-',
+        使用教材: '-',
+        书号: '-',
+      });
     } else {
       for (const pc of planCourses) {
-        const semRecord = pc.plan_course_semesters?.find(s => s.semester === currentSemesterNum);
+        const semRecord = pc.plan_course_semesters?.find((s) => s.semester === currentSemesterNum);
         const textbooks = semRecord?.plan_textbooks || [];
         const weeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours;
         const weeksCount = semRecord?.weeks_count ?? pc.weeks_per_semester;
 
         rows.push({
           ...baseRow,
-          '课程': pc.courses.name,
-          '课程类型': pc.courses.type === 'public' ? '公共基础课' : '专业课',
-          '周课时': weeklyHours,
-          '学期总课时': weeklyHours * weeksCount,
-          '使用教材': textbooks.map((pt) => pt.textbooks.title).join('、') || '未指定',
-          '书号': textbooks.map((pt) => pt.textbooks.isbn || '-').join('、') || '-',
+          课程: pc.courses.name,
+          课程类型: pc.courses.type === 'public' ? '公共基础课' : '专业课',
+          周课时: weeklyHours,
+          学期总课时: weeklyHours * weeksCount,
+          使用教材: textbooks.map((pt) => pt.textbooks.title).join('、') || '未指定',
+          书号: textbooks.map((pt) => pt.textbooks.isbn || '-').join('、') || '-',
         });
       }
     }
@@ -178,8 +189,14 @@ async function sendExportResponse(res, req, semesterInfo, rows) {
     message: `导出${semesterInfo.label}开课情况，共${rows.length}条记录`,
   });
 
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+  );
   res.send(buffer);
 }
 
@@ -213,8 +230,12 @@ export async function exportSemesterSchedule(req, res, next) {
     await sendExportResponse(res, req, semesterInfo, rows);
   } catch (e) {
     await createAuditLog({
-      action: 'export', module: 'system', userId: req.user?.id, ip: req.ip,
-      result: 'failed', message: `导出开课情况失败: ${e.message}`,
+      action: 'export',
+      module: 'system',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `导出开课情况失败: ${e.message}`,
     });
     next(e);
   }
@@ -248,8 +269,12 @@ export async function exportSemesterSchedulePost(req, res, next) {
     await sendExportResponse(res, req, semesterInfo, rows);
   } catch (e) {
     await createAuditLog({
-      action: 'export', module: 'system', userId: req.user?.id, ip: req.ip,
-      result: 'failed', message: `导出开课情况失败(POST): ${e.message}`,
+      action: 'export',
+      module: 'system',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `导出开课情况失败(POST): ${e.message}`,
     });
     next(e);
   }

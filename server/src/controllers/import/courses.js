@@ -35,7 +35,7 @@ export async function importCourses(req, res, next) {
     const name = sanitizedRow['课程名称'];
     const code = sanitizedRow['课程编码'] || null;
     const typeValue = sanitizedRow['课程类型'];
-    const type = (typeValue === '专业课' || typeValue === 'professional') ? 'professional' : 'public';
+    const type = typeValue === '专业课' || typeValue === 'professional' ? 'professional' : 'public';
 
     if (!name) {
       validationErrors.push(`第${i + 2}行：缺少课程名称`);
@@ -111,7 +111,7 @@ export async function importCourses(req, res, next) {
         overwritten,
         failed: validationErrors.length,
       },
-      result: (imported + overwritten) > 0 ? 'success' : 'failed',
+      result: imported + overwritten > 0 ? 'success' : 'failed',
       message: `导入完成：新增${imported}条，覆盖${overwritten}条，失败${validationErrors.length}条`,
     });
 

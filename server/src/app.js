@@ -30,38 +30,49 @@ const app = express();
 app.set('trust proxy', 1);
 
 // 安全修复：添加helmet安全响应头
-app.use(helmet({
-  contentSecurityPolicy: false, // 禁用CSP以避免与前端资源冲突
-  crossOriginEmbedderPolicy: false, // 允许跨域嵌入资源
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // 禁用CSP以避免与前端资源冲突
+    crossOriginEmbedderPolicy: false, // 允许跨域嵌入资源
+  })
+);
 
 // CORS 配置：生产环境使用白名单，开发环境允许 localhost
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:3000'];
+  : [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'http://localhost:5176',
+      'http://localhost:5177',
+      'http://localhost:3000',
+    ];
 
 // 开发环境允许所有localhost端口
 const isDev = process.env.NODE_ENV !== 'production';
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // 允许无 origin 的请求（如移动应用、Postman）
-    if (!origin) return callback(null, true);
-    
-    // 开发环境：允许所有 localhost 端口
-    if (isDev && origin.startsWith('http://localhost:')) {
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      log.warn('CORS blocked request from origin', { origin });
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // 允许无 origin 的请求（如移动应用、Postman）
+      if (!origin) return callback(null, true);
+
+      // 开发环境：允许所有 localhost 端口
+      if (isDev && origin.startsWith('http://localhost:')) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        log.warn('CORS blocked request from origin', { origin });
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '10mb' }));
 app.use((req, res, next) => {
   log.info(`${req.method} ${req.path}`, { ip: req.ip });
@@ -70,9 +81,9 @@ app.use((req, res, next) => {
 });
 
 // #25修复：注册命名转换中间件（在所有路由之前）
-app.use(convertRequestNaming);   // 请求：camelCase → snake_case
-app.use(convertResponseNaming);  // 响应：snake_case → camelCase
-app.use(sanitizeQuery);          // 查询参数 XSS 过滤
+app.use(convertRequestNaming); // 请求：camelCase → snake_case
+app.use(convertResponseNaming); // 响应：snake_case → camelCase
+app.use(sanitizeQuery); // 查询参数 XSS 过滤
 
 // 公开路由（无需认证）
 app.use('/api/auth', authRoutes);
@@ -82,18 +93,18 @@ app.get('/api/health', async (req, res) => {
   try {
     // 检查数据库连接
     await prisma.$queryRaw`SELECT 1`;
-    
-    res.json({ 
-      status: 'ok', 
+
+    res.json({
+      status: 'ok',
       timestamp: new Date().toISOString(),
-      database: 'connected'
+      database: 'connected',
     });
   } catch (e) {
     // #23修复：健康检查错误不泄露数据库内部详情
-    res.status(503).json({ 
-      status: 'error', 
+    res.status(503).json({
+      status: 'error',
       timestamp: new Date().toISOString(),
-      database: 'disconnected'
+      database: 'disconnected',
     });
   }
 });

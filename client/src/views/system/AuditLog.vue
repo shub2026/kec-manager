@@ -4,14 +4,20 @@
       <template #header>
         <div class="card-header">
           <span>操作日志</span>
-          <el-button type="danger" size="small" @click="showClearDialog" :loading="clearing">
+          <el-button type="danger" size="small" :loading="clearing" @click="showClearDialog">
             <el-icon><Delete /></el-icon> 清空日志
           </el-button>
         </div>
       </template>
 
       <div class="query-toolbar">
-        <el-select v-model="filterAction" clearable placeholder="选择操作类型" @change="loadLogs" style="width: 150px">
+        <el-select
+          v-model="filterAction"
+          clearable
+          placeholder="选择操作类型"
+          style="width: 150px"
+          @change="loadLogs"
+        >
           <el-option label="登录" value="login" />
           <el-option label="登出" value="logout" />
           <el-option label="导入" value="import" />
@@ -20,7 +26,13 @@
           <el-option label="更新" value="update" />
           <el-option label="删除" value="delete" />
         </el-select>
-        <el-select v-model="filterModule" clearable placeholder="选择模块" @change="loadLogs" style="width: 150px">
+        <el-select
+          v-model="filterModule"
+          clearable
+          placeholder="选择模块"
+          style="width: 150px"
+          @change="loadLogs"
+        >
           <el-option label="认证" value="auth" />
           <el-option label="用户" value="user" />
           <el-option label="班级" value="class" />
@@ -32,7 +44,13 @@
           <el-option label="培养层次" value="training_level" />
           <el-option label="系统" value="system" />
         </el-select>
-        <el-select v-model="filterResult" clearable placeholder="选择结果" @change="loadLogs" style="width: 120px">
+        <el-select
+          v-model="filterResult"
+          clearable
+          placeholder="选择结果"
+          style="width: 120px"
+          @change="loadLogs"
+        >
           <el-option label="成功" value="success" />
           <el-option label="失败" value="failed" />
         </el-select>
@@ -41,13 +59,17 @@
         </el-button>
       </div>
 
-      <el-table :data="logs" stripe v-loading="loading">
+      <el-table v-loading="loading" :data="logs" stripe>
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
             <el-tag :type="getActionTagType(row.action)" size="small">
               {{ getActionLabel(row.action) }}
             </el-tag>
-            <el-tag :type="row.result === 'success' ? 'success' : 'danger'" size="small" style="margin-left: 4px">
+            <el-tag
+              :type="row.result === 'success' ? 'success' : 'danger'"
+              size="small"
+              style="margin-left: 4px"
+            >
               {{ row.result === 'success' ? '成功' : '失败' }}
             </el-tag>
           </template>
@@ -60,7 +82,14 @@
         <el-table-column label="消息" min-width="300" show-overflow-tooltip>
           <template #default="{ row }">
             <span>{{ row.message }}</span>
-            <el-button v-if="row.details" link type="primary" size="small" style="margin-left: 8px" @click="showDetails(row.details)">
+            <el-button
+              v-if="row.details"
+              link
+              type="primary"
+              size="small"
+              style="margin-left: 8px"
+              @click="showDetails(row.details)"
+            >
               详情
             </el-button>
           </template>
@@ -94,42 +123,40 @@
     </el-dialog>
 
     <!-- 清空日志确认对话框 -->
-    <el-dialog v-model="clearDialogVisible" title="清空操作日志" width="500px" :close-on-click-modal="false">
-      <el-alert
-        title="此操作不可恢复！"
-        type="error"
-        :closable="false"
-        show-icon
-      />
+    <el-dialog
+      v-model="clearDialogVisible"
+      title="清空操作日志"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-alert title="此操作不可恢复！" type="error" :closable="false" show-icon />
       <p class="confirm-text">确定要清空所有操作日志吗？此操作将永久删除所有日志记录。</p>
       <template #footer>
         <el-button @click="clearDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="handleClearLogs" :loading="clearing">
-          确认清空
-        </el-button>
+        <el-button type="danger" :loading="clearing" @click="handleClearLogs"> 确认清空 </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { getAuditLogs } from '../../api/audit'
-import request from '../../utils/request'
+import { ref, onMounted } from 'vue';
+import { ElMessage } from 'element-plus';
+import { getAuditLogs } from '../../api/audit';
+import request from '../../utils/request';
 
-const logs = ref([])
-const loading = ref(false)
-const filterAction = ref(null)
-const filterModule = ref(null)
-const filterResult = ref(null)
-const currentPage = ref(1)
-const pageSize = ref(20)
-const total = ref(0)
-const detailsVisible = ref(false)
-const detailsContent = ref(null)
-const clearDialogVisible = ref(false)
-const clearing = ref(false)
+const logs = ref([]);
+const loading = ref(false);
+const filterAction = ref(null);
+const filterModule = ref(null);
+const filterResult = ref(null);
+const currentPage = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
+const detailsVisible = ref(false);
+const detailsContent = ref(null);
+const clearDialogVisible = ref(false);
+const clearing = ref(false);
 
 const actionLabels = {
   login: '登录',
@@ -139,7 +166,7 @@ const actionLabels = {
   create: '创建',
   update: '更新',
   delete: '删除',
-}
+};
 
 const moduleLabels = {
   auth: '认证',
@@ -152,7 +179,7 @@ const moduleLabels = {
   trainingPlan: '培养方案',
   training_level: '培养层次',
   system: '系统',
-}
+};
 
 const actionTagTypes = {
   login: 'primary',
@@ -162,23 +189,23 @@ const actionTagTypes = {
   create: 'primary',
   update: 'info',
   delete: 'danger',
-}
+};
 
 function getActionLabel(action) {
-  return actionLabels[action] || action
+  return actionLabels[action] || action;
 }
 
 function getModuleLabel(module) {
-  return moduleLabels[module] || module
+  return moduleLabels[module] || module;
 }
 
 function getActionTagType(action) {
-  return actionTagTypes[action] || 'info'
+  return actionTagTypes[action] || 'info';
 }
 
 function formatDateTime(dateStr) {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -186,75 +213,77 @@ function formatDateTime(dateStr) {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-  })
+  });
 }
 
 function showDetails(details) {
-  detailsContent.value = details
-  detailsVisible.value = true
+  detailsContent.value = details;
+  detailsVisible.value = true;
 }
 
 function formatDetails(details) {
   try {
-    const obj = typeof details === 'string' ? JSON.parse(details) : details
-    return JSON.stringify(obj, null, 2)
+    const obj = typeof details === 'string' ? JSON.parse(details) : details;
+    return JSON.stringify(obj, null, 2);
   } catch (e) {
-    return details
+    return details;
   }
 }
 
 function resetFilters() {
-  filterAction.value = null
-  filterModule.value = null
-  filterResult.value = null
-  currentPage.value = 1
-  loadLogs()
+  filterAction.value = null;
+  filterModule.value = null;
+  filterResult.value = null;
+  currentPage.value = 1;
+  loadLogs();
 }
 
 function showClearDialog() {
-  clearDialogVisible.value = true
+  clearDialogVisible.value = true;
 }
 
 async function handleClearLogs() {
-  clearing.value = true
+  clearing.value = true;
   try {
-    await request.post('/settings/reset/audit-logs')
-    ElMessage.success('操作日志已清空')
-    clearDialogVisible.value = false
-    loadLogs()
+    await request.post('/settings/reset/audit-logs');
+    ElMessage.success('操作日志已清空');
+    clearDialogVisible.value = false;
+    loadLogs();
   } catch (e) {
-    ElMessage.error('清空操作日志失败：' + (e.message || '未知错误'))
+    ElMessage.error('清空操作日志失败：' + (e.message || '未知错误'));
   } finally {
-    clearing.value = false
+    clearing.value = false;
   }
 }
 
 async function loadLogs() {
-  loading.value = true
+  loading.value = true;
   try {
     const params = {
       page: currentPage.value,
       pageSize: pageSize.value,
-    }
-    if (filterAction.value) params.action = filterAction.value
-    if (filterModule.value) params.module = filterModule.value
-    if (filterResult.value) params.result = filterResult.value
+    };
+    if (filterAction.value) params.action = filterAction.value;
+    if (filterModule.value) params.module = filterModule.value;
+    if (filterResult.value) params.result = filterResult.value;
 
-    const res = await getAuditLogs(params)
+    const res = await getAuditLogs(params);
     // FC3修复：移除调试输出
-    logs.value = res.data.logs
-    total.value = res.data.total
+    logs.value = res.data.logs;
+    total.value = res.data.total;
   } catch (e) {
-    ElMessage.error('加载操作日志失败')
-    if (import.meta.env.DEV) { console.error('加载操作日志失败:', e) }
+    ElMessage.error('加载操作日志失败');
+    if (import.meta.env.DEV) {
+      console.error('加载操作日志失败:', e);
+    }
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 onMounted(() => {
-  loadLogs()
-})
+  loadLogs();
+});
 </script>
 
 <style scoped>

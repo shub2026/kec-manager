@@ -14,7 +14,7 @@ export async function importClasses(req, res, next) {
   if (!req.file) {
     throw new ValidationError('请上传文件');
   }
-  
+
   let rows;
   try {
     rows = await readWorkbook(req.file.path);
@@ -30,15 +30,21 @@ export async function importClasses(req, res, next) {
 
   let majors = await prisma.majors.findMany();
   const majorMap = {};
-  majors.forEach((m) => { majorMap[m.name] = m.id; });
+  majors.forEach((m) => {
+    majorMap[m.name] = m.id;
+  });
 
   let levels = await prisma.training_levels.findMany();
   const levelMap = {};
-  levels.forEach((l) => { levelMap[l.name] = l.id; });
+  levels.forEach((l) => {
+    levelMap[l.name] = l.id;
+  });
 
   let colleges = await prisma.colleges.findMany();
   const collegeMap = {};
-  colleges.forEach((c) => { collegeMap[c.name] = c.id; });
+  colleges.forEach((c) => {
+    collegeMap[c.name] = c.id;
+  });
 
   let autoCreatedLevels = 0;
   let autoCreatedMajors = 0;
@@ -91,7 +97,11 @@ export async function importClasses(req, res, next) {
     }
 
     // 记录待建基础数据名（事务内统一创建，避免回滚后残留孤儿，H-13 修复）
-    if (trainingLevelName && !levelMap[trainingLevelName] && !pendingLevelNames.has(trainingLevelName)) {
+    if (
+      trainingLevelName &&
+      !levelMap[trainingLevelName] &&
+      !pendingLevelNames.has(trainingLevelName)
+    ) {
       pendingLevelNames.add(trainingLevelName);
     }
     if (majorName && !majorMap[majorName] && !pendingMajorNames.has(majorName)) {
@@ -111,7 +121,7 @@ export async function importClasses(req, res, next) {
       }
     } else {
       const semesterInfo = await getCurrentSemesterInfo();
-      const grade = semesterInfo ? (semesterInfo.startYear - Number(enrollmentYear) + 1) : null;
+      const grade = semesterInfo ? semesterInfo.startYear - Number(enrollmentYear) + 1 : null;
       status = grade !== null && grade <= Number(durationYears) ? 'active' : 'graduated';
     }
 
@@ -165,7 +175,12 @@ export async function importClasses(req, res, next) {
             levelMap[levelName] = existing.id;
           } else {
             const created = await tx.training_levels.create({
-              data: { name: levelName, code: null, description: `由班级导入自动创建 (${new Date().toLocaleString()})`, sort_order: 0 },
+              data: {
+                name: levelName,
+                code: null,
+                description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
+                sort_order: 0,
+              },
             });
             levelMap[levelName] = created.id;
             autoCreatedLevels++;
@@ -177,7 +192,12 @@ export async function importClasses(req, res, next) {
             majorMap[majorName] = existing.id;
           } else {
             const created = await tx.majors.create({
-              data: { name: majorName, code: null, description: `由班级导入自动创建 (${new Date().toLocaleString()})`, sort_order: 0 },
+              data: {
+                name: majorName,
+                code: null,
+                description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
+                sort_order: 0,
+              },
             });
             majorMap[majorName] = created.id;
             autoCreatedMajors++;
@@ -189,7 +209,12 @@ export async function importClasses(req, res, next) {
             collegeMap[collegeName] = existing.id;
           } else {
             const created = await tx.colleges.create({
-              data: { name: collegeName, code: null, description: `由班级导入自动创建 (${new Date().toLocaleString()})`, sort_order: 0 },
+              data: {
+                name: collegeName,
+                code: null,
+                description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
+                sort_order: 0,
+              },
             });
             collegeMap[collegeName] = created.id;
             autoCreatedColleges++;
@@ -268,14 +293,14 @@ export async function importClasses(req, res, next) {
           colleges: autoCreatedColleges,
         },
       },
-      result: (imported + overwritten) > 0 ? 'success' : 'failed',
+      result: imported + overwritten > 0 ? 'success' : 'failed',
       message: `导入完成：新增${imported}条，覆盖${overwritten}条，失败${validationErrors.length}条`,
     });
 
     success(res, result, message);
   } catch (e) {
     log.error('[班级导入] 事务执行失败，已回滚', { error: e.message, stack: e.stack });
-    
+
     await createAuditLog({
       action: 'import',
       module: 'class',
@@ -283,7 +308,7 @@ export async function importClasses(req, res, next) {
       result: 'failed',
       message: `班级导入事务失败: ${e.message}`,
     });
-    
+
     next(e);
   }
 }

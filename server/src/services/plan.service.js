@@ -12,12 +12,14 @@ export async function buildClassWithPlanFilter() {
   const conditions = [];
   conditions.push({ custom_plan_id: { not: null } });
 
-  const majorIdsWithPlans = [...new Set(allPlans.filter(p => p.major_id).map(p => p.major_id))];
+  const majorIdsWithPlans = [...new Set(allPlans.filter((p) => p.major_id).map((p) => p.major_id))];
   if (majorIdsWithPlans.length > 0) {
     conditions.push({ major_id: { in: majorIdsWithPlans } });
   }
 
-  const levelIdsWithPlans = [...new Set(allPlans.filter(p => p.training_level_id).map(p => p.training_level_id))];
+  const levelIdsWithPlans = [
+    ...new Set(allPlans.filter((p) => p.training_level_id).map((p) => p.training_level_id)),
+  ];
   if (levelIdsWithPlans.length > 0) {
     conditions.push({ training_level_id: { in: levelIdsWithPlans } });
   }
@@ -47,8 +49,13 @@ export function isClassMatchPlan(cls, plan) {
     // 2. 按专业匹配（要求班级和方案都有专业且相同）
     if (cls.major_id && plan.major_id && cls.major_id === plan.major_id) return true;
     // 3. 按层次匹配（仅当班级未按专业命中、且班级和方案都有层次时）
-    if (!cls.major_id && cls.training_level_id && plan.training_level_id &&
-        cls.training_level_id === plan.training_level_id) return true;
+    if (
+      !cls.major_id &&
+      cls.training_level_id &&
+      plan.training_level_id &&
+      cls.training_level_id === plan.training_level_id
+    )
+      return true;
   }
 
   return false;
@@ -74,7 +81,7 @@ export function findBestMatchPlan(cls, matchingPlans, classPlanMap = null) {
     if (plan.major_id && plan.major_id === cls.major_id) {
       return plan;
     }
-    
+
     // 方案按层次关联：检查班级的层次是否匹配
     if (plan.training_level_id && plan.training_level_id === cls.training_level_id) {
       return plan;

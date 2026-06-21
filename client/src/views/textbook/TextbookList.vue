@@ -3,14 +3,32 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span><el-icon><Notebook /></el-icon> 教材管理</span>
+          <span
+            ><el-icon><Notebook /></el-icon> 教材管理</span
+          >
           <div class="card-header-actions">
-            <el-input v-model="filterTitle" clearable placeholder="按书名筛选" class="filter-title" />
-            <el-select v-model="filterCategory" placeholder="类别筛选" clearable style="width: 120px">
+            <el-input
+              v-model="filterTitle"
+              clearable
+              placeholder="按书名筛选"
+              class="filter-title"
+            />
+            <el-select
+              v-model="filterCategory"
+              placeholder="类别筛选"
+              clearable
+              style="width: 120px"
+            >
               <el-option label="技工" value="技工" />
               <el-option label="非技工" value="非技工" />
             </el-select>
-            <el-select v-model="filterPublisher" placeholder="出版社筛选" clearable filterable style="width: 160px">
+            <el-select
+              v-model="filterPublisher"
+              placeholder="出版社筛选"
+              clearable
+              filterable
+              style="width: 160px"
+            >
               <el-option v-for="pub in publishers" :key="pub" :label="pub" :value="pub" />
             </el-select>
             <el-button @click="exportData">数据导出</el-button>
@@ -33,7 +51,14 @@
           </div>
         </div>
       </template>
-      <el-table :data="filteredlist" stripe v-loading="loading" row-key="id" @selection-change="handleSelectionChange" default-sort="{ prop: 'title', order: 'ascending' }">
+      <el-table
+        v-loading="loading"
+        :data="filteredlist"
+        stripe
+        row-key="id"
+        default-sort="{ prop: 'title', order: 'ascending' }"
+        @selection-change="handleSelectionChange"
+      >
         <template #empty>
           <el-empty description="暂无教材数据，请点击右上角新增" />
         </template>
@@ -52,7 +77,11 @@
         </el-table-column>
         <el-table-column label="类别" min-width="65">
           <template #default="{ row }">
-            <el-tag v-if="row.category" :type="row.category === '技工' ? 'primary' : 'info'" size="small">
+            <el-tag
+              v-if="row.category"
+              :type="row.category === '技工' ? 'primary' : 'info'"
+              size="small"
+            >
               {{ row.category }}
             </el-tag>
             <span v-else>-</span>
@@ -68,21 +97,21 @@
         <el-table-column label="排序" width="100" align="center">
           <template #default="{ row, $index }">
             <div class="sort-buttons">
-              <el-button 
-                size="small" 
-                :icon="ArrowUp" 
+              <el-button
+                size="small"
+                :icon="ArrowUp"
                 :disabled="$index === 0"
-                @click="handleMoveUp(row)"
                 circle
                 title="上移"
+                @click="handleMoveUp(row)"
               />
-              <el-button 
-                size="small" 
-                :icon="ArrowDown" 
+              <el-button
+                size="small"
+                :icon="ArrowDown"
                 :disabled="$index === filteredlist.length - 1"
-                @click="handleMoveDown(row)"
                 circle
                 title="下移"
+                @click="handleMoveDown(row)"
               />
             </div>
           </template>
@@ -90,10 +119,14 @@
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button size="small" :type="row.isActive ? 'warning' : 'success'" @click="handleToggleStatus(row)">
+              <el-button
+                size="small"
+                :type="row.isActive ? 'warning' : 'success'"
+                @click="handleToggleStatus(row)"
+              >
                 {{ row.isActive ? '停用' : '启用' }}
               </el-button>
-              <el-button size="small" :icon="Edit" circle @click="openDialog(row)" title="编辑" />
+              <el-button size="small" :icon="Edit" circle title="编辑" @click="openDialog(row)" />
               <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
                 <template #reference>
                   <el-button size="small" :icon="Delete" circle type="danger" title="删除" />
@@ -144,7 +177,7 @@
       </el-form>
       <template #footer>
         <el-button @click="batchDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleBatchSet" :loading="batchSaving">确定</el-button>
+        <el-button type="primary" :loading="batchSaving" @click="handleBatchSet">确定</el-button>
       </template>
     </el-dialog>
 
@@ -207,118 +240,131 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue'
-import { getCookie } from '@/utils/cookies'
-import { useAuthStore } from '../../stores/auth'
-import request from '../../utils/request'
-import { getTextbooks, createTextbook, updateTextbook, deleteTextbook, toggleTextbookStatus } from '../../api/textbook'
-import { useExport } from '../../composables/useExport'
-import { useSortable } from '../../composables/useSortable'
+import { ref, computed, onMounted } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
+import { getCookie } from '@/utils/cookies';
+import { useAuthStore } from '../../stores/auth';
+import request from '../../utils/request';
+import {
+  getTextbooks,
+  createTextbook,
+  updateTextbook,
+  deleteTextbook,
+  toggleTextbookStatus,
+} from '../../api/textbook';
+import { useExport } from '../../composables/useExport';
+import { useSortable } from '../../composables/useSortable';
 
-const list = ref([])
-const authStore = useAuthStore()
+const list = ref([]);
+const authStore = useAuthStore();
 const uploadHeaders = computed(() => {
-  const token = getCookie('token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-})
-const loading = ref(false)
-const dialogVisible = ref(false)
-const saving = ref(false)
-const filterTitle = ref('')
-const filterCategory = ref('')
-const filterPublisher = ref('')
-const defaultForm = { id: null, title: '', isbn: '', publisher: '', author: '', edition: '', publishDate: '', price: null, category: '', description: '', isActive: true }
-const form = ref({ ...defaultForm })
+  const token = getCookie('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+});
+const loading = ref(false);
+const dialogVisible = ref(false);
+const saving = ref(false);
+const filterTitle = ref('');
+const filterCategory = ref('');
+const filterPublisher = ref('');
+const defaultForm = {
+  id: null,
+  title: '',
+  isbn: '',
+  publisher: '',
+  author: '',
+  edition: '',
+  publishDate: '',
+  price: null,
+  category: '',
+  description: '',
+  isActive: true,
+};
+const form = ref({ ...defaultForm });
 
 // 批量操作相关状态
-const selectedTextbooks = ref([])
-const batchDialogVisible = ref(false)
-const batchSaving = ref(false)
-const batchFormType = ref('') // publisher, author, category
-const batchDialogTitle = ref('')
+const selectedTextbooks = ref([]);
+const batchDialogVisible = ref(false);
+const batchSaving = ref(false);
+const batchFormType = ref(''); // publisher, author, category
+const batchDialogTitle = ref('');
 const batchForm = ref({
   publisher: '',
   author: '',
   category: '',
-})
+});
 
 // 导入相关状态
-const pendingFile = ref(null)
+const pendingFile = ref(null);
 
 // 使用导出 composable
-const { exportData, downloadTemplate } = useExport('textbooks', '教材数据')
+const { exportData, downloadTemplate } = useExport('textbooks', '教材数据');
 
 // 获取所有出版社列表
 const publishers = computed(() => {
-  const pubs = new Set()
-  list.value.forEach(item => {
-    if (item.publisher) pubs.add(item.publisher)
-  })
-  return Array.from(pubs).sort()
-})
+  const pubs = new Set();
+  list.value.forEach((item) => {
+    if (item.publisher) pubs.add(item.publisher);
+  });
+  return Array.from(pubs).sort();
+});
 
 // 筛选后的列表
 const filteredlist = computed(() => {
-  let result = list.value
+  let result = list.value;
   if (filterTitle.value) {
-    const titleLower = filterTitle.value.toLowerCase()
-    result = result.filter(item => item.title && item.title.toLowerCase().includes(titleLower))
+    const titleLower = filterTitle.value.toLowerCase();
+    result = result.filter((item) => item.title && item.title.toLowerCase().includes(titleLower));
   }
   if (filterCategory.value) {
-    result = result.filter(item => item.category === filterCategory.value)
+    result = result.filter((item) => item.category === filterCategory.value);
   }
   if (filterPublisher.value) {
-    result = result.filter(item => item.publisher === filterPublisher.value)
+    result = result.filter((item) => item.publisher === filterPublisher.value);
   }
-  return result
-})
+  return result;
+});
 
 // 使用排序 composable（注意：TextbookList 使用 filteredlist 而非 list）
-const { handleMoveUp, handleMoveDown } = useSortable(
-  filteredlist, 
-  updateTextbook, 
-  silentReload,
-  {
-    indexFinder: (item) => filteredlist.value.findIndex(i => i.id === item.id)
-  }
-)
+const { handleMoveUp, handleMoveDown } = useSortable(filteredlist, updateTextbook, silentReload, {
+  indexFinder: (item) => filteredlist.value.findIndex((i) => i.id === item.id),
+});
 
 async function load() {
-  loading.value = true
+  loading.value = true;
   try {
-    const res = await getTextbooks()
-    list.value = res.data || []
+    const res = await getTextbooks();
+    list.value = res.data || [];
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function silentReload() {
   try {
-    const res = await getTextbooks()
-    list.value = res.data || []
+    const res = await getTextbooks();
+    list.value = res.data || [];
   } catch (e) {
     // silently ignore
   }
 }
 
 function openDialog(row) {
-  form.value = row ? { ...row } : { ...defaultForm }
-  dialogVisible.value = true
+  form.value = row ? { ...row } : { ...defaultForm };
+  dialogVisible.value = true;
 }
 
 async function handleSave() {
-  if (!form.value.title) return ElMessage.warning('请输入书名')
-  saving.value = true
+  if (!form.value.title) return ElMessage.warning('请输入书名');
+  saving.value = true;
   try {
     // 转换字段名为snake_case以匹配后端期望，并过滤空字符串
     const textbookData = {
@@ -328,46 +374,49 @@ async function handleSave() {
       author: form.value.author || undefined,
       edition: form.value.edition || undefined,
       publish_date: form.value.publishDate || undefined,
-      price: form.value.price !== null && form.value.price !== '' ? Number(form.value.price) : undefined,
+      price:
+        form.value.price !== null && form.value.price !== '' ? Number(form.value.price) : undefined,
       category: form.value.category || undefined,
       description: form.value.description || undefined,
       is_active: form.value.isActive,
-      sort_order: form.value.sortOrder
-    }
-    
+      sort_order: form.value.sortOrder,
+    };
+
     if (form.value.id) {
-      await updateTextbook(form.value.id, textbookData)
+      await updateTextbook(form.value.id, textbookData);
     } else {
-      await createTextbook(textbookData)
+      await createTextbook(textbookData);
     }
-    ElMessage.success('保存成功')
-    dialogVisible.value = false
-    await silentReload()
+    ElMessage.success('保存成功');
+    dialogVisible.value = false;
+    await silentReload();
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 async function handleDelete(id) {
   try {
-    await deleteTextbook(id)
-    ElMessage.success('删除成功')
-    await silentReload()
+    await deleteTextbook(id);
+    ElMessage.success('删除成功');
+    await silentReload();
   } catch (e) {
-    if (import.meta.env.DEV) { console.error('删除教材失败:', e) }
-    ElMessage.error('删除失败，请重试')
+    if (import.meta.env.DEV) {
+      console.error('删除教材失败:', e);
+    }
+    ElMessage.error('删除失败，请重试');
   }
 }
 
 async function handleToggleStatus(row) {
   try {
-    const res = await toggleTextbookStatus(row.id)
+    const res = await toggleTextbookStatus(row.id);
     // 使用后端返回的最新状态（经过命名转换中间件后是isActive）
-    const newStatus = res.data?.isActive ?? res.data?.is_active
-    ElMessage.success(newStatus ? '已启用' : '已停用')
-    await silentReload()
+    const newStatus = res.data?.isActive ?? res.data?.is_active;
+    ElMessage.success(newStatus ? '已启用' : '已停用');
+    await silentReload();
   } catch (e) {
-    ElMessage.error('操作失败')
+    ElMessage.error('操作失败');
   }
 }
 
@@ -375,100 +424,104 @@ async function handleToggleStatus(row) {
 
 // 选择变化处理
 function handleSelectionChange(selection) {
-  selectedTextbooks.value = selection
+  selectedTextbooks.value = selection;
 }
 
 // 打开批量设置对话框
 function openBatchSetDialog(type) {
-  batchFormType.value = type
+  batchFormType.value = type;
   batchDialogTitle.value = {
     publisher: '批量设置出版社',
     author: '批量设置作者',
     category: '批量设置类别',
-  }[type]
-  
+  }[type];
+
   // 重置表单
   batchForm.value = {
     publisher: '',
     author: '',
     category: '',
-  }
-  
-  batchDialogVisible.value = true
+  };
+
+  batchDialogVisible.value = true;
 }
 
 // 执行批量设置
 async function handleBatchSet() {
-  const type = batchFormType.value
-  
+  const type = batchFormType.value;
+
   // 验证
   if (type === 'publisher' && !batchForm.value.publisher) {
-    return ElMessage.warning('请输入出版社名称')
+    return ElMessage.warning('请输入出版社名称');
   }
   if (type === 'author' && !batchForm.value.author) {
-    return ElMessage.warning('请输入作者姓名')
+    return ElMessage.warning('请输入作者姓名');
   }
   if (type === 'category' && !batchForm.value.category) {
-    return ElMessage.warning('请选择类别')
+    return ElMessage.warning('请选择类别');
   }
-  
-  batchSaving.value = true
+
+  batchSaving.value = true;
   try {
-    const ids = selectedTextbooks.value.map(t => t.id)
-    const updateData = {}
-    
+    const ids = selectedTextbooks.value.map((t) => t.id);
+    const updateData = {};
+
     switch (type) {
       case 'publisher':
-        updateData.publisher = batchForm.value.publisher
-        break
+        updateData.publisher = batchForm.value.publisher;
+        break;
       case 'author':
-        updateData.author = batchForm.value.author
-        break
+        updateData.author = batchForm.value.author;
+        break;
       case 'category':
-        updateData.category = batchForm.value.category
-        break
+        updateData.category = batchForm.value.category;
+        break;
     }
-    
-    await Promise.all(ids.map(id => updateTextbook(id, updateData)))
-    ElMessage.success(`已成功更新 ${ids.length} 个教材`)
-    batchDialogVisible.value = false
-    selectedTextbooks.value = []
-    await silentReload()
+
+    await Promise.all(ids.map((id) => updateTextbook(id, updateData)));
+    ElMessage.success(`已成功更新 ${ids.length} 个教材`);
+    batchDialogVisible.value = false;
+    selectedTextbooks.value = [];
+    await silentReload();
   } catch (e) {
-    if (import.meta.env.DEV) { console.error('批量更新失败:', e) }
-    ElMessage.error('批量更新失败')
+    if (import.meta.env.DEV) {
+      console.error('批量更新失败:', e);
+    }
+    ElMessage.error('批量更新失败');
   } finally {
-    batchSaving.value = false
+    batchSaving.value = false;
   }
 }
 
 // 批量删除
 async function handleBatchDelete() {
-  if (selectedTextbooks.value.length === 0) return
-  
-  const ids = selectedTextbooks.value.map(t => t.id)
-  
+  if (selectedTextbooks.value.length === 0) return;
+
+  const ids = selectedTextbooks.value.map((t) => t.id);
+
   try {
-    await Promise.all(ids.map(id => deleteTextbook(id)))
-    ElMessage.success(`已删除 ${ids.length} 个教材`)
-    selectedTextbooks.value = []
-    await silentReload()
+    await Promise.all(ids.map((id) => deleteTextbook(id)));
+    ElMessage.success(`已删除 ${ids.length} 个教材`);
+    selectedTextbooks.value = [];
+    await silentReload();
   } catch (e) {
-    if (import.meta.env.DEV) { console.error('批量删除失败:', e) }
-    ElMessage.error('批量删除失败')
+    if (import.meta.env.DEV) {
+      console.error('批量删除失败:', e);
+    }
+    ElMessage.error('批量删除失败');
   }
 }
 
 // 导入前拦截，显示确认提示
 async function beforeImport(file) {
-  const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
+  const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
   if (!isExcel) {
-    ElMessage.error('请上传Excel文件')
-    return false
+    ElMessage.error('请上传Excel文件');
+    return false;
   }
-  
-  pendingFile.value = file
-  
+
+  pendingFile.value = file;
+
   try {
     await ElMessageBox.confirm(
       '导入将以数据第一列（书名）进行匹配，已存在的教材将被覆盖更新，确定继续导入吗？',
@@ -478,52 +531,52 @@ async function beforeImport(file) {
         cancelButtonText: '取消',
         type: 'warning',
       }
-    )
-    confirmImport()
+    );
+    confirmImport();
   } catch {
     // 用户取消
-    pendingFile.value = null
+    pendingFile.value = null;
   }
-  
-  return false // 阻止自动上传
+
+  return false; // 阻止自动上传
 }
 
 // 确认导入
 async function confirmImport() {
   try {
     // 创建 FormData 并手动上传
-    const formData = new FormData()
-    formData.append('file', pendingFile.value)
-    
+    const formData = new FormData();
+    formData.append('file', pendingFile.value);
+
     const response = await request.post('/import/textbooks', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    })
-    
-    onImportSuccess(response)
+    });
+
+    onImportSuccess(response);
   } catch (err) {
-    onImportError(err)
+    onImportError(err);
   } finally {
-    pendingFile.value = null
+    pendingFile.value = null;
   }
 }
 
 function onImportSuccess(res) {
-  const data = res.data || {}
-  const message = res.message || '导入完成'
-  
+  const data = res.data || {};
+  const message = res.message || '导入完成';
+
   // 构建详细消息
-  let detailMsg = message
-  
+  let detailMsg = message;
+
   // 添加失败详情，每条一行
   if (data.errors && data.errors.length > 0) {
-    detailMsg += '\n\n❌ 失败详情：'
+    detailMsg += '\n\n❌ 失败详情：';
     data.errors.forEach((error, index) => {
-      detailMsg += `\n${index + 1}. ${error}`
-    })
+      detailMsg += `\n${index + 1}. ${error}`;
+    });
   }
-  
+
   // 根据结果显示不同类型的消息
   if (data.failed && data.failed > 0) {
     // 有失败记录，显示警告消息
@@ -532,7 +585,7 @@ function onImportSuccess(res) {
       type: 'warning',
       duration: 10000,
       showClose: true,
-    })
+    });
   } else if (data.imported > 0 || data.overwritten > 0) {
     // 成功导入，显示成功消息（带详细信息）
     ElMessage({
@@ -540,7 +593,7 @@ function onImportSuccess(res) {
       type: 'success',
       duration: 8000,
       showClose: true,
-    })
+    });
   } else {
     // 其他情况
     ElMessage({
@@ -548,19 +601,21 @@ function onImportSuccess(res) {
       type: 'info',
       duration: 6000,
       showClose: true,
-    })
+    });
   }
-  silentReload()
+  silentReload();
 }
 
 function onImportError(err) {
-  if (import.meta.env.DEV) { console.error('导入错误:', err) }
-  ElMessage.error('导入失败，请检查文件格式或联系管理员')
+  if (import.meta.env.DEV) {
+    console.error('导入错误:', err);
+  }
+  ElMessage.error('导入失败，请检查文件格式或联系管理员');
 }
 
 onMounted(() => {
-  load()
-})
+  load();
+});
 </script>
 
 <style scoped>

@@ -9,17 +9,17 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 
-const router = useRouter()
-const authStore = useAuthStore()
+const router = useRouter();
+const authStore = useAuthStore();
 
 function goHome() {
   if (authStore.isLoggedIn) {
-    router.push('/query/semester')
+    router.push('/query/semester');
   } else {
-    router.push('/login')
+    router.push('/login');
   }
 }
 </script>

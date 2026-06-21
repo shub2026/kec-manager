@@ -80,7 +80,7 @@ export async function updateSettings(req, res, next) {
   try {
     const updates = req.body;
     const allowedKeys = Object.keys(DEFAULT_SETTINGS);
-    const invalidKeys = Object.keys(updates).filter(key => !allowedKeys.includes(key));
+    const invalidKeys = Object.keys(updates).filter((key) => !allowedKeys.includes(key));
 
     if (invalidKeys.length > 0) {
       return fail(res, `不允许的设置项: ${invalidKeys.join(', ')}`, 400);
@@ -95,7 +95,11 @@ export async function updateSettings(req, res, next) {
       await prisma.system_settings.upsert({
         where: { key },
         update: { value: String(value) },
-        create: { key, value: String(value), description: DEFAULT_SETTINGS[key]?.description || '' },
+        create: {
+          key,
+          value: String(value),
+          description: DEFAULT_SETTINGS[key]?.description || '',
+        },
       });
     }
     await createAuditLog({
@@ -134,7 +138,7 @@ export async function initializeSettings(req, res, next) {
         initialized.push(key);
       }
     }
-    
+
     await createAuditLog({
       action: 'initialize',
       module: 'system',
@@ -144,8 +148,12 @@ export async function initializeSettings(req, res, next) {
       result: 'success',
       message: `初始化系统设置：${initialized.join(', ') || '无新增'}`,
     });
-    
-    success(res, { initialized }, initialized.length > 0 ? `已初始化 ${initialized.length} 项设置` : '所有设置已存在');
+
+    success(
+      res,
+      { initialized },
+      initialized.length > 0 ? `已初始化 ${initialized.length} 项设置` : '所有设置已存在'
+    );
   } catch (e) {
     await createAuditLog({
       action: 'initialize',
@@ -187,18 +195,24 @@ async function resetData(type, transactionFn, req, res, next) {
 }
 
 export async function resetBasic(req, res, next) {
-  await resetData('basic', async (tx) => {
-    await tx.plan_textbooks.deleteMany();
-    await tx.plan_course_semesters.deleteMany();
-    await tx.plan_courses.deleteMany();
-    await tx.training_plans.deleteMany();
-    await tx.classes.deleteMany();
-    await tx.textbooks.deleteMany();
-    await tx.courses.deleteMany();
-    await tx.majors.deleteMany();
-    await tx.colleges.deleteMany();
-    await tx.training_levels.deleteMany();
-  }, req, res, next);
+  await resetData(
+    'basic',
+    async (tx) => {
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.training_plans.deleteMany();
+      await tx.classes.deleteMany();
+      await tx.textbooks.deleteMany();
+      await tx.courses.deleteMany();
+      await tx.majors.deleteMany();
+      await tx.colleges.deleteMany();
+      await tx.training_levels.deleteMany();
+    },
+    req,
+    res,
+    next
+  );
 }
 
 export async function resetMajors(req, res, next) {
@@ -206,13 +220,19 @@ export async function resetMajors(req, res, next) {
   if (classCount > 0) {
     return fail(res, '系统中存在班级数据，请先清空班级后再清空专业');
   }
-  await resetData('majors', async (tx) => {
-    await tx.plan_textbooks.deleteMany();
-    await tx.plan_course_semesters.deleteMany();
-    await tx.plan_courses.deleteMany();
-    await tx.training_plans.deleteMany();
-    await tx.majors.deleteMany();
-  }, req, res, next);
+  await resetData(
+    'majors',
+    async (tx) => {
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.training_plans.deleteMany();
+      await tx.majors.deleteMany();
+    },
+    req,
+    res,
+    next
+  );
 }
 
 export async function resetColleges(req, res, next) {
@@ -220,13 +240,19 @@ export async function resetColleges(req, res, next) {
   if (classCount > 0) {
     return fail(res, '系统中存在班级数据，请先清空班级后再清空学院');
   }
-  await resetData('colleges', async (tx) => {
-    await tx.plan_textbooks.deleteMany();
-    await tx.plan_course_semesters.deleteMany();
-    await tx.plan_courses.deleteMany();
-    await tx.training_plans.deleteMany();
-    await tx.colleges.deleteMany();
-  }, req, res, next);
+  await resetData(
+    'colleges',
+    async (tx) => {
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.training_plans.deleteMany();
+      await tx.colleges.deleteMany();
+    },
+    req,
+    res,
+    next
+  );
 }
 
 export async function resetLevels(req, res, next) {
@@ -234,54 +260,90 @@ export async function resetLevels(req, res, next) {
   if (classCount > 0) {
     return fail(res, '系统中存在班级数据，请先清空班级后再清空层次');
   }
-  await resetData('levels', async (tx) => {
-    await tx.plan_textbooks.deleteMany();
-    await tx.plan_course_semesters.deleteMany();
-    await tx.plan_courses.deleteMany();
-    await tx.training_plans.deleteMany();
-    await tx.training_levels.deleteMany();
-  }, req, res, next);
+  await resetData(
+    'levels',
+    async (tx) => {
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.training_plans.deleteMany();
+      await tx.training_levels.deleteMany();
+    },
+    req,
+    res,
+    next
+  );
 }
 
 export async function resetCourses(req, res, next) {
-  await resetData('courses', async (tx) => {
-    await tx.plan_textbooks.deleteMany();
-    await tx.plan_course_semesters.deleteMany();
-    await tx.plan_courses.deleteMany();
-    await tx.courses.deleteMany();
-  }, req, res, next);
+  await resetData(
+    'courses',
+    async (tx) => {
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.courses.deleteMany();
+    },
+    req,
+    res,
+    next
+  );
 }
 
 export async function resetTextbooks(req, res, next) {
-  await resetData('textbooks', async (tx) => {
-    await tx.plan_textbooks.deleteMany();
-    await tx.textbooks.deleteMany();
-  }, req, res, next);
+  await resetData(
+    'textbooks',
+    async (tx) => {
+      await tx.plan_textbooks.deleteMany();
+      await tx.textbooks.deleteMany();
+    },
+    req,
+    res,
+    next
+  );
 }
 
 export async function resetClasses(req, res, next) {
-  await resetData('classes', async (tx) => {
-    await tx.classes.deleteMany();
-  }, req, res, next);
+  await resetData(
+    'classes',
+    async (tx) => {
+      await tx.classes.deleteMany();
+    },
+    req,
+    res,
+    next
+  );
 }
 
 export async function resetTeachers(req, res, next) {
-  await resetData('teachers', async (tx) => {
-    await tx.teaching_assignments.deleteMany();
-    await tx.teacher_courses.deleteMany();
-    await tx.teacher_scheduling_colleges.deleteMany();
-    await tx.teacher_training_levels.deleteMany();
-    await tx.teachers.deleteMany();
-  }, req, res, next);
+  await resetData(
+    'teachers',
+    async (tx) => {
+      await tx.teaching_assignments.deleteMany();
+      await tx.teacher_courses.deleteMany();
+      await tx.teacher_scheduling_colleges.deleteMany();
+      await tx.teacher_training_levels.deleteMany();
+      await tx.teachers.deleteMany();
+    },
+    req,
+    res,
+    next
+  );
 }
 
 export async function resetPlans(req, res, next) {
-  await resetData('plans', async (tx) => {
-    await tx.plan_textbooks.deleteMany();
-    await tx.plan_course_semesters.deleteMany();
-    await tx.plan_courses.deleteMany();
-    await tx.training_plans.deleteMany();
-  }, req, res, next);
+  await resetData(
+    'plans',
+    async (tx) => {
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.training_plans.deleteMany();
+    },
+    req,
+    res,
+    next
+  );
 }
 
 export async function resetSystem(req, res, next) {

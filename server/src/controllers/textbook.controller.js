@@ -9,18 +9,36 @@ export async function listTextbooks(req, res, next) {
     await autoFixSortOrder('textbooks');
     const textbooks = await prisma.textbooks.findMany({ orderBy: { sort_order: 'asc' } });
     success(res, textbooks);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function createTextbook(req, res, next) {
   try {
-    const { title, isbn, publisher, author, edition, publish_date, price, category, description, is_active, sort_order } = req.body;
+    const {
+      title,
+      isbn,
+      publisher,
+      author,
+      edition,
+      publish_date,
+      price,
+      category,
+      description,
+      is_active,
+      sort_order,
+    } = req.body;
     if (!title) return fail(res, '书名不能为空');
     const newSortOrder = await getNextSortOrder(prisma, 'textbooks');
     const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const textbook = await prisma.textbooks.create({
       data: {
-        title, isbn, publisher, author, edition,
+        title,
+        isbn,
+        publisher,
+        author,
+        edition,
         publish_date: publish_date || null,
         price: price ? Number(price) : null,
         category: category || null,
@@ -60,16 +78,29 @@ export async function updateTextbook(req, res, next) {
   try {
     const { id } = req.params;
     const updateData = buildUpdateData(req.body, [
-      'title', 'isbn', 'publisher', 'author', 'edition', 
-      'publish_date', 'price', 'category', 'description', 
-      'is_active', 'sort_order'
+      'title',
+      'isbn',
+      'publisher',
+      'author',
+      'edition',
+      'publish_date',
+      'price',
+      'category',
+      'description',
+      'is_active',
+      'sort_order',
     ]);
     // 特殊处理：确保 price 和 publish_date 的正确转换
-    if (req.body.price !== undefined) updateData.price = req.body.price ? Number(req.body.price) : null;
-    if (req.body.publish_date !== undefined) updateData.publish_date = req.body.publish_date || null;
-    
+    if (req.body.price !== undefined)
+      updateData.price = req.body.price ? Number(req.body.price) : null;
+    if (req.body.publish_date !== undefined)
+      updateData.publish_date = req.body.publish_date || null;
+
     try {
-      const textbook = await prisma.textbooks.update({ where: { id: Number(id) }, data: updateData });
+      const textbook = await prisma.textbooks.update({
+        where: { id: Number(id) },
+        data: updateData,
+      });
 
       await createAuditLog({
         action: 'update',
@@ -96,7 +127,9 @@ export async function updateTextbook(req, res, next) {
       if (e.code === 'P2025') return fail(res, '教材不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function deleteTextbook(req, res, next) {
@@ -133,16 +166,18 @@ export async function deleteTextbook(req, res, next) {
       if (e.code === 'P2025') return fail(res, '教材不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function toggleTextbookStatus(req, res, next) {
   try {
     const { id } = req.params;
     try {
-      const current = await prisma.textbooks.findUnique({ 
-        where: { id: Number(id) }, 
-        select: { is_active: true, title: true } 
+      const current = await prisma.textbooks.findUnique({
+        where: { id: Number(id) },
+        select: { is_active: true, title: true },
       });
       if (!current) return fail(res, '教材不存在', 404);
       const updated = await prisma.textbooks.update({
@@ -175,5 +210,7 @@ export async function toggleTextbookStatus(req, res, next) {
       if (e.code === 'P2025') return fail(res, '教材不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }

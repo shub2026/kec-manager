@@ -9,14 +9,18 @@ const PORT = process.env.PORT || 3000;
 
 // 全局错误处理：防止未捕获的异常/拒绝导致进程崩溃
 process.on('uncaughtException', (err) => {
-  log.error('[uncaughtException] 未捕获的异常，进程即将退出', { message: err.message, stack: err.stack });
+  log.error('[uncaughtException] 未捕获的异常，进程即将退出', {
+    message: err.message,
+    stack: err.stack,
+  });
   // Node.js 官方建议：uncaughtException 后必须退出进程，因为进程状态可能已损坏
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   log.error('[unhandledRejection] 未处理的Promise拒绝，进程即将退出', {
-    reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : String(reason),
+    reason:
+      reason instanceof Error ? { message: reason.message, stack: reason.stack } : String(reason),
   });
   process.exit(1);
 });

@@ -11,13 +11,15 @@ export async function listTrainingLevels(req, res, next) {
       include: { _count: { select: { classes: true } } },
       orderBy: { sort_order: 'asc' },
     });
-    
-    const formattedLevels = levels.map(level => ({
+
+    const formattedLevels = levels.map((level) => ({
       ...level,
       classCount: level._count?.classes || 0,
     }));
     success(res, formattedLevels);
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function createTrainingLevel(req, res, next) {
@@ -48,7 +50,8 @@ export async function createTrainingLevel(req, res, next) {
       ip: req.ip,
       details: { name },
       result: 'failed',
-      message: e.code === 'P2002' ? `创建培养层次失败：${name} 已存在` : `创建培养层次失败: ${e.message}`,
+      message:
+        e.code === 'P2002' ? `创建培养层次失败：${name} 已存在` : `创建培养层次失败: ${e.message}`,
     });
     if (e.code === 'P2002') return fail(res, '该层次名称已存在');
     next(e);

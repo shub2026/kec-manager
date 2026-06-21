@@ -24,13 +24,14 @@ const DEFAULT_SETTINGS = [
   {
     key: 'current_semester',
     value: '2025-2026-2',
-    description: '当前学期（格式：起始学年-结束学年-学期序号，如 2025-2026-2 表示2025-2026学年第2学期）'
+    description:
+      '当前学期（格式：起始学年-结束学年-学期序号，如 2025-2026-2 表示2025-2026学年第2学期）',
   },
   {
     key: 'organization_name',
     value: '欢迎回来',
-    description: '系统标识（单位名称），用于首页展示'
-  }
+    description: '系统标识（单位名称），用于首页展示',
+  },
 ];
 
 async function initSettings() {
@@ -46,7 +47,7 @@ async function initSettings() {
 
     for (const setting of DEFAULT_SETTINGS) {
       const existing = await prisma.system_settings.findUnique({
-        where: { key: setting.key }
+        where: { key: setting.key },
       });
 
       if (existing) {
@@ -55,7 +56,7 @@ async function initSettings() {
         updated++;
       } else {
         await prisma.system_settings.create({
-          data: setting
+          data: setting,
         });
         console.log(`✅ ${setting.key} 已创建`);
         console.log(`   值: ${setting.value}`);
@@ -75,7 +76,6 @@ async function initSettings() {
       console.log('💡 提示: 如需修改这些设置，请使用管理员账号登录系统');
       console.log('   或在数据库中直接修改 system_settings 表\n');
     }
-
   } catch (error) {
     console.error('❌ 初始化失败:', error.message);
     console.error('错误代码:', error.code);
@@ -92,7 +92,7 @@ async function initSettings() {
   }
 }
 
-initSettings().catch(err => {
+initSettings().catch((err) => {
   console.error('💥 未预期的错误:', err);
   process.exit(1);
 });

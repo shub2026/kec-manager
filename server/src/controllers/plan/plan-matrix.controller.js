@@ -15,21 +15,22 @@ export async function listPlanCourses(req, res, next) {
         plan_course_semesters: {
           include: {
             plan_textbooks: {
-              include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true, is_active: true } } },
+              include: {
+                textbooks: {
+                  select: { id: true, title: true, isbn: true, publisher: true, is_active: true },
+                },
+              },
             },
           },
           orderBy: { semester: 'asc' },
         },
       },
-      orderBy: [
-        { sort_order: 'asc' },
-        { id: 'asc' }
-      ],
+      orderBy: [{ sort_order: 'asc' }, { id: 'asc' }],
     });
 
     success(res, courses);
-  } catch (e) { 
-    next(e); 
+  } catch (e) {
+    next(e);
   }
 }
 
@@ -44,7 +45,7 @@ export async function addCourseToPlan(req, res, next) {
       return fail(res, '课程、开课学期、周课时为必填项');
     }
     const weeks = weeks_per_semester ? Number(weeks_per_semester) : 18;
-    
+
     const pc = await prisma.$transaction(async (tx) => {
       const created = await tx.plan_courses.create({
         data: {
@@ -81,9 +82,9 @@ export async function addCourseToPlan(req, res, next) {
       message: '为培养方案添加课程',
       details: { course_id: pc.course_id },
     });
-    
+
     success(res, pc, '添加成功');
-  } catch (e) { 
+  } catch (e) {
     await createAuditLog({
       module: 'trainingPlan',
       action: 'create',
@@ -96,7 +97,7 @@ export async function addCourseToPlan(req, res, next) {
     if (e.code === 'P2002') {
       return fail(res, '该课程已在该方案中存在', 400);
     }
-    next(e); 
+    next(e);
   }
 }
 
@@ -117,10 +118,13 @@ export async function updatePlanCourse(req, res, next) {
       return fail(res, '方案课程不存在', 404);
     }
 
-    const newStart = start_semester !== undefined ? Number(start_semester) : currentPc.start_semester;
+    const newStart =
+      start_semester !== undefined ? Number(start_semester) : currentPc.start_semester;
     const newEnd = end_semester !== undefined ? Number(end_semester) : currentPc.end_semester;
-    const newWeeklyHours = weekly_hours !== undefined ? Number(weekly_hours) : currentPc.weekly_hours;
-    const newWeeksPerSemester = weeks_per_semester !== undefined ? Number(weeks_per_semester) : currentPc.weeks_per_semester;
+    const newWeeklyHours =
+      weekly_hours !== undefined ? Number(weekly_hours) : currentPc.weekly_hours;
+    const newWeeksPerSemester =
+      weeks_per_semester !== undefined ? Number(weeks_per_semester) : currentPc.weeks_per_semester;
     const newSortOrder = sort_order !== undefined ? Number(sort_order) : currentPc.sort_order;
 
     const pc = await prisma.$transaction(async (tx) => {
@@ -163,7 +167,7 @@ export async function updatePlanCourse(req, res, next) {
       message: '更新培养方案课程',
       details: { course_id: pc.id },
     });
-    
+
     success(res, pc, '更新成功');
   } catch (e) {
     await createAuditLog({
@@ -188,7 +192,7 @@ export async function deletePlanCourse(req, res, next) {
     const { id } = req.params;
     try {
       await prisma.plan_courses.delete({ where: { id: Number(id) } });
-      
+
       await createAuditLog({
         module: 'trainingPlan',
         action: 'delete',
@@ -198,7 +202,7 @@ export async function deletePlanCourse(req, res, next) {
         message: '删除培养方案课程',
         details: { course_id: Number(id) },
       });
-      
+
       success(res, null, '删除成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);
@@ -269,7 +273,7 @@ export async function upsertSemester(req, res, next) {
       message: '添加学期安排',
       details: { course_id: Number(courseId), semester },
     });
-    
+
     success(res, sem, '创建成功');
   } catch (e) {
     await createAuditLog({
@@ -300,7 +304,7 @@ export async function updateSemester(req, res, next) {
       where: { id: Number(id) },
       data,
     });
-    
+
     await createAuditLog({
       module: 'trainingPlan',
       action: 'update',
@@ -310,7 +314,7 @@ export async function updateSemester(req, res, next) {
       message: '更新学期安排',
       details: { semester_id: Number(id) },
     });
-    
+
     success(res, sem, '更新成功');
   } catch (e) {
     await createAuditLog({
@@ -339,20 +343,23 @@ export async function listPlanSemesters(req, res, next) {
       distinct: ['semester'],
       orderBy: { semester: 'asc' },
     });
-    
+
     const map = {};
-    semesters.forEach(s => {
+    semesters.forEach((s) => {
       if (!map[s.semester] || map[s.semester] < s.weeks_count) {
         map[s.semester] = s.weeks_count;
       }
     });
-    
-    success(res, Object.entries(map).map(([semester, weeks_count]) => ({
-      semester: Number(semester),
-      weeks_count,
-    })));
-  } catch (e) { 
-    next(e); 
+
+    success(
+      res,
+      Object.entries(map).map(([semester, weeks_count]) => ({
+        semester: Number(semester),
+        weeks_count,
+      }))
+    );
+  } catch (e) {
+    next(e);
   }
 }
 
@@ -383,7 +390,7 @@ export async function assignTextbookToSemester(req, res, next) {
         include: { textbooks: true },
       });
     });
-    
+
     await createAuditLog({
       module: 'trainingPlan',
       action: 'create',
@@ -393,7 +400,7 @@ export async function assignTextbookToSemester(req, res, next) {
       message: '添加教材',
       details: { semester_id: Number(id), textbook_id: Number(textbook_id) },
     });
-    
+
     success(res, pt, '关联成功');
   } catch (e) {
     await createAuditLog({
@@ -418,7 +425,7 @@ export async function removeSemesterTextbooks(req, res, next) {
     await prisma.plan_textbooks.deleteMany({
       where: { semester_id: Number(id) },
     });
-    
+
     await createAuditLog({
       module: 'trainingPlan',
       action: 'delete',
@@ -428,7 +435,7 @@ export async function removeSemesterTextbooks(req, res, next) {
       message: '删除教材',
       details: { semester_id: Number(id) },
     });
-    
+
     success(res, null, '取消关联成功');
   } catch (e) {
     await createAuditLog({
@@ -452,7 +459,7 @@ export async function deletePlanTextbook(req, res, next) {
     const { id } = req.params;
     try {
       await prisma.plan_textbooks.delete({ where: { id: Number(id) } });
-      
+
       await createAuditLog({
         module: 'trainingPlan',
         action: 'delete',
@@ -462,7 +469,7 @@ export async function deletePlanTextbook(req, res, next) {
         message: '删除培养方案教材',
         details: { id: Number(id) },
       });
-      
+
       success(res, null, '取消关联成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '教材关联不存在', 404);

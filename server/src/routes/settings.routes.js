@@ -32,16 +32,82 @@ router.put('/', authMiddleware, roleMiddleware('super_admin'), sanitizeBody, upd
 router.post('/initialize', authMiddleware, roleMiddleware('super_admin'), initializeSettings);
 
 // 重置接口 - 需要super_admin权限和确认验证
-router.post('/reset/basic', authMiddleware, roleMiddleware('super_admin'), validateReset, resetBasic);
-router.post('/reset/majors', authMiddleware, roleMiddleware('super_admin'), validateReset, resetMajors);
-router.post('/reset/colleges', authMiddleware, roleMiddleware('super_admin'), validateReset, resetColleges);
-router.post('/reset/levels', authMiddleware, roleMiddleware('super_admin'), validateReset, resetLevels);
-router.post('/reset/courses', authMiddleware, roleMiddleware('super_admin'), validateReset, resetCourses);
-router.post('/reset/textbooks', authMiddleware, roleMiddleware('super_admin'), validateReset, resetTextbooks);
-router.post('/reset/classes', authMiddleware, roleMiddleware('super_admin'), validateReset, resetClasses);
-router.post('/reset/teachers', authMiddleware, roleMiddleware('super_admin'), validateReset, resetTeachers);
-router.post('/reset/plans', authMiddleware, roleMiddleware('super_admin'), validateReset, resetPlans);
-router.post('/reset/settings', authMiddleware, roleMiddleware('super_admin'), validateReset, resetSystem);
-router.post('/reset/audit-logs', authMiddleware, roleMiddleware('super_admin'), validateAuditLogReset, resetAuditLogs);
+router.post(
+  '/reset/basic',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateReset,
+  resetBasic
+);
+router.post(
+  '/reset/majors',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateReset,
+  resetMajors
+);
+router.post(
+  '/reset/colleges',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateReset,
+  resetColleges
+);
+router.post(
+  '/reset/levels',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateReset,
+  resetLevels
+);
+router.post(
+  '/reset/courses',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateReset,
+  resetCourses
+);
+router.post(
+  '/reset/textbooks',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateReset,
+  resetTextbooks
+);
+router.post(
+  '/reset/classes',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateReset,
+  resetClasses
+);
+router.post(
+  '/reset/teachers',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateReset,
+  resetTeachers
+);
+router.post(
+  '/reset/plans',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateReset,
+  resetPlans
+);
+router.post(
+  '/reset/settings',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateReset,
+  resetSystem
+);
+router.post(
+  '/reset/audit-logs',
+  authMiddleware,
+  roleMiddleware('super_admin'),
+  validateAuditLogReset,
+  resetAuditLogs
+);
 
 export default router;

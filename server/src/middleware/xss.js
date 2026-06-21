@@ -29,7 +29,7 @@ function sanitizeObject(obj) {
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeObject(item));
+    return obj.map((item) => sanitizeObject(item));
   }
 
   if (typeof obj === 'object') {

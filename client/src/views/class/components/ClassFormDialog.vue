@@ -1,9 +1,9 @@
 <template>
   <div>
     <!-- 编辑/新增对话框 -->
-    <el-dialog 
-      v-model="visible" 
-      :title="form.id ? '编辑班级' : '新增班级'" 
+    <el-dialog
+      v-model="visible"
+      :title="form.id ? '编辑班级' : '新增班级'"
       width="800px"
       @close="$emit('close')"
     >
@@ -16,7 +16,12 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="专业类别">
-              <el-select v-model="localForm.majorId" clearable placeholder="请选择" class="full-width">
+              <el-select
+                v-model="localForm.majorId"
+                clearable
+                placeholder="请选择"
+                class="full-width"
+              >
                 <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
               </el-select>
             </el-form-item>
@@ -25,15 +30,34 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="二级学院">
-              <el-select v-model="localForm.collegeId" clearable placeholder="请选择" class="full-width">
-                <el-option v-for="college in colleges" :key="college.id" :label="college.name" :value="college.id" />
+              <el-select
+                v-model="localForm.collegeId"
+                clearable
+                placeholder="请选择"
+                class="full-width"
+              >
+                <el-option
+                  v-for="college in colleges"
+                  :key="college.id"
+                  :label="college.name"
+                  :value="college.id"
+                />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="培养层次" required>
-              <el-select v-model="localForm.trainingLevelId" placeholder="请选择" class="full-width">
-                <el-option v-for="level in trainingLevels" :key="level.id" :label="level.name" :value="level.id" />
+              <el-select
+                v-model="localForm.trainingLevelId"
+                placeholder="请选择"
+                class="full-width"
+              >
+                <el-option
+                  v-for="level in trainingLevels"
+                  :key="level.id"
+                  :label="level.name"
+                  :value="level.id"
+                />
               </el-select>
             </el-form-item>
           </el-col>
@@ -41,12 +65,22 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="入学年份" required>
-              <el-input-number v-model="localForm.enrollmentYear" :min="2000" :max="2099" class="full-width" />
+              <el-input-number
+                v-model="localForm.enrollmentYear"
+                :min="2000"
+                :max="2099"
+                class="full-width"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="学制(年)" required>
-              <el-input-number v-model="localForm.durationYears" :min="1" :max="6" class="full-width" />
+              <el-input-number
+                v-model="localForm.durationYears"
+                :min="1"
+                :max="6"
+                class="full-width"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -59,12 +93,19 @@
           <el-col :span="12">
             <el-form-item label="特殊状态离校">
               <el-switch v-model="localForm.isLeftSchool" />
-              <div class="form-hint">开启后班级状态固定显示"离校"，关闭则由系统自动推算在读/已毕业</div>
+              <div class="form-hint">
+                开启后班级状态固定显示"离校"，关闭则由系统自动推算在读/已毕业
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="特殊培养方案">
-              <el-select v-model="localForm.customPlanId" clearable placeholder="默认使用专业方案" class="full-width">
+              <el-select
+                v-model="localForm.customPlanId"
+                clearable
+                placeholder="默认使用专业方案"
+                class="full-width"
+              >
                 <el-option v-for="p in plans" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
               <div class="form-hint">最高优先级：一旦设置，将覆盖按层次或专业的默认关联</div>
@@ -74,14 +115,14 @@
       </el-form>
       <template #footer>
         <el-button @click="visible = false">取消</el-button>
-        <el-button type="primary" @click="$emit('save')" :loading="saving">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="$emit('save')">保存</el-button>
       </template>
     </el-dialog>
 
     <!-- 批量设置对话框 -->
-    <el-dialog 
-      v-model="batchVisible" 
-      :title="batchDialogTitle" 
+    <el-dialog
+      v-model="batchVisible"
+      :title="batchDialogTitle"
       width="500px"
       @close="$emit('batch-close')"
     >
@@ -92,17 +133,37 @@
           </el-select>
         </el-form-item>
         <el-form-item v-else-if="batchFormType === 'college'" label="二级学院">
-          <el-select v-model="batchForm.collegeId" clearable placeholder="请选择学院" class="full-width">
+          <el-select
+            v-model="batchForm.collegeId"
+            clearable
+            placeholder="请选择学院"
+            class="full-width"
+          >
             <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
         <el-form-item v-else-if="batchFormType === 'level'" label="培养层次">
-          <el-select v-model="batchForm.trainingLevelId" clearable placeholder="请选择层次" class="full-width">
-            <el-option v-for="level in trainingLevels" :key="level.id" :label="level.name" :value="level.id" />
+          <el-select
+            v-model="batchForm.trainingLevelId"
+            clearable
+            placeholder="请选择层次"
+            class="full-width"
+          >
+            <el-option
+              v-for="level in trainingLevels"
+              :key="level.id"
+              :label="level.name"
+              :value="level.id"
+            />
           </el-select>
         </el-form-item>
         <el-form-item v-else-if="batchFormType === 'year'" label="入学年份">
-          <el-input-number v-model="batchForm.enrollmentYear" :min="2000" :max="2099" class="full-width" />
+          <el-input-number
+            v-model="batchForm.enrollmentYear"
+            :min="2000"
+            :max="2099"
+            class="full-width"
+          />
         </el-form-item>
         <el-form-item v-else-if="batchFormType === 'duration'" label="学制(年)">
           <el-input-number v-model="batchForm.durationYears" :min="1" :max="6" class="full-width" />
@@ -116,14 +177,14 @@
       </el-form>
       <template #footer>
         <el-button @click="batchVisible = false">取消</el-button>
-        <el-button type="primary" @click="$emit('batch-save')" :loading="saving">确定</el-button>
+        <el-button type="primary" :loading="saving" @click="$emit('batch-save')">确定</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed } from 'vue';
 
 const props = defineProps({
   visible: {
@@ -170,7 +231,7 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-})
+});
 
 const emit = defineEmits([
   'update:visible',
@@ -181,27 +242,27 @@ const emit = defineEmits([
   'batch-save',
   'close',
   'batch-close',
-])
+]);
 
 const visible = computed({
   get: () => props.visible,
   set: (val) => emit('update:visible', val),
-})
+});
 
 const batchVisible = computed({
   get: () => props.batchVisible,
   set: (val) => emit('update:batchVisible', val),
-})
+});
 
 const localForm = computed({
   get: () => props.form,
   set: (val) => emit('update:form', val),
-})
+});
 
 const batchForm = computed({
   get: () => props.batchForm,
   set: (val) => emit('update:batchForm', val),
-})
+});
 </script>
 
 <style scoped>

@@ -1,15 +1,15 @@
-import jwt from 'jsonwebtoken'
-import bcrypt from 'bcryptjs'
-import { prisma } from '../lib/prisma.js'
-import { authConfig } from '../config/auth.config.js'
-import { createAuditLog } from './audit.service.js'
-import { AuthenticationError, ValidationError } from '../utils/error.js'
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { prisma } from '../lib/prisma.js';
+import { authConfig } from '../config/auth.config.js';
+import { createAuditLog } from './audit.service.js';
+import { AuthenticationError, ValidationError } from '../utils/error.js';
 
 export class AuthService {
   static async login(username, password, ip) {
     const user = await prisma.users.findUnique({
-      where: { username }
-    })
+      where: { username },
+    });
 
     if (!user) {
       await createAuditLog({
@@ -19,11 +19,11 @@ export class AuthService {
         details: { username },
         result: 'failed',
         message: `登录失败：用户 ${username} 不存在`,
-      })
-      throw new AuthenticationError('用户名或密码错误')
+      });
+      throw new AuthenticationError('用户名或密码错误');
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password)
+    const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       await createAuditLog({
         action: 'login',
@@ -33,8 +33,8 @@ export class AuthService {
         details: { username },
         result: 'failed',
         message: `登录失败：密码错误`,
-      })
-      throw new AuthenticationError('用户名或密码错误')
+      });
+      throw new AuthenticationError('用户名或密码错误');
     }
 
     if (!user.is_active) {
@@ -46,17 +46,17 @@ export class AuthService {
         details: { username },
         result: 'failed',
         message: `登录失败：账号已被禁用`,
-      })
-      throw new AuthenticationError('账号已被禁用')
+      });
+      throw new AuthenticationError('账号已被禁用');
     }
 
-    const token = this.generateToken(user)
-    const refreshToken = this.generateRefreshToken(user)
+    const token = this.generateToken(user);
+    const refreshToken = this.generateRefreshToken(user);
 
     await prisma.users.update({
       where: { id: user.id },
-      data: { last_login_at: new Date() }
-    })
+      data: { last_login_at: new Date() },
+    });
 
     await createAuditLog({
       action: 'login',
@@ -66,7 +66,7 @@ export class AuthService {
       details: { username: user.username },
       result: 'success',
       message: `${user.username} 登录系统`,
-    })
+    });
 
     return {
       user: {
@@ -74,36 +74,36 @@ export class AuthService {
         username: user.username,
         role: user.role,
         real_name: user.real_name,
-        email: user.email
+        email: user.email,
       },
       token,
-      refreshToken
-    }
+      refreshToken,
+    };
   }
 
   static async refreshToken(refreshTokenValue) {
     try {
-      const decoded = jwt.verify(refreshTokenValue, authConfig.jwtRefreshSecret) // M10修复：使用Refresh密钥验证
+      const decoded = jwt.verify(refreshTokenValue, authConfig.jwtRefreshSecret); // M10修复：使用Refresh密钥验证
 
       if (decoded.type !== 'refresh') {
-        throw new AuthenticationError('无效的Token类型')
+        throw new AuthenticationError('无效的Token类型');
       }
 
       const user = await prisma.users.findUnique({
-        where: { id: decoded.id }
-      })
+        where: { id: decoded.id },
+      });
 
       if (!user || !user.is_active) {
-        throw new AuthenticationError('用户不存在或已被禁用')
+        throw new AuthenticationError('用户不存在或已被禁用');
       }
 
       // 校验账号当前角色，避免 refresh 后使用过期角色
-      const newToken = this.generateToken(user)
-      const newRefreshToken = this.generateRefreshToken(user)
+      const newToken = this.generateToken(user);
+      const newRefreshToken = this.generateRefreshToken(user);
       // 返回新的 refreshToken 实现轮换，避免长期使用同一 refresh token 导致无法续期
-      return { token: newToken, refreshToken: newRefreshToken }
+      return { token: newToken, refreshToken: newRefreshToken };
     } catch (error) {
-      throw new AuthenticationError('Refresh Token已过期或无效')
+      throw new AuthenticationError('Refresh Token已过期或无效');
     }
   }
 
@@ -112,29 +112,29 @@ export class AuthService {
       {
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
       },
       authConfig.jwtSecret,
       { expiresIn: authConfig.jwtExpiresIn }
-    )
+    );
   }
 
   static generateRefreshToken(user) {
     return jwt.sign(
       {
         id: user.id,
-        type: 'refresh'
+        type: 'refresh',
       },
       authConfig.jwtRefreshSecret, // M10修复：使用独立的Refresh密钥
       { expiresIn: authConfig.jwtRefreshExpiresIn }
-    )
+    );
   }
 
   static verifyToken(token) {
     try {
-      return jwt.verify(token, authConfig.jwtSecret)
+      return jwt.verify(token, authConfig.jwtSecret);
     } catch (error) {
-      return null
+      return null;
     }
   }
 
@@ -143,27 +143,27 @@ export class AuthService {
       { id: user.id, username: user.username, role: user.role },
       authConfig.jwtDownloadSecret, // M10修复：使用独立的Download密钥
       { expiresIn: authConfig.jwtDownloadExpiresIn }
-    )
+    );
   }
 
   static verifyDownloadToken(token) {
     try {
-      return jwt.verify(token, authConfig.jwtDownloadSecret) // M10修复：使用独立的Download密钥
+      return jwt.verify(token, authConfig.jwtDownloadSecret); // M10修复：使用独立的Download密钥
     } catch (error) {
-      return null
+      return null;
     }
   }
 
   static async changePassword(userId, oldPassword, newPassword, ip) {
     const user = await prisma.users.findUnique({
-      where: { id: userId }
-    })
+      where: { id: userId },
+    });
 
     if (!user) {
-      throw new AuthenticationError('用户不存在')
+      throw new AuthenticationError('用户不存在');
     }
 
-    const isValid = await bcrypt.compare(oldPassword, user.password)
+    const isValid = await bcrypt.compare(oldPassword, user.password);
     if (!isValid) {
       await createAuditLog({
         action: 'update',
@@ -173,15 +173,15 @@ export class AuthService {
         details: { username: user.username, type: 'changePassword' },
         result: 'failed',
         message: `修改密码失败：原密码错误`,
-      })
-      throw new AuthenticationError('原密码错误')
+      });
+      throw new AuthenticationError('原密码错误');
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, authConfig.bcryptRounds) // M9修复：使用配置的迭代次数
+    const hashedPassword = await bcrypt.hash(newPassword, authConfig.bcryptRounds); // M9修复：使用配置的迭代次数
     await prisma.users.update({
       where: { id: userId },
-      data: { password: hashedPassword }
-    })
+      data: { password: hashedPassword },
+    });
 
     await createAuditLog({
       action: 'update',
@@ -191,8 +191,8 @@ export class AuthService {
       details: { username: user.username, type: 'changePassword' },
       result: 'success',
       message: `${user.username} 修改密码`,
-    })
+    });
 
-    return { message: '密码修改成功' }
+    return { message: '密码修改成功' };
   }
 }

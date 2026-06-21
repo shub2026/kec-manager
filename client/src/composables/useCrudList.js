@@ -1,6 +1,6 @@
-import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { useSortable } from './useSortable'
+import { ref, onMounted } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useSortable } from './useSortable';
 
 /**
  * 通用 CRUD 列表 composable
@@ -20,54 +20,56 @@ export function useCrudList(api, options = {}) {
     nameField = 'name',
     nameLabel = '名称',
     defaultForm = { id: null, name: '', code: '', description: '' },
-  } = options
+  } = options;
 
-  const list = ref([])
-  const loading = ref(false)
-  const dialogVisible = ref(false)
-  const saving = ref(false)
-  const form = ref({ ...defaultForm })
+  const list = ref([]);
+  const loading = ref(false);
+  const dialogVisible = ref(false);
+  const saving = ref(false);
+  const form = ref({ ...defaultForm });
 
-  const { handleMoveUp, handleMoveDown } = useSortable(list, api.update, silentReload)
+  const { handleMoveUp, handleMoveDown } = useSortable(list, api.update, silentReload);
 
   async function load() {
-    loading.value = true
+    loading.value = true;
     try {
-      const res = await api.list()
-      list.value = res.data || []
+      const res = await api.list();
+      list.value = res.data || [];
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
   async function silentReload() {
     try {
-      const res = await api.list()
-      list.value = res.data || []
+      const res = await api.list();
+      list.value = res.data || [];
     } catch (e) {
-      if (import.meta.env.DEV) { console.error('刷新数据失败:', e) }
+      if (import.meta.env.DEV) {
+        console.error('刷新数据失败:', e);
+      }
     }
   }
 
   function openDialog(row) {
-    form.value = row ? { ...row } : { ...defaultForm }
-    dialogVisible.value = true
+    form.value = row ? { ...row } : { ...defaultForm };
+    dialogVisible.value = true;
   }
 
   async function handleSave() {
-    if (!form.value[nameField]) return ElMessage.warning(`请输入${nameLabel}`)
-    saving.value = true
+    if (!form.value[nameField]) return ElMessage.warning(`请输入${nameLabel}`);
+    saving.value = true;
     try {
       if (form.value.id) {
-        await api.update(form.value.id, form.value)
+        await api.update(form.value.id, form.value);
       } else {
-        await api.create(form.value)
+        await api.create(form.value);
       }
-      ElMessage.success('保存成功')
-      dialogVisible.value = false
-      await silentReload()
+      ElMessage.success('保存成功');
+      dialogVisible.value = false;
+      await silentReload();
     } finally {
-      saving.value = false
+      saving.value = false;
     }
   }
 
@@ -77,28 +79,39 @@ export function useCrudList(api, options = {}) {
         confirmButtonText: '确定删除',
         cancelButtonText: '取消',
         type: 'warning',
-      })
+      });
     } catch (action) {
       // 用户取消删除
-      return
+      return;
     }
     try {
-      await api.remove(id)
-      ElMessage.success('删除成功')
-      await silentReload()
+      await api.remove(id);
+      ElMessage.success('删除成功');
+      await silentReload();
     } catch (e) {
-      if (import.meta.env.DEV) { console.error(`删除失败:`, e) }
-      ElMessage.error('删除失败，请重试')
+      if (import.meta.env.DEV) {
+        console.error(`删除失败:`, e);
+      }
+      ElMessage.error('删除失败，请重试');
     }
   }
 
   onMounted(() => {
-    load()
-  })
+    load();
+  });
 
   return {
-    list, loading, dialogVisible, saving, form,
-    handleMoveUp, handleMoveDown,
-    openDialog, handleSave, handleDelete, load, silentReload,
-  }
+    list,
+    loading,
+    dialogVisible,
+    saving,
+    form,
+    handleMoveUp,
+    handleMoveDown,
+    openDialog,
+    handleSave,
+    handleDelete,
+    load,
+    silentReload,
+  };
 }

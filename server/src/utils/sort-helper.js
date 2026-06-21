@@ -1,6 +1,6 @@
 /**
  * 排序辅助工具
- * 
+ *
  * 提供统一的排序值计算和标准化功能，消除控制器中的重复代码
  */
 
@@ -12,7 +12,7 @@
  */
 export async function getNextSortOrder(prisma, modelName) {
   const maxSort = await prisma[modelName].aggregate({
-    _max: { sort_order: true }
+    _max: { sort_order: true },
   });
   return (maxSort._max.sort_order || 0) + 1;
 }
@@ -38,7 +38,7 @@ export function normalizeSortOrder(value, defaultOrder) {
  */
 export function buildUpdateData(data, allowedFields) {
   const updateData = {};
-  
+
   for (const field of allowedFields) {
     if (data[field] !== undefined) {
       // 特殊处理排序字段
@@ -49,6 +49,6 @@ export function buildUpdateData(data, allowedFields) {
       }
     }
   }
-  
+
   return updateData;
 }

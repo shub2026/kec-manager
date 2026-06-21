@@ -3,9 +3,7 @@
     <!-- 欢迎区域 -->
     <div class="welcome-section">
       <div class="welcome-info">
-        <h2 class="welcome-title">
-          {{ greeting }}，{{ userName }}
-        </h2>
+        <h2 class="welcome-title">{{ greeting }}，{{ userName }}</h2>
         <p class="welcome-subtitle">
           <el-icon><Calendar /></el-icon>
           当前学期：{{ semesterLabel || '未设置' }}
@@ -24,14 +22,14 @@
     </div>
 
     <!-- 统计卡片 -->
-    <el-card class="stats-card" v-loading="loading">
+    <el-card v-loading="loading" class="stats-card">
       <template #header>
         <div class="card-header">
           <span class="card-title">
             <el-icon><DataLine /></el-icon>
             数据概览
           </span>
-          <el-button text type="primary" @click="refreshStats" :loading="loading">
+          <el-button text type="primary" :loading="loading" @click="refreshStats">
             <el-icon><Refresh /></el-icon>
             刷新
           </el-button>
@@ -42,7 +40,7 @@
         <!-- 专业类别 -->
         <el-col :xs="12" :sm="8" :md="6">
           <div class="stat-item" @click="goToMajor">
-            <div class="stat-icon" style="background-color: #ecf5ff; color: #409EFF;">
+            <div class="stat-icon" style="background-color: #ecf5ff; color: #409eff">
               <el-icon :size="24"><OfficeBuilding /></el-icon>
             </div>
             <div class="stat-info">
@@ -55,7 +53,7 @@
         <!-- 课程数量 -->
         <el-col :xs="12" :sm="8" :md="6">
           <div class="stat-item" @click="goToCourse">
-            <div class="stat-icon" style="background-color: #f0f9eb; color: #67C23A;">
+            <div class="stat-icon" style="background-color: #f0f9eb; color: #67c23a">
               <el-icon :size="24"><Reading /></el-icon>
             </div>
             <div class="stat-info">
@@ -68,7 +66,7 @@
         <!-- 班级数量 -->
         <el-col :xs="12" :sm="8" :md="6">
           <div class="stat-item" @click="goToClass">
-            <div class="stat-icon" style="background-color: #fdf6ec; color: #E6A23C;">
+            <div class="stat-icon" style="background-color: #fdf6ec; color: #e6a23c">
               <el-icon :size="24"><Histogram /></el-icon>
             </div>
             <div class="stat-info">
@@ -81,7 +79,7 @@
         <!-- 活跃教材 -->
         <el-col :xs="12" :sm="8" :md="6">
           <div class="stat-item" @click="goToTextbook">
-            <div class="stat-icon" style="background-color: #fef0f0; color: #F56C6C;">
+            <div class="stat-icon" style="background-color: #fef0f0; color: #f56c6c">
               <el-icon :size="24"><Notebook /></el-icon>
             </div>
             <div class="stat-info">
@@ -94,7 +92,7 @@
         <!-- 培养方案 -->
         <el-col :xs="12" :sm="8" :md="6">
           <div class="stat-item" @click="goToPlan">
-            <div class="stat-icon" style="background-color: #f4f4f5; color: #909399;">
+            <div class="stat-icon" style="background-color: #f4f4f5; color: #909399">
               <el-icon :size="24"><Files /></el-icon>
             </div>
             <div class="stat-info">
@@ -107,7 +105,7 @@
         <!-- 在读学生 -->
         <el-col :xs="12" :sm="8" :md="6">
           <div class="stat-item">
-            <div class="stat-icon" style="background-color: #ecf5ff; color: #409EFF;">
+            <div class="stat-icon" style="background-color: #ecf5ff; color: #409eff">
               <el-icon :size="24"><User /></el-icon>
             </div>
             <div class="stat-info">
@@ -120,7 +118,7 @@
         <!-- 参与教师 -->
         <el-col :xs="12" :sm="8" :md="6">
           <div class="stat-item" @click="goToTeaching">
-            <div class="stat-icon" style="background-color: #fdf6ec; color: #E6A23C;">
+            <div class="stat-icon" style="background-color: #fdf6ec; color: #e6a23c">
               <el-icon :size="24"><UserFilled /></el-icon>
             </div>
             <div class="stat-info">
@@ -133,7 +131,7 @@
         <!-- 总周课时 -->
         <el-col :xs="12" :sm="8" :md="6">
           <div class="stat-item" @click="goToTeaching">
-            <div class="stat-icon" style="background-color: #f0f9eb; color: #67C23A;">
+            <div class="stat-icon" style="background-color: #f0f9eb; color: #67c23a">
               <el-icon :size="24"><Clock /></el-icon>
             </div>
             <div class="stat-info">
@@ -155,14 +153,14 @@
       </template>
 
       <el-row :gutter="20">
-        <el-col :xs="12" :sm="8" :md="6" v-if="canEdit">
+        <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
           <div class="action-item" @click="goToPlanEdit">
             <el-icon :size="28" color="#409EFF"><EditPen /></el-icon>
             <span>编辑培养方案</span>
           </div>
         </el-col>
 
-        <el-col :xs="12" :sm="8" :md="6" v-if="canEdit">
+        <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
           <div class="action-item" @click="goToTeaching">
             <el-icon :size="28" color="#67C23A"><SetUp /></el-icon>
             <span>智能排课</span>
@@ -183,14 +181,14 @@
           </div>
         </el-col>
 
-        <el-col :xs="12" :sm="8" :md="6" v-if="canEdit">
+        <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
           <div class="action-item" @click="goToImport">
             <el-icon :size="28" color="#909399"><Upload /></el-icon>
             <span>数据导入</span>
           </div>
         </el-col>
 
-        <el-col :xs="12" :sm="8" :md="6" v-if="canEdit">
+        <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
           <div class="action-item" @click="goToStatistics">
             <el-icon :size="28" color="#8B5CF6"><DataAnalysis /></el-icon>
             <span>课时统计</span>
@@ -209,10 +207,13 @@
       </template>
 
       <div class="platform-info">
-        <p>KEC 课程管理平台是一款面向教育机构的全方位教学管理系统，涵盖基础数据管理、培养方案制定、智能排课、查询统计等核心功能。</p>
-        
+        <p>
+          KEC
+          课程管理平台是一款面向教育机构的全方位教学管理系统，涵盖基础数据管理、培养方案制定、智能排课、查询统计等核心功能。
+        </p>
+
         <el-divider content-position="left">核心功能</el-divider>
-        
+
         <el-row :gutter="20">
           <el-col :xs="24" :sm="12" :md="8">
             <div class="feature-item">
@@ -271,7 +272,7 @@
         </el-row>
 
         <el-divider content-position="left">技术栈</el-divider>
-        
+
         <div class="tech-stack">
           <el-tag type="primary" effect="plain">Vue 3</el-tag>
           <el-tag type="success" effect="plain">Element Plus</el-tag>
@@ -295,142 +296,168 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import { useSettingsStore } from '../stores/settings'
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
+import { useSettingsStore } from '../stores/settings';
 import {
-  Calendar, EditPen, Search, DataLine, Refresh, OfficeBuilding,
-  Reading, Histogram, Notebook, Files, User, UserFilled,
-  Clock, Lightning, Document, Upload, DataAnalysis,
-  Setting, InfoFilled, School
-} from '@element-plus/icons-vue'
-import { getMajors } from '../api/major'
-import { getCourses } from '../api/course'
-import { getTextbooks } from '../api/textbook'
-import { getClassStats } from '../api/class'
-import { getPlans } from '../api/plan'
-import { getTeachingStatistics } from '../api/teachingArrange'
-import { getWithCache } from '../utils/cache'
+  Calendar,
+  EditPen,
+  Search,
+  DataLine,
+  Refresh,
+  OfficeBuilding,
+  Reading,
+  Histogram,
+  Notebook,
+  Files,
+  User,
+  UserFilled,
+  Clock,
+  Lightning,
+  Document,
+  Upload,
+  DataAnalysis,
+  Setting,
+  InfoFilled,
+  School,
+} from '@element-plus/icons-vue';
+import { getMajors } from '../api/major';
+import { getCourses } from '../api/course';
+import { getTextbooks } from '../api/textbook';
+import { getClassStats } from '../api/class';
+import { getPlans } from '../api/plan';
+import { getTeachingStatistics } from '../api/teachingArrange';
+import { getWithCache } from '../utils/cache';
 
-const router = useRouter()
-const authStore = useAuthStore()
-const settingsStore = useSettingsStore()
+const router = useRouter();
+const authStore = useAuthStore();
+const settingsStore = useSettingsStore();
 
-const version = __APP_VERSION__
-const loading = ref(false)
-const canEdit = computed(() => ['admin', 'super_admin'].includes(authStore.userInfo?.role))
+const version = __APP_VERSION__;
+const loading = ref(false);
+const canEdit = computed(() => ['admin', 'super_admin'].includes(authStore.userInfo?.role));
 
-const userName = computed(() => authStore.userInfo?.realName || '用户')
-const semesterLabel = computed(() => settingsStore.semesterLabel)
+const userName = computed(() => authStore.userInfo?.realName || '用户');
+const semesterLabel = computed(() => settingsStore.semesterLabel);
 
 const greeting = computed(() => {
-  const hour = new Date().getHours()
-  if (hour < 6) return '夜深了'
-  if (hour < 9) return '早上好'
-  if (hour < 12) return '上午好'
-  if (hour < 14) return '中午好'
-  if (hour < 17) return '下午好'
-  if (hour < 19) return '傍晚好'
-  return '晚上好'
-})
+  const hour = new Date().getHours();
+  if (hour < 6) return '夜深了';
+  if (hour < 9) return '早上好';
+  if (hour < 12) return '上午好';
+  if (hour < 14) return '中午好';
+  if (hour < 17) return '下午好';
+  if (hour < 19) return '傍晚好';
+  return '晚上好';
+});
 
 const stats = ref({
-  majors: 0, courses: 0, classes: 0, textbooks: 0,
-  plans: 0, totalStudents: 0,
-  teachingTeachers: 0, totalWeeklyHours: 0,
-})
+  majors: 0,
+  courses: 0,
+  classes: 0,
+  textbooks: 0,
+  plans: 0,
+  totalStudents: 0,
+  teachingTeachers: 0,
+  totalWeeklyHours: 0,
+});
 
 async function fetchStats() {
-  loading.value = true
+  loading.value = true;
   try {
-    const CACHE_TTL = 5 * 60 * 1000
+    const CACHE_TTL = 5 * 60 * 1000;
     const results = await Promise.allSettled([
       getWithCache(() => getMajors(), 'dashboard:majors', CACHE_TTL),
       getWithCache(() => getCourses(), 'dashboard:courses', CACHE_TTL),
       getWithCache(() => getTextbooks(), 'dashboard:textbooks', CACHE_TTL),
       getWithCache(() => getClassStats(), 'dashboard:classStats', CACHE_TTL),
       getWithCache(() => getPlans(), 'dashboard:plans', CACHE_TTL),
-    ])
+    ]);
 
-    if (results[0].status === 'fulfilled') stats.value.majors = results[0].value.data?.length || 0
-    if (results[1].status === 'fulfilled') stats.value.courses = results[1].value.data?.length || 0
-    if (results[2].status === 'fulfilled') stats.value.textbooks = (results[2].value.data || []).filter(t => t.isActive).length
+    if (results[0].status === 'fulfilled') stats.value.majors = results[0].value.data?.length || 0;
+    if (results[1].status === 'fulfilled') stats.value.courses = results[1].value.data?.length || 0;
+    if (results[2].status === 'fulfilled')
+      stats.value.textbooks = (results[2].value.data || []).filter((t) => t.isActive).length;
     if (results[3].status === 'fulfilled') {
-      stats.value.classes = results[3].value.data?.totalClasses || 0
-      stats.value.totalStudents = results[3].value.data?.totalStudents || 0
+      stats.value.classes = results[3].value.data?.totalClasses || 0;
+      stats.value.totalStudents = results[3].value.data?.totalStudents || 0;
     }
-    if (results[4].status === 'fulfilled') stats.value.plans = results[4].value.data?.length || 0
+    if (results[4].status === 'fulfilled') stats.value.plans = results[4].value.data?.length || 0;
 
-    const semester = settingsStore.settings?.currentSemester?.value
+    const semester = settingsStore.settings?.currentSemester?.value;
     if (semester) {
       try {
-        const teachRes = await getWithCache(() => getTeachingStatistics({ semester }), 'dashboard:teachingStats', CACHE_TTL)
-        const summary = teachRes.data?.summary
+        const teachRes = await getWithCache(
+          () => getTeachingStatistics({ semester }),
+          'dashboard:teachingStats',
+          CACHE_TTL
+        );
+        const summary = teachRes.data?.summary;
         if (summary) {
-          stats.value.teachingTeachers = summary.totalTeachers || 0
-          stats.value.totalWeeklyHours = summary.totalWeeklyHours || 0
+          stats.value.teachingTeachers = summary.totalTeachers || 0;
+          stats.value.totalWeeklyHours = summary.totalWeeklyHours || 0;
         }
       } catch (e) {
-        if (import.meta.env.DEV) console.warn('Teaching stats fetch failed:', e)
+        if (import.meta.env.DEV) console.warn('Teaching stats fetch failed:', e);
       }
     }
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 function refreshStats() {
-  fetchStats()
+  fetchStats();
 }
 
 function goToTeaching() {
-  router.push('/teaching/arrange')
+  router.push('/teaching/arrange');
 }
 
 function goToQuery() {
-  router.push('/query/semester')
+  router.push('/query/semester');
 }
 
 function goToMajor() {
-  router.push('/majors')
+  router.push('/majors');
 }
 
 function goToCourse() {
-  router.push('/courses')
+  router.push('/courses');
 }
 
 function goToClass() {
-  router.push('/classes')
+  router.push('/classes');
 }
 
 function goToTextbook() {
-  router.push('/textbooks')
+  router.push('/textbooks');
 }
 
 function goToPlan() {
-  router.push('/plans')
+  router.push('/plans');
 }
 
 function goToPlanEdit() {
-  router.push('/plans')
+  router.push('/plans');
 }
 
 function goToTextbookQuery() {
-  router.push('/query/textbook')
+  router.push('/query/textbook');
 }
 
 function goToImport() {
-  ElMessage.info('数据导入功能开发中')
+  ElMessage.info('数据导入功能开发中');
 }
 
 function goToStatistics() {
-  router.push('/teaching/statistics')
+  router.push('/teaching/statistics');
 }
 
 onMounted(() => {
-  fetchStats()
-})
+  fetchStats();
+});
 </script>
 
 <style scoped>
@@ -568,8 +595,8 @@ onMounted(() => {
 
 .action-item:hover {
   background: #ecf5ff;
-  border-color: #409EFF;
-  color: #409EFF;
+  border-color: #409eff;
+  color: #409eff;
 }
 
 /* 平台信息 */
@@ -623,7 +650,7 @@ onMounted(() => {
 }
 
 .footer-info a:hover {
-  color: #409EFF;
+  color: #409eff;
 }
 
 /* 响应式 */

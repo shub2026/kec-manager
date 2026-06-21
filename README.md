@@ -66,6 +66,24 @@ npm run dev
 - 用户名：`admin`
 - 密码：`admin@123456`
 
+### 代码格式化
+
+项目已配置 Prettier 和 ESLint 用于代码格式化和质量检查：
+
+```bash
+# 前端代码格式化
+cd client
+npm run format    # 格式化代码
+npm run lint      # 检查并自动修复
+
+# 后端代码格式化
+cd server
+npm run format    # 格式化代码
+npm run lint      # 检查并自动修复
+```
+
+详见 [代码格式化指南](CODE_FORMATTING.md)。
+
 ---
 
 ## 部署
@@ -144,6 +162,8 @@ kec-manager/
 │   │   ├── stores/             # Pinia 状态管理
 │   │   ├── views/              # 页面组件（按领域划分）
 │   │   └── main.js             # 应用入口
+│   ├── .prettierrc             # Prettier 配置
+│   ├── eslint.config.js        # ESLint 配置
 │   ├── nginx.conf              # Nginx 配置
 │   └── vite.config.js          # Vite 构建配置
 ├── server/                     # 后端（Express + Prisma）
@@ -153,10 +173,13 @@ kec-manager/
 │   │   ├── middleware/         # 中间件（认证/XSS/校验/分页/命名转换）
 │   │   ├── routes/             # 路由定义
 │   │   └── utils/              # 工具函数
+│   ├── .prettierrc             # Prettier 配置
+│   ├── eslint.config.js        # ESLint 配置
 │   └── prisma/
 │       └── schema.prisma       # 数据库模型定义
 ├── docker-compose.yml          # Docker 编排配置
 ├── deploy.sh                   # 裸机部署脚本
+├── CODE_FORMATTING.md          # 代码格式化指南
 └── docs/                       # 项目文档
 ```
 
@@ -219,6 +242,7 @@ kec-manager/
 
 ## 相关文档
 
+- [代码格式化指南](CODE_FORMATTING.md) - Prettier 和 ESLint 配置与使用
 - [排课逻辑详解](docs/TEACHING_ARRANGE_LOGIC.md) - 自动排课算法、匹配规则、容量约束
 - [部署指南](docs/DEPLOYMENT_GUIDE.md) - 详细部署步骤和 Nginx 配置
 - [生产环境部署](docs/PRODUCTION_DEPLOYMENT.md) - 生产环境最佳实践

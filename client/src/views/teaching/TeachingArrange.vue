@@ -4,10 +4,19 @@
     <el-card class="settings-card">
       <template #header>
         <div class="card-header">
-          <span><el-icon><Setting /></el-icon> 教学安排设置</span>
+          <span
+            ><el-icon><Setting /></el-icon> 教学安排设置</span
+          >
           <div class="card-header-actions">
             <el-tag type="info">{{ currentSemesterLabel }}</el-tag>
-            <el-select v-model="selectedCourseId" placeholder="请选择课程" filterable clearable @change="onCourseChange" style="width: 220px">
+            <el-select
+              v-model="selectedCourseId"
+              placeholder="请选择课程"
+              filterable
+              clearable
+              style="width: 220px"
+              @change="onCourseChange"
+            >
               <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id">
                 <span>{{ c.name }}</span>
                 <span style="color: #999; font-size: 12px; margin-left: 8px">{{ c.code }}</span>
@@ -20,18 +29,39 @@
       <!-- 课时设置 -->
       <div v-if="selectedCourseId" class="hour-settings">
         <span class="hour-settings-title">课时要求</span>
-        <div class="hour-setting-item" v-for="type in personnelTypes" :key="type.key">
+        <div v-for="type in personnelTypes" :key="type.key" class="hour-setting-item">
           <span class="type-label">{{ type.label }}</span>
           <span class="setting-field">
             <span class="field-label">标准</span>
-            <el-input-number v-model="hourSettings[type.key].standard" :min="0" :max="40" :step="1" controls-position="right" size="small" style="width: 80px" />
+            <el-input-number
+              v-model="hourSettings[type.key].standard"
+              :min="0"
+              :max="40"
+              :step="1"
+              controls-position="right"
+              size="small"
+              style="width: 80px"
+            />
           </span>
           <span class="setting-field">
             <span class="field-label">最大</span>
-            <el-input-number v-model="hourSettings[type.key].max" :min="0" :max="40" :step="1" controls-position="right" size="small" style="width: 80px" />
+            <el-input-number
+              v-model="hourSettings[type.key].max"
+              :min="0"
+              :max="40"
+              :step="1"
+              controls-position="right"
+              size="small"
+              style="width: 80px"
+            />
           </span>
         </div>
-        <el-button type="primary" size="small" @click="handleSaveHourSettings" :loading="savingSettings">
+        <el-button
+          type="primary"
+          size="small"
+          :loading="savingSettings"
+          @click="handleSaveHourSettings"
+        >
           <el-icon><Check /></el-icon> 确定
         </el-button>
       </div>
@@ -46,7 +76,9 @@
             <span class="course-name">{{ courseInfo.name }}</span>
             <el-tag size="small">{{ courseTypeLabel(courseInfo.type) }}</el-tag>
           </div>
-          <el-button v-if="classList.length" @click="handleExportArrange" :loading="exporting">数据导出</el-button>
+          <el-button v-if="classList.length" :loading="exporting" @click="handleExportArrange"
+            >数据导出</el-button
+          >
         </div>
       </template>
       <div class="preview-stats">
@@ -68,7 +100,10 @@
         </div>
         <div class="preview-stat-item">
           <span class="stat-label">剩余课时</span>
-          <span class="stat-value" :class="summary.remainingHours >= 0 ? 'text-success' : 'text-danger'">
+          <span
+            class="stat-value"
+            :class="summary.remainingHours >= 0 ? 'text-success' : 'text-danger'"
+          >
             {{ summary.remainingHours }}<small>课时</small>
           </span>
         </div>
@@ -81,29 +116,61 @@
         <div class="card-header">
           <span>教学安排</span>
           <div class="card-header-actions">
-            <el-select v-model="filterCollege" placeholder="学院" clearable filterable style="width: 130px" @change="filterMajor = ''; filterTextbook = ''">
+            <el-select
+              v-model="filterCollege"
+              placeholder="学院"
+              clearable
+              filterable
+              style="width: 130px"
+              @change="
+                filterMajor = '';
+                filterTextbook = '';
+              "
+            >
               <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
             </el-select>
-            <el-select v-model="filterMajor" placeholder="专业" clearable filterable style="width: 130px" @change="filterTextbook = ''">
+            <el-select
+              v-model="filterMajor"
+              placeholder="专业"
+              clearable
+              filterable
+              style="width: 130px"
+              @change="filterTextbook = ''"
+            >
               <el-option v-for="v in majorOptions" :key="v" :label="v" :value="v" />
             </el-select>
-            <el-select v-model="filterTrainingLevel" placeholder="层次" clearable style="width: 100px">
+            <el-select
+              v-model="filterTrainingLevel"
+              placeholder="层次"
+              clearable
+              style="width: 100px"
+            >
               <el-option v-for="v in trainingLevelOptions" :key="v" :label="v" :value="v" />
             </el-select>
             <el-select v-model="filterGrade" placeholder="年级" clearable style="width: 90px">
               <el-option v-for="v in gradeOptions" :key="v" :label="v + '年级'" :value="v" />
             </el-select>
-            <el-select v-model="filterTextbook" placeholder="教材" clearable filterable style="width: 140px">
+            <el-select
+              v-model="filterTextbook"
+              placeholder="教材"
+              clearable
+              filterable
+              style="width: 140px"
+            >
               <el-option v-for="v in textbookOptions" :key="v" :label="v" :value="v" />
             </el-select>
             <el-checkbox v-model="previewMode" style="margin-left: 8px">预览模式</el-checkbox>
-            <el-button type="success" @click="handleAutoArrange('full')" :loading="arranging">
+            <el-button type="success" :loading="arranging" @click="handleAutoArrange('full')">
               <el-icon><MagicStick /></el-icon> 全量模式
             </el-button>
-            <el-button type="warning" @click="handleAutoArrange('standard')" :loading="arranging">
+            <el-button type="warning" :loading="arranging" @click="handleAutoArrange('standard')">
               <el-icon><SetUp /></el-icon> 标准模式
             </el-button>
-            <el-dropdown @command="handleBatchAutoArrange" :disabled="batchArranging" style="margin-left: 4px">
+            <el-dropdown
+              :disabled="batchArranging"
+              style="margin-left: 4px"
+              @command="handleBatchAutoArrange"
+            >
               <el-button type="primary" :loading="batchArranging">
                 批量排课<el-icon class="el-icon--right"><ArrowDown /></el-icon>
               </el-button>
@@ -125,12 +192,25 @@
         </div>
       </template>
 
-      <el-table :data="filteredClassList" :key="filterCollege + filterMajor + filterGrade + filterTrainingLevel + filterTextbook" stripe v-loading="tableLoading" row-key="classId" :row-class-name="tableRowClassName" class="adaptive-table">
+      <el-table
+        :key="filterCollege + filterMajor + filterGrade + filterTrainingLevel + filterTextbook"
+        v-loading="tableLoading"
+        :data="filteredClassList"
+        stripe
+        row-key="classId"
+        :row-class-name="tableRowClassName"
+        class="adaptive-table"
+      >
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="className" label="班级名称" min-width="140" show-overflow-tooltip />
         <el-table-column prop="collegeName" label="学院" min-width="100" show-overflow-tooltip />
         <el-table-column prop="majorName" label="专业" min-width="100" show-overflow-tooltip />
-        <el-table-column prop="trainingLevelName" label="培养层次" min-width="80" show-overflow-tooltip />
+        <el-table-column
+          prop="trainingLevelName"
+          label="培养层次"
+          min-width="80"
+          show-overflow-tooltip
+        />
         <el-table-column label="入学年份" min-width="80" align="center">
           <template #default="{ row }">{{ row.enrollmentYear }}</template>
         </el-table-column>
@@ -149,7 +229,14 @@
         <el-table-column label="教材" min-width="160" show-overflow-tooltip>
           <template #default="{ row }">
             <template v-if="row.textbooks?.length">
-              <el-tag v-for="tb in row.textbooks" :key="tb.id" size="small" type="info" class="tag-item">{{ tb.title }}</el-tag>
+              <el-tag
+                v-for="tb in row.textbooks"
+                :key="tb.id"
+                size="small"
+                type="info"
+                class="tag-item"
+                >{{ tb.title }}</el-tag
+              >
             </template>
             <span v-else class="text-muted">-</span>
           </template>
@@ -162,7 +249,12 @@
               @click="openTeacherSelect(row)"
             >
               <template v-if="row.assignment">
-                <el-tag :type="row.assignment.isAuto ? 'info' : 'primary'" size="small" closable @close.stop="handleRemoveAssignment(row)">
+                <el-tag
+                  :type="row.assignment.isAuto ? 'info' : 'primary'"
+                  size="small"
+                  closable
+                  @close.stop="handleRemoveAssignment(row)"
+                >
                   {{ row.assignment.teacherName }}
                 </el-tag>
               </template>
@@ -174,15 +266,35 @@
     </el-card>
 
     <!-- 教师选择弹窗 -->
-    <el-dialog v-model="teacherDialogVisible" title="选择任课教师" width="80%" destroy-on-close class="teacher-dialog">
-      <el-table :data="teacherList" stripe highlight-current-row @current-change="onTeacherSelect" size="small">
+    <el-dialog
+      v-model="teacherDialogVisible"
+      title="选择任课教师"
+      width="80%"
+      destroy-on-close
+      class="teacher-dialog"
+    >
+      <el-table
+        :data="teacherList"
+        stripe
+        highlight-current-row
+        size="small"
+        @current-change="onTeacherSelect"
+      >
         <el-table-column prop="name" label="姓名" width="55" />
         <el-table-column label="人员类别" width="80" align="center">
           <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
         </el-table-column>
         <el-table-column label="当前总课时" width="90" align="center">
           <template #default="{ row }">
-            <span :class="{ 'text-warning': row.totalWeeklyHours > (row.defaultWeeklyHours ?? hourSettings[row.personnelType || 'full_time']?.standard ?? 16) }">
+            <span
+              :class="{
+                'text-warning':
+                  row.totalWeeklyHours >
+                  (row.defaultWeeklyHours ??
+                    hourSettings[row.personnelType || 'full_time']?.standard ??
+                    16),
+              }"
+            >
               {{ row.totalWeeklyHours }}
             </span>
           </template>
@@ -192,23 +304,46 @@
         </el-table-column>
         <el-table-column label="学科" min-width="100">
           <template #default="{ row }">
-            <el-tag v-for="c in row.courseList" :key="c.id" size="small" class="tag-item">{{ c.name }}</el-tag>
+            <el-tag v-for="c in row.courseList" :key="c.id" size="small" class="tag-item">{{
+              c.name
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="任课学院" min-width="120">
           <template #default="{ row }">
-            <el-tag v-for="c in row.collegeList" :key="c.id" size="small" type="info" class="tag-item">{{ c.name }}</el-tag>
+            <el-tag
+              v-for="c in row.collegeList"
+              :key="c.id"
+              size="small"
+              type="info"
+              class="tag-item"
+              >{{ c.name }}</el-tag
+            >
           </template>
         </el-table-column>
         <el-table-column label="任课层次" min-width="120">
           <template #default="{ row }">
-            <el-tag v-for="l in row.trainingLevelList" :key="l.id" size="small" type="warning" class="tag-item">{{ l.name }}</el-tag>
+            <el-tag
+              v-for="l in row.trainingLevelList"
+              :key="l.id"
+              size="small"
+              type="warning"
+              class="tag-item"
+              >{{ l.name }}</el-tag
+            >
           </template>
         </el-table-column>
         <el-table-column label="已用教材" min-width="220">
           <template #default="{ row }">
             <template v-if="row.assignedTextbooks?.length">
-              <el-tag v-for="tb in row.assignedTextbooks" :key="tb.id" size="small" type="info" class="tag-item">{{ tb.title }}</el-tag>
+              <el-tag
+                v-for="tb in row.assignedTextbooks"
+                :key="tb.id"
+                size="small"
+                type="info"
+                class="tag-item"
+                >{{ tb.title }}</el-tag
+              >
             </template>
             <span v-else class="text-placeholder">-</span>
           </template>
@@ -219,12 +354,25 @@
       </el-table>
       <template #footer>
         <el-button @click="teacherDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmTeacherSelect" :disabled="!selectedTeacher" :loading="assigning">确定</el-button>
+        <el-button
+          type="primary"
+          :disabled="!selectedTeacher"
+          :loading="assigning"
+          @click="confirmTeacherSelect"
+          >确定</el-button
+        >
       </template>
     </el-dialog>
 
     <!-- 批量排课结果弹窗 -->
-    <el-dialog v-model="batchResultVisible" title="批量排课结果" width="900px" destroy-on-close class="batch-result-dialog" top="6vh">
+    <el-dialog
+      v-model="batchResultVisible"
+      title="批量排课结果"
+      width="900px"
+      destroy-on-close
+      class="batch-result-dialog"
+      top="6vh"
+    >
       <!-- 汇总统计 -->
       <div class="batch-summary">
         <div class="batch-stat-card" :class="{ 'is-success': true }">
@@ -232,15 +380,33 @@
           <div class="batch-stat-label">课程总数</div>
         </div>
         <div class="batch-stat-card is-success">
-          <div class="batch-stat-num text-success">{{ batchResult.summary?.totalAssigned || 0 }}</div>
+          <div class="batch-stat-num text-success">
+            {{ batchResult.summary?.totalAssigned || 0 }}
+          </div>
           <div class="batch-stat-label">已安排班级</div>
         </div>
-        <div class="batch-stat-card" :class="{ 'is-warning': (batchResult.summary?.totalUnassigned || 0) > 0 }">
-          <div class="batch-stat-num" :class="(batchResult.summary?.totalUnassigned || 0) > 0 ? 'text-warning' : ''">{{ batchResult.summary?.totalUnassigned || 0 }}</div>
+        <div
+          class="batch-stat-card"
+          :class="{ 'is-warning': (batchResult.summary?.totalUnassigned || 0) > 0 }"
+        >
+          <div
+            class="batch-stat-num"
+            :class="(batchResult.summary?.totalUnassigned || 0) > 0 ? 'text-warning' : ''"
+          >
+            {{ batchResult.summary?.totalUnassigned || 0 }}
+          </div>
           <div class="batch-stat-label">未分配班级</div>
         </div>
-        <div class="batch-stat-card" :class="{ 'is-danger': (batchResult.summary?.errorCount || 0) > 0 }">
-          <div class="batch-stat-num" :class="(batchResult.summary?.errorCount || 0) > 0 ? 'text-danger' : ''">{{ batchResult.summary?.errorCount || 0 }}</div>
+        <div
+          class="batch-stat-card"
+          :class="{ 'is-danger': (batchResult.summary?.errorCount || 0) > 0 }"
+        >
+          <div
+            class="batch-stat-num"
+            :class="(batchResult.summary?.errorCount || 0) > 0 ? 'text-danger' : ''"
+          >
+            {{ batchResult.summary?.errorCount || 0 }}
+          </div>
           <div class="batch-stat-label">出错课程</div>
         </div>
       </div>
@@ -248,7 +414,9 @@
       <!-- 筛选标签 -->
       <div class="batch-filter-tabs">
         <el-radio-group v-model="batchResultFilter" size="small">
-          <el-radio-button value="all">全部 ({{ (batchResult.courseResults || []).length }})</el-radio-button>
+          <el-radio-button value="all"
+            >全部 ({{ (batchResult.courseResults || []).length }})</el-radio-button
+          >
           <el-radio-button value="issue">有问题 ({{ batchIssueCount }})</el-radio-button>
         </el-radio-group>
       </div>
@@ -263,13 +431,19 @@
         >
           <div class="course-item-header" @click="toggleCourseDetail(r.courseId)">
             <div class="course-item-left">
-              <el-icon class="expand-icon" :class="{ expanded: expandedCourses.has(r.courseId) }"><ArrowRight /></el-icon>
+              <el-icon class="expand-icon" :class="{ expanded: expandedCourses.has(r.courseId) }"
+                ><ArrowRight
+              /></el-icon>
               <span class="course-item-name">{{ r.courseName }}</span>
             </div>
             <div class="course-item-right">
               <el-tag v-if="r.error" type="danger" size="small">出错</el-tag>
-              <el-tag v-if="r.unassignedCount > 0" type="warning" size="small">{{ r.unassignedCount }} 未分配</el-tag>
-              <el-tag v-if="!r.error && r.unassignedCount === 0" type="success" size="small">完成</el-tag>
+              <el-tag v-if="r.unassignedCount > 0" type="warning" size="small"
+                >{{ r.unassignedCount }} 未分配</el-tag
+              >
+              <el-tag v-if="!r.error && r.unassignedCount === 0" type="success" size="small"
+                >完成</el-tag
+              >
               <span class="course-item-stat">{{ r.autoCount || 0 }}/{{ r.totalClasses || 0 }}</span>
             </div>
           </div>
@@ -295,7 +469,11 @@
             </div>
           </div>
         </div>
-        <el-empty v-if="filteredBatchResults.length === 0" description="没有匹配的课程" :image-size="60" />
+        <el-empty
+          v-if="filteredBatchResults.length === 0"
+          description="没有匹配的课程"
+          :image-size="60"
+        />
       </div>
 
       <template #footer>
@@ -304,7 +482,14 @@
     </el-dialog>
 
     <!-- 单课程排课结果弹窗 -->
-    <el-dialog v-model="arrangeResultVisible" :title="`${arrangeResultMode}排课结果`" width="640px" destroy-on-close class="arrange-result-dialog" top="10vh">
+    <el-dialog
+      v-model="arrangeResultVisible"
+      :title="`${arrangeResultMode}排课结果`"
+      width="640px"
+      destroy-on-close
+      class="arrange-result-dialog"
+      top="10vh"
+    >
       <!-- 汇总统计 -->
       <div class="arrange-summary">
         <div class="arrange-stat-card is-success">
@@ -315,8 +500,16 @@
           <div class="arrange-stat-num">{{ arrangeResult.manualCount || 0 }}</div>
           <div class="arrange-stat-label">手动安排</div>
         </div>
-        <div class="arrange-stat-card" :class="{ 'is-warning': (arrangeResult.unassignedCount || 0) > 0 }">
-          <div class="arrange-stat-num" :class="(arrangeResult.unassignedCount || 0) > 0 ? 'text-warning' : ''">{{ arrangeResult.unassignedCount || 0 }}</div>
+        <div
+          class="arrange-stat-card"
+          :class="{ 'is-warning': (arrangeResult.unassignedCount || 0) > 0 }"
+        >
+          <div
+            class="arrange-stat-num"
+            :class="(arrangeResult.unassignedCount || 0) > 0 ? 'text-warning' : ''"
+          >
+            {{ arrangeResult.unassignedCount || 0 }}
+          </div>
           <div class="arrange-stat-label">未分配</div>
         </div>
         <div class="arrange-stat-card">
@@ -330,15 +523,23 @@
         <div class="cohesion-title">教材内聚度</div>
         <div class="cohesion-metrics">
           <div class="cohesion-metric">
-            <span class="cohesion-num" :class="cohesionRateClass">{{ arrangeResult.statistics.textbookCohesionRate ?? '-' }}%</span>
+            <span class="cohesion-num" :class="cohesionRateClass"
+              >{{ arrangeResult.statistics.textbookCohesionRate ?? '-' }}%</span
+            >
             <span class="cohesion-label">内聚率</span>
           </div>
           <div class="cohesion-metric">
-            <span class="cohesion-num">{{ arrangeResult.statistics.avgTextbookPerTeacher ?? '-' }}</span>
+            <span class="cohesion-num">{{
+              arrangeResult.statistics.avgTextbookPerTeacher ?? '-'
+            }}</span>
             <span class="cohesion-label">人均教材数</span>
           </div>
           <div class="cohesion-metric">
-            <span class="cohesion-num" :class="{ 'text-warning': (arrangeResult.statistics.scatteredTeacherCount || 0) > 0 }">{{ arrangeResult.statistics.scatteredTeacherCount ?? 0 }}</span>
+            <span
+              class="cohesion-num"
+              :class="{ 'text-warning': (arrangeResult.statistics.scatteredTeacherCount || 0) > 0 }"
+              >{{ arrangeResult.statistics.scatteredTeacherCount ?? 0 }}</span
+            >
             <span class="cohesion-label">分散教师数</span>
           </div>
         </div>
@@ -363,7 +564,10 @@
       </div>
 
       <!-- 全部完成 -->
-      <div v-if="!arrangeResult.unassigned?.length && !arrangeResult.warnings?.length" class="arrange-all-done">
+      <div
+        v-if="!arrangeResult.unassigned?.length && !arrangeResult.warnings?.length"
+        class="arrange-all-done"
+      >
         <el-icon :size="24" color="#67C23A"><CircleCheckFilled /></el-icon>
         <span>所有班级均已安排</span>
       </div>
@@ -376,13 +580,23 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
-import { MagicStick, SetUp, RefreshRight, Check, ArrowDown, ArrowRight, WarningFilled, Warning, CircleCheckFilled } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { getCourses } from '../../api/course'
-import request from '../../utils/request'
-import { downloadBlob } from '../../utils/download'
-import { personnelLabel } from '../../utils/personnel'
+import { ref, reactive, onMounted, computed } from 'vue';
+import {
+  MagicStick,
+  SetUp,
+  RefreshRight,
+  Check,
+  ArrowDown,
+  ArrowRight,
+  WarningFilled,
+  Warning,
+  CircleCheckFilled,
+} from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { getCourses } from '../../api/course';
+import request from '../../utils/request';
+import { downloadBlob } from '../../utils/download';
+import { personnelLabel } from '../../utils/personnel';
 import {
   getCourseClasses,
   getCourseTeachers,
@@ -393,259 +607,287 @@ import {
   resetAutoAssignments,
   getHourSettings,
   saveHourSettings,
-} from '../../api/teachingArrange'
+} from '../../api/teachingArrange';
 
 // 学期相关
-const currentSemesterLabel = ref('')
-const selectedCourseId = ref(null)
-const allCourses = ref([])
-const courseInfo = ref(null)
+const currentSemesterLabel = ref('');
+const selectedCourseId = ref(null);
+const allCourses = ref([]);
+const courseInfo = ref(null);
 
 // 课时设置
 const personnelTypes = [
   { key: 'full_time', label: '专职' },
   { key: 'part_time', label: '兼职' },
   { key: 'external', label: '外聘' },
-]
+];
 const defaultHourSettings = {
   full_time: { standard: 16, max: 20 },
   part_time: { standard: 12, max: 16 },
   external: { standard: 12, max: 16 },
-}
+};
 const hourSettings = reactive({
   full_time: { standard: 16, max: 20 },
   part_time: { standard: 12, max: 16 },
   external: { standard: 12, max: 16 },
-})
+});
 
 // 数据
-const classList = ref([])
-const teacherList = ref([])
-const tableLoading = ref(false)
-const summary = ref({ totalClasses: 0, assignedCount: 0, unassignedCount: 0, totalCourseHours: 0, assignedHours: 0, remainingHours: 0 })
+const classList = ref([]);
+const teacherList = ref([]);
+const tableLoading = ref(false);
+const summary = ref({
+  totalClasses: 0,
+  assignedCount: 0,
+  unassignedCount: 0,
+  totalCourseHours: 0,
+  assignedHours: 0,
+  remainingHours: 0,
+});
 
 // 筛选器
-const filterCollege = ref('')
-const filterMajor = ref('')
-const filterGrade = ref('')
-const filterTrainingLevel = ref('')
-const filterTextbook = ref('')
-const previewMode = ref(false)
+const filterCollege = ref('');
+const filterMajor = ref('');
+const filterGrade = ref('');
+const filterTrainingLevel = ref('');
+const filterTextbook = ref('');
+const previewMode = ref(false);
 
 const collegeOptions = computed(() => {
-  const set = new Set(classList.value.map(c => c.collegeName).filter(Boolean))
-  return [...set].sort()
-})
+  const set = new Set(classList.value.map((c) => c.collegeName).filter(Boolean));
+  return [...set].sort();
+});
 
 const majorOptions = computed(() => {
-  let list = classList.value
-  if (filterCollege.value) list = list.filter(c => c.collegeName === filterCollege.value)
-  const set = new Set(list.map(c => c.majorName).filter(Boolean))
-  return [...set].sort()
-})
+  let list = classList.value;
+  if (filterCollege.value) list = list.filter((c) => c.collegeName === filterCollege.value);
+  const set = new Set(list.map((c) => c.majorName).filter(Boolean));
+  return [...set].sort();
+});
 
 const gradeOptions = computed(() => {
-  const set = new Set(classList.value.map(c => c.grade).filter(Boolean))
-  return [...set].sort((a, b) => a - b)
-})
+  const set = new Set(classList.value.map((c) => c.grade).filter(Boolean));
+  return [...set].sort((a, b) => a - b);
+});
 
 const trainingLevelOptions = computed(() => {
-  const set = new Set(classList.value.map(c => c.trainingLevelName).filter(Boolean))
-  return [...set].sort()
-})
+  const set = new Set(classList.value.map((c) => c.trainingLevelName).filter(Boolean));
+  return [...set].sort();
+});
 
 const textbookOptions = computed(() => {
-  const set = new Set()
-  classList.value.forEach(c => {
-    (c.textbooks || []).forEach(tb => {
-      if (tb.title) set.add(tb.title)
-    })
-  })
-  return [...set].sort()
-})
+  const set = new Set();
+  classList.value.forEach((c) => {
+    (c.textbooks || []).forEach((tb) => {
+      if (tb.title) set.add(tb.title);
+    });
+  });
+  return [...set].sort();
+});
 
 const filteredClassList = computed(() => {
-  return classList.value.filter(c => {
-    if (filterCollege.value && c.collegeName !== filterCollege.value) return false
-    if (filterMajor.value && c.majorName !== filterMajor.value) return false
-    if (filterGrade.value && c.grade !== filterGrade.value) return false
-    if (filterTrainingLevel.value && c.trainingLevelName !== filterTrainingLevel.value) return false
+  return classList.value.filter((c) => {
+    if (filterCollege.value && c.collegeName !== filterCollege.value) return false;
+    if (filterMajor.value && c.majorName !== filterMajor.value) return false;
+    if (filterGrade.value && c.grade !== filterGrade.value) return false;
+    if (filterTrainingLevel.value && c.trainingLevelName !== filterTrainingLevel.value)
+      return false;
     if (filterTextbook.value) {
-      const titles = (c.textbooks || []).map(tb => tb.title)
-      if (!titles.includes(filterTextbook.value)) return false
+      const titles = (c.textbooks || []).map((tb) => tb.title);
+      if (!titles.includes(filterTextbook.value)) return false;
     }
-    return true
-  })
-})
+    return true;
+  });
+});
 
 // 自动排课状态
-const arranging = ref(false)
-const batchArranging = ref(false)
+const arranging = ref(false);
+const batchArranging = ref(false);
 
 // 教师选择弹窗
-const teacherDialogVisible = ref(false)
-const currentClass = ref(null)
-const selectedTeacher = ref(null)
-const assigning = ref(false)
-const savingSettings = ref(false)
-const exporting = ref(false)
+const teacherDialogVisible = ref(false);
+const currentClass = ref(null);
+const selectedTeacher = ref(null);
+const assigning = ref(false);
+const savingSettings = ref(false);
+const exporting = ref(false);
 
 // 批量排课结果弹窗
-const batchResultVisible = ref(false)
-const batchResult = ref({})
-const batchResultFilter = ref('all')
-const expandedCourses = ref(new Set())
+const batchResultVisible = ref(false);
+const batchResult = ref({});
+const batchResultFilter = ref('all');
+const expandedCourses = ref(new Set());
 
 const batchIssueCount = computed(() => {
-  const results = batchResult.value.courseResults || []
-  return results.filter(r => r.error || r.unassignedCount > 0).length
-})
+  const results = batchResult.value.courseResults || [];
+  return results.filter((r) => r.error || r.unassignedCount > 0).length;
+});
 
 const filteredBatchResults = computed(() => {
-  const results = batchResult.value.courseResults || []
+  const results = batchResult.value.courseResults || [];
   if (batchResultFilter.value === 'issue') {
-    return results.filter(r => r.error || r.unassignedCount > 0)
+    return results.filter((r) => r.error || r.unassignedCount > 0);
   }
-  return results
-})
+  return results;
+});
 
 function toggleCourseDetail(courseId) {
-  const s = new Set(expandedCourses.value)
-  if (s.has(courseId)) s.delete(courseId)
-  else s.add(courseId)
-  expandedCourses.value = s
+  const s = new Set(expandedCourses.value);
+  if (s.has(courseId)) s.delete(courseId);
+  else s.add(courseId);
+  expandedCourses.value = s;
 }
 
 // 单课程排课结果弹窗
-const arrangeResultVisible = ref(false)
-const arrangeResult = ref({})
-const arrangeResultMode = ref('')
+const arrangeResultVisible = ref(false);
+const arrangeResult = ref({});
+const arrangeResultMode = ref('');
 
 // 教材内聚率颜色分级
 const cohesionRateClass = computed(() => {
-  const rate = arrangeResult.value?.statistics?.textbookCohesionRate
-  if (rate == null) return ''
-  if (rate >= 70) return 'text-success'
-  if (rate >= 40) return 'text-warning'
-  return 'text-danger'
-})
+  const rate = arrangeResult.value?.statistics?.textbookCohesionRate;
+  if (rate == null) return '';
+  if (rate >= 70) return 'text-success';
+  if (rate >= 40) return 'text-warning';
+  return 'text-danger';
+});
 
 function courseTypeLabel(type) {
-  return { public: '公共课', professional: '专业课', elective: '选修课' }[type] || type
+  return { public: '公共课', professional: '专业课', elective: '选修课' }[type] || type;
 }
 
 function tableRowClassName({ row }) {
-  return row.assignment ? '' : 'unassigned-row'
+  return row.assignment ? '' : 'unassigned-row';
 }
 
 async function loadHourSettings(courseId) {
   // 先重置为默认值
-  Object.assign(hourSettings, JSON.parse(JSON.stringify(defaultHourSettings)))
-  if (!courseId) return
+  Object.assign(hourSettings, JSON.parse(JSON.stringify(defaultHourSettings)));
+  if (!courseId) return;
   try {
-    const res = await getHourSettings({ course_id: courseId })
+    const res = await getHourSettings({ course_id: courseId });
     if (res.data) {
       // 后端响应会被命名中间件转成 camelCase（fullTime/partTime），
       // 这里映射回前端使用的 snake_case key
-      const d = res.data
-      if (d.fullTime) hourSettings.full_time = { ...d.fullTime }
-      if (d.partTime) hourSettings.part_time = { ...d.partTime }
-      if (d.external) hourSettings.external = { ...d.external }
+      const d = res.data;
+      if (d.fullTime) hourSettings.full_time = { ...d.fullTime };
+      if (d.partTime) hourSettings.part_time = { ...d.partTime };
+      if (d.external) hourSettings.external = { ...d.external };
     }
   } catch (e) {
-    if (import.meta.env.DEV) { console.error('加载课时设置失败:', e) }
+    if (import.meta.env.DEV) {
+      console.error('加载课时设置失败:', e);
+    }
   }
 }
 
 async function handleSaveHourSettings() {
-  savingSettings.value = true
+  savingSettings.value = true;
   try {
     await saveHourSettings({
       course_id: selectedCourseId.value,
       hour_settings: hourSettings,
-    })
-    ElMessage.success('课时要求已保存')
+    });
+    ElMessage.success('课时要求已保存');
   } catch (e) {
-    ElMessage.error('保存失败')
-    if (import.meta.env.DEV) { console.error('保存课时设置失败:', e) }
+    ElMessage.error('保存失败');
+    if (import.meta.env.DEV) {
+      console.error('保存课时设置失败:', e);
+    }
   } finally {
-    savingSettings.value = false
+    savingSettings.value = false;
   }
 }
 
 async function loadSemester() {
   try {
-    const res = await request.get('/settings')
-    const settings = res.data || {}
+    const res = await request.get('/settings');
+    const settings = res.data || {};
     if (settings.currentSemester) {
-      currentSemesterLabel.value = settings.currentSemester.value
+      currentSemesterLabel.value = settings.currentSemester.value;
     }
   } catch (e) {
-    if (import.meta.env.DEV) { console.error('获取学期失败:', e) }
+    if (import.meta.env.DEV) {
+      console.error('获取学期失败:', e);
+    }
   }
 }
 
 async function loadCourses() {
   try {
-    const res = await getCourses()
-    allCourses.value = res.data || []
+    const res = await getCourses();
+    allCourses.value = res.data || [];
   } catch (e) {
-    if (import.meta.env.DEV) { console.error('加载课程列表失败:', e) }
+    if (import.meta.env.DEV) {
+      console.error('加载课程列表失败:', e);
+    }
   }
 }
 
 async function onCourseChange(courseId) {
   // 重置筛选器
-  filterCollege.value = ''
-  filterMajor.value = ''
-  filterGrade.value = ''
-  filterTrainingLevel.value = ''
-  filterTextbook.value = ''
+  filterCollege.value = '';
+  filterMajor.value = '';
+  filterGrade.value = '';
+  filterTrainingLevel.value = '';
+  filterTextbook.value = '';
   if (!courseId) {
-    classList.value = []
-    teacherList.value = []
-    courseInfo.value = null
-    loadHourSettings(null)
-    return
+    classList.value = [];
+    teacherList.value = [];
+    courseInfo.value = null;
+    loadHourSettings(null);
+    return;
   }
-  courseInfo.value = allCourses.value.find(c => c.id === courseId) || null
-  loadHourSettings(courseId)
-  await loadData()
+  courseInfo.value = allCourses.value.find((c) => c.id === courseId) || null;
+  loadHourSettings(courseId);
+  await loadData();
 }
 
 async function loadData() {
-  if (!selectedCourseId.value || !currentSemesterLabel.value) return
-  tableLoading.value = true
+  if (!selectedCourseId.value || !currentSemesterLabel.value) return;
+  tableLoading.value = true;
   try {
     const [classesRes, teachersRes] = await Promise.all([
       getCourseClasses({ course_id: selectedCourseId.value, semester: currentSemesterLabel.value }),
-      getCourseTeachers({ course_id: selectedCourseId.value, semester: currentSemesterLabel.value }),
-    ])
-    const classData = classesRes.data || {}
-    classList.value = classData.classes || []
-    summary.value = classData.summary || { totalClasses: 0, assignedCount: 0, unassignedCount: 0, totalCourseHours: 0, assignedHours: 0, remainingHours: 0 }
-    teacherList.value = teachersRes.data || []
+      getCourseTeachers({
+        course_id: selectedCourseId.value,
+        semester: currentSemesterLabel.value,
+      }),
+    ]);
+    const classData = classesRes.data || {};
+    classList.value = classData.classes || [];
+    summary.value = classData.summary || {
+      totalClasses: 0,
+      assignedCount: 0,
+      unassignedCount: 0,
+      totalCourseHours: 0,
+      assignedHours: 0,
+      remainingHours: 0,
+    };
+    teacherList.value = teachersRes.data || [];
   } catch (e) {
-    ElMessage.error('加载数据失败')
-    if (import.meta.env.DEV) { console.error('加载数据失败:', e) }
+    ElMessage.error('加载数据失败');
+    if (import.meta.env.DEV) {
+      console.error('加载数据失败:', e);
+    }
   } finally {
-    tableLoading.value = false
+    tableLoading.value = false;
   }
 }
 
 function openTeacherSelect(row) {
-  currentClass.value = row
-  selectedTeacher.value = null
-  teacherDialogVisible.value = true
+  currentClass.value = row;
+  selectedTeacher.value = null;
+  teacherDialogVisible.value = true;
 }
 
 function onTeacherSelect(teacher) {
-  selectedTeacher.value = teacher
+  selectedTeacher.value = teacher;
 }
 
 async function confirmTeacherSelect() {
-  if (!selectedTeacher.value || !currentClass.value) return
-  assigning.value = true
+  if (!selectedTeacher.value || !currentClass.value) return;
+  assigning.value = true;
   try {
     await assignTeacher({
       classId: currentClass.value.classId,
@@ -653,42 +895,42 @@ async function confirmTeacherSelect() {
       semester: currentSemesterLabel.value,
       teacherId: selectedTeacher.value.id,
       weeklyHours: currentClass.value.weeklyHours,
-    })
-    ElMessage.success('安排成功')
-    teacherDialogVisible.value = false
-    await loadData()
+    });
+    ElMessage.success('安排成功');
+    teacherDialogVisible.value = false;
+    await loadData();
   } catch (e) {
-    ElMessage.error('安排失败')
+    ElMessage.error('安排失败');
   } finally {
-    assigning.value = false
+    assigning.value = false;
   }
 }
 
 async function handleRemoveAssignment(row) {
-  if (!row.assignment?.id) return
+  if (!row.assignment?.id) return;
   try {
-    await deleteAssignment(row.assignment.id)
-    ElMessage.success('已移除安排')
-    await loadData()
+    await deleteAssignment(row.assignment.id);
+    ElMessage.success('已移除安排');
+    await loadData();
   } catch (e) {
-    ElMessage.error('操作失败')
+    ElMessage.error('操作失败');
   }
 }
 
 async function handleAutoArrange(mode) {
-  const modeLabel = mode === 'full' ? '全量模式' : '标准模式'
-  const previewTip = previewMode.value ? '（预览模式：不会实际写入数据库）' : ''
+  const modeLabel = mode === 'full' ? '全量模式' : '标准模式';
+  const previewTip = previewMode.value ? '（预览模式：不会实际写入数据库）' : '';
   try {
     await ElMessageBox.confirm(
       `将以「${modeLabel}」自动安排当前课程的所有班级（已有手动安排不会被覆盖）。${previewTip}确定继续？`,
       `自动排课 - ${modeLabel}`,
       { confirmButtonText: '确定排课', cancelButtonText: '取消', type: 'warning' }
-    )
+    );
   } catch {
-    return
+    return;
   }
 
-  arranging.value = true
+  arranging.value = true;
   try {
     const res = await runAutoArrange({
       courseId: selectedCourseId.value,
@@ -696,63 +938,67 @@ async function handleAutoArrange(mode) {
       mode,
       hourSettings,
       preview: previewMode.value, // 传递预览模式参数
-    })
-    const data = res.data || {}
-    arrangeResult.value = data
-    arrangeResultMode.value = modeLabel
-    arrangeResultVisible.value = true
-    
+    });
+    const data = res.data || {};
+    arrangeResult.value = data;
+    arrangeResultMode.value = modeLabel;
+    arrangeResultVisible.value = true;
+
     // 如果不是预览模式，才刷新数据
     if (!previewMode.value) {
-      await loadData()
+      await loadData();
     }
   } catch (e) {
-    ElMessage.error('自动排课失败')
-    if (import.meta.env.DEV) { console.error('自动排课失败:', e) }
+    ElMessage.error('自动排课失败');
+    if (import.meta.env.DEV) {
+      console.error('自动排课失败:', e);
+    }
   } finally {
-    arranging.value = false
+    arranging.value = false;
   }
 }
 
 async function handleBatchAutoArrange(mode) {
-  const modeLabel = mode === 'full' ? '全量模式' : '标准模式'
+  const modeLabel = mode === 'full' ? '全量模式' : '标准模式';
   try {
     await ElMessageBox.confirm(
       `将以「${modeLabel}」自动安排当前学期下所有课程的班级。这会覆盖所有课程的自动安排（手动安排不受影响）。确定继续？`,
       `批量排课 - ${modeLabel}`,
       { confirmButtonText: '确定批量排课', cancelButtonText: '取消', type: 'warning' }
-    )
+    );
   } catch {
-    return
+    return;
   }
 
-  batchArranging.value = true
+  batchArranging.value = true;
   try {
     const res = await runBatchAutoArrange({
       semester: currentSemesterLabel.value,
       mode,
       hourSettings,
-    })
-    const data = res.data || {}
-    const s = data.summary || {}
+    });
+    const data = res.data || {};
+    const s = data.summary || {};
 
     // 设置批量结果数据并打开弹窗
-    batchResult.value = data
-    batchResultFilter.value = (s.totalUnassigned > 0 || s.errorCount > 0) ? 'issue' : 'all'
+    batchResult.value = data;
+    batchResultFilter.value = s.totalUnassigned > 0 || s.errorCount > 0 ? 'issue' : 'all';
     const issueIds = new Set(
       (data.courseResults || [])
-        .filter(r => r.error || r.unassignedCount > 0)
-        .map(r => r.courseId)
-    )
-    expandedCourses.value = issueIds
-    batchResultVisible.value = true
+        .filter((r) => r.error || r.unassignedCount > 0)
+        .map((r) => r.courseId)
+    );
+    expandedCourses.value = issueIds;
+    batchResultVisible.value = true;
 
-    await loadData()
+    await loadData();
   } catch (e) {
-    ElMessage.error('批量排课失败')
-    if (import.meta.env.DEV) { console.error('批量排课失败:', e) }
+    ElMessage.error('批量排课失败');
+    if (import.meta.env.DEV) {
+      console.error('批量排课失败:', e);
+    }
   } finally {
-    batchArranging.value = false
+    batchArranging.value = false;
   }
 }
 
@@ -761,36 +1007,41 @@ async function handleReset() {
     const res = await resetAutoAssignments({
       courseId: selectedCourseId.value,
       semester: currentSemesterLabel.value,
-    })
-    ElMessage.success(res.message || '已重置')
-    await loadData()
+    });
+    ElMessage.success(res.message || '已重置');
+    await loadData();
   } catch (e) {
-    ElMessage.error('重置失败')
+    ElMessage.error('重置失败');
   }
 }
 
 async function handleExportArrange() {
-  if (!selectedCourseId.value || !currentSemesterLabel.value) return
-  exporting.value = true
+  if (!selectedCourseId.value || !currentSemesterLabel.value) return;
+  exporting.value = true;
   try {
     const response = await request.get('/export/teaching-arrange', {
       params: { course_id: selectedCourseId.value, semester: currentSemesterLabel.value },
       responseType: 'blob',
-    })
-    downloadBlob(response, `教学安排_${courseInfo.value?.name || ''}_${currentSemesterLabel.value}.xlsx`)
-    ElMessage.success('导出成功')
+    });
+    downloadBlob(
+      response,
+      `教学安排_${courseInfo.value?.name || ''}_${currentSemesterLabel.value}.xlsx`
+    );
+    ElMessage.success('导出成功');
   } catch (e) {
-    if (import.meta.env.DEV) { console.error('导出失败:', e) }
-    ElMessage.error('导出失败')
+    if (import.meta.env.DEV) {
+      console.error('导出失败:', e);
+    }
+    ElMessage.error('导出失败');
   } finally {
-    exporting.value = false
+    exporting.value = false;
   }
 }
 
 onMounted(() => {
-  loadSemester()
-  loadCourses()
-})
+  loadSemester();
+  loadCourses();
+});
 </script>
 
 <style scoped>
@@ -875,10 +1126,10 @@ onMounted(() => {
   margin-left: 2px;
 }
 .text-success {
-  color: #67C23A;
+  color: #67c23a;
 }
 .text-danger {
-  color: #F56C6C;
+  color: #f56c6c;
 }
 .matrix-card {
   margin-bottom: 16px;
@@ -907,7 +1158,7 @@ onMounted(() => {
   font-size: 12px;
 }
 .text-warning {
-  color: #E6A23C;
+  color: #e6a23c;
   font-weight: bold;
 }
 .tag-item {
@@ -961,9 +1212,15 @@ onMounted(() => {
   color: #303133;
   line-height: 1.2;
 }
-.batch-stat-num.text-success { color: #67C23A; }
-.batch-stat-num.text-warning { color: #E6A23C; }
-.batch-stat-num.text-danger { color: #F56C6C; }
+.batch-stat-num.text-success {
+  color: #67c23a;
+}
+.batch-stat-num.text-warning {
+  color: #e6a23c;
+}
+.batch-stat-num.text-danger {
+  color: #f56c6c;
+}
 .batch-stat-label {
   font-size: 12px;
   color: #909399;
@@ -1002,7 +1259,7 @@ onMounted(() => {
   transition: background 0.15s;
 }
 .course-item-header:hover {
-  background: rgba(0,0,0,0.03);
+  background: rgba(0, 0, 0, 0.03);
 }
 .course-item-left {
   display: flex;
@@ -1042,7 +1299,7 @@ onMounted(() => {
   font-size: 13px;
 }
 .detail-error {
-  color: #F56C6C;
+  color: #f56c6c;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1052,7 +1309,7 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 .detail-warning-item {
-  color: #E6A23C;
+  color: #e6a23c;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1088,11 +1345,11 @@ onMounted(() => {
 }
 .unassigned-reason {
   font-size: 12px;
-  color: #E6A23C;
+  color: #e6a23c;
   margin-left: auto;
 }
 .detail-ok {
-  color: #67C23A;
+  color: #67c23a;
   font-size: 13px;
 }
 
@@ -1123,8 +1380,12 @@ onMounted(() => {
   color: #303133;
   line-height: 1.2;
 }
-.arrange-stat-num.text-success { color: #67C23A; }
-.arrange-stat-num.text-warning { color: #E6A23C; }
+.arrange-stat-num.text-success {
+  color: #67c23a;
+}
+.arrange-stat-num.text-warning {
+  color: #e6a23c;
+}
 .arrange-stat-label {
   font-size: 12px;
   color: #909399;
@@ -1136,7 +1397,7 @@ onMounted(() => {
   padding: 12px 14px;
   background: #f5f7fa;
   border-radius: 8px;
-  border-left: 3px solid #409EFF;
+  border-left: 3px solid #409eff;
 }
 .cohesion-title {
   font-size: 13px;
@@ -1160,9 +1421,15 @@ onMounted(() => {
   color: #303133;
   line-height: 1.2;
 }
-.cohesion-num.text-success { color: #67C23A; }
-.cohesion-num.text-warning { color: #E6A23C; }
-.cohesion-num.text-danger { color: #F56C6C; }
+.cohesion-num.text-success {
+  color: #67c23a;
+}
+.cohesion-num.text-warning {
+  color: #e6a23c;
+}
+.cohesion-num.text-danger {
+  color: #f56c6c;
+}
 .cohesion-label {
   font-size: 12px;
   color: #909399;
@@ -1170,14 +1437,14 @@ onMounted(() => {
 }
 .cohesion-hint {
   font-size: 11px;
-  color: #C0C4CC;
+  color: #c0c4cc;
   margin-top: 4px;
 }
 .arrange-warnings {
   margin-bottom: 12px;
 }
 .arrange-warning-item {
-  color: #E6A23C;
+  color: #e6a23c;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1214,7 +1481,7 @@ onMounted(() => {
   justify-content: center;
   gap: 8px;
   padding: 16px;
-  color: #67C23A;
+  color: #67c23a;
   font-size: 14px;
   font-weight: 500;
 }

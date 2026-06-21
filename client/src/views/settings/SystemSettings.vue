@@ -16,17 +16,14 @@
     <!-- 学期配置组件 -->
     <SemesterConfig
       v-model:form="form"
-      v-model:selectedSemester="selectedSemester"
+      v-model:selected-semester="selectedSemester"
       :saved-semester="savedSemester"
       :saving="saving"
       @save="handleSave"
     />
 
     <!-- 数据重置组件 -->
-    <DataReset
-      :resetting="resetting"
-      @reset="showResetDialog"
-    />
+    <DataReset :resetting="resetting" @reset="showResetDialog" />
 
     <!-- 确认对话框组件 -->
     <ConfirmDialog
@@ -46,74 +43,74 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Setting } from '@element-plus/icons-vue'
-import { useSettingsStore } from '../../stores/settings'
-import request from '../../utils/request'
-import SemesterConfig from './components/SemesterConfig.vue'
-import DataReset from './components/DataReset.vue'
-import ConfirmDialog from './components/ConfirmDialog.vue'
+import { ref, onMounted } from 'vue';
+import { ElMessage } from 'element-plus';
+import { Setting } from '@element-plus/icons-vue';
+import { useSettingsStore } from '../../stores/settings';
+import request from '../../utils/request';
+import SemesterConfig from './components/SemesterConfig.vue';
+import DataReset from './components/DataReset.vue';
+import ConfirmDialog from './components/ConfirmDialog.vue';
 
-const settingsStore = useSettingsStore()
-const saving = ref(false)
-const resetting = ref(false)
+const settingsStore = useSettingsStore();
+const saving = ref(false);
+const resetting = ref(false);
 const form = ref({
   current_semester: '',
   organization_name: '',
-})
+});
 
 // 跟踪当前选中的学期和已保存的学期
-const selectedSemester = ref('')
-const savedSemester = ref('')
+const selectedSemester = ref('');
+const savedSemester = ref('');
 
 // 对话框状态
-const dialogVisible = ref(false)
-const resetType = ref('')
-const confirmInput = ref('')
-const reasonInput = ref('')
-const clearAuditDialogVisible = ref(false)
-const saveConfirmVisible = ref(false)
+const dialogVisible = ref(false);
+const resetType = ref('');
+const confirmInput = ref('');
+const reasonInput = ref('');
+const clearAuditDialogVisible = ref(false);
+const saveConfirmVisible = ref(false);
 
 async function load() {
-  await settingsStore.load()
-  const s = settingsStore.settings
-  const semesterValue = s.currentSemester?.value || ''
-  const orgName = s.organizationName?.value || '欢迎回来'
-  form.value.current_semester = semesterValue
-  form.value.organization_name = orgName
-  selectedSemester.value = semesterValue
-  savedSemester.value = semesterValue
+  await settingsStore.load();
+  const s = settingsStore.settings;
+  const semesterValue = s.currentSemester?.value || '';
+  const orgName = s.organizationName?.value || '欢迎回来';
+  form.value.current_semester = semesterValue;
+  form.value.organization_name = orgName;
+  selectedSemester.value = semesterValue;
+  savedSemester.value = semesterValue;
 }
 
 function handleSave() {
-  saveConfirmVisible.value = true
+  saveConfirmVisible.value = true;
 }
 
 async function confirmSave() {
-  saving.value = true
+  saving.value = true;
   try {
-    await settingsStore.save(form.value)
-    savedSemester.value = form.value.current_semester
-    ElMessage.success('学期设置已保存')
-    saveConfirmVisible.value = false
+    await settingsStore.save(form.value);
+    savedSemester.value = form.value.current_semester;
+    ElMessage.success('学期设置已保存');
+    saveConfirmVisible.value = false;
   } catch (e) {
-    ElMessage.error('保存失败：' + (e.message || '未知错误'))
+    ElMessage.error('保存失败：' + (e.message || '未知错误'));
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 function showResetDialog(type) {
   if (type === 'audit-logs') {
-    clearAuditDialogVisible.value = true
-    return
+    clearAuditDialogVisible.value = true;
+    return;
   }
-  
-  resetType.value = type
-  confirmInput.value = ''
-  reasonInput.value = ''
-  dialogVisible.value = true
+
+  resetType.value = type;
+  confirmInput.value = '';
+  reasonInput.value = '';
+  dialogVisible.value = true;
 }
 
 async function handleReset() {
@@ -127,14 +124,14 @@ async function handleReset() {
     classes: '确认',
     plans: '确认',
     settings: '系统重置',
-  }
-  
+  };
+
   if (confirmInput.value !== expectedTextMap[resetType.value]) {
-    ElMessage.error('确认文字不正确')
-    return
+    ElMessage.error('确认文字不正确');
+    return;
   }
 
-  resetting.value = true
+  resetting.value = true;
   try {
     const endpoints = {
       teachers: '/settings/reset/teachers',
@@ -146,42 +143,45 @@ async function handleReset() {
       classes: '/settings/reset/classes',
       plans: '/settings/reset/plans',
       settings: '/settings/reset/settings',
-    }
+    };
 
     await request.post(endpoints[resetType.value], {
       confirm: 'DELETE',
       ...(reasonInput.value.length >= 10 ? { reason: reasonInput.value } : {}),
-    })
-    const successMsg = expectedTextMap[resetType.value] === '确认' ? '数据已清空' : `${expectedTextMap[resetType.value]}成功`
-    ElMessage.success(successMsg)
-    dialogVisible.value = false
+    });
+    const successMsg =
+      expectedTextMap[resetType.value] === '确认'
+        ? '数据已清空'
+        : `${expectedTextMap[resetType.value]}成功`;
+    ElMessage.success(successMsg);
+    dialogVisible.value = false;
 
     if (resetType.value === 'settings') {
-      await load()
+      await load();
     }
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '操作失败')
+    ElMessage.error(error.response?.data?.message || '操作失败');
   } finally {
-    resetting.value = false
+    resetting.value = false;
   }
 }
 
 async function handleClearAuditLogs() {
-  resetting.value = true
+  resetting.value = true;
   try {
-    await request.post('/settings/reset/audit-logs')
-    ElMessage.success('操作日志已清空')
-    clearAuditDialogVisible.value = false
+    await request.post('/settings/reset/audit-logs');
+    ElMessage.success('操作日志已清空');
+    clearAuditDialogVisible.value = false;
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '清空失败')
+    ElMessage.error(error.response?.data?.message || '清空失败');
   } finally {
-    resetting.value = false
+    resetting.value = false;
   }
 }
 
 onMounted(() => {
-  load()
-})
+  load();
+});
 </script>
 
 <style scoped>

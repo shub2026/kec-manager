@@ -9,17 +9,19 @@
     :teleported="true"
   >
     <template #default>
-      <div class="popover-content" v-if="editingSemester">
+      <div v-if="editingSemester" class="popover-content">
         <div class="popover-title">
           {{ editingCourse?.courseName }} — 第{{ editingSemester.semester }}学期
         </div>
 
         <el-form label-width="80px" size="small">
           <el-form-item label="周课时">
-            <el-radio-group 
+            <el-radio-group
               :model-value="editingSemester?.weeklyHours"
-              @update:model-value="$emit('update-editing-semester', { ...editingSemester, weeklyHours: $event })"
               class="full-width"
+              @update:model-value="
+                $emit('update-editing-semester', { ...editingSemester, weeklyHours: $event })
+              "
             >
               <el-radio-button :value="0">0</el-radio-button>
               <el-radio-button :value="2">2</el-radio-button>
@@ -31,12 +33,12 @@
           <el-form-item label="关联教材">
             <el-select
               :model-value="editingTextbookId"
-              @update:model-value="$emit('update-editing-textbook-id', $event)"
               filterable
               clearable
               placeholder="选择教材（可选）"
               class="full-width"
               :disabled="editingSemester?.weeklyHours === 0"
+              @update:model-value="$emit('update-editing-textbook-id', $event)"
             >
               <el-option
                 v-for="t in allTextbooks"
@@ -53,7 +55,7 @@
 
         <div class="popover-actions">
           <el-button size="small" @click="$emit('close-popover')">取消</el-button>
-          <el-button size="small" type="primary" @click="$emit('save-edit')" :loading="saving">
+          <el-button size="small" type="primary" :loading="saving" @click="$emit('save-edit')">
             保存
           </el-button>
         </div>
@@ -62,11 +64,11 @@
   </el-popover>
 
   <!-- 开课学期设置对话框 -->
-  <el-dialog 
+  <el-dialog
     :model-value="semesterDialogVisible"
-    @update:model-value="$emit('update-semester-dialog-visible', $event)"
-    title="设置开课学期" 
+    title="设置开课学期"
     width="450px"
+    @update:model-value="$emit('update-semester-dialog-visible', $event)"
   >
     <el-form label-width="100px">
       <el-alert
@@ -81,10 +83,12 @@
           <el-form-item label="起始学期" required>
             <el-input-number
               :model-value="semesterForm?.startSemester"
-              @update:model-value="$emit('update-semester-form', { ...semesterForm, startSemester: $event })"
               :min="1"
               :max="12"
               class="full-width"
+              @update:model-value="
+                $emit('update-semester-form', { ...semesterForm, startSemester: $event })
+              "
             />
           </el-form-item>
         </el-col>
@@ -92,10 +96,12 @@
           <el-form-item label="结束学期" required>
             <el-input-number
               :model-value="semesterForm?.endSemester"
-              @update:model-value="$emit('update-semester-form', { ...semesterForm, endSemester: $event })"
               :min="1"
               :max="12"
               class="full-width"
+              @update:model-value="
+                $emit('update-semester-form', { ...semesterForm, endSemester: $event })
+              "
             />
           </el-form-item>
         </el-col>
@@ -109,9 +115,7 @@
     </el-form>
     <template #footer>
       <el-button @click="$emit('close-semester')">取消</el-button>
-      <el-button type="primary" @click="$emit('save-semester')" :loading="saving">
-        保存
-      </el-button>
+      <el-button type="primary" :loading="saving" @click="$emit('save-semester')"> 保存 </el-button>
     </template>
   </el-dialog>
 </template>
@@ -123,25 +127,25 @@ const props = defineProps({
   editingCourse: { type: Object, default: null },
   editingSemester: { type: Object, default: null },
   editingCourseForSemester: { type: Object, default: null },
-  semesterForm: { 
-    type: Object, 
-    default: () => ({ startSemester: 1, endSemester: 2 }) 
+  semesterForm: {
+    type: Object,
+    default: () => ({ startSemester: 1, endSemester: 2 }),
   },
   editingTextbookId: { type: [Number, null], default: null },
   saving: { type: Boolean, default: false },
   allTextbooks: { type: Array, default: () => [] },
-})
+});
 
 defineEmits([
-  'close-popover', 
-  'save-edit', 
-  'close-semester', 
+  'close-popover',
+  'save-edit',
+  'close-semester',
   'save-semester',
   'update-editing-semester',
   'update-editing-textbook-id',
   'update-semester-dialog-visible',
   'update-semester-form',
-])
+]);
 </script>
 
 <style scoped>

@@ -41,7 +41,7 @@ export async function createAuditLog({ action, module, userId, ip, details, resu
       action,
       module,
       userId,
-      result
+      result,
     });
     // 注意：不抛出错误以避免中断主业务流程
     // 但生产环境应监控此错误日志并告警
@@ -77,7 +77,7 @@ export async function getAuditLogs({ action, module, result, page = 1, pageSize 
   ]);
 
   // 保持数据库原始字段名（下划线命名），由中间件自动转换为驼峰命名
-  const formattedLogs = logs.map(log => ({
+  const formattedLogs = logs.map((log) => ({
     id: log.id,
     action: log.action,
     module: log.module,

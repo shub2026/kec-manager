@@ -14,7 +14,7 @@ export function validatePagination(maxPageSize = DEFAULT_MAX_PAGE_SIZE) {
       if (isNaN(pageNum) || pageNum < 1) {
         return res.status(400).json({
           success: false,
-          message: '页码必须为正整数'
+          message: '页码必须为正整数',
         });
       }
     }
@@ -24,13 +24,13 @@ export function validatePagination(maxPageSize = DEFAULT_MAX_PAGE_SIZE) {
       if (isNaN(pageSizeNum) || pageSizeNum < 1) {
         return res.status(400).json({
           success: false,
-          message: '每页数量必须为正整数'
+          message: '每页数量必须为正整数',
         });
       }
       if (pageSizeNum > maxPageSize) {
         return res.status(400).json({
           success: false,
-          message: `每页数量不能超过 ${maxPageSize}`
+          message: `每页数量不能超过 ${maxPageSize}`,
         });
       }
     }

@@ -9,7 +9,7 @@ import { isClassMatchPlan } from '../services/plan.service.js';
 
 function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null) {
   let startYear;
-  
+
   if (semesterInfo && semesterInfo.startYear) {
     startYear = semesterInfo.startYear;
   } else if (semesterInfo && semesterInfo.value) {
@@ -20,7 +20,7 @@ function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null
     const currentMonth = now.getMonth() + 1;
     startYear = currentMonth >= 9 ? currentYear : currentYear - 1;
   }
-  
+
   const grade = startYear - enrollmentYear + 1;
   return grade <= durationYears ? 'active' : 'graduated';
 }
@@ -37,7 +37,9 @@ export async function getClassStats(req, res, next) {
     const totalStudents = activeClasses.reduce((sum, c) => sum + (c.student_count || 0), 0);
 
     success(res, { totalClasses, totalStudents });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function listClasses(req, res, next) {
@@ -53,7 +55,7 @@ export async function listClasses(req, res, next) {
     const finalWhere = filterResult.where;
 
     const total = await prisma.classes.count({ where: finalWhere });
-    
+
     const classes = await prisma.classes.findMany({
       where: finalWhere,
       include: {
@@ -66,22 +68,22 @@ export async function listClasses(req, res, next) {
       skip: (pageNum - 1) * pageSizeNum,
       take: pageSizeNum,
     });
-    
+
     const semesterInfo = await getCurrentSemesterInfo();
-    
+
     // 预加载所有培养方案，用于自动匹配
     const allPlans = await prisma.training_plans.findMany({
       select: { id: true, name: true, major_id: true, training_level_id: true },
     });
-    
-    const classesWithDynamicStatus = classes.map(cls => {
+
+    const classesWithDynamicStatus = classes.map((cls) => {
       let status;
       if (cls.is_left_school) {
         status = 'left_school';
       } else if (cls.enrollment_year && cls.duration_years) {
         status = calculateClassStatus(cls.enrollment_year, cls.duration_years, semesterInfo);
       }
-      
+
       // 计算匹配的培养方案名称
       let matchedPlanName = null;
       if (cls.custom_plan_id && cls.training_plans) {
@@ -89,14 +91,14 @@ export async function listClasses(req, res, next) {
         matchedPlanName = cls.training_plans.name;
       } else {
         // 使用统一的三级互斥匹配，避免 null===null 误匹配
-        const matchedPlan = allPlans.find(p => isClassMatchPlan(cls, p));
+        const matchedPlan = allPlans.find((p) => isClassMatchPlan(cls, p));
         if (matchedPlan) {
           matchedPlanName = matchedPlan.name;
         }
       }
-      
-      return { 
-        ...cls, 
+
+      return {
+        ...cls,
         status,
         matchedPlanName, // 添加匹配的方案名称
       };
@@ -107,17 +109,27 @@ export async function listClasses(req, res, next) {
       distinct: ['enrollment_year'],
       orderBy: { enrollment_year: 'desc' },
     });
-    const allEnrollmentYears = distinctYears
-      .map(c => c.enrollment_year)
-      .filter(y => y != null);
+    const allEnrollmentYears = distinctYears.map((c) => c.enrollment_year).filter((y) => y != null);
 
     success(res, { items: classesWithDynamicStatus, total, allEnrollmentYears });
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function createClass(req, res, next) {
   try {
-    const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, is_left_school } = req.body;
+    const {
+      name,
+      enrollment_year,
+      duration_years,
+      major_id,
+      college_id,
+      training_level_id,
+      student_count,
+      custom_plan_id,
+      is_left_school,
+    } = req.body;
     if (!name || !enrollment_year || !duration_years || !training_level_id) {
       throw new ValidationError('班级名称、入学年份、学制、培养层次为必填项');
     }
@@ -128,7 +140,11 @@ export async function createClass(req, res, next) {
       autoStatus = 'left_school';
     } else {
       const semesterInfo = await getCurrentSemesterInfo();
-      autoStatus = calculateClassStatus(Number(enrollment_year), Number(duration_years), semesterInfo);
+      autoStatus = calculateClassStatus(
+        Number(enrollment_year),
+        Number(duration_years),
+        semesterInfo
+      );
     }
 
     const cls = await prisma.classes.create({
@@ -175,19 +191,34 @@ export async function createClass(req, res, next) {
 export async function updateClass(req, res, next) {
   try {
     const { id } = req.params;
-    const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, is_left_school } = req.body;
+    const {
+      name,
+      enrollment_year,
+      duration_years,
+      major_id,
+      college_id,
+      training_level_id,
+      student_count,
+      custom_plan_id,
+      is_left_school,
+    } = req.body;
     try {
       const currentClass = await prisma.classes.findUnique({ where: { id: Number(id) } });
       if (!currentClass) throw new NotFoundError('班级');
 
-      const leftSchool = is_left_school !== undefined ? !!is_left_school : currentClass.is_left_school;
+      const leftSchool =
+        is_left_school !== undefined ? !!is_left_school : currentClass.is_left_school;
       const semesterInfo = await getCurrentSemesterInfo();
       let autoStatus;
       if (leftSchool) {
         autoStatus = 'left_school';
       } else {
-        const calcEnrollmentYear = enrollment_year ? Number(enrollment_year) : currentClass.enrollment_year;
-        const calcDurationYears = duration_years ? Number(duration_years) : currentClass.duration_years;
+        const calcEnrollmentYear = enrollment_year
+          ? Number(enrollment_year)
+          : currentClass.enrollment_year;
+        const calcDurationYears = duration_years
+          ? Number(duration_years)
+          : currentClass.duration_years;
         autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
       }
 
@@ -195,15 +226,17 @@ export async function updateClass(req, res, next) {
         status: autoStatus,
         is_left_school: leftSchool,
       };
-      
+
       if (name !== undefined) updateData.name = name;
       if (enrollment_year !== undefined) updateData.enrollment_year = Number(enrollment_year);
       if (duration_years !== undefined) updateData.duration_years = Number(duration_years);
       if (major_id !== undefined) updateData.major_id = major_id ? Number(major_id) : null;
       if (college_id !== undefined) updateData.college_id = college_id ? Number(college_id) : null;
-      if (training_level_id !== undefined) updateData.training_level_id = training_level_id ? Number(training_level_id) : null;
+      if (training_level_id !== undefined)
+        updateData.training_level_id = training_level_id ? Number(training_level_id) : null;
       if (student_count !== undefined) updateData.student_count = Number(student_count);
-      if (custom_plan_id !== undefined) updateData.custom_plan_id = custom_plan_id ? Number(custom_plan_id) : null;
+      if (custom_plan_id !== undefined)
+        updateData.custom_plan_id = custom_plan_id ? Number(custom_plan_id) : null;
 
       const cls = await prisma.classes.update({
         where: { id: Number(id) },
@@ -226,9 +259,16 @@ export async function updateClass(req, res, next) {
         module: 'class',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: cls.id, name, is_left_school: leftSchool, deletedAssignments: deletedAssignmentCount },
+        details: {
+          id: cls.id,
+          name,
+          is_left_school: leftSchool,
+          deletedAssignments: deletedAssignmentCount,
+        },
         result: 'success',
-        message: `更新班级：${name}` + (deletedAssignmentCount > 0 ? `，级联删除 ${deletedAssignmentCount} 条排课记录` : ''),
+        message:
+          `更新班级：${name}` +
+          (deletedAssignmentCount > 0 ? `，级联删除 ${deletedAssignmentCount} 条排课记录` : ''),
       });
 
       success(res, cls, '更新成功');
@@ -245,7 +285,9 @@ export async function updateClass(req, res, next) {
       if (e.code === 'P2025') return fail(res, '班级不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
 
 export async function deleteClass(req, res, next) {
@@ -279,5 +321,7 @@ export async function deleteClass(req, res, next) {
       if (e.code === 'P2025') throw new NotFoundError('班级');
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    next(e);
+  }
 }
