@@ -44,7 +44,7 @@
         
         <!-- 详情内容区：用 hasDetail 控制，加载期间保持旧数据在 DOM 中不卸载 -->
         <div v-else-if="hasDetail" class="detail-content">
-          <el-descriptions :column="3" border class="textbook-descriptions">
+          <el-descriptions :column="3" border :label-width="'90px'" class="textbook-descriptions">
             <el-descriptions-item label="书名">
               <div class="description-content">{{ detail?.textbook?.title || '-' }}</div>
             </el-descriptions-item>
@@ -276,9 +276,16 @@ onMounted(async () => {
   margin-bottom: 20px;
 }
 
+/* 强制 descriptions 内部表格固定布局，切换教材时列宽不跳动 */
+.textbook-descriptions :deep(table) {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
 /* 固定标签列宽度，保证切换教材时标题不换行、不抖动 */
 .textbook-descriptions :deep(.el-descriptions__label) {
-  width: 100px !important;
+  width: 90px !important;
+  min-width: 90px !important;
   flex-shrink: 0;
   font-weight: 500;
   color: #606266;
@@ -288,6 +295,8 @@ onMounted(async () => {
 .textbook-descriptions :deep(.el-descriptions__content) {
   min-width: 0;
   word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .description-content {
