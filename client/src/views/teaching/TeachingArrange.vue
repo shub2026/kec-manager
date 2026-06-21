@@ -4,7 +4,7 @@
     <el-card class="settings-card">
       <template #header>
         <div class="card-header">
-          <span>教学安排设置</span>
+          <span><el-icon><Setting /></el-icon> 教学安排设置</span>
           <div class="card-header-actions">
             <el-tag type="info">{{ currentSemesterLabel }}</el-tag>
             <el-select v-model="selectedCourseId" placeholder="请选择课程" filterable clearable @change="onCourseChange" style="width: 220px">

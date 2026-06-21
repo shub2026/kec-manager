@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>课程管理</span>
+          <span><el-icon><Reading /></el-icon> 课程管理</span>
           <div class="card-header-actions">
             <el-input v-model="filterName" clearable placeholder="搜索课程名称" class="filter-input" />
             <el-button @click="exportData">数据导出</el-button>
@@ -27,7 +27,10 @@
         </div>
       </template>
 
-      <el-table v-if="filteredList.length > 0" :data="filteredList" stripe v-loading="loading" row-key="id">
+      <el-table :data="filteredList" stripe v-loading="loading" row-key="id" default-sort="{ prop: 'name', order: 'ascending' }">
+        <template #empty>
+          <el-empty description="暂无课程数据，请点击右上角新增" />
+        </template>
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="课程名称" min-width="150" />
         <el-table-column prop="code" label="编码" width="120" />
@@ -72,8 +75,6 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <el-empty v-else description="暂无课程数据" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑课程' : '新增课程'" width="500px">

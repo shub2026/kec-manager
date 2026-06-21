@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>方案查询</span>
+          <span><el-icon><Document /></el-icon> 方案查询</span>
           <div class="card-header-actions">
             <el-select
               v-model="selectedPlanId"

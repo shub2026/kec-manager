@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>教师信息</span>
+          <span><el-icon><Avatar /></el-icon> 教师信息</span>
           <div class="card-header-actions">
             <el-input v-model="filterName" placeholder="搜索姓名" clearable class="filter-name" />
             <el-select v-model="filterPersonnelType" placeholder="人员类别" clearable class="filter-small">
@@ -50,7 +50,10 @@
         </div>
       </template>
 
-      <el-table v-if="filteredlist.length > 0" :data="filteredlist" stripe v-loading="loading" row-key="id">
+      <el-table :data="filteredlist" stripe v-loading="loading" row-key="id" default-sort="{ prop: 'name', order: 'ascending' }">
+        <template #empty>
+          <el-empty description="暂无教师数据，请点击右上角新增" />
+        </template>
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="name" label="姓名" width="100">
           <template #default="{ row }">
@@ -127,7 +130,6 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-else description="暂无教师数据" />
     </el-card>
 
     <!-- 新增/编辑弹窗 -->

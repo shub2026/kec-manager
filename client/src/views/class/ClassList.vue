@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>班级管理</span>
+          <span><el-icon><User /></el-icon> 班级管理</span>
           <div class="card-header-actions">
             <!-- 筛选器组件 -->
             <ClassFilterBar

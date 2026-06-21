@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>教材查询</span>
+          <span><el-icon><Notebook /></el-icon> 教材查询</span>
           <div class="card-header-actions">
             <el-button @click="goToCurrentSemester">
               <el-icon><Calendar /></el-icon> 当前学期
@@ -26,7 +26,7 @@
             >
               <el-option v-for="tb in textbooks" :key="tb.id" :label="`${tb.title} - ${tb.publisher || '未知出版社'}`" :value="tb.id" />
             </el-select>
-            <el-button @click="resetFilters">
+            <el-button @click="resetFilters" :disabled="!selectedSemester && !selectedTextbook">
               <el-icon><Refresh /></el-icon> 重置
             </el-button>
             <el-button type="success" :disabled="!selectedTextbook || !selectedSemester" @click="exportExcel">

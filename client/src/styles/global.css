@@ -43,6 +43,20 @@
   padding: 12px 24px;
 }
 
+/* 筛选下拉框标准宽度 */
+.filter-select-sm {
+  width: 100px;
+}
+.filter-select-md {
+  width: 120px;
+}
+.filter-select-lg {
+  width: 140px;
+}
+.filter-select-xl {
+  width: 160px;
+}
+
 /* 批量操作栏 */
 .batch-operations {
   display: flex;
@@ -52,6 +66,7 @@
   background: #f5f7fa;
   border-radius: 6px;
   flex-wrap: wrap;
+  margin-top: 16px;
 }
 
 .selected-count {

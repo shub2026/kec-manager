@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>课时统计</span>
+          <span><el-icon><DataAnalysis /></el-icon> 课时统计</span>
           <div class="card-header-actions">
             <el-tag type="info">{{ semester }}</el-tag>
             <el-select v-model="filterType" placeholder="类别" clearable style="width: 100px">

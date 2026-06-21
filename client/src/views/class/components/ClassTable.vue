@@ -1,12 +1,15 @@
 <template>
   <div v-loading="loading">
     <el-table 
-      v-if="classes.length > 0"
       :data="classes" 
       stripe 
       row-key="id" 
       @selection-change="$emit('selection-change', $event)"
+      default-sort="{ prop: 'name', order: 'ascending' }"
     >
+      <template #empty>
+        <el-empty description="暂无班级数据" />
+      </template>
       <el-table-column type="selection" width="45" />
       <el-table-column type="index" label="序号" width="60" />
       <el-table-column prop="name" label="班级名称" min-width="180" show-overflow-tooltip />
@@ -66,8 +69,7 @@
         </template>
       </el-table-column>
       </el-table>
-      <el-empty v-else description="暂无班级数据" />
-    
+
     <!-- 批量操作栏 -->
     <div v-if="selectedClasses.length > 0" class="batch-operations">
       <span class="selected-count">已选择 {{ selectedClasses.length }} 个班级</span>

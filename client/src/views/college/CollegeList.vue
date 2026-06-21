@@ -3,13 +3,16 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>学院管理</span>
+          <span><el-icon><OfficeBuilding /></el-icon> 学院管理</span>
           <el-button type="primary" @click="openDialog()">
             <el-icon><Plus /></el-icon> 新增学院
           </el-button>
         </div>
       </template>
-      <el-table v-if="list.length > 0" :data="list" stripe v-loading="loading" row-key="id">
+      <el-table :data="list" stripe v-loading="loading" row-key="id" default-sort="{ prop: 'name', order: 'ascending' }">
+        <template #empty>
+          <el-empty description="暂无学院数据，请点击右上角新增" />
+        </template>
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="学院名称" min-width="150" />
         <el-table-column prop="code" label="编码" width="120" />
@@ -50,7 +53,6 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-else description="暂无学院数据" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑学院' : '新增学院'" width="500px">

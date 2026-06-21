@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>教材管理</span>
+          <span><el-icon><Notebook /></el-icon> 教材管理</span>
           <div class="card-header-actions">
             <el-input v-model="filterTitle" clearable placeholder="按书名筛选" class="filter-title" />
             <el-select v-model="filterCategory" placeholder="类别筛选" clearable style="width: 120px">
@@ -33,7 +33,10 @@
           </div>
         </div>
       </template>
-      <el-table v-if="filteredlist.length > 0" :data="filteredlist" stripe v-loading="loading" row-key="id" @selection-change="handleSelectionChange">
+      <el-table :data="filteredlist" stripe v-loading="loading" row-key="id" @selection-change="handleSelectionChange" default-sort="{ prop: 'title', order: 'ascending' }">
+        <template #empty>
+          <el-empty description="暂无教材数据，请点击右上角新增" />
+        </template>
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="title" label="书名" min-width="150" show-overflow-tooltip />
@@ -100,9 +103,7 @@
           </template>
         </el-table-column>
       </el-table>
-      
-      <el-empty v-else description="暂无教材数据" />
-      
+
       <!-- 批量操作栏 -->
       <div v-if="selectedTextbooks.length > 0" class="batch-operations">
         <span class="selected-count">已选择 {{ selectedTextbooks.length }} 个教材</span>
