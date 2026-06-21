@@ -67,10 +67,10 @@
 
           <el-alert :title="`共 ${detail?.totalClasses ?? 0} 个班级使用，合计 ${detail?.totalStudents ?? 0} 名学生`" type="success" :closable="false" class="alert-success" />
 
-          <el-table :data="paginatedClasses" stripe>
-          <el-table-column prop="className" label="班级" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="courseName" label="对应课程" min-width="160" show-overflow-tooltip />
-          <el-table-column prop="majorName" label="专业" min-width="140" show-overflow-tooltip />
+          <el-table :data="paginatedClasses" stripe :table-layout="'fixed'">
+          <el-table-column prop="className" label="班级" width="180" show-overflow-tooltip />
+          <el-table-column prop="courseName" label="对应课程" width="160" show-overflow-tooltip />
+          <el-table-column prop="majorName" label="专业" width="140" show-overflow-tooltip />
           <el-table-column prop="trainingLevelName" label="培养层次" width="120" show-overflow-tooltip />
           <el-table-column label="年级" width="90" align="center">
             <template #default="{ row }">{{ row.grade }}年级</template>
