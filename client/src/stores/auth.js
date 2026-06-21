@@ -69,9 +69,22 @@ export const useAuthStore = defineStore('auth', () => {
 
       return { success: true, message: '登录成功' }
     } catch (error) {
+      let message = '登录失败'
+      if (error.response) {
+        const status = error.response.status
+        if (status === 401 || status === 403) {
+          message = '账号或密码错误，请检查重新输入'
+        } else if (status >= 500) {
+          message = '服务器异常，请稍后重试'
+        } else if (error.response.data?.message) {
+          message = error.response.data.message
+        }
+      } else if (error.code === 'ECONNABORTED' || !error.response) {
+        message = '网络连接失败，请检查网络后重试'
+      }
       return {
         success: false,
-        message: error.message || '登录失败'
+        message
       }
     }
   }

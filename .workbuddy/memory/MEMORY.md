@@ -35,3 +35,14 @@
 - `FALLBACK_EMPTY=true`：无排课记录教师教材为空（核心修复）
 - `COHESION_PHASE_ENABLED=true`：启用 phase2.5 内聚优先阶段
 - `SCATTERED_THRESHOLD=3`：教材数≥3 视为分散教师
+
+## 班级离校级联规则（2026-06-20 新增）
+- 班级标记 `is_left_school=true` 时，自动删除当前学期该班全部 `teaching_assignments`
+- `!currentClass.is_left_school` 守卫防重复删除
+- 前端单编辑/批量设置均有 ElMessageBox 确认弹窗
+- 实现位置：`server/src/controllers/class.controller.js` updateClass + `client/src/views/class/ClassList.vue` handleSave/handleBatchSet
+
+## 教师周课时容量天花板（2026-06-20 新增）
+- `default_weekly_hours` 作为全局容量天花板，标准/最大模式均服从
+- `standardCap = min(系统剩余, 教师个人剩余)`，`fullCap` 同理
+- 实现位置：`server/src/services/teaching-arrange.service.js` buildTeacherConstraints
