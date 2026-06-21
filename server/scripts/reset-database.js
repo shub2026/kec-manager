@@ -9,35 +9,59 @@ async function resetDatabase() {
   console.log('=== 开始重置数据库 ===\n');
 
   try {
-    // 1. 删除现有数据库文件
-    const dbPath = path.join(process.cwd(), 'prisma', 'dev.db');
-    if (fs.existsSync(dbPath)) {
-      console.log('删除现有数据库文件...');
-      fs.unlinkSync(dbPath);
-      console.log('✓ 数据库文件已删除\n');
-    }
+    // 1. 清空所有现有数据（按依赖顺序）
+    console.log('清空现有数据...');
+    await prisma.$transaction([
+      prisma.audit_logs.deleteMany(),
+      prisma.teaching_assignments.deleteMany(),
+      prisma.plan_textbooks.deleteMany(),
+      prisma.plan_course_semesters.deleteMany(),
+      prisma.plan_courses.deleteMany(),
+      prisma.training_plans.deleteMany(),
+      prisma.teacher_training_levels.deleteMany(),
+      prisma.teacher_scheduling_colleges.deleteMany(),
+      prisma.teacher_courses.deleteMany(),
+      prisma.teachers.deleteMany(),
+      prisma.classes.deleteMany(),
+      prisma.textbooks.deleteMany(),
+      prisma.courses.deleteMany(),
+      prisma.training_levels.deleteMany(),
+      prisma.majors.deleteMany(),
+      prisma.colleges.deleteMany(),
+      prisma.system_settings.deleteMany(),
+      prisma.users.deleteMany(),
+    ]);
+    console.log('✓ 所有数据已清空\n');
 
     // 2. 重新生成数据库表结构
     console.log('重新生成数据库表结构...');
     const { execSync } = await import('child_process');
-    execSync('npx prisma db push', { stdio: 'inherit', cwd: process.cwd() });
-    console.log('✓ 数据库表结构已生成\n');
+    execSync('npx prisma db push --force-reset', { stdio: 'inherit', cwd: process.cwd() });
+    console.log('✓ 数据库表结构已重置\n');
 
     // 3. 创建默认用户
     console.log('创建默认用户...');
     const hashedPassword = await bcrypt.hash('admin@123456', 10);
 
-    const adminUser = await prisma.users.create({
-      data: {
-        username: 'admin',
-        password: hashedPassword,
-        role: 'super_admin',
-        real_name: '系统管理员',
-        email: 'admin@example.com',
-        is_active: true,
-      },
-    });
-    console.log(`✓ 超级管理员已创建: ${adminUser.username} (密码: admin@123456)\n`);
+    try {
+      const adminUser = await prisma.users.create({
+        data: {
+          username: 'admin',
+          password: hashedPassword,
+          role: 'super_admin',
+          real_name: '系统管理员',
+          email: 'admin@example.com',
+          is_active: true,
+        },
+      });
+      console.log(`✓ 超级管理员已创建: ${adminUser.username} (密码: admin@123456)\n`);
+    } catch (error) {
+      if (error.code === 'P2002') {
+        console.log('⚠ 管理员用户已存在，跳过创建\n');
+      } else {
+        throw error;
+      }
+    }
 
     // 4. 初始化系统设置
     console.log('初始化系统设置...');

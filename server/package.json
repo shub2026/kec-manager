@@ -15,6 +15,7 @@
     "init:settings": "node scripts/init-settings.js",
     "db:migrate": "npx prisma migrate dev",
     "db:generate": "npx prisma generate",
+    "db:reset": "node scripts/reset-database.js",
     "db:seed": "node prisma/seed.js",
     "db:seed:dev": "DEV_SEEDS=true node prisma/seed.js",
     "db:seed:reset": "FORCE_RESET=true node prisma/seed.js",

@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 REM KEC 课程管理平台 - Windows 开发环境启动脚本
 
 echo ======================================
@@ -13,13 +14,15 @@ echo.
 
 REM 进入项目根目录
 cd /d "%~dp0"
+echo 当前目录: %CD%
+echo.
 
 REM 重置数据库
 echo 步骤 1/3: 重置数据库...
 cd server
-node scripts/reset-database.js
+npm run db:reset
 if errorlevel 1 (
-    echo ❌ 数据库重置失败!
+    echo [错误] 数据库重置失败!
     pause
     exit /b 1
 )
@@ -38,7 +41,7 @@ echo ======================================
 echo   登录信息
 echo ======================================
 echo   用户名: admin
-echo   密码: admin123
+echo   密码: admin@123456
 echo   角色: super_admin
 echo ======================================
 echo.
