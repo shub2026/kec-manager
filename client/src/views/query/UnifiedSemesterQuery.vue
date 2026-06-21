@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>开课查询</span>
+          <span><el-icon><DocumentChecked /></el-icon> 开课查询</span>
           <div class="card-header-actions">
             <el-button @click="goToCurrentSemester">
               <el-icon><Calendar /></el-icon> 当前学期
@@ -31,7 +31,7 @@
             <el-select v-model="filterGrade" clearable placeholder="按年级筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
             </el-select>
-            <el-button @click="resetFilters">
+            <el-button @click="resetFilters" :disabled="!selectedSemester && !filterCollege && !filterMajor && !filterLevel && !filterEnrollmentYear && !filterGrade">
               <el-icon><Refresh /></el-icon> 重置
             </el-button>
             <el-button type="success" @click="exportExcel">
@@ -41,11 +41,15 @@
         </div>
       </template>
 
-      <el-alert v-if="!selectedSemester" title="请先选择要查询的学期" type="warning" :closable="false" class="alert-info" />
-      <el-alert v-else-if="semesterLabel" :title="`查询学期：${semesterLabel} | 共 ${totalClasses} 个班级`" type="info" :closable="false" class="alert-info" />
+      <!-- 未选学期时显示空状态 -->
+      <el-empty v-if="!selectedSemester" description="请先选择学期，然后查看开课情况" />
 
-      <el-table :data="data" stripe row-key="classId" v-loading="loading">
-        <el-table-column type="expand">
+      <!-- 已选学期时显示统计信息、表格和分页 -->
+      <template v-else>
+        <el-alert :title="`查询学期：${semesterLabel} | 共 ${totalClasses} 个班级`" type="info" :closable="false" class="alert-info" />
+
+        <el-table :data="data" stripe row-key="classId" v-loading="loading">
+          <el-table-column type="expand">
           <template #default="{ row }">
             <div class="expand-content">
               <el-table :data="row.courses" size="small" border>
@@ -108,6 +112,7 @@
           @current-change="handlePageChange"
         />
       </div>
+      </template>
     </el-card>
   </div>
 </template>
