@@ -67,19 +67,19 @@
 
           <el-alert :title="`共 ${detail?.totalClasses ?? 0} 个班级使用，合计 ${detail?.totalStudents ?? 0} 名学生`" type="success" :closable="false" class="alert-success" />
 
-          <el-table :data="paginatedClasses" stripe class="textbook-query-table">
-          <el-table-column prop="className" label="班级" width="180" show-overflow-tooltip />
-          <el-table-column prop="courseName" label="对应课程" width="160" show-overflow-tooltip />
-          <el-table-column prop="majorName" label="专业" width="140" show-overflow-tooltip />
+          <el-table :data="paginatedClasses" stripe class="textbook-query-table" :fit="true">
+          <el-table-column prop="className" label="班级" min-width="260" show-overflow-tooltip />
+          <el-table-column prop="courseName" label="对应课程" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="majorName" label="专业" min-width="150" show-overflow-tooltip />
           <el-table-column prop="trainingLevelName" label="培养层次" width="120" show-overflow-tooltip />
           <el-table-column label="年级" width="90" align="center">
             <template #default="{ row }">{{ row.grade }}年级</template>
           </el-table-column>
           <el-table-column prop="studentCount" label="学生人数" width="100" align="center" />
-          <el-table-column label="使用学期" width="100" align="center">
+          <el-table-column label="使用学期" width="110" align="center">
             <template #default="{ row }">第{{ row.semester }}学期</template>
           </el-table-column>
-          <el-table-column label="是否必订" width="100" align="center">
+          <el-table-column label="是否必订" width="110" align="center">
             <template #default="{ row }">
               <el-tag :type="row.isRequired ? 'danger' : 'info'" size="small">{{ row.isRequired ? '必订' : '选修' }}</el-tag>
             </template>
@@ -310,11 +310,8 @@ onMounted(async () => {
   margin-bottom: 16px;
 }
 
-/* 强制表格使用固定布局，切换教材时列宽不跳动 */
+/* 表格容器，确保撑满可用宽度 */
 .textbook-query-table {
-  table-layout: fixed;
-}
-.textbook-query-table :deep(.el-table__inner-wrapper) {
-  table-layout: fixed;
+  width: 100%;
 }
 </style>
