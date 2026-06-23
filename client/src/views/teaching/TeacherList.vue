@@ -88,7 +88,7 @@
         :data="filteredlist"
         stripe
         row-key="id"
-        default-sort="{ prop: 'name', order: 'ascending' }"
+        :default-sort="{ prop: 'name', order: 'ascending' }"
       >
         <template #empty>
           <el-empty description="暂无教师数据，请点击右上角新增" />
@@ -395,8 +395,9 @@ const levelCollegeRelation = computed(() => {
 const { getFilteredOptions, handleParentChange } = useFilterLinkage({
   filters,
   relations: {
-    collegeTrainingLevelRelation,
-    trainingLevelCollegeRelation,
+    // key名必须匹配Hook动态拼接规则: {parentField}{FieldName}Relation
+    trainingLevelIdCollegeIdRelation: levelCollegeRelation,    // 按层次过滤学院
+    collegeIdTrainingLevelIdRelation: collegeLevelRelation,    // 按学院过滤层次
   },
 });
 

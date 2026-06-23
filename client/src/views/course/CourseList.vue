@@ -39,7 +39,7 @@
         :data="filteredList"
         stripe
         row-key="id"
-        default-sort="{ prop: 'name', order: 'ascending' }"
+        :default-sort="{ prop: 'name', order: 'ascending' }"
       >
         <template #empty>
           <el-empty description="暂无课程数据，请点击右上角新增" />

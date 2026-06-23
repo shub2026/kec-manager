@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>操作日志</span>
+          <span><el-icon><Document /></el-icon> 操作日志</span>
           <el-button type="danger" size="small" :loading="clearing" @click="showClearDialog">
             <el-icon><Delete /></el-icon> 清空日志
           </el-button>
@@ -14,8 +14,8 @@
         <el-select
           v-model="filterAction"
           clearable
-          placeholder="选择操作类型"
-          style="width: 150px"
+          placeholder="操作类型"
+          style="width: 140px"
           @change="loadLogs"
         >
           <el-option label="登录" value="login" />
@@ -29,8 +29,8 @@
         <el-select
           v-model="filterModule"
           clearable
-          placeholder="选择模块"
-          style="width: 150px"
+          placeholder="所属模块"
+          style="width: 140px"
           @change="loadLogs"
         >
           <el-option label="认证" value="auth" />
@@ -47,7 +47,7 @@
         <el-select
           v-model="filterResult"
           clearable
-          placeholder="选择结果"
+          placeholder="执行结果"
           style="width: 120px"
           @change="loadLogs"
         >
@@ -59,27 +59,45 @@
         </el-button>
       </div>
 
-      <el-table v-loading="loading" :data="logs" stripe>
-        <el-table-column label="操作" width="120">
+      <el-table
+        v-loading="loading"
+        :data="logs"
+        stripe
+        row-key="id"
+        :default-sort="{ prop: 'createdAt', order: 'descending' }"
+      >
+        <template #empty>
+          <el-empty description="暂无操作日志" />
+        </template>
+        <el-table-column label="时间" width="165" prop="createdAt" sortable>
+          <template #default="{ row }">
+            <span class="time-text">{{ formatDateTime(row.createdAt) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作类型" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="getActionTagType(row.action)" size="small">
               {{ getActionLabel(row.action) }}
             </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="结果" width="70" align="center">
+          <template #default="{ row }">
             <el-tag
               :type="row.result === 'success' ? 'success' : 'danger'"
               size="small"
-              style="margin-left: 4px"
+              effect="light"
             >
               {{ row.result === 'success' ? '成功' : '失败' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="module" label="模块" width="100">
+        <el-table-column label="模块" width="140" align="center">
           <template #default="{ row }">
-            <el-tag type="info" size="small">{{ getModuleLabel(row.module) }}</el-tag>
+            <el-tag type="info" size="small" effect="plain">{{ getModuleLabel(row.module) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="消息" min-width="300" show-overflow-tooltip>
+        <el-table-column label="消息" min-width="280" show-overflow-tooltip>
           <template #default="{ row }">
             <span>{{ row.message }}</span>
             <el-button
@@ -87,21 +105,21 @@
               link
               type="primary"
               size="small"
-              style="margin-left: 8px"
+              style="margin-left: 6px"
               @click="showDetails(row.details)"
             >
               详情
             </el-button>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="时间" width="170">
+        <el-table-column label="IP 地址" width="130">
           <template #default="{ row }">
-            {{ formatDateTime(row.createdAt) }}
+            <span class="ip-text">{{ row.ip || '-' }}</span>
           </template>
         </el-table-column>
       </el-table>
 
-      <div class="pagination">
+      <div class="pagination-container">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -141,6 +159,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { Document } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getAuditLogs } from '../../api/audit';
 import request from '../../utils/request';
@@ -294,14 +313,20 @@ onMounted(() => {
 .query-toolbar {
   display: flex;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
-.pagination {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
+.time-text {
+  color: #606266;
+  font-size: 13px;
+}
+
+.ip-text {
+  color: #909399;
+  font-size: 13px;
+  font-family: monospace;
 }
 
 .details-content {
