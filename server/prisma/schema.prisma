@@ -17,7 +17,7 @@ model audit_logs {
   result      String
   message     String?
   created_at  DateTime @default(now())
-  users       users?   @relation(fields: [operator_id], references: [id])
+  users       users?   @relation(fields: [operator_id], references: [id], onDelete: SetNull)
 
   @@index([created_at(sort: Desc)])
   @@index([operator_id])
@@ -39,10 +39,10 @@ model classes {
   is_left_school    Boolean          @default(false)
   created_at        DateTime         @default(now())
   updated_at        DateTime         @updatedAt
-  majors               majors?                    @relation(fields: [major_id], references: [id])
-  colleges             colleges?                  @relation(fields: [college_id], references: [id])
-  training_levels      training_levels?           @relation(fields: [training_level_id], references: [id])
-  training_plans       training_plans?            @relation(fields: [custom_plan_id], references: [id])
+  majors               majors?                    @relation(fields: [major_id], references: [id], onDelete: SetNull)
+  colleges             colleges?                  @relation(fields: [college_id], references: [id], onDelete: SetNull)
+  training_levels      training_levels?           @relation(fields: [training_level_id], references: [id], onDelete: SetNull)
+  training_plans       training_plans?            @relation(fields: [custom_plan_id], references: [id], onDelete: SetNull)
   teaching_assignments teaching_assignments[]
 
   @@index([status])
@@ -201,9 +201,9 @@ model training_plans {
   updated_at        DateTime         @updatedAt
   classes           classes[]
   plan_courses      plan_courses[]
-  majors            majors?          @relation(fields: [major_id], references: [id])
-  colleges          colleges?        @relation(fields: [college_id], references: [id])
-  training_levels   training_levels? @relation(fields: [training_level_id], references: [id])
+  majors            majors?          @relation(fields: [major_id], references: [id], onDelete: SetNull)
+  colleges          colleges?        @relation(fields: [college_id], references: [id], onDelete: SetNull)
+  training_levels   training_levels? @relation(fields: [training_level_id], references: [id], onDelete: SetNull)
 
   @@index([major_id])
   @@index([college_id])

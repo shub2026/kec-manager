@@ -4,6 +4,7 @@ import { createAuditLog } from '../services/audit.service.js';
 import { AuthService } from '../services/auth.service.js';
 import { log } from '../utils/logger.js';
 import { DEFAULT_SEMESTER } from '../constants/index.js';
+import { invalidateDurationCache } from '../services/class.service.js';
 
 const DEFAULT_SETTINGS = {
   current_semester: { value: DEFAULT_SEMESTER, description: '当前学期' },
@@ -188,11 +189,13 @@ export async function resetBasic(req, res, next) {
   await resetData(
     'basic',
     async (tx) => {
+      await tx.teaching_assignments.deleteMany();
       await tx.plan_textbooks.deleteMany();
       await tx.plan_course_semesters.deleteMany();
       await tx.plan_courses.deleteMany();
       await tx.training_plans.deleteMany();
       await tx.classes.deleteMany();
+      invalidateDurationCache();
       await tx.textbooks.deleteMany();
       await tx.courses.deleteMany();
       await tx.majors.deleteMany();
@@ -269,6 +272,7 @@ export async function resetCourses(req, res, next) {
   await resetData(
     'courses',
     async (tx) => {
+      await tx.teaching_assignments.deleteMany();
       await tx.plan_textbooks.deleteMany();
       await tx.plan_course_semesters.deleteMany();
       await tx.plan_courses.deleteMany();
@@ -297,7 +301,9 @@ export async function resetClasses(req, res, next) {
   await resetData(
     'classes',
     async (tx) => {
+      await tx.teaching_assignments.deleteMany();
       await tx.classes.deleteMany();
+      invalidateDurationCache();
     },
     req,
     res,
@@ -352,6 +358,7 @@ export async function resetSystem(req, res, next) {
       // 2. 再删主表
       await tx.teachers.deleteMany();
       await tx.classes.deleteMany();
+      invalidateDurationCache();
       await tx.training_plans.deleteMany();
       await tx.textbooks.deleteMany();
       await tx.courses.deleteMany();

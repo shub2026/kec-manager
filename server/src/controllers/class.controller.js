@@ -3,7 +3,7 @@ import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { NotFoundError, ValidationError } from '../utils/error.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
-import { getActiveClassFilter } from '../services/class.service.js';
+import { getActiveClassFilter, invalidateDurationCache } from '../services/class.service.js';
 import { buildClassFilter } from '../services/class-filter.service.js';
 import { isClassMatchPlan } from '../services/plan.service.js';
 
@@ -291,6 +291,7 @@ export async function createClass(req, res, next) {
       message: `创建班级：${name}`,
     });
 
+    invalidateDurationCache();
     success(res, cls, '创建成功');
   } catch (e) {
     await createAuditLog({
@@ -389,6 +390,8 @@ export async function updateClass(req, res, next) {
     });
 
     success(res, cls, '更新成功');
+
+    if (duration_years !== undefined) invalidateDurationCache();
   } catch (e) {
     await createAuditLog({
       action: 'update',
@@ -430,6 +433,7 @@ export async function deleteClass(req, res, next) {
       });
 
       success(res, null, '删除成功');
+      invalidateDurationCache();
     } catch (e) {
       await createAuditLog({
         action: 'delete',
