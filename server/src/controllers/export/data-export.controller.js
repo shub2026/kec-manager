@@ -668,7 +668,7 @@ export async function exportStatistics(req, res, next) {
  */
 export async function exportTeachingArrange(req, res, next) {
   try {
-    const { course_id, semester } = req.query;
+    const { course_id, semester, college, major, training_level, grade, textbook } = req.query;
     if (!course_id || !semester) {
       return res.status(400).json({ success: false, message: '缺少课程或学期参数' });
     }
@@ -679,8 +679,15 @@ export async function exportTeachingArrange(req, res, next) {
     const course = await prisma.courses.findUnique({ where: { id: Number(course_id) } });
     if (!course) return res.status(404).json({ success: false, message: '课程不存在' });
 
+    // 构建筛选条件
+    const filters = {};
+    if (college) filters.college = college;
+    if (major) filters.major = major;
+    if (training_level) filters.training_level = training_level;
+    if (grade) filters.grade = grade;
+    
     // 获取班级列表（含课时、学院等信息）
-    const classes = await getClassesWithCourse(course_id, semester);
+    const classes = await getClassesWithCourse(course_id, semester, filters);
 
     // 获取教学安排
     const assignments = await prisma.teaching_assignments.findMany({
@@ -691,7 +698,15 @@ export async function exportTeachingArrange(req, res, next) {
     });
     const assignmentMap = new Map(assignments.map((a) => [a.class_id, a]));
 
-    const rows = classes.map((c) => {
+    // 过滤班级数据（包括教材筛选）
+    let filteredClasses = classes;
+    if (textbook) {
+      filteredClasses = classes.filter(c => 
+        c.textbooks?.some(tb => tb.title === textbook)
+      );
+    }
+
+    const rows = filteredClasses.map((c) => {
       const a = assignmentMap.get(c.classId);
       const textbookNames = c.textbooks?.map((tb) => tb.title).join('、') || '-';
       return {

@@ -74,10 +74,16 @@ export async function querySemester(req, res, next) {
 
     const totalClassesCount = await prisma.classes.count({ where: classWhere });
 
-    // 查询全量班级以提取可用的入学年份和年级（用于前端筛选器下拉）
+    // 查询全量班级以提取可用的入学年份、年级和关联关系（用于前端筛选器下拉）
     const allMatchingClasses = await prisma.classes.findMany({
       where: classWhere,
-      select: { enrollment_year: true, duration_years: true },
+      select: { 
+        enrollment_year: true, 
+        duration_years: true,
+        college_id: true,
+        major_id: true,
+        training_level_id: true,
+      },
     });
     const enrollmentYearSet = new Set();
     const gradeSet = new Set();
@@ -88,6 +94,72 @@ export async function querySemester(req, res, next) {
     }
     const availableEnrollmentYears = [...enrollmentYearSet].sort((a, b) => b - a);
     const availableGrades = [...gradeSet].sort((a, b) => a - b);
+
+    // 提取当前学期实际开课的学院、专业、层次ID列表
+    const collegeIdSet = new Set();
+    const majorIdSet = new Set();
+    const levelIdSet = new Set();
+    
+    for (const cls of allMatchingClasses) {
+      if (cls.college_id != null) collegeIdSet.add(cls.college_id);
+      if (cls.major_id != null) majorIdSet.add(cls.major_id);
+      if (cls.training_level_id != null) levelIdSet.add(cls.training_level_id);
+    }
+    
+    const availableCollegeIds = Array.from(collegeIdSet);
+    const availableMajorIds = Array.from(majorIdSet);
+    const availableLevelIds = Array.from(levelIdSet);
+
+    // 计算学院-专业关联关系（基于当前学期实际开课的班级数据）
+    const collegeMajorMap = new Map();
+    
+    for (const cls of allMatchingClasses) {
+      if (cls.college_id != null && cls.major_id != null) {
+        if (!collegeMajorMap.has(cls.college_id)) {
+          collegeMajorMap.set(cls.college_id, new Set());
+        }
+        collegeMajorMap.get(cls.college_id).add(cls.major_id);
+      }
+    }
+    
+    const collegeMajorRelation = {};
+    for (const [collegeId, majorIds] of collegeMajorMap) {
+      collegeMajorRelation[collegeId] = Array.from(majorIds);
+    }
+
+    // 计算学院-层次关联关系
+    const collegeLevelMap = new Map();
+    
+    for (const cls of allMatchingClasses) {
+      if (cls.college_id != null && cls.training_level_id != null) {
+        if (!collegeLevelMap.has(cls.college_id)) {
+          collegeLevelMap.set(cls.college_id, new Set());
+        }
+        collegeLevelMap.get(cls.college_id).add(cls.training_level_id);
+      }
+    }
+    
+    const collegeLevelRelation = {};
+    for (const [collegeId, levelIds] of collegeLevelMap) {
+      collegeLevelRelation[collegeId] = Array.from(levelIds);
+    }
+
+    // 计算专业-层次关联关系
+    const majorLevelMap = new Map();
+    
+    for (const cls of allMatchingClasses) {
+      if (cls.major_id != null && cls.training_level_id != null) {
+        if (!majorLevelMap.has(cls.major_id)) {
+          majorLevelMap.set(cls.major_id, new Set());
+        }
+        majorLevelMap.get(cls.major_id).add(cls.training_level_id);
+      }
+    }
+    
+    const majorLevelRelation = {};
+    for (const [majorId, levelIds] of majorLevelMap) {
+      majorLevelRelation[majorId] = Array.from(levelIds);
+    }
 
     const classes = await prisma.classes.findMany({
       where: classWhere,
@@ -247,6 +319,12 @@ export async function querySemester(req, res, next) {
       pageSize: pageSizeNum,
       enrollmentYears: availableEnrollmentYears,
       grades: availableGrades,
+      collegeIds: availableCollegeIds,     // 当前学期实际开课的学院ID
+      majorIds: availableMajorIds,         // 当前学期实际开课的专业ID
+      levelIds: availableLevelIds,         // 当前学期实际开课的层次ID
+      collegeMajorRelation,                // 学院-专业关联
+      collegeLevelRelation,                // 学院-层次关联
+      majorLevelRelation,                  // 专业-层次关联
       data: results,
     });
   } catch (e) {

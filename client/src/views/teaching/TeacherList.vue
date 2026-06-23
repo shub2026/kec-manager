@@ -33,8 +33,9 @@
               clearable
               filterable
               class="filter-medium"
+              @change="handleCollegeFilterChange"
             >
-              <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
+              <el-option v-for="c in filteredColleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
             <el-select
               v-model="filterTrainingLevelId"
@@ -42,8 +43,9 @@
               clearable
               filterable
               class="filter-narrow"
+              @change="handleTrainingLevelFilterChange"
             >
-              <el-option v-for="l in allTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
+              <el-option v-for="l in filteredTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
             </el-select>
             <el-select
               v-model="filterAffiliatedCollegeId"
@@ -337,6 +339,7 @@ import { getCourses } from '../../api/course';
 import { useExport } from '../../composables/useExport';
 import request from '../../utils/request';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
+import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 
 const list = ref([]);
 const loading = ref(false);
@@ -365,6 +368,47 @@ const filterCollegeId = ref('');
 const filterTrainingLevelId = ref('');
 const filterAffiliatedCollegeId = ref('');
 const filterStatus = ref('');
+
+// 使用通用联动Hook(意向学院 ↔ 意向层次)
+const filters = computed(() => ({
+  collegeId: filterCollegeId.value,
+  trainingLevelId: filterTrainingLevelId.value,
+}));
+
+// 转换collegeLevelMapping为Hook需要的格式
+const collegeLevelRelation = computed(() => {
+  const relation = {};
+  for (const [collegeId, levelIds] of Object.entries(collegeLevelMapping.value.collegeToLevels)) {
+    relation[collegeId] = levelIds;
+  }
+  return relation;
+});
+
+const levelCollegeRelation = computed(() => {
+  const relation = {};
+  for (const [levelId, collegeIds] of Object.entries(collegeLevelMapping.value.levelToColleges)) {
+    relation[levelId] = collegeIds;
+  }
+  return relation;
+});
+
+const { getFilteredOptions, handleParentChange } = useFilterLinkage({
+  filters,
+  relations: {
+    collegeTrainingLevelRelation,
+    trainingLevelCollegeRelation,
+  },
+});
+
+// 意向学院根据意向层次过滤
+const filteredColleges = computed(() =>
+  getFilteredOptions.value('collegeId', allColleges.value, ['trainingLevelId'])
+);
+
+// 意向层次根据意向学院过滤
+const filteredTrainingLevels = computed(() =>
+  getFilteredOptions.value('trainingLevelId', allTrainingLevels.value, ['collegeId'])
+);
 
 // 客户端筛选
 const filteredlist = computed(() => {
@@ -445,6 +489,15 @@ function formatBirthDate(birthDate) {
   const str = String(birthDate);
   if (str.length >= 7) return str.substring(0, 7);
   return str;
+}
+
+// 筛选器联动处理函数
+function handleCollegeFilterChange() {
+  handleParentChange('collegeId', ['trainingLevelId'], () => {});
+}
+
+function handleTrainingLevelFilterChange() {
+  handleParentChange('trainingLevelId', ['collegeId'], () => {});
 }
 
 function calcAge(birthDate) {

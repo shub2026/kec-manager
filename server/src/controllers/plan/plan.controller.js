@@ -37,36 +37,28 @@ export async function listPlans(req, res, next) {
     plans.forEach((p) => {
       classCountMap[p.id] = 0;
     });
-    const matchedClassIds = new Set();
 
-    // 第一轮：custom_plan_id 直接匹配（最高优先级）
+    // 遍历所有班级，根据匹配规则统计每个方案的班级数
+    // 注意：专业和层次是平级OR关系，一个班级可能同时匹配多个方案
     for (const cls of allClasses) {
+      // 1. 自定义方案优先匹配（最高优先级）
       if (cls.custom_plan_id && classCountMap[cls.custom_plan_id] !== undefined) {
         classCountMap[cls.custom_plan_id]++;
-        matchedClassIds.add(cls.id);
+        continue; // 自定义方案已匹配，不再进行其他匹配
       }
-    }
 
-    // 第二轮：按专业（major_id）匹配 —— 专业比层次更具体，优先匹配
-    for (const cls of allClasses) {
-      if (matchedClassIds.has(cls.id) || !cls.major_id) continue;
+      // 2. 按专业 OR 按层次匹配（平级关系，无先后之分）
+      // 一个班级可能同时满足专业和层次条件，此时会匹配到多个方案
       for (const plan of plans) {
-        if (plan.major_id && cls.major_id === plan.major_id) {
-          classCountMap[plan.id]++;
-          matchedClassIds.add(cls.id);
-          break;
-        }
-      }
-    }
+        // 跳过已处理过的方案
+        if (!plan.major_id && !plan.training_level_id) continue;
 
-    // 第三轮：按培养层次（training_level_id）匹配剩余未分配的班级
-    for (const cls of allClasses) {
-      if (matchedClassIds.has(cls.id) || !cls.training_level_id) continue;
-      for (const plan of plans) {
-        if (plan.training_level_id && cls.training_level_id === plan.training_level_id) {
+        // 检查是否匹配：方案设置了major_id且与班级专业相同，或方案设置了training_level_id且与班级层次相同
+        const matchByMajor = plan.major_id && cls.major_id && cls.major_id === plan.major_id;
+        const matchByLevel = plan.training_level_id && cls.training_level_id && cls.training_level_id === plan.training_level_id;
+
+        if (matchByMajor || matchByLevel) {
           classCountMap[plan.id]++;
-          matchedClassIds.add(cls.id);
-          break;
         }
       }
     }

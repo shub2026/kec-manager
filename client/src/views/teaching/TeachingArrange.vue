@@ -120,12 +120,8 @@
               v-model="filterCollege"
               placeholder="学院"
               clearable
-              filterable
-              style="width: 130px"
-              @change="
-                filterMajor = '';
-                filterTextbook = '';
-              "
+              style="width: 120px"
+              @change="handleCollegeFilterChange"
             >
               <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
             </el-select>
@@ -135,7 +131,7 @@
               clearable
               filterable
               style="width: 130px"
-              @change="filterTextbook = ''"
+              @change="handleMajorFilterChange"
             >
               <el-option v-for="v in majorOptions" :key="v" :label="v" :value="v" />
             </el-select>
@@ -144,6 +140,7 @@
               placeholder="层次"
               clearable
               style="width: 100px"
+              @change="handleTrainingLevelFilterChange"
             >
               <el-option v-for="v in trainingLevelOptions" :key="v" :label="v" :value="v" />
             </el-select>
@@ -601,6 +598,7 @@ import {
   CircleCheckFilled,
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { getCourses } from '../../api/course';
 import request from '../../utils/request';
 import { downloadBlob } from '../../utils/download';
@@ -661,6 +659,18 @@ const filterTrainingLevel = ref('');
 const filterTextbook = ref('');
 const previewMode = ref(false);
 
+// 使用通用联动Hook(适配字符串匹配模式)
+const filters = computed(() => ({
+  college: filterCollege.value,
+  major: filterMajor.value,
+  trainingLevel: filterTrainingLevel.value,
+}));
+
+const { handleParentChange } = useFilterLinkage({
+  filters,
+  relations: {}, // 教学安排页不需要关联数据,直接从classList过滤
+});
+
 const collegeOptions = computed(() => {
   const set = new Set(classList.value.map((c) => c.collegeName).filter(Boolean));
   return [...set].sort();
@@ -674,12 +684,18 @@ const majorOptions = computed(() => {
 });
 
 const gradeOptions = computed(() => {
-  const set = new Set(classList.value.map((c) => c.grade).filter(Boolean));
+  let list = classList.value;
+  if (filterCollege.value) list = list.filter((c) => c.collegeName === filterCollege.value);
+  if (filterMajor.value) list = list.filter((c) => c.majorName === filterMajor.value);
+  const set = new Set(list.map((c) => c.grade).filter(Boolean));
   return [...set].sort((a, b) => a - b);
 });
 
 const trainingLevelOptions = computed(() => {
-  const set = new Set(classList.value.map((c) => c.trainingLevelName).filter(Boolean));
+  let list = classList.value;
+  if (filterCollege.value) list = list.filter((c) => c.collegeName === filterCollege.value);
+  if (filterMajor.value) list = list.filter((c) => c.majorName === filterMajor.value);
+  const set = new Set(list.map((c) => c.trainingLevelName).filter(Boolean));
   return [...set].sort();
 });
 
@@ -1078,8 +1094,20 @@ async function handleExportArrange() {
   if (!selectedCourseId.value || !currentSemesterLabel.value) return;
   exporting.value = true;
   try {
+    const params = {
+      course_id: selectedCourseId.value,
+      semester: currentSemesterLabel.value,
+    };
+    
+    // 添加筛选条件
+    if (filterCollege.value) params.college = filterCollege.value;
+    if (filterMajor.value) params.major = filterMajor.value;
+    if (filterTrainingLevel.value) params.training_level = filterTrainingLevel.value;
+    if (filterGrade.value) params.grade = filterGrade.value;
+    if (filterTextbook.value) params.textbook = filterTextbook.value;
+    
     const response = await request.get('/export/teaching-arrange', {
-      params: { course_id: selectedCourseId.value, semester: currentSemesterLabel.value },
+      params,
       responseType: 'blob',
     });
     downloadBlob(
@@ -1095,6 +1123,29 @@ async function handleExportArrange() {
   } finally {
     exporting.value = false;
   }
+}
+
+// 添加筛选器处理函数
+function handleCollegeFilterChange() {
+  // 当学院改变时，清空专业、层次、年级和教材选择
+  handleParentChange('college', ['major', 'trainingLevel'], () => {
+    filterGrade.value = '';
+    filterTextbook.value = '';
+  });
+}
+
+function handleMajorFilterChange() {
+  // 当专业改变时，清空层次、年级和教材选择
+  handleParentChange('major', ['trainingLevel'], () => {
+    filterGrade.value = '';
+    filterTextbook.value = '';
+  });
+}
+
+function handleTrainingLevelFilterChange() {
+  // 当层次改变时，清空年级和教材选择
+  filterGrade.value = '';
+  filterTextbook.value = '';
 }
 
 onMounted(() => {

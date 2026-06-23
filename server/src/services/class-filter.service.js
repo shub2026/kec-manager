@@ -12,25 +12,16 @@ export async function buildClassFilter(query) {
   const where = {};
   if (name) where.name = { contains: name };
 
-  if (majorId === 'null') {
-    where.major_id = null;
-  } else if (majorId) {
+  if (majorId) {
     where.major_id = Number(majorId);
   }
 
-  if (collegeId === 'null') {
-    where.college_id = null;
-  } else if (collegeId) {
+  if (collegeId) {
     where.college_id = Number(collegeId);
   }
 
   let dynamicStatusFilter = null;
-  if (status === 'null') {
-    dynamicStatusFilter = [
-      { enrollment_year: null, is_left_school: false },
-      { duration_years: null, is_left_school: false },
-    ];
-  } else if (status === 'left_school') {
+  if (status === 'left_school') {
     dynamicStatusFilter = [{ is_left_school: true }];
   } else if (status === 'active' || status === 'graduated') {
     const semesterInfo = await getCurrentSemesterInfo();
@@ -51,15 +42,11 @@ export async function buildClassFilter(query) {
     }
   }
 
-  if (trainingLevelId === 'null') {
-    where.training_level_id = null;
-  } else if (trainingLevelId) {
+  if (trainingLevelId) {
     where.training_level_id = Number(trainingLevelId);
   }
 
-  if (enrollmentYear === 'null') {
-    where.enrollment_year = null;
-  } else if (enrollmentYear) {
+  if (enrollmentYear) {
     where.enrollment_year = Number(enrollmentYear);
   }
 

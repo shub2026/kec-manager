@@ -4,7 +4,7 @@
       :data="classes"
       stripe
       row-key="id"
-      default-sort="{ prop: 'name', order: 'ascending' }"
+      :default-sort="{ prop: 'name', order: 'ascending' }"
       @selection-change="$emit('selection-change', $event)"
     >
       <template #empty>
@@ -51,9 +51,17 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="当前方案" min-width="130" show-overflow-tooltip>
+      <el-table-column label="当前方案" min-width="180" show-overflow-tooltip>
         <template #default="{ row }">
-          <el-tag :type="getPlanTagType(row)" size="small">
+          <div v-if="row.planMatchWarning" class="plan-warning">
+            <el-tooltip :content="row.planMatchWarning" placement="top" effect="light">
+              <el-tag type="warning" size="small">
+                <el-icon><Warning /></el-icon>
+                {{ getCurrentPlanName(row) }}
+              </el-tag>
+            </el-tooltip>
+          </div>
+          <el-tag v-else :type="getPlanTagType(row)" size="small">
             {{ getCurrentPlanName(row) }}
           </el-tag>
         </template>
@@ -112,7 +120,7 @@
 </template>
 
 <script setup>
-import { Edit, Delete } from '@element-plus/icons-vue';
+import { Edit, Delete, Warning } from '@element-plus/icons-vue';
 
 const props = defineProps({
   classes: {
@@ -254,5 +262,13 @@ function getCurrentPlanName(row) {
   display: flex;
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+.plan-warning {
+  display: inline-block;
+}
+
+.plan-warning .el-tag {
+  cursor: help;
 }
 </style>

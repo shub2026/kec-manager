@@ -58,7 +58,7 @@ export function isLevelEligible(t, cls) {
 /**
  * 获取指定学期下开设某课程的班级列表（含课时、教材、学院等完整信息）
  */
-export async function getClassesWithCourse(courseId, semesterStr) {
+export async function getClassesWithCourse(courseId, semesterStr, filters = {}) {
   const semesterInfo = parseSemester(semesterStr);
   if (!semesterInfo) throw new Error('学期格式错误');
 
@@ -83,14 +83,33 @@ export async function getClassesWithCourse(courseId, semesterStr) {
   });
   const durationValues = durations.map((d) => d.duration_years).filter((d) => d != null);
 
+  // 构建班级查询条件
+  const classWhere = {
+    OR: durationValues.map((d) => ({
+      duration_years: d,
+      is_left_school: false,
+      enrollment_year: { gte: semesterInfo.startYear - d + 1 },
+    })),
+  };
+  
+  // 添加筛选条件
+  if (filters.college) {
+    classWhere.colleges = { name: filters.college };
+  }
+  if (filters.major) {
+    classWhere.majors = { name: filters.major };
+  }
+  if (filters.training_level) {
+    classWhere.training_levels = { name: filters.training_level };
+  }
+  if (filters.grade) {
+    const gradeNum = parseInt(filters.grade);
+    const enrollmentYear = semesterInfo.startYear - gradeNum + 1;
+    classWhere.OR = classWhere.OR.filter(o => o.enrollment_year.gte <= enrollmentYear && o.enrollment_year.gte >= enrollmentYear);
+  }
+
   const allClasses = await prisma.classes.findMany({
-    where: {
-      OR: durationValues.map((d) => ({
-        duration_years: d,
-        is_left_school: false,
-        enrollment_year: { gte: semesterInfo.startYear - d + 1 },
-      })),
-    },
+    where: classWhere,
     include: {
       majors: { select: { id: true, name: true } },
       colleges: { select: { id: true, name: true } },

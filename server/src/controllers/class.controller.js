@@ -86,14 +86,29 @@ export async function listClasses(req, res, next) {
 
       // 计算匹配的培养方案名称
       let matchedPlanName = null;
+      let planMatchWarning = null; // 交叉匹配警告
+      
       if (cls.custom_plan_id && cls.training_plans) {
         // 有自定义方案
         matchedPlanName = cls.training_plans.name;
       } else {
         // 使用统一的三级互斥匹配，避免 null===null 误匹配
-        const matchedPlan = allPlans.find((p) => isClassMatchPlan(cls, p));
-        if (matchedPlan) {
-          matchedPlanName = matchedPlan.name;
+        const matchedPlans = allPlans.filter((p) => isClassMatchPlan(cls, p));
+        
+        if (matchedPlans.length > 0) {
+          // 取第一个匹配的方案作为显示
+          matchedPlanName = matchedPlans[0].name;
+          
+          // 检测是否存在专业和层次同时匹配的情况（交叉匹配）
+          const hasMajorMatch = matchedPlans.some(p => p.major_id && cls.major_id && cls.major_id === p.major_id);
+          const hasLevelMatch = matchedPlans.some(p => p.training_level_id && cls.training_level_id && cls.training_level_id === p.training_level_id);
+          
+          if (hasMajorMatch && hasLevelMatch) {
+            // 存在交叉匹配，给出警告
+            const majorPlans = matchedPlans.filter(p => p.major_id).map(p => p.name);
+            const levelPlans = matchedPlans.filter(p => p.training_level_id).map(p => p.name);
+            planMatchWarning = `专业层次交叉，请检查：按专业匹配(${majorPlans.join('、')})，按层次匹配(${levelPlans.join('、')})`;
+          }
         }
       }
 
@@ -101,6 +116,7 @@ export async function listClasses(req, res, next) {
         ...cls,
         status,
         matchedPlanName, // 添加匹配的方案名称
+        planMatchWarning, // 添加交叉匹配警告
       };
     });
 
@@ -111,7 +127,182 @@ export async function listClasses(req, res, next) {
     });
     const allEnrollmentYears = distinctYears.map((c) => c.enrollment_year).filter((y) => y != null);
 
-    success(res, { items: classesWithDynamicStatus, total, allEnrollmentYears });
+    // 计算学院-专业关联关系（基于已有班级数据）
+    const collegeMajorMap = new Map();
+    const allClassesForMapping = await prisma.classes.findMany({
+      select: { college_id: true, major_id: true },
+      where: { college_id: { not: null }, major_id: { not: null } },
+    });
+    
+    for (const cls of allClassesForMapping) {
+      if (!collegeMajorMap.has(cls.college_id)) {
+        collegeMajorMap.set(cls.college_id, new Set());
+      }
+      collegeMajorMap.get(cls.college_id).add(cls.major_id);
+    }
+    
+    // 转换为对象格式
+    const collegeMajorRelation = {};
+    for (const [collegeId, majorIds] of collegeMajorMap) {
+      collegeMajorRelation[collegeId] = Array.from(majorIds);
+    }
+
+    // 计算学院-层次关联关系（基于已有班级数据）
+    const collegeLevelMap = new Map();
+    const classesWithLevel = await prisma.classes.findMany({
+      select: { college_id: true, training_level_id: true },
+      where: { college_id: { not: null }, training_level_id: { not: null } },
+    });
+    
+    for (const cls of classesWithLevel) {
+      if (!collegeLevelMap.has(cls.college_id)) {
+        collegeLevelMap.set(cls.college_id, new Set());
+      }
+      collegeLevelMap.get(cls.college_id).add(cls.training_level_id);
+    }
+    
+    const collegeLevelRelation = {};
+    for (const [collegeId, levelIds] of collegeLevelMap) {
+      collegeLevelRelation[collegeId] = Array.from(levelIds);
+    }
+
+    // 计算专业-层次关联关系（基于已有班级数据）
+    const majorLevelMap = new Map();
+    const classesWithMajorAndLevel = await prisma.classes.findMany({
+      select: { major_id: true, training_level_id: true },
+      where: { major_id: { not: null }, training_level_id: { not: null } },
+    });
+    
+    for (const cls of classesWithMajorAndLevel) {
+      if (!majorLevelMap.has(cls.major_id)) {
+        majorLevelMap.set(cls.major_id, new Set());
+      }
+      majorLevelMap.get(cls.major_id).add(cls.training_level_id);
+    }
+    
+    const majorLevelRelation = {};
+    for (const [majorId, levelIds] of majorLevelMap) {
+      majorLevelRelation[majorId] = Array.from(levelIds);
+    }
+
+    // 计算学院-入学年份关联关系
+    const collegeYearMap = new Map();
+    const allClassesForYearMapping = await prisma.classes.findMany({
+      select: { college_id: true, enrollment_year: true },
+    });
+    
+    for (const cls of allClassesForYearMapping) {
+      if (cls.college_id != null && cls.enrollment_year != null) {
+        if (!collegeYearMap.has(cls.college_id)) {
+          collegeYearMap.set(cls.college_id, new Set());
+        }
+        collegeYearMap.get(cls.college_id).add(cls.enrollment_year);
+      }
+    }
+    
+    const collegeYearRelation = {};
+    for (const [collegeId, years] of collegeYearMap) {
+      collegeYearRelation[collegeId] = Array.from(years).sort((a, b) => b - a);
+    }
+
+    // 计算专业-入学年份关联关系
+    const majorYearMap = new Map();
+    const allClassesForMajorYearMapping = await prisma.classes.findMany({
+      select: { major_id: true, enrollment_year: true },
+    });
+    
+    for (const cls of allClassesForMajorYearMapping) {
+      if (cls.major_id != null && cls.enrollment_year != null) {
+        if (!majorYearMap.has(cls.major_id)) {
+          majorYearMap.set(cls.major_id, new Set());
+        }
+        majorYearMap.get(cls.major_id).add(cls.enrollment_year);
+      }
+    }
+    
+    const majorYearRelation = {};
+    for (const [majorId, years] of majorYearMap) {
+      majorYearRelation[majorId] = Array.from(years).sort((a, b) => b - a);
+    }
+
+    // 计算层次-入学年份关联关系
+    const levelYearMap = new Map();
+    const allClassesForLevelYearMapping = await prisma.classes.findMany({
+      select: { training_level_id: true, enrollment_year: true },
+    });
+    
+    for (const cls of allClassesForLevelYearMapping) {
+      if (cls.training_level_id != null && cls.enrollment_year != null) {
+        if (!levelYearMap.has(cls.training_level_id)) {
+          levelYearMap.set(cls.training_level_id, new Set());
+        }
+        levelYearMap.get(cls.training_level_id).add(cls.enrollment_year);
+      }
+    }
+    
+    const levelYearRelation = {};
+    for (const [levelId, years] of levelYearMap) {
+      levelYearRelation[levelId] = Array.from(years).sort((a, b) => b - a);
+    }
+
+    // 计算培养方案相关的关联关系（用于筛选器联动）
+    const planCollegeMap = new Map();
+    const planMajorMap = new Map();
+    const planLevelMap = new Map();
+    const allPlansForMapping = await prisma.training_plans.findMany({
+      select: { id: true, college_id: true, major_id: true, training_level_id: true },
+    });
+    
+    for (const plan of allPlansForMapping) {
+      if (plan.college_id != null && (plan.major_id != null || plan.training_level_id != null)) {
+        if (!planCollegeMap.has(plan.college_id)) {
+          planCollegeMap.set(plan.college_id, new Set());
+        }
+        planCollegeMap.get(plan.college_id).add(plan.id);
+      }
+      if (plan.major_id) {
+        if (!planMajorMap.has(plan.major_id)) {
+          planMajorMap.set(plan.major_id, new Set());
+        }
+        planMajorMap.get(plan.major_id).add(plan.id);
+      }
+      if (plan.training_level_id) {
+        if (!planLevelMap.has(plan.training_level_id)) {
+          planLevelMap.set(plan.training_level_id, new Set());
+        }
+        planLevelMap.get(plan.training_level_id).add(plan.id);
+      }
+    }
+    
+    const planCollegeRelation = {};
+    for (const [collegeId, planIds] of planCollegeMap) {
+      planCollegeRelation[collegeId] = Array.from(planIds);
+    }
+    
+    const planMajorRelation = {};
+    for (const [majorId, planIds] of planMajorMap) {
+      planMajorRelation[majorId] = Array.from(planIds);
+    }
+    
+    const planLevelRelation = {};
+    for (const [levelId, planIds] of planLevelMap) {
+      planLevelRelation[levelId] = Array.from(planIds);
+    }
+
+    success(res, { 
+      items: classesWithDynamicStatus, 
+      total, 
+      allEnrollmentYears,
+      collegeMajorRelation,     // 学院-专业关联
+      collegeLevelRelation,     // 学院-层次关联
+      majorLevelRelation,       // 专业-层次关联
+      collegeYearRelation,      // 学院-入学年份关联
+      majorYearRelation,        // 专业-入学年份关联
+      levelYearRelation,        // 层次-入学年份关联
+      planCollegeRelation,      // 培养方案-学院关联
+      planMajorRelation,        // 培养方案-专业关联
+      planLevelRelation         // 培养方案-层次关联
+    });
   } catch (e) {
     next(e);
   }

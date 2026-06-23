@@ -312,8 +312,18 @@ async function handleExport() {
   if (!semester.value) return ElMessage.warning('请先设置当前学期');
   exporting.value = true;
   try {
+    const params = { semester: semester.value };
+    
+    // 添加筛选条件
+    if (filterName.value) params.name = filterName.value;
+    if (filterType.value) params.type = filterType.value;
+    if (filterSubject.value) params.subject = filterSubject.value;
+    if (filterAffiliatedCollege.value) params.affiliated_college = filterAffiliatedCollege.value;
+    if (filterLevel.value) params.level = filterLevel.value;
+    if (filterCollege.value) params.college = filterCollege.value;
+    
     const response = await request.get('/export/statistics', {
-      params: { semester: semester.value },
+      params,
       responseType: 'blob',
     });
     downloadBlob(response, `课时统计_${semester.value}.xlsx`);

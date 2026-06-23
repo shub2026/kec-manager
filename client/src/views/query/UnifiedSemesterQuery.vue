@@ -28,18 +28,18 @@
               clearable
               placeholder="按学院筛选"
               class="filter-select"
-              @change="resetPaginationAndLoad"
+              @change="handleCollegeChange"
             >
-              <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
+              <el-option v-for="c in filteredColleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
             <el-select
               v-model="filterMajor"
               clearable
               placeholder="按专业筛选"
               class="filter-select"
-              @change="resetPaginationAndLoad"
+              @change="handleMajorChange"
             >
-              <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
+              <el-option v-for="m in filteredMajors" :key="m.id" :label="m.name" :value="m.id" />
             </el-select>
             <el-select
               v-model="filterLevel"
@@ -48,7 +48,7 @@
               class="filter-select"
               @change="resetPaginationAndLoad"
             >
-              <el-option v-for="l in levels" :key="l.id" :label="l.name" :value="l.id" />
+              <el-option v-for="l in filteredLevels" :key="l.id" :label="l.name" :value="l.id" />
             </el-select>
             <el-select
               v-model="filterEnrollmentYear"
@@ -199,7 +199,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Download, Refresh, Calendar } from '@element-plus/icons-vue';
 import { getSemesterQuery } from '../../api/query';
@@ -208,6 +208,7 @@ import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
 import request from '../../utils/request';
 import { useSemesters, downloadBlob } from '../../composables/useSemesters';
+import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 
 const data = ref([]);
 const loading = ref(false);
@@ -222,6 +223,16 @@ const filterGrade = ref(null);
 const selectedSemester = ref('');
 const semesterLabel = ref('');
 const totalClasses = ref(0);
+
+// 关联关系数据
+const collegeMajorRelation = ref({});
+const collegeLevelRelation = ref({});
+const majorLevelRelation = ref({});
+
+// 当前学期实际开课的ID列表
+const availableCollegeIds = ref([]);
+const availableMajorIds = ref([]);
+const availableLevelIds = ref([]);
 
 // 分页状态
 const pagination = ref({
@@ -267,6 +278,16 @@ async function load() {
     pagination.value.total = res.data?.total || 0;
     if (res.data?.enrollmentYears) enrollmentYears.value = res.data.enrollmentYears;
     if (res.data?.grades) grades.value = res.data.grades;
+    
+    // 接收当前学期实际开课的ID列表
+    if (res.data?.collegeIds) availableCollegeIds.value = res.data.collegeIds;
+    if (res.data?.majorIds) availableMajorIds.value = res.data.majorIds;
+    if (res.data?.levelIds) availableLevelIds.value = res.data.levelIds;
+    
+    // 接收关联关系数据
+    if (res.data?.collegeMajorRelation) collegeMajorRelation.value = res.data.collegeMajorRelation;
+    if (res.data?.collegeLevelRelation) collegeLevelRelation.value = res.data.collegeLevelRelation;
+    if (res.data?.majorLevelRelation) majorLevelRelation.value = res.data.majorLevelRelation;
   } catch (e) {
     if (import.meta.env.DEV) console.error(e);
     ElMessage.error('查询失败');
@@ -296,6 +317,90 @@ function handleSizeChange(size) {
 function resetPaginationAndLoad() {
   pagination.value.page = 1;
   load();
+}
+
+// 使用通用联动Hook
+const filters = computed(() => ({
+  collegeId: filterCollege.value,
+  majorId: filterMajor.value,
+  trainingLevelId: filterLevel.value,
+}));
+
+const { getFilteredOptions, handleParentChange } = useFilterLinkage({
+  filters,
+  relations: {
+    collegeMajorRelation,
+    collegeLevelRelation,
+    majorLevelRelation,
+  },
+});
+
+// 学院：只显示当前学期实际开课的学院
+const filteredColleges = computed(() => {
+  if (availableCollegeIds.value.length === 0) {
+    return colleges.value;
+  }
+  return colleges.value.filter(college => availableCollegeIds.value.includes(college.id));
+});
+
+// 专业：先根据可用ID过滤，再根据学院联动过滤
+const filteredMajors = computed(() => {
+  let result = majors.value;
+  
+  // 先根据当前学期实际开课的专业ID过滤
+  if (availableMajorIds.value.length > 0) {
+    result = result.filter(major => availableMajorIds.value.includes(major.id));
+  }
+  
+  // 再根据选择的学院进行联动过滤
+  if (filterCollege.value) {
+    const collegeId = String(filterCollege.value);
+    const majorIds = collegeMajorRelation.value[collegeId] || [];
+    if (majorIds.length > 0) {
+      result = result.filter(major => majorIds.includes(major.id));
+    }
+  }
+  
+  return result;
+});
+
+// 层次：先根据可用ID过滤，再根据学院/专业联动过滤
+const filteredLevels = computed(() => {
+  let result = levels.value;
+  
+  // 先根据当前学期实际开课的层次ID过滤
+  if (availableLevelIds.value.length > 0) {
+    result = result.filter(level => availableLevelIds.value.includes(level.id));
+  }
+  
+  // 如果选择了专业，优先使用专业-层次关联
+  if (filterMajor.value) {
+    const majorId = String(filterMajor.value);
+    const levelIds = majorLevelRelation.value[majorId] || [];
+    if (levelIds.length > 0) {
+      result = result.filter(level => levelIds.includes(level.id));
+    }
+  }
+  // 如果没有选择专业但选择了学院，使用学院-层次关联
+  else if (filterCollege.value) {
+    const collegeId = String(filterCollege.value);
+    const levelIds = collegeLevelRelation.value[collegeId] || [];
+    if (levelIds.length > 0) {
+      result = result.filter(level => levelIds.includes(level.id));
+    }
+  }
+  
+  return result;
+});
+
+// 处理学院变化
+function handleCollegeChange() {
+  handleParentChange('collegeId', ['majorId', 'trainingLevelId'], resetPaginationAndLoad);
+}
+
+// 处理专业变化
+function handleMajorChange() {
+  handleParentChange('majorId', ['trainingLevelId'], resetPaginationAndLoad);
 }
 
 // 跳转到当前学期
