@@ -1,10 +1,8 @@
-// ES Module 求值顺序修复：auth.config.js 会在 server.js 的 dotenv.config() 之前被求值
-// （因为 import 声明的模块先于当前模块代码执行），必须在此处独立加载 dotenv
 import dotenv from 'dotenv';
 dotenv.config();
 
-// JWT密钥必须通过环境变量配置，生产环境禁止使用默认值
-import { log } from '../utils/logger.js'; // L1修复：使用winston logger
+import crypto from 'crypto';
+import { log } from '../utils/logger.js';
 
 const jwtSecret = process.env.JWT_SECRET;
 
@@ -17,21 +15,18 @@ if (!jwtSecret) {
   throw new Error('JWT_SECRET 环境变量未配置');
 }
 
-// M9修复：bcrypt密码哈希迭代次数配置化
 const bcryptRounds = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
 
-// M10修复：Token密钥分离 - Access/Refresh/Download使用不同密钥
 const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
 const jwtDownloadSecret = process.env.JWT_DOWNLOAD_SECRET;
 
-// 安全加固：生产环境强制要求独立的 refresh/download 密钥，禁止派生
 const isProduction = process.env.NODE_ENV === 'production';
 const usingDerivedRefresh = !jwtRefreshSecret;
 const usingDerivedDownload = !jwtDownloadSecret;
 
 if (usingDerivedRefresh || usingDerivedDownload) {
   const msg =
-    '安全警告: JWT_REFRESH_SECRET 或 JWT_DOWNLOAD_SECRET 未独立配置，当前使用主密钥派生值（存在密钥关联风险）';
+    '安全警告: JWT_REFRESH_SECRET 或 JWT_DOWNLOAD_SECRET 未独立配置，当前使用 HKDF 派生密钥';
   if (isProduction) {
     log.error(msg);
     log.error('生产环境必须设置独立的 JWT_REFRESH_SECRET 和 JWT_DOWNLOAD_SECRET');
@@ -41,9 +36,15 @@ if (usingDerivedRefresh || usingDerivedDownload) {
   }
 }
 
-// 开发环境 fallback：派生自主密钥（仅用于本地调试，生产环境上方已要求必须配置）
-const finalRefreshSecret = jwtRefreshSecret || jwtSecret + '_refresh';
-const finalDownloadSecret = jwtDownloadSecret || jwtSecret + '_download';
+/**
+ * 使用 HKDF 从主密钥派生子密钥，替代简单字符串拼接
+ */
+function deriveKey(secret, info) {
+  return crypto.hkdfSync('sha256', secret, '', info, 64).toString('hex');
+}
+
+const finalRefreshSecret = jwtRefreshSecret || deriveKey(jwtSecret, 'jwt-refresh-token');
+const finalDownloadSecret = jwtDownloadSecret || deriveKey(jwtSecret, 'jwt-download-token');
 
 export const authConfig = {
   jwtSecret, // Access Token密钥

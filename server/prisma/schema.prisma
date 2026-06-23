@@ -100,6 +100,7 @@ model plan_course_semesters {
   id             Int              @id @default(autoincrement())
   plan_course_id Int
   semester       Int
+  // Float: 业务上通常为 0.5 倍数（如 2.5 课时），SQLite 存储为 REAL（IEEE 754），精度足够
   weekly_hours   Float
   weeks_count    Int              @default(18)
   created_at     DateTime         @default(now())
@@ -117,6 +118,7 @@ model plan_courses {
   course_id             Int
   start_semester        Int
   end_semester          Int
+  // Float: 业务上通常为 0.5 倍数，SQLite REAL 精度足够
   weekly_hours          Float
   weeks_per_semester    Int                     @default(18)
   sort_order            Int                     @default(0)

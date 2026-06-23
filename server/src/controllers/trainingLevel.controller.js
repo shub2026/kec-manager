@@ -1,8 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
-import { autoFixSortOrder, invalidateSortOrderCache } from '../utils/sort.js';
-import { getNextSortOrder, buildUpdateData } from '../utils/sort-helper.js';
+import { autoFixSortOrder, invalidateSortOrderCache, getNextSortOrder, buildUpdateData } from '../utils/sort.js';
 
 export async function listTrainingLevels(req, res, next) {
   try {

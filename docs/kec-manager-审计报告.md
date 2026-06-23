@@ -1,6 +1,6 @@
 ## KEC Manager 全方位代码检测报告
 
-**版本:** v2.10.0 | **检测日期:** 2026-06-23 | **检测范围:** 后端67文件 + 前端62文件 + 数据库模型 + 排课算法
+**版本:** v2.11.0 | **检测日期:** 2026-06-23 | **检测范围:** 后端67文件 + 前端62文件 + 数据库模型 + 排课算法
 
 ---
 
@@ -13,7 +13,7 @@
 | CRITICAL | 3 | **3** | 0 | 已全部修复 |
 | HIGH | 12 | **12** | 0 | 已全部修复 |
 | MEDIUM | 20 | **20** | 0 | 已全部修复 (v2.10.0) |
-| LOW | 15 | 0 | 15 | 代码质量和工程规范问题 |
+| LOW | 15 | **15** | 0 | 已全部修复 (v2.11.0) |
 
 ---
 
@@ -134,29 +134,29 @@ export async function resetSystem(req, res, next) {
 
 ### 四、LOW 级问题
 
-| 编号 | 文件 | 问题描述 |
-|------|------|---------|
-| L-1 | user.controller.js | `updateUser` 的 undefined 字段靠 Prisma 默认行为跳过，缺乏显式过滤（脆弱但不会丢数据） |
-| L-2 | pagination.js | 与 validation.js 中 `validatePagination` 功能重复，应统一 |
-| L-3 | sort-helper.js / sort.js | 排序工具逻辑分散在两个文件，部分路由 import 了未使用的排序验证 |
-| L-4 | settings.controller.js | 错误响应绕过 `success()` / `error()` helper，直接构造 JSON 对象 |
-| L-5 | schema.prisma | `weekly_hours` 为 Float 类型，业务上通常为 0.5 倍数，浮点精度可能出问题 |
-| L-6 | auth.config.js | 开发环境回退密钥通过字符串拼接派生（`secret + '_refresh'`），等同弱密钥派生 |
-| L-7 | auto-arrange.js | ~150 行死代码（`groupByTextbookThenCollege`、`interleaveByTextbook`、`canTeach` 等从未调用） |
-| L-8 | auto-arrange.js | `calcMatchScore` 中 hard cap -10000 惩罚后又叠加额外层级惩罚，虽不影响排序但逻辑冗余 |
-| L-9 | validate.js | `validateHourSettings` 允许 `standard:0, max:999` 等无意义值 |
-| L-10 | teaching-arrange.controller.js | `courseId` 的 `req.body.courseId` 回退是死代码（中间件已强制要求 `course_id`） |
-| L-11 | teaching-arrange.controller.js | `assignTeacher` 缺少班级存在性验证，无效 ID 会触发 Prisma 外键错误，报错不友好 |
-| L-12 | 排课算法文档 | 代码注释描述的四阶段算法与实际五阶段实现不匹配（代码已迭代但文档未同步） |
-| L-13 | Dashboard.vue | 统计卡片数据无缓存，每次进入页面重新请求 |
-| L-14 | 前端整体 | 部分 el-table 缺少 `:key` 绑定筛选值，可能导致筛选后不重新渲染 |
-| L-15 | class.service.js | `getActiveClassFilter` 每次调用都查询 distinct durations，应添加缓存 |
+| 编号 | 文件 | 问题描述 | 状态 |
+|------|------|---------|------|
+| L-1 | user.controller.js | `updateUser` 的 undefined 字段靠 Prisma 默认行为跳过，缺乏显式过滤（脆弱但不会丢数据） | `已修复 v2.11.0` |
+| L-2 | pagination.js | 与 validation.js 中 `validatePagination` 功能重复，应统一 | `已修复 v2.11.0` |
+| L-3 | sort-helper.js / sort.js | 排序工具逻辑分散在两个文件，部分路由 import 了未使用的排序验证 | `已修复 v2.11.0` |
+| L-4 | settings.controller.js | 错误响应绕过 `success()` / `error()` helper，直接构造 JSON 对象 | `已修复 v2.11.0` |
+| L-5 | schema.prisma | `weekly_hours` 为 Float 类型，业务上通常为 0.5 倍数，浮点精度可能出问题 | `已修复 v2.11.0` |
+| L-6 | auth.config.js | 开发环境回退密钥通过字符串拼接派生（`secret + '_refresh'`），等同弱密钥派生 | `已修复 v2.11.0` |
+| L-7 | auto-arrange.js | ~150 行死代码（`groupByTextbookThenCollege`、`interleaveByTextbook`、`canTeach` 等从未调用） | `已修复 v2.11.0` |
+| L-8 | auto-arrange.js | `calcMatchScore` 中 hard cap -10000 惩罚后又叠加额外层级惩罚，虽不影响排序但逻辑冗余 | `已修复 v2.11.0` |
+| L-9 | validate.js | `validateHourSettings` 允许 `standard:0, max:999` 等无意义值 | `已修复 v2.11.0` |
+| L-10 | teaching-arrange.controller.js | `courseId` 的 `req.body.courseId` 回退是死代码（中间件已强制要求 `course_id`） | `已修复 v2.11.0` |
+| L-11 | teaching-arrange.controller.js | `assignTeacher` 缺少班级存在性验证，无效 ID 会触发 Prisma 外键错误，报错不友好 | `已修复 v2.11.0` |
+| L-12 | 排课算法文档 | 代码注释描述的四阶段算法与实际五阶段实现不匹配（代码已迭代但文档未同步） | `已修复 v2.11.0` |
+| L-13 | Dashboard.vue | 统计卡片数据无缓存，每次进入页面重新请求 | `已修复 v2.10.0` |
+| L-14 | 前端整体 | 部分 el-table 缺少 `:key` 绑定筛选值，可能导致筛选后不重新渲染 | `已修复 v2.11.0` |
+| L-15 | class.service.js | `getActiveClassFilter` 每次调用都查询 distinct durations，应添加缓存 | `已修复 v2.11.0` |
 
 ---
 
 ### 五、架构层面观察
 
-**排课算法实际架构与文档偏差。** 代码中实际的排课算法采用五阶段模式：(1) 有偏好教师优先选首本教材 → (2) 无偏好教师选首本教材 → (3) 所有教师选同教材更多班级 → (4) 所有教师选第二本教材 → (5) 放宽约束兜底。`selectBestTeacher` 已改为基于 `calcMatchScore` 加权评分 + loadRate 负载均衡体系，替代了原先的七层优先级分层选择。这比原架构更优（更平滑的权衡），但代码注释和文档没有反映这一变化。
+**排课算法文档已同步。** 代码中实际的排课算法采用五阶段模式：(1) 有偏好教师优先选首本教材 → (2) 无偏好教师选首本教材 → (3) 所有教师选同教材更多班级 → (4) 所有教师选第二本教材 → (5) 放宽约束兜底 + 置换回溯。`selectBestTeacher` 基于 `calcMatchScore` 加权评分 + loadRate 负载均衡，替代了原先的七层优先级分层选择。文档（TEACHING_ARRANGE_LOGIC.md）已在 v2.11.0 同步更新。
 
 **数据库级联策略不一致。** `teaching_assignments` 对教师/班级/课程全部使用显式 Cascade，而 `classes` 对外键（专业/学院/层次）依赖 Prisma 默认的 SetNull。建议统一为：核心业务数据（排课记录）用 Restrict 防误删，配置数据（学院/专业关联）用 SetNull 保持灵活。
 
@@ -166,17 +166,15 @@ export async function resetSystem(req, res, next) {
 
 ### 六、修复路线图
 
-**已完成 — CRITICAL + HIGH + MEDIUM (v2.8.2 ~ v2.10.0)：**
+**已完成 — CRITICAL + HIGH + MEDIUM + LOW (v2.8.2 ~ v2.11.0)：**
 
 | 阶段 | 版本 | 修复内容 |
 |------|------|---------|
 | 第一优先级 | v2.8.2 | C-1 try-catch、C-2 教材计算、C-3 ElMessage 导入 |
 | 第二优先级 | v2.9.0 | H-1~H-12 全部修复（N+1 查询、级联策略、validate 模式、XSS 等） |
 | 第三优先级 | v2.10.0 | M-1~M-20 全部修复（命名转换、缓存清除、优先级匹配、并发/超时保护、索引、分页等） |
+| 第四优先级 | v2.11.0 | L-1~L-15 全部修复（显式字段过滤、工具合并、死代码清理、密钥派生、文档同步、缓存优化等） |
 
-**待处理 — LOW 级（后续迭代）：**
-1. 死代码清理（L-7）
-2. 算法文档同步（L-12）
-3. 排序工具合并（L-3）
-4. 浮点精度评估（L-5）
-5. 前端缓存优化（L-13）
+**待处理 — 无遗留问题：**
+
+审计报告中发现的全部 50 个问题（3 CRITICAL + 12 HIGH + 20 MEDIUM + 15 LOW）均已修复完毕。

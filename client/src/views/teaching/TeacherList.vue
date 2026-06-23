@@ -86,6 +86,7 @@
       <el-table
         v-loading="loading"
         :data="filteredlist"
+        :key="filterName + filterCourseId + filterPersonnelType + filterCollegeId + filterTrainingLevelId + filterAffiliatedCollegeId + filterStatus"
         stripe
         row-key="id"
         :default-sort="{ prop: 'name', order: 'ascending' }"

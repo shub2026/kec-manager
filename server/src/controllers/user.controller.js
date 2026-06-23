@@ -112,9 +112,11 @@ export async function updateUser(req, res, next) {
       throw new AuthorizationError('权限不足，管理员只能管理访客账号');
     }
 
-    const updateData = { real_name, email };
+    const updateData = {};
+    if (real_name !== undefined) updateData.real_name = real_name;
+    if (email !== undefined) updateData.email = email;
 
-    if (req.user.role === 'super_admin' && role) {
+    if (req.user.role === 'super_admin' && role !== undefined) {
       updateData.role = role;
     }
 

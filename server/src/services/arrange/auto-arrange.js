@@ -78,35 +78,29 @@ function calcMatchScore(teacher, classInfo) {
   }
 
   // 二轮优化：教材数量分级奖惩，根治 +6 雪球效应
-  // 0本=大力推、1本=按是否新课区分奖惩、2本=强力阻止、3+=实质禁止
-  // 快速验证：硬上限 + 强力惩罚
   if (TEXTBOOK_COHESION.ENABLED) {
     const tbCount = teacher.assignedTextbookIds?.size ?? 0;
     const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER || 2;
 
     if (tbCount >= maxTb) {
-      // 硬上限：已达到最大教材数，此教师不应再拿任何新教材
-      // 但如果班级教材都是已持有的，可以接受
       if (classInfo.textbookIds && classInfo.textbookIds.length > 0) {
         const newCount = classInfo.textbookIds.filter(
           (tid) => !teacher.assignedTextbookIds.has(tid)
         ).length;
         if (newCount > 0) {
-          score -= 10000; // 硬上限惩罚，直接让评分失效
+          return score - 10000;
         }
       }
-    }
-
-    if (tbCount === 0) {
-      score += 100; // 大幅提高0本教师奖励
+    } else if (tbCount === 0) {
+      score += 100;
     } else if (tbCount === 1 && classInfo.textbookIds?.length > 0) {
       const newCount = classInfo.textbookIds.filter(
         (tid) => !teacher.assignedTextbookIds.has(tid)
       ).length;
       if (newCount === 0) {
-        score += 10; // 1本教师接同类教材，加分
+        score += 10;
       } else {
-        score -= 10000; // 1本教师接新教材，硬惩罚
+        return score - 10000;
       }
     } else if (tbCount >= 3) {
       score -= TEXTBOOK_COHESION.TEXTBOOK_COUNT_PENALTY_3PLUS;
@@ -116,86 +110,6 @@ function calcMatchScore(teacher, classInfo) {
   }
 
   return score;
-}
-
-/**
- * 辅助函数：教师是否有能力教此班级的教材（基于 inherentTextbookIds）
- * 用于 Phase 0：SIZE-0 教师尚无 assignedTextbookIds，需用 inherent 判断能力
- */
-function canTeachTextbook(teacher, cls) {
-  if (!cls.textbookIds || cls.textbookIds.length === 0) return true;
-  if (!teacher.inherentTextbookIds || teacher.inherentTextbookIds.length === 0) return true;
-  return cls.textbookIds.some((tid) => teacher.inherentTextbookIds.includes(tid));
-}
-
-/**
- * 辅助函数：教师接此班级是否"零新增教材"
- * 用于 phase2.5 内聚优先阶段筛选
- */
-function isNewTextbookZero(teacher, cls) {
-  if (!cls.textbookIds || cls.textbookIds.length === 0) return true;
-  if (!teacher.assignedTextbookIds) return false;
-  return cls.textbookIds.every((tid) => teacher.assignedTextbookIds.has(tid));
-}
-
-/**
- * 按教材分组、组内按学院排序
- * 替代 interleaveByTextbook：让同教材的班级连续处理，促进教材内聚
- * 组内按学院排序，促进同学院内聚
- * @param {Array} classes - 班级数组
- * @returns {Array} 排序后的班级数组
- */
-function groupByTextbookThenCollege(classes) {
-  // 按教材分组
-  const textbookGroups = new Map();
-  for (const cls of classes) {
-    const key = (cls.textbookIds || []).slice().sort().join(',') || '__none__';
-    if (!textbookGroups.has(key)) textbookGroups.set(key, []);
-    textbookGroups.get(key).push(cls);
-  }
-
-  // 每个教材组内按学院、层次排序
-  const result = [];
-  for (const [tbKey, tbClasses] of textbookGroups) {
-    tbClasses.sort((a, b) => {
-      if (a.collegeId !== b.collegeId) return a.collegeId - b.collegeId;
-      if (a.trainingLevelId && b.trainingLevelId && a.trainingLevelId !== b.trainingLevelId) {
-        return a.trainingLevelId - b.trainingLevelId;
-      }
-      return 0;
-    });
-    result.push(...tbClasses);
-  }
-
-  return result;
-}
-
-/**
- * 按教材分组轮询交错排序
- * 确保不同教材的班级交替出现，Phase 0 能均匀播种给不同教师
- * @param {Array} classes - 班级数组
- * @returns {Array} 交错后的班级数组
- */
-function interleaveByTextbook(classes) {
-  const groups = new Map();
-  for (const cls of classes) {
-    const key = (cls.textbookIds || []).slice().sort().join(',') || '__none__';
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(cls);
-  }
-  const result = [];
-  const buckets = [...groups.values()];
-  let hasMore = true;
-  while (hasMore) {
-    hasMore = false;
-    for (const bucket of buckets) {
-      if (bucket.length > 0) {
-        result.push(bucket.shift());
-        hasMore = true;
-      }
-    }
-  }
-  return result;
 }
 
 function isTeacherEligible(t, cls, mode) {

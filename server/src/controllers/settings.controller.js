@@ -61,12 +61,8 @@ export async function getSettings(req, res, next) {
       defaultMap[key] = { value: def.value, description: def.description, isDefault: true };
     }
     // M-6: 不再在 catch 中重复调用 tryGetAuthUser，直接使用默认值降级
-    // 未认证请求（try 中 authUser 为 null 之前抛异常）也返回完整默认设置，前端按权限展示
-    return res.status(200).json({
-      code: 200,
-      message: '使用默认设置',
-      data: defaultMap,
-    });
+    // 未认证请求也返回完整默认设置，前端按权限展示
+    return success(res, defaultMap, '使用默认设置');
   }
 }
 

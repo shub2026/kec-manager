@@ -94,6 +94,7 @@
         <el-table
           v-loading="loading"
           :data="filteredTeachers"
+          :key="filterName + filterType + filterSubject + filterCollege + filterLevel + filterAffiliatedCollege"
           stripe
           row-key="teacherId"
           style="width: 100%"

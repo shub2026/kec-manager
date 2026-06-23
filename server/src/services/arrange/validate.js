@@ -11,8 +11,11 @@ export function validateHourSettings(hourSettings) {
     if (!Number.isFinite(standard) || !Number.isFinite(max)) {
       throw new Error(`${type} 的课时设置必须是有效数字`);
     }
-    if (standard < 0 || max < 0) {
-      throw new Error(`${type} 的课时设置不能为负数`);
+    if (standard < 1) {
+      throw new Error(`${type} 的标准课时必须大于0`);
+    }
+    if (max < 1 || max > 40) {
+      throw new Error(`${type} 的最大课时必须在1-40之间`);
     }
     if (standard > max) {
       throw new Error(`${type} 的标准课时不能超过最大课时`);

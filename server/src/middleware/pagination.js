@@ -1,40 +1,24 @@
 /**
  * 分页参数验证中间件
- * 限制 pageSize 的最大值，防止数据库性能问题
+ * 统一使用 express-validator 验证规则，与 validation.js 保持一致
  */
+import { query, validationResult } from 'express-validator';
+import { fail } from '../utils/response.js';
 
-const DEFAULT_MAX_PAGE_SIZE = 100;
+const paginationRules = [
+  query('page').optional().isInt({ min: 1 }).withMessage('页码必须为正整数'),
+  query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('每页数量必须在1-100之间'),
+];
 
-export function validatePagination(maxPageSize = DEFAULT_MAX_PAGE_SIZE) {
-  return (req, res, next) => {
-    const { page, pageSize } = req.query;
-
-    if (page !== undefined) {
-      const pageNum = parseInt(page);
-      if (isNaN(pageNum) || pageNum < 1) {
-        return res.status(400).json({
-          success: false,
-          message: '页码必须为正整数',
-        });
+export function validatePagination() {
+  return [
+    ...paginationRules,
+    (req, res, next) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return fail(res, errors.array()[0].msg, 400);
       }
-    }
-
-    if (pageSize !== undefined) {
-      const pageSizeNum = parseInt(pageSize);
-      if (isNaN(pageSizeNum) || pageSizeNum < 1) {
-        return res.status(400).json({
-          success: false,
-          message: '每页数量必须为正整数',
-        });
-      }
-      if (pageSizeNum > maxPageSize) {
-        return res.status(400).json({
-          success: false,
-          message: `每页数量不能超过 ${maxPageSize}`,
-        });
-      }
-    }
-
-    next();
-  };
+      next();
+    },
+  ];
 }

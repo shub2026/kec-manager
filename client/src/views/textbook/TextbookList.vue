@@ -54,6 +54,7 @@
       <el-table
         v-loading="loading"
         :data="filteredlist"
+        :key="filterTitle + filterCategory + filterPublisher"
         stripe
         row-key="id"
         @selection-change="handleSelectionChange"

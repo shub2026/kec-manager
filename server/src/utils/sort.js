@@ -1,9 +1,7 @@
 /**
- * 排序自动修复工具
+ * 排序工具集
  *
- * 当检测到所有记录的 sort_order 都为 0（或大量重复）时，
- * 自动按当前列表顺序分配递增的排序值。
- * 使用 TTL 缓存避免每次列表请求都重复检查。
+ * 提供排序值计算、标准化、自动修复和缓存失效功能
  */
 import { prisma } from '../lib/prisma.js';
 import { log } from './logger.js';
@@ -17,6 +15,36 @@ export function invalidateSortOrderCache(modelName) {
   } else {
     sortCache.clear();
   }
+}
+
+export async function getNextSortOrder(prismaClient, modelName) {
+  const maxSort = await prismaClient[modelName].aggregate({
+    _max: { sort_order: true },
+  });
+  return (maxSort._max.sort_order || 0) + 1;
+}
+
+export function normalizeSortOrder(value, defaultOrder) {
+  if (value !== undefined) {
+    return Number(value);
+  }
+  return defaultOrder;
+}
+
+export function buildUpdateData(data, allowedFields) {
+  const updateData = {};
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      if (field === 'sort_order') {
+        updateData[field] = Number(data[field]);
+      } else {
+        updateData[field] = data[field];
+      }
+    }
+  }
+
+  return updateData;
 }
 
 /**

@@ -109,6 +109,10 @@ export async function assignTeacher(req, res, next) {
       return fail(res, '缺少必要参数');
     }
 
+    // 校验班级存在
+    const classExists = await prisma.classes.findUnique({ where: { id: Number(class_id) } });
+    if (!classExists) return fail(res, '班级不存在', 404);
+
     // 校验教师存在且处于启用状态
     const teacher = await prisma.teachers.findUnique({ where: { id: Number(teacher_id) } });
     if (!teacher) return fail(res, '教师不存在', 404);
@@ -240,8 +244,7 @@ export async function deleteAssignment(req, res, next) {
  */
 export async function runAutoArrange(req, res, next) {
   try {
-    // 兼容驼峰和下划线命名
-    const courseId = req.body.course_id || req.body.courseId;
+    const courseId = req.body.course_id;
     const semester = req.body.semester;
     const mode = req.body.mode;
     const hourSettings = req.body.hour_settings || req.body.hourSettings;

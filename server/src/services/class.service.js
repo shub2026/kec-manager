@@ -1,6 +1,15 @@
 import { prisma } from '../lib/prisma.js';
 import { getCurrentSemesterInfo } from './settings.service.js';
 
+const DURATION_CACHE_TTL = 5 * 60 * 1000;
+let durationCache = null;
+let durationCacheAt = 0;
+
+export function invalidateDurationCache() {
+  durationCache = null;
+  durationCacheAt = 0;
+}
+
 /**
  * 构建"在读班级"的 Prisma WHERE 条件
  *
@@ -14,21 +23,24 @@ import { getCurrentSemesterInfo } from './settings.service.js';
 export async function getActiveClassFilter() {
   const semesterInfo = await getCurrentSemesterInfo();
   if (!semesterInfo) {
-    // 降级方案：无法获取学期信息时，只排除离校班级
     return { is_left_school: false };
   }
 
   const startYear = semesterInfo.startYear;
 
-  // 获取所有不重复的学制值
-  const durations = await prisma.classes.findMany({
-    select: { duration_years: true },
-    distinct: ['duration_years'],
-  });
-  const durationValues = durations.map((d) => d.duration_years).filter((d) => d != null);
+  let durationValues;
+  if (durationCache && Date.now() - durationCacheAt < DURATION_CACHE_TTL) {
+    durationValues = durationCache;
+  } else {
+    const durations = await prisma.classes.findMany({
+      select: { duration_years: true },
+      distinct: ['duration_years'],
+    });
+    durationValues = durations.map((d) => d.duration_years).filter((d) => d != null);
+    durationCache = durationValues;
+    durationCacheAt = Date.now();
+  }
 
-  // 对每种学制构建条件：enrollment_year >= startYear - duration_years + 1
-  // active: grade <= duration → enrollment_year >= startYear - duration + 1
   return {
     OR: durationValues.map((d) => ({
       duration_years: d,
