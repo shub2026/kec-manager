@@ -56,7 +56,6 @@
         :data="filteredlist"
         stripe
         row-key="id"
-        :default-sort="{ prop: 'title', order: 'ascending' }"
         @selection-change="handleSelectionChange"
       >
         <template #empty>

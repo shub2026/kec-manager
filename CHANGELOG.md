@@ -5,6 +5,20 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.9.1] - 2026-06-23
+
+### Bug 修复
+
+- **排序回归修复**：移除 CollegeList、MajorList、CourseList、TextbookList、TrainingLevelList 五个页面的 el-table `:default-sort` 属性，避免客户端按名称排序覆盖服务端 `sort_order` 排序
+- **教材启用/停用 500 错误**：`toggleTextbookStatus` 改用 `req.body?.is_active` 可选链，修复 POST 无 body 时 `req.body` 为 undefined 导致的 TypeError 崩溃
+- **教材已用教材重复显示**：后端 `queries.js` 对 `assignedIds` 加 `new Set()` 去重；前端 `TeachingArrange.vue` 新增 `uniqueTextbooks()` 函数按 ID 去重显示
+
+### 文档
+
+- 全面代码审计报告归档至 `docs/kec-manager-审计报告.md`，共 50 项（C3+H12+M20+L15），新增 M-19（学期查询年级筛选分页 total 不准）、M-20（排课统计导出忽略筛选条件）
+
+---
+
 ## [2.9.0] - 2026-06-23
 
 ### 前端健壮性修复

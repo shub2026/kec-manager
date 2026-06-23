@@ -332,9 +332,9 @@
         </el-table-column>
         <el-table-column label="已用教材" min-width="220">
           <template #default="{ row }">
-            <template v-if="row.assignedTextbooks?.length">
+            <template v-if="uniqueTextbooks(row.assignedTextbooks).length">
               <el-tag
-                v-for="tb in row.assignedTextbooks"
+                v-for="tb in uniqueTextbooks(row.assignedTextbooks)"
                 :key="tb.id"
                 size="small"
                 type="info"
@@ -897,6 +897,17 @@ async function loadData() {
   } finally {
     tableLoading.value = false;
   }
+}
+
+// 去重已用教材（按ID去重，防止重复显示）
+function uniqueTextbooks(textbooks) {
+  if (!textbooks) return [];
+  const seen = new Set();
+  return textbooks.filter((tb) => {
+    if (seen.has(tb.id)) return false;
+    seen.add(tb.id);
+    return true;
+  });
 }
 
 function openTeacherSelect(row) {

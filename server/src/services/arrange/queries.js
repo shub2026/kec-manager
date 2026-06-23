@@ -411,7 +411,7 @@ export async function getTeachersForCourse(courseId, semesterStr) {
 
   return teachers.map((t) => {
     const inherentTextbookIds = [...(teacherTextbookMap.get(t.id) || [])];
-    const assignedIds = [...(assignedOnlyTextbookMap.get(t.id) || [])];
+    const assignedIds = [...new Set(assignedOnlyTextbookMap.get(t.id) || [])];
     const assignedTextbooks = assignedIds.map((id) => ({
       id,
       title: textbookTitleMap.get(id) || `教材#${id}`,

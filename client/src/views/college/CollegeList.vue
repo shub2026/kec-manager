@@ -16,7 +16,6 @@
         :data="list"
         stripe
         row-key="id"
-        :default-sort="{ prop: 'name', order: 'ascending' }"
       >
         <template #empty>
           <el-empty description="暂无学院数据，请点击右上角新增" />
