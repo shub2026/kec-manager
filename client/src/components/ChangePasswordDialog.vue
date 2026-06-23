@@ -107,30 +107,31 @@ function resetForm() {
 async function handleSubmit() {
   if (!formRef.value) return;
 
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return;
+  try {
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
 
-    loading.value = true;
+  loading.value = true;
 
-    try {
-      const result = await authStore.changePassword(form.oldPassword, form.newPassword);
+  try {
+    const result = await authStore.changePassword(form.oldPassword, form.newPassword);
 
-      if (result.success) {
-        ElMessage.success(result.message);
-        handleClose();
-        emit('success');
+    if (result.success) {
+      ElMessage.success(result.message);
+      handleClose();
+      emit('success');
 
-        // 退出登录，让用户重新登录
-        await authStore.logout();
-        ElMessage.success('密码已修改，请重新登录');
-      } else {
-        ElMessage.error(result.message);
-      }
-    } catch (error) {
-      ElMessage.error('密码修改失败，请稍后重试');
-    } finally {
-      loading.value = false;
+      await authStore.logout();
+      ElMessage.success('密码已修改，请重新登录');
+    } else {
+      ElMessage.error(result.message);
     }
-  });
+  } catch (error) {
+    ElMessage.error('密码修改失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
 }
 </script>

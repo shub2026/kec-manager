@@ -1,6 +1,6 @@
 ## KEC Manager 全方位代码检测报告
 
-**版本:** v2.11.0 | **检测日期:** 2026-06-23 | **检测范围:** 后端67文件 + 前端62文件 + 数据库模型 + 排课算法
+**版本:** v2.12.0 | **检测日期:** 2026-06-23 | **检测范围:** 后端67文件 + 前端62文件 + 数据库模型 + 排课算法
 
 ---
 
@@ -158,15 +158,15 @@ export async function resetSystem(req, res, next) {
 
 **排课算法文档已同步。** 代码中实际的排课算法采用五阶段模式：(1) 有偏好教师优先选首本教材 → (2) 无偏好教师选首本教材 → (3) 所有教师选同教材更多班级 → (4) 所有教师选第二本教材 → (5) 放宽约束兜底 + 置换回溯。`selectBestTeacher` 基于 `calcMatchScore` 加权评分 + loadRate 负载均衡，替代了原先的七层优先级分层选择。文档（TEACHING_ARRANGE_LOGIC.md）已在 v2.11.0 同步更新。
 
-**数据库级联策略不一致。** `teaching_assignments` 对教师/班级/课程全部使用显式 Cascade，而 `classes` 对外键（专业/学院/层次）依赖 Prisma 默认的 SetNull。建议统一为：核心业务数据（排课记录）用 Restrict 防误删，配置数据（学院/专业关联）用 SetNull 保持灵活。
+**数据库级联策略已统一。** `teaching_assignments` 的三个外键（teacher_id、class_id、course_id）已在 v2.9.0（H-3）改为 `onDelete: Restrict`，防止核心排课数据被误删。`classes` 对外键（专业/学院/层次）保持 Prisma 默认的 SetNull，适合配置型数据的灵活管理。策略已与建议一致。
 
-**前端 validate() 调用模式。** 项目中有至少两处（Login.vue、UserManagement.vue）使用了 `await formRef.value.validate(callback)` 的错误模式，建议全局搜索此 pattern 并统一修正。
+**前端 validate() 调用模式已修正。** 全局搜索确认共 3 处使用了 `await formRef.value.validate(callback)` 错误模式：Login.vue、UserManagement.vue（已在 v2.9.0 H-2 修正）和 ChangePasswordDialog.vue（已在 v2.12.0 修正）。全部改为 `await formRef.value.validate()` + try/catch 纯 Promise 模式。
 
 ---
 
 ### 六、修复路线图
 
-**已完成 — CRITICAL + HIGH + MEDIUM + LOW (v2.8.2 ~ v2.11.0)：**
+**已完成 — CRITICAL + HIGH + MEDIUM + LOW + 架构观察 (v2.8.2 ~ v2.12.0)：**
 
 | 阶段 | 版本 | 修复内容 |
 |------|------|---------|
@@ -174,7 +174,8 @@ export async function resetSystem(req, res, next) {
 | 第二优先级 | v2.9.0 | H-1~H-12 全部修复（N+1 查询、级联策略、validate 模式、XSS 等） |
 | 第三优先级 | v2.10.0 | M-1~M-20 全部修复（命名转换、缓存清除、优先级匹配、并发/超时保护、索引、分页等） |
 | 第四优先级 | v2.11.0 | L-1~L-15 全部修复（显式字段过滤、工具合并、死代码清理、密钥派生、文档同步、缓存优化等） |
+| 第五优先级 | v2.12.0 | 架构观察收尾（级联策略文档更正、validate() 全局搜索修复 ChangePasswordDialog.vue） |
 
 **待处理 — 无遗留问题：**
 
-审计报告中发现的全部 50 个问题（3 CRITICAL + 12 HIGH + 20 MEDIUM + 15 LOW）均已修复完毕。
+审计报告中发现的全部 50 个问题（3 CRITICAL + 12 HIGH + 20 MEDIUM + 15 LOW）及 3 项架构层面观察均已修复完毕。
