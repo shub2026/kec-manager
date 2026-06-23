@@ -501,15 +501,6 @@ function formatBirthDate(birthDate) {
   return str;
 }
 
-// 筛选器联动处理函数
-function handleCollegeFilterChange() {
-  handleParentChange('collegeId', ['trainingLevelId'], () => {});
-}
-
-function handleTrainingLevelFilterChange() {
-  handleParentChange('trainingLevelId', ['collegeId'], () => {});
-}
-
 function calcAge(birthDate) {
   if (!birthDate) return '-';
   const str = String(birthDate);
