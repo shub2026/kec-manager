@@ -4,6 +4,7 @@ import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { NotFoundError, ValidationError, AuthorizationError } from '../utils/error.js';
 import { authConfig } from '../config/auth.config.js';
+import { invalidateUserStatusCache } from '../middleware/auth.middleware.js';
 
 /**
  * 获取用户列表
@@ -129,6 +130,9 @@ export async function updateUser(req, res, next) {
       },
     });
 
+    // M-2: 角色变更时立即清除认证缓存
+    if (role) invalidateUserStatusCache(parseInt(id));
+
     await createAuditLog({
       action: 'update',
       module: 'user',
@@ -175,6 +179,9 @@ export async function updateUserStatus(req, res, next) {
       data: { is_active },
     });
 
+    // M-2: 状态变更时立即清除认证缓存，使禁用/启用立即生效
+    invalidateUserStatusCache(parseInt(id));
+
     await createAuditLog({
       action: 'update',
       module: 'user',
@@ -216,6 +223,9 @@ export async function deleteUser(req, res, next) {
     }
 
     await prisma.users.delete({ where: { id: parseInt(id) } });
+
+    // M-2: 删除用户时清除认证缓存
+    invalidateUserStatusCache(parseInt(id));
 
     await createAuditLog({
       action: 'delete',

@@ -58,6 +58,7 @@ export function isClassMatchPlan(cls, plan) {
 
 /**
  * 为班级查找最佳匹配的培养方案
+ * M-4: 区分匹配优先级——自定义方案 > 专业匹配 > 层次匹配
  * @param {object} cls - 班级对象
  * @param {Array} matchingPlans - 候选方案列表
  * @param {Map} classPlanMap - 自定义方案映射表（可选）
@@ -70,18 +71,23 @@ export function findBestMatchPlan(cls, matchingPlans, classPlanMap = null) {
     if (customPlan) return customPlan;
   }
 
-  // 2. 遍历所有方案，根据方案的关联类型来匹配
-  for (const plan of matchingPlans) {
-    // 方案按专业关联：检查班级的专业是否匹配
-    if (plan.major_id && plan.major_id === cls.major_id) {
-      return plan;
-    }
+  // M-4: 两阶段匹配——先找专业匹配，再找层次匹配
+  let majorMatch = null;
+  let levelMatch = null;
 
-    // 方案按层次关联：检查班级的层次是否匹配
-    if (plan.training_level_id && plan.training_level_id === cls.training_level_id) {
-      return plan;
+  for (const plan of matchingPlans) {
+    if (!cls.custom_plan_id) {
+      // 按专业匹配
+      if (!majorMatch && plan.major_id && plan.major_id === cls.major_id) {
+        majorMatch = plan;
+      }
+      // 按层次匹配
+      if (!levelMatch && plan.training_level_id && plan.training_level_id === cls.training_level_id) {
+        levelMatch = plan;
+      }
     }
   }
 
-  return null;
+  // 专业匹配优先于层次匹配
+  return majorMatch || levelMatch || null;
 }

@@ -1250,7 +1250,7 @@ export async function autoArrange(
     return buildResult(
       assignments,
       unassigned,
-      validClassesToAssign,
+      classesToAssign,
       manualAssignments.length,
       null,
       true,
@@ -1335,7 +1335,7 @@ export async function autoArrange(
   return buildResult(
     assignments,
     unassigned,
-    validClassesToAssign,
+    classesToAssign,
     manualAssignments.length,
     null,
     false,

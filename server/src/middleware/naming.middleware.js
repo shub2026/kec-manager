@@ -30,35 +30,27 @@ export function convertResponseNaming(req, res, next) {
 
   // 重写 json 方法
   res.json = function (data) {
-    // 如果 data 有 data 属性（标准响应格式），转换 data 内部的内容
-    if (
-      data &&
-      typeof data === 'object' &&
-      'data' in data &&
-      data.data !== null &&
-      data.data !== undefined
-    ) {
-      data.data = snakeToCamel(data.data);
+    if (data && typeof data === 'object') {
+      // M-1: 通用转换——遍历顶层所有字段，对对象或对象数组执行 snake→camel 转换
+      const SKIP_KEYS = new Set(['code', 'message', 'success']);
+      for (const key of Object.keys(data)) {
+        if (SKIP_KEYS.has(key)) continue;
+        const val = data[key];
+        if (Array.isArray(val)) {
+          data[key] = val.map((item) =>
+            item && typeof item === 'object' && !Array.isArray(item) ? snakeToCamel(item) : item
+          );
+        } else if (val && typeof val === 'object' && !Array.isArray(val)) {
+          // 嵌套分页对象（如 data.data.list）
+          if (Array.isArray(val.list)) {
+            val.list = val.list.map((item) =>
+              item && typeof item === 'object' ? snakeToCamel(item) : item
+            );
+          }
+          data[key] = snakeToCamel(val);
+        }
+      }
     }
-    // 如果有 items 数组（分页响应），转换数组中的每个对象
-    if (data && typeof data === 'object' && Array.isArray(data.items)) {
-      data.items = data.items.map((item) => snakeToCamel(item));
-    }
-    // 如果有 logs 数组（审计日志响应），转换数组中的每个对象
-    if (data && typeof data === 'object' && Array.isArray(data.logs)) {
-      data.logs = data.logs.map((log) => snakeToCamel(log));
-    }
-    // 如果 data.data 是分页对象且包含 list 数组，转换 list 中每个对象
-    if (
-      data &&
-      typeof data === 'object' &&
-      data.data &&
-      typeof data.data === 'object' &&
-      Array.isArray(data.data.list)
-    ) {
-      data.data.list = data.data.list.map((item) => snakeToCamel(item));
-    }
-    // 转换顶层的其他字段（如 errors、message 等保持不变）
     return originalJson(data);
   };
 

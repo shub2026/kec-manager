@@ -69,6 +69,14 @@ export async function querySemester(req, res, next) {
     if (trainingLevelIdNum != null) extraConditions.training_level_id = trainingLevelIdNum;
     if (enrollmentYearNum != null) extraConditions.enrollment_year = enrollmentYearNum;
 
+    // M-19: 年级筛选下推到数据库层，修正分页总数不准问题
+    const gradeNum = safeInt(grade);
+    if (gradeNum != null && gradeNum >= 1) {
+      // 年级 grade 对应入学年份 enrollment_year = startYear - grade + 1
+      const targetEnrollmentYear = semesterInfo.startYear - gradeNum + 1;
+      extraConditions.enrollment_year = targetEnrollmentYear;
+    }
+
     const classWhere =
       Object.keys(extraConditions).length > 0 ? { AND: [baseWhere, extraConditions] } : baseWhere;
 
@@ -239,8 +247,6 @@ export async function querySemester(req, res, next) {
     for (const cls of classes) {
       const calc = calcClassSemester(cls, semesterInfo);
       if (!calc) continue;
-
-      if (grade && calc.grade !== Number(grade)) continue;
 
       const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
       if (!plan) {

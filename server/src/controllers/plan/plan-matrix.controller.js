@@ -364,7 +364,10 @@ export async function listPlanSemesters(req, res, next) {
 }
 
 /**
- * 关联教材到学期（先删后增）
+ * 关联教材到学期
+ *
+ * 替换语义：每次调用都会先删除该学期的所有已有教材关联，再创建新关联。
+ * 如果需要追加教材，请使用单独的 create 接口而非此接口。
  */
 export async function assignTextbookToSemester(req, res, next) {
   try {

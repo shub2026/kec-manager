@@ -60,14 +60,8 @@ export async function getSettings(req, res, next) {
     for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
       defaultMap[key] = { value: def.value, description: def.description, isDefault: true };
     }
-    // 未登录仅返回系统标识
-    if (!(await tryGetAuthUser(req))) {
-      return res.status(200).json({
-        code: 200,
-        message: '使用默认设置',
-        data: { organization_name: defaultMap.organization_name },
-      });
-    }
+    // M-6: 不再在 catch 中重复调用 tryGetAuthUser，直接使用默认值降级
+    // 未认证请求（try 中 authUser 为 null 之前抛异常）也返回完整默认设置，前端按权限展示
     return res.status(200).json({
       code: 200,
       message: '使用默认设置',

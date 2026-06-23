@@ -14,6 +14,11 @@ setInterval(() => {
   }
 }, CACHE_CLEANUP_INTERVAL).unref();
 
+// M-2: 用户状态变更时主动清除缓存，避免等待 TTL 过期
+export function invalidateUserStatusCache(userId) {
+  if (userId != null) userStatusCache.delete(userId);
+}
+
 async function getActiveUserStatus(userId) {
   const now = Date.now();
   const cached = userStatusCache.get(userId);
@@ -24,7 +29,10 @@ async function getActiveUserStatus(userId) {
     where: { id: userId },
     select: { id: true, role: true, is_active: true },
   });
-  const result = user ? { role: user.role, is_active: user.is_active } : null;
+  // M-3: null 用户显式存储 is_active: false，避免 {...null} 产生空对象
+  const result = user
+    ? { role: user.role, is_active: user.is_active }
+    : { role: null, is_active: false };
   userStatusCache.set(userId, { ...result, expireAt: now + USER_STATUS_TTL });
   return result;
 }

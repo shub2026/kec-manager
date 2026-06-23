@@ -25,12 +25,14 @@ export const useSettingsStore = defineStore('settings', () => {
       const res = await request.get('/settings');
       settings.value = res.data || {};
       const cs = settings.value.currentSemester;
+      // M-14: 防御性正则校验学期格式，异常格式跳过解析避免 NaN 崩溃
+      const SEMESTER_RE = /^(\d{4})-(\d{4})-([12])$/;
       if (cs && cs.value && typeof cs.value === 'string') {
-        const parts = cs.value.split('-');
-        if (parts.length >= 3) {
-          const startYear = Number(parts[0]);
-          const endYear = Number(parts[1]);
-          const semesterIndex = Number(parts[2]);
+        const match = cs.value.match(SEMESTER_RE);
+        if (match) {
+          const startYear = Number(match[1]);
+          const endYear = Number(match[2]);
+          const semesterIndex = Number(match[3]);
           if (
             Number.isFinite(startYear) &&
             Number.isFinite(endYear) &&

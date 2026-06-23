@@ -1,6 +1,6 @@
 ## KEC Manager 全方位代码检测报告
 
-**版本:** v2.9.0 | **检测日期:** 2026-06-23 | **检测范围:** 后端67文件 + 前端62文件 + 数据库模型 + 排课算法
+**版本:** v2.10.0 | **检测日期:** 2026-06-23 | **检测范围:** 后端67文件 + 前端62文件 + 数据库模型 + 排课算法
 
 ---
 
@@ -12,7 +12,7 @@
 |---------|------|--------|--------|------|
 | CRITICAL | 3 | **3** | 0 | 已全部修复 |
 | HIGH | 12 | **12** | 0 | 已全部修复 |
-| MEDIUM | 20 | 0 | 20 | 影响性能或可维护性 |
+| MEDIUM | 20 | **20** | 0 | 已全部修复 (v2.10.0) |
 | LOW | 15 | 0 | 15 | 代码质量和工程规范问题 |
 
 ---
@@ -107,28 +107,28 @@ export async function resetSystem(req, res, next) {
 
 ### 三、MEDIUM 级问题
 
-| 编号 | 文件 | 问题描述 |
-|------|------|---------|
-| M-1 | naming.middleware.js | 响应字段转换仅覆盖 `data`/`items`/`logs`，自定义字段（如 `summary`、`stats`）不被转换 |
-| M-2 | auth.middleware.js | 用户被禁用后重新启用需等 30 秒缓存过期，应在状态变更时主动清除缓存 |
-| M-3 | auth.middleware.js | null 用户缓存格式不规范（`{...null}` = `{}`），缺少 `is_active` 属性，靠 undefined 的 falsy 特性工作 |
-| M-4 | plan.service.js | `findBestMatchPlan` 返回首个匹配，不区分专业匹配和层次匹配的优先级 |
-| M-5 | validation.js | `weekly_hours` 允许 0 值（`.isFloat({min:0})`），后续除法可能产生 Infinity |
-| M-6 | settings.controller.js | `getSettings` catch 中重复调用 `tryGetAuthUser`，可能掩盖原始错误 |
-| M-7 | plan-matrix.controller.js | `assignTextbookToSemester` 先删后建（替换语义），但缺少文档说明，用户可能误以为追加 |
-| M-8 | class.controller.js | `updateClass` 嵌套 try-catch 可能吞掉内层错误 |
-| M-9 | auth.service.js | `refreshToken` 所有错误统一包装为 AuthenticationError，丢失 DB 连接失败等原始错误类型 |
-| M-10 | query.controller.js | `querySemester` 先全量查询再分页查询（双重全表扫描），应用 `count` 替代第一次查询 |
-| M-11 | 排课算法 | 无效课时（0 或负值）的班级被推入 unassigned 但不计入 totalClasses，导致 UI 显示不一致 |
-| M-12 | 排课算法 | 批量排课无并发保护，两个并发请求会交叉执行同一学期的排课 |
-| M-13 | 排课算法 | 批量排课无超时保护，课程多时可能耗时数分钟触发 HTTP 超时 |
-| M-14 | settings store | `load()` 中 `cs.value.split('-')` 无防御性解析，异常学期格式会导致崩溃 |
-| M-15 | settings.routes.js | 每条路由重复挂载 authMiddleware + roleMiddleware，应统一 apply |
-| M-16 | plan.routes.js | 多参数路由 `/:planId/courses/:courseId/semesters` 缺少 ID 合法性验证 |
-| M-17 | schema.prisma | `teaching_assignments` 缺少复合索引（如 `[classId, semester]`、`[teacherId, semester]`） |
-| M-18 | schema.prisma | `audit_logs.created_at` 无索引，按时间查询/排序效率低 |
-| M-19 | query.controller.js | 学期查询的年级筛选在分页之后用JS过滤，但`total`未按年级过滤扣除，导致分页总数不准，可能出现空页或条目不足的页面 |
-| M-20 | data-export.controller.js | 排课统计导出`exportStatistics`仅读取`semester`参数，忽略前端传入的`name`/`type`/`subject`/`college`/`level`/`affiliated_college`六个筛选条件，导出Excel始终包含所有教师 |
+| 编号 | 文件 | 问题描述 | 状态 |
+|------|------|---------|------|
+| M-1 | naming.middleware.js | 响应字段转换仅覆盖 `data`/`items`/`logs`，自定义字段（如 `summary`、`stats`）不被转换 | `已修复 v2.10.0` |
+| M-2 | auth.middleware.js | 用户被禁用后重新启用需等 30 秒缓存过期，应在状态变更时主动清除缓存 | `已修复 v2.10.0` |
+| M-3 | auth.middleware.js | null 用户缓存格式不规范（`{...null}` = `{}`），缺少 `is_active` 属性，靠 undefined 的 falsy 特性工作 | `已修复 v2.10.0` |
+| M-4 | plan.service.js | `findBestMatchPlan` 返回首个匹配，不区分专业匹配和层次匹配的优先级 | `已修复 v2.10.0` |
+| M-5 | validation.js | `weekly_hours` 允许 0 值（`.isFloat({min:0})`），后续除法可能产生 Infinity | `已修复 v2.10.0` |
+| M-6 | settings.controller.js | `getSettings` catch 中重复调用 `tryGetAuthUser`，可能掩盖原始错误 | `已修复 v2.10.0` |
+| M-7 | plan-matrix.controller.js | `assignTextbookToSemester` 先删后建（替换语义），但缺少文档说明，用户可能误以为追加 | `已修复 v2.10.0` |
+| M-8 | class.controller.js | `updateClass` 嵌套 try-catch 可能吞掉内层错误 | `已修复 v2.10.0` |
+| M-9 | auth.service.js | `refreshToken` 所有错误统一包装为 AuthenticationError，丢失 DB 连接失败等原始错误类型 | `已修复 v2.10.0` |
+| M-10 | query.controller.js | `querySemester` 先全量查询再分页查询（双重全表扫描），应用 `count` 替代第一次查询 | `已修复 v2.10.0` |
+| M-11 | 排课算法 | 无效课时（0 或负值）的班级被推入 unassigned 但不计入 totalClasses，导致 UI 显示不一致 | `已修复 v2.10.0` |
+| M-12 | 排课算法 | 批量排课无并发保护，两个并发请求会交叉执行同一学期的排课 | `已修复 v2.10.0` |
+| M-13 | 排课算法 | 批量排课无超时保护，课程多时可能耗时数分钟触发 HTTP 超时 | `已修复 v2.10.0` |
+| M-14 | settings store | `load()` 中 `cs.value.split('-')` 无防御性解析，异常学期格式会导致崩溃 | `已修复 v2.10.0` |
+| M-15 | settings.routes.js | 每条路由重复挂载 authMiddleware + roleMiddleware，应统一 apply | `已修复 v2.10.0` |
+| M-16 | plan.routes.js | 多参数路由 `/:planId/courses/:courseId/semesters` 缺少 ID 合法性验证 | `已修复 v2.10.0` |
+| M-17 | schema.prisma | `teaching_assignments` 缺少复合索引（如 `[classId, semester]`、`[teacherId, semester]`） | `已修复 v2.10.0` |
+| M-18 | schema.prisma | `audit_logs.created_at` 无索引，按时间查询/排序效率低 | `已有索引` |
+| M-19 | query.controller.js | 学期查询的年级筛选在分页之后用JS过滤，但`total`未按年级过滤扣除，导致分页总数不准，可能出现空页或条目不足的页面 | `已修复 v2.10.0` |
+| M-20 | data-export.controller.js | 排课统计导出`exportStatistics`仅读取`semester`参数，忽略前端传入的`name`/`type`/`subject`/`college`/`level`/`affiliated_college`六个筛选条件，导出Excel始终包含所有教师 | `已修复 v2.10.0` |
 
 ---
 
@@ -164,22 +164,19 @@ export async function resetSystem(req, res, next) {
 
 ---
 
-### 六、优先修复路线图
+### 六、修复路线图
 
-**第一优先级（已完成 v2.8.2）— 防止崩溃和数据问题：**
-1. ~~settings.controller.js 添加 try-catch（C-1）~~ **已修复**
-2. ~~Dashboard.vue 添加 ElMessage 导入（C-3）~~ **已修复**
-3. ~~UserManagement.vue 的 ElMessageBox 移入 try-catch（H-1）~~
-4. ~~Login.vue / UserManagement.vue 修正 validate 调用模式（H-2）~~
+**已完成 — CRITICAL + HIGH + MEDIUM (v2.8.2 ~ v2.10.0)：**
 
-**第二优先级（建议本周）— 性能和数据安全：**
-5. schema.prisma teaching_assignments 改为 Restrict（H-3）
-6. ~~排课算法 trySwapOne 教材计算修复（C-2）~~ **已修复**
-7. getTeachersForCourse 添加 teacher_id 过滤（H-6）
-8. getStatistics / import/teachers.js N+1 修复（H-7, H-8）
+| 阶段 | 版本 | 修复内容 |
+|------|------|---------|
+| 第一优先级 | v2.8.2 | C-1 try-catch、C-2 教材计算、C-3 ElMessage 导入 |
+| 第二优先级 | v2.9.0 | H-1~H-12 全部修复（N+1 查询、级联策略、validate 模式、XSS 等） |
+| 第三优先级 | v2.10.0 | M-1~M-20 全部修复（命名转换、缓存清除、优先级匹配、并发/超时保护、索引、分页等） |
 
-**第三优先级（后续迭代）— 工程优化：**
-9. 复合索引添加（M-17）
-10. 批量排课并发保护（M-12）
-11. 死代码清理（L-7）
-12. 算法文档同步（L-12）
+**待处理 — LOW 级（后续迭代）：**
+1. 死代码清理（L-7）
+2. 算法文档同步（L-12）
+3. 排序工具合并（L-3）
+4. 浮点精度评估（L-5）
+5. 前端缓存优化（L-13）

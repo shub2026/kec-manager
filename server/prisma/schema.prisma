@@ -298,5 +298,7 @@ model teaching_assignments {
   @@index([teacher_id])
   @@index([semester])
   @@index([course_id, semester])
+  @@index([class_id, semester])
+  @@index([teacher_id, semester])
   @@map("teaching_assignments")
 }

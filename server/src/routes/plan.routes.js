@@ -10,6 +10,8 @@ import {
   validateSortOrder,
   validatePlanCreate,
 } from '../middleware/validation.js';
+import { param } from 'express-validator';
+import { handleValidationErrors } from '../middleware/validation.js';
 import {
   listPlans,
   getPlanById,
@@ -103,6 +105,11 @@ router.get('/:id/semesters', listPlanSemesters);
 router.post(
   '/:planId/courses/:courseId/semesters',
   roleMiddleware('admin', 'super_admin'),
+  [
+    param('planId').isInt({ min: 1 }).withMessage('方案ID必须为正整数'),
+    param('courseId').isInt({ min: 1 }).withMessage('课程ID必须为正整数'),
+    handleValidationErrors,
+  ],
   validateSemester,
   sanitizeBody,
   upsertSemester

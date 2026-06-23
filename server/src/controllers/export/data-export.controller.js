@@ -515,17 +515,41 @@ export async function exportTeachers(req, res, next) {
  */
 export async function exportStatistics(req, res, next) {
   try {
-    const { semester } = req.query;
+    const { semester, name, type, subject, college, level, affiliated_college } = req.query;
     if (!semester) {
       return res.status(400).json({ success: false, message: '请选择学期' });
     }
 
     const personnelMap = { full_time: '专职', part_time: '兼职', external: '外聘' };
 
-    // 按教师聚合统计
+    // M-20: 构建教师筛选条件
+    const teacherWhere = {};
+    if (name) teacherWhere.name = { contains: name };
+    if (type) teacherWhere.personnel_type = type;
+    if (affiliated_college) teacherWhere.affiliated_college_id = Number(affiliated_college);
+    if (subject) {
+      teacherWhere.courses = {
+        some: { course: { name: { contains: subject } } },
+      };
+    }
+    if (level) {
+      teacherWhere.scheduling_levels = {
+        some: { training_level_id: Number(level) },
+      };
+    }
+
+    // 按教师聚合统计（M-20: 支持筛选条件）
+    const assignmentWhere = { semester };
+    if (college) {
+      assignmentWhere.class = { college_id: Number(college) };
+    }
+    if (Object.keys(teacherWhere).length > 0) {
+      assignmentWhere.teacher = teacherWhere;
+    }
+
     const stats = await prisma.teaching_assignments.groupBy({
       by: ['teacher_id'],
-      where: { semester },
+      where: assignmentWhere,
       _sum: { weekly_hours: true },
       _count: { id: true },
     });

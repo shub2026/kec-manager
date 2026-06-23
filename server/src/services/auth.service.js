@@ -82,29 +82,29 @@ export class AuthService {
   }
 
   static async refreshToken(refreshTokenValue) {
+    let decoded;
     try {
-      const decoded = jwt.verify(refreshTokenValue, authConfig.jwtRefreshSecret); // M10修复：使用Refresh密钥验证
-
-      if (decoded.type !== 'refresh') {
-        throw new AuthenticationError('无效的Token类型');
-      }
-
-      const user = await prisma.users.findUnique({
-        where: { id: decoded.id },
-      });
-
-      if (!user || !user.is_active) {
-        throw new AuthenticationError('用户不存在或已被禁用');
-      }
-
-      // 校验账号当前角色，避免 refresh 后使用过期角色
-      const newToken = this.generateToken(user);
-      const newRefreshToken = this.generateRefreshToken(user);
-      // 返回新的 refreshToken 实现轮换，避免长期使用同一 refresh token 导致无法续期
-      return { token: newToken, refreshToken: newRefreshToken };
+      decoded = jwt.verify(refreshTokenValue, authConfig.jwtRefreshSecret);
     } catch (error) {
       throw new AuthenticationError('Refresh Token已过期或无效');
     }
+
+    if (decoded.type !== 'refresh') {
+      throw new AuthenticationError('无效的Token类型');
+    }
+
+    const user = await prisma.users.findUnique({
+      where: { id: decoded.id },
+    });
+
+    if (!user || !user.is_active) {
+      throw new AuthenticationError('用户不存在或已被禁用');
+    }
+
+    // M-9: DB 查询异常不再被包装为 AuthenticationError，保留原始错误类型
+    const newToken = this.generateToken(user);
+    const newRefreshToken = this.generateRefreshToken(user);
+    return { token: newToken, refreshToken: newRefreshToken };
   }
 
   static generateToken(user) {

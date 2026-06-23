@@ -320,90 +320,86 @@ export async function updateClass(req, res, next) {
       custom_plan_id,
       is_left_school,
     } = req.body;
-    try {
-      const currentClass = await prisma.classes.findUnique({ where: { id: Number(id) } });
-      if (!currentClass) throw new NotFoundError('班级');
 
-      const leftSchool =
-        is_left_school !== undefined ? !!is_left_school : currentClass.is_left_school;
-      const semesterInfo = await getCurrentSemesterInfo();
-      let autoStatus;
-      if (leftSchool) {
-        autoStatus = 'left_school';
-      } else {
-        const calcEnrollmentYear = enrollment_year
-          ? Number(enrollment_year)
-          : currentClass.enrollment_year;
-        const calcDurationYears = duration_years
-          ? Number(duration_years)
-          : currentClass.duration_years;
-        autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
-      }
+    const currentClass = await prisma.classes.findUnique({ where: { id: Number(id) } });
+    if (!currentClass) throw new NotFoundError('班级');
 
-      const updateData = {
-        status: autoStatus,
-        is_left_school: leftSchool,
-      };
-
-      if (name !== undefined) updateData.name = name;
-      if (enrollment_year !== undefined) updateData.enrollment_year = Number(enrollment_year);
-      if (duration_years !== undefined) updateData.duration_years = Number(duration_years);
-      if (major_id !== undefined) updateData.major_id = major_id ? Number(major_id) : null;
-      if (college_id !== undefined) updateData.college_id = college_id ? Number(college_id) : null;
-      if (training_level_id !== undefined)
-        updateData.training_level_id = training_level_id ? Number(training_level_id) : null;
-      if (student_count !== undefined) updateData.student_count = Number(student_count);
-      if (custom_plan_id !== undefined)
-        updateData.custom_plan_id = custom_plan_id ? Number(custom_plan_id) : null;
-
-      const cls = await prisma.classes.update({
-        where: { id: Number(id) },
-        data: updateData,
-        include: { majors: true, colleges: true, training_levels: true, training_plans: true },
-      });
-
-      // 班级标记离校时，级联删除当前学期排课记录，释放教师课时容量
-      // 注：每次保存离校班级都会尝试清理，覆盖「首次转换漏删」和「已离校仍有排课」两种场景
-      let deletedAssignmentCount = 0;
-      if (leftSchool) {
-        const result = await prisma.teaching_assignments.deleteMany({
-          where: { class_id: Number(id), semester: semesterInfo.raw },
-        });
-        deletedAssignmentCount = result.count;
-      }
-
-      await createAuditLog({
-        action: 'update',
-        module: 'class',
-        userId: req.user?.id,
-        ip: req.ip,
-        details: {
-          id: cls.id,
-          name,
-          is_left_school: leftSchool,
-          deletedAssignments: deletedAssignmentCount,
-        },
-        result: 'success',
-        message:
-          `更新班级：${name}` +
-          (deletedAssignmentCount > 0 ? `，级联删除 ${deletedAssignmentCount} 条排课记录` : ''),
-      });
-
-      success(res, cls, '更新成功');
-    } catch (e) {
-      await createAuditLog({
-        action: 'update',
-        module: 'class',
-        userId: req.user?.id,
-        ip: req.ip,
-        details: { id, ...req.body },
-        result: 'failed',
-        message: `更新班级失败：${e.message}`,
-      });
-      if (e.code === 'P2025') return fail(res, '班级不存在', 404);
-      throw e;
+    const leftSchool =
+      is_left_school !== undefined ? !!is_left_school : currentClass.is_left_school;
+    const semesterInfo = await getCurrentSemesterInfo();
+    let autoStatus;
+    if (leftSchool) {
+      autoStatus = 'left_school';
+    } else {
+      const calcEnrollmentYear = enrollment_year
+        ? Number(enrollment_year)
+        : currentClass.enrollment_year;
+      const calcDurationYears = duration_years
+        ? Number(duration_years)
+        : currentClass.duration_years;
+      autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
     }
+
+    const updateData = {
+      status: autoStatus,
+      is_left_school: leftSchool,
+    };
+
+    if (name !== undefined) updateData.name = name;
+    if (enrollment_year !== undefined) updateData.enrollment_year = Number(enrollment_year);
+    if (duration_years !== undefined) updateData.duration_years = Number(duration_years);
+    if (major_id !== undefined) updateData.major_id = major_id ? Number(major_id) : null;
+    if (college_id !== undefined) updateData.college_id = college_id ? Number(college_id) : null;
+    if (training_level_id !== undefined)
+      updateData.training_level_id = training_level_id ? Number(training_level_id) : null;
+    if (student_count !== undefined) updateData.student_count = Number(student_count);
+    if (custom_plan_id !== undefined)
+      updateData.custom_plan_id = custom_plan_id ? Number(custom_plan_id) : null;
+
+    const cls = await prisma.classes.update({
+      where: { id: Number(id) },
+      data: updateData,
+      include: { majors: true, colleges: true, training_levels: true, training_plans: true },
+    });
+
+    // 班级标记离校时，级联删除当前学期排课记录，释放教师课时容量
+    let deletedAssignmentCount = 0;
+    if (leftSchool) {
+      const result = await prisma.teaching_assignments.deleteMany({
+        where: { class_id: Number(id), semester: semesterInfo.raw },
+      });
+      deletedAssignmentCount = result.count;
+    }
+
+    await createAuditLog({
+      action: 'update',
+      module: 'class',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        id: cls.id,
+        name,
+        is_left_school: leftSchool,
+        deletedAssignments: deletedAssignmentCount,
+      },
+      result: 'success',
+      message:
+        `更新班级：${name}` +
+        (deletedAssignmentCount > 0 ? `，级联删除 ${deletedAssignmentCount} 条排课记录` : ''),
+    });
+
+    success(res, cls, '更新成功');
   } catch (e) {
+    await createAuditLog({
+      action: 'update',
+      module: 'class',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { id: req.params.id, ...req.body },
+      result: 'failed',
+      message: `更新班级失败：${e.message}`,
+    });
+    if (e.code === 'P2025') return next(new NotFoundError('班级'));
     next(e);
   }
 }
