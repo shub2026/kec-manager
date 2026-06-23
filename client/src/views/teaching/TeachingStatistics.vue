@@ -8,6 +8,12 @@
           >
           <div class="card-header-actions">
             <el-tag type="info">{{ semester }}</el-tag>
+            <el-input
+              v-model="filterName"
+              placeholder="姓名"
+              clearable
+              style="width: 120px"
+            />
             <el-select v-model="filterType" placeholder="类别" clearable style="width: 100px">
               <el-option label="专职" value="full_time" />
               <el-option label="兼职" value="part_time" />
@@ -193,6 +199,7 @@ const loading = ref(false);
 const exporting = ref(false);
 
 // 筛选器
+const filterName = ref('');
 const filterType = ref('');
 const filterSubject = ref('');
 const filterCollege = ref('');
@@ -241,6 +248,7 @@ const affiliatedCollegeOptions = computed(() => {
 
 const filteredTeachers = computed(() => {
   return teacherList.value.filter((t) => {
+    if (filterName.value && !t.teacherName.includes(filterName.value)) return false;
     if (filterType.value && t.personnelType !== filterType.value) return false;
     if (filterSubject.value) {
       const hasSubject = (t.details || []).some((d) => d.course?.name === filterSubject.value);

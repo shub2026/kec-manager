@@ -217,8 +217,9 @@ function getRelationTypeTag(row) {
 }
 
 function getPlanTagType(row) {
-  if (row.customPlanId) return 'warning';
-  return 'success';
+  if (row.customPlanId) return 'warning'; // 自定义方案用橙色
+  if (row.matchedPlanName) return 'success'; // 已关联方案用绿色
+  return 'info'; // 未关联用灰色
 }
 
 function getCurrentPlanName(row) {
@@ -227,14 +228,7 @@ function getCurrentPlanName(row) {
     return row.matchedPlanName;
   }
 
-  // 兜底：如果没有 matchedPlanName，显示提示信息
-  if (row.majors || row.trainingLevels) {
-    const parts = [];
-    if (row.majors?.name) parts.push(row.majors.name);
-    if (row.trainingLevels?.name) parts.push(row.trainingLevels.name);
-    return parts.length > 0 ? `自动匹配 (${parts.join(', ')})` : '未关联';
-  }
-
+  // 如果没有匹配到方案，统一显示"未关联"
   return '未关联';
 }
 </script>

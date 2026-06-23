@@ -573,7 +573,15 @@
       </div>
 
       <template #footer>
-        <el-button type="primary" @click="arrangeResultVisible = false">关闭</el-button>
+        <el-button @click="arrangeResultVisible = false">关闭</el-button>
+        <el-button
+          v-if="previewMode"
+          type="primary"
+          :loading="arranging"
+          @click="handleExecutePreview"
+        >
+          <el-icon><Check /></el-icon> 执行排课
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -919,12 +927,24 @@ async function handleRemoveAssignment(row) {
 
 async function handleAutoArrange(mode) {
   const modeLabel = mode === 'full' ? '全量模式' : '标准模式';
-  const previewTip = previewMode.value ? '（预览模式：不会实际写入数据库）' : '';
+  
+  // 根据是否预览模式显示不同的提示
+  let confirmMessage;
+  if (previewMode.value) {
+    confirmMessage = `将以「${modeLabel}」预览自动排课结果（不会写入数据库）。预览满意后可在结果弹窗中点击“执行排课”按钮应用结果。确定继续？`;
+  } else {
+    confirmMessage = `将以「${modeLabel}」自动安排当前课程的所有班级（已有手动安排不会被覆盖）。确定继续？`;
+  }
+  
   try {
     await ElMessageBox.confirm(
-      `将以「${modeLabel}」自动安排当前课程的所有班级（已有手动安排不会被覆盖）。${previewTip}确定继续？`,
-      `自动排课 - ${modeLabel}`,
-      { confirmButtonText: '确定排课', cancelButtonText: '取消', type: 'warning' }
+      confirmMessage,
+      previewMode.value ? `预览排课 - ${modeLabel}` : `自动排课 - ${modeLabel}`,
+      { 
+        confirmButtonText: previewMode.value ? '开始预览' : '确定排课', 
+        cancelButtonText: '取消', 
+        type: 'warning' 
+      }
     );
   } catch {
     return;
@@ -955,6 +975,45 @@ async function handleAutoArrange(mode) {
     }
   } finally {
     arranging.value = false;
+  }
+}
+
+// 执行预览结果（关闭预览弹窗，以非预览模式重新排课）
+async function handleExecutePreview() {
+  // 临时关闭预览模式
+  const wasPreview = previewMode.value;
+  previewMode.value = false;
+  
+  // 提取当前模式
+  const mode = arrangeResultMode.value === '全量模式' ? 'full' : 'standard';
+  
+  // 直接执行排课（不再显示确认对话框，因为用户已经在预览时看过了）
+  arranging.value = true;
+  try {
+    await runAutoArrange({
+      courseId: selectedCourseId.value,
+      semester: currentSemesterLabel.value,
+      mode,
+      hourSettings,
+      preview: false, // 非预览模式，实际写入数据库
+    });
+    
+    // 刷新页面数据
+    await loadData();
+    
+    ElMessage.success('排课已执行');
+    
+    // 关闭预览弹窗
+    arrangeResultVisible.value = false;
+  } catch (e) {
+    ElMessage.error('执行排课失败');
+    if (import.meta.env.DEV) {
+      console.error('执行排课失败:', e);
+    }
+  } finally {
+    arranging.value = false;
+    // 恢复预览模式状态
+    previewMode.value = wasPreview;
   }
 }
 

@@ -33,11 +33,11 @@ export async function buildClassWithPlanFilter() {
  */
 
 /**
- * 判断班级是否匹配指定培养方案（三级互斥匹配）
- * 优先级：自定义方案 > 按专业 > 按培养层次
- * 注意：major_id/training_level_id 为可空字段，必须做真值守卫，避免 null===null 误匹配
- * @param {object} cls - 班级对象（包含major_id, training_level_id, custom_plan_id）
- * @param {object} plan - 培养方案对象（包含id, major_id, training_level_id）
+ * 判断班级是否匹配指定培养方案(三级互斥匹配)
+ * 优先级:自定义方案 > (按专业 OR 按层次,二选一,无先后之分)
+ * 注意:major_id/training_level_id 为可空字段,必须做真值守卫,避免 null===null 误匹配
+ * @param {object} cls - 班级对象(包含major_id, training_level_id, custom_plan_id)
+ * @param {object} plan - 培养方案对象(包含id, major_id, training_level_id)
  * @returns {boolean} 是否匹配
  */
 export function isClassMatchPlan(cls, plan) {
@@ -46,15 +46,10 @@ export function isClassMatchPlan(cls, plan) {
 
   // 未设置自定义方案的班级才走通用匹配
   if (!cls.custom_plan_id) {
-    // 2. 按专业匹配（要求班级和方案都有专业且相同）
-    if (cls.major_id && plan.major_id && cls.major_id === plan.major_id) return true;
-    // 3. 按层次匹配（仅当班级未按专业命中、且班级和方案都有层次时）
-    if (
-      !cls.major_id &&
-      cls.training_level_id &&
-      plan.training_level_id &&
-      cls.training_level_id === plan.training_level_id
-    )
+    // 2. 按专业匹配(如果方案设置了专业,检查班级的专业是否相同)
+    if (plan.major_id && cls.major_id && cls.major_id === plan.major_id) return true;
+    // 3. 按层次匹配(如果方案设置了层次,检查班级的层次是否相同)
+    if (plan.training_level_id && cls.training_level_id && cls.training_level_id === plan.training_level_id)
       return true;
   }
 
