@@ -410,6 +410,16 @@ const filteredTrainingLevels = computed(() =>
   getFilteredOptions.value('trainingLevelId', allTrainingLevels.value, ['collegeId'])
 );
 
+// 处理意向学院变化
+function handleCollegeFilterChange() {
+  handleParentChange('collegeId', ['trainingLevelId'], () => {});
+}
+
+// 处理意向层次变化
+function handleTrainingLevelFilterChange() {
+  handleParentChange('trainingLevelId', ['collegeId'], () => {});
+}
+
 // 客户端筛选
 const filteredlist = computed(() => {
   let result = list.value;
