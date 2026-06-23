@@ -92,11 +92,19 @@ export async function updateCourse(req, res, next) {
 export async function deleteCourse(req, res, next) {
   try {
     const { id } = req.params;
-    const planCount = await prisma.plan_courses.count({ where: { course_id: Number(id) } });
+    const courseId = Number(id);
+    // H-5: 补全关联检查 — 培养方案 + 排课记录 + 教师关联
+    const [planCount, assignmentCount, teacherCourseCount] = await Promise.all([
+      prisma.plan_courses.count({ where: { course_id: courseId } }),
+      prisma.teaching_assignments.count({ where: { course_id: courseId } }),
+      prisma.teacher_courses.count({ where: { course_id: courseId } }),
+    ]);
     if (planCount > 0) return fail(res, '该课程已被培养方案使用，无法删除');
+    if (assignmentCount > 0) return fail(res, '该课程已有排课记录，请先删除排课后再删除课程');
+    if (teacherCourseCount > 0) return fail(res, '该课程已关联教师，请先解除教师关联后再删除课程');
     try {
-      const course = await prisma.courses.findUnique({ where: { id: Number(id) } });
-      await prisma.courses.delete({ where: { id: Number(id) } });
+      const course = await prisma.courses.findUnique({ where: { id: courseId } });
+      await prisma.courses.delete({ where: { id: courseId } });
 
       await createAuditLog({
         action: 'delete',

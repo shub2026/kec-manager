@@ -69,6 +69,26 @@ export async function importTeachers(req, res, next) {
   // 收集所有待执行的教师操作（在事务中统一执行）
   const teacherOps = [];
 
+  // H-8: 预加载教师数据，避免循环内 N+1 查询
+  const importNames = new Set();
+  for (const row of rows) {
+    const n = sanitizeFormulaInjection(sanitizeInput(row['教师姓名']));
+    if (n) importNames.add(String(n).trim());
+  }
+  const existingTeachersByName = new Map();
+  if (importNames.size > 0) {
+    const existingTeachers = await prisma.teachers.findMany({
+      where: { name: { in: [...importNames] } },
+      select: { id: true, name: true },
+    });
+    for (const t of existingTeachers) {
+      if (!existingTeachersByName.has(t.name)) {
+        existingTeachersByName.set(t.name, []);
+      }
+      existingTeachersByName.get(t.name).push(t);
+    }
+  }
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
 
@@ -190,11 +210,8 @@ export async function importTeachers(req, res, next) {
       }
     }
 
-    // 查找是否已存在同名教师
-    const sameNameTeachers = await prisma.teachers.findMany({
-      where: { name: String(name).trim() },
-      select: { id: true },
-    });
+    // H-8: 使用预加载的教师索引替代逐行 DB 查询
+    const sameNameTeachers = existingTeachersByName.get(String(name).trim()) || [];
 
     if (sameNameTeachers.length > 1) {
       // 同名教师多条，跳过避免张冠李戴（M-8 修复）

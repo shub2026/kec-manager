@@ -290,9 +290,9 @@ model teaching_assignments {
   is_auto      Boolean  @default(true)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
-  teacher      teachers @relation(fields: [teacher_id], references: [id], onDelete: Cascade)
-  class        classes  @relation(fields: [class_id], references: [id], onDelete: Cascade)
-  course       courses  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  teacher      teachers @relation(fields: [teacher_id], references: [id], onDelete: Restrict)
+  class        classes  @relation(fields: [class_id], references: [id], onDelete: Restrict)
+  course       courses  @relation(fields: [course_id], references: [id], onDelete: Restrict)
 
   @@unique([class_id, course_id, semester])
   @@index([teacher_id])

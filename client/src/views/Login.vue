@@ -118,32 +118,34 @@ const rules = {
 async function handleLogin() {
   if (!formRef.value) return;
 
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return;
+  try {
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
 
-    loading.value = true;
+  loading.value = true;
 
-    try {
-      const result = await authStore.login(loginForm.username, loginForm.password);
+  try {
+    const result = await authStore.login(loginForm.username, loginForm.password);
 
-      if (result.success) {
-        ElMessage.success('登录成功');
-        // 仅允许站内相对路径跳转，防止开放重定向
-        const redirect = route.query.redirect;
-        const safeRedirect =
-          typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
-            ? redirect
-            : '/';
-        router.push(safeRedirect);
-      } else {
-        ElMessage.error(result.message);
-      }
-    } catch (error) {
-      ElMessage.error('登录失败，请稍后重试');
-    } finally {
-      loading.value = false;
+    if (result.success) {
+      ElMessage.success('登录成功');
+      // 仅允许站内相对路径跳转，防止开放重定向
+      const redirect = route.query.redirect;
+      const safeRedirect =
+        typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+          ? redirect
+          : '/';
+      router.push(safeRedirect);
+    } else {
+      ElMessage.error(result.message);
     }
-  });
+  } catch (error) {
+    ElMessage.error('登录失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
 }
 
 async function loadOrganizationName() {

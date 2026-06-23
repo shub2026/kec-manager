@@ -506,6 +506,9 @@ export async function queryAllTextbooksUsage(req, res, next) {
       classesByYearAndLevel.get(levelKey).push(c);
     }
 
+    // H-9: Build classId→class Map for O(1) lookup
+    const classByIdMap = new Map(allClasses.map((c) => [c.id, c]));
+
     const results = [];
 
     for (const tb of textbooks) {
@@ -531,7 +534,7 @@ export async function queryAllTextbooksUsage(req, res, next) {
 
       let totalStudents = 0;
       for (const classId of usedClasses) {
-        const cls = allClasses.find((c) => c.id === classId);
+        const cls = classByIdMap.get(classId);
         if (cls) {
           totalStudents += cls.student_count;
         }

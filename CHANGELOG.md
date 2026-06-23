@@ -5,6 +5,35 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.9.0] - 2026-06-23
+
+### 前端健壮性修复
+
+- **H-1 ElMessageBox 确认框异常捕获**：`UserManagement.vue` 的 `toggleUserStatus` 和 `deleteUser` 将 `ElMessageBox.confirm` 移入 try-catch，取消操作不再抛出未捕获异常
+- **H-2 表单验证 Promise 模式修复**：`Login.vue` 和 `UserManagement.vue` 的 `formRef.value.validate(callback)` 改为纯 Promise 模式 `await formRef.value.validate()`，修复 callback 模式下 `await` 为空操作的隐患
+- **H-11 settings store 防御性加载**：`load()` 添加 try-catch 和学期字符串防御性解析，API 返回格式异常时不再崩溃
+
+### 后端逻辑修复
+
+- **H-4 教材状态切换修复**：`toggleTextbookStatus` 改为接受 `req.body.is_active` 目标状态，而非盲目 toggle
+- **H-5 课程删除关联检查补全**：`deleteCourse` 新增 `teaching_assignments` 和 `teacher_courses` 计数检查，防止删除有排课或教师关联的课程
+
+### 性能优化
+
+- **H-6 教师排课查询过滤**：`getTeachersForCourse` 中 `teacherAssignmentsWithCollege` 和 `teacherAssignmentsWithLevel` 添加 `teacher_id` 过滤，避免拉取整个学期的排课数据
+- **H-7 课时统计消除 N+1 查询**：`getStatistics` 预加载所有 `training_levels` 构建全局 Map，替代 Promise.all 内逐教师查询
+- **H-8 教师导入消除 N+1 查询**：预加载所有导入行涉及的教师姓名构建索引 Map，替代循环内逐行 DB 查询
+- **H-9 教材使用概览 O(n²)→O(n)**：`queryAllTextbooksUsage` 构建 `classId→class` Map 替代循环内 `Array.find()`
+- **H-10 班级列表查询合并**：`listClasses` 7 次独立班级查询合并为单次查询 + 单次遍历推导所有关联映射
+
+### 数据库安全
+
+- **H-3 排课记录外键约束加固**：`teaching_assignments` 三个外键从 `onDelete: Cascade` 改为 `onDelete: Restrict`，防止删除教师/班级/课程时静默级联丢失排课数据。三个控制器（`deleteTeacher`/`deleteClass`/`deleteCourse`）均已添加前置排课检查
+
+### 安全评估
+
+- **H-12 JWT Token 安全评估**：当前架构（15分钟 access token + 7天 rotating refresh + 角色实时刷新 + 速率限制）对小型内部工具安全级别合理。后续建议将 token 存储从 JS 可访问 cookie 迁移到 httpOnly cookie
+
 ## [2.8.2] - 2026-06-23
 
 ### Bug修复

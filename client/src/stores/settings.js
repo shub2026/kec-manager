@@ -21,15 +21,27 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   async function load() {
-    const res = await request.get('/settings');
-    settings.value = res.data;
-    const cs = settings.value.currentSemester;
-    if (cs) {
-      const parts = cs.value.split('-');
-      const startYear = Number(parts[0]);
-      const endYear = Number(parts[1]);
-      const semesterIndex = Number(parts[2]);
-      semesterLabel.value = formatSemesterLabel(startYear, endYear, semesterIndex);
+    try {
+      const res = await request.get('/settings');
+      settings.value = res.data || {};
+      const cs = settings.value.currentSemester;
+      if (cs && cs.value && typeof cs.value === 'string') {
+        const parts = cs.value.split('-');
+        if (parts.length >= 3) {
+          const startYear = Number(parts[0]);
+          const endYear = Number(parts[1]);
+          const semesterIndex = Number(parts[2]);
+          if (
+            Number.isFinite(startYear) &&
+            Number.isFinite(endYear) &&
+            (semesterIndex === 1 || semesterIndex === 2)
+          ) {
+            semesterLabel.value = formatSemesterLabel(startYear, endYear, semesterIndex);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('加载系统设置失败:', e);
     }
   }
 

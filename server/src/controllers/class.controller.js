@@ -120,132 +120,70 @@ export async function listClasses(req, res, next) {
       };
     });
 
-    const distinctYears = await prisma.classes.findMany({
-      select: { enrollment_year: true },
-      distinct: ['enrollment_year'],
-      orderBy: { enrollment_year: 'desc' },
+    // H-10: 合并 7 次班级查询为单次查询，从结果集推导所有关联映射
+    const allClassesForMappings = await prisma.classes.findMany({
+      select: {
+        college_id: true,
+        major_id: true,
+        training_level_id: true,
+        enrollment_year: true,
+      },
     });
-    const allEnrollmentYears = distinctYears.map((c) => c.enrollment_year).filter((y) => y != null);
 
-    // 计算学院-专业关联关系（基于已有班级数据）
+    const enrollmentYearSet = new Set();
     const collegeMajorMap = new Map();
-    const allClassesForMapping = await prisma.classes.findMany({
-      select: { college_id: true, major_id: true },
-      where: { college_id: { not: null }, major_id: { not: null } },
-    });
-    
-    for (const cls of allClassesForMapping) {
-      if (!collegeMajorMap.has(cls.college_id)) {
-        collegeMajorMap.set(cls.college_id, new Set());
-      }
-      collegeMajorMap.get(cls.college_id).add(cls.major_id);
-    }
-    
-    // 转换为对象格式
-    const collegeMajorRelation = {};
-    for (const [collegeId, majorIds] of collegeMajorMap) {
-      collegeMajorRelation[collegeId] = Array.from(majorIds);
-    }
-
-    // 计算学院-层次关联关系（基于已有班级数据）
     const collegeLevelMap = new Map();
-    const classesWithLevel = await prisma.classes.findMany({
-      select: { college_id: true, training_level_id: true },
-      where: { college_id: { not: null }, training_level_id: { not: null } },
-    });
-    
-    for (const cls of classesWithLevel) {
-      if (!collegeLevelMap.has(cls.college_id)) {
-        collegeLevelMap.set(cls.college_id, new Set());
-      }
-      collegeLevelMap.get(cls.college_id).add(cls.training_level_id);
-    }
-    
-    const collegeLevelRelation = {};
-    for (const [collegeId, levelIds] of collegeLevelMap) {
-      collegeLevelRelation[collegeId] = Array.from(levelIds);
-    }
-
-    // 计算专业-层次关联关系（基于已有班级数据）
     const majorLevelMap = new Map();
-    const classesWithMajorAndLevel = await prisma.classes.findMany({
-      select: { major_id: true, training_level_id: true },
-      where: { major_id: { not: null }, training_level_id: { not: null } },
-    });
-    
-    for (const cls of classesWithMajorAndLevel) {
-      if (!majorLevelMap.has(cls.major_id)) {
-        majorLevelMap.set(cls.major_id, new Set());
-      }
-      majorLevelMap.get(cls.major_id).add(cls.training_level_id);
-    }
-    
-    const majorLevelRelation = {};
-    for (const [majorId, levelIds] of majorLevelMap) {
-      majorLevelRelation[majorId] = Array.from(levelIds);
-    }
-
-    // 计算学院-入学年份关联关系
     const collegeYearMap = new Map();
-    const allClassesForYearMapping = await prisma.classes.findMany({
-      select: { college_id: true, enrollment_year: true },
-    });
-    
-    for (const cls of allClassesForYearMapping) {
+    const majorYearMap = new Map();
+    const levelYearMap = new Map();
+
+    for (const cls of allClassesForMappings) {
+      if (cls.enrollment_year != null) enrollmentYearSet.add(cls.enrollment_year);
+
+      if (cls.college_id != null && cls.major_id != null) {
+        if (!collegeMajorMap.has(cls.college_id)) collegeMajorMap.set(cls.college_id, new Set());
+        collegeMajorMap.get(cls.college_id).add(cls.major_id);
+      }
+      if (cls.college_id != null && cls.training_level_id != null) {
+        if (!collegeLevelMap.has(cls.college_id)) collegeLevelMap.set(cls.college_id, new Set());
+        collegeLevelMap.get(cls.college_id).add(cls.training_level_id);
+      }
+      if (cls.major_id != null && cls.training_level_id != null) {
+        if (!majorLevelMap.has(cls.major_id)) majorLevelMap.set(cls.major_id, new Set());
+        majorLevelMap.get(cls.major_id).add(cls.training_level_id);
+      }
       if (cls.college_id != null && cls.enrollment_year != null) {
-        if (!collegeYearMap.has(cls.college_id)) {
-          collegeYearMap.set(cls.college_id, new Set());
-        }
+        if (!collegeYearMap.has(cls.college_id)) collegeYearMap.set(cls.college_id, new Set());
         collegeYearMap.get(cls.college_id).add(cls.enrollment_year);
       }
-    }
-    
-    const collegeYearRelation = {};
-    for (const [collegeId, years] of collegeYearMap) {
-      collegeYearRelation[collegeId] = Array.from(years).sort((a, b) => b - a);
-    }
-
-    // 计算专业-入学年份关联关系
-    const majorYearMap = new Map();
-    const allClassesForMajorYearMapping = await prisma.classes.findMany({
-      select: { major_id: true, enrollment_year: true },
-    });
-    
-    for (const cls of allClassesForMajorYearMapping) {
       if (cls.major_id != null && cls.enrollment_year != null) {
-        if (!majorYearMap.has(cls.major_id)) {
-          majorYearMap.set(cls.major_id, new Set());
-        }
+        if (!majorYearMap.has(cls.major_id)) majorYearMap.set(cls.major_id, new Set());
         majorYearMap.get(cls.major_id).add(cls.enrollment_year);
       }
-    }
-    
-    const majorYearRelation = {};
-    for (const [majorId, years] of majorYearMap) {
-      majorYearRelation[majorId] = Array.from(years).sort((a, b) => b - a);
-    }
-
-    // 计算层次-入学年份关联关系
-    const levelYearMap = new Map();
-    const allClassesForLevelYearMapping = await prisma.classes.findMany({
-      select: { training_level_id: true, enrollment_year: true },
-    });
-    
-    for (const cls of allClassesForLevelYearMapping) {
       if (cls.training_level_id != null && cls.enrollment_year != null) {
-        if (!levelYearMap.has(cls.training_level_id)) {
-          levelYearMap.set(cls.training_level_id, new Set());
-        }
+        if (!levelYearMap.has(cls.training_level_id)) levelYearMap.set(cls.training_level_id, new Set());
         levelYearMap.get(cls.training_level_id).add(cls.enrollment_year);
       }
     }
-    
-    const levelYearRelation = {};
-    for (const [levelId, years] of levelYearMap) {
-      levelYearRelation[levelId] = Array.from(years).sort((a, b) => b - a);
-    }
 
-    // 计算培养方案相关的关联关系（用于筛选器联动）
+    const allEnrollmentYears = [...enrollmentYearSet].sort((a, b) => b - a);
+
+    // 辅助：将 Map<K, Set<V>> 转为普通对象（年份降序，其他保持插入顺序）
+    const mapToObj = (map, sortFn) => {
+      const obj = {};
+      for (const [k, s] of map) obj[k] = sortFn ? [...s].sort(sortFn) : [...s];
+      return obj;
+    };
+
+    const collegeMajorRelation = mapToObj(collegeMajorMap);
+    const collegeLevelRelation = mapToObj(collegeLevelMap);
+    const majorLevelRelation = mapToObj(majorLevelMap);
+    const collegeYearRelation = mapToObj(collegeYearMap, (a, b) => b - a);
+    const majorYearRelation = mapToObj(majorYearMap, (a, b) => b - a);
+    const levelYearRelation = mapToObj(levelYearMap, (a, b) => b - a);
+
+    // 培养方案关联映射（独立查询，因为是不同表）
     const planCollegeMap = new Map();
     const planMajorMap = new Map();
     const planLevelMap = new Map();
@@ -274,20 +212,9 @@ export async function listClasses(req, res, next) {
       }
     }
     
-    const planCollegeRelation = {};
-    for (const [collegeId, planIds] of planCollegeMap) {
-      planCollegeRelation[collegeId] = Array.from(planIds);
-    }
-    
-    const planMajorRelation = {};
-    for (const [majorId, planIds] of planMajorMap) {
-      planMajorRelation[majorId] = Array.from(planIds);
-    }
-    
-    const planLevelRelation = {};
-    for (const [levelId, planIds] of planLevelMap) {
-      planLevelRelation[levelId] = Array.from(planIds);
-    }
+    const planCollegeRelation = mapToObj(planCollegeMap);
+    const planMajorRelation = mapToObj(planMajorMap);
+    const planLevelRelation = mapToObj(planLevelMap);
 
     success(res, { 
       items: classesWithDynamicStatus, 
@@ -484,9 +411,17 @@ export async function updateClass(req, res, next) {
 export async function deleteClass(req, res, next) {
   try {
     const { id } = req.params;
+    const classId = Number(id);
+    // H-3: 删除前检查排课记录，为 schema Cascade→Restrict 做准备
+    const assignmentCount = await prisma.teaching_assignments.count({
+      where: { class_id: classId },
+    });
+    if (assignmentCount > 0) {
+      return fail(res, `该班级存在 ${assignmentCount} 条排课记录，请先删除排课后再删除班级`);
+    }
     try {
-      const cls = await prisma.classes.findUnique({ where: { id: Number(id) } });
-      await prisma.classes.delete({ where: { id: Number(id) } });
+      const cls = await prisma.classes.findUnique({ where: { id: classId } });
+      await prisma.classes.delete({ where: { id: classId } });
 
       await createAuditLog({
         action: 'delete',

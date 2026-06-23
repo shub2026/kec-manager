@@ -401,42 +401,50 @@ export async function getStatistics(req, res, next) {
       assignmentsByTeacher.get(a.teacher_id).push(a);
     }
 
-    const result = await Promise.all(
-      stats.map(async (s) => {
-        const teacher = teacherMap.get(s.teacher_id);
-        const assignments = assignmentsByTeacher.get(s.teacher_id) || [];
+    // H-7: 预加载所有授课层次，消除 N+1 查询
+    const allLevelIds = new Set();
+    for (const a of allAssignments) {
+      if (a.class.training_level_id) {
+        allLevelIds.add(a.class.training_level_id);
+      }
+    }
+    let globalLevelMap = new Map();
+    if (allLevelIds.size > 0) {
+      const allLevels = await prisma.training_levels.findMany({
+        where: { id: { in: [...allLevelIds] } },
+        select: { id: true, name: true },
+      });
+      globalLevelMap = new Map(allLevels.map((l) => [l.id, l]));
+    }
 
-        // 从实际授课班级中提取任课学院（去重）
-        const collegeMap = new Map();
-        for (const a of assignments) {
-          if (a.class.colleges && !collegeMap.has(a.class.colleges.id)) {
-            collegeMap.set(a.class.colleges.id, a.class.colleges);
-          }
-        }
-        const collegeList = [...collegeMap.values()];
+    const result = stats.map((s) => {
+      const teacher = teacherMap.get(s.teacher_id);
+      const assignments = assignmentsByTeacher.get(s.teacher_id) || [];
 
-        // 从实际授课班级中提取任课层次（去重）
-        const levelIdSet = new Set();
-        for (const a of assignments) {
-          if (a.class.training_level_id) {
-            levelIdSet.add(a.class.training_level_id);
-          }
+      // 从实际授课班级中提取任课学院（去重）
+      const collegeMap = new Map();
+      for (const a of assignments) {
+        if (a.class.colleges && !collegeMap.has(a.class.colleges.id)) {
+          collegeMap.set(a.class.colleges.id, a.class.colleges);
         }
+      }
+      const collegeList = [...collegeMap.values()];
 
-        // 优先使用实际授课层次，如果为空则使用意向设置
-        let trainingLevelList;
-        if (levelIdSet.size > 0) {
-          // 需要查询层次名称
-          const levelIds = [...levelIdSet];
-          const levels = await prisma.training_levels.findMany({
-            where: { id: { in: levelIds } },
-            select: { id: true, name: true },
-          });
-          const levelMap = new Map(levels.map((l) => [l.id, l]));
-          trainingLevelList = levelIds.map((lid) => levelMap.get(lid)).filter(Boolean);
-        } else {
-          trainingLevelList = teacher?.scheduling_levels?.map((sl) => sl.training_level) ?? [];
+      // 从实际授课班级中提取任课层次（去重）
+      const levelIdSet = new Set();
+      for (const a of assignments) {
+        if (a.class.training_level_id) {
+          levelIdSet.add(a.class.training_level_id);
         }
+      }
+
+      // 优先使用实际授课层次，如果为空则使用意向设置
+      let trainingLevelList;
+      if (levelIdSet.size > 0) {
+        trainingLevelList = [...levelIdSet].map((lid) => globalLevelMap.get(lid)).filter(Boolean);
+      } else {
+        trainingLevelList = teacher?.scheduling_levels?.map((sl) => sl.training_level) ?? [];
+      }
 
         // 按课程分组
         const byCourse = new Map();
@@ -470,8 +478,7 @@ export async function getStatistics(req, res, next) {
           totalClassCount: s._count.id || 0,
           details: Array.from(byCourse.values()),
         };
-      })
-    );
+    });
 
     // 按总课时降序排列
     result.sort((a, b) => b.totalWeeklyHours - a.totalWeeklyHours);

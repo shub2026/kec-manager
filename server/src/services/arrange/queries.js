@@ -224,8 +224,10 @@ export async function getTeachersForCourse(courseId, semesterStr) {
   );
 
   // 查询每个教师实际授课学院（从授课安排中提取，去重）
+  // H-6: 添加 teacher_id 过滤，避免拉取整个学期的排课数据
+  const relevantTeacherIds = teachers.map((t) => t.id);
   const teacherAssignmentsWithCollege = await prisma.teaching_assignments.findMany({
-    where: { semester: semesterStr },
+    where: { semester: semesterStr, teacher_id: { in: relevantTeacherIds } },
     select: {
       teacher_id: true,
       class: { select: { colleges: { select: { id: true, name: true } } } },
@@ -242,8 +244,9 @@ export async function getTeachersForCourse(courseId, semesterStr) {
   }
 
   // 查询每个教师实际授课层次（从授课安排中提取，去重）
+  // H-6: 添加 teacher_id 过滤，避免拉取整个学期的排课数据
   const teacherAssignmentsWithLevel = await prisma.teaching_assignments.findMany({
-    where: { semester: semesterStr },
+    where: { semester: semesterStr, teacher_id: { in: relevantTeacherIds } },
     select: {
       teacher_id: true,
       class: { select: { training_level_id: true } },

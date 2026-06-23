@@ -222,52 +222,53 @@ function showEditDialog(user) {
 async function handleSubmit() {
   if (!formRef.value) return;
 
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return;
+  try {
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
 
-    submitting.value = true;
+  submitting.value = true;
 
-    try {
-      if (isEdit.value) {
-        await request.put(`/users/${formData.value.id}`, {
-          real_name: formData.value.realName,
-          email: formData.value.email,
-          role: formData.value.role,
-        });
-        ElMessage.success('更新成功');
-      } else {
-        // 转换字段名为snake_case以匹配后端期望
-        const userData = {
-          username: formData.value.username,
-          password: formData.value.password,
-          real_name: formData.value.realName || undefined,
-          email: formData.value.email || undefined,
-          role: formData.value.role,
-        };
-        await request.post('/users', userData);
-        ElMessage.success('创建成功');
-      }
-
-      dialogVisible.value = false;
-      await silentReload();
-    } catch (error) {
-      ElMessage.error(error.message || '操作失败');
-    } finally {
-      submitting.value = false;
+  try {
+    if (isEdit.value) {
+      await request.put(`/users/${formData.value.id}`, {
+        real_name: formData.value.realName,
+        email: formData.value.email,
+        role: formData.value.role,
+      });
+      ElMessage.success('更新成功');
+    } else {
+      const userData = {
+        username: formData.value.username,
+        password: formData.value.password,
+        real_name: formData.value.realName || undefined,
+        email: formData.value.email || undefined,
+        role: formData.value.role,
+      };
+      await request.post('/users', userData);
+      ElMessage.success('创建成功');
     }
-  });
+
+    dialogVisible.value = false;
+    await silentReload();
+  } catch (error) {
+    ElMessage.error(error.message || '操作失败');
+  } finally {
+    submitting.value = false;
+  }
 }
 
 async function toggleUserStatus(user) {
   const action = user.isActive ? '禁用' : '激活';
 
-  await ElMessageBox.confirm(`确定要${action}用户 "${user.username}" 吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  });
-
   try {
+    await ElMessageBox.confirm(`确定要${action}用户 "${user.username}" 吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
+
     const requestData = { is_active: !user.isActive };
 
     await request.put(`/users/${user.id}/status`, requestData);
@@ -275,7 +276,9 @@ async function toggleUserStatus(user) {
     ElMessage.success(`${action}成功`);
     await silentReload();
   } catch (error) {
-    ElMessage.error(`${action}失败：` + (error.message || '未知错误'));
+    if (error !== 'cancel' && error?.toString() !== 'cancel') {
+      ElMessage.error(`${action}失败：` + (error.message || '未知错误'));
+    }
   }
 }
 
@@ -285,18 +288,20 @@ async function deleteUser(user) {
     return;
   }
 
-  await ElMessageBox.confirm(`确定要删除用户 "${user.username}" 吗？此操作不可恢复！`, '警告', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'error',
-  });
-
   try {
+    await ElMessageBox.confirm(`确定要删除用户 "${user.username}" 吗？此操作不可恢复！`, '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'error',
+    });
+
     await request.delete(`/users/${user.id}`);
     ElMessage.success('删除成功');
     await silentReload();
   } catch (error) {
-    ElMessage.error('删除失败');
+    if (error !== 'cancel' && error?.toString() !== 'cancel') {
+      ElMessage.error('删除失败：' + (error.message || '未知错误'));
+    }
   }
 }
 
