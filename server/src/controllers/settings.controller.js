@@ -348,59 +348,85 @@ export async function resetPlans(req, res, next) {
 
 export async function resetSystem(req, res, next) {
   const reason = req.body.reason || null;
-  await prisma.$transaction(async (tx) => {
-    // 1. 先删所有子表/关联表（依赖其他表的外键的表）
-    await tx.teaching_assignments.deleteMany();
-    await tx.teacher_courses.deleteMany();
-    await tx.teacher_scheduling_colleges.deleteMany();
-    await tx.teacher_training_levels.deleteMany();
-    await tx.plan_textbooks.deleteMany();
-    await tx.plan_course_semesters.deleteMany();
-    await tx.plan_courses.deleteMany();
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. 先删所有子表/关联表（依赖其他表的外键的表）
+      await tx.teaching_assignments.deleteMany();
+      await tx.teacher_courses.deleteMany();
+      await tx.teacher_scheduling_colleges.deleteMany();
+      await tx.teacher_training_levels.deleteMany();
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
 
-    // 2. 再删主表
-    await tx.teachers.deleteMany();
-    await tx.classes.deleteMany();
-    await tx.training_plans.deleteMany();
-    await tx.textbooks.deleteMany();
-    await tx.courses.deleteMany();
-    await tx.majors.deleteMany();
-    await tx.colleges.deleteMany();
-    await tx.training_levels.deleteMany();
-    await tx.system_settings.deleteMany();
+      // 2. 再删主表
+      await tx.teachers.deleteMany();
+      await tx.classes.deleteMany();
+      await tx.training_plans.deleteMany();
+      await tx.textbooks.deleteMany();
+      await tx.courses.deleteMany();
+      await tx.majors.deleteMany();
+      await tx.colleges.deleteMany();
+      await tx.training_levels.deleteMany();
+      await tx.system_settings.deleteMany();
 
-    // 3. 先清空审计日志，再在事务内重新写入本次重置记录，确保破坏性操作留痕
-    await tx.audit_logs.deleteMany();
-    await tx.audit_logs.create({
-      data: {
-        action: 'delete',
-        module: 'system',
-        operator_id: req.user?.id || null,
-        ip: req.ip || null,
-        details: JSON.stringify({ type: 'system_reset', reason }),
-        result: 'success',
-        message: '执行系统重置' + (reason ? `，原因：${reason}` : ''),
-      },
+      // 3. 先清空审计日志，再在事务内重新写入本次重置记录，确保破坏性操作留痕
+      await tx.audit_logs.deleteMany();
+      await tx.audit_logs.create({
+        data: {
+          action: 'delete',
+          module: 'system',
+          operator_id: req.user?.id || null,
+          ip: req.ip || null,
+          details: JSON.stringify({ type: 'system_reset', reason }),
+          result: 'success',
+          message: '执行系统重置' + (reason ? `，原因：${reason}` : ''),
+        },
+      });
     });
-  });
-  success(res, null, '系统已重置，所有业务数据和教师信息已清空，用户账号已保留');
+    success(res, null, '系统已重置，所有业务数据和教师信息已清空，用户账号已保留');
+  } catch (e) {
+    await createAuditLog({
+      action: 'delete',
+      module: 'system',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { type: 'system_reset' },
+      result: 'failed',
+      message: `系统重置失败: ${e.message}`,
+    });
+    next(e);
+  }
 }
 
 export async function resetAuditLogs(req, res, next) {
-  await prisma.$transaction(async (tx) => {
-    await tx.audit_logs.deleteMany();
-    // 清空后立即写入本次清空操作记录，确保可追溯
-    await tx.audit_logs.create({
-      data: {
-        action: 'delete',
-        module: 'system',
-        operator_id: req.user?.id || null,
-        ip: req.ip || null,
-        details: JSON.stringify({ type: 'reset_audit_logs' }),
-        result: 'success',
-        message: '清空操作日志',
-      },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.audit_logs.deleteMany();
+      // 清空后立即写入本次清空操作记录，确保可追溯
+      await tx.audit_logs.create({
+        data: {
+          action: 'delete',
+          module: 'system',
+          operator_id: req.user?.id || null,
+          ip: req.ip || null,
+          details: JSON.stringify({ type: 'reset_audit_logs' }),
+          result: 'success',
+          message: '清空操作日志',
+        },
+      });
     });
-  });
-  success(res, null, '操作日志已清空');
+    success(res, null, '操作日志已清空');
+  } catch (e) {
+    await createAuditLog({
+      action: 'delete',
+      module: 'system',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { type: 'reset_audit_logs' },
+      result: 'failed',
+      message: `清空操作日志失败: ${e.message}`,
+    });
+    next(e);
+  }
 }

@@ -5,6 +5,14 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.8.2] - 2026-06-23
+
+### Bug修复
+
+- **系统重置错误处理**：`resetSystem` 和 `resetAuditLogs` 添加 try-catch 包裹，防止 Prisma 事务异常导致进程崩溃（C-1）
+- **排课算法教材计算修复**：`trySwapOne` 置换逻辑中教材数量计算改为基于移除后集合，修复 MAX_TEXTBOOKS 约束被绕过的问题（C-2）
+- **Dashboard ElMessage 导入修复**：添加缺失的 `ElMessage` 导入，修复点击"数据导入"按钮时的 ReferenceError（C-3）
+
 ## [2.7.1] - 2026-06-23
 
 ### 功能优化

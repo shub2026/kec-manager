@@ -578,9 +578,13 @@ function trySwapOne(
               return aTbs.includes(tid);
             });
           });
-          const uNewForT = (u.textbookIds || []).filter((tid) => !t.assignedTextbookIds.has(tid));
-          // T 置换后教材数 = 现有 - V独有 + U新增
-          const afterSwapTSize = t.assignedTextbookIds.size - vUniqueToT.length + uNewForT.length;
+          // C-2 修复：先计算 T 移除 V 独有教材后的集合，再基于该集合计算 U 的新增教材
+          // 旧代码直接基于移除前集合计算 uNewForT，导致被移除的教材仍被视为"已有"，少算新增
+          const tAfterRemoveSet = new Set(t.assignedTextbookIds);
+          for (const tid of vUniqueToT) tAfterRemoveSet.delete(tid);
+          const uNewForT = (u.textbookIds || []).filter((tid) => !tAfterRemoveSet.has(tid));
+          // T 置换后教材数 = 移除后集合大小 + U新增
+          const afterSwapTSize = tAfterRemoveSet.size + uNewForT.length;
           if (afterSwapTSize > maxTb) continue;
 
           // T'' 接管 V 后教材数
