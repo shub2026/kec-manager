@@ -47,7 +47,9 @@ export async function querySemester(req, res, next) {
       return Number.isFinite(n) ? n : def;
     };
     const pageNum = safeInt(page, 1) || 1;
-    const pageSizeNum = safeInt(pageSize, 50) || 50;
+    // H-5修复：分页上限保护，防止 pageSize 过大导致 OOM
+    const requestedPageSize = safeInt(pageSize, 50) || 50;
+    const pageSizeNum = Math.min(Math.max(requestedPageSize, 1), 100);
 
     // 构建"能关联到培养方案"的过滤条件
     const planFilter = await buildClassWithPlanFilter();

@@ -365,20 +365,24 @@ export async function updateClass(req, res, next) {
     if (custom_plan_id !== undefined)
       updateData.custom_plan_id = custom_plan_id ? Number(custom_plan_id) : null;
 
-    const cls = await prisma.classes.update({
-      where: { id: Number(id) },
-      data: updateData,
-      include: { majors: true, colleges: true, training_levels: true, training_plans: true },
-    });
-
-    // 班级标记离校时，级联删除当前学期排课记录，释放教师课时容量
+    // M-2修复：班级更新与级联删除排课记录放入同一事务，保证原子性
+    let cls;
     let deletedAssignmentCount = 0;
-    if (leftSchool) {
-      const result = await prisma.teaching_assignments.deleteMany({
-        where: { class_id: Number(id), semester: semesterInfo.raw },
+    await prisma.$transaction(async (tx) => {
+      cls = await tx.classes.update({
+        where: { id: Number(id) },
+        data: updateData,
+        include: { majors: true, colleges: true, training_levels: true, training_plans: true },
       });
-      deletedAssignmentCount = result.count;
-    }
+
+      // 班级标记离校时，级联删除当前学期排课记录，释放教师课时容量
+      if (leftSchool) {
+        const result = await tx.teaching_assignments.deleteMany({
+          where: { class_id: Number(id), semester: semesterInfo.raw },
+        });
+        deletedAssignmentCount = result.count;
+      }
+    });
 
     await createAuditLog({
       action: 'update',

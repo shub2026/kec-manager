@@ -38,9 +38,7 @@ export function useExport(entityName, displayName, options = {}) {
 
       ElMessage.success('导出成功');
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('导出失败:', error);
-      }
+      if (import.meta.env.DEV) console.error('导出失败:', error);
       ElMessage.error('导出失败');
     }
   }
@@ -59,9 +57,7 @@ export function useExport(entityName, displayName, options = {}) {
 
       ElMessage.success('模板下载成功');
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('下载模板失败:', error);
-      }
+      if (import.meta.env.DEV) console.error('下载模板失败:', error);
       ElMessage.error('下载模板失败');
     }
   }

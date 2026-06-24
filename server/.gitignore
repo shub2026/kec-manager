@@ -36,6 +36,10 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Backup files
+*.bak
+*.bak-*
+
 # PM2
 .pm2/
 

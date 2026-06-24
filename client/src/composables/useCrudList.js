@@ -68,6 +68,9 @@ export function useCrudList(api, options = {}) {
       ElMessage.success('保存成功');
       dialogVisible.value = false;
       await silentReload();
+    } catch (e) {
+      if (import.meta.env.DEV) console.error('保存失败:', e);
+      ElMessage.error(e?.response?.data?.message || '保存失败，请重试');
     } finally {
       saving.value = false;
     }

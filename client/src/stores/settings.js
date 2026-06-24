@@ -43,7 +43,7 @@ export const useSettingsStore = defineStore('settings', () => {
         }
       }
     } catch (e) {
-      console.error('加载系统设置失败:', e);
+      if (import.meta.env.DEV) console.error('加载系统设置失败:', e);
     }
   }
 

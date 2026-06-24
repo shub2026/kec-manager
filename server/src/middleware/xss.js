@@ -1,6 +1,19 @@
 import xss from 'xss';
 
 /**
+ * 敏感字段白名单：这些字段不进行 XSS 清洗
+ * 密码只会被哈希存储，不会输出到 HTML，清洗会篡改用户原始密码导致登录失败
+ */
+const SKIP_SANITIZE_KEYS = new Set([
+  'password',
+  'old_password',
+  'new_password',
+  'oldPassword',
+  'newPassword',
+  'confirmPassword',
+]);
+
+/**
  * XSS防护中间件
  * 对请求体中的字符串数据进行XSS清洗
  */
@@ -11,6 +24,8 @@ export function sanitizeBody(req, res, next) {
 
   // 原地清洗 body 的属性，避免整体赋值在某些 Express 版本下受限
   for (const key of Object.keys(req.body)) {
+    // 跳过密码类字段，防止篡改用户原始输入
+    if (SKIP_SANITIZE_KEYS.has(key)) continue;
     req.body[key] = sanitizeObject(req.body[key]);
   }
   next();
@@ -18,6 +33,7 @@ export function sanitizeBody(req, res, next) {
 
 /**
  * 递归清洗对象中的字符串值
+ * 嵌套对象中的密码字段同样跳过
  */
 function sanitizeObject(obj) {
   if (obj === null || obj === undefined) {
@@ -35,7 +51,12 @@ function sanitizeObject(obj) {
   if (typeof obj === 'object') {
     const sanitized = {};
     for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeObject(value);
+      // 嵌套对象中也跳过密码字段
+      if (SKIP_SANITIZE_KEYS.has(key)) {
+        sanitized[key] = value;
+      } else {
+        sanitized[key] = sanitizeObject(value);
+      }
     }
     return sanitized;
   }

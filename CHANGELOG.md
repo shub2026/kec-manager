@@ -5,6 +5,31 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.12.3] - 2026-06-24
+
+### 安全修复（全盘代码审查后批量修复）
+
+- **C-1 密码字段 XSS 清洗致永久锁死（CRITICAL）**：`xss.js` 新增 `SKIP_SANITIZE_KEYS` 白名单（password/old_password/new_password 等），密码字段跳过 XSS 清洗。此前修改密码时含 `<>` 字符的密码会被篡改，导致 bcrypt 比对永久失败，用户无法登录
+- **H-1 备份文件残留**：删除 `teaching-arrange.service.js.bak-20260620-185807`，`.gitignore` 新增 `*.bak` / `*.bak-*` 规则
+- **H-2 密码策略不一致**：`validation.js` 的 `validateChangePassword` 正则改为与 `validateUser` 一致的严格字符集 `[A-Za-z\d@$!%*?&]{8,128}`
+- **H-4 sanitizeBody 未全局应用**：`app.js` 在 `express.json` 之后全局挂载 `sanitizeBody`，密码字段在中间件内自动跳过，消除各路由手动添加的遗漏风险
+- **H-5 querySemester 分页无上限**：`query.controller.js` 的 `pageSizeNum` 强制 `Math.min(Math.max(n, 1), 100)`，防止 `?pageSize=999999` 致 OOM
+
+### 数据一致性修复
+
+- **M-2 updateClass 级联删除非事务**：班级更新与排课记录删除包入 `prisma.$transaction`，保证原子性，避免删排课失败时数据不一致
+- **M-7 重置接口无速率限制**：`settings.routes.js` 新增 `resetLimiter`（每用户每小时最多 3 次），应用到所有 `/reset/*` 路由，防止账号被盗后瞬间清空全部数据
+- **M-8 validatePagination 参数被忽略**：`pagination.js` 的 `validatePagination(maxPageSize=100)` 接受参数，动态设置 `isInt` 的 max 上限
+
+### 前端代码质量修复
+
+- **P1 main.js errorHandler**：`console.error` 加 `import.meta.env.DEV` 守卫，生产环境零控制台输出泄露
+- **P2 useCrudList handleSave 缺 catch**：API 异常时展示 `ElMessage.error` 用户提示
+- **P2 settings.js / useSortable.js / useExport.js**：`console.error` 统一为单行 DEV 守卫格式
+- **P3 download.js downloadBlob**：`a.click()` 包入 `try-finally`，异常时也能清理 DOM 节点和 ObjectURL
+
+---
+
 ## [2.12.2] - 2026-06-24
 
 ### Bug 修复

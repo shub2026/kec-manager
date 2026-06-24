@@ -105,14 +105,15 @@ export const validateLogin = [
 
 /**
  * 修改密码验证规则
+ * H-2修复：与 validateUser 的密码正则保持一致，严格限制字符集
  */
 export const validateChangePassword = [
   body('old_password').notEmpty().withMessage('原密码不能为空'),
   body('new_password')
     .isLength({ min: 8, max: 128 })
     .withMessage('新密码长度必须在8-128位之间')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/)
-    .withMessage('密码必须包含大小写字母、数字和特殊字符'),
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/)
+    .withMessage('密码必须包含大小写字母、数字和特殊字符（仅允许 @$!%*?&）'),
   handleValidationErrors,
 ];
 

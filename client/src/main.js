@@ -50,8 +50,7 @@ const app = createApp(App);
 
 // 全局错误边界：捕获组件内未处理的错误，防止整个应用崩溃
 app.config.errorHandler = (err, instance, info) => {
-  // 开发环境输出详细错误；生产环境保留 console 输出便于排查，后续可接入远端日志服务
-  console.error('[Vue Error]', info, err);
+  if (import.meta.env.DEV) console.error('[Vue Error]', info, err);
 };
 
 app.config.warnHandler = (msg, instance, trace) => {
