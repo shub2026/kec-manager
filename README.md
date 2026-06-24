@@ -58,7 +58,7 @@ npm run db:migrate
 npm run db:generate
 cd server && npm run db:seed && cd ..
 
-# 启动开发服务（前端 5173 + 后端 3000）
+# 启动开发服务（前端 5173 + 后端 3002）
 npm run dev
 ```
 
@@ -109,7 +109,7 @@ docker-compose up -d --build
 
 服务启动后：
 - 前端：http://your-server:80
-- 后端 API：http://your-server:3000
+- 后端 API：http://your-server:3000（由 SERVER_PORT 环境变量控制）
 - 健康检查：http://your-server:3000/api/health
 
 ### 方式二：裸机部署
@@ -140,12 +140,17 @@ bash deploy.sh
 |------|------|--------|
 | `NODE_ENV` | 运行环境 | `production` |
 | `DATABASE_URL` | 数据库连接串 | `file:./data/kec.db` |
-| `PORT` | 后端端口 | `3000` |
+| `PORT` | 后端端口 | `3002` |
 | `JWT_SECRET` | JWT 签名密钥（64位 hex） | 必填 |
-| `JWT_REFRESH_SECRET` | 刷新令牌密钥 | 自动生成（基于主密钥） |
-| `JWT_DOWNLOAD_SECRET` | 下载令牌密钥 | 自动生成（基于主密钥） |
+| `JWT_REFRESH_SECRET` | 刷新令牌密钥（64位 hex） | 必填 |
+| `JWT_DOWNLOAD_SECRET` | 下载令牌密钥（64位 hex） | 必填 |
+| `JWT_EXPIRES_IN` | 访问令牌过期时间 | `15m` |
+| `JWT_REFRESH_EXPIRES_IN` | 刷新令牌过期时间 | `7d` |
+| `DEFAULT_SEMESTER` | 默认当前学期 | `2025-2026-2` |
 | `CORS_ORIGINS` | 允许的前端域名（逗号分隔） | `http://localhost:5173` |
-| `LOG_LEVEL` | 日志级别 | `info` |
+| `LOG_LEVEL` | 日志级别 | `info`（生产）/ `debug`（开发） |
+| `MAX_FILE_SIZE` | 文件上传大小限制（MB） | `10` |
+| `BCRYPT_ROUNDS` | bcrypt 迭代次数 | `10` |
 
 ---
 
