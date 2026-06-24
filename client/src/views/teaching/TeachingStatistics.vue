@@ -60,17 +60,17 @@
       <!-- 汇总统计 -->
       <div v-if="statsData" class="summary-section">
         <el-row :gutter="20">
-          <el-col :span="8">
+          <el-col :span="8" :xs="24" :sm="12" :md="8">
             <el-statistic title="参与教师" :value="filteredSummary.totalTeachers" suffix="人" />
           </el-col>
-          <el-col :span="8">
+          <el-col :span="8" :xs="24" :sm="12" :md="8">
             <el-statistic
               title="总周课时"
               :value="filteredSummary.totalWeeklyHours"
               suffix="课时"
             />
           </el-col>
-          <el-col :span="8">
+          <el-col :span="8" :xs="24" :sm="12" :md="8">
             <el-statistic title="总安排班级数" :value="filteredSummary.totalClasses" suffix="个" />
           </el-col>
         </el-row>
@@ -108,8 +108,8 @@
                   <h4>{{ detail.course.name }}（周课时：{{ detail.weeklyHours }}）</h4>
                   <el-table :data="detail.classes" size="small" border style="margin: 8px 0">
                     <el-table-column prop="className" label="班级" min-width="150" />
-                    <el-table-column prop="weeklyHours" label="周课时" width="80" align="center" />
-                    <el-table-column label="安排方式" width="100" align="center">
+                    <el-table-column prop="weeklyHours" label="周课时" min-width="80" align="center" />
+                    <el-table-column label="安排方式" min-width="100" align="center">
                       <template #default="{ row: cls }">
                         <el-tag :type="cls.isAuto ? 'info' : 'primary'" size="small">
                           {{ cls.isAuto ? '自动' : '手动' }}
@@ -122,8 +122,8 @@
             </template>
           </el-table-column>
           <el-table-column type="index" label="#" width="50" />
-          <el-table-column prop="teacherName" label="姓名" width="80" />
-          <el-table-column label="人员类别" width="80" align="center">
+          <el-table-column prop="teacherName" label="姓名" min-width="80" />
+          <el-table-column label="人员类别" min-width="80" align="center">
             <template #default="{ row }">
               <el-tag :type="personnelTagType(row.personnelType)" size="small">
                 {{ personnelLabel(row.personnelType) }}
@@ -168,12 +168,12 @@
               <span v-if="!row.collegeList?.length" class="text-muted">-</span>
             </template>
           </el-table-column>
-          <el-table-column label="班级数" width="70" align="center">
+          <el-table-column label="班级数" min-width="70" align="center">
             <template #default="{ row }">{{ row.totalClassCount }}</template>
           </el-table-column>
           <el-table-column
             label="总周课时"
-            width="120"
+            min-width="120"
             align="center"
             sortable
             :sort-method="(a, b) => a.totalWeeklyHours - b.totalWeeklyHours"

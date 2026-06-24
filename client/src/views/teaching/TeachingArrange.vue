@@ -277,11 +277,11 @@
         size="small"
         @current-change="onTeacherSelect"
       >
-        <el-table-column prop="name" label="姓名" width="55" />
-        <el-table-column label="人员类别" width="80" align="center">
+        <el-table-column prop="name" label="姓名" min-width="55" />
+        <el-table-column label="人员类别" min-width="80" align="center">
           <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
         </el-table-column>
-        <el-table-column label="当前总课时" width="90" align="center">
+        <el-table-column label="当前总课时" min-width="90" align="center">
           <template #default="{ row }">
             <span
               :class="{
@@ -296,7 +296,7 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="班级数" width="70" align="center">
+        <el-table-column label="班级数" min-width="70" align="center">
           <template #default="{ row }">{{ row.totalClassCount }}</template>
         </el-table-column>
         <el-table-column label="学科" min-width="100">
@@ -365,7 +365,7 @@
     <el-dialog
       v-model="batchResultVisible"
       title="批量排课结果"
-      width="900px"
+      width="min(900px, 95vw)"
       destroy-on-close
       class="batch-result-dialog"
       top="6vh"
@@ -482,7 +482,7 @@
     <el-dialog
       v-model="arrangeResultVisible"
       :title="`${arrangeResultMode}排课结果`"
-      width="640px"
+      width="min(640px, 90vw)"
       destroy-on-close
       class="arrange-result-dialog"
       top="10vh"

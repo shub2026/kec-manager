@@ -28,7 +28,7 @@
     />
 
     <!-- 开课学期设置对话框 -->
-    <el-dialog v-model="showSemesterDialog" title="设置开课学期" width="450px">
+    <el-dialog v-model="showSemesterDialog" title="设置开课学期" width="min(450px, 90vw)">
       <el-form :model="semesterForm" label-width="100px">
         <el-form-item label="选择课程" required>
           <el-select
@@ -41,7 +41,7 @@
           </el-select>
         </el-form-item>
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="起始学期" required>
               <el-input-number
                 v-model="semesterForm.startSemester"
@@ -51,7 +51,7 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="结束学期" required>
               <el-input-number
                 v-model="semesterForm.endSemester"

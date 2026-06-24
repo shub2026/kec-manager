@@ -92,3 +92,112 @@
 .no-textbook {
   color: #909399;
 }
+
+/* ===== 响应式适配 ===== */
+
+/* 平板（≤992px）：筛选器控制宽度适度缩小 */
+@media (max-width: 992px) {
+  .filter-select-sm { width: 90px; }
+  .filter-select-md { width: 120px; }
+  .filter-select-lg { width: 120px; }
+  .filter-select-xl { width: 140px; }
+}
+
+/* 窄屏（≤768px）：卡片纵向堆叠，表单标签改顶部，筛选器全宽 */
+@media (max-width: 768px) {
+  /* 卡片头部纵向堆叠 */
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .card-header-actions {
+    width: 100%;
+  }
+
+  .card-header-actions .el-select,
+  .card-header-actions .el-input {
+    width: 100% !important;
+  }
+
+  /* 筛选下拉框全宽 */
+  .filter-select-sm,
+  .filter-select-md,
+  .filter-select-lg,
+  .filter-select-xl {
+    width: 100%;
+  }
+
+  /* 分页居中 */
+  .pagination-container {
+    justify-content: center;
+  }
+
+  /* 批量操作栏纵向排列 */
+  .batch-operations {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .selected-count {
+    margin-right: 0;
+  }
+
+  /* 弹窗内表单标签改为顶部对齐 */
+  .el-dialog .el-form--label-left .el-form-item__label {
+    float: none;
+    display: block;
+    text-align: left;
+    padding-bottom: 4px;
+  }
+
+  .el-dialog .el-form--label-left .el-form-item__content {
+    margin-left: 0 !important;
+  }
+
+  /* 弹窗内容区缩减内边距 */
+  .el-dialog__body {
+    padding: 16px 16px !important;
+  }
+
+  /* 展开行缩减内边距 */
+  .expand-content {
+    padding: 8px 12px;
+  }
+}
+
+/* 小屏手机（≤480px）：进一步紧凑 */
+@media (max-width: 480px) {
+  /* 主内容区缩减左右间距 */
+  .layout-main {
+    padding: 12px 8px !important;
+  }
+
+  /* 弹窗几乎全屏 */
+  .el-dialog {
+    margin: 5vh auto !important;
+  }
+
+  .el-dialog__body {
+    padding: 12px 12px !important;
+  }
+}
+
+/* 操作列响应式：桌面显示按钮行，窄屏显示下拉菜单 */
+.op-buttons {
+  display: inline-flex;
+  gap: 4px;
+}
+.op-dropdown {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .op-buttons {
+    display: none;
+  }
+  .op-dropdown {
+    display: inline-block;
+  }
+}

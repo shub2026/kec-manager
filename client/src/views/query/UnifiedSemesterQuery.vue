@@ -157,23 +157,23 @@
           <el-table-column
             prop="trainingLevelName"
             label="培养层次"
-            width="120"
+            min-width="120"
             show-overflow-tooltip
           />
-          <el-table-column label="入学年份" width="90" align="center" show-overflow-tooltip>
+          <el-table-column label="入学年份" min-width="90" align="center" show-overflow-tooltip>
             <template #default="{ row }">{{ row.enrollmentYear }}年</template>
           </el-table-column>
-          <el-table-column label="年级" width="60" align="center">
+          <el-table-column label="年级" min-width="60" align="center">
             <template #default="{ row }">{{ row.grade }}</template>
           </el-table-column>
-          <el-table-column label="在读学期" width="80" align="center">
+          <el-table-column label="在读学期" min-width="80" align="center">
             <template #default="{ row }">第{{ row.currentSemester }}学期</template>
           </el-table-column>
-          <el-table-column prop="studentCount" label="人数" width="60" align="center" />
-          <el-table-column label="开课数" width="70" align="center">
+          <el-table-column prop="studentCount" label="人数" min-width="60" align="center" />
+          <el-table-column label="开课数" min-width="70" align="center">
             <template #default="{ row }">{{ row.courses?.length || 0 }}</template>
           </el-table-column>
-          <el-table-column label="周课时合计" width="100" align="center">
+          <el-table-column label="周课时合计" min-width="100" align="center">
             <template #default="{ row }">{{
               (row.courses || []).reduce((s, c) => s + c.weeklyHours, 0)
             }}</template>

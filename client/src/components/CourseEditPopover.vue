@@ -80,7 +80,7 @@
         style="margin-bottom: 16px"
       />
       <el-row :gutter="16">
-        <el-col :span="12">
+        <el-col :span="12" :xs="24" :sm="12">
           <el-form-item label="起始学期" required>
             <el-input-number
               :model-value="semesterForm?.startSemester"
@@ -93,7 +93,7 @@
             />
           </el-form-item>
         </el-col>
-        <el-col :span="12">
+        <el-col :span="12" :xs="24" :sm="12">
           <el-form-item label="结束学期" required>
             <el-input-number
               :model-value="semesterForm?.endSemester"

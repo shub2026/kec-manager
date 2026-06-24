@@ -106,17 +106,17 @@
             <el-table-column
               prop="trainingLevelName"
               label="培养层次"
-              width="120"
+              min-width="120"
               show-overflow-tooltip
             />
-            <el-table-column label="年级" width="90" align="center">
+            <el-table-column label="年级" min-width="90" align="center">
               <template #default="{ row }">{{ row.grade }}年级</template>
             </el-table-column>
-            <el-table-column prop="studentCount" label="学生人数" width="100" align="center" />
-            <el-table-column label="使用学期" width="110" align="center">
+            <el-table-column prop="studentCount" label="学生人数" min-width="100" align="center" />
+            <el-table-column label="使用学期" min-width="110" align="center">
               <template #default="{ row }">第{{ row.semester }}学期</template>
             </el-table-column>
-            <el-table-column label="是否必订" width="110" align="center">
+            <el-table-column label="是否必订" min-width="110" align="center">
               <template #default="{ row }">
                 <el-tag :type="row.isRequired ? 'danger' : 'info'" size="small">{{
                   row.isRequired ? '必订' : '选修'

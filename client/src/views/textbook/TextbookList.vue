@@ -94,7 +94,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="排序" width="100" align="center">
+        <el-table-column label="排序" min-width="100" align="center">
           <template #default="{ row, $index }">
             <div class="sort-buttons">
               <el-button
@@ -160,7 +160,7 @@
     </el-card>
 
     <!-- 批量设置对话框 -->
-    <el-dialog v-model="batchDialogVisible" :title="batchDialogTitle" width="500px">
+    <el-dialog v-model="batchDialogVisible" :title="batchDialogTitle" width="min(500px, 90vw)">
       <el-form label-width="100px">
         <el-form-item v-if="batchFormType === 'publisher'" label="出版社">
           <el-input v-model="batchForm.publisher" placeholder="请输入出版社名称" />
@@ -181,51 +181,51 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑教材' : '新增教材'" width="600px">
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑教材' : '新增教材'" width="min(600px, 90vw)">
       <el-form :model="form" label-width="80px">
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="书名" required>
               <el-input v-model="form.title" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="书号">
               <el-input v-model="form.isbn" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="出版社">
               <el-input v-model="form.publisher" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="版次">
               <el-input v-model="form.edition" placeholder="如：第3版" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="出版日期">
               <el-input v-model="form.publishDate" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="定价">
               <el-input-number v-model="form.price" :min="0" :precision="2" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="作者">
               <el-input v-model="form.author" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="类别">
               <el-select v-model="form.category" style="width: 100%">
                 <el-option label="技工" value="技工" />

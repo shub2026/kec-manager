@@ -90,7 +90,7 @@
     <el-container>
       <el-header class="layout-header">
         <div class="layout-header-left">
-          <el-icon class="collapse-icon" @click="isCollapse = !isCollapse">
+          <el-icon class="collapse-icon" @click="userCollapsed = !userCollapsed; handleResize()">
             <Fold v-if="!isCollapse" />
             <Expand v-else />
           </el-icon>
@@ -133,7 +133,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSettingsStore } from '../stores/settings';
 import { useAuthStore } from '../stores/auth';
@@ -145,7 +145,15 @@ const router = useRouter();
 const settingsStore = useSettingsStore();
 const authStore = useAuthStore();
 const isCollapse = ref(false);
+const userCollapsed = ref(false); // 用户手动折叠标记
 const version = __APP_VERSION__;
+
+// 响应式侧边栏：窄屏自动折叠
+const SIDEBAR_BREAKPOINT = 1024;
+function handleResize() {
+  const narrow = window.innerWidth < SIDEBAR_BREAKPOINT;
+  isCollapse.value = narrow || userCollapsed.value;
+}
 
 // 修改密码相关
 const passwordDialogVisible = ref(false);
@@ -156,6 +164,8 @@ const semesterLabel = computed(() => settingsStore.semesterLabel);
 
 onMounted(async () => {
   await settingsStore.load();
+  handleResize(); // 初始化侧边栏状态
+  window.addEventListener('resize', handleResize);
 
   // 检查是否有权限警告
   const warning = sessionStorage.getItem('permissionWarning');
@@ -163,6 +173,10 @@ onMounted(async () => {
     ElMessage.warning(warning);
     sessionStorage.removeItem('permissionWarning');
   }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
 });
 
 async function handleCommand(command) {
@@ -320,5 +334,29 @@ function handlePasswordChangeSuccess() {
   background: #fff;
   border-top: 1px solid #e6e6e6;
   flex-shrink: 0;
+}
+
+/* 窄屏头部紧凑排列 */
+@media (max-width: 768px) {
+  .layout-header {
+    height: 50px;
+    padding: 0 12px;
+  }
+
+  .layout-header-left {
+    gap: 10px;
+  }
+
+  .header-title {
+    font-size: 14px;
+  }
+
+  .layout-header-right {
+    gap: 8px;
+  }
+
+  .layout-main {
+    padding: 12px 12px;
+  }
 }
 </style>

@@ -4,17 +4,17 @@
     <el-dialog
       v-model="visible"
       :title="form.id ? '编辑班级' : '新增班级'"
-      width="800px"
+      width="min(800px, 92vw)"
       @close="$emit('close')"
     >
       <el-form :model="localForm" label-width="100px">
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="班级名称" required>
               <el-input v-model="localForm.name" placeholder="如：2024级学前1班" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="专业类别">
               <el-select
                 v-model="localForm.majorId"
@@ -28,7 +28,7 @@
           </el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="二级学院">
               <el-select
                 v-model="localForm.collegeId"
@@ -45,7 +45,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="培养层次" required>
               <el-select
                 v-model="localForm.trainingLevelId"
@@ -63,7 +63,7 @@
           </el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="8">
+          <el-col :span="8" :xs="24" :sm="8">
             <el-form-item label="入学年份" required>
               <el-input-number
                 v-model="localForm.enrollmentYear"
@@ -73,7 +73,7 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="8" :xs="24" :sm="8">
             <el-form-item label="学制(年)" required>
               <el-input-number
                 v-model="localForm.durationYears"
@@ -83,14 +83,14 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="8" :xs="24" :sm="8">
             <el-form-item label="班级人数">
               <el-input-number v-model="localForm.studentCount" :min="0" class="full-width" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="特殊状态离校">
               <el-switch v-model="localForm.isLeftSchool" />
               <div class="form-hint">
@@ -98,7 +98,7 @@
               </div>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="特殊培养方案">
               <el-select
                 v-model="localForm.customPlanId"
@@ -123,7 +123,7 @@
     <el-dialog
       v-model="batchVisible"
       :title="batchDialogTitle"
-      width="500px"
+      width="min(500px, 90vw)"
       @close="$emit('batch-close')"
     >
       <el-form label-width="120px">

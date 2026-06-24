@@ -107,8 +107,8 @@
         <template #empty>
           <el-empty description="暂无教师数据，请点击右上角新增" />
         </template>
-        <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column prop="name" label="姓名" width="100">
+        <el-table-column type="index" label="序号" min-width="60" align="center" />
+        <el-table-column prop="name" label="姓名" min-width="100">
           <template #default="{ row }">
             <span
               :style="row.status === 'disabled' ? 'color: #999; text-decoration: line-through' : ''"
@@ -116,15 +116,15 @@
             >
           </template>
         </el-table-column>
-        <el-table-column label="性别" width="70" align="center">
+        <el-table-column label="性别" min-width="70" align="center">
           <template #default="{ row }">{{
             row.gender === 'male' ? '男' : row.gender === 'female' ? '女' : '-'
           }}</template>
         </el-table-column>
-        <el-table-column label="出生年月" width="100" align="center">
+        <el-table-column label="出生年月" min-width="100" align="center">
           <template #default="{ row }">{{ formatBirthDate(row.birthDate) }}</template>
         </el-table-column>
-        <el-table-column label="年龄" width="70" align="center">
+        <el-table-column label="年龄" min-width="70" align="center">
           <template #default="{ row }">{{ calcAge(row.birthDate) }}</template>
         </el-table-column>
         <el-table-column prop="qualificationType" label="教师资格类型" min-width="120">
@@ -135,7 +135,7 @@
             <span>{{ row.affiliatedCollege?.name || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="人员类别" width="100" align="center">
+        <el-table-column label="人员类别" min-width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="personnelTagType(row.personnelType)" size="small">
               {{ personnelLabel(row.personnelType) }}
@@ -176,12 +176,12 @@
             <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="特定周课时" width="100" align="center">
+        <el-table-column label="特定周课时" min-width="100" align="center">
           <template #default="{ row }">
             <span>{{ row.defaultWeeklyHours != null ? row.defaultWeeklyHours : '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="80" align="center">
+        <el-table-column label="状态" min-width="80" align="center">
           <template #default="{ row }">
             <el-switch
               :model-value="row.status !== 'disabled'"
@@ -210,7 +210,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑教师' : '新增教师'"
-      width="600px"
+      width="min(600px, 90vw)"
       destroy-on-close
     >
       <el-form :model="form" label-width="100px">
@@ -218,7 +218,7 @@
           <el-input v-model="form.name" placeholder="请输入教师姓名" />
         </el-form-item>
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="性别">
               <el-select v-model="form.gender" placeholder="请选择" clearable style="width: 100%">
                 <el-option label="男" value="male" />
@@ -226,7 +226,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="出生年月">
               <el-date-picker
                 v-model="form.birthDate"
@@ -240,7 +240,7 @@
           </el-col>
         </el-row>
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="归属学院">
               <el-select
                 v-model="form.affiliatedCollegeId"
@@ -255,7 +255,7 @@
           </el-col>
         </el-row>
         <el-row :gutter="16">
-          <el-col :span="8">
+          <el-col :span="8" :xs="24" :sm="12">
             <el-form-item label="人员类别">
               <el-select v-model="form.personnelType" placeholder="请选择" style="width: 100%">
                 <el-option label="专职" value="full_time" />
@@ -264,7 +264,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="8" :xs="24" :sm="12">
             <el-form-item label="状态">
               <el-select v-model="form.status" style="width: 100%">
                 <el-option label="启用" value="active" />

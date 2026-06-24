@@ -40,8 +40,8 @@
         </template>
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="课程名称" min-width="150" />
-        <el-table-column prop="code" label="编码" width="120" />
-        <el-table-column label="类型" width="120">
+        <el-table-column prop="code" label="编码" min-width="120" />
+        <el-table-column label="类型" min-width="120">
           <template #default="{ row }">
             <el-tag :type="row.type === 'public' ? 'success' : 'warning'">
               {{ row.type === 'public' ? '公共基础课' : '专业课' }}
@@ -49,7 +49,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column label="排序" width="120" align="center">
+        <el-table-column label="排序" min-width="120" align="center">
           <template #default="{ row, $index }">
             <div class="sort-buttons">
               <el-button
@@ -71,12 +71,12 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="100" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button size="small" @click="openDialog(row)">编辑</el-button>
+            <el-button size="small" :icon="Edit" circle @click="openDialog(row)" />
             <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
               <template #reference>
-                <el-button size="small" type="danger">删除</el-button>
+                <el-button size="small" type="danger" :icon="Delete" circle />
               </template>
             </el-popconfirm>
           </template>
@@ -84,7 +84,7 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑课程' : '新增课程'" width="500px">
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑课程' : '新增课程'" width="min(500px, 90vw)">
       <el-form :model="form" label-width="80px">
         <el-form-item label="课程名称" required>
           <el-input v-model="form.name" placeholder="请输入课程名称" />
@@ -117,7 +117,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { ArrowUp, ArrowDown } from '@element-plus/icons-vue';
+import { ArrowUp, Edit, Delete } from '@element-plus/icons-vue';
 import { getCookie } from '@/utils/cookies';
 import request from '../../utils/request';
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course';

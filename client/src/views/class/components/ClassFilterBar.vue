@@ -355,4 +355,19 @@ function handleTrainingLevelChange() {
   gap: 8px;
   margin-left: auto;
 }
+
+@media (max-width: 768px) {
+  .filter-name,
+  .filter-medium,
+  .filter-narrow,
+  .filter-small {
+    width: 100%;
+  }
+
+  .action-buttons {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+}
 </style>

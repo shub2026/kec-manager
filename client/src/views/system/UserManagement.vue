@@ -22,18 +22,18 @@
 
       <!-- 用户列表 -->
       <el-table v-loading="loading" :data="users" stripe row-key="id">
-        <el-table-column type="index" label="序号" width="60" align="center" />
+        <el-table-column type="index" label="序号" min-width="60" align="center" />
         <el-table-column prop="username" label="用户名" min-width="120" />
         <el-table-column prop="realName" label="姓名" min-width="100" />
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
-        <el-table-column label="角色" width="120" align="center">
+        <el-table-column label="角色" min-width="120" align="center">
           <template #default="{ row }">
             <el-tag :type="getRoleType(row.role)" size="small">
               {{ getRoleLabel(row.role) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column label="状态" min-width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">
               {{ row.isActive ? '激活' : '禁用' }}
@@ -72,7 +72,7 @@
     </el-card>
 
     <!-- 创建/编辑用户对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '创建用户'" width="600px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '创建用户'" width="min(600px, 90vw)">
       <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="formData.username" placeholder="请输入用户名" :disabled="isEdit" />

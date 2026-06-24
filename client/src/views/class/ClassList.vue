@@ -77,7 +77,7 @@
     <el-dialog
       v-model="progressDialogVisible"
       title="正在导入"
-      width="500px"
+      width="min(500px, 90vw)"
       :close-on-click-modal="false"
       :show-close="false"
     >

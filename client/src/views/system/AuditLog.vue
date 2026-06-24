@@ -73,19 +73,19 @@
         <template #empty>
           <el-empty description="暂无操作日志" />
         </template>
-        <el-table-column label="时间" width="165" prop="createdAt" sortable>
+        <el-table-column label="时间" min-width="165" prop="createdAt" sortable>
           <template #default="{ row }">
             <span class="time-text">{{ formatDateTime(row.createdAt) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作类型" width="90" align="center">
+        <el-table-column label="操作类型" min-width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="getActionTagType(row.action)" size="small">
               {{ getActionLabel(row.action) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="结果" width="70" align="center">
+        <el-table-column label="结果" min-width="70" align="center">
           <template #default="{ row }">
             <el-tag
               :type="row.result === 'success' ? 'success' : 'danger'"
@@ -96,7 +96,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="模块" width="140" align="center">
+        <el-table-column label="模块" min-width="140" align="center">
           <template #default="{ row }">
             <el-tag type="info" size="small" effect="plain">{{
               getModuleLabel(row.module)
@@ -120,7 +120,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="IP 地址" width="130">
+        <el-table-column label="IP 地址" min-width="130">
           <template #default="{ row }">
             <span class="ip-text">{{ row.ip || '-' }}</span>
           </template>
@@ -141,7 +141,7 @@
     </el-card>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="detailsVisible" title="操作详情" width="620px">
+    <el-dialog v-model="detailsVisible" title="操作详情" width="min(620px, 90vw)">
       <div class="details-toggle" style="text-align: right; margin-bottom: 8px">
         <el-button link type="primary" size="small" @click="showRawJson = !showRawJson">
           {{ showRawJson ? '查看表格' : '查看原始数据' }}
@@ -150,7 +150,7 @@
       <!-- 表格视图 -->
       <div v-if="!showRawJson" class="details-table-wrap">
         <el-table :data="parsedDetails" stripe size="small" border>
-          <el-table-column label="字段" prop="label" width="140" />
+          <el-table-column label="字段" prop="label" min-width="140" />
           <el-table-column label="值" prop="value" min-width="200">
             <template #default="{ row }">
               <span v-if="row.isObject" class="nested-value">{{ row.value }}</span>

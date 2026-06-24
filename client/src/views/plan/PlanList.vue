@@ -27,7 +27,7 @@
         <el-table-column label="使用部门" min-width="120">
           <template #default="{ row }">{{ row.colleges?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="关联类型" width="90">
+        <el-table-column label="关联类型" min-width="90">
           <template #default="{ row }">
             <el-tag v-if="row.majorId" type="success" size="small">按专业</el-tag>
             <el-tag v-else-if="row.trainingLevelId" type="primary" size="small">按层次</el-tag>
@@ -39,14 +39,14 @@
         <el-table-column label="培养层次" min-width="100">
           <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column prop="version" label="版本" width="70" align="center" />
-        <el-table-column label="课程数" width="75" align="center">
+        <el-table-column prop="version" label="版本" min-width="70" align="center" />
+        <el-table-column label="课程数" min-width="75" align="center">
           <template #default="{ row }">{{ row.courseCount || 0 }}</template>
         </el-table-column>
-        <el-table-column label="使用班级" width="85" align="center">
+        <el-table-column label="使用班级" min-width="85" align="center">
           <template #default="{ row }">{{ row.classCount || 0 }}</template>
         </el-table-column>
-        <el-table-column label="排序" width="105" align="center">
+        <el-table-column label="排序" min-width="105" align="center">
           <template #default="{ row, $index }">
             <div class="sort-buttons">
               <el-button
@@ -93,7 +93,7 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑方案' : '新增方案'" width="500px">
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑方案' : '新增方案'" width="min(500px, 90vw)">
       <el-form :model="form" label-width="80px">
         <el-form-item label="方案名称" required>
           <el-input v-model="form.name" placeholder="如：2024级学前教育培养方案" />
