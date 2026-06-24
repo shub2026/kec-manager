@@ -34,12 +34,7 @@
         </div>
       </template>
 
-      <el-table
-        v-loading="loading"
-        :data="filteredList"
-        stripe
-        row-key="id"
-      >
+      <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
         <template #empty>
           <el-empty description="暂无课程数据，请点击右上角新增" />
         </template>

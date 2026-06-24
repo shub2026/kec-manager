@@ -45,7 +45,12 @@
               class="filter-narrow"
               @change="handleTrainingLevelFilterChange"
             >
-              <el-option v-for="l in filteredTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
+              <el-option
+                v-for="l in filteredTrainingLevels"
+                :key="l.id"
+                :label="l.name"
+                :value="l.id"
+              />
             </el-select>
             <el-select
               v-model="filterAffiliatedCollegeId"
@@ -86,7 +91,15 @@
       <el-table
         v-loading="loading"
         :data="filteredlist"
-        :key="filterName + filterCourseId + filterPersonnelType + filterCollegeId + filterTrainingLevelId + filterAffiliatedCollegeId + filterStatus"
+        :key="
+          filterName +
+          filterCourseId +
+          filterPersonnelType +
+          filterCollegeId +
+          filterTrainingLevelId +
+          filterAffiliatedCollegeId +
+          filterStatus
+        "
         stripe
         row-key="id"
         :default-sort="{ prop: 'name', order: 'ascending' }"
@@ -397,8 +410,8 @@ const { getFilteredOptions, handleParentChange } = useFilterLinkage({
   filters,
   relations: {
     // key名必须匹配Hook动态拼接规则: {parentField}{FieldName}Relation
-    trainingLevelIdCollegeIdRelation: levelCollegeRelation,    // 按层次过滤学院
-    collegeIdTrainingLevelIdRelation: collegeLevelRelation,    // 按学院过滤层次
+    trainingLevelIdCollegeIdRelation: levelCollegeRelation, // 按层次过滤学院
+    collegeIdTrainingLevelIdRelation: collegeLevelRelation, // 按学院过滤层次
   },
 });
 

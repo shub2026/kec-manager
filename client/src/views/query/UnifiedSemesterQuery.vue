@@ -278,12 +278,12 @@ async function load() {
     pagination.value.total = res.data?.total || 0;
     if (res.data?.enrollmentYears) enrollmentYears.value = res.data.enrollmentYears;
     if (res.data?.grades) grades.value = res.data.grades;
-    
+
     // 接收当前学期实际开课的ID列表
     if (res.data?.collegeIds) availableCollegeIds.value = res.data.collegeIds;
     if (res.data?.majorIds) availableMajorIds.value = res.data.majorIds;
     if (res.data?.levelIds) availableLevelIds.value = res.data.levelIds;
-    
+
     // 接收关联关系数据
     if (res.data?.collegeMajorRelation) collegeMajorRelation.value = res.data.collegeMajorRelation;
     if (res.data?.collegeLevelRelation) collegeLevelRelation.value = res.data.collegeLevelRelation;
@@ -340,45 +340,45 @@ const filteredColleges = computed(() => {
   if (availableCollegeIds.value.length === 0) {
     return colleges.value;
   }
-  return colleges.value.filter(college => availableCollegeIds.value.includes(college.id));
+  return colleges.value.filter((college) => availableCollegeIds.value.includes(college.id));
 });
 
 // 专业：先根据可用ID过滤，再根据学院联动过滤
 const filteredMajors = computed(() => {
   let result = majors.value;
-  
+
   // 先根据当前学期实际开课的专业ID过滤
   if (availableMajorIds.value.length > 0) {
-    result = result.filter(major => availableMajorIds.value.includes(major.id));
+    result = result.filter((major) => availableMajorIds.value.includes(major.id));
   }
-  
+
   // 再根据选择的学院进行联动过滤
   if (filterCollege.value) {
     const collegeId = String(filterCollege.value);
     const majorIds = collegeMajorRelation.value[collegeId] || [];
     if (majorIds.length > 0) {
-      result = result.filter(major => majorIds.includes(major.id));
+      result = result.filter((major) => majorIds.includes(major.id));
     }
   }
-  
+
   return result;
 });
 
 // 层次：先根据可用ID过滤，再根据学院/专业联动过滤
 const filteredLevels = computed(() => {
   let result = levels.value;
-  
+
   // 先根据当前学期实际开课的层次ID过滤
   if (availableLevelIds.value.length > 0) {
-    result = result.filter(level => availableLevelIds.value.includes(level.id));
+    result = result.filter((level) => availableLevelIds.value.includes(level.id));
   }
-  
+
   // 如果选择了专业，优先使用专业-层次关联
   if (filterMajor.value) {
     const majorId = String(filterMajor.value);
     const levelIds = majorLevelRelation.value[majorId] || [];
     if (levelIds.length > 0) {
-      result = result.filter(level => levelIds.includes(level.id));
+      result = result.filter((level) => levelIds.includes(level.id));
     }
   }
   // 如果没有选择专业但选择了学院，使用学院-层次关联
@@ -386,10 +386,10 @@ const filteredLevels = computed(() => {
     const collegeId = String(filterCollege.value);
     const levelIds = collegeLevelRelation.value[collegeId] || [];
     if (levelIds.length > 0) {
-      result = result.filter(level => levelIds.includes(level.id));
+      result = result.filter((level) => levelIds.includes(level.id));
     }
   }
-  
+
   return result;
 });
 

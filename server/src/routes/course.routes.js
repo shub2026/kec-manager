@@ -1,11 +1,7 @@
 import { Router } from 'express';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { sanitizeBody } from '../middleware/xss.js';
-import {
-  validateIdParam,
-  validateCourse,
-  validateCourseCreate,
-} from '../middleware/validation.js';
+import { validateIdParam, validateCourse, validateCourseCreate } from '../middleware/validation.js';
 import {
   listCourses,
   createCourse,

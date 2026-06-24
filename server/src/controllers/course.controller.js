@@ -1,7 +1,12 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
-import { autoFixSortOrder, invalidateSortOrderCache, getNextSortOrder, buildUpdateData } from '../utils/sort.js';
+import {
+  autoFixSortOrder,
+  invalidateSortOrderCache,
+  getNextSortOrder,
+  buildUpdateData,
+} from '../utils/sort.js';
 
 export async function listCourses(req, res, next) {
   try {

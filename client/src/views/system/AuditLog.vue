@@ -3,7 +3,9 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span><el-icon><Document /></el-icon> 操作日志</span>
+          <span
+            ><el-icon><Document /></el-icon> 操作日志</span
+          >
           <el-button type="danger" size="small" :loading="clearing" @click="showClearDialog">
             <el-icon><Delete /></el-icon> 清空日志
           </el-button>
@@ -94,7 +96,9 @@
         </el-table-column>
         <el-table-column label="模块" width="140" align="center">
           <template #default="{ row }">
-            <el-tag type="info" size="small" effect="plain">{{ getModuleLabel(row.module) }}</el-tag>
+            <el-tag type="info" size="small" effect="plain">{{
+              getModuleLabel(row.module)
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="消息" min-width="280">

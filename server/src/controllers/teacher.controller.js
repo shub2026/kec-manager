@@ -1,7 +1,12 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
-import { autoFixSortOrder, invalidateSortOrderCache, getNextSortOrder, buildUpdateData } from '../utils/sort.js';
+import {
+  autoFixSortOrder,
+  invalidateSortOrderCache,
+  getNextSortOrder,
+  buildUpdateData,
+} from '../utils/sort.js';
 
 /**
  * 获取教师列表（含关联的课程和学院）

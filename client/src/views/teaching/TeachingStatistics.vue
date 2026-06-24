@@ -8,12 +8,7 @@
           >
           <div class="card-header-actions">
             <el-tag type="info">{{ semester }}</el-tag>
-            <el-input
-              v-model="filterName"
-              placeholder="姓名"
-              clearable
-              style="width: 120px"
-            />
+            <el-input v-model="filterName" placeholder="姓名" clearable style="width: 120px" />
             <el-select v-model="filterType" placeholder="类别" clearable style="width: 100px">
               <el-option label="专职" value="full_time" />
               <el-option label="兼职" value="part_time" />
@@ -94,7 +89,14 @@
         <el-table
           v-loading="loading"
           :data="filteredTeachers"
-          :key="filterName + filterType + filterSubject + filterCollege + filterLevel + filterAffiliatedCollege"
+          :key="
+            filterName +
+            filterType +
+            filterSubject +
+            filterCollege +
+            filterLevel +
+            filterAffiliatedCollege
+          "
           stripe
           row-key="teacherId"
           style="width: 100%"
@@ -314,7 +316,7 @@ async function handleExport() {
   exporting.value = true;
   try {
     const params = { semester: semester.value };
-    
+
     // 添加筛选条件
     if (filterName.value) params.name = filterName.value;
     if (filterType.value) params.type = filterType.value;
@@ -322,7 +324,7 @@ async function handleExport() {
     if (filterAffiliatedCollege.value) params.affiliated_college = filterAffiliatedCollege.value;
     if (filterLevel.value) params.level = filterLevel.value;
     if (filterCollege.value) params.college = filterCollege.value;
-    
+
     const response = await request.get('/export/statistics', {
       params,
       responseType: 'blob',

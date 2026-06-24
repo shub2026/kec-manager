@@ -55,7 +55,10 @@ export async function listPlans(req, res, next) {
 
         // 检查是否匹配：方案设置了major_id且与班级专业相同，或方案设置了training_level_id且与班级层次相同
         const matchByMajor = plan.major_id && cls.major_id && cls.major_id === plan.major_id;
-        const matchByLevel = plan.training_level_id && cls.training_level_id && cls.training_level_id === plan.training_level_id;
+        const matchByLevel =
+          plan.training_level_id &&
+          cls.training_level_id &&
+          cls.training_level_id === plan.training_level_id;
 
         if (matchByMajor || matchByLevel) {
           classCountMap[plan.id]++;

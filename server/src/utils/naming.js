@@ -35,7 +35,8 @@ export function camelToSnake(obj) {
     if (Array.isArray(value)) {
       result[snakeKey] = camelToSnake(value);
     } else if (typeof value === 'object' && value !== null && !(value instanceof Date)) {
-      result[snakeKey] = (!value.constructor || value.constructor === Object) ? camelToSnake(value) : value;
+      result[snakeKey] =
+        !value.constructor || value.constructor === Object ? camelToSnake(value) : value;
     } else {
       result[snakeKey] = value;
     }
@@ -73,7 +74,8 @@ export function snakeToCamel(obj) {
     if (Array.isArray(value)) {
       result[camelKey] = snakeToCamel(value);
     } else if (typeof value === 'object' && value !== null && !(value instanceof Date)) {
-      result[camelKey] = (!value.constructor || value.constructor === Object) ? snakeToCamel(value) : value;
+      result[camelKey] =
+        !value.constructor || value.constructor === Object ? snakeToCamel(value) : value;
     } else {
       result[camelKey] = value;
     }

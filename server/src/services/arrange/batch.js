@@ -103,7 +103,9 @@ export async function batchAutoArrange(
     for (const { courseId, courseName } of coursePriorities) {
       // M-13: 超时检查——每门课程排课前检查是否已超过时限
       if (Date.now() - startTime > BATCH_TIMEOUT_MS) {
-        logger.warn(`批量排课超时(${BATCH_TIMEOUT_MS / 1000}s)，已处理${results.length}/${courses.length}门课程`);
+        logger.warn(
+          `批量排课超时(${BATCH_TIMEOUT_MS / 1000}s)，已处理${results.length}/${courses.length}门课程`
+        );
         timeoutReached = true;
         break;
       }

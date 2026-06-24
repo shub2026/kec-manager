@@ -47,10 +47,18 @@
       clearable
       placeholder="入学年份"
       class="filter-narrow"
-      :disabled="!filteredEnrollmentYears.length && (localFilters.collegeId || localFilters.majorId || localFilters.trainingLevelId)"
+      :disabled="
+        !filteredEnrollmentYears.length &&
+        (localFilters.collegeId || localFilters.majorId || localFilters.trainingLevelId)
+      "
       @change="$emit('change')"
     >
-      <el-option v-for="year in filteredEnrollmentYears" :key="year" :label="year + '年'" :value="year" />
+      <el-option
+        v-for="year in filteredEnrollmentYears"
+        :key="year"
+        :label="year + '年'"
+        :value="year"
+      />
     </el-select>
     <el-select
       v-model="localFilters.status"
@@ -68,7 +76,10 @@
       clearable
       placeholder="培养方案"
       class="filter-medium"
-      :disabled="!filteredPlans.length && (localFilters.collegeId || localFilters.majorId || localFilters.trainingLevelId)"
+      :disabled="
+        !filteredPlans.length &&
+        (localFilters.collegeId || localFilters.majorId || localFilters.trainingLevelId)
+      "
       @change="$emit('change')"
     >
       <el-option label="未关联" value="none" />
@@ -216,22 +227,22 @@ const filteredTrainingLevels = computed(() => {
   if (localFilters.value.majorId) {
     const majorId = String(localFilters.value.majorId);
     const levelIds = props.majorLevelRelation[majorId] || [];
-    
+
     if (levelIds.length > 0) {
-      return props.trainingLevels.filter(level => levelIds.includes(level.id));
+      return props.trainingLevels.filter((level) => levelIds.includes(level.id));
     }
   }
-  
+
   // 如果没有选择专业但选择了学院，使用学院-层次关联
   if (localFilters.value.collegeId) {
     const collegeId = String(localFilters.value.collegeId);
     const levelIds = props.collegeLevelRelation[collegeId] || [];
-    
+
     if (levelIds.length > 0) {
-      return props.trainingLevels.filter(level => levelIds.includes(level.id));
+      return props.trainingLevels.filter((level) => levelIds.includes(level.id));
     }
   }
-  
+
   // 未选择学院和专业，显示所有层次
   return props.trainingLevels;
 });
@@ -248,60 +259,64 @@ const filteredEnrollmentYears = computed(() =>
 // 根据已选条件（学院/专业/层次）过滤培养方案 - 使用交集过滤
 const filteredPlans = computed(() => {
   let planSet = new Set();
-  
+
   // 如果选择了层次，使用层次-培养方案关联
   if (localFilters.value.trainingLevelId) {
     const levelId = String(localFilters.value.trainingLevelId);
     const planIds = props.planLevelRelation[levelId] || [];
     if (planIds.length > 0) {
-      planIds.forEach(p => planSet.add(p));
+      planIds.forEach((p) => planSet.add(p));
     }
   }
-  
+
   // 如果选择了专业，使用专业-培养方案关联（取交集）
   if (localFilters.value.majorId) {
     const majorId = String(localFilters.value.majorId);
     const planIds = props.planMajorRelation[majorId] || [];
     if (planIds.length > 0) {
       if (planSet.size > 0) {
-        planSet = new Set(planIds.filter(p => planSet.has(p)));
+        planSet = new Set(planIds.filter((p) => planSet.has(p)));
       } else {
-        planIds.forEach(p => planSet.add(p));
+        planIds.forEach((p) => planSet.add(p));
       }
     }
   }
-  
+
   // 如果选择了学院，使用学院-培养方案关联（取交集）
   if (localFilters.value.collegeId) {
     const collegeId = String(localFilters.value.collegeId);
     const planIds = props.planCollegeRelation[collegeId] || [];
     if (planIds.length > 0) {
       if (planSet.size > 0) {
-        planSet = new Set(planIds.filter(p => planSet.has(p)));
+        planSet = new Set(planIds.filter((p) => planSet.has(p)));
       } else {
-        planIds.forEach(p => planSet.add(p));
+        planIds.forEach((p) => planSet.add(p));
       }
     }
   }
-  
+
   // 如果没有选择任何条件，显示所有培养方案
   if (planSet.size === 0) {
     return props.plans;
   }
-  
-  return props.plans.filter(plan => planSet.has(plan.id));
+
+  return props.plans.filter((plan) => planSet.has(plan.id));
 });
 
 // 处理学院变化
 function handleCollegeChange() {
   // 当学院改变时，清空专业、层次、入学年份和培养方案选择
-  handleParentChange('collegeId', ['majorId', 'trainingLevelId', 'enrollmentYear', 'planId'], () => emit('change'));
+  handleParentChange('collegeId', ['majorId', 'trainingLevelId', 'enrollmentYear', 'planId'], () =>
+    emit('change')
+  );
 }
 
 // 处理专业变化
 function handleMajorChange() {
   // 当专业改变时，清空层次、入学年份和培养方案选择
-  handleParentChange('majorId', ['trainingLevelId', 'enrollmentYear', 'planId'], () => emit('change'));
+  handleParentChange('majorId', ['trainingLevelId', 'enrollmentYear', 'planId'], () =>
+    emit('change')
+  );
 }
 
 // 处理层次变化

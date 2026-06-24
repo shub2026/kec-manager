@@ -954,7 +954,7 @@ async function handleRemoveAssignment(row) {
 
 async function handleAutoArrange(mode) {
   const modeLabel = mode === 'full' ? '全量模式' : '标准模式';
-  
+
   // 根据是否预览模式显示不同的提示
   let confirmMessage;
   if (previewMode.value) {
@@ -962,15 +962,15 @@ async function handleAutoArrange(mode) {
   } else {
     confirmMessage = `将以「${modeLabel}」自动安排当前课程的所有班级（已有手动安排不会被覆盖）。确定继续？`;
   }
-  
+
   try {
     await ElMessageBox.confirm(
       confirmMessage,
       previewMode.value ? `预览排课 - ${modeLabel}` : `自动排课 - ${modeLabel}`,
-      { 
-        confirmButtonText: previewMode.value ? '开始预览' : '确定排课', 
-        cancelButtonText: '取消', 
-        type: 'warning' 
+      {
+        confirmButtonText: previewMode.value ? '开始预览' : '确定排课',
+        cancelButtonText: '取消',
+        type: 'warning',
       }
     );
   } catch {
@@ -1010,10 +1010,10 @@ async function handleExecutePreview() {
   // 临时关闭预览模式
   const wasPreview = previewMode.value;
   previewMode.value = false;
-  
+
   // 提取当前模式
   const mode = arrangeResultMode.value === '全量模式' ? 'full' : 'standard';
-  
+
   // 直接执行排课（不再显示确认对话框，因为用户已经在预览时看过了）
   arranging.value = true;
   try {
@@ -1024,12 +1024,12 @@ async function handleExecutePreview() {
       hourSettings,
       preview: false, // 非预览模式，实际写入数据库
     });
-    
+
     // 刷新页面数据
     await loadData();
-    
+
     ElMessage.success('排课已执行');
-    
+
     // 关闭预览弹窗
     arrangeResultVisible.value = false;
   } catch (e) {
@@ -1109,14 +1109,14 @@ async function handleExportArrange() {
       course_id: selectedCourseId.value,
       semester: currentSemesterLabel.value,
     };
-    
+
     // 添加筛选条件
     if (filterCollege.value) params.college = filterCollege.value;
     if (filterMajor.value) params.major = filterMajor.value;
     if (filterTrainingLevel.value) params.training_level = filterTrainingLevel.value;
     if (filterGrade.value) params.grade = filterGrade.value;
     if (filterTextbook.value) params.textbook = filterTextbook.value;
-    
+
     const response = await request.get('/export/teaching-arrange', {
       params,
       responseType: 'blob',

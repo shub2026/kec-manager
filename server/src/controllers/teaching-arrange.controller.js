@@ -449,38 +449,38 @@ export async function getStatistics(req, res, next) {
         trainingLevelList = teacher?.scheduling_levels?.map((sl) => sl.training_level) ?? [];
       }
 
-        // 按课程分组
-        const byCourse = new Map();
-        for (const a of assignments) {
-          if (!byCourse.has(a.course_id)) {
-            byCourse.set(a.course_id, {
-              course: a.course,
-              classes: [],
-              weeklyHours: 0,
-            });
-          }
-          const group = byCourse.get(a.course_id);
-          group.classes.push({
-            classId: a.class.id,
-            className: a.class.name,
-            weeklyHours: a.weekly_hours,
-            isAuto: a.is_auto,
+      // 按课程分组
+      const byCourse = new Map();
+      for (const a of assignments) {
+        if (!byCourse.has(a.course_id)) {
+          byCourse.set(a.course_id, {
+            course: a.course,
+            classes: [],
+            weeklyHours: 0,
           });
-          group.weeklyHours += a.weekly_hours;
         }
+        const group = byCourse.get(a.course_id);
+        group.classes.push({
+          classId: a.class.id,
+          className: a.class.name,
+          weeklyHours: a.weekly_hours,
+          isAuto: a.is_auto,
+        });
+        group.weeklyHours += a.weekly_hours;
+      }
 
-        return {
-          teacherId: s.teacher_id,
-          teacherName: teacher?.name || '未知',
-          personnelType: teacher?.personnel_type || null,
-          affiliatedCollege: teacher?.affiliated_college || null,
-          collegeList,
-          trainingLevelList,
-          courseList: teacher?.courses?.map((tc) => tc.course) ?? [],
-          totalWeeklyHours: s._sum.weekly_hours || 0,
-          totalClassCount: s._count.id || 0,
-          details: Array.from(byCourse.values()),
-        };
+      return {
+        teacherId: s.teacher_id,
+        teacherName: teacher?.name || '未知',
+        personnelType: teacher?.personnel_type || null,
+        affiliatedCollege: teacher?.affiliated_college || null,
+        collegeList,
+        trainingLevelList,
+        courseList: teacher?.courses?.map((tc) => tc.course) ?? [],
+        totalWeeklyHours: s._sum.weekly_hours || 0,
+        totalClassCount: s._count.id || 0,
+        details: Array.from(byCourse.values()),
+      };
     });
 
     // 按总课时降序排列

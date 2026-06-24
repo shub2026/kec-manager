@@ -87,26 +87,33 @@ export async function listClasses(req, res, next) {
       // 计算匹配的培养方案名称
       let matchedPlanName = null;
       let planMatchWarning = null; // 交叉匹配警告
-      
+
       if (cls.custom_plan_id && cls.training_plans) {
         // 有自定义方案
         matchedPlanName = cls.training_plans.name;
       } else {
         // 使用统一的三级互斥匹配，避免 null===null 误匹配
         const matchedPlans = allPlans.filter((p) => isClassMatchPlan(cls, p));
-        
+
         if (matchedPlans.length > 0) {
           // 取第一个匹配的方案作为显示
           matchedPlanName = matchedPlans[0].name;
-          
+
           // 检测是否存在专业和层次同时匹配的情况（交叉匹配）
-          const hasMajorMatch = matchedPlans.some(p => p.major_id && cls.major_id && cls.major_id === p.major_id);
-          const hasLevelMatch = matchedPlans.some(p => p.training_level_id && cls.training_level_id && cls.training_level_id === p.training_level_id);
-          
+          const hasMajorMatch = matchedPlans.some(
+            (p) => p.major_id && cls.major_id && cls.major_id === p.major_id
+          );
+          const hasLevelMatch = matchedPlans.some(
+            (p) =>
+              p.training_level_id &&
+              cls.training_level_id &&
+              cls.training_level_id === p.training_level_id
+          );
+
           if (hasMajorMatch && hasLevelMatch) {
             // 存在交叉匹配，给出警告
-            const majorPlans = matchedPlans.filter(p => p.major_id).map(p => p.name);
-            const levelPlans = matchedPlans.filter(p => p.training_level_id).map(p => p.name);
+            const majorPlans = matchedPlans.filter((p) => p.major_id).map((p) => p.name);
+            const levelPlans = matchedPlans.filter((p) => p.training_level_id).map((p) => p.name);
             planMatchWarning = `专业层次交叉，请检查：按专业匹配(${majorPlans.join('、')})，按层次匹配(${levelPlans.join('、')})`;
           }
         }
@@ -162,7 +169,8 @@ export async function listClasses(req, res, next) {
         majorYearMap.get(cls.major_id).add(cls.enrollment_year);
       }
       if (cls.training_level_id != null && cls.enrollment_year != null) {
-        if (!levelYearMap.has(cls.training_level_id)) levelYearMap.set(cls.training_level_id, new Set());
+        if (!levelYearMap.has(cls.training_level_id))
+          levelYearMap.set(cls.training_level_id, new Set());
         levelYearMap.get(cls.training_level_id).add(cls.enrollment_year);
       }
     }
@@ -190,7 +198,7 @@ export async function listClasses(req, res, next) {
     const allPlansForMapping = await prisma.training_plans.findMany({
       select: { id: true, college_id: true, major_id: true, training_level_id: true },
     });
-    
+
     for (const plan of allPlansForMapping) {
       if (plan.college_id != null && (plan.major_id != null || plan.training_level_id != null)) {
         if (!planCollegeMap.has(plan.college_id)) {
@@ -211,24 +219,24 @@ export async function listClasses(req, res, next) {
         planLevelMap.get(plan.training_level_id).add(plan.id);
       }
     }
-    
+
     const planCollegeRelation = mapToObj(planCollegeMap);
     const planMajorRelation = mapToObj(planMajorMap);
     const planLevelRelation = mapToObj(planLevelMap);
 
-    success(res, { 
-      items: classesWithDynamicStatus, 
-      total, 
+    success(res, {
+      items: classesWithDynamicStatus,
+      total,
       allEnrollmentYears,
-      collegeMajorRelation,     // 学院-专业关联
-      collegeLevelRelation,     // 学院-层次关联
-      majorLevelRelation,       // 专业-层次关联
-      collegeYearRelation,      // 学院-入学年份关联
-      majorYearRelation,        // 专业-入学年份关联
-      levelYearRelation,        // 层次-入学年份关联
-      planCollegeRelation,      // 培养方案-学院关联
-      planMajorRelation,        // 培养方案-专业关联
-      planLevelRelation         // 培养方案-层次关联
+      collegeMajorRelation, // 学院-专业关联
+      collegeLevelRelation, // 学院-层次关联
+      majorLevelRelation, // 专业-层次关联
+      collegeYearRelation, // 学院-入学年份关联
+      majorYearRelation, // 专业-入学年份关联
+      levelYearRelation, // 层次-入学年份关联
+      planCollegeRelation, // 培养方案-学院关联
+      planMajorRelation, // 培养方案-专业关联
+      planLevelRelation, // 培养方案-层次关联
     });
   } catch (e) {
     next(e);

@@ -727,7 +727,7 @@ export async function exportTeachingArrange(req, res, next) {
     if (major) filters.major = major;
     if (training_level) filters.training_level = training_level;
     if (grade) filters.grade = grade;
-    
+
     // 获取班级列表（含课时、学院等信息）
     const classes = await getClassesWithCourse(course_id, semester, filters);
 
@@ -743,9 +743,7 @@ export async function exportTeachingArrange(req, res, next) {
     // 过滤班级数据（包括教材筛选）
     let filteredClasses = classes;
     if (textbook) {
-      filteredClasses = classes.filter(c => 
-        c.textbooks?.some(tb => tb.title === textbook)
-      );
+      filteredClasses = classes.filter((c) => c.textbooks?.some((tb) => tb.title === textbook));
     }
 
     const rows = filteredClasses.map((c) => {

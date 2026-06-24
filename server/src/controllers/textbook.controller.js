@@ -1,7 +1,12 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
-import { autoFixSortOrder, invalidateSortOrderCache, getNextSortOrder, buildUpdateData } from '../utils/sort.js';
+import {
+  autoFixSortOrder,
+  invalidateSortOrderCache,
+  getNextSortOrder,
+  buildUpdateData,
+} from '../utils/sort.js';
 
 export async function listTextbooks(req, res, next) {
   try {
@@ -180,7 +185,8 @@ export async function toggleTextbookStatus(req, res, next) {
       });
       if (!current) return fail(res, '教材不存在', 404);
       // H-4: 接受前端传入的目标状态，而非盲目 toggle
-      const targetActive = req.body?.is_active !== undefined ? !!req.body.is_active : !current.is_active;
+      const targetActive =
+        req.body?.is_active !== undefined ? !!req.body.is_active : !current.is_active;
       const updated = await prisma.textbooks.update({
         where: { id: Number(id) },
         data: { is_active: targetActive },

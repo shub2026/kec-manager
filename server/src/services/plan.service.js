@@ -49,7 +49,11 @@ export function isClassMatchPlan(cls, plan) {
     // 2. 按专业匹配(如果方案设置了专业,检查班级的专业是否相同)
     if (plan.major_id && cls.major_id && cls.major_id === plan.major_id) return true;
     // 3. 按层次匹配(如果方案设置了层次,检查班级的层次是否相同)
-    if (plan.training_level_id && cls.training_level_id && cls.training_level_id === plan.training_level_id)
+    if (
+      plan.training_level_id &&
+      cls.training_level_id &&
+      cls.training_level_id === plan.training_level_id
+    )
       return true;
   }
 
@@ -82,7 +86,11 @@ export function findBestMatchPlan(cls, matchingPlans, classPlanMap = null) {
         majorMatch = plan;
       }
       // 按层次匹配
-      if (!levelMatch && plan.training_level_id && plan.training_level_id === cls.training_level_id) {
+      if (
+        !levelMatch &&
+        plan.training_level_id &&
+        plan.training_level_id === cls.training_level_id
+      ) {
         levelMatch = plan;
       }
     }

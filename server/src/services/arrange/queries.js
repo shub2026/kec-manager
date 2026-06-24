@@ -91,7 +91,7 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
       enrollment_year: { gte: semesterInfo.startYear - d + 1 },
     })),
   };
-  
+
   // 添加筛选条件
   if (filters.college) {
     classWhere.colleges = { name: filters.college };
@@ -105,7 +105,9 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
   if (filters.grade) {
     const gradeNum = parseInt(filters.grade);
     const enrollmentYear = semesterInfo.startYear - gradeNum + 1;
-    classWhere.OR = classWhere.OR.filter(o => o.enrollment_year.gte <= enrollmentYear && o.enrollment_year.gte >= enrollmentYear);
+    classWhere.OR = classWhere.OR.filter(
+      (o) => o.enrollment_year.gte <= enrollmentYear && o.enrollment_year.gte >= enrollmentYear
+    );
   }
 
   const allClasses = await prisma.classes.findMany({

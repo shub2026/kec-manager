@@ -120,15 +120,15 @@ const plans = ref([]);
 const trainingLevels = ref([]);
 const colleges = ref([]);
 const allEnrollmentYears = ref([]);
-const collegeMajorRelation = ref({});   // 学院-专业关联关系
-const collegeLevelRelation = ref({});   // 学院-层次关联关系
-const majorLevelRelation = ref({});     // 专业-层次关联关系
-const collegeYearRelation = ref({});    // 学院-入学年份关联
-const majorYearRelation = ref({});      // 专业-入学年份关联
-const levelYearRelation = ref({});      // 层次-入学年份关联
-const planCollegeRelation = ref({});    // 培养方案-学院关联
-const planMajorRelation = ref({});      // 培养方案-专业关联
-const planLevelRelation = ref({});      // 培养方案-层次关联
+const collegeMajorRelation = ref({}); // 学院-专业关联关系
+const collegeLevelRelation = ref({}); // 学院-层次关联关系
+const majorLevelRelation = ref({}); // 专业-层次关联关系
+const collegeYearRelation = ref({}); // 学院-入学年份关联
+const majorYearRelation = ref({}); // 专业-入学年份关联
+const levelYearRelation = ref({}); // 层次-入学年份关联
+const planCollegeRelation = ref({}); // 培养方案-学院关联
+const planMajorRelation = ref({}); // 培养方案-专业关联
+const planLevelRelation = ref({}); // 培养方案-层次关联
 const selectedClasses = ref([]);
 const currentSemesterInfo = ref(null); // 当前学期信息
 
@@ -217,39 +217,39 @@ async function load() {
     if (res?.data?.allEnrollmentYears) {
       allEnrollmentYears.value = res.data.allEnrollmentYears;
     }
-    
+
     if (res?.data?.collegeMajorRelation) {
       collegeMajorRelation.value = res.data.collegeMajorRelation;
     }
-    
+
     if (res?.data?.collegeLevelRelation) {
       collegeLevelRelation.value = res.data.collegeLevelRelation;
     }
-    
+
     if (res?.data?.majorLevelRelation) {
       majorLevelRelation.value = res.data.majorLevelRelation;
     }
-    
+
     if (res?.data?.collegeYearRelation) {
       collegeYearRelation.value = res.data.collegeYearRelation;
     }
-    
+
     if (res?.data?.majorYearRelation) {
       majorYearRelation.value = res.data.majorYearRelation;
     }
-    
+
     if (res?.data?.levelYearRelation) {
       levelYearRelation.value = res.data.levelYearRelation;
     }
-    
+
     if (res?.data?.planCollegeRelation) {
       planCollegeRelation.value = res.data.planCollegeRelation;
     }
-    
+
     if (res?.data?.planMajorRelation) {
       planMajorRelation.value = res.data.planMajorRelation;
     }
-    
+
     if (res?.data?.planLevelRelation) {
       planLevelRelation.value = res.data.planLevelRelation;
     }

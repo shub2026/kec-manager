@@ -11,12 +11,7 @@
           </el-button>
         </div>
       </template>
-      <el-table
-        v-loading="loading"
-        :data="list"
-        stripe
-        row-key="id"
-      >
+      <el-table v-loading="loading" :data="list" stripe row-key="id">
         <template #empty>
           <el-empty description="暂无专业数据，请点击右上角新增" />
         </template>
