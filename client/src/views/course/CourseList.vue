@@ -117,7 +117,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { ArrowUp, Edit, Delete } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { getCookie } from '@/utils/cookies';
 import request from '../../utils/request';
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course';

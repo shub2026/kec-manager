@@ -83,7 +83,7 @@
 
 <script setup>
 import { ElMessageBox } from 'element-plus';
-import { ArrowUp, Edit, Delete } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import {
   getTrainingLevels,
   createTrainingLevel,

@@ -83,7 +83,7 @@
 
 <script setup>
 import { ElMessageBox } from 'element-plus';
-import { ArrowUp, Edit, Delete } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { getColleges, createCollege, updateCollege, deleteCollege } from '../../api/college';
 import { useCrudList } from '../../composables/useCrudList';
 
