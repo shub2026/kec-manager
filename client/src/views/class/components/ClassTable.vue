@@ -51,7 +51,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="当前方案" min-width="180" show-overflow-tooltip>
+      <el-table-column label="当前方案" min-width="180">
         <template #default="{ row }">
           <div v-if="row.planMatchWarning" class="plan-warning">
             <el-tooltip :content="row.planMatchWarning" placement="top" effect="light">

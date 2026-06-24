@@ -50,8 +50,8 @@ export const authConfig = {
   jwtSecret, // Access Token密钥
   jwtRefreshSecret: finalRefreshSecret, // M10修复: Refresh Token密钥
   jwtDownloadSecret: finalDownloadSecret, // M10修复: Download Token密钥
-  jwtExpiresIn: '15m', // 安全修复: 缩短为15分钟
-  jwtRefreshExpiresIn: '7d',
-  jwtDownloadExpiresIn: '30s', // Download Token短期有效（缩短降低日志/Referer泄露风险）
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  jwtDownloadExpiresIn: process.env.JWT_DOWNLOAD_EXPIRES_IN || '30s',
   bcryptRounds, // M9修复：从环境变量读取，默认12次迭代
 };

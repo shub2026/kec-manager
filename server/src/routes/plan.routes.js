@@ -7,7 +7,6 @@ import {
   validatePlanCourse,
   validateSemester,
   validatePlanTextbook,
-  validateSortOrder,
   validatePlanCreate,
 } from '../middleware/validation.js';
 import { param } from 'express-validator';

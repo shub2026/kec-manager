@@ -5,6 +5,32 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.12.2] - 2026-06-24
+
+### Bug 修复
+
+- **命名转换中间件数组处理修复**：`naming.js` 的 `snakeToCamel` / `camelToSnake` 将 `Array.isArray` 检查移至构造函数守卫之前，修复嵌套对象数组（如 courses、textbooks）内字段未被转换的问题。此前 `weekly_hours`、`course_id` 等字段在数组内保持 snake_case，导致前端 `weeklyHours` 为 undefined，周课时合计显示 NaN
+- **教材定价乱码修复**：`naming.js` 两个转换函数添加 `constructor !== Object` 守卫，跳过 Prisma Decimal 等类实例，避免递归展开内部属性 `{s,e,d}` 导致乱码
+
+### 导出接口对齐
+
+- **教师导出**：标签对齐前端（"任课学院"→"意向学院"，"任课层次"→"意向层次"，"教师姓名"→"姓名"），列顺序与 TeacherList.vue 一致
+- **课时统计导出**：标签对齐前端（"教师姓名"→"姓名"，"上课班级数"→"班级数"），列顺序与 TeachingStatistics.vue 一致
+- **教学安排导出**：新增缺失字段（入学年份、在读学期、人数、培养层次），列顺序与 TeachingArrange.vue 一致
+- **开课查询导出**：新增缺失字段（在读学期、开课数、周课时合计），列顺序与 UnifiedSemesterQuery.vue 一致
+
+### 二次检查报告修复（v2.12.1）
+
+- **C-2 并发锁**：`auto-arrange.js` 单课程排课添加内存锁 `arrangeLocks`
+- **H-2 密码复杂度**：`validateUser` 添加密码复杂度校验
+- **H-3 日志降级**：排课诊断日志从 `info` 降为 `debug`
+- **H-4 无效 include**：移除 `assignTeacher` 中 `semester: null` 的死代码 include
+- **M-2 JWT 过期时间**：`auth.config.js` 改为从环境变量读取
+- **M-5 事务优化**：`alreadyWritten` 计算从 O(A²) 优化为 O(A)
+- **其余 M/L 级问题全部修复**，详见 `docs/kec-manager-v2.12-二次检查报告.md`
+
+---
+
 ## [2.9.1] - 2026-06-23
 
 ### Bug 修复

@@ -5,7 +5,6 @@ import {
   validateIdParam,
   validateTextbook,
   validateTextbookStatus,
-  validateSortOrder,
   validateTextbookCreate,
 } from '../middleware/validation.js';
 import {

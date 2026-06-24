@@ -60,6 +60,7 @@ export function convertResponseNaming(req, res, next) {
 /**
  * 组合中间件
  * 同时应用请求和响应转换
+ * // TODO: exported for future use, currently unused
  */
 export function autoConvertNaming() {
   return [convertRequestNaming, convertResponseNaming];

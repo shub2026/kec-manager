@@ -212,12 +212,17 @@ async function applyGlobalWeeks() {
   // 并行发送所有更新请求
   if (semesterIds.length > 0) {
     try {
-      await Promise.all(
-        semesterIds.map((id) => updateSemester(id, { weeks_count: weeks }).catch(() => {}))
+      const results = await Promise.allSettled(
+        semesterIds.map((id) => updateSemester(id, { weeks_count: weeks }))
       );
+      const failed = results.filter((r) => r.status === 'rejected').length;
       // 重新加载数据以反映最新状态
       await loadData();
-      ElMessage.success('已应用学期周数设置');
+      if (failed > 0) {
+        ElMessage.warning(`已应用周数，但 ${failed} 个学期更新失败`);
+      } else {
+        ElMessage.success('已应用周数');
+      }
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error('批量更新学期周数失败', e);

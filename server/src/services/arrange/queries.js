@@ -223,37 +223,32 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     ])
   );
 
-  // 查询每个教师实际授课学院（从授课安排中提取，去重）
+  // 查询每个教师实际授课学院和授课层次（合并为单次查询，避免重复扫描 teaching_assignments）
   // H-6: 添加 teacher_id 过滤，避免拉取整个学期的排课数据
   const relevantTeacherIds = teachers.map((t) => t.id);
-  const teacherAssignmentsWithCollege = await prisma.teaching_assignments.findMany({
+  const teacherAssignmentsWithCollegeAndLevel = await prisma.teaching_assignments.findMany({
     where: { semester: semesterStr, teacher_id: { in: relevantTeacherIds } },
     select: {
       teacher_id: true,
-      class: { select: { colleges: { select: { id: true, name: true } } } },
+      class: {
+        select: {
+          colleges: { select: { id: true, name: true } },
+          training_level_id: true,
+        },
+      },
     },
   });
   const teacherCollegeMap = new Map();
-  for (const a of teacherAssignmentsWithCollege) {
+  const teacherLevelMap = new Map();
+  for (const a of teacherAssignmentsWithCollegeAndLevel) {
+    // 构建学院映射
     if (a.class?.colleges) {
       if (!teacherCollegeMap.has(a.teacher_id)) {
         teacherCollegeMap.set(a.teacher_id, new Map());
       }
       teacherCollegeMap.get(a.teacher_id).set(a.class.colleges.id, a.class.colleges);
     }
-  }
-
-  // 查询每个教师实际授课层次（从授课安排中提取，去重）
-  // H-6: 添加 teacher_id 过滤，避免拉取整个学期的排课数据
-  const teacherAssignmentsWithLevel = await prisma.teaching_assignments.findMany({
-    where: { semester: semesterStr, teacher_id: { in: relevantTeacherIds } },
-    select: {
-      teacher_id: true,
-      class: { select: { training_level_id: true } },
-    },
-  });
-  const teacherLevelMap = new Map();
-  for (const a of teacherAssignmentsWithLevel) {
+    // 构建培养层次映射
     if (a.class?.training_level_id) {
       if (!teacherLevelMap.has(a.teacher_id)) {
         teacherLevelMap.set(a.teacher_id, new Set());

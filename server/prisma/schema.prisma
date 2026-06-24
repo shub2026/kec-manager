@@ -161,7 +161,7 @@ model textbooks {
   author         String?
   edition        String?
   publish_date   String?
-  price          Float?
+  price          Decimal?
   category       String?
   description    String?
   is_active      Boolean          @default(true)
@@ -246,6 +246,7 @@ model teachers {
   scheduling_levels    teacher_training_levels[]
 
   @@index([personnel_type])
+  @@index([status])
   @@map("teachers")
 }
 

@@ -97,19 +97,21 @@
             <el-tag type="info" size="small" effect="plain">{{ getModuleLabel(row.module) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="消息" min-width="280" show-overflow-tooltip>
+        <el-table-column label="消息" min-width="280">
           <template #default="{ row }">
-            <span>{{ row.message }}</span>
-            <el-button
-              v-if="row.details"
-              link
-              type="primary"
-              size="small"
-              style="margin-left: 6px"
-              @click="showDetails(row.details)"
-            >
-              详情
-            </el-button>
+            <div class="message-cell">
+              <span>{{ row.message }}</span>
+              <el-button
+                v-if="row.details"
+                link
+                type="primary"
+                size="small"
+                style="margin-left: 6px"
+                @click="showDetails(row.details)"
+              >
+                详情
+              </el-button>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="IP 地址" width="130">

@@ -4,7 +4,6 @@ import { sanitizeBody } from '../middleware/xss.js';
 import {
   validateIdParam,
   validateCourse,
-  validateSortOrder,
   validateCourseCreate,
 } from '../middleware/validation.js';
 import {

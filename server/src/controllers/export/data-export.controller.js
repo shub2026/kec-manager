@@ -447,31 +447,31 @@ export async function exportTeachers(req, res, next) {
     const statusMap = { active: '启用', disabled: '禁用' };
 
     const rows = teachers.map((t) => ({
-      教师姓名: t.name,
+      姓名: t.name,
       性别: genderMap[t.gender] || '-',
       出生年月: t.birth_date ? String(t.birth_date).substring(0, 7) : '-',
-      人员类别: personnelMap[t.personnel_type] || t.personnel_type,
-      状态: statusMap[t.status] || '启用',
       教师资格类型: t.qualification_type || '-',
       归属学院: t.affiliated_college?.name || '-',
-      特定周课时: t.default_weekly_hours != null ? t.default_weekly_hours : '-',
+      人员类别: personnelMap[t.personnel_type] || t.personnel_type,
       学科: t.courses.map((tc) => tc.course.name).join('、') || '-',
-      任课学院: t.scheduling_colleges.map((sc) => sc.college.name).join('、') || '-',
-      任课层次: t.scheduling_levels.map((sl) => sl.training_level.name).join('、') || '-',
+      意向学院: t.scheduling_colleges.map((sc) => sc.college.name).join('、') || '-',
+      意向层次: t.scheduling_levels.map((sl) => sl.training_level.name).join('、') || '-',
+      特定周课时: t.default_weekly_hours != null ? t.default_weekly_hours : '-',
+      状态: statusMap[t.status] || '启用',
     }));
 
     const headers = [
-      { label: '教师姓名', key: '教师姓名', width: 15 },
+      { label: '姓名', key: '姓名', width: 15 },
       { label: '性别', key: '性别', width: 8 },
       { label: '出生年月', key: '出生年月', width: 12 },
-      { label: '人员类别', key: '人员类别', width: 12 },
-      { label: '状态', key: '状态', width: 8 },
       { label: '教师资格类型', key: '教师资格类型', width: 15 },
       { label: '归属学院', key: '归属学院', width: 15 },
-      { label: '特定周课时', key: '特定周课时', width: 12 },
+      { label: '人员类别', key: '人员类别', width: 12 },
       { label: '学科', key: '学科', width: 30 },
-      { label: '任课学院', key: '任课学院', width: 30 },
-      { label: '任课层次', key: '任课层次', width: 20 },
+      { label: '意向学院', key: '意向学院', width: 30 },
+      { label: '意向层次', key: '意向层次', width: 20 },
+      { label: '特定周课时', key: '特定周课时', width: 12 },
+      { label: '状态', key: '状态', width: 8 },
     ];
 
     const workbook = await createWorkbook(headers, rows);
@@ -560,6 +560,7 @@ export async function exportStatistics(req, res, next) {
       include: {
         courses: { include: { course: { select: { name: true } } } },
         scheduling_colleges: { include: { college: { select: { name: true } } } },
+        affiliated_college: { select: { name: true } },
       },
     });
     const teacherMap = new Map(teachers.map((t) => [t.id, t]));
@@ -568,7 +569,13 @@ export async function exportStatistics(req, res, next) {
     const allAssignments = await prisma.teaching_assignments.findMany({
       where: { semester, teacher_id: { in: teacherIds } },
       include: {
-        class: { select: { name: true, colleges: { select: { id: true, name: true } } } },
+        class: {
+          select: {
+            name: true,
+            colleges: { select: { id: true, name: true } },
+            training_levels: { select: { name: true } },
+          },
+        },
         course: { select: { name: true } },
       },
       orderBy: [{ teacher_id: 'asc' }, { course_id: 'asc' }],
@@ -606,19 +613,26 @@ export async function exportStatistics(req, res, next) {
 
       // 从实际授课班级中提取任课学院（与前端 getStatistics 逻辑一致）
       const collegeMap = new Map();
+      const levelSet = new Set();
       for (const a of assignments) {
         if (a.class.colleges && !collegeMap.has(a.class.colleges.id)) {
           collegeMap.set(a.class.colleges.id, a.class.colleges);
         }
+        if (a.class.training_levels?.name) {
+          levelSet.add(a.class.training_levels.name);
+        }
       }
       const teachingColleges = [...collegeMap.values()].map((c) => c.name).join('、') || '-';
+      const trainingLevels = [...levelSet].join('、') || '-';
 
       rows.push({
-        教师姓名: teacher?.name || '未知',
+        姓名: teacher?.name || '未知',
         人员类别: personnelMap[teacher?.personnel_type] || '-',
-        任课学院: teachingColleges,
         任教科目: teacher?.courses.map((tc) => tc.course.name).join('、') || '-',
-        上课班级数: classCount,
+        归属学院: teacher?.affiliated_college?.name || '-',
+        任课层次: trainingLevels,
+        任课学院: teachingColleges,
+        班级数: classCount,
         总周课时: totalHours,
         课程明细: courseDetail || '-',
       });
@@ -630,23 +644,27 @@ export async function exportStatistics(req, res, next) {
     // 合计行
     const totalTeachers = rows.length;
     const totalWeeklyHours = rows.reduce((sum, r) => sum + r['总周课时'], 0);
-    const totalClasses = rows.reduce((sum, r) => sum + r['上课班级数'], 0);
+    const totalClasses = rows.reduce((sum, r) => sum + r['班级数'], 0);
     rows.push({
-      教师姓名: '合计',
+      姓名: '合计',
       人员类别: '',
-      任课学院: '',
       任教科目: '',
-      上课班级数: totalClasses,
+      归属学院: '',
+      任课层次: '',
+      任课学院: '',
+      班级数: totalClasses,
       总周课时: totalWeeklyHours,
       课程明细: `${totalTeachers}位教师`,
     });
 
     const headers = [
-      { label: '教师姓名', key: '教师姓名', width: 12 },
+      { label: '姓名', key: '姓名', width: 12 },
       { label: '人员类别', key: '人员类别', width: 10 },
-      { label: '任课学院', key: '任课学院', width: 25 },
       { label: '任教科目', key: '任教科目', width: 25 },
-      { label: '上课班级数', key: '上课班级数', width: 12 },
+      { label: '归属学院', key: '归属学院', width: 18 },
+      { label: '任课层次', key: '任课层次', width: 15 },
+      { label: '任课学院', key: '任课学院', width: 25 },
+      { label: '班级数', key: '班级数', width: 10 },
       { label: '总周课时', key: '总周课时', width: 10 },
       { label: '课程明细', key: '课程明细', width: 50 },
     ];
@@ -737,8 +755,11 @@ export async function exportTeachingArrange(req, res, next) {
         班级名称: c.className,
         学院: c.collegeName || '-',
         专业: c.majorName || '-',
+        培养层次: c.trainingLevelName || '-',
+        入学年份: c.enrollmentYear,
         年级: c.grade,
-        层次: c.trainingLevelName || '-',
+        在读学期: `第${c.currentSemester}学期`,
+        人数: Number(c.studentCount) || 0,
         周课时: c.weeklyHours,
         教材: textbookNames,
         任课教师: a?.teacher?.name || '未安排',
@@ -748,14 +769,18 @@ export async function exportTeachingArrange(req, res, next) {
 
     // 合计行
     const totalHours = rows.reduce((sum, r) => sum + r['周课时'], 0);
+    const totalStudents = rows.reduce((sum, r) => sum + r['人数'], 0);
     const assignedCount = rows.filter((r) => r['任课教师'] !== '未安排').length;
 
     const headers = [
       { label: '班级名称', key: '班级名称', width: 25 },
       { label: '学院', key: '学院', width: 15 },
       { label: '专业', key: '专业', width: 15 },
+      { label: '培养层次', key: '培养层次', width: 12 },
+      { label: '入学年份', key: '入学年份', width: 10 },
       { label: '年级', key: '年级', width: 8 },
-      { label: '层次', key: '层次', width: 10 },
+      { label: '在读学期', key: '在读学期', width: 10 },
+      { label: '人数', key: '人数', width: 8 },
       { label: '周课时', key: '周课时', width: 8 },
       { label: '教材', key: '教材', width: 30 },
       { label: '任课教师', key: '任课教师', width: 12 },

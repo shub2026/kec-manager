@@ -223,9 +223,9 @@
         <el-table-column label="周课时" min-width="70" align="center">
           <template #default="{ row }">{{ row.weeklyHours }}</template>
         </el-table-column>
-        <el-table-column label="教材" min-width="160" show-overflow-tooltip>
+        <el-table-column label="教材" min-width="160">
           <template #default="{ row }">
-            <template v-if="row.textbooks?.length">
+            <div v-if="row.textbooks?.length" class="textbook-tags">
               <el-tag
                 v-for="tb in row.textbooks"
                 :key="tb.id"
@@ -234,7 +234,7 @@
                 class="tag-item"
                 >{{ tb.title }}</el-tag
               >
-            </template>
+            </div>
             <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>

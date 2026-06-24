@@ -142,7 +142,7 @@ export async function assignTeacher(req, res, next) {
       if (planId) {
         const pc = await prisma.plan_courses.findUnique({
           where: { plan_id_course_id: { plan_id: planId, course_id: Number(course_id) } },
-          include: { plan_course_semesters: { where: { semester: null } } },
+          include: { plan_course_semesters: true },
         });
         // 取方案课程默认周课时作为兜底
         createWeeklyHours = pc?.weekly_hours ?? 0;

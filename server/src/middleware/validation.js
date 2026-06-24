@@ -218,7 +218,9 @@ export const validateUser = [
   body('password')
     .optional()
     .isLength({ min: 8, max: 128 })
-    .withMessage('密码长度必须在8-128位之间'),
+    .withMessage('密码长度必须在8-128位之间')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/)
+    .withMessage('密码必须包含大小写字母、数字和特殊字符'),
   body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
   body('role')
     .optional()
@@ -304,7 +306,7 @@ export const validatePlanCourse = [
     .isInt({ min: 1, max: 10 })
     .withMessage('开始学期必须在1-10之间'),
   body('end_semester').optional().isInt({ min: 1, max: 10 }).withMessage('结束学期必须在1-10之间'),
-  body('weekly_hours').optional().isInt({ min: 1, max: 20 }).withMessage('周课时必须在1-20之间'),
+  body('weekly_hours').optional().isInt({ min: 0, max: 20 }).withMessage('周课时必须在0-20之间'),
   body('weeks_per_semester')
     .optional()
     .isInt({ min: 1, max: 30 })
@@ -316,7 +318,7 @@ export const validatePlanCourse = [
  * 学期信息验证规则
  */
 export const validateSemester = [
-  body('weekly_hours').optional().isInt({ min: 1, max: 20 }).withMessage('周课时必须在1-20之间'),
+  body('weekly_hours').optional().isInt({ min: 0, max: 20 }).withMessage('周课时必须在0-20之间'),
   body('weeks_count').optional().isInt({ min: 1, max: 30 }).withMessage('周数必须在1-30之间'),
   handleValidationErrors,
 ];

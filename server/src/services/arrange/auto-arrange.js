@@ -14,6 +14,9 @@ import {
   isLevelEligible,
 } from './queries.js';
 
+// C-2: 并发锁，防止同一课程被并发排课
+const arrangeLocks = new Set();
+
 /**
  * 计算教师-班级匹配分数（优先级 + 教材内聚）
  * 权重由 TEXTBOOK_COHESION 配置：
@@ -102,6 +105,10 @@ function calcMatchScore(teacher, classInfo) {
       } else {
         return score - 10000;
       }
+    // 注意：以下分支依赖 maxTb 的值。当前 MAX_TEXTBOOKS_PER_TEACHER=2 时，
+    // tbCount >= maxTb（即 >=2）已在上方捕获，下方 tbCount>=3 / >=2 分支不可达。
+    // 若将 MAX_TEXTBOOKS_PER_TEACHER 调高至 3+，这些分支将生效，
+    // 实现分级惩罚：2 本扣 TEXTBOOK_COUNT_PENALTY_2，3+ 本扣 TEXTBOOK_COUNT_PENALTY_3PLUS。
     } else if (tbCount >= 3) {
       score -= TEXTBOOK_COHESION.TEXTBOOK_COUNT_PENALTY_3PLUS;
     } else if (tbCount >= 2) {
@@ -569,6 +576,15 @@ export async function autoArrange(
 
   validateHourSettings(hourSettings);
 
+  // C-2: 并发保护——同一课程+学期不允许并发排课
+  const lockKey = `${courseId}:${semesterStr}`;
+  if (arrangeLocks.has(lockKey)) {
+    throw new Error('该课程正在排课中，请稍后重试');
+  }
+  arrangeLocks.add(lockKey);
+
+  try {
+
   const teachers = await getTeachersForCourse(courseId, semesterStr);
   if (!teachers.length) {
     // 提前返回前查询手动安排数，避免 manualCount 误报为 0（M-1 修复）
@@ -628,15 +644,15 @@ export async function autoArrange(
   );
 
   // === 版本标记：验证代码已加载 ===
-  logger.info(
+  logger.debug(
     `[TEXTBOOK_COHESION] v2024-06-20-REWRITE autoArrange 入口 courseId=${courseId} semester=${semesterStr} mode=${mode}`
   );
 
   // === 诊断日志（八轮：定位"全员2本"根因）===
   if (TEXTBOOK_COHESION.ENABLED) {
-    logger.info(`\n========== 排课诊断 ==========`);
-    logger.info(`课程ID=${courseId} 学期=${semesterStr} 模式=${mode}`);
-    logger.info(`教师数=${teacherConstraints.length} 班级数=${validClassesToAssign.length}`);
+    logger.debug(`\n========== 排课诊断 ==========`);
+    logger.debug(`课程ID=${courseId} 学期=${semesterStr} 模式=${mode}`);
+    logger.debug(`教师数=${teacherConstraints.length} 班级数=${validClassesToAssign.length}`);
     // 班级教材分布
     const tbDist = new Map();
     for (const cls of validClassesToAssign) {
@@ -644,19 +660,19 @@ export async function autoArrange(
       if (!tbDist.has(sig)) tbDist.set(sig, []);
       tbDist.get(sig).push(cls.className);
     }
-    logger.info('--- 班级教材分布 ---');
+    logger.debug('--- 班级教材分布 ---');
     for (const [sig, names] of tbDist) {
-      logger.info(`  教材[${sig}]: ${names.length}个班 → ${names.join(', ')}`);
+      logger.debug(`  教材[${sig}]: ${names.length}个班 → ${names.join(', ')}`);
     }
     // 教师初始状态
-    logger.info('--- 教师初始状态 ---');
+    logger.debug('--- 教师初始状态 ---');
     for (const t of teacherConstraints) {
       const inherent = t.inherentTextbookIds?.length ? t.inherentTextbookIds.join(',') : '(空)';
-      logger.info(
+      logger.debug(
         `  ${t.name}: inherentTextbookIds=[${inherent}] effectiveTotal=${t.effectiveTotal} standardCap=${t.standardCap} fullCap=${t.fullCap} defaultWeeklyHours=${t.defaultWeeklyHours}`
       );
     }
-    logger.info('================================\n');
+    logger.debug('================================\n');
   }
 
   const totalClassHours = validClassesToAssign.reduce((s, c) => s + c.weeklyHours, 0);
@@ -838,7 +854,7 @@ export async function autoArrange(
     teacher.assignedCollegeIds.add(cls.collegeId);
     // 课时已通过 effectiveTotal 计入，不重复加
   }
-  logger.info(`[手动排课追踪] ${manualAssignments.length} 条手动排课，教师教材已更新`);
+  logger.debug(`[手动排课追踪] ${manualAssignments.length} 条手动排课，教师教材已更新`);
 
   // --- 辅助函数：检查教师意向是否匹配某个班级（严格约束）---
   function isPrefMatch(teacher, cls) {
@@ -932,9 +948,9 @@ export async function autoArrange(
     });
   }
 
-  logger.info(`[新分配算法v2] 共 ${textbookGroups.size} 个教材组，开始分配...`);
+  logger.debug(`[新分配算法v2] 共 ${textbookGroups.size} 个教材组，开始分配...`);
   for (const [key, group] of textbookGroups) {
-    logger.info(`  教材组 ${key}: ${group.length} 个班级`);
+    logger.debug(`  教材组 ${key}: ${group.length} 个班级`);
   }
 
   // 跟踪每个教材组的可用班级（可变数组）
@@ -989,7 +1005,7 @@ export async function autoArrange(
       }
     }
 
-    logger.info(`  [阶段1] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
+    logger.debug(`  [阶段1] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
   }
 
   // ================================================================
@@ -1032,7 +1048,7 @@ export async function autoArrange(
       }
     }
 
-    logger.info(`  [阶段2] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
+    logger.debug(`  [阶段2] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
   }
 
   // ================================================================
@@ -1066,7 +1082,7 @@ export async function autoArrange(
       }
     }
 
-    logger.info(`  [阶段3] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
+    logger.debug(`  [阶段3] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
   }
 
   // ================================================================
@@ -1103,7 +1119,7 @@ export async function autoArrange(
       }
     }
 
-    logger.info(`  [阶段4] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
+    logger.debug(`  [阶段4] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
   }
 
   // ================================================================
@@ -1115,10 +1131,10 @@ export async function autoArrange(
   }
 
   if (allRemaining.length > 0) {
-    logger.info(`[兜底] 剩余 ${allRemaining.length} 个班级，用 assignRound 放宽约束`);
+    logger.debug(`[兜底] 剩余 ${allRemaining.length} 个班级，用 assignRound 放宽约束`);
     const fallbackRemaining = assignRound(allRemaining);
     unassigned.push(...fallbackRemaining);
-    logger.info(`[兜底] 累计分配 ${assignments.length}，未分配 ${fallbackRemaining.length}`);
+    logger.debug(`[兜底] 累计分配 ${assignments.length}，未分配 ${fallbackRemaining.length}`);
   }
 
   logger.info(`[新分配算法v2] 完成，总分配 ${assignments.length}，未分配 ${unassigned.length}`);
@@ -1143,21 +1159,21 @@ export async function autoArrange(
 
   // === 诊断日志：最终教材分布 ===
   if (TEXTBOOK_COHESION.ENABLED) {
-    logger.info('\n--- 最终教师教材分布 ---');
+    logger.debug('\n--- 最终教师教材分布 ---');
     const tbCountStats = new Map(); // size → count
     for (const t of teacherConstraints) {
       const tbSize = t.assignedTextbookIds.size;
       const tbs = [...t.assignedTextbookIds].join(',') || '(无)';
-      logger.info(
+      logger.debug(
         `  ${t.name}: ${tbSize}本 [${tbs}] 班级数=${assignments.filter((a) => a.teacher_id === t.id).length}`
       );
       tbCountStats.set(tbSize, (tbCountStats.get(tbSize) || 0) + 1);
     }
-    logger.info('--- 教材数统计 ---');
+    logger.debug('--- 教材数统计 ---');
     for (const [size, count] of [...tbCountStats].sort((a, b) => a[0] - b[0])) {
-      logger.info(`  ${size}本教材: ${count}位教师`);
+      logger.debug(`  ${size}本教材: ${count}位教师`);
     }
-    logger.info('========== 诊断结束 ==========\n');
+    logger.debug('========== 诊断结束 ==========\n');
   }
 
   if (preview) {
@@ -1198,6 +1214,8 @@ export async function autoArrange(
       const safeAssignments = [];
       const overloadSkipped = [];
       const constraintMap = new Map(teacherConstraints.map((t) => [t.id, t]));
+      // M-5: 用 Map 累加每位教师已写入课时，避免 O(A²) 的 filter+reduce
+      const writtenMap = new Map();
       for (const a of assignments) {
         const t = constraintMap.get(a.teacher_id);
         if (!t) {
@@ -1207,15 +1225,14 @@ export async function autoArrange(
         const currentTotal = reassignedMap.get(a.teacher_id) || 0;
         const cap = mode === 'standard' ? t.standardCap : t.fullCap;
         // currentTotal 已扣除旧自动安排，加上本课程其他已写入的新安排
-        const alreadyWritten = safeAssignments
-          .filter((s) => s.teacher_id === a.teacher_id)
-          .reduce((s, x) => s + x.weekly_hours, 0);
+        const alreadyWritten = writtenMap.get(a.teacher_id) || 0;
         if (currentTotal + alreadyWritten + a.weekly_hours > cap + t.effectiveTotal) {
           // 超载，跳过该分配（并发导致容量已变）
           overloadSkipped.push(a);
           continue;
         }
         safeAssignments.push(a);
+        writtenMap.set(a.teacher_id, alreadyWritten + a.weekly_hours);
       }
 
       if (safeAssignments.length > 0) {
@@ -1257,4 +1274,9 @@ export async function autoArrange(
     teacherConstraints,
     mode
   );
+
+  } finally {
+    // C-2: 无论成功或异常，始终释放锁
+    arrangeLocks.delete(lockKey);
+  }
 }

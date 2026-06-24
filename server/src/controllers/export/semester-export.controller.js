@@ -110,6 +110,14 @@ async function buildSemesterExportData(semesterInfo, filters) {
       (pc) => pc.start_semester <= currentSemesterNum && pc.end_semester >= currentSemesterNum
     );
 
+    // 计算班级级别的聚合数据（开课数、周课时合计）
+    const courseCount = planCourses.length;
+    let totalWeeklyHours = 0;
+    for (const pc of planCourses) {
+      const semRecord = pc.plan_course_semesters?.find((s) => s.semester === currentSemesterNum);
+      totalWeeklyHours += semRecord?.weekly_hours ?? pc.weekly_hours;
+    }
+
     const baseRow = {
       班级名称: cls.name,
       二级学院: cls.colleges?.name || '-',
@@ -117,7 +125,10 @@ async function buildSemesterExportData(semesterInfo, filters) {
       培养层次: cls.training_levels?.name || '-',
       入学年份: cls.enrollment_year,
       年级: gradeCalc,
+      在读学期: `第${currentSemesterNum}学期`,
       学生人数: Number(cls.student_count) || 0,
+      开课数: courseCount,
+      周课时合计: totalWeeklyHours,
       培养方案: plan.name || '-',
     };
 
@@ -161,7 +172,10 @@ const EXPORT_HEADERS = [
   { label: '培养层次', key: '培养层次', width: 12 },
   { label: '入学年份', key: '入学年份', width: 12 },
   { label: '年级', key: '年级', width: 8 },
+  { label: '在读学期', key: '在读学期', width: 10 },
   { label: '学生人数', key: '学生人数', width: 10 },
+  { label: '开课数', key: '开课数', width: 8 },
+  { label: '周课时合计', key: '周课时合计', width: 10 },
   { label: '培养方案', key: '培养方案', width: 30 },
   { label: '课程', key: '课程', width: 20 },
   { label: '课程类型', key: '课程类型', width: 12 },

@@ -21,17 +21,24 @@ export function camelToSnake(obj) {
   // Date 对象不需要转换，直接返回
   if (obj instanceof Date) return obj;
 
+  // 数组：递归转换每个元素（必须在 constructor 守卫之前，因为 Array.constructor !== Object）
   if (Array.isArray(obj)) {
     return obj.map((item) => camelToSnake(item));
   }
 
+  // 非普通对象（如 Prisma Decimal 等类实例）不递归，直接返回
+  if (obj.constructor && obj.constructor !== Object) return obj;
+
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
     const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-    result[snakeKey] =
-      typeof value === 'object' && value !== null && !(value instanceof Date)
-        ? camelToSnake(value)
-        : value;
+    if (Array.isArray(value)) {
+      result[snakeKey] = camelToSnake(value);
+    } else if (typeof value === 'object' && value !== null && !(value instanceof Date)) {
+      result[snakeKey] = (!value.constructor || value.constructor === Object) ? camelToSnake(value) : value;
+    } else {
+      result[snakeKey] = value;
+    }
   }
   return result;
 }
@@ -52,17 +59,24 @@ export function snakeToCamel(obj) {
   // Date 对象不需要转换，直接返回
   if (obj instanceof Date) return obj;
 
+  // 数组：递归转换每个元素（必须在 constructor 守卫之前，因为 Array.constructor !== Object）
   if (Array.isArray(obj)) {
     return obj.map((item) => snakeToCamel(item));
   }
 
+  // 非普通对象（如 Prisma Decimal 等类实例）不递归，直接返回
+  if (obj.constructor && obj.constructor !== Object) return obj;
+
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
     const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-    result[camelKey] =
-      typeof value === 'object' && value !== null && !(value instanceof Date)
-        ? snakeToCamel(value)
-        : value;
+    if (Array.isArray(value)) {
+      result[camelKey] = snakeToCamel(value);
+    } else if (typeof value === 'object' && value !== null && !(value instanceof Date)) {
+      result[camelKey] = (!value.constructor || value.constructor === Object) ? snakeToCamel(value) : value;
+    } else {
+      result[camelKey] = value;
+    }
   }
   return result;
 }
@@ -70,6 +84,7 @@ export function snakeToCamel(obj) {
 /**
  * 递归转换对象的第一层键名为驼峰（保留嵌套对象的原始结构）
  * 用于部分转换场景
+ * // TODO: exported for future use, currently unused
  */
 export function shallowSnakeToCamel(obj) {
   if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
@@ -86,6 +101,7 @@ export function shallowSnakeToCamel(obj) {
 /**
  * 递归转换对象的第一层键名为下划线（保留嵌套对象的原始结构）
  * 用于部分转换场景
+ * // TODO: exported for future use, currently unused
  */
 export function shallowCamelToSnake(obj) {
   if (obj === null || obj === undefined || typeof obj !== 'object') return obj;

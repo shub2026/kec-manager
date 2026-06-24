@@ -48,6 +48,14 @@ const passwordLimiter = rateLimit({
   message: { success: false, message: '修改密码请求过于频繁，请15分钟后再试' },
 });
 
+const logoutLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: '登出请求过于频繁，请稍后再试' },
+});
+
 router.post('/login', loginLimiter, validateLogin, async (req, res, next) => {
   try {
     const { username, password } = req.body;
@@ -78,7 +86,7 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
   }
 });
 
-router.post('/logout', async (req, res, next) => {
+router.post('/logout', logoutLimiter, async (req, res, next) => {
   try {
     const token = req.headers.authorization?.substring(7);
     const decoded = token ? AuthService.verifyToken(token) : null;

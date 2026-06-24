@@ -8,6 +8,7 @@
     trigger="click"
     :teleported="true"
   >
+    <template #reference><span style="display: none"></span></template>
     <template #default>
       <div v-if="editingSemester" class="popover-content">
         <div class="popover-title">
