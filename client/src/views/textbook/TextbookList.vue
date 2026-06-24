@@ -52,9 +52,9 @@
         </div>
       </template>
       <el-table
+        :key="filterTitle + filterCategory + filterPublisher"
         v-loading="loading"
         :data="filteredlist"
-        :key="filterTitle + filterCategory + filterPublisher"
         stripe
         row-key="id"
         @selection-change="handleSelectionChange"

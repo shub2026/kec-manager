@@ -89,8 +89,6 @@
       </template>
 
       <el-table
-        v-loading="loading"
-        :data="filteredlist"
         :key="
           filterName +
           filterCourseId +
@@ -100,6 +98,8 @@
           filterAffiliatedCollegeId +
           filterStatus
         "
+        v-loading="loading"
+        :data="filteredlist"
         stripe
         row-key="id"
         :default-sort="{ prop: 'name', order: 'ascending' }"

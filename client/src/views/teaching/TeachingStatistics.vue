@@ -87,8 +87,6 @@
       <!-- 教师课时统计表 -->
       <div v-if="filteredTeachers.length > 0">
         <el-table
-          v-loading="loading"
-          :data="filteredTeachers"
           :key="
             filterName +
             filterType +
@@ -97,6 +95,8 @@
             filterLevel +
             filterAffiliatedCollege
           "
+          v-loading="loading"
+          :data="filteredTeachers"
           stripe
           row-key="teacherId"
           style="width: 100%"

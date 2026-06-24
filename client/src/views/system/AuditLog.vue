@@ -139,8 +139,26 @@
     </el-card>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="detailsVisible" title="操作详情" width="600px">
-      <pre class="details-content">{{ formatDetails(detailsContent) }}</pre>
+    <el-dialog v-model="detailsVisible" title="操作详情" width="620px">
+      <div class="details-toggle" style="text-align: right; margin-bottom: 8px">
+        <el-button link type="primary" size="small" @click="showRawJson = !showRawJson">
+          {{ showRawJson ? '查看表格' : '查看原始数据' }}
+        </el-button>
+      </div>
+      <!-- 表格视图 -->
+      <div v-if="!showRawJson" class="details-table-wrap">
+        <el-table :data="parsedDetails" stripe size="small" border>
+          <el-table-column label="字段" prop="label" width="140" />
+          <el-table-column label="值" prop="value" min-width="200">
+            <template #default="{ row }">
+              <span v-if="row.isObject" class="nested-value">{{ row.value }}</span>
+              <span v-else>{{ row.value }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <!-- 原始 JSON 视图 -->
+      <pre v-else class="details-content">{{ formatDetails(detailsContent) }}</pre>
       <template #footer>
         <el-button type="primary" @click="detailsVisible = false">关闭</el-button>
       </template>
@@ -164,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Document } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getAuditLogs } from '../../api/audit';
@@ -182,6 +200,58 @@ const detailsVisible = ref(false);
 const detailsContent = ref(null);
 const clearDialogVisible = ref(false);
 const clearing = ref(false);
+const showRawJson = ref(false);
+
+const fieldLabels = {
+  id: 'ID',
+  name: '名称',
+  username: '用户名',
+  enrollment_year: '入学年份',
+  student_count: '学生人数',
+  duration_years: '学制',
+  college_id: '学院 ID',
+  major_id: '专业 ID',
+  training_level_id: '培养层次 ID',
+  is_left_school: '已离校',
+  is_active: '启用状态',
+  type: '类型',
+  action: '操作',
+  module: '模块',
+  result: '结果',
+  message: '消息',
+  total: '总数',
+  imported: '已导入',
+  failed: '失败数',
+  overwritten: '覆盖数',
+  changes: '变更内容',
+  autoCreated: '自动创建',
+  trainingLevels: '培养层次',
+  colleges: '学院',
+  ip: 'IP 地址',
+  operator_id: '操作人 ID',
+  created_at: '创建时间',
+  updated_at: '更新时间',
+};
+
+const parsedDetails = computed(() => {
+  if (!detailsContent.value) return [];
+  let obj;
+  try {
+    obj = typeof detailsContent.value === 'string' ? JSON.parse(detailsContent.value) : detailsContent.value;
+  } catch {
+    return [{ label: '内容', value: String(detailsContent.value), isObject: false }];
+  }
+  if (typeof obj !== 'object' || obj === null) {
+    return [{ label: '内容', value: String(obj), isObject: false }];
+  }
+  return Object.entries(obj).map(([key, val]) => {
+    const label = fieldLabels[key] || key;
+    if (val !== null && typeof val === 'object') {
+      return { label, value: JSON.stringify(val, null, 2), isObject: true };
+    }
+    return { label, value: val === null ? '-' : String(val), isObject: false };
+  });
+});
 
 const actionLabels = {
   login: '登录',
@@ -243,6 +313,7 @@ function formatDateTime(dateStr) {
 
 function showDetails(details) {
   detailsContent.value = details;
+  showRawJson.value = false;
   detailsVisible.value = true;
 }
 
@@ -346,6 +417,19 @@ onMounted(() => {
   font-family: monospace;
   font-size: 13px;
   line-height: 1.6;
+}
+
+.details-table-wrap {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.nested-value {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: monospace;
+  font-size: 12px;
+  color: #606266;
 }
 
 .confirm-text {
