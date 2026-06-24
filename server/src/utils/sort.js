@@ -17,6 +17,12 @@ export function invalidateSortOrderCache(modelName) {
   }
 }
 
+/**
+ * 获取下一个排序值
+ * S-10 注意：aggregate + 1 非原子操作，并发创建可能产生重复 sort_order。
+ * SQLite 单写者模型下概率极低，autoFixSortOrder 可自动修复。
+ * 高并发场景建议改为事务内 SELECT MAX + INSERT 或数据库自增序列。
+ */
 export async function getNextSortOrder(prismaClient, modelName) {
   const maxSort = await prismaClient[modelName].aggregate({
     _max: { sort_order: true },

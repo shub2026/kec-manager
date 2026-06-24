@@ -299,6 +299,13 @@ export async function importClasses(req, res, next) {
 
     success(res, result, message);
   } catch (e) {
+    // S-14 修复：事务回滚后重置计数器，避免后续日志报告不准确的数据
+    imported = 0;
+    overwritten = 0;
+    autoCreatedLevels = 0;
+    autoCreatedMajors = 0;
+    autoCreatedColleges = 0;
+
     log.error('[班级导入] 事务执行失败，已回滚', { error: e.message, stack: e.stack });
 
     await createAuditLog({

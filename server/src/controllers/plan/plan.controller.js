@@ -3,6 +3,7 @@ import { success, fail } from '../../utils/response.js';
 import { NotFoundError, ValidationError, ConflictError } from '../../utils/error.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { autoFixSortOrder, invalidateSortOrderCache } from '../../utils/sort.js';
+import { findBestMatchPlan } from '../../services/plan.service.js';
 
 /**
  * 获取培养方案列表（含班级使用统计）
@@ -38,31 +39,22 @@ export async function listPlans(req, res, next) {
       classCountMap[p.id] = 0;
     });
 
-    // 遍历所有班级，根据匹配规则统计每个方案的班级数
-    // 注意：专业和层次是平级OR关系，一个班级可能同时匹配多个方案
+    // S-05 修复：使用 findBestMatchPlan 优先级语义（自定义>专业>层次），
+    // 每个班级只计入其最佳匹配方案，避免同一班级被重复计入多个方案
+    // 构建自定义方案的快速查找 Map
+    const customPlanMap = new Map();
     for (const cls of allClasses) {
-      // 1. 自定义方案优先匹配（最高优先级）
-      if (cls.custom_plan_id && classCountMap[cls.custom_plan_id] !== undefined) {
-        classCountMap[cls.custom_plan_id]++;
-        continue; // 自定义方案已匹配，不再进行其他匹配
+      if (cls.custom_plan_id) {
+        customPlanMap.set(cls.id, plans.find((p) => p.id === cls.custom_plan_id) || null);
       }
+    }
+    // 候选方案列表（排除纯自定义方案，用于专业/层次匹配）
+    const candidatePlans = plans.filter((p) => p.major_id || p.training_level_id);
 
-      // 2. 按专业 OR 按层次匹配（平级关系，无先后之分）
-      // 一个班级可能同时满足专业和层次条件，此时会匹配到多个方案
-      for (const plan of plans) {
-        // 跳过已处理过的方案
-        if (!plan.major_id && !plan.training_level_id) continue;
-
-        // 检查是否匹配：方案设置了major_id且与班级专业相同，或方案设置了training_level_id且与班级层次相同
-        const matchByMajor = plan.major_id && cls.major_id && cls.major_id === plan.major_id;
-        const matchByLevel =
-          plan.training_level_id &&
-          cls.training_level_id &&
-          cls.training_level_id === plan.training_level_id;
-
-        if (matchByMajor || matchByLevel) {
-          classCountMap[plan.id]++;
-        }
+    for (const cls of allClasses) {
+      const bestPlan = findBestMatchPlan(cls, candidatePlans, customPlanMap);
+      if (bestPlan && classCountMap[bestPlan.id] !== undefined) {
+        classCountMap[bestPlan.id]++;
       }
     }
 

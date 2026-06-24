@@ -198,6 +198,9 @@ export async function resetBasic(req, res, next) {
       invalidateDurationCache();
       await tx.textbooks.deleteMany();
       await tx.courses.deleteMany();
+      // S-11 修复：显式清除教师排课偏好，避免依赖级联隐式删除
+      await tx.teacher_scheduling_colleges.deleteMany();
+      await tx.teacher_training_levels.deleteMany();
       await tx.majors.deleteMany();
       await tx.colleges.deleteMany();
       await tx.training_levels.deleteMany();
@@ -240,6 +243,8 @@ export async function resetColleges(req, res, next) {
       await tx.plan_course_semesters.deleteMany();
       await tx.plan_courses.deleteMany();
       await tx.training_plans.deleteMany();
+      // S-11 修复：显式清除教师排课学院偏好
+      await tx.teacher_scheduling_colleges.deleteMany();
       await tx.colleges.deleteMany();
     },
     req,
@@ -260,6 +265,8 @@ export async function resetLevels(req, res, next) {
       await tx.plan_course_semesters.deleteMany();
       await tx.plan_courses.deleteMany();
       await tx.training_plans.deleteMany();
+      // S-11 修复：显式清除教师排课层次偏好
+      await tx.teacher_training_levels.deleteMany();
       await tx.training_levels.deleteMany();
     },
     req,

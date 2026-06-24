@@ -109,6 +109,10 @@ export async function importTeachers(req, res, next) {
     const affiliatedCollegeName = sanitizedRow['归属学院'] || '';
     const statusRaw = sanitizedRow['状态'] || '';
 
+    // S-07 修复：检测任课学院/任课层次列是否有实际内容，空列时保留现有关联
+    const hasCollegeCol = !!String(sanitizedRow['任课学院'] || '').trim();
+    const hasLevelCol = !!String(sanitizedRow['任课层次'] || '').trim();
+
     // 解析状态
     const statusStr = String(statusRaw).trim();
     const status = statusStr === '禁用' || statusStr === 'disabled' ? 'disabled' : 'active';
@@ -240,6 +244,8 @@ export async function importTeachers(req, res, next) {
         pendingNewCourseNames,
         collegeIds,
         levelIds,
+        hasCollegeCol,
+        hasLevelCol,
       });
       overwritten++;
     } else {
@@ -336,24 +342,28 @@ export async function importTeachers(req, res, next) {
                 data: allCourseIds.map((cid) => ({ teacher_id: op.teacherId, course_id: cid })),
               });
             }
-            // 重建任课学院关联
-            await tx.teacher_scheduling_colleges.deleteMany({
-              where: { teacher_id: op.teacherId },
-            });
-            if (op.collegeIds.length > 0) {
-              await tx.teacher_scheduling_colleges.createMany({
-                data: op.collegeIds.map((cid) => ({ teacher_id: op.teacherId, college_id: cid })),
+            // 重建任课学院关联（S-07 修复：仅当 Excel 列有内容时才覆盖）
+            if (op.hasCollegeCol) {
+              await tx.teacher_scheduling_colleges.deleteMany({
+                where: { teacher_id: op.teacherId },
               });
+              if (op.collegeIds.length > 0) {
+                await tx.teacher_scheduling_colleges.createMany({
+                  data: op.collegeIds.map((cid) => ({ teacher_id: op.teacherId, college_id: cid })),
+                });
+              }
             }
-            // 重建任课层次关联
-            await tx.teacher_training_levels.deleteMany({ where: { teacher_id: op.teacherId } });
-            if (op.levelIds.length > 0) {
-              await tx.teacher_training_levels.createMany({
-                data: op.levelIds.map((lid) => ({
-                  teacher_id: op.teacherId,
-                  training_level_id: lid,
-                })),
-              });
+            // 重建任课层次关联（S-07 修复：仅当 Excel 列有内容时才覆盖）
+            if (op.hasLevelCol) {
+              await tx.teacher_training_levels.deleteMany({ where: { teacher_id: op.teacherId } });
+              if (op.levelIds.length > 0) {
+                await tx.teacher_training_levels.createMany({
+                  data: op.levelIds.map((lid) => ({
+                    teacher_id: op.teacherId,
+                    training_level_id: lid,
+                  })),
+                });
+              }
             }
           } else {
             // 创建新教师（含课程关联）

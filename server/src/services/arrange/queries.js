@@ -105,8 +105,10 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
   if (filters.grade) {
     const gradeNum = parseInt(filters.grade);
     const enrollmentYear = semesterInfo.startYear - gradeNum + 1;
+    // S-03 修复：改为范围匹配，保留所有 gte <= enrollmentYear 的学制条件
+    // 原精确匹配(gte === enrollmentYear)会漏掉多学制场景下的合法班级
     classWhere.OR = classWhere.OR.filter(
-      (o) => o.enrollment_year.gte <= enrollmentYear && o.enrollment_year.gte >= enrollmentYear
+      (o) => o.enrollment_year.gte <= enrollmentYear
     );
   }
 

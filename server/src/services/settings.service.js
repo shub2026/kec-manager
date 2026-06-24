@@ -75,6 +75,17 @@ export function parseSemesterString(semester) {
     return { success: false, error: '学期格式错误，应为 YYYY-YYYY-N' };
   }
 
+  // S-04 修复：校验学期索引范围和年份连续性
+  if (semesterIndex < 1 || semesterIndex > 2) {
+    return { success: false, error: '学期索引必须为1（秋季）或2（春季）' };
+  }
+  if (endYear !== startYear + 1) {
+    return { success: false, error: '结束年份必须为起始年份+1，如 2025-2026-1' };
+  }
+  if (startYear < 2000 || startYear > 2099) {
+    return { success: false, error: '年份范围应在 2000-2099 之间' };
+  }
+
   // 生成学期标签
   const season = semesterIndex === 1 ? '秋季' : '春季';
   const displayYear = semesterIndex === 1 ? startYear : endYear;

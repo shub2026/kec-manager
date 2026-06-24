@@ -15,6 +15,8 @@ import {
 } from './queries.js';
 
 // C-2: 并发锁，防止同一课程被并发排课
+// S-09 注意：此锁为进程内存级别，仅适用于单进程部署（如 PM2 fork 模式）。
+// 若切换为 PM2 cluster 模式或负载均衡多实例部署，需改用 Redis 分布式锁或数据库行级锁。
 const arrangeLocks = new Set();
 
 /**
@@ -406,7 +408,8 @@ function trySwapUnassigned(
   mode,
   courseId,
   semesterStr,
-  classTextbookMap
+  classTextbookMap,
+  classInfoMap
 ) {
   if (!unassigned.length || !assignments.length) return;
 
@@ -430,7 +433,8 @@ function trySwapUnassigned(
         mode,
         courseId,
         semesterStr,
-        classTextbookMap
+        classTextbookMap,
+        classInfoMap
       )
     ) {
       // 置换成功，u 已移入 assignments，不加入 stillUnassigned
@@ -458,13 +462,23 @@ function trySwapOne(
   mode,
   courseId,
   semesterStr,
-  classTextbookMap
+  classTextbookMap,
+  classInfoMap
 ) {
   const uHours = u.weeklyHours;
   const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
 
   // 遍历所有教师 T（含已满的），找能教 U 且置换后可容纳的场景
   for (const t of teacherConstraints) {
+    // S-02 修复：校验 T 对 U（待分配班级）的学院/层次资格
+    if (classInfoMap) {
+      const uInfo = classInfoMap.get(u.classId);
+      if (uInfo) {
+        if (t.schedulingCollegeIds.length > 0 && !t.schedulingCollegeIds.includes(uInfo.collegeId)) continue;
+        if (t.schedulingLevelIds.length > 0 && uInfo.trainingLevelId && !t.schedulingLevelIds.includes(uInfo.trainingLevelId)) continue;
+      }
+    }
+
     // T 当前已分配的班级记录
     const tAssignments = assignmentsByTeacher.get(t.id) || [];
     if (!tAssignments.length) continue;
@@ -487,6 +501,15 @@ function trySwapOne(
         if (t2.id === t.id) continue;
         const t2Cap = mode === 'standard' ? t2.standardCap : t2.fullCap;
         if (t2.assignedHours + vHours > t2Cap) continue;
+
+        // S-02 修复：校验 T2 对 V（被接管班级）的学院/层次资格
+        if (classInfoMap) {
+          const vInfo = classInfoMap.get(vAssign.class_id);
+          if (vInfo) {
+            if (t2.schedulingCollegeIds.length > 0 && !t2.schedulingCollegeIds.includes(vInfo.collegeId)) continue;
+            if (t2.schedulingLevelIds.length > 0 && vInfo.trainingLevelId && !t2.schedulingLevelIds.includes(vInfo.trainingLevelId)) continue;
+          }
+        }
 
         // 修复：教材上限检查（防止置换越狱）
         // 必须计算 V 的教材对 T 是否"独有"（T 的其他班级不再使用），置换后需清理
@@ -572,7 +595,7 @@ export async function autoArrange(
   scheduleConditions,
   options = {}
 ) {
-  const { preview = false, extraTeacherHours = null } = options;
+  const { preview = false, extraTeacherHours = null, globalTextbookMap = null } = options;
 
   validateHourSettings(hourSettings);
 
@@ -641,6 +664,16 @@ export async function autoArrange(
       mode,
       extraTeacherHours
     );
+
+    // S-13 修复：预览模式下从前序课程累计教材负载
+    if (globalTextbookMap) {
+      for (const t of teacherConstraints) {
+        const prevTbs = globalTextbookMap.get(t.id);
+        if (prevTbs && prevTbs.size > 0) {
+          t.assignedTextbookIds = new Set(prevTbs);
+        }
+      }
+    }
 
     // === 版本标记：验证代码已加载 ===
     logger.debug(
@@ -1146,8 +1179,11 @@ export async function autoArrange(
     // 且 T 腾出容量后能容纳未分配班级 U，则执行置换，提升全局分配率
     // 预构建班级教材查找表，供置换时做教材上限检查
     const classTextbookMap = new Map();
+    // S-02 修复：预构建班级信息查找表，供置换时做学院/层次资格校验
+    const classInfoMap = new Map();
     for (const cls of validClassesToAssign) {
       classTextbookMap.set(cls.classId, cls.textbookIds || []);
+      classInfoMap.set(cls.classId, { collegeId: cls.collegeId, trainingLevelId: cls.trainingLevelId });
     }
     trySwapUnassigned(
       unassigned,
@@ -1156,7 +1192,8 @@ export async function autoArrange(
       mode,
       courseId,
       semesterStr,
-      classTextbookMap
+      classTextbookMap,
+      classInfoMap
     );
 
     // === 诊断日志：最终教材分布 ===
@@ -1179,7 +1216,7 @@ export async function autoArrange(
     }
 
     if (preview) {
-      return buildResult(
+      const previewResult = buildResult(
         assignments,
         unassigned,
         classesToAssign,
@@ -1190,6 +1227,9 @@ export async function autoArrange(
         teacherConstraints,
         mode
       );
+      // S-13 修复：附带 classTextbookMap 供批量排课跨课程累计教材
+      previewResult.classTextbookMap = classTextbookMap;
+      return previewResult;
     }
 
     // 非预览模式：删除旧自动安排 + 写入新安排，统一在事务内执行

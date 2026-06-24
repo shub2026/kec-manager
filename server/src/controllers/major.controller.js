@@ -122,12 +122,20 @@ export async function updateMajor(req, res, next) {
 export async function deleteMajor(req, res, next) {
   try {
     const { id } = req.params;
-    const classCount = await prisma.classes.count({ where: { major_id: Number(id) } });
+    const numId = Number(id);
+
+    const classCount = await prisma.classes.count({ where: { major_id: numId } });
     if (classCount > 0) return fail(res, '该专业下存在班级，无法删除');
 
+    // S-06 修复：检查培养方案关联，防止 onDelete:SetNull 静默破坏方案专业匹配
+    const planCount = await prisma.training_plans.count({ where: { major_id: numId } });
+    if (planCount > 0) {
+      return fail(res, `该专业仍被${planCount}个培养方案引用，请先解除关联`);
+    }
+
     try {
-      const major = await prisma.majors.findUnique({ where: { id: Number(id) } });
-      await prisma.majors.delete({ where: { id: Number(id) } });
+      const major = await prisma.majors.findUnique({ where: { id: numId } });
+      await prisma.majors.delete({ where: { id: numId } });
 
       await createAuditLog({
         action: 'delete',

@@ -144,8 +144,26 @@ export async function getCollegeLevelMapping(req, res, next) {
 export async function deleteCollege(req, res, next) {
   try {
     const { id } = req.params;
-    const classCount = await prisma.classes.count({ where: { college_id: Number(id) } });
+    const numId = Number(id);
+
+    // 前置检查：班级
+    const classCount = await prisma.classes.count({ where: { college_id: numId } });
     if (classCount > 0) return fail(res, '该学院下存在班级，无法删除');
+
+    // S-01 修复：检查教师排课偏好、培养方案、教师所属学院关联，防止级联静默清除
+    const [schedulingCount, planCount, affiliatedCount] = await Promise.all([
+      prisma.teacher_scheduling_colleges.count({ where: { college_id: numId } }),
+      prisma.training_plans.count({ where: { college_id: numId } }),
+      prisma.teachers.count({ where: { affiliated_college_id: numId } }),
+    ]);
+    if (schedulingCount > 0 || planCount > 0 || affiliatedCount > 0) {
+      const parts = [];
+      if (schedulingCount > 0) parts.push(`${schedulingCount}位教师排课偏好`);
+      if (planCount > 0) parts.push(`${planCount}个培养方案`);
+      if (affiliatedCount > 0) parts.push(`${affiliatedCount}位教师所属`);
+      return fail(res, `该学院仍被引用（${parts.join('、')}），请先解除关联`);
+    }
+
     try {
       const college = await prisma.colleges.findUnique({ where: { id: Number(id) } });
       await prisma.colleges.delete({ where: { id: Number(id) } });

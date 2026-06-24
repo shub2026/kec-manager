@@ -35,6 +35,8 @@ export async function importCourses(req, res, next) {
     const name = sanitizedRow['课程名称'];
     const code = sanitizedRow['课程编码'] || null;
     const typeValue = sanitizedRow['课程类型'];
+    // S-08 修复：标记类型是否为 Excel 显式指定（非空值），避免默认值覆盖已有类型
+    const typeExplicit = !!typeValue;
     const type = typeValue === '专业课' || typeValue === 'professional' ? 'professional' : 'public';
 
     if (!name) {
@@ -42,7 +44,7 @@ export async function importCourses(req, res, next) {
       continue;
     }
 
-    validRows.push({ name: String(name).trim(), code: code ? String(code).trim() : null, type });
+    validRows.push({ name: String(name).trim(), code: code ? String(code).trim() : null, type, typeExplicit });
   }
 
   try {
@@ -77,10 +79,15 @@ export async function importCourses(req, res, next) {
         for (const r of validRows) {
           const existing = await tx.courses.findFirst({ where: { name: r.name } });
           if (existing) {
-            await tx.courses.update({ where: { id: existing.id }, data: r });
+            // S-08 修复：已有课程仅在 Excel 显式指定类型时才更新 type，防止默认值覆盖
+            const { typeExplicit, ...updateFields } = r;
+            if (!typeExplicit) delete updateFields.type;
+            await tx.courses.update({ where: { id: existing.id }, data: updateFields });
             updated++;
           } else {
-            await tx.courses.create({ data: r });
+            // 新课程：移除 typeExplicit 标记后创建
+            const { typeExplicit, ...createData } = r;
+            await tx.courses.create({ data: createData });
             created++;
           }
         }

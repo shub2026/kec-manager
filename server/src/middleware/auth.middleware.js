@@ -49,7 +49,20 @@ export async function authMiddleware(req, res, next) {
   else if (req.query.downloadToken) {
     const decoded = AuthService.verifyDownloadToken(req.query.downloadToken);
     if (decoded) {
-      req.user = decoded;
+      // S-12 修复：下载令牌也需校验用户状态，防止被禁用用户在令牌有效期内绕过
+      try {
+        const status = await getActiveUserStatus(decoded.id);
+        if (!status || !status.is_active) {
+          return res.status(401).json({
+            success: false,
+            message: '账号不存在或已被禁用',
+          });
+        }
+        req.user = { ...decoded, role: status.role };
+      } catch (err) {
+        log.error('下载令牌用户状态校验失败', { message: err.message });
+        return res.status(500).json({ success: false, message: '服务内部错误' });
+      }
       return next();
     }
     return res.status(401).json({

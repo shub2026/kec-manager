@@ -101,10 +101,25 @@ export async function updateTrainingLevel(req, res, next) {
 export async function deleteTrainingLevel(req, res, next) {
   try {
     const { id } = req.params;
-    const classCount = await prisma.classes.count({ where: { training_level_id: Number(id) } });
+    const numId = Number(id);
+
+    const classCount = await prisma.classes.count({ where: { training_level_id: numId } });
     if (classCount > 0) return fail(res, '该层次下存在班级，无法删除');
+
+    // S-01 修复：检查教师排课层次偏好和培养方案关联，防止级联静默清除
+    const [schedulingCount, planCount] = await Promise.all([
+      prisma.teacher_training_levels.count({ where: { training_level_id: numId } }),
+      prisma.training_plans.count({ where: { training_level_id: numId } }),
+    ]);
+    if (schedulingCount > 0 || planCount > 0) {
+      const parts = [];
+      if (schedulingCount > 0) parts.push(`${schedulingCount}位教师排课偏好`);
+      if (planCount > 0) parts.push(`${planCount}个培养方案`);
+      return fail(res, `该层次仍被引用（${parts.join('、')}），请先解除关联`);
+    }
+
     try {
-      await prisma.training_levels.delete({ where: { id: Number(id) } });
+      await prisma.training_levels.delete({ where: { id: numId } });
       await createAuditLog({
         action: 'delete',
         module: 'training_level',

@@ -5,6 +5,7 @@ import { autoArrange } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
 
 // M-12: 并发锁，防止同一学期被并发批量排课
+// S-09 注意：进程内存级别，仅适用于单进程部署。多实例部署需改用分布式锁。
 const batchLocks = new Set();
 
 // M-13: 批量排课超时上限（5分钟）
@@ -99,6 +100,8 @@ export async function batchAutoArrange(
     let timeoutReached = false;
 
     const virtualTeacherHours = options.preview ? new Map() : null;
+    // S-13 修复：预览模式下跨课程累计教材负载
+    const globalTextbookMap = options.preview ? new Map() : null;
 
     for (const { courseId, courseName } of coursePriorities) {
       // M-13: 超时检查——每门课程排课前检查是否已超过时限
@@ -117,7 +120,7 @@ export async function batchAutoArrange(
           mode,
           hourSettings,
           scheduleConditions,
-          { ...options, extraTeacherHours: virtualTeacherHours }
+          { ...options, extraTeacherHours: virtualTeacherHours, globalTextbookMap }
         );
         if (options.preview && virtualTeacherHours) {
           for (const a of result.assigned) {
@@ -125,6 +128,14 @@ export async function batchAutoArrange(
               a.teacher_id,
               (virtualTeacherHours.get(a.teacher_id) || 0) + a.weekly_hours
             );
+          }
+          // S-13 修复：累计每位教师的教材 ID 集合
+          if (result.classTextbookMap) {
+            for (const a of result.assigned) {
+              if (!globalTextbookMap.has(a.teacher_id)) globalTextbookMap.set(a.teacher_id, new Set());
+              const tbs = result.classTextbookMap.get(a.class_id) || [];
+              for (const tid of tbs) globalTextbookMap.get(a.teacher_id).add(tid);
+            }
           }
         }
         results.push({ courseId, courseName, ...result });
