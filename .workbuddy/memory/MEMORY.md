@@ -46,3 +46,19 @@
 - `default_weekly_hours` 作为全局容量天花板，标准/最大模式均服从
 - `standardCap = min(系统剩余, 教师个人剩余)`，`fullCap` 同理
 - 实现位置：`server/src/services/teaching-arrange.service.js` buildTeacherConstraints
+
+## v2.12.3 安全修复（2026-06-24）
+- **C-1 密码 XSS 修复**：`xss.js` 新增 `SKIP_SANITIZE_KEYS` 白名单，password/old_password/new_password 等字段跳过 XSS 清洗（修复前改密码含 `<>` 字符会永久锁死）
+- **H-4 sanitizeBody 全局**：`app.js` 在 express.json 后全局挂载，密码字段自动跳过
+- **M-2 updateClass 事务**：班级更新 + 级联删除排课记录包入 `prisma.$transaction`
+- **M-7 重置限流**：`settings.routes.js` 所有 `/reset/*` 加 resetLimiter（每用户每小时 3 次）
+- **M-8 分页参数修复**：`pagination.js` `validatePagination(maxPageSize=100)` 接受参数
+- **H-5 querySemester 分页上限**：强制 `Math.min(Math.max(n,1), 100)`
+- **H-2 密码正则统一**：`validateChangePassword` 改为严格字符集 `[A-Za-z\d@$!%*?&]{8,128}`
+- **H-1 .bak 清理**：删除残留备份文件，.gitignore 加 `*.bak*` 规则
+
+## TeachingArrange.vue 拆分决策（2026-06-24）
+- 文件 1609 行（template 585 + script 580 + style 442），**评估结论：暂不拆分**
+- 理由：① 当前无 bug，经历 7 轮排课修复后状态稳定；② 状态耦合天然紧密（selectedCourseId 贯穿所有函数），拆分代价大于收益；③ 实际逻辑约 600 行，CSS 占 28%，属正常体量
+- 拆分触发条件：文件突破 2500 行 / 需复用弹窗组件 / 新人抱怨难维护
+- overview.md 中 L-7 已降级为观察项

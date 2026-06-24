@@ -68,7 +68,7 @@
 | L-4 | paginate() 函数定义但从未使用 | `response.js:5-16` |
 | L-5 | naming 转换硬编码 `val.list` | `naming.middleware.js:45` |
 | L-6 | 日志未自动脱敏 | `logger.js` |
-| L-7 | 前端 TeachingArrange.vue 1609 行 | `client/src/views/teaching/` |
+| L-7 | 前端 TeachingArrange.vue 1609 行（观察项，暂不拆分） | `client/src/views/teaching/` |
 | L-8 | 死代码：shallowSnakeToCamel 等 | `naming.js:91-118` |
 | L-9 | trust proxy:1 不适多层代理 | `app.js` |
 
@@ -126,7 +126,7 @@
 
 ### 长期优化
 15. 排课算法全局回溯
-16. TeachingArrange.vue 拆分
+16. TeachingArrange.vue 拆分（**降级为观察项**：经评估，状态耦合紧、当前无 bug、实际逻辑约 600 行，暂不拆分；待新增功能使文件突破 2500 行或需复用弹窗时再拆）
 17. 全局速率限制
 18. CSP 白名单配置
 
