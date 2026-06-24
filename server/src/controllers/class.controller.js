@@ -376,7 +376,7 @@ export async function updateClass(req, res, next) {
       });
 
       // 班级标记离校时，级联删除当前学期排课记录，释放教师课时容量
-      if (leftSchool) {
+      if (leftSchool && semesterInfo) {
         const result = await tx.teaching_assignments.deleteMany({
           where: { class_id: Number(id), semester: semesterInfo.raw },
         });

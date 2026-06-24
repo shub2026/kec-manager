@@ -44,6 +44,8 @@
           <el-option label="学院" value="college" />
           <el-option label="培养方案" value="trainingPlan" />
           <el-option label="培养层次" value="training_level" />
+          <el-option label="教师" value="teacher" />
+          <el-option label="教学安排" value="teachingArrange" />
           <el-option label="系统" value="system" />
         </el-select>
         <el-select
@@ -273,6 +275,8 @@ const moduleLabels = {
   college: '学院',
   trainingPlan: '培养方案',
   training_level: '培养层次',
+  teacher: '教师',
+  teachingArrange: '教学安排',
   system: '系统',
 };
 
