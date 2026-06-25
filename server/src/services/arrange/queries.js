@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
 import { TEXTBOOK_COHESION } from '../../constants/index.js';
-import { isClassMatchPlan } from '../plan.service.js';
+import { isClassMatchPlan, findBestMatchPlan } from '../plan.service.js';
 
 /**
  * 计算班级在指定学期下的相对学期序号
@@ -121,64 +121,63 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
     },
   });
 
-  const results = [];
-  const addedClassIds = new Set();
+  // 高-5修复：对每个班级使用 findBestMatchPlan 选定唯一最佳方案
+  // 原实现按 sort_order 迭代+去重取首个匹配，可能与 findBestMatchPlan 的 major>level 优先级不一致
+  const candidatePlans = planCourses.map((pc) => pc.training_plans).filter(Boolean);
+  const planCourseByPlanId = new Map(planCourses.map((pc) => [pc.training_plans.id, pc]));
 
-  const classesByYear = new Map();
+  // 构建自定义方案映射表（供 findBestMatchPlan 使用）
+  const classPlanMap = new Map();
   for (const cls of allClasses) {
-    if (!classesByYear.has(cls.enrollment_year)) {
-      classesByYear.set(cls.enrollment_year, []);
+    if (cls.custom_plan_id) {
+      const customPlan = candidatePlans.find((p) => p.id === cls.custom_plan_id);
+      if (customPlan) classPlanMap.set(cls.id, customPlan);
     }
-    classesByYear.get(cls.enrollment_year).push(cls);
   }
 
-  for (const pc of planCourses) {
-    const plan = pc.training_plans;
+  const results = [];
 
-    const semRecords = pc.plan_course_semesters.filter(
-      (s) => s.semester >= pc.start_semester && s.semester <= pc.end_semester
+  for (const cls of allClasses) {
+    const bestPlan = findBestMatchPlan(cls, candidatePlans, classPlanMap);
+    if (!bestPlan) continue;
+
+    const pc = planCourseByPlanId.get(bestPlan.id);
+    if (!pc) continue;
+
+    const calc = calcClassSemester(cls, semesterInfo);
+    if (!calc) continue;
+
+    // 找到班级当前学期的学期记录
+    const semRecord = pc.plan_course_semesters.find(
+      (s) =>
+        s.semester === calc.currentSemesterNum &&
+        s.semester >= pc.start_semester &&
+        s.semester <= pc.end_semester
     );
+    if (!semRecord) continue;
 
-    for (const sem of semRecords) {
-      const gradeForThisSemester = Math.ceil(sem.semester / 2);
-      const enrollmentYear = semesterInfo.startYear - gradeForThisSemester + 1;
+    const weeklyHours = semRecord.weekly_hours ?? pc.weekly_hours;
+    const weeksCount = semRecord.weeks_count ?? pc.weeks_per_semester;
+    const textbooks = semRecord.plan_textbooks.map((pt) => pt.textbooks);
 
-      const yearClasses = classesByYear.get(enrollmentYear) || [];
-      for (const cls of yearClasses) {
-        if (addedClassIds.has(cls.id)) continue;
-
-        // 使用统一的三级互斥匹配，避免 null===null 误匹配
-        if (!isClassMatchPlan(cls, plan)) continue;
-
-        const calc = calcClassSemester(cls, semesterInfo);
-        if (!calc || calc.currentSemesterNum !== sem.semester) continue;
-
-        addedClassIds.add(cls.id);
-
-        const weeklyHours = sem.weekly_hours ?? pc.weekly_hours;
-        const weeksCount = sem.weeks_count ?? pc.weeks_per_semester;
-        const textbooks = sem.plan_textbooks.map((pt) => pt.textbooks);
-
-        results.push({
-          classId: cls.id,
-          className: cls.name,
-          collegeId: cls.college_id,
-          collegeName: cls.colleges?.name || null,
-          majorId: cls.major_id,
-          majorName: cls.majors?.name || null,
-          trainingLevelId: cls.training_level_id,
-          trainingLevelName: cls.training_levels?.name || null,
-          grade: calc.grade,
-          enrollmentYear: cls.enrollment_year,
-          studentCount: cls.student_count || 0,
-          currentSemester: sem.semester,
-          weeklyHours,
-          weeksCount,
-          totalHours: weeklyHours * weeksCount,
-          textbooks,
-        });
-      }
-    }
+    results.push({
+      classId: cls.id,
+      className: cls.name,
+      collegeId: cls.college_id,
+      collegeName: cls.colleges?.name || null,
+      majorId: cls.major_id,
+      majorName: cls.majors?.name || null,
+      trainingLevelId: cls.training_level_id,
+      trainingLevelName: cls.training_levels?.name || null,
+      grade: calc.grade,
+      enrollmentYear: cls.enrollment_year,
+      studentCount: cls.student_count || 0,
+      currentSemester: semRecord.semester,
+      weeklyHours,
+      weeksCount,
+      totalHours: weeklyHours * weeksCount,
+      textbooks,
+    });
   }
 
   return results;
@@ -275,18 +274,21 @@ export async function getTeachersForCourse(courseId, semesterStr) {
       : [];
   const levelNameMap = new Map(levelRows.map((l) => [l.id, l.name]));
 
-  // 获取教师的教材数据（基于当前学期实际授课安排，仅当前课程）
+  // 高-4修复：查询教师在该学期的全部排课记录（含其他课程），构建完整教材上下文
+  // 原实现仅查当前课程的 assignments，导致非预览模式下跨课程教材内聚失效
+  // 修复后：非预览模式从 DB 读取全部课程安排（已写入 DB），预览模式由 globalTextbookMap 补充
   const teacherTextbookMap = new Map();
 
-  const currentAssignments = await prisma.teaching_assignments.findMany({
+  // 查询相关教师在该学期的全部排课记录（跨课程）
+  const allTeacherAssignments = await prisma.teaching_assignments.findMany({
     where: {
-      course_id: Number(courseId),
       semester: semesterStr,
+      teacher_id: { in: relevantTeacherIds },
     },
-    include: {
-      class: {
-        select: { id: true },
-      },
+    select: {
+      teacher_id: true,
+      class_id: true,
+      course_id: true,
     },
   });
 
@@ -310,16 +312,16 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     }
   }
 
-  if (currentAssignments.length > 0) {
-    const classIds = currentAssignments.map((a) => a.class_id);
-
-    // 解析学期信息，用于 calcClassSemester 计算每个班级的程序学期号
+  if (allTeacherAssignments.length > 0) {
     const semesterInfo = parseSemester(semesterStr);
 
-    // 加载所有培养方案课程的学期教材（不在 SQL 层按日历学期号过滤，
-    // 而是在 JS 层按每个班级的实际程序学期号过滤，与 getClassesWithCourse 保持一致）
-    const planCoursesForClasses = await prisma.plan_courses.findMany({
-      where: { course_id: Number(courseId) },
+    // 收集所有涉及的课程 ID 和班级 ID
+    const courseIdsInAssignments = [...new Set(allTeacherAssignments.map((a) => a.course_id))];
+    const classIdsInAssignments = [...new Set(allTeacherAssignments.map((a) => a.class_id))];
+
+    // 批量查询所有涉及课程的 plan_courses（含方案和学期教材）
+    const allPlanCourses = await prisma.plan_courses.findMany({
+      where: { course_id: { in: courseIdsInAssignments } },
       include: {
         training_plans: { select: { id: true, major_id: true, training_level_id: true } },
         plan_course_semesters: {
@@ -329,10 +331,18 @@ export async function getTeachersForCourse(courseId, semesterStr) {
         },
       },
     });
+    // 按 course_id 分组
+    const planCoursesByCourse = new Map();
+    for (const pc of allPlanCourses) {
+      if (!planCoursesByCourse.has(pc.course_id)) {
+        planCoursesByCourse.set(pc.course_id, []);
+      }
+      planCoursesByCourse.get(pc.course_id).push(pc);
+    }
 
-    const classTextbookMap = new Map();
+    // 查询所有涉及的班级信息
     const allClassesForTextbooks = await prisma.classes.findMany({
-      where: { id: { in: classIds } },
+      where: { id: { in: classIdsInAssignments } },
       select: {
         id: true,
         custom_plan_id: true,
@@ -342,35 +352,50 @@ export async function getTeachersForCourse(courseId, semesterStr) {
         duration_years: true,
       },
     });
+    const classInfoMap = new Map(allClassesForTextbooks.map((c) => [c.id, c]));
 
-    for (const cls of allClassesForTextbooks) {
-      // 计算班级在当前学期的程序学期号（如大二下=4），替代之前错误的日历学期号
+    // 构建 (class_id, course_id) → [textbook_ids] 缓存
+    const classCourseTextbookMap = new Map();
+
+    for (const a of allTeacherAssignments) {
+      const key = `${a.class_id}:${a.course_id}`;
+      if (classCourseTextbookMap.has(key)) continue;
+
+      const cls = classInfoMap.get(a.class_id);
+      if (!cls) continue;
+
       const calc = semesterInfo ? calcClassSemester(cls, semesterInfo) : null;
       const clsSemesterNum = calc?.currentSemesterNum;
 
       const textbookIds = new Set();
-      for (const pc of planCoursesForClasses) {
+      const pcs = planCoursesByCourse.get(a.course_id) || [];
+
+      // 高-5修复：使用 findBestMatchPlan 选定最佳方案，与 getClassesWithCourse 口径一致
+      const candidatePlans = pcs.map((pc) => pc.training_plans).filter(Boolean);
+      const bestPlan = findBestMatchPlan(cls, candidatePlans);
+
+      for (const pc of pcs) {
         const plan = pc.training_plans;
-        // 使用统一的三级互斥匹配，避免 null===null 误匹配
+        if (bestPlan && plan.id !== bestPlan.id) continue;
         if (!isClassMatchPlan(cls, plan)) continue;
         for (const sem of pc.plan_course_semesters) {
-          // 按班级程序学期号精确匹配（与 getClassesWithCourse 的 calc.currentSemesterNum !== sem.semester 对应）
           if (clsSemesterNum == null || sem.semester !== clsSemesterNum) continue;
-          // 同时在 start_semester/end_semester 范围内（与 getClassesWithCourse 的区间过滤对应）
           if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
           for (const pt of sem.plan_textbooks) {
             textbookIds.add(pt.textbook_id);
           }
         }
       }
-      classTextbookMap.set(cls.id, [...textbookIds]);
+      classCourseTextbookMap.set(key, [...textbookIds]);
     }
 
-    for (const a of currentAssignments) {
+    // 构建 teacherTextbookMap（跨课程累计）
+    for (const a of allTeacherAssignments) {
       if (!teacherTextbookMap.has(a.teacher_id)) {
         teacherTextbookMap.set(a.teacher_id, new Set());
       }
-      const classTextbooks = classTextbookMap.get(a.class_id);
+      const key = `${a.class_id}:${a.course_id}`;
+      const classTextbooks = classCourseTextbookMap.get(key);
       if (classTextbooks) {
         for (const tid of classTextbooks) {
           teacherTextbookMap.get(a.teacher_id).add(tid);

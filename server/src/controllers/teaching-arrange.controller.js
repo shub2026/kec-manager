@@ -3,6 +3,7 @@ import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { log } from '../utils/logger.js';
 import { DEFAULT_HOUR_SETTINGS, HOUR_SETTINGS_PREFIX } from '../constants/index.js';
+import { isClassMatchPlan } from '../services/plan.service.js';
 import {
   getClassesWithCourse,
   getTeachersForCourse,
@@ -136,18 +137,54 @@ export async function assignTeacher(req, res, next) {
     let createWeeklyHours =
       weekly_hours != null && weekly_hours !== '' ? Number(weekly_hours) : null;
     if (createWeeklyHours === null) {
-      // 尝试从 plan_course_semesters 推导周课时
-      const cls = await prisma.classes.findUnique({ where: { id: Number(class_id) } });
-      const planId = cls?.custom_plan_id;
-      if (planId) {
-        const pc = await prisma.plan_courses.findUnique({
-          where: { plan_id_course_id: { plan_id: planId, course_id: Number(course_id) } },
-          include: { plan_course_semesters: true },
-        });
-        // 取方案课程默认周课时作为兜底
-        createWeeklyHours = pc?.weekly_hours ?? 0;
-      } else {
-        createWeeklyHours = 0;
+      // 高-2修复：原实现仅查 custom_plan_id，非自定义方案班级周课时被设为 0
+      // 新逻辑：统一使用 isClassMatchPlan 匹配方案（custom > major > level），再取对应学期的 weekly_hours
+      const cls = await prisma.classes.findUnique({
+        where: { id: Number(class_id) },
+        include: {
+          majors: { select: { id: true } },
+          training_levels: { select: { id: true } },
+        },
+      });
+
+      // 解析学期字符串，计算班级当前程序学期号
+      const semInfo = parseSemester(semester);
+      let currentSemesterNum = null;
+      if (cls && semInfo) {
+        const grade = semInfo.startYear - cls.enrollment_year + 1;
+        if (grade >= 1 && grade <= cls.duration_years) {
+          currentSemesterNum = (grade - 1) * 2 + semInfo.semesterIndex;
+        }
+      }
+
+      // 查询包含该课程的所有方案课程记录（含学期明细和方案信息）
+      const planCourses = await prisma.plan_courses.findMany({
+        where: { course_id: Number(course_id) },
+        include: {
+          plan_course_semesters: true,
+          training_plans: { select: { id: true, major_id: true, training_level_id: true } },
+        },
+      });
+
+      createWeeklyHours = 0;
+      for (const pc of planCourses) {
+        const plan = pc.training_plans;
+        if (!plan || !isClassMatchPlan(cls, plan)) continue;
+
+        // 优先取当前学期的周课时，兜底取方案课程默认周课时
+        if (currentSemesterNum !== null) {
+          const semRecord = pc.plan_course_semesters.find(
+            (s) => s.semester === currentSemesterNum
+          );
+          if (semRecord) {
+            createWeeklyHours = semRecord.weekly_hours ?? pc.weekly_hours ?? 0;
+          } else {
+            createWeeklyHours = pc.weekly_hours ?? 0;
+          }
+        } else {
+          createWeeklyHours = pc.weekly_hours ?? 0;
+        }
+        break; // 取第一个匹配方案即可
       }
     }
 

@@ -5,6 +5,7 @@ import { AuthService } from '../services/auth.service.js';
 import { log } from '../utils/logger.js';
 import { DEFAULT_SEMESTER } from '../constants/index.js';
 import { invalidateDurationCache } from '../services/class.service.js';
+import { parseSemesterString } from '../services/settings.service.js';
 
 const DEFAULT_SETTINGS = {
   current_semester: { value: DEFAULT_SEMESTER, description: '当前学期' },
@@ -77,9 +78,13 @@ export async function updateSettings(req, res, next) {
       return fail(res, `不允许的设置项: ${invalidKeys.join(', ')}`, 400);
     }
 
-    // 校验 current_semester 格式
-    if (updates.current_semester && !/^\d{4}-\d{4}-[12]$/.test(String(updates.current_semester))) {
-      return fail(res, '当前学期格式错误，应为 YYYY-YYYY-N（N为1或2）', 400);
+    // H-1修复：用 parseSemesterString 统一校验，与读取/查询路径一致
+    // 原正则 /^\d{4}-\d{4}-[12]$/ 允许 0000-0001-1、2025-2027-2 等非法值入库
+    if (updates.current_semester) {
+      const semResult = parseSemesterString(String(updates.current_semester));
+      if (!semResult.success) {
+        return fail(res, semResult.error || '当前学期格式错误', 400);
+      }
     }
 
     for (const [key, value] of Object.entries(updates)) {

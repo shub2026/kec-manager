@@ -5,7 +5,7 @@ import { getCurrentSemesterInfo } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
-import { cleanupFile, sanitizeInput, sanitizeFormulaInjection } from '../import-shared.js';
+import { cleanupFile, sanitizeInput } from '../import-shared.js';
 
 /**
  * POST /api/import/classes - 批量导入班级
@@ -62,7 +62,7 @@ export async function importClasses(req, res, next) {
 
     const sanitizedRow = {};
     for (const [key, value] of Object.entries(row)) {
-      sanitizedRow[key] = sanitizeFormulaInjection(sanitizeInput(value));
+      sanitizedRow[key] = sanitizeInput(value);
     }
 
     const name = sanitizedRow['班级名称'];

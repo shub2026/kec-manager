@@ -3,7 +3,7 @@ import { success, fail } from '../../utils/response.js';
 import { NotFoundError, ValidationError, ConflictError } from '../../utils/error.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { autoFixSortOrder, invalidateSortOrderCache } from '../../utils/sort.js';
-import { findBestMatchPlan } from '../../services/plan.service.js';
+import { findBestMatchPlan, isClassMatchPlan } from '../../services/plan.service.js';
 
 /**
  * 获取培养方案列表（含班级使用统计）
@@ -280,10 +280,43 @@ export async function updatePlan(req, res, next) {
 export async function deletePlan(req, res, next) {
   try {
     const { id } = req.params;
-    const classCount = await prisma.classes.count({ where: { custom_plan_id: Number(id) } });
-    if (classCount > 0) throw new ConflictError('该方案已被班级使用，无法删除');
+
+    // 高-3修复：原实现仅检查 custom_plan_id，major/level 匹配的班级不会被拦截
+    // 删除方案会级联清空 plan_courses/plan_course_semesters/plan_textbooks，
+    // 导致这些班级的开课信息静默失效。新逻辑：检查所有非离校班级是否匹配该方案。
+    const planId = Number(id);
+    const plan = await prisma.training_plans.findUnique({
+      where: { id: planId },
+      select: { id: true, major_id: true, training_level_id: true },
+    });
+    if (!plan) throw new NotFoundError('培养方案');
+
+    // 1. 检查 custom_plan_id 引用（原逻辑，保留）
+    const customClassCount = await prisma.classes.count({
+      where: { custom_plan_id: planId },
+    });
+    if (customClassCount > 0) throw new ConflictError('该方案已被班级使用，无法删除');
+
+    // 2. 检查 major/level 匹配的非离校班级（新增）
+    const activeClasses = await prisma.classes.findMany({
+      where: { is_left_school: false },
+      select: {
+        id: true,
+        major_id: true,
+        training_level_id: true,
+        custom_plan_id: true,
+        name: true,
+      },
+    });
+    const matchedClass = activeClasses.find((cls) => isClassMatchPlan(cls, plan));
+    if (matchedClass) {
+      throw new ConflictError(
+        `该方案已被班级"${matchedClass.name}"按专业/层次匹配使用，无法删除`
+      );
+    }
+
     try {
-      await prisma.training_plans.delete({ where: { id: Number(id) } });
+      await prisma.training_plans.delete({ where: { id: planId } });
 
       await createAuditLog({
         module: 'trainingPlan',
@@ -291,7 +324,7 @@ export async function deletePlan(req, res, next) {
         userId: req.user?.id,
         ip: req.ip,
         result: 'success',
-        details: { plan_id: Number(id) },
+        details: { plan_id: planId },
       });
 
       invalidateSortOrderCache('training_plans');

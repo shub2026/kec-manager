@@ -535,6 +535,10 @@ export async function queryAllTextbooksUsage(req, res, next) {
         const classesInYear = classesByEnrollmentYear.get(enrollmentYear) || [];
         for (const c of classesInYear) {
           if (isClassMatchPlan(c, plan)) {
+            // H-3修复：校验班级当前学期号是否等于教材绑定的学期号
+            // 原实现缺此校验，导致非当前学期的教材也被计入使用统计，人数虚高
+            const calc = calcClassSemester(c, semesterInfo);
+            if (!calc || calc.currentSemesterNum !== sem.semester) continue;
             usedClasses.add(c.id);
           }
         }

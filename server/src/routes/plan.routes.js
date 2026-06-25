@@ -22,6 +22,7 @@ import {
   listPlanCourses,
   addCourseToPlan,
   updatePlanCourse,
+  updatePlanCourseSortOrder,
   deletePlanCourse,
   upsertSemester,
   updateSemester,
@@ -85,6 +86,16 @@ router.put(
   validatePlanCourse,
   sanitizeBody,
   updatePlanCourse
+);
+
+// PATCH /api/plans/courses/:id/sort-order - 仅更新课程排序（admin/super_admin）
+// 严重-1 修复：排序走轻量端点，不触发学期记录重建，避免教材关联丢失
+router.patch(
+  '/courses/:id/sort-order',
+  roleMiddleware('admin', 'super_admin'),
+  validateIdParam,
+  sanitizeBody,
+  updatePlanCourseSortOrder
 );
 
 // DELETE /api/plans/courses/:id - 删除方案课程（admin/super_admin）

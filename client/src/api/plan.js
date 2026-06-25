@@ -8,6 +8,8 @@ export const deletePlan = (id) => request.delete(`/plans/${id}`);
 export const getPlanCourses = (id) => request.get(`/plans/${id}/courses`);
 export const addPlanCourse = (id, data) => request.post(`/plans/${id}/courses`, data);
 export const updatePlanCourse = (id, data) => request.put(`/plans/courses/${id}`, data);
+export const updatePlanCourseSortOrder = (id, sortOrder) =>
+  request.patch(`/plans/courses/${id}/sort-order`, { sort_order: sortOrder });
 export const deletePlanCourse = (id) => request.delete(`/plans/courses/${id}`);
 
 // 学期明细

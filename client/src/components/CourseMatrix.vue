@@ -53,6 +53,7 @@ import {
   createSemester,
   updateSemester,
   updatePlanCourse,
+  updatePlanCourseSortOrder,
   setSemesterTextbook,
   removeSemesterTextbook,
   getPlanSemesters,
@@ -284,6 +285,7 @@ function isLastInGroup(course, group) {
 }
 
 // 通用排序交换：按目标顺序逐个更新 sort_order，避免 SQLite 并发写锁和重复值问题
+// 严重-1 修复：排序走轻量 PATCH 端点，不触发学期记录重建，避免教材关联丢失
 async function swapSortOrder(group, indexA, indexB) {
   // 先交换位置
   const courses = [...group.courses];
@@ -296,7 +298,7 @@ async function swapSortOrder(group, indexA, indexB) {
 
   // 串行逐个更新，避免 SQLite 文件锁冲突
   for (const { id, sortOrder } of updates) {
-    await updatePlanCourse(id, { sort_order: sortOrder });
+    await updatePlanCourseSortOrder(id, sortOrder);
   }
 }
 

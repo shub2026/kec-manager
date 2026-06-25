@@ -102,7 +102,19 @@ export async function addCourseToPlan(req, res, next) {
 }
 
 /**
- * 更新培养方案课程信息（同步更新学期记录）
+ * 更新培养方案课程信息（按需增删学期记录，保留区间内教材关联）
+ *
+ * 修复严重-1：原实现无论改什么字段都先 deleteMany 全部学期记录再重建空记录，
+ * 因 plan_textbooks 对 plan_course_semesters 是 onDelete: Cascade，
+ * 导致教材关联全部静默丢失。
+ *
+ * 新逻辑：
+ * - 更新 plan_courses 表本身字段（start/end_semester, weekly_hours, weeks_per_semester, sort_order）
+ * - 仅当学期范围变化时，按需增删学期记录（diff 新旧区间）
+ *   - 删除超出新区间的学期记录（其 plan_textbooks 级联删除）
+ *   - 新增缺失的学期记录（无教材，用默认值）
+ *   - 保留区间内已存在的学期记录及其 plan_textbooks（不动）
+ * - 学期范围未变时，完全不碰学期记录
  */
 export async function updatePlanCourse(req, res, next) {
   try {
@@ -127,7 +139,12 @@ export async function updatePlanCourse(req, res, next) {
       weeks_per_semester !== undefined ? Number(weeks_per_semester) : currentPc.weeks_per_semester;
     const newSortOrder = sort_order !== undefined ? Number(sort_order) : currentPc.sort_order;
 
+    if (newStart > newEnd) {
+      return fail(res, '开始学期不能大于结束学期', 400);
+    }
+
     const pc = await prisma.$transaction(async (tx) => {
+      // 1. 更新 plan_courses 表本身字段
       const updated = await tx.plan_courses.update({
         where: { id: Number(id) },
         data: {
@@ -140,20 +157,47 @@ export async function updatePlanCourse(req, res, next) {
         include: { courses: true },
       });
 
-      await tx.plan_course_semesters.deleteMany({
-        where: { plan_course_id: Number(id) },
-      });
+      // 2. 仅当学期范围变化时，按需增删学期记录（保留区间内教材关联）
+      const oldStart = currentPc.start_semester;
+      const oldEnd = currentPc.end_semester;
 
-      for (let s = newStart; s <= newEnd; s++) {
-        await tx.plan_course_semesters.create({
-          data: {
-            plan_course_id: Number(id),
-            semester: s,
-            weekly_hours: newWeeklyHours,
-            weeks_count: newWeeksPerSemester,
-          },
-        });
+      if (newStart !== oldStart || newEnd !== oldEnd) {
+        const existingSemesterSet = new Set(
+          currentPc.plan_course_semesters.map((s) => s.semester)
+        );
+
+        // 计算新区间内的学期集合
+        const newSemesterSet = new Set();
+        for (let s = newStart; s <= newEnd; s++) {
+          newSemesterSet.add(s);
+        }
+
+        // 删除不在新区间内的学期记录（plan_textbooks 会级联删除）
+        const toDelete = [...existingSemesterSet].filter((s) => !newSemesterSet.has(s));
+        if (toDelete.length > 0) {
+          await tx.plan_course_semesters.deleteMany({
+            where: {
+              plan_course_id: Number(id),
+              semester: { in: toDelete },
+            },
+          });
+        }
+
+        // 新增新区间内但之前不存在的学期记录（无教材，用默认值初始化）
+        const toCreate = [...newSemesterSet].filter((s) => !existingSemesterSet.has(s));
+        for (const s of toCreate) {
+          await tx.plan_course_semesters.create({
+            data: {
+              plan_course_id: Number(id),
+              semester: s,
+              weekly_hours: newWeeklyHours,
+              weeks_count: newWeeksPerSemester,
+            },
+          });
+        }
+        // 保留区间内已存在的学期记录及其 plan_textbooks（不动）
       }
+      // 学期范围未变时，完全不碰学期记录
 
       return updated;
     });
@@ -177,6 +221,52 @@ export async function updatePlanCourse(req, res, next) {
       ip: req.ip,
       result: 'failed',
       message: '更新培养方案课程失败',
+      details: { error: e.message },
+    });
+    if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);
+    next(e);
+  }
+}
+
+/**
+ * 仅更新课程排序序号（不触发学期记录重建，避免教材关联丢失）
+ *
+ * 严重-1 修复配套：拖拽排序是高频操作，走轻量端点避免无谓的学期记录 diff。
+ */
+export async function updatePlanCourseSortOrder(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { sort_order } = req.body;
+
+    if (sort_order === undefined || sort_order === null) {
+      return fail(res, '排序序号为必填项');
+    }
+
+    const updated = await prisma.plan_courses.update({
+      where: { id: Number(id) },
+      data: { sort_order: Number(sort_order) },
+      select: { id: true, sort_order: true },
+    });
+
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'update',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'success',
+      message: '更新课程排序',
+      details: { course_id: Number(id), sort_order: Number(sort_order) },
+    });
+
+    success(res, updated, '排序已更新');
+  } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'update',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: '更新课程排序失败',
       details: { error: e.message },
     });
     if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);

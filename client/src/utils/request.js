@@ -23,7 +23,7 @@ request.interceptors.request.use(
     }
     // 从Cookie读取CSRF Token（如果存在）
     const csrfToken = getCookie('XSRF-TOKEN');
-    if (csrfToken && ['post', 'put', 'delete'].includes(config.method?.toLowerCase())) {
+    if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
       config.headers['X-CSRF-Token'] = csrfToken;
     }
     return config;

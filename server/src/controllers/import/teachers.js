@@ -4,7 +4,7 @@ import { readWorkbook } from '../../utils/excel.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
-import { cleanupFile, sanitizeInput, sanitizeFormulaInjection } from '../import-shared.js';
+import { cleanupFile, sanitizeInput } from '../import-shared.js';
 
 /**
  * POST /api/import/teachers - 批量导入教师
@@ -72,7 +72,7 @@ export async function importTeachers(req, res, next) {
   // H-8: 预加载教师数据，避免循环内 N+1 查询
   const importNames = new Set();
   for (const row of rows) {
-    const n = sanitizeFormulaInjection(sanitizeInput(row['教师姓名']));
+    const n = sanitizeInput(row['教师姓名']);
     if (n) importNames.add(String(n).trim());
   }
   const existingTeachersByName = new Map();
@@ -94,7 +94,7 @@ export async function importTeachers(req, res, next) {
 
     const sanitizedRow = {};
     for (const [key, value] of Object.entries(row)) {
-      sanitizedRow[key] = sanitizeFormulaInjection(sanitizeInput(value));
+      sanitizedRow[key] = sanitizeInput(value);
     }
 
     const name = sanitizedRow['教师姓名'];

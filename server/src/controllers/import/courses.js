@@ -4,7 +4,7 @@ import { readWorkbook } from '../../utils/excel.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
-import { cleanupFile, sanitizeInput, sanitizeFormulaInjection } from '../import-shared.js';
+import { cleanupFile, sanitizeInput } from '../import-shared.js';
 
 /**
  * POST /api/import/courses - 批量导入课程
@@ -29,7 +29,7 @@ export async function importCourses(req, res, next) {
 
     const sanitizedRow = {};
     for (const [key, value] of Object.entries(row)) {
-      sanitizedRow[key] = sanitizeFormulaInjection(sanitizeInput(value));
+      sanitizedRow[key] = sanitizeInput(value);
     }
 
     const name = sanitizedRow['课程名称'];

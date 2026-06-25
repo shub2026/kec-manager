@@ -5,36 +5,18 @@ export async function getCurrentSemesterInfo() {
   const setting = await prisma.system_settings.findUnique({ where: { key: 'current_semester' } });
   if (!setting) return null;
 
-  // #19修复：校验数据格式，防止NaN传播
-  const parts = setting.value.split('-');
-  if (parts.length !== 3) {
-    log.error('Invalid current_semester format', {
+  // H-1修复：复用 parseSemesterString 做防御性校验，与写入/查询路径统一标准
+  // 防止库中已存在非法值（如 0000-0001-1、2025-2027-2）导致后续计算静默失效
+  const result = parseSemesterString(setting.value);
+  if (!result.success) {
+    log.error('Invalid current_semester in database', {
       value: setting.value,
-      expectedFormat: 'YYYY-YYYY-N',
+      error: result.error,
     });
     return null;
   }
 
-  const startYear = Number(parts[0]);
-  const endYear = Number(parts[1]);
-  const semesterIndex = Number(parts[2]);
-
-  if (isNaN(startYear) || isNaN(endYear) || isNaN(semesterIndex)) {
-    log.error('Invalid current_semester values', {
-      startYear: parts[0],
-      endYear: parts[1],
-      semesterIndex: parts[2],
-    });
-    return null;
-  }
-
-  return {
-    startYear,
-    endYear,
-    semesterIndex,
-    raw: setting.value,
-    label: formatSemesterLabel(startYear, endYear, semesterIndex),
-  };
+  return result.data;
 }
 
 /**

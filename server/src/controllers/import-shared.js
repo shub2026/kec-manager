@@ -35,6 +35,11 @@ export function sanitizeInput(value) {
   return xss(str);
 }
 
+/**
+ * @deprecated M-1修复：公式注入防护已统一由导出层 excel.js 的 sanitizeCellFormula 承担。
+ * 导入层调用此函数会给 =+-@ 开头字符串加 ' 前缀，永久污染数据库原始数据。
+ * 请勿在导入路径使用此函数。
+ */
 export function sanitizeFormulaInjection(value) {
   if (value === null || value === undefined) return null;
   const str = String(value).trim();
