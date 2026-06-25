@@ -176,7 +176,7 @@ const paginatedClasses = computed(() => {
 });
 
 // 学期相关逻辑
-const { availableSemesters, getCurrentSemester } = useSemesters();
+const { availableSemesters, fetchCurrentSemester } = useSemesters();
 
 async function loadDetail(id) {
   if (!id || !selectedSemester.value) {
@@ -233,8 +233,8 @@ function resetFilters() {
 }
 
 // 跳转到当前学期
-function goToCurrentSemester() {
-  selectedSemester.value = getCurrentSemester();
+async function goToCurrentSemester() {
+  selectedSemester.value = await fetchCurrentSemester();
   // 清空已选教材和其他状态
   selectedTextbook.value = null;
   detail.value = null;
@@ -267,8 +267,8 @@ async function exportExcel() {
 }
 
 onMounted(async () => {
-  // 设置默认学期为当前学期
-  selectedSemester.value = getCurrentSemester();
+  // 设置默认学期为系统设置的当前学期
+  selectedSemester.value = await fetchCurrentSemester();
 
   // 初始加载教材列表（所有启用的教材）
   try {

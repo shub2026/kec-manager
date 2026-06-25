@@ -242,7 +242,7 @@ const pagination = ref({
 });
 
 // 学期相关逻辑
-const { availableSemesters, getCurrentSemester } = useSemesters();
+const { availableSemesters, fetchCurrentSemester } = useSemesters();
 
 // 计算可用的入学年份列表（从API全量数据读取）
 const enrollmentYears = ref([]);
@@ -404,8 +404,8 @@ function handleMajorChange() {
 }
 
 // 跳转到当前学期
-function goToCurrentSemester() {
-  selectedSemester.value = getCurrentSemester();
+async function goToCurrentSemester() {
+  selectedSemester.value = await fetchCurrentSemester();
   // 同时清空其他筛选条件
   filterCollege.value = null;
   filterMajor.value = null;
@@ -460,8 +460,8 @@ async function exportExcel() {
 }
 
 onMounted(async () => {
-  // 设置默认学期为当前学期
-  selectedSemester.value = getCurrentSemester();
+  // 设置默认学期为系统设置的当前学期
+  selectedSemester.value = await fetchCurrentSemester();
 
   const [levelRes, majorRes, collegeRes] = await Promise.all([
     getTrainingLevels(),

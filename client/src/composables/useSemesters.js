@@ -1,4 +1,5 @@
 import { computed } from 'vue';
+import request from '../utils/request';
 
 export { downloadBlob } from '../utils/download';
 
@@ -24,7 +25,7 @@ export function useSemesters(options = {}) {
     return semesters;
   });
 
-  /** 根据当前日期计算当前学期值 */
+  /** 根据当前日期计算当前学期值（本地回退） */
   function getCurrentSemester() {
     const now = new Date();
     const year = now.getFullYear();
@@ -36,5 +37,19 @@ export function useSemesters(options = {}) {
     }
   }
 
-  return { availableSemesters, getCurrentSemester };
+  /** 从后端系统设置获取当前学期，失败时回退到本地日期计算 */
+  async function fetchCurrentSemester() {
+    try {
+      const res = await request.get('/settings');
+      const cs = res.data?.currentSemester;
+      if (cs?.value && typeof cs.value === 'string' && /^\d{4}-\d{4}-[12]$/.test(cs.value)) {
+        return cs.value;
+      }
+    } catch (e) {
+      if (import.meta.env.DEV) console.warn('获取系统学期失败，使用本地计算:', e);
+    }
+    return getCurrentSemester();
+  }
+
+  return { availableSemesters, getCurrentSemester, fetchCurrentSemester };
 }
