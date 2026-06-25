@@ -277,11 +277,11 @@
         size="small"
         @current-change="onTeacherSelect"
       >
-        <el-table-column prop="name" label="姓名" min-width="55" />
-        <el-table-column label="人员类别" min-width="80" align="center">
+        <el-table-column prop="name" label="姓名" min-width="45" />
+        <el-table-column label="人员类别" min-width="65" align="center">
           <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
         </el-table-column>
-        <el-table-column label="当前总课时" min-width="90" align="center">
+        <el-table-column label="当前总课时" min-width="72" align="center">
           <template #default="{ row }">
             <span
               :class="{
@@ -296,10 +296,10 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="班级数" min-width="70" align="center">
+        <el-table-column label="班级数" min-width="48" align="center">
           <template #default="{ row }">{{ row.totalClassCount }}</template>
         </el-table-column>
-        <el-table-column label="学科" min-width="100">
+        <el-table-column label="学科" min-width="70">
           <template #default="{ row }">
             <el-tag v-for="c in row.courseList" :key="c.id" size="small" class="tag-item">{{
               c.name
