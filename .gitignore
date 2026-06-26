@@ -9,3 +9,5 @@ uploads/*
 .DS_Store
 nul
 *.bak-*
+.workbuddy/
+.qoder/
