@@ -34,11 +34,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
   const userInfo = ref(parsedUserInfo);
 
+  // isLoggedIn 仅检查 token 是否存在（不依赖时间，避免 computed 缓存导致状态过时）
+  // 实际的过期判断由 router guard 和 request interceptor 通过 isTokenExpired() 处理
   const isLoggedIn = computed(() => {
-    if (!token.value && !refreshToken.value) return false;
-    if (token.value && !isTokenExpired(token.value)) return true;
-    if (refreshToken.value && !isTokenExpired(refreshToken.value)) return true;
-    return false;
+    return !!(token.value || refreshToken.value);
   });
   const isAdmin = computed(() => ['admin', 'super_admin'].includes(userInfo.value?.role));
   const isSuperAdmin = computed(() => userInfo.value?.role === 'super_admin');

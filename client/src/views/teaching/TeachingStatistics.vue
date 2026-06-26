@@ -87,14 +87,6 @@
       <!-- 教师课时统计表 -->
       <div v-if="filteredTeachers.length > 0">
         <el-table
-          :key="
-            filterName +
-            filterType +
-            filterSubject +
-            filterCollege +
-            filterLevel +
-            filterAffiliatedCollege
-          "
           v-loading="loading"
           :data="filteredTeachers"
           stripe
@@ -189,7 +181,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getTeachingStatistics } from '../../api/teachingArrange';
 import request from '../../utils/request';
@@ -203,11 +195,19 @@ const exporting = ref(false);
 
 // 筛选器
 const filterName = ref('');
+const debouncedFilterName = ref('');
 const filterType = ref('');
 const filterSubject = ref('');
 const filterCollege = ref('');
 const filterLevel = ref('');
 const filterAffiliatedCollege = ref('');
+
+// 防抖：姓名搜索200ms后触发筛选
+let _filterTimer = null;
+watch(filterName, (val) => {
+  clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(() => { debouncedFilterName.value = val; }, 200);
+});
 
 const teacherList = computed(() => statsData.value?.teachers || []);
 
@@ -251,7 +251,7 @@ const affiliatedCollegeOptions = computed(() => {
 
 const filteredTeachers = computed(() => {
   return teacherList.value.filter((t) => {
-    if (filterName.value && !t.teacherName.includes(filterName.value)) return false;
+    if (debouncedFilterName.value && !t.teacherName.includes(debouncedFilterName.value)) return false;
     if (filterType.value && t.personnelType !== filterType.value) return false;
     if (filterSubject.value) {
       const hasSubject = (t.details || []).some((d) => d.course?.name === filterSubject.value);

@@ -31,10 +31,14 @@ export default defineConfig({
         manualChunks: {
           'vue-vendor': ['vue', 'vue-router', 'pinia'],
           'element-plus': ['element-plus'],
+          'element-icons': ['@element-plus/icons-vue'],
           'axios': ['axios'],
         },
       },
     },
+  },
+  optimizeDeps: {
+    include: ['vue', 'vue-router', 'pinia', 'element-plus', 'axios'],
   },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version)

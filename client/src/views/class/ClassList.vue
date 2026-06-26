@@ -131,6 +131,7 @@ const planMajorRelation = ref({}); // 培养方案-专业关联
 const planLevelRelation = ref({}); // 培养方案-层次关联
 const selectedClasses = ref([]);
 const currentSemesterInfo = ref(null); // 当前学期信息
+let _relationsLoaded = false; // 关联数据是否已加载（结构性数据只加载一次）
 
 const filters = ref({
   name: '',
@@ -214,44 +215,39 @@ async function load() {
     list.value = res?.data?.items || [];
     pagination.value.total = res?.data?.total || 0;
 
-    if (res?.data?.allEnrollmentYears) {
-      allEnrollmentYears.value = res.data.allEnrollmentYears;
-    }
-
-    if (res?.data?.collegeMajorRelation) {
-      collegeMajorRelation.value = res.data.collegeMajorRelation;
-    }
-
-    if (res?.data?.collegeLevelRelation) {
-      collegeLevelRelation.value = res.data.collegeLevelRelation;
-    }
-
-    if (res?.data?.majorLevelRelation) {
-      majorLevelRelation.value = res.data.majorLevelRelation;
-    }
-
-    if (res?.data?.collegeYearRelation) {
-      collegeYearRelation.value = res.data.collegeYearRelation;
-    }
-
-    if (res?.data?.majorYearRelation) {
-      majorYearRelation.value = res.data.majorYearRelation;
-    }
-
-    if (res?.data?.levelYearRelation) {
-      levelYearRelation.value = res.data.levelYearRelation;
-    }
-
-    if (res?.data?.planCollegeRelation) {
-      planCollegeRelation.value = res.data.planCollegeRelation;
-    }
-
-    if (res?.data?.planMajorRelation) {
-      planMajorRelation.value = res.data.planMajorRelation;
-    }
-
-    if (res?.data?.planLevelRelation) {
-      planLevelRelation.value = res.data.planLevelRelation;
+    // 关联数据（结构性参考数据）只在首次加载时更新，避免每次翻页触发响应式级联
+    if (!_relationsLoaded) {
+      if (res?.data?.allEnrollmentYears) {
+        allEnrollmentYears.value = res.data.allEnrollmentYears;
+      }
+      if (res?.data?.collegeMajorRelation) {
+        collegeMajorRelation.value = res.data.collegeMajorRelation;
+      }
+      if (res?.data?.collegeLevelRelation) {
+        collegeLevelRelation.value = res.data.collegeLevelRelation;
+      }
+      if (res?.data?.majorLevelRelation) {
+        majorLevelRelation.value = res.data.majorLevelRelation;
+      }
+      if (res?.data?.collegeYearRelation) {
+        collegeYearRelation.value = res.data.collegeYearRelation;
+      }
+      if (res?.data?.majorYearRelation) {
+        majorYearRelation.value = res.data.majorYearRelation;
+      }
+      if (res?.data?.levelYearRelation) {
+        levelYearRelation.value = res.data.levelYearRelation;
+      }
+      if (res?.data?.planCollegeRelation) {
+        planCollegeRelation.value = res.data.planCollegeRelation;
+      }
+      if (res?.data?.planMajorRelation) {
+        planMajorRelation.value = res.data.planMajorRelation;
+      }
+      if (res?.data?.planLevelRelation) {
+        planLevelRelation.value = res.data.planLevelRelation;
+      }
+      _relationsLoaded = true;
     }
   } catch (error) {
     ElMessage.error('加载失败：' + (error.message || '未知错误'));

@@ -1,4 +1,4 @@
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElLoading } from 'element-plus';
 import request from '../utils/request';
 import { downloadBlob } from '../utils/download';
 
@@ -19,6 +19,7 @@ export function useExport(entityName, displayName, options = {}) {
    * 导出数据到 Excel
    */
   async function exportData(customParams = {}) {
+    const loading = ElLoading.service({ text: '正在导出...', background: 'rgba(255,255,255,0.7)' });
     try {
       let url = exportUrl;
 
@@ -40,6 +41,8 @@ export function useExport(entityName, displayName, options = {}) {
     } catch (error) {
       if (import.meta.env.DEV) console.error('导出失败:', error);
       ElMessage.error('导出失败');
+    } finally {
+      loading.close();
     }
   }
 
@@ -47,6 +50,7 @@ export function useExport(entityName, displayName, options = {}) {
    * 下载导入模板
    */
   async function downloadTemplate() {
+    const loading = ElLoading.service({ text: '正在下载模板...', background: 'rgba(255,255,255,0.7)' });
     try {
       const response = await request.get(templateUrl, {
         responseType: 'blob',
@@ -59,6 +63,8 @@ export function useExport(entityName, displayName, options = {}) {
     } catch (error) {
       if (import.meta.env.DEV) console.error('下载模板失败:', error);
       ElMessage.error('下载模板失败');
+    } finally {
+      loading.close();
     }
   }
 

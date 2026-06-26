@@ -190,7 +190,6 @@
       </template>
 
       <el-table
-        :key="filterCollege + filterMajor + filterGrade + filterTrainingLevel + filterTextbook"
         v-loading="tableLoading"
         :data="filteredClassList"
         stripe
@@ -1294,17 +1293,18 @@ onMounted(() => {
 .adaptive-table :deep(.el-table__body td .cell) {
   white-space: nowrap;
 }
-</style>
-
-<style>
-.teacher-dialog .el-dialog__body {
+/* 以下样式从全局块迁移到 scoped，用 :deep() 穿透弹窗子组件 */
+:deep(.teacher-dialog) .el-dialog__body {
   overflow-x: hidden;
+}
+:deep(.batch-result-dialog) .el-dialog__body {
+  padding: 16px 20px;
+}
+:deep(.arrange-result-dialog) .el-dialog__body {
+  padding: 16px 20px;
 }
 
 /* 批量排课结果弹窗 */
-.batch-result-dialog .el-dialog__body {
-  padding: 16px 20px;
-}
 .batch-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1475,9 +1475,6 @@ onMounted(() => {
 }
 
 /* 单课程排课结果弹窗 */
-.arrange-result-dialog .el-dialog__body {
-  padding: 16px 20px;
-}
 .arrange-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

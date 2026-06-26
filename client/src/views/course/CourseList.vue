@@ -115,36 +115,43 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ref, computed, onMounted, watch } from 'vue';
+import { ElMessage } from 'element-plus';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
-import { getCookie } from '@/utils/cookies';
-import request from '../../utils/request';
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course';
 import { useExport } from '../../composables/useExport';
+import { useImport } from '../../composables/useImport';
 import { useSortable } from '../../composables/useSortable';
 
 const list = ref([]);
 const filterName = ref('');
-const uploadHeaders = computed(() => {
-  const token = getCookie('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+const debouncedFilterName = ref('');
+
+// 防抖：文本输入200ms后再触发筛选，减少每次按键的computed重算
+let _filterTimer = null;
+watch(filterName, (val) => {
+  clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(() => { debouncedFilterName.value = val; }, 200);
 });
 const loading = ref(false);
 const dialogVisible = ref(false);
 const saving = ref(false);
 const form = ref({ id: null, name: '', code: '', type: 'public', description: '' });
 
-// 导入相关状态
-const pendingFile = ref(null);
+// 使用导入 composable
+const { uploadHeaders, beforeImport, onImportSuccess, onImportError } = useImport(
+  '/import/courses',
+  '导入将以数据第一列（课程名称）进行匹配，已存在的课程将被覆盖更新，确定继续导入吗？',
+  silentReload
+);
 
 // 使用导出 composable
 const { exportData, downloadTemplate } = useExport('courses', '课程数据');
 
 // 筛选后的列表
 const filteredList = computed(() => {
-  if (!filterName.value) return list.value;
-  const keyword = filterName.value.toLowerCase();
+  if (!debouncedFilterName.value) return list.value;
+  const keyword = debouncedFilterName.value.toLowerCase();
   return list.value.filter((item) => item.name && item.name.toLowerCase().includes(keyword));
 });
 
@@ -205,100 +212,6 @@ async function handleDelete(id) {
     }
     ElMessage.error('删除失败，请重试');
   }
-}
-
-// 导入前拦截，显示确认提示
-async function beforeImport(file) {
-  const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-  if (!isExcel) {
-    ElMessage.error('请上传Excel文件');
-    return false;
-  }
-
-  pendingFile.value = file;
-
-  try {
-    await ElMessageBox.confirm(
-      '导入将以数据第一列（课程名称）进行匹配，已存在的课程将被覆盖更新，确定继续导入吗？',
-      '导入确认',
-      {
-        confirmButtonText: '确定导入',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
-    confirmImport();
-  } catch {
-    // 用户取消
-    pendingFile.value = null;
-  }
-
-  return false; // 阻止自动上传
-}
-
-// 确认导入
-async function confirmImport() {
-  try {
-    const formData = new FormData();
-    formData.append('file', pendingFile.value);
-
-    const response = await request.post('/import/courses', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    onImportSuccess(response);
-  } catch (err) {
-    onImportError(err);
-  } finally {
-    pendingFile.value = null;
-  }
-}
-
-function onImportSuccess(res) {
-  const data = res.data || {};
-  const message = res.message || '导入完成';
-
-  let detailMsg = message;
-
-  if (data.errors && data.errors.length > 0) {
-    detailMsg += '\n\n❌ 失败详情：';
-    data.errors.forEach((error, index) => {
-      detailMsg += `\n${index + 1}. ${error}`;
-    });
-  }
-
-  if (data.failed && data.failed > 0) {
-    ElMessage({
-      message: detailMsg,
-      type: 'warning',
-      duration: 10000,
-      showClose: true,
-    });
-  } else if (data.imported > 0 || data.overwritten > 0) {
-    ElMessage({
-      message: detailMsg,
-      type: 'success',
-      duration: 8000,
-      showClose: true,
-    });
-  } else {
-    ElMessage({
-      message: detailMsg,
-      type: 'info',
-      duration: 6000,
-      showClose: true,
-    });
-  }
-  silentReload();
-}
-
-function onImportError(err) {
-  if (import.meta.env.DEV) {
-    console.error('导入错误:', err);
-  }
-  ElMessage.error('导入失败，请检查文件格式或联系管理员');
 }
 
 onMounted(() => {

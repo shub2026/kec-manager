@@ -133,12 +133,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSettingsStore } from '../stores/settings';
 import { useAuthStore } from '../stores/auth';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import ChangePasswordDialog from './ChangePasswordDialog.vue';
+const ChangePasswordDialog = defineAsyncComponent(() => import('./ChangePasswordDialog.vue'));
 
 const route = useRoute();
 const router = useRouter();

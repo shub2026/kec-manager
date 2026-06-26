@@ -253,7 +253,13 @@ async function handleSubmit() {
     dialogVisible.value = false;
     await silentReload();
   } catch (error) {
-    ElMessage.error(error.message || '操作失败');
+    // 提取服务端验证详情（422 响应 data.details 数组）
+    const details = error.response?.data?.data?.details;
+    if (Array.isArray(details) && details.length > 0) {
+      ElMessage.error(details.map((d) => d.message).join('；'));
+    } else {
+      ElMessage.error(error.response?.data?.message || error.message || '操作失败');
+    }
   } finally {
     submitting.value = false;
   }

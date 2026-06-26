@@ -169,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan';
@@ -184,7 +184,10 @@ const majors = ref([]);
 const trainingLevels = ref([]);
 const colleges = ref([]);
 const filterCollegeId = ref('');
-const filteredlist = ref([]);
+const filteredlist = computed(() => {
+  if (!filterCollegeId.value || filterCollegeId.value === '') return list.value;
+  return list.value.filter((item) => item.collegeId === Number(filterCollegeId.value));
+});
 const dialogVisible = ref(false);
 const saving = ref(false);
 const relationMode = ref('major'); // 'major' 或 'trainingLevel'
@@ -208,8 +211,6 @@ async function load() {
   try {
     const res = await getPlans();
     list.value = res.data || [];
-    // 初始化筛选列表，显示所有数据
-    filteredlist.value = list.value;
   } finally {
     loading.value = false;
   }
@@ -220,14 +221,6 @@ async function silentReload() {
   try {
     const res = await getPlans();
     list.value = res.data || [];
-    // 重新应用筛选条件
-    if (!filterCollegeId.value || filterCollegeId.value === '') {
-      filteredlist.value = list.value;
-    } else {
-      filteredlist.value = list.value.filter(
-        (item) => item.collegeId === Number(filterCollegeId.value)
-      );
-    }
   } catch (e) {
     // 静默刷新失败时回退到带 loading 的 load
     await load();
@@ -246,15 +239,7 @@ async function loadMeta() {
 }
 
 function handleFilterChange() {
-  if (!filterCollegeId.value || filterCollegeId.value === '') {
-    // 未选择部门或选择"全部部门"，显示所有数据
-    filteredlist.value = list.value;
-  } else {
-    // 按选择的部门筛选
-    filteredlist.value = list.value.filter(
-      (item) => item.collegeId === Number(filterCollegeId.value)
-    );
-  }
+  // filteredlist 是 computed，自动响应 filterCollegeId 变化
 }
 
 function handleModeChange(mode) {

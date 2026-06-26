@@ -89,20 +89,10 @@
       </template>
 
       <el-table
-        :key="
-          filterName +
-          filterCourseId +
-          filterPersonnelType +
-          filterCollegeId +
-          filterTrainingLevelId +
-          filterAffiliatedCollegeId +
-          filterStatus
-        "
         v-loading="loading"
         :data="filteredlist"
         stripe
         row-key="id"
-        :default-sort="{ prop: 'name', order: 'ascending' }"
       >
         <template #empty>
           <el-empty description="暂无教师数据，请点击右上角新增" />
@@ -338,8 +328,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import { Plus, Edit, Delete } from '@element-plus/icons-vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { getCookie } from '@/utils/cookies';
+import { ElMessage } from 'element-plus';
 import {
   getTeachers,
   createTeacher,
@@ -351,7 +340,7 @@ import { getColleges, getCollegeLevelMapping } from '../../api/college';
 import { getTrainingLevels } from '../../api/trainingLevel';
 import { getCourses } from '../../api/course';
 import { useExport } from '../../composables/useExport';
-import request from '../../utils/request';
+import { useImport } from '../../composables/useImport';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 
@@ -364,15 +353,14 @@ const allColleges = ref([]);
 const allTrainingLevels = ref([]);
 const collegeLevelMapping = ref({ collegeToLevels: {}, levelToColleges: {} });
 
-const uploadHeaders = computed(() => {
-  const token = getCookie('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-});
+// 使用导入 composable
+const { uploadHeaders, beforeImport, onImportSuccess, onImportError } = useImport(
+  '/import/teachers',
+  '导入将以教师姓名进行匹配，已存在的教师将被覆盖更新，确定继续导入吗？',
+  load
+);
 
 const { exportData, downloadTemplate } = useExport('teachers', '教师数据');
-
-// 导入相关状态
-const pendingFile = ref(null);
 
 // 筛选器状态
 const filterName = ref('');
@@ -626,81 +614,6 @@ async function handleToggleStatus(row, val) {
   } catch (e) {
     ElMessage.error('状态切换失败');
   }
-}
-
-// 导入前拦截，显示确认提示
-async function beforeImport(file) {
-  const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-  if (!isExcel) {
-    ElMessage.error('请上传Excel文件');
-    return false;
-  }
-
-  pendingFile.value = file;
-
-  try {
-    await ElMessageBox.confirm(
-      '导入将以教师姓名进行匹配，已存在的教师将被覆盖更新，确定继续导入吗？',
-      '导入确认',
-      {
-        confirmButtonText: '确定导入',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
-    confirmImport();
-  } catch {
-    pendingFile.value = null;
-  }
-
-  return false;
-}
-
-async function confirmImport() {
-  try {
-    const formData = new FormData();
-    formData.append('file', pendingFile.value);
-
-    const response = await request.post('/import/teachers', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-
-    onImportSuccess(response);
-  } catch (err) {
-    onImportError(err);
-  } finally {
-    pendingFile.value = null;
-  }
-}
-
-function onImportSuccess(res) {
-  const data = res.data || {};
-  const message = res.message || '导入完成';
-
-  let detailMsg = message;
-
-  if (data.errors && data.errors.length > 0) {
-    detailMsg += '\n\n❌ 失败详情：';
-    data.errors.forEach((error, index) => {
-      detailMsg += `\n${index + 1}. ${error}`;
-    });
-  }
-
-  if (data.failed && data.failed > 0) {
-    ElMessage({ message: detailMsg, type: 'warning', duration: 10000, showClose: true });
-  } else if (data.imported > 0 || data.overwritten > 0) {
-    ElMessage({ message: detailMsg, type: 'success', duration: 8000, showClose: true });
-  } else {
-    ElMessage({ message: detailMsg, type: 'info', duration: 6000, showClose: true });
-  }
-  load();
-}
-
-function onImportError(err) {
-  if (import.meta.env.DEV) {
-    console.error('导入错误:', err);
-  }
-  ElMessage.error('导入失败，请检查文件格式或联系管理员');
 }
 
 onMounted(() => {

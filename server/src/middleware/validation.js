@@ -1,5 +1,4 @@
 import { body, param, query, validationResult } from 'express-validator';
-import { fail } from '../utils/response.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -23,15 +22,14 @@ export function handleValidationErrors(req, res, next) {
       errors: errorDetails,
     });
 
-    return fail(
-      res,
-      {
+    return res.status(422).json({
+      success: false,
+      message: '请求参数验证失败',
+      data: {
         code: 'VALIDATION_ERROR',
-        message: '请求参数验证失败',
         details: errorDetails,
       },
-      422
-    );
+    });
   }
   next();
 }
@@ -219,9 +217,7 @@ export const validateUser = [
   body('password')
     .optional()
     .isLength({ min: 8, max: 128 })
-    .withMessage('密码长度必须在8-128位之间')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/)
-    .withMessage('密码必须包含大小写字母、数字和特殊字符'),
+    .withMessage('密码长度必须在8-128位之间'),
   body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
   body('role')
     .optional()

@@ -127,7 +127,11 @@ request.interceptors.response.use(
         502: '网关错误',
         503: '服务不可用',
       };
-      const msg = error.response.data?.message || msgMap[status] || `请求失败 (${status})`;
+      const rawMsg = error.response.data?.message;
+      const msg =
+        typeof rawMsg === 'string'
+          ? rawMsg
+          : msgMap[status] || `请求失败 (${status})`;
       ElMessage.error(msg);
     } else if (error.code === 'ECONNABORTED') {
       ElMessage.error('请求超时，请稍后重试');

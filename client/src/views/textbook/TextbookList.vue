@@ -52,7 +52,6 @@
         </div>
       </template>
       <el-table
-        :key="filterTitle + filterCategory + filterPublisher"
         v-loading="loading"
         :data="filteredlist"
         stripe
@@ -248,11 +247,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
-import { getCookie } from '@/utils/cookies';
-import { useAuthStore } from '../../stores/auth';
-import request from '../../utils/request';
 import {
   getTextbooks,
   createTextbook,
@@ -261,14 +257,18 @@ import {
   toggleTextbookStatus,
 } from '../../api/textbook';
 import { useExport } from '../../composables/useExport';
+import { useImport } from '../../composables/useImport';
 import { useSortable } from '../../composables/useSortable';
 
 const list = ref([]);
-const authStore = useAuthStore();
-const uploadHeaders = computed(() => {
-  const token = getCookie('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-});
+
+// 使用导入 composable
+const { uploadHeaders, beforeImport, onImportSuccess, onImportError } = useImport(
+  '/import/textbooks',
+  '导入将以数据第一列（书名）进行匹配，已存在的教材将被覆盖更新，确定继续导入吗？',
+  silentReload
+);
+
 const loading = ref(false);
 const dialogVisible = ref(false);
 const saving = ref(false);
@@ -301,9 +301,6 @@ const batchForm = ref({
   author: '',
   category: '',
 });
-
-// 导入相关状态
-const pendingFile = ref(null);
 
 // 使用导出 composable
 const { exportData, downloadTemplate } = useExport('textbooks', '教材数据');
@@ -510,107 +507,6 @@ async function handleBatchDelete() {
     }
     ElMessage.error('批量删除失败');
   }
-}
-
-// 导入前拦截，显示确认提示
-async function beforeImport(file) {
-  const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-  if (!isExcel) {
-    ElMessage.error('请上传Excel文件');
-    return false;
-  }
-
-  pendingFile.value = file;
-
-  try {
-    await ElMessageBox.confirm(
-      '导入将以数据第一列（书名）进行匹配，已存在的教材将被覆盖更新，确定继续导入吗？',
-      '导入确认',
-      {
-        confirmButtonText: '确定导入',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
-    confirmImport();
-  } catch {
-    // 用户取消
-    pendingFile.value = null;
-  }
-
-  return false; // 阻止自动上传
-}
-
-// 确认导入
-async function confirmImport() {
-  try {
-    // 创建 FormData 并手动上传
-    const formData = new FormData();
-    formData.append('file', pendingFile.value);
-
-    const response = await request.post('/import/textbooks', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    onImportSuccess(response);
-  } catch (err) {
-    onImportError(err);
-  } finally {
-    pendingFile.value = null;
-  }
-}
-
-function onImportSuccess(res) {
-  const data = res.data || {};
-  const message = res.message || '导入完成';
-
-  // 构建详细消息
-  let detailMsg = message;
-
-  // 添加失败详情，每条一行
-  if (data.errors && data.errors.length > 0) {
-    detailMsg += '\n\n❌ 失败详情：';
-    data.errors.forEach((error, index) => {
-      detailMsg += `\n${index + 1}. ${error}`;
-    });
-  }
-
-  // 根据结果显示不同类型的消息
-  if (data.failed && data.failed > 0) {
-    // 有失败记录，显示警告消息
-    ElMessage({
-      message: detailMsg,
-      type: 'warning',
-      duration: 10000,
-      showClose: true,
-    });
-  } else if (data.imported > 0 || data.overwritten > 0) {
-    // 成功导入，显示成功消息（带详细信息）
-    ElMessage({
-      message: detailMsg,
-      type: 'success',
-      duration: 8000,
-      showClose: true,
-    });
-  } else {
-    // 其他情况
-    ElMessage({
-      message: detailMsg,
-      type: 'info',
-      duration: 6000,
-      showClose: true,
-    });
-  }
-  silentReload();
-}
-
-function onImportError(err) {
-  if (import.meta.env.DEV) {
-    console.error('导入错误:', err);
-  }
-  ElMessage.error('导入失败，请检查文件格式或联系管理员');
 }
 
 onMounted(() => {
