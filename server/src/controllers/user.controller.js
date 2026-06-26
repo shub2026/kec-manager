@@ -108,6 +108,11 @@ export async function updateUser(req, res, next) {
       throw new NotFoundError('用户不存在');
     }
 
+    // 禁止编辑超级管理员（防止误改角色）
+    if (user.role === 'super_admin' && req.user.id !== user.id) {
+      throw new AuthorizationError('不允许修改超级管理员账号');
+    }
+
     if (req.user.role === 'admin' && user.role !== 'viewer') {
       throw new AuthorizationError('权限不足，管理员只能管理访客账号');
     }
@@ -140,7 +145,7 @@ export async function updateUser(req, res, next) {
       module: 'user',
       userId: req.user.id,
       ip: req.ip,
-      details: { id: user.id, username, changes: updateData },
+      details: { id: user.id, username: user.username, changes: updateData },
       result: 'success',
       message: `更新用户：${user.username}`,
     });

@@ -49,7 +49,14 @@
         </el-table-column>
         <el-table-column label="操作" fixed="right" width="220" align="center">
           <template #default="{ row }">
-            <el-button size="small" type="primary" @click="showEditDialog(row)">编辑</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              :disabled="row.role === 'super_admin'"
+              @click="showEditDialog(row)"
+            >
+              编辑
+            </el-button>
             <el-button
               size="small"
               :type="row.isActive ? 'warning' : 'success'"

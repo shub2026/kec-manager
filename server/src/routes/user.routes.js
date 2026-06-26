@@ -1,7 +1,7 @@
 import express from 'express';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { sanitizeBody } from '../middleware/xss.js';
-import { validateIdParam, validateUser, validateUserStatus } from '../middleware/validation.js';
+import { validateIdParam, validateUser, validateUserUpdate, validateUserStatus } from '../middleware/validation.js';
 import {
   listUsers,
   createUser,
@@ -32,7 +32,7 @@ router.put(
   '/:id',
   roleMiddleware('admin', 'super_admin'),
   validateIdParam,
-  validateUser,
+  validateUserUpdate,
   sanitizeBody,
   updateUser
 );

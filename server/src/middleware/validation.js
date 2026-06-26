@@ -207,7 +207,7 @@ export const validateTextbookCreate = [
 ];
 
 /**
- * 用户创建/更新验证规则
+ * 用户创建验证规则
  */
 export const validateUser = [
   body('username')
@@ -218,6 +218,19 @@ export const validateUser = [
     .optional()
     .isLength({ min: 8, max: 128 })
     .withMessage('密码长度必须在8-128位之间'),
+  body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
+  body('role')
+    .optional()
+    .isIn(['super_admin', 'admin', 'viewer'])
+    .withMessage('角色必须是super_admin、admin或viewer'),
+  body('real_name').optional().trim().isLength({ max: 100 }).withMessage('真实姓名不超过100个字符'),
+  handleValidationErrors,
+];
+
+/**
+ * 用户更新验证规则（编辑时不传 username/password）
+ */
+export const validateUserUpdate = [
   body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
   body('role')
     .optional()
