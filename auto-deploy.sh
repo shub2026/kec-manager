@@ -21,7 +21,7 @@ echo "$LOG_PREFIX 进入项目目录: $PROJECT_DIR"
 # 2. 备份数据库
 if [ -f "$PROJECT_DIR/server/data/kec.db" ]; then
     mkdir -p "$PROJECT_DIR/backups"
-    BACKUP_FILE="/opt/backups/kec_backup_$(date +%Y%m%d_%H%M%S).db"
+    BACKUP_FILE="PROJECT_DIR/backups/kec_backup_$(date +%Y%m%d_%H%M%S).db"
     cp "$PROJECT_DIR/server/data/kec.db" "$BACKUP_FILE"
     echo "$LOG_PREFIX 数据库已备份: $BACKUP_FILE"
     # 保留最近10个备份
