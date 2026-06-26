@@ -474,8 +474,14 @@ function trySwapOne(
     if (classInfoMap) {
       const uInfo = classInfoMap.get(u.classId);
       if (uInfo) {
-        if (t.schedulingCollegeIds.length > 0 && !t.schedulingCollegeIds.includes(uInfo.collegeId)) continue;
-        if (t.schedulingLevelIds.length > 0 && uInfo.trainingLevelId && !t.schedulingLevelIds.includes(uInfo.trainingLevelId)) continue;
+        if (t.schedulingCollegeIds.length > 0 && !t.schedulingCollegeIds.includes(uInfo.collegeId))
+          continue;
+        if (
+          t.schedulingLevelIds.length > 0 &&
+          uInfo.trainingLevelId &&
+          !t.schedulingLevelIds.includes(uInfo.trainingLevelId)
+        )
+          continue;
       }
     }
 
@@ -506,8 +512,17 @@ function trySwapOne(
         if (classInfoMap) {
           const vInfo = classInfoMap.get(vAssign.class_id);
           if (vInfo) {
-            if (t2.schedulingCollegeIds.length > 0 && !t2.schedulingCollegeIds.includes(vInfo.collegeId)) continue;
-            if (t2.schedulingLevelIds.length > 0 && vInfo.trainingLevelId && !t2.schedulingLevelIds.includes(vInfo.trainingLevelId)) continue;
+            if (
+              t2.schedulingCollegeIds.length > 0 &&
+              !t2.schedulingCollegeIds.includes(vInfo.collegeId)
+            )
+              continue;
+            if (
+              t2.schedulingLevelIds.length > 0 &&
+              vInfo.trainingLevelId &&
+              !t2.schedulingLevelIds.includes(vInfo.trainingLevelId)
+            )
+              continue;
           }
         }
 
@@ -1183,7 +1198,10 @@ export async function autoArrange(
     const classInfoMap = new Map();
     for (const cls of validClassesToAssign) {
       classTextbookMap.set(cls.classId, cls.textbookIds || []);
-      classInfoMap.set(cls.classId, { collegeId: cls.collegeId, trainingLevelId: cls.trainingLevelId });
+      classInfoMap.set(cls.classId, {
+        collegeId: cls.collegeId,
+        trainingLevelId: cls.trainingLevelId,
+      });
     }
     trySwapUnassigned(
       unassigned,

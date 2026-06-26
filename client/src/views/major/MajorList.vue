@@ -57,7 +57,11 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑专业' : '新增专业'" width="min(500px, 90vw)">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="form.id ? '编辑专业' : '新增专业'"
+      width="min(500px, 90vw)"
+    >
       <el-form :model="form" label-width="80px">
         <el-form-item label="专业名称" required>
           <el-input v-model="form.name" placeholder="请输入专业名称" />

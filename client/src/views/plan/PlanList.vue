@@ -93,7 +93,11 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑方案' : '新增方案'" width="min(500px, 90vw)">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="form.id ? '编辑方案' : '新增方案'"
+      width="min(500px, 90vw)"
+    >
       <el-form :model="form" label-width="80px">
         <el-form-item label="方案名称" required>
           <el-input v-model="form.name" placeholder="如：2024级学前教育培养方案" />

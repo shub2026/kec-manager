@@ -84,7 +84,11 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑课程' : '新增课程'" width="min(500px, 90vw)">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="form.id ? '编辑课程' : '新增课程'"
+      width="min(500px, 90vw)"
+    >
       <el-form :model="form" label-width="80px">
         <el-form-item label="课程名称" required>
           <el-input v-model="form.name" placeholder="请输入课程名称" />
@@ -131,7 +135,9 @@ const debouncedFilterName = ref('');
 let _filterTimer = null;
 watch(filterName, (val) => {
   clearTimeout(_filterTimer);
-  _filterTimer = setTimeout(() => { debouncedFilterName.value = val; }, 200);
+  _filterTimer = setTimeout(() => {
+    debouncedFilterName.value = val;
+  }, 200);
 });
 const loading = ref(false);
 const dialogVisible = ref(false);

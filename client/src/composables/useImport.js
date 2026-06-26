@@ -27,11 +27,11 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
     }
     pendingFile.value = file;
     try {
-      await ElMessageBox.confirm(
-        confirmMessage,
-        '导入确认',
-        { confirmButtonText: '确定导入', cancelButtonText: '取消', type: 'warning' }
-      );
+      await ElMessageBox.confirm(confirmMessage, '导入确认', {
+        confirmButtonText: '确定导入',
+        cancelButtonText: '取消',
+        type: 'warning',
+      });
       confirmImport();
     } catch {
       pendingFile.value = null;

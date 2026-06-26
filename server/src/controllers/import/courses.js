@@ -44,7 +44,12 @@ export async function importCourses(req, res, next) {
       continue;
     }
 
-    validRows.push({ name: String(name).trim(), code: code ? String(code).trim() : null, type, typeExplicit });
+    validRows.push({
+      name: String(name).trim(),
+      code: code ? String(code).trim() : null,
+      type,
+      typeExplicit,
+    });
   }
 
   try {

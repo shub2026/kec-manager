@@ -239,7 +239,10 @@ const parsedDetails = computed(() => {
   if (!detailsContent.value) return [];
   let obj;
   try {
-    obj = typeof detailsContent.value === 'string' ? JSON.parse(detailsContent.value) : detailsContent.value;
+    obj =
+      typeof detailsContent.value === 'string'
+        ? JSON.parse(detailsContent.value)
+        : detailsContent.value;
   } catch {
     return [{ label: '内容', value: String(detailsContent.value), isObject: false }];
   }

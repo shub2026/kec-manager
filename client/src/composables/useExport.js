@@ -50,7 +50,10 @@ export function useExport(entityName, displayName, options = {}) {
    * 下载导入模板
    */
   async function downloadTemplate() {
-    const loading = ElLoading.service({ text: '正在下载模板...', background: 'rgba(255,255,255,0.7)' });
+    const loading = ElLoading.service({
+      text: '正在下载模板...',
+      background: 'rgba(255,255,255,0.7)',
+    });
     try {
       const response = await request.get(templateUrl, {
         responseType: 'blob',

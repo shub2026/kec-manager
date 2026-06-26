@@ -132,7 +132,8 @@ export async function batchAutoArrange(
           // S-13 修复：累计每位教师的教材 ID 集合
           if (result.classTextbookMap) {
             for (const a of result.assigned) {
-              if (!globalTextbookMap.has(a.teacher_id)) globalTextbookMap.set(a.teacher_id, new Set());
+              if (!globalTextbookMap.has(a.teacher_id))
+                globalTextbookMap.set(a.teacher_id, new Set());
               const tbs = result.classTextbookMap.get(a.class_id) || [];
               for (const tid of tbs) globalTextbookMap.get(a.teacher_id).add(tid);
             }

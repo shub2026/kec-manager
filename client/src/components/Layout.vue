@@ -90,7 +90,13 @@
     <el-container>
       <el-header class="layout-header">
         <div class="layout-header-left">
-          <el-icon class="collapse-icon" @click="userCollapsed = !userCollapsed; handleResize()">
+          <el-icon
+            class="collapse-icon"
+            @click="
+              userCollapsed = !userCollapsed;
+              handleResize();
+            "
+          >
             <Fold v-if="!isCollapse" />
             <Expand v-else />
           </el-icon>

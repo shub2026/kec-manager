@@ -310,9 +310,7 @@ export async function deletePlan(req, res, next) {
     });
     const matchedClass = activeClasses.find((cls) => isClassMatchPlan(cls, plan));
     if (matchedClass) {
-      throw new ConflictError(
-        `该方案已被班级"${matchedClass.name}"按专业/层次匹配使用，无法删除`
-      );
+      throw new ConflictError(`该方案已被班级"${matchedClass.name}"按专业/层次匹配使用，无法删除`);
     }
 
     try {

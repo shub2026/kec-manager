@@ -323,12 +323,7 @@ import {
   InfoFilled,
   School,
 } from '@element-plus/icons-vue';
-import { getMajors } from '../api/major';
-import { getCourses } from '../api/course';
-import { getTextbooks } from '../api/textbook';
-import { getClassStats } from '../api/class';
-import { getPlans } from '../api/plan';
-import { getTeachingStatistics } from '../api/teachingArrange';
+import { getDashboardStats } from '../api/dashboard';
 import { getWithCache } from '../utils/cache';
 
 const router = useRouter();
@@ -367,41 +362,26 @@ const stats = ref({
 async function fetchStats() {
   loading.value = true;
   try {
-    const CACHE_TTL = 5 * 60 * 1000;
-    const results = await Promise.allSettled([
-      getWithCache(() => getMajors(), 'dashboard:majors', CACHE_TTL),
-      getWithCache(() => getCourses(), 'dashboard:courses', CACHE_TTL),
-      getWithCache(() => getTextbooks(), 'dashboard:textbooks', CACHE_TTL),
-      getWithCache(() => getClassStats(), 'dashboard:classStats', CACHE_TTL),
-      getWithCache(() => getPlans(), 'dashboard:plans', CACHE_TTL),
-    ]);
-
-    if (results[0].status === 'fulfilled') stats.value.majors = results[0].value.data?.length || 0;
-    if (results[1].status === 'fulfilled') stats.value.courses = results[1].value.data?.length || 0;
-    if (results[2].status === 'fulfilled')
-      stats.value.textbooks = (results[2].value.data || []).filter((t) => t.isActive).length;
-    if (results[3].status === 'fulfilled') {
-      stats.value.classes = results[3].value.data?.totalClasses || 0;
-      stats.value.totalStudents = results[3].value.data?.totalStudents || 0;
-    }
-    if (results[4].status === 'fulfilled') stats.value.plans = results[4].value.data?.length || 0;
-
     const semester = settingsStore.settings?.currentSemester?.value;
-    if (semester) {
-      try {
-        const teachRes = await getWithCache(
-          () => getTeachingStatistics({ semester }),
-          'dashboard:teachingStats',
-          CACHE_TTL
-        );
-        const summary = teachRes.data?.summary;
-        if (summary) {
-          stats.value.teachingTeachers = summary.totalTeachers || 0;
-          stats.value.totalWeeklyHours = summary.totalWeeklyHours || 0;
-        }
-      } catch (e) {
-        if (import.meta.env.DEV) console.warn('Teaching stats fetch failed:', e);
-      }
+    if (!semester) return;
+
+    const CACHE_TTL = 5 * 60 * 1000;
+    const res = await getWithCache(
+      () => getDashboardStats(semester),
+      `dashboard:stats:${semester}`,
+      CACHE_TTL
+    );
+
+    const d = res.data;
+    if (d) {
+      stats.value.majors = d.majors || 0;
+      stats.value.courses = d.courses || 0;
+      stats.value.classes = d.classes || 0;
+      stats.value.textbooks = d.textbooks || 0;
+      stats.value.plans = d.plans || 0;
+      stats.value.totalStudents = d.totalStudents || 0;
+      stats.value.teachingTeachers = d.teachingTeachers || 0;
+      stats.value.totalWeeklyHours = d.totalWeeklyHours || 0;
     }
   } finally {
     loading.value = false;

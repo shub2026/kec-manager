@@ -180,7 +180,11 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑教材' : '新增教材'" width="min(600px, 90vw)">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="form.id ? '编辑教材' : '新增教材'"
+      width="min(600px, 90vw)"
+    >
       <el-form :model="form" label-width="80px">
         <el-row :gutter="16">
           <el-col :span="12" :xs="24" :sm="12">

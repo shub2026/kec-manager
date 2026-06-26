@@ -162,9 +162,7 @@ export async function updatePlanCourse(req, res, next) {
       const oldEnd = currentPc.end_semester;
 
       if (newStart !== oldStart || newEnd !== oldEnd) {
-        const existingSemesterSet = new Set(
-          currentPc.plan_course_semesters.map((s) => s.semester)
-        );
+        const existingSemesterSet = new Set(currentPc.plan_course_semesters.map((s) => s.semester));
 
         // 计算新区间内的学期集合
         const newSemesterSet = new Set();

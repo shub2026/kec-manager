@@ -47,6 +47,10 @@ export async function importTeachers(req, res, next) {
   });
 
   let autoCreatedCourses = 0;
+  let autoCreatedColleges = 0;
+  let autoCreatedLevels = 0;
+  const pendingCollegeNames = new Set();
+  const pendingLevelNames = new Set();
 
   // 人员类别映射
   const personnelTypeMap = {
@@ -171,7 +175,11 @@ export async function importTeachers(req, res, next) {
     let affiliatedCollegeId = null;
     if (affiliatedCollegeName) {
       const cName = String(affiliatedCollegeName).trim();
-      affiliatedCollegeId = collegeMap[cName] || null;
+      if (collegeMap[cName]) {
+        affiliatedCollegeId = collegeMap[cName];
+      } else {
+        pendingCollegeNames.add(cName);
+      }
     }
 
     // 解析学科（逗号分隔）
@@ -190,28 +198,22 @@ export async function importTeachers(req, res, next) {
       }
     }
 
-    // 解析任课学院（逗号分隔）
+    // 解析任课学院（逗号分隔），未知学院名收集到 pendingCollegeNames 待事务内自动创建
     const collegeNames = String(collegeNamesStr)
       .split(/[,，、]/)
       .map((s) => s.trim())
       .filter(Boolean);
-    const collegeIds = [];
     for (const cName of collegeNames) {
-      if (collegeMap[cName]) {
-        collegeIds.push(collegeMap[cName]);
-      }
+      if (!collegeMap[cName]) pendingCollegeNames.add(cName);
     }
 
-    // 解析任课层次（逗号分隔）
+    // 解析任课层次（逗号分隔），未知层次名收集到 pendingLevelNames 待事务内自动创建
     const levelNames = String(levelNamesStr)
       .split(/[,，、]/)
       .map((s) => s.trim())
       .filter(Boolean);
-    const levelIds = [];
     for (const lName of levelNames) {
-      if (levelMap[lName]) {
-        levelIds.push(levelMap[lName]);
-      }
+      if (!levelMap[lName]) pendingLevelNames.add(lName);
     }
 
     // H-8: 使用预加载的教师索引替代逐行 DB 查询
@@ -242,14 +244,15 @@ export async function importTeachers(req, res, next) {
         },
         resolvedCourseIds,
         pendingNewCourseNames,
-        collegeIds,
-        levelIds,
+        collegeNames,
+        levelNames,
+        affiliatedCollegeName: affiliatedCollegeName ? String(affiliatedCollegeName).trim() : null,
         hasCollegeCol,
         hasLevelCol,
       });
       overwritten++;
     } else {
-      // 收集创建操作（课程关联在事务内解析，确保待建课程 ID 可用）
+      // 收集创建操作（课程/学院/层次关联在事务内解析，确保待建实体 ID 可用）
       teacherOps.push({
         type: 'create',
         data: {
@@ -262,18 +265,12 @@ export async function importTeachers(req, res, next) {
           affiliated_college_id: affiliatedCollegeId,
           status,
           sort_order: 0,
-          // courses 关联在事务内补建（因可能依赖待创建课程）
-          scheduling_colleges:
-            collegeIds.length > 0
-              ? { create: collegeIds.map((cid) => ({ college_id: cid })) }
-              : undefined,
-          scheduling_levels:
-            levelIds.length > 0
-              ? { create: levelIds.map((lid) => ({ training_level_id: lid })) }
-              : undefined,
         },
         resolvedCourseIds,
         pendingNewCourseNames,
+        collegeNames,
+        levelNames,
+        affiliatedCollegeName: affiliatedCollegeName ? String(affiliatedCollegeName).trim() : null,
       });
       imported++;
     }
@@ -287,7 +284,11 @@ export async function importTeachers(req, res, next) {
         failed: errors.length,
         total: rows.length,
         errors,
-        autoCreated: { courses: autoCreatedCourses },
+        autoCreated: {
+          courses: autoCreatedCourses,
+          colleges: autoCreatedColleges,
+          levels: autoCreatedLevels,
+        },
       };
 
       await createAuditLog({
@@ -302,15 +303,17 @@ export async function importTeachers(req, res, next) {
       return success(res, result, `验证失败：${errors.length}条错误`);
     }
 
-    // 事务执行所有教师操作（含课程 auto-create，确保回滚一致，H-13 修复）
+    // 事务执行所有教师操作（含课程/学院/层次 auto-create，确保回滚一致，H-13 修复）
     if (teacherOps.length > 0) {
       await prisma.$transaction(async (tx) => {
-        // 1. 先在事务内创建所有待建课程，更新 courseMap
-        const allPendingNames = [
+        // 1. 在事务内创建所有待建基础数据，更新 Map
+        const allPendingCourseNames = [
           ...new Set(teacherOps.flatMap((op) => op.pendingNewCourseNames || [])),
         ];
-        for (const cName of allPendingNames) {
-          // 事务内再次查重（防止并发导入同名校验）
+        const allPendingCollegeNames = [...pendingCollegeNames];
+        const allPendingLevelNames = [...pendingLevelNames];
+
+        for (const cName of allPendingCourseNames) {
           const existing = await tx.courses.findFirst({ where: { name: cName } });
           if (existing) {
             courseMap[cName] = existing.id;
@@ -321,6 +324,41 @@ export async function importTeachers(req, res, next) {
           }
         }
 
+        for (const cName of allPendingCollegeNames) {
+          const existing = await tx.colleges.findUnique({ where: { name: cName } });
+          if (existing) {
+            collegeMap[cName] = existing.id;
+          } else {
+            const created = await tx.colleges.create({
+              data: {
+                name: cName,
+                code: null,
+                description: `由教师导入自动创建 (${new Date().toLocaleString()})`,
+                sort_order: 0,
+              },
+            });
+            collegeMap[cName] = created.id;
+            autoCreatedColleges++;
+          }
+        }
+
+        for (const lName of allPendingLevelNames) {
+          const existing = await tx.training_levels.findFirst({ where: { name: lName } });
+          if (existing) {
+            levelMap[lName] = existing.id;
+          } else {
+            const created = await tx.training_levels.create({
+              data: {
+                name: lName,
+                description: `由教师导入自动创建 (${new Date().toLocaleString()})`,
+                sort_order: 0,
+              },
+            });
+            levelMap[lName] = created.id;
+            autoCreatedLevels++;
+          }
+        }
+
         // 2. 处理教师操作
         for (const op of teacherOps) {
           // 合并已知课程 ID 与新建课程 ID
@@ -328,6 +366,17 @@ export async function importTeachers(req, res, next) {
             ...(op.resolvedCourseIds || []),
             ...(op.pendingNewCourseNames || []).map((n) => courseMap[n]).filter(Boolean),
           ];
+
+          // 重新解析归属学院 ID（可能刚被自动创建）
+          if (op.affiliatedCollegeName && !op.data.affiliated_college_id) {
+            op.data.affiliated_college_id = collegeMap[op.affiliatedCollegeName] || null;
+          }
+
+          // 重新解析任课学院 ID
+          const collegeIds = (op.collegeNames || []).map((n) => collegeMap[n]).filter(Boolean);
+
+          // 重新解析任课层次 ID
+          const levelIds = (op.levelNames || []).map((n) => levelMap[n]).filter(Boolean);
 
           if (op.type === 'update') {
             // 更新基本信息
@@ -347,18 +396,18 @@ export async function importTeachers(req, res, next) {
               await tx.teacher_scheduling_colleges.deleteMany({
                 where: { teacher_id: op.teacherId },
               });
-              if (op.collegeIds.length > 0) {
+              if (collegeIds.length > 0) {
                 await tx.teacher_scheduling_colleges.createMany({
-                  data: op.collegeIds.map((cid) => ({ teacher_id: op.teacherId, college_id: cid })),
+                  data: collegeIds.map((cid) => ({ teacher_id: op.teacherId, college_id: cid })),
                 });
               }
             }
             // 重建任课层次关联（S-07 修复：仅当 Excel 列有内容时才覆盖）
             if (op.hasLevelCol) {
               await tx.teacher_training_levels.deleteMany({ where: { teacher_id: op.teacherId } });
-              if (op.levelIds.length > 0) {
+              if (levelIds.length > 0) {
                 await tx.teacher_training_levels.createMany({
-                  data: op.levelIds.map((lid) => ({
+                  data: levelIds.map((lid) => ({
                     teacher_id: op.teacherId,
                     training_level_id: lid,
                   })),
@@ -366,10 +415,20 @@ export async function importTeachers(req, res, next) {
               }
             }
           } else {
-            // 创建新教师（含课程关联）
+            // 创建新教师（含课程/学院/层次关联）
             const createData = { ...op.data };
             if (allCourseIds.length > 0) {
               createData.courses = { create: allCourseIds.map((cid) => ({ course_id: cid })) };
+            }
+            if (collegeIds.length > 0) {
+              createData.scheduling_colleges = {
+                create: collegeIds.map((cid) => ({ college_id: cid })),
+              };
+            }
+            if (levelIds.length > 0) {
+              createData.scheduling_levels = {
+                create: levelIds.map((lid) => ({ training_level_id: lid })),
+              };
             }
             await tx.teachers.create({ data: createData });
           }
@@ -383,12 +442,20 @@ export async function importTeachers(req, res, next) {
       failed: errors.length,
       total: rows.length,
       errors,
-      autoCreated: { courses: autoCreatedCourses },
+      autoCreated: {
+        courses: autoCreatedCourses,
+        colleges: autoCreatedColleges,
+        levels: autoCreatedLevels,
+      },
     };
     let message = `导入完成：新增${imported}条`;
     if (overwritten > 0) message += `，覆盖${overwritten}条`;
     if (errors.length > 0) message += `，失败${errors.length}条`;
-    if (autoCreatedCourses > 0) message += `（自动创建${autoCreatedCourses}门课程）`;
+    const autoCreatedParts = [];
+    if (autoCreatedCourses > 0) autoCreatedParts.push(`${autoCreatedCourses}门课程`);
+    if (autoCreatedColleges > 0) autoCreatedParts.push(`${autoCreatedColleges}个学院`);
+    if (autoCreatedLevels > 0) autoCreatedParts.push(`${autoCreatedLevels}个培养层次`);
+    if (autoCreatedParts.length > 0) message += `（自动创建${autoCreatedParts.join('、')}）`;
 
     await createAuditLog({
       action: 'import',

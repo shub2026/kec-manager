@@ -173,9 +173,7 @@ export async function assignTeacher(req, res, next) {
 
         // 优先取当前学期的周课时，兜底取方案课程默认周课时
         if (currentSemesterNum !== null) {
-          const semRecord = pc.plan_course_semesters.find(
-            (s) => s.semester === currentSemesterNum
-          );
+          const semRecord = pc.plan_course_semesters.find((s) => s.semester === currentSemesterNum);
           if (semRecord) {
             createWeeklyHours = semRecord.weekly_hours ?? pc.weekly_hours ?? 0;
           } else {

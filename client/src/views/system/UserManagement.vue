@@ -79,7 +79,11 @@
     </el-card>
 
     <!-- 创建/编辑用户对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '创建用户'" width="min(600px, 90vw)">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑用户' : '创建用户'"
+      width="min(600px, 90vw)"
+    >
       <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="formData.username" placeholder="请输入用户名" :disabled="isEdit" />

@@ -100,7 +100,12 @@
                   <h4>{{ detail.course.name }}（周课时：{{ detail.weeklyHours }}）</h4>
                   <el-table :data="detail.classes" size="small" border style="margin: 8px 0">
                     <el-table-column prop="className" label="班级" min-width="150" />
-                    <el-table-column prop="weeklyHours" label="周课时" min-width="80" align="center" />
+                    <el-table-column
+                      prop="weeklyHours"
+                      label="周课时"
+                      min-width="80"
+                      align="center"
+                    />
                     <el-table-column label="安排方式" min-width="100" align="center">
                       <template #default="{ row: cls }">
                         <el-tag :type="cls.isAuto ? 'info' : 'primary'" size="small">
@@ -206,7 +211,9 @@ const filterAffiliatedCollege = ref('');
 let _filterTimer = null;
 watch(filterName, (val) => {
   clearTimeout(_filterTimer);
-  _filterTimer = setTimeout(() => { debouncedFilterName.value = val; }, 200);
+  _filterTimer = setTimeout(() => {
+    debouncedFilterName.value = val;
+  }, 200);
 });
 
 const teacherList = computed(() => statsData.value?.teachers || []);
@@ -251,7 +258,8 @@ const affiliatedCollegeOptions = computed(() => {
 
 const filteredTeachers = computed(() => {
   return teacherList.value.filter((t) => {
-    if (debouncedFilterName.value && !t.teacherName.includes(debouncedFilterName.value)) return false;
+    if (debouncedFilterName.value && !t.teacherName.includes(debouncedFilterName.value))
+      return false;
     if (filterType.value && t.personnelType !== filterType.value) return false;
     if (filterSubject.value) {
       const hasSubject = (t.details || []).some((d) => d.course?.name === filterSubject.value);
