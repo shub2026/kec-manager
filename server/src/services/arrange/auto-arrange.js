@@ -97,7 +97,7 @@ function calcMatchScore(teacher, classInfo) {
         }
       }
     } else if (tbCount === 0) {
-      score += 100;
+      score += TEXTBOOK_COHESION.ZERO_TEXTBOOK_BONUS;
     } else if (tbCount === 1 && classInfo.textbookIds?.length > 0) {
       const newCount = classInfo.textbookIds.filter(
         (tid) => !teacher.assignedTextbookIds.has(tid)
@@ -1334,8 +1334,12 @@ export async function autoArrange(
       teacherConstraints,
       mode
     );
-  } finally {
+    } finally {
     // C-2: 无论成功或异常，始终释放锁
     arrangeLocks.delete(lockKey);
   }
 }
+
+// ── 测试专用导出（不对生产代码产生影响）──
+// 这些函数在生产代码中被内部调用，导出仅为支持单元测试直接验证核心逻辑
+export { calcMatchScore, isTeacherEligible, calcAllMatchRates, diagnoseFailure };
