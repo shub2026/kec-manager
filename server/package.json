@@ -20,7 +20,10 @@
     "db:seed:dev": "DEV_SEEDS=true node prisma/seed.js",
     "db:seed:reset": "FORCE_RESET=true node prisma/seed.js",
     "format": "prettier --write \"src/**/*.{js,json}\" \"scripts/**/*.js\"",
-    "lint": "eslint src scripts --ext .js --fix"
+    "lint": "eslint src scripts --ext .js --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -41,6 +44,7 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.5.0",
     "prettier": "^3.8.4",
-    "prisma": "^6.19.3"
+    "prisma": "^6.19.3",
+    "vitest": "^4.1.9"
   }
 }
