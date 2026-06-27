@@ -12,6 +12,7 @@ KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量�
 - **自动排课** - 四轮匹配算法，支持学院偏好、培养层次偏好、教材匹配和容量约束
 - **教材管理** - 教材信息维护，与培养计划学期课时关联
 - **数据导入导出** - Excel 批量导入班级/课程/教材/教师，支持模板下载和多维度数据导出
+- **统一查询** - 开课查询、教材查询、方案查询，支持多维度筛选与联动
 - **审计日志** - 全面记录增删改操作，支持筛选查询
 - **权限控制** - 三级角色体系（超级管理员/管理员/查看者）
 
@@ -118,6 +119,9 @@ docker-compose up -d --build
 # 一键部署脚本（支持本地或远程服务器）
 bash deploy.sh
 # 远程部署：bash deploy.sh root@your-server.com
+
+# SSH 远程部署（支持增量更新、备份等）
+bash deploy_ssh.sh root@your-server.com
 ```
 
 部署脚本会自动完成：环境检查 → 目录创建 → 代码拉取 → 依赖安装 → 密钥生成 → 数据库迁移 → 前端构建 → PM2 启动。
@@ -142,15 +146,14 @@ bash deploy.sh
 | `DATABASE_URL` | 数据库连接串 | `file:./data/kec.db` |
 | `PORT` | 后端端口 | `3002` |
 | `JWT_SECRET` | JWT 签名密钥（64位 hex） | 必填 |
-| `JWT_REFRESH_SECRET` | 刷新令牌密钥（64位 hex） | 必填 |
-| `JWT_DOWNLOAD_SECRET` | 下载令牌密钥（64位 hex） | 必填 |
+| `JWT_REFRESH_SECRET` | 刷新令牌密钥（64位 hex） | 自动派生（基于 JWT_SECRET） |
+| `JWT_DOWNLOAD_SECRET` | 下载令牌密钥（64位 hex） | 自动派生（基于 JWT_SECRET） |
 | `JWT_EXPIRES_IN` | 访问令牌过期时间 | `15m` |
 | `JWT_REFRESH_EXPIRES_IN` | 刷新令牌过期时间 | `7d` |
-| `DEFAULT_SEMESTER` | 默认当前学期 | `2025-2026-2` |
 | `CORS_ORIGINS` | 允许的前端域名（逗号分隔） | `http://localhost:5173` |
 | `LOG_LEVEL` | 日志级别 | `info`（生产）/ `debug`（开发） |
 | `MAX_FILE_SIZE` | 文件上传大小限制（MB） | `10` |
-| `BCRYPT_ROUNDS` | bcrypt 迭代次数 | `10` |
+| `BCRYPT_ROUNDS` | bcrypt 迭代次数 | `12`（生产）/ `10`（开发） |
 
 ---
 
@@ -184,6 +187,8 @@ kec-manager/
 │       └── schema.prisma       # 数据库模型定义
 ├── docker-compose.yml          # Docker 编排配置
 ├── deploy.sh                   # 裸机部署脚本
+├── deploy_ssh.sh               # SSH 远程部署脚本
+├── start-dev.bat / start-dev.sh # 开发环境一键启动脚本
 ├── CODE_FORMATTING.md          # 代码格式化指南
 └── docs/                       # 项目文档
 ```
@@ -251,6 +256,7 @@ kec-manager/
 - [排课逻辑详解](docs/TEACHING_ARRANGE_LOGIC.md) - 自动排课算法、匹配规则、容量约束
 - [部署指南](docs/DEPLOYMENT_GUIDE.md) - 详细部署步骤和 Nginx 配置
 - [生产环境部署](docs/PRODUCTION_DEPLOYMENT.md) - 生产环境最佳实践
+- [安全审计报告](kec-audit-report.md) - 安全漏洞与业务逻辑审计报告
 
 ---
 
