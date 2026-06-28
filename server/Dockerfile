@@ -26,8 +26,9 @@ RUN apk add --no-cache sqlite-libs
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
-# 从构建阶段复制生成的 Prisma 客户端和源代码
+# 复制 Prisma schema 和迁移工具
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/prisma ./prisma
 COPY src ./src
 
@@ -41,5 +42,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
-# 启动服务
-CMD ["node", "src/server.js"]
+# 启动服务（首次启动时自动同步数据库 Schema）
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node src/server.js"]

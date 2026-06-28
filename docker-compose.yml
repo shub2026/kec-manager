@@ -18,7 +18,12 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - JWT_DOWNLOAD_SECRET=${JWT_DOWNLOAD_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-7d}
       - CORS_ORIGINS=${CORS_ORIGINS}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - BCRYPT_ROUNDS=${BCRYPT_ROUNDS:-12}
+      - DEFAULT_SEMESTER=${DEFAULT_SEMESTER}
     volumes:
       # 数据持久化 - 适配 1Panel 卷挂载
       - ./data:/app/data

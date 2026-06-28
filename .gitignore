@@ -10,3 +10,4 @@ uploads/*
 nul
 *.bak-*
 .workbuddy/
+.qoder/

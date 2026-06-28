@@ -1,0 +1,47 @@
+# 版本控制
+.git
+.gitignore
+
+# 依赖（构建时通过 npm ci 安装）
+node_modules
+server/node_modules
+client/node_modules
+
+# IDE 和编辑器
+.vscode
+.idea
+.qoder
+.workbuddy
+
+# 文档（不需要进入镜像）
+docs
+*.md
+
+# 测试
+**/__tests__
+**/*.test.js
+**/*.spec.js
+coverage
+
+# 环境文件
+.env
+.env.*
+!.env.example
+
+# 数据目录
+server/data
+*.db
+*.db-journal
+
+# 上传目录
+server/uploads/*
+!server/uploads/.gitkeep
+
+# 构建产物
+client/dist
+server/dist
+
+# 系统文件
+.DS_Store
+Thumbs.db
+nul

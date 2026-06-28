@@ -1,28 +1,4 @@
 node_modules
-npm-debug.log
-.git
-.gitignore
-Dockerfile
-.dockerignore
-
-# 构建产物（会在容器中重新构建）
-dist/
-
-# IDE 配置
-.vscode
-.idea
-*.swp
-*.swo
-
-# 日志文件
-*.log
-
-# 测试文件
-__tests__/
-*.test.js
-*.spec.js
-
-# 文档
-docs/
-*.md
-!README.md
+dist
+.env
+.env.*

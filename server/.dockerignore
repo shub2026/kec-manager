@@ -1,37 +1,12 @@
 node_modules
-npm-debug.log
-.env
-.git
-.gitignore
-Dockerfile
-.dockerignore
-
-# 测试和开发文件
-*.test.js
-*.spec.js
-tests/
-test/
-
-# IDE 配置
-.vscode
-.idea
-*.swp
-*.swo
-
-# 日志文件
-logs/
-*.log
-
-# Prisma
-prisma/migrations
-prisma/dev.db
-prisma/dev.db-journal
-
-# 上传文件
+data
+*.db
+*.db-journal
 uploads/*
 !uploads/.gitkeep
-
-# 文档
-docs/
-*.md
-!README.md
+.env
+.env.*
+__tests__
+**/*.test.js
+**/*.spec.js
+coverage
