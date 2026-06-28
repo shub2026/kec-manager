@@ -83,7 +83,7 @@ npm run format    # 格式化代码
 npm run lint      # 检查并自动修复
 ```
 
-详见 [代码格式化指南](CODE_FORMATTING.md)。
+详见 [代码格式化指南](docs/CODE_FORMATTING.md)。
 
 ---
 
@@ -93,7 +93,7 @@ npm run lint      # 检查并自动修复
 
 ```bash
 # 创建环境变量文件
-cat > .env << 'EOF'
+cat > .env << EOF
 JWT_SECRET=$(openssl rand -hex 32)
 JWT_REFRESH_SECRET=$(openssl rand -hex 32)
 JWT_DOWNLOAD_SECRET=$(openssl rand -hex 32)
@@ -153,6 +153,7 @@ bash deploy_ssh.sh root@your-server.com
 | `CORS_ORIGINS` | 允许的前端域名（逗号分隔） | `http://localhost:5173` |
 | `LOG_LEVEL` | 日志级别 | `info`（生产）/ `debug`（开发） |
 | `MAX_FILE_SIZE` | 文件上传大小限制（MB） | `10` |
+| `DEFAULT_SEMESTER` | 默认学期（格式 YYYY-YYYY-N） | - |
 | `BCRYPT_ROUNDS` | bcrypt 迭代次数 | `12`（生产）/ `10`（开发） |
 
 ---
@@ -164,10 +165,13 @@ kec-manager/
 ├── client/                     # 前端（Vue 3 + Element Plus）
 │   ├── src/
 │   │   ├── api/                # API 接口模块
+│   │   ├── assets/             # 静态资源
 │   │   ├── components/         # 共享组件（Layout、CourseMatrix 等）
 │   │   ├── composables/        # 可复用逻辑（useCrudList、useSortable 等）
 │   │   ├── router/             # 路由配置 + 导航守卫
 │   │   ├── stores/             # Pinia 状态管理
+│   │   ├── styles/             # 全局样式
+│   │   ├── utils/              # 工具函数（request、download、cache 等）
 │   │   ├── views/              # 页面组件（按领域划分）
 │   │   └── main.js             # 应用入口
 │   ├── .prettierrc             # Prettier 配置
@@ -176,21 +180,29 @@ kec-manager/
 │   └── vite.config.js          # Vite 构建配置
 ├── server/                     # 后端（Express + Prisma）
 │   ├── src/
+│   │   ├── config/             # 配置文件（auth 等）
+│   │   ├── constants/          # 常量定义
 │   │   ├── controllers/        # 请求处理（按领域划分）
-│   │   ├── services/           # 业务逻辑层
+│   │   ├── lib/                # 库封装（Prisma 客户端等）
 │   │   ├── middleware/         # 中间件（认证/XSS/校验/分页/命名转换）
 │   │   ├── routes/             # 路由定义
-│   │   └── utils/              # 工具函数
+│   │   ├── services/           # 业务逻辑层
+│   │   ├── utils/              # 工具函数
+│   │   ├── __tests__/          # 集成测试
+│   │   └── server.js           # 服务入口
+│   ├── prisma/
+│   │   ├── schema.prisma       # 数据库模型定义
+│   │   └── seed.js             # 种子数据
+│   ├── scripts/                # 运维脚本（重置数据库、初始化配置等）
 │   ├── .prettierrc             # Prettier 配置
 │   ├── eslint.config.js        # ESLint 配置
-│   └── prisma/
-│       └── schema.prisma       # 数据库模型定义
+│   └── vitest.config.js        # 测试配置
+├── docs/                       # 项目文档
 ├── docker-compose.yml          # Docker 编排配置
 ├── deploy.sh                   # 裸机部署脚本
 ├── deploy_ssh.sh               # SSH 远程部署脚本
 ├── start-dev.bat / start-dev.sh # 开发环境一键启动脚本
-├── CODE_FORMATTING.md          # 代码格式化指南
-└── docs/                       # 项目文档
+└── CHANGELOG.md                # 变更日志
 ```
 
 ---
@@ -233,6 +245,7 @@ kec-manager/
 | 系统设置 | `/api/settings` | 学期配置、数据重置 |
 | 用户管理 | `/api/users` | 用户 CRUD（管理员权限） |
 | 审计日志 | `/api/audit` | 操作日志查询（超级管理员） |
+| 首页概览 | `/api/dashboard` | 统计数据概览 |
 
 ---
 
@@ -252,11 +265,14 @@ kec-manager/
 
 ## 相关文档
 
-- [代码格式化指南](CODE_FORMATTING.md) - Prettier 和 ESLint 配置与使用
+- [代码格式化指南](docs/CODE_FORMATTING.md) - Prettier 和 ESLint 配置与使用
 - [排课逻辑详解](docs/TEACHING_ARRANGE_LOGIC.md) - 自动排课算法、匹配规则、容量约束
+- [自动排课算法 V2](docs/AUTO_ARRANGE_LOGIC_V2.md) - 排课算法优化方案
 - [部署指南](docs/DEPLOYMENT_GUIDE.md) - 详细部署步骤和 Nginx 配置
 - [生产环境部署](docs/PRODUCTION_DEPLOYMENT.md) - 生产环境最佳实践
-- [安全审计报告](kec-audit-report.md) - 安全漏洞与业务逻辑审计报告
+- [1Panel Docker 部署](docs/1panel-docker-deploy.md) - 1Panel 面板容器化部署指南
+- [登录指南](docs/LOGIN_GUIDE.md) - 登录流程与常见问题
+- [版本管理说明](VERSION_MANAGEMENT.md) - 版本号管理与更新操作
 
 ---
 
