@@ -116,6 +116,7 @@ export async function importTeachers(req, res, next) {
     // S-07 修复：检测任课学院/任课层次列是否有实际内容，空列时保留现有关联
     const hasCollegeCol = !!String(sanitizedRow['任课学院'] || '').trim();
     const hasLevelCol = !!String(sanitizedRow['任课层次'] || '').trim();
+    const hasCourseCol = !!String(sanitizedRow['学科'] || '').trim();
 
     // 解析状态
     const statusStr = String(statusRaw).trim();
@@ -249,6 +250,7 @@ export async function importTeachers(req, res, next) {
         affiliatedCollegeName: affiliatedCollegeName ? String(affiliatedCollegeName).trim() : null,
         hasCollegeCol,
         hasLevelCol,
+        hasCourseCol,
       });
       overwritten++;
     } else {
@@ -384,12 +386,14 @@ export async function importTeachers(req, res, next) {
               where: { id: op.teacherId },
               data: op.data,
             });
-            // 重建课程关联
-            await tx.teacher_courses.deleteMany({ where: { teacher_id: op.teacherId } });
-            if (allCourseIds.length > 0) {
-              await tx.teacher_courses.createMany({
-                data: allCourseIds.map((cid) => ({ teacher_id: op.teacherId, course_id: cid })),
-              });
+            // 重建课程关联（H3 修复：仅当 Excel 学科列有内容时才覆盖，与任课学院/层次守卫一致）
+            if (op.hasCourseCol) {
+              await tx.teacher_courses.deleteMany({ where: { teacher_id: op.teacherId } });
+              if (allCourseIds.length > 0) {
+                await tx.teacher_courses.createMany({
+                  data: allCourseIds.map((cid) => ({ teacher_id: op.teacherId, course_id: cid })),
+                });
+              }
             }
             // 重建任课学院关联（S-07 修复：仅当 Excel 列有内容时才覆盖）
             if (op.hasCollegeCol) {

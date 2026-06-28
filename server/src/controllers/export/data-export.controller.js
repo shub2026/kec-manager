@@ -7,7 +7,7 @@ import {
 } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
-import { isClassMatchPlan } from '../../services/plan.service.js';
+import { isClassMatchPlan, findBestMatchPlan } from '../../services/plan.service.js';
 import { buildClassFilter } from '../../services/class-filter.service.js';
 import { getClassesWithCourse } from '../../services/teaching-arrange.service.js';
 
@@ -177,14 +177,8 @@ export async function exportClasses(req, res, next) {
         // 有自定义方案
         matchedPlanName = cls.training_plans.name;
       } else {
-        // 尝试根据专业或培养层次匹配方案
-        let matchedPlan = null;
-        if (cls.major_id) {
-          matchedPlan = allPlans.find((p) => p.major_id === cls.major_id);
-        }
-        if (!matchedPlan && cls.training_level_id) {
-          matchedPlan = allPlans.find((p) => p.training_level_id === cls.training_level_id);
-        }
+        // C2 修复：使用 findBestMatchPlan 选定最佳方案（major > level 优先级，与排课/列表一致）
+        const matchedPlan = findBestMatchPlan(cls, allPlans);
         if (matchedPlan) {
           matchedPlanName = matchedPlan.name;
         }

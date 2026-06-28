@@ -12,8 +12,8 @@
 
 ### 访问地址
 
-- **前端**: http://localhost:5181 (端口可能因占用而变化,请查看终端输出)
-- **后端API**: http://localhost:3000
+- **前端**: http://localhost:5173 (Vite 开发服务器)
+- **后端API**: http://localhost:3002
 
 ### 注意事项
 

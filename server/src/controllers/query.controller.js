@@ -245,6 +245,7 @@ export async function querySemester(req, res, next) {
     });
 
     const results = [];
+    let skippedNoCourses = 0;
 
     for (const cls of classes) {
       const calc = calcClassSemester(cls, semesterInfo);
@@ -268,6 +269,7 @@ export async function querySemester(req, res, next) {
 
       // 如果当前学期没有课程，跳过该班级（不显示在读但无课的班级）
       if (planCourses.length === 0) {
+        skippedNoCourses++;
         log.debug('方案无当前学期课程', {
           className: cls.name,
           planName: plan.name,
@@ -323,6 +325,7 @@ export async function querySemester(req, res, next) {
       },
       totalClasses: results.length,
       total: totalClassesCount,
+      totalWithCourses: totalClassesCount - skippedNoCourses, // H4 修复：排除无课班级后的实际总数
       page: pageNum,
       pageSize: pageSizeNum,
       enrollmentYears: availableEnrollmentYears,

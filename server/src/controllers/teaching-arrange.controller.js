@@ -3,7 +3,7 @@ import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { log } from '../utils/logger.js';
 import { DEFAULT_HOUR_SETTINGS, HOUR_SETTINGS_PREFIX } from '../constants/index.js';
-import { isClassMatchPlan } from '../services/plan.service.js';
+import { findBestMatchPlan } from '../services/plan.service.js';
 import {
   getClassesWithCourse,
   getTeachersForCourse,
@@ -167,22 +167,21 @@ export async function assignTeacher(req, res, next) {
       });
 
       createWeeklyHours = 0;
-      for (const pc of planCourses) {
-        const plan = pc.training_plans;
-        if (!plan || !isClassMatchPlan(cls, plan)) continue;
-
-        // 优先取当前学期的周课时，兜底取方案课程默认周课时
-        if (currentSemesterNum !== null) {
-          const semRecord = pc.plan_course_semesters.find((s) => s.semester === currentSemesterNum);
-          if (semRecord) {
-            createWeeklyHours = semRecord.weekly_hours ?? pc.weekly_hours ?? 0;
+      // H1 修复：使用 findBestMatchPlan 选定最佳方案（major > level 优先级，与排课算法一致）
+      const candidatePlans = planCourses.map((pc) => pc.training_plans).filter(Boolean);
+      const planCourseByPlanId = new Map(planCourses.map((pc) => [pc.training_plans?.id, pc]));
+      
+      const bestPlan = findBestMatchPlan(cls, candidatePlans);
+      if (bestPlan) {
+        const pc = planCourseByPlanId.get(bestPlan.id);
+        if (pc) {
+          if (currentSemesterNum !== null) {
+            const semRecord = pc.plan_course_semesters.find((s) => s.semester === currentSemesterNum);
+            createWeeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours ?? 0;
           } else {
             createWeeklyHours = pc.weekly_hours ?? 0;
           }
-        } else {
-          createWeeklyHours = pc.weekly_hours ?? 0;
         }
-        break; // 取第一个匹配方案即可
       }
     }
 
@@ -209,6 +208,23 @@ export async function assignTeacher(req, res, next) {
       },
     });
 
+    // M5 修复：非阻塞工作量警告——检查教师当前学期总课时是否超阈值
+    let workloadWarning = null;
+    try {
+      const totalWorkload = await prisma.teaching_assignments.groupBy({
+        by: ['teacher_id'],
+        where: { semester, teacher_id: Number(teacher_id) },
+        _sum: { weekly_hours: true },
+      });
+      const totalHours = totalWorkload[0]?._sum?.weekly_hours || 0;
+      const standardLimit = 20; // 可后续从系统设置读取
+      if (totalHours > standardLimit) {
+        workloadWarning = `该教师当前学期周课时已达 ${totalHours}，超过建议上限 ${standardLimit}`;
+      }
+    } catch (_e) {
+      // 工作量查询失败不阻塞主流程
+    }
+
     await createAuditLog({
       action: 'update',
       module: 'teachingArrange',
@@ -225,7 +241,7 @@ export async function assignTeacher(req, res, next) {
       message: `手动安排教师：${assignment.teacher?.name} → ${assignment.class?.name}`,
     });
 
-    success(res, assignment, '安排成功');
+    success(res, { ...assignment, workloadWarning }, '安排成功');
   } catch (e) {
     next(e);
   }

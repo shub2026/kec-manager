@@ -5,7 +5,7 @@ import { AuthService } from '../services/auth.service.js';
 import { log } from '../utils/logger.js';
 import { DEFAULT_SEMESTER } from '../constants/index.js';
 import { invalidateDurationCache } from '../services/class.service.js';
-import { parseSemesterString } from '../services/settings.service.js';
+import { parseSemesterString, invalidateSemesterCache } from '../services/settings.service.js';
 
 const DEFAULT_SETTINGS = {
   current_semester: { value: DEFAULT_SEMESTER, description: '当前学期' },
@@ -98,6 +98,9 @@ export async function updateSettings(req, res, next) {
         },
       });
     }
+    // M3 修复：更新设置后清除学期缓存，确保下次读取获取新值
+    invalidateSemesterCache();
+    invalidateDurationCache();
     await createAuditLog({
       action: 'update',
       module: 'system',

@@ -64,7 +64,7 @@ export async function getAuditLogs({ action, module, result, page = 1, pageSize 
   if (result) where.result = result;
 
   const skip = (page - 1) * pageSize;
-  const take = pageSize;
+  const take = Math.min(Math.max(Number(pageSize) || 20, 1), 100); // M4 修复：防御性上限保护
 
   const [logs, total] = await Promise.all([
     prisma.audit_logs.findMany({

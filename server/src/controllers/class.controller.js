@@ -5,7 +5,7 @@ import { NotFoundError, ValidationError } from '../utils/error.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
 import { getActiveClassFilter, invalidateDurationCache } from '../services/class.service.js';
 import { buildClassFilter } from '../services/class-filter.service.js';
-import { isClassMatchPlan } from '../services/plan.service.js';
+import { findBestMatchPlan } from '../services/plan.service.js';
 
 function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null) {
   let startYear;
@@ -18,7 +18,7 @@ function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    startYear = currentMonth >= 9 ? currentYear : currentYear - 1;
+    startYear = currentMonth >= 8 ? currentYear : currentYear - 1;
   }
 
   const grade = startYear - enrollmentYear + 1;
@@ -92,29 +92,27 @@ export async function listClasses(req, res, next) {
         // 有自定义方案
         matchedPlanName = cls.training_plans.name;
       } else {
-        // 使用统一的三级互斥匹配，避免 null===null 误匹配
-        const matchedPlans = allPlans.filter((p) => isClassMatchPlan(cls, p));
+        // C1 修复：使用 findBestMatchPlan 选定最佳方案（major > level 优先级，与排课算法一致）
+        const bestPlan = findBestMatchPlan(cls, allPlans);
 
-        if (matchedPlans.length > 0) {
-          // 取第一个匹配的方案作为显示
-          matchedPlanName = matchedPlans[0].name;
+        if (bestPlan) {
+          matchedPlanName = bestPlan.name;
 
           // 检测是否存在专业和层次同时匹配的情况（交叉匹配）
-          const hasMajorMatch = matchedPlans.some(
-            (p) => p.major_id && cls.major_id && cls.major_id === p.major_id
+          const majorMatchedPlans = allPlans.filter(
+            (p) => p.major_id && cls.major_id && p.major_id === cls.major_id
           );
-          const hasLevelMatch = matchedPlans.some(
+          const levelMatchedPlans = allPlans.filter(
             (p) =>
               p.training_level_id &&
               cls.training_level_id &&
-              cls.training_level_id === p.training_level_id
+              p.training_level_id === cls.training_level_id
           );
 
-          if (hasMajorMatch && hasLevelMatch) {
-            // 存在交叉匹配，给出警告
-            const majorPlans = matchedPlans.filter((p) => p.major_id).map((p) => p.name);
-            const levelPlans = matchedPlans.filter((p) => p.training_level_id).map((p) => p.name);
-            planMatchWarning = `专业层次交叉，请检查：按专业匹配(${majorPlans.join('、')})，按层次匹配(${levelPlans.join('、')})`;
+          if (majorMatchedPlans.length > 0 && levelMatchedPlans.length > 0) {
+            const majorNames = majorMatchedPlans.map((p) => p.name);
+            const levelNames = levelMatchedPlans.map((p) => p.name);
+            planMatchWarning = `专业层次交叉，请检查：按专业匹配(${majorNames.join('、')})，按层次匹配(${levelNames.join('、')})`;
           }
         }
       }

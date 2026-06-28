@@ -5,6 +5,43 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.15.0] - 2026-06-28
+
+### 架构审计修复（13 项）
+
+#### 高危修复 (HIGH)
+- **H1**: 手动排课周课时推导统一使用 `findBestMatchPlan`，修复方案匹配不一致问题
+- **H2**: `parseSemester` 新增年份连续性校验（`endYear === startYear + 1`），与 `parseSemesterString` 行为统一
+- **H3**: 教师导入更新时新增 `hasCourseCol` 守卫，修复无学科列时课程关联被清空的数据丢失 bug
+- **H4**: 开课/教材查询分页 total 字段修复，新增 `totalWithCourses` 返回有课班级数
+
+#### 关键修复 (CRITICAL)
+- **C1**: 班级列表方案匹配统一为 `findBestMatchPlan`，修复与自动排课的优先级不一致
+- **C2**: 数据导出方案匹配统一为 `findBestMatchPlan`
+
+#### 中等修复 (MEDIUM)
+- **M1**: 学年起始月份边界从 `>=9` 统一为 `>=8`（8 月入学应属当年）
+- **M2**: `updatePlanCourse` 学期范围不变时同步 `weekly_hours`/`weeks_count` 到 `plan_course_semesters`
+- **M3**: 学期信息新增 30 秒 TTL 缓存，更新设置时自动失效
+- **M4**: 审计日志 pageSize 防御性上限（最大 100）
+- **M5**: 手动排课后新增教师工作量警告（超过 20 课时/周时提醒）
+
+#### 低危修复 (LOW)
+- **L1**: 并发锁代码已具备注释，确认无需额外修改
+- **L2**: 班级导入新增同名班级检测，防止重复创建
+
+### 测试
+- 修复 `queries.test.js` 中与 H2 修复矛盾的断言
+- 新增 `plan.service.test.js`：13 用例覆盖 `isClassMatchPlan` 和 `findBestMatchPlan`
+
+### 文档
+- 删除 7 个过时审计/检测报告
+- `LOGIN_GUIDE.md`: 端口号更正为 5173/3002
+- `semester-calculation.md`: 新增学期格式校验规则章节
+- `TEACHING_ARRANGE_LOGIC.md`: 补充 `findBestMatchPlan`/`isClassMatchPlan` 函数说明及 C1 修复说明
+
+---
+
 ## [2.14.0] - 2026-06-28
 
 ### 测试工具链改进（P0 + P1）

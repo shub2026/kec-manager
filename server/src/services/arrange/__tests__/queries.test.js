@@ -42,11 +42,10 @@ describe('parseSemester', () => {
     expect(parseSemester(undefined)).toBeNull();        // undefined
   });
 
-  it('endYear 小于 startYear 时应仍可解析（不强制校验逻辑关系）', () => {
-    // parseSemester 本身不校验年份逻辑关系，只校验格式
-    const result = parseSemester('2026-2025-1');
-    expect(result).not.toBeNull();
-    expect(result.startYear).toBe(2026);
-    expect(result.endYear).toBe(2025);
+  it('endYear 不等于 startYear+1 时应返回 null（H2 修复：年份连续性校验）', () => {
+    // H2 修复：parseSemester 现在与 parseSemesterString 保持一致，强制 endYear === startYear + 1
+    expect(parseSemester('2026-2025-1')).toBeNull(); // endYear < startYear
+    expect(parseSemester('2025-2027-1')).toBeNull(); // endYear != startYear + 1
+    expect(parseSemester('2025-2028-2')).toBeNull(); // endYear 跨度过大
   });
 });

@@ -68,6 +68,26 @@ currentSemesterNum = (grade - 1) * 2 + semesterIndex
 - **前端**: `client/src/stores/settings.js` - `formatSemesterLabel()`
 - **输出**: `2026年春季(第2学期)`
 
+## 学期格式校验规则
+
+后端 `parseSemester` / `parseSemesterString` 函数对学期字符串执行严格校验，不合法格式返回 `null`。
+
+```javascript
+// server/src/services/arrange/queries.js — parseSemester
+// server/src/services/settings.service.js — parseSemesterString
+```
+
+**校验规则**:
+
+| 规则 | 合法示例 | 非法示例 | 说明 |
+|------|---------|---------|------|
+| 格式 `YYYY-YYYY-N` | `2025-2026-1` | `25-26-1`, `2025-2` | 必须为完整的四位数年份 |
+| 学期序号 ∈ {1, 2} | `2025-2026-1`, `2025-2026-2` | `2025-2026-3` | 仅支持秋季(1)和春季(2) |
+| **endYear = startYear + 1** | `2025-2026-2` ✅ | `2025-2027-1` ✗ | **H2 修复：强制年份连续性** |
+| endYear > startYear | `2025-2026-1` ✅ | `2026-2025-1` ✗ | 由上一条规则自然约束 |
+
+> **H2 修复说明**：修复前 `parseSemester` 不校验年份逻辑关系，`2026-2025-1` 等非法格式可被解析。修复后与 `parseSemesterString` 保持一致，强制 `endYear === startYear + 1`。所有调用方已处理 `null` 返回值。
+
 ## 有效性校验
 
 ### 年级显示规则
@@ -221,6 +241,10 @@ const planCourses = plan.planCourses.filter(
 - 3年级对应学期 5-6
 
 ## 修改记录
+
+- **2026-06-28 (H2 修复)**:
+  - 新增“学期格式校验规则”章节，文档化 `parseSemester` 年份连续性校验
+  - `endYear !== startYear + 1` 时返回 null，与 `parseSemesterString` 行为统一
 
 - **2026-06-15 (v1.3.8)**: 
   - **回退 v1.3.7 的错误逻辑**，恢复年级显示的学制上限检查

@@ -167,6 +167,20 @@ export async function importClasses(req, res, next) {
 
     // 交互式事务：先创建基础数据，再处理班级，确保回滚一致（H-13 修复）
     if (classOps.length > 0) {
+      // L2 修复：预加载同名班级索引，用于重复检测（与教师导入同名检测逻辑一致）
+      const classNames = [...new Set(classOps.map((op) => op.name))];
+      const existingClassesByName = new Map();
+      if (classNames.length > 0) {
+        const existingClasses = await prisma.classes.findMany({
+          where: { name: { in: classNames } },
+          select: { id: true, name: true },
+        });
+        for (const c of existingClasses) {
+          if (!existingClassesByName.has(c.name)) existingClassesByName.set(c.name, []);
+          existingClassesByName.get(c.name).push(c);
+        }
+      }
+
       await prisma.$transaction(async (tx) => {
         // 1. 事务内创建待建基础数据
         for (const levelName of pendingLevelNames) {
@@ -223,7 +237,16 @@ export async function importClasses(req, res, next) {
 
         // 2. 处理班级操作
         for (const op of classOps) {
-          const existingClass = await tx.classes.findFirst({ where: { name: op.name } });
+          // L2 修复：同名班级检测，跳过避免张冠李戴
+          const sameNameClasses = existingClassesByName.get(op.name) || [];
+          if (sameNameClasses.length > 1) {
+            validationErrors.push(
+              `班级“${op.name}”：存在${sameNameClasses.length}个同名班级，请先合并或区分后导入`
+            );
+            continue;
+          }
+
+          const existingClass = sameNameClasses.length === 1 ? sameNameClasses[0] : null;
           const majorId = op.majorName ? majorMap[op.majorName] : null;
           const collegeId = op.collegeName ? collegeMap[op.collegeName] : null;
           const trainingLevelId = op.trainingLevelName ? levelMap[op.trainingLevelName] : null;

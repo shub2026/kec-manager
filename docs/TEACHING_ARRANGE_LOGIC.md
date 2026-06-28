@@ -72,6 +72,15 @@
 
 如果三个优先级均不匹配，该班级被排除。
 
+**实现函数**（`server/src/services/plan.service.js`）：
+
+| 函数 | 用途 | 行为差异 |
+|------|------|----------|
+| `findBestMatchPlan(cls, plans)` | 从候选列表中返回最佳匹配方案 | 严格优先级：custom > major > level，扫描全部候选 |
+| `isClassMatchPlan(cls, plan)` | 判断单个方案是否匹配该班级 | 互斥匹配：custom 设置时仅检查 custom，否则 major OR level |
+
+> **C1 修复说明**：修复前班级列表、导出、手动排课等入口使用 `isClassMatchPlan` + 取首个匹配，导致与自动排课的 `findBestMatchPlan` 行为不一致。修复后所有入口统一使用 `findBestMatchPlan`，保证跨模块行为一致。
+
 ### 2.3 去重机制
 
 使用 `Set` 记录已添加的班级 ID，防止同一班级因匹配多个培养方案而重复出现。

@@ -1,7 +1,27 @@
 import { prisma } from '../lib/prisma.js';
 import { log } from '../utils/logger.js'; // L1修复：使用winston logger
 
+// M3 修复：学期信息 TTL 缓存（避免批量操作时重复查询 DB）
+const semesterCache = new Map();
+const SEMESTER_TTL = 30 * 1000; // 30 秒
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of semesterCache) {
+    if (value.expireAt <= now) semesterCache.delete(key);
+  }
+}, 5 * 60 * 1000).unref();
+
+export function invalidateSemesterCache() {
+  semesterCache.delete('current_semester');
+}
+
 export async function getCurrentSemesterInfo() {
+  const cacheKey = 'current_semester';
+  const now = Date.now();
+  const cached = semesterCache.get(cacheKey);
+  if (cached && cached.expireAt > now) return cached.data;
+
   const setting = await prisma.system_settings.findUnique({ where: { key: 'current_semester' } });
   if (!setting) return null;
 
@@ -16,6 +36,7 @@ export async function getCurrentSemesterInfo() {
     return null;
   }
 
+  semesterCache.set(cacheKey, { data: result.data, expireAt: now + SEMESTER_TTL });
   return result.data;
 }
 

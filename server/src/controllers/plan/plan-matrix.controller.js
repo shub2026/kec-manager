@@ -194,8 +194,24 @@ export async function updatePlanCourse(req, res, next) {
           });
         }
         // 保留区间内已存在的学期记录及其 plan_textbooks（不动）
+      } else {
+        // M2 修复：学期范围未变时，如果 weekly_hours 或 weeks_per_semester 发生变化，
+        // 同步更新已有学期记录（保留教材关联，仅 update 字段值）
+        if (
+          newWeeklyHours !== currentPc.weekly_hours ||
+          newWeeksPerSemester !== currentPc.weeks_per_semester
+        ) {
+          await tx.plan_course_semesters.updateMany({
+            where: { plan_course_id: Number(id) },
+            data: {
+              ...(newWeeklyHours !== currentPc.weekly_hours ? { weekly_hours: newWeeklyHours } : {}),
+              ...(newWeeksPerSemester !== currentPc.weeks_per_semester
+                ? { weeks_count: newWeeksPerSemester }
+                : {}),
+            },
+          });
+        }
       }
-      // 学期范围未变时，完全不碰学期记录
 
       return updated;
     });
