@@ -1,0 +1,376 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+branch: main
+exported_at: "2026-06-28T15:26:23Z"
+modules:
+    "":
+        dir_name: KEC 课程管理平台编排层
+        title: KEC 课程管理平台编排层
+        scope:
+            - docker-compose.yml
+            - .env.example
+            - .gitee\workflows\kec-test.yml
+            - .gitignore
+            - CHANGELOG.md
+            - LICENSE
+            - README.md
+            - VERSION_MANAGEMENT.md
+            - client\.dockerignore
+            - client\.gitignore
+            - client\.prettierignore
+            - client\.prettierrc
+            - client\.vscode\extensions.json
+            - client\Dockerfile
+            - client\README.md
+            - client\eslint.config.js
+            - client\index.html
+            - client\nginx.conf
+            - client\package-lock.json
+            - client\package.json
+            - client\public\favicon.svg
+            - client\public\icons.svg
+            - client\src\App.vue
+            - client\src\api\audit.js
+            - client\src\api\class.js
+            - client\src\api\college.js
+            - client\src\api\course.js
+            - client\src\api\dashboard.js
+            - client\src\api\major.js
+            - client\src\api\plan.js
+            - client\src\api\query.js
+            - client\src\api\teacher.js
+            - client\src\api\teachingArrange.js
+            - client\src\api\textbook.js
+            - client\src\api\trainingLevel.js
+            - client\src\assets\hero.png
+            - client\src\assets\vite.svg
+            - client\src\assets\vue.svg
+            - client\src\components\ChangePasswordDialog.vue
+            - client\src\components\CourseEditPopover.vue
+            - client\src\components\CourseMatrix.vue
+            - client\src\components\CourseMatrixTable.vue
+            - client\src\components\CourseMatrixToolbar.vue
+            - client\src\components\Layout.vue
+            - client\src\components\filter\FILTER_GUIDE.md
+            - client\src\components\filter\composables\useFilterLinkage.js
+            - client\src\composables\useCrudList.js
+            - client\src\composables\useExport.js
+            - client\src\composables\useImport.js
+            - client\src\composables\useMatrixCalculations.js
+            - client\src\composables\useSemesters.js
+            - client\src\composables\useSortable.js
+            - client\src\main.js
+            - client\src\router\index.js
+            - client\src\stores\auth.js
+            - client\src\stores\settings.js
+            - client\src\styles\global.css
+            - client\src\utils\cache.js
+            - client\src\utils\cookies.js
+            - client\src\utils\download.js
+            - client\src\utils\personnel.js
+            - client\src\utils\request.js
+            - client\src\views\Dashboard.vue
+            - client\src\views\Login.vue
+            - client\src\views\NotFound.vue
+            - client\src\views\class\ClassList.vue
+            - client\src\views\class\components\ClassFilterBar.vue
+            - client\src\views\class\components\ClassFormDialog.vue
+            - client\src\views\class\components\ClassTable.vue
+            - client\src\views\college\CollegeList.vue
+            - client\src\views\course\CourseList.vue
+            - client\src\views\major\MajorList.vue
+            - client\src\views\plan\PlanDetail.vue
+            - client\src\views\plan\PlanList.vue
+            - client\src\views\query\PlanQuery.vue
+            - client\src\views\query\UnifiedSemesterQuery.vue
+            - client\src\views\query\UnifiedTextbookQuery.vue
+            - client\src\views\settings\SystemSettings.vue
+            - client\src\views\settings\components\ConfirmDialog.vue
+            - client\src\views\settings\components\DataReset.vue
+            - client\src\views\settings\components\SemesterConfig.vue
+            - client\src\views\system\AuditLog.vue
+            - client\src\views\system\UserManagement.vue
+            - client\src\views\teaching\TeacherList.vue
+            - client\src\views\teaching\TeachingArrange.vue
+            - client\src\views\teaching\TeachingStatistics.vue
+            - client\src\views\textbook\TextbookList.vue
+            - client\src\views\trainingLevel\TrainingLevelList.vue
+            - client\vite.config.js
+            - deploy.sh
+            - deploy_ssh.sh
+            - docs\1panel-docker-deploy.md
+            - docs\AUTO_ARRANGE_LOGIC_V2.md
+            - docs\CODE_FORMATTING.md
+            - docs\CONFIG_UPDATE_GUIDE.md
+            - docs\DEPLOYMENT_GUIDE.md
+            - docs\EXPORT_IMPORT_AUDIT.md
+            - docs\LOGIN_GUIDE.md
+            - docs\PRODUCTION_DEPLOYMENT.md
+            - docs\SCHEDULING_ALGORITHM_OPTIMIZATION.md
+            - docs\TEACHING_ARRANGE_LOGIC.md
+            - docs\TEXTBOOK_COHESION_ANALYSIS.md
+            - docs\UPDATE_OPERATIONS_GUIDE.md
+            - docs\kec-audit-2026\_shared\js\echarts.min.js
+            - docs\kec-audit-2026\assets\charts.js
+            - docs\kec-audit-2026\kec-audit-2026.html
+            - docs\kec-manager-v2.12-二次检查报告.md
+            - docs\kec-manager-v2.12-架构审计报告.md
+            - docs\kec-manager-前端性能诊断报告.md
+            - docs\kec-manager-审计报告.md
+            - docs\kec-manager-测试覆盖检测报告.md
+            - docs\overview.md
+            - docs\semester-calculation.md
+            - kec-audit-report.md
+            - package-lock.json
+            - package.json
+            - server\.dockerignore
+            - server\.env.example
+            - server\.env.production.example
+            - server\.gitignore
+            - server\.prettierignore
+            - server\.prettierrc
+            - server\Dockerfile
+            - server\diagnose-textbook.js
+            - server\eslint.config.js
+            - server\package-lock.json
+            - server\package.json
+            - server\prisma\manual_create_settings.sql
+            - server\prisma\migrations\20260611161232_init\migration.sql
+            - server\prisma\migrations\20260614071843_add_performance_indexes\migration.sql
+            - server\prisma\migrations\20260616131500_add_unique_to_majors_name\migration.sql
+            - server\prisma\migrations\20260618011823_add_teaching_module\migration.sql
+            - server\prisma\migrations\20260618053233_add_teacher_training_levels\migration.sql
+            - server\prisma\migrations\20260618055117_add_affiliated_college_to_teachers\migration.sql
+            - server\prisma\migrations\20260618092338_add_status_to_teachers\migration.sql
+            - server\prisma\migrations\20260623160000_add_composite_indexes\migration.sql
+            - server\prisma\migrations\20260623170000_fix_ondelete_cascade_to_restrict\migration.sql
+            - server\prisma\migrations\migration_lock.toml
+            - server\prisma\schema.prisma
+            - server\prisma\seed.js
+            - server\scripts\init-settings.js
+            - server\scripts\reset-database.js
+            - server\scripts\update-admin-password.js
+            - server\src\__tests__\integration\auth.routes.test.js
+            - server\src\app.js
+            - server\src\config\auth.config.js
+            - server\src\constants\index.js
+            - server\src\controllers\audit.controller.js
+            - server\src\controllers\class.controller.js
+            - server\src\controllers\college.controller.js
+            - server\src\controllers\course.controller.js
+            - server\src\controllers\dashboard.controller.js
+            - server\src\controllers\export\data-export.controller.js
+            - server\src\controllers\export\export-template.controller.js
+            - server\src\controllers\export\semester-export.controller.js
+            - server\src\controllers\import-shared.js
+            - server\src\controllers\import.controller.js
+            - server\src\controllers\import\classes.js
+            - server\src\controllers\import\courses.js
+            - server\src\controllers\import\teachers.js
+            - server\src\controllers\import\textbooks.js
+            - server\src\controllers\major.controller.js
+            - server\src\controllers\plan\plan-matrix.controller.js
+            - server\src\controllers\plan\plan.controller.js
+            - server\src\controllers\query.controller.js
+            - server\src\controllers\settings.controller.js
+            - server\src\controllers\teacher.controller.js
+            - server\src\controllers\teaching-arrange.controller.js
+            - server\src\controllers\textbook.controller.js
+            - server\src\controllers\trainingLevel.controller.js
+            - server\src\controllers\user.controller.js
+            - server\src\lib\prisma.js
+            - server\src\middleware\__tests__\auth.middleware.test.js
+            - server\src\middleware\__tests__\naming.middleware.test.js
+            - server\src\middleware\__tests__\validation.test.js
+            - server\src\middleware\auth.middleware.js
+            - server\src\middleware\error.js
+            - server\src\middleware\naming.middleware.js
+            - server\src\middleware\pagination.js
+            - server\src\middleware\validation-audit.js
+            - server\src\middleware\validation.js
+            - server\src\middleware\xss.js
+            - server\src\routes\audit.routes.js
+            - server\src\routes\auth.routes.js
+            - server\src\routes\class.routes.js
+            - server\src\routes\college.routes.js
+            - server\src\routes\course.routes.js
+            - server\src\routes\dashboard.routes.js
+            - server\src\routes\export.routes.js
+            - server\src\routes\import.routes.js
+            - server\src\routes\major.routes.js
+            - server\src\routes\plan.routes.js
+            - server\src\routes\query.routes.js
+            - server\src\routes\settings.routes.js
+            - server\src\routes\teacher.routes.js
+            - server\src\routes\teaching-arrange.routes.js
+            - server\src\routes\textbook.routes.js
+            - server\src\routes\trainingLevel.routes.js
+            - server\src\routes\user.routes.js
+            - server\src\server.js
+            - server\src\services\__tests__\auth.service.test.js
+            - server\src\services\__tests__\settings.service.test.js
+            - server\src\services\arrange\__tests__\auto-arrange.test.js
+            - server\src\services\arrange\__tests__\diagnose-and-validate.test.js
+            - server\src\services\arrange\__tests__\queries-eligibility.test.js
+            - server\src\services\arrange\__tests__\queries.test.js
+            - server\src\services\arrange\__tests__\select-and-swap.test.js
+            - server\src\services\arrange\auto-arrange.js
+            - server\src\services\arrange\batch.js
+            - server\src\services\arrange\queries.js
+            - server\src\services\arrange\validate.js
+            - server\src\services\audit.service.js
+            - server\src\services\auth.service.js
+            - server\src\services\class-filter.service.js
+            - server\src\services\class.service.js
+            - server\src\services\plan.service.js
+            - server\src\services\settings.service.js
+            - server\src\services\teaching-arrange.service.js
+            - server\src\utils\__tests__\naming.test.js
+            - server\src\utils\error.js
+            - server\src\utils\excel.js
+            - server\src\utils\logger.js
+            - server\src\utils\naming.js
+            - server\src\utils\response.js
+            - server\src\utils\sort.js
+            - server\uploads\.gitkeep
+            - server\vitest.config.js
+            - server\vitest.setup.js
+            - start-dev.bat
+            - start-dev.sh
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    backend:
+        dir_name: 教学排课管理系统后端
+        title: 教学排课管理系统后端
+        scope:
+            - server/
+        source_files: []
+        children:
+            - backend/academic_core
+            - backend/auth_identity
+            - backend/system_ops
+            - backend/teaching_arrangement
+            - backend/data_io
+        depends_on: []
+        related_to: []
+    backend/academic_core:
+        dir_name: 学术基础数据管理
+        title: 学术基础数据管理
+        scope:
+            - server/src/routes/major.routes.js
+            - server/src/routes/course.routes.js
+            - server/src/routes/textbook.routes.js
+            - server/src/routes/class.routes.js
+            - server/src/routes/college.routes.js
+            - server/src/routes/trainingLevel.routes.js
+            - server/src/controllers/major.controller.js
+            - server/src/controllers/course.controller.js
+            - server/src/controllers/textbook.controller.js
+            - server/src/controllers/class.controller.js
+            - server/src/controllers/college.controller.js
+            - server/src/controllers/trainingLevel.controller.js
+            - server/src/services/class.service.js
+            - server/src/services/class-filter.service.js
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: backend/teaching_arrangement
+            - path: backend/data_io
+    backend/auth_identity:
+        dir_name: 身份认证与用户权限管理
+        title: 身份认证与用户权限管理
+        scope:
+            - server/src/routes/auth.routes.js
+            - server/src/routes/user.routes.js
+            - server/src/routes/audit.routes.js
+            - server/src/controllers/user.controller.js
+            - server/src/controllers/audit.controller.js
+            - server/src/services/auth.service.js
+            - server/src/services/audit.service.js
+            - server/src/__tests__/integration/auth.routes.test.js
+            - server/src/services/__tests__/auth.service.test.js
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: frontend/core_views
+    backend/data_io:
+        dir_name: 数据导入与导出管理
+        title: 数据导入与导出管理
+        scope:
+            - server/src/routes/import.routes.js
+            - server/src/routes/export.routes.js
+            - server/src/controllers/import.controller.js
+            - server/src/controllers/import-shared.js
+            - server/src/utils/excel.js
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: backend/academic_core
+    backend/system_ops:
+        dir_name: 系统设置与数据查询管理
+        title: 系统设置与数据查询管理
+        scope:
+            - server/src/routes/settings.routes.js
+            - server/src/routes/dashboard.routes.js
+            - server/src/routes/query.routes.js
+            - server/src/controllers/settings.controller.js
+            - server/src/controllers/dashboard.controller.js
+            - server/src/controllers/query.controller.js
+            - server/src/services/settings.service.js
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: backend/teaching_arrangement
+    backend/teaching_arrangement:
+        dir_name: 教学排课与师资分配
+        title: 教学排课与师资分配
+        scope:
+            - server/src/routes/teaching-arrange.routes.js
+            - server/src/controllers/teaching-arrange.controller.js
+            - server/src/services/teaching-arrange.service.js
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: backend/academic_core
+            - path: backend/system_ops
+    docs:
+        dir_name: 项目文档与运维知识库
+        title: 项目文档与运维知识库
+        scope:
+            - docs/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    frontend:
+        dir_name: 前端应用架构与状态管理
+        title: 前端应用架构与状态管理
+        scope:
+            - client/
+        source_files: []
+        children:
+            - frontend/core_views
+        depends_on: []
+        related_to: []
+    frontend/core_views:
+        dir_name: 核心视图与路由入口
+        title: 核心视图与路由入口
+        scope:
+            - client/src/views/Dashboard.vue
+            - client/src/views/Login.vue
+            - client/src/views/NotFound.vue
+            - client/src/App.vue
+            - client/src/main.js
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: backend/auth_identity

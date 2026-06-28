@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: frontend
+title: 前端应用架构与状态管理
+scope:
+    - client/
+source_files: []
+depends_on: []
+related_to: []

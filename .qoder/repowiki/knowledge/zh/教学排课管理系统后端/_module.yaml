@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: backend
+title: 教学排课管理系统后端
+scope:
+    - server/
+source_files: []
+depends_on: []
+related_to: []
