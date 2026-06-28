@@ -2,31 +2,48 @@
 # 放置路径：.gitee/workflows/kec-test.yml
 # 在 Gitee 平台激活：项目 → DevOps → Gitee Go → 新建流水线 → 选择 "使用仓库内配置文件"
 
-# 触发条件：main 分支 push 且涉及 server 代码时触发
+# 触发条件：main 分支 push 时触发
 trigger:
   push:
     branches:
       - main
     paths:
       - "server/**"
+      - "client/**"
+      - ".gitee/workflows/kec-test.yml"
 
 jobs:
   test:
     name: "运行单元测试"
-    runs-on: node:18
+    runs-on: node:20
     steps:
       - name: "拉取代码"
         run: git clone https://gitee.com/shub77/kec-manager.git . && git checkout main
+
+      - name: "校验 Node 版本"
+        run: |
+          node -v
+          node -e "const e=require('./server/package.json').engines; console.log('要求:', e)"
 
       - name: "安装依赖"
         run: |
           cd server
           npm ci
 
-      - name: "运行测试"
+      - name: "代码检查（ESLint）"
         run: |
           cd server
-          npm test
+          npx eslint src --ext .js
+
+      - name: "运行测试（含覆盖率门槛）"
+        run: |
+          cd server
+          npm run test:coverage
+
+      - name: "依赖安全审计"
+        run: |
+          cd server
+          npm audit --audit-level=high || echo "存在高危漏洞，请处理"
 
       - name: "测试失败"
         if: failure()

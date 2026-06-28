@@ -1,6 +1,6 @@
 {
   "name": "kec-manager-server",
-  "version": "2.13.2",
+  "version": "2.14.0",
   "description": "KEC课程管理平台后端",
   "main": "src/server.js",
   "type": "module",
@@ -46,6 +46,7 @@
     "eslint": "^10.5.0",
     "prettier": "^3.8.4",
     "prisma": "^6.19.3",
+    "supertest": "^7.2.2",
     "vitest": "^4.1.9"
   }
 }

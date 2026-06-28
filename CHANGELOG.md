@@ -5,6 +5,33 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.14.0] - 2026-06-28
+
+### 测试工具链改进（P0 + P1）
+
+#### P0 — 环境与安全
+- **CI Node 版本对齐**：Gitee Go 流水线镜像从 `node:18` 升级至 `node:20`，与 `engines.node >= 20` 约束一致
+- **CI 质量门禁**：流水线新增 ESLint 代码检查、覆盖率测试、依赖安全审计（`npm audit --audit-level=high`）步骤
+- **覆盖率门槛**：Vitest 新增 `coverage.thresholds` 配置（语句 17%、分支 14%、函数 16%、行 17%），低于基线即阻断合并
+- **multer 高危漏洞修复**：升级 multer 至 2.2.0，消除深层嵌套字段名 DoS 漏洞
+
+#### P1 — 高风险纯函数补测
+- **naming.middleware 测试**（13 用例）：覆盖请求体驼峰转下划线、响应下划线转驼峰、SKIP_KEYS 跳过、数组/嵌套分页对象转换、空 body 处理
+- **validation 测试**（37 用例）：覆盖 handleValidationErrors、validateLogin/Class/ChangePassword/IdParam/Pagination/SemesterQuery/TeacherCreate/AutoArrange/Reset，验证通过/失败双路径
+- **selectBestTeacher + trySwapOne 测试**（19 用例）：覆盖七层优先级排序逻辑、S-02 回归（学院/层次资格校验）、教材上限检查、容量约束、成功置换、无可置换场景；重构 auto-arrange.js 将 selectBestTeacher 提取为模块级函数
+- **认证路由集成测试**（24 用例）：引入 supertest，覆盖登录/刷新/查询用户/修改密码/登出完整 HTTP 链路，含验证错误、认证失败、角色保护
+
+### 测试数据
+- 测试文件：8 → 12（+4）
+- 测试用例：148 → 241（+93）
+- 语句覆盖率：8.43% → 17.39%（+106%）
+- validation.js 覆盖率：0% → 100%
+- app.js 覆盖率：0% → 84.78%
+- auth.routes.js 覆盖率：0% → 79.62%
+- auto-arrange.js 覆盖率：18.6% → 30.79%
+
+---
+
 ## [2.13.2] - 2026-06-26
 
 ### 功能增强

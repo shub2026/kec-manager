@@ -267,6 +267,29 @@ function diagnoseFailure(cls, teacherConstraints, mode) {
 }
 
 /**
+ * 选择最佳教师（综合评分制）
+ * 综合考虑：优先级分数（高优）+ 负载率（低优）
+ * @param {Array} candidates - 候选教师数组，每个元素含 { teacher, score, loadRate, cls }
+ * @returns {object} 排序后的最优候选
+ */
+function selectBestTeacher(candidates) {
+  const sorted = [...candidates].sort((a, b) => {
+    // 1. 分数差异大于阈值，按分数降序
+    if (Math.abs(b.score - a.score) >= WORKLOAD_BALANCE.SCORE_THRESHOLD) {
+      return b.score - a.score;
+    }
+    // 2. 负载率差异大于阈值，按负载率升序（低负载优先）
+    if (Math.abs(a.loadRate - b.loadRate) > WORKLOAD_BALANCE.LOAD_RATE_THRESHOLD) {
+      return a.loadRate - b.loadRate;
+    }
+    // 3. 综合排序：分数降序 > 负载率升序
+    return b.score - a.score || a.loadRate - b.loadRate;
+  });
+
+  return sorted[0];
+}
+
+/**
  * 单次遍历计算所有匹配率（学院/教材/层次）+ 教材内聚度统计（修复4）
  */
 function calcAllMatchRates(assignments, classes, teacherMap) {
@@ -752,23 +775,10 @@ export async function autoArrange(
     /**
      * 选择最佳教师（综合评分制）
      * 综合考虑：优先级分数（高优）+ 负载率（低优）
+     * 委托给模块级 selectBestTeacher 函数
      */
-    function selectBestTeacher(candidates) {
-      // 对所有候选教师排序：分数降序 > 负载率升序
-      const sorted = [...candidates].sort((a, b) => {
-        // 1. 分数差异大于阈值，按分数降序
-        if (Math.abs(b.score - a.score) >= WORKLOAD_BALANCE.SCORE_THRESHOLD) {
-          return b.score - a.score;
-        }
-        // 2. 负载率差异大于阈值，按负载率升序（低负载优先）
-        if (Math.abs(a.loadRate - b.loadRate) > WORKLOAD_BALANCE.LOAD_RATE_THRESHOLD) {
-          return a.loadRate - b.loadRate;
-        }
-        // 3. 综合排序：分数降序 > 负载率升序
-        return b.score - a.score || a.loadRate - b.loadRate;
-      });
-
-      return sorted[0];
+    function selectBestTeacherLocal(candidates) {
+      return selectBestTeacher(candidates);
     }
 
     function countEligibleTeachers(cls, eligibilityFilter) {
@@ -826,7 +836,7 @@ export async function autoArrange(
           continue;
         }
 
-        const selected = selectBestTeacher(candidates).teacher;
+        const selected = selectBestTeacherLocal(candidates).teacher;
         selected.assignedHours += cls.weeklyHours;
         selected.assignedCollegeIds.add(cls.collegeId);
 
@@ -1342,4 +1352,4 @@ export async function autoArrange(
 
 // ── 测试专用导出（不对生产代码产生影响）──
 // 这些函数在生产代码中被内部调用，导出仅为支持单元测试直接验证核心逻辑
-export { calcMatchScore, isTeacherEligible, calcAllMatchRates, diagnoseFailure };
+export { calcMatchScore, isTeacherEligible, calcAllMatchRates, diagnoseFailure, selectBestTeacher, trySwapOne };
