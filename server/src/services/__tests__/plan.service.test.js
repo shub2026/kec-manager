@@ -107,12 +107,11 @@ describe('findBestMatchPlan', () => {
       expect(result.id).toBe(3);
     });
 
-    it('无 classPlanMap 时自定义方案不应生效（回退到 major/level 匹配）', () => {
+    it('无 classPlanMap 时自定义方案不应生效，且跳过 major/level 匹配（返回 null）', () => {
       const cls = { id: 100, custom_plan_id: 3, major_id: 5, training_level_id: 10 };
       const result = findBestMatchPlan(cls, plans);
-      // 没有 classPlanMap，custom 分支不走，走 major 匹配
-      expect(result).not.toBeNull();
-      expect(result.id).toBe(2); // major_id=5 匹配
+      // custom_plan_id 设置时，major/level 匹配被 !cls.custom_plan_id 守卫跳过，返回 null
+      expect(result).toBeNull();
     });
   });
 
