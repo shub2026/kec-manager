@@ -29,10 +29,7 @@
             <el-icon><DataLine /></el-icon>
             数据概览
           </span>
-          <el-button text type="primary" :loading="loading" @click="refreshStats">
-            <el-icon><Refresh /></el-icon>
-            刷新
-          </el-button>
+
         </div>
       </template>
 
@@ -310,16 +307,13 @@ async function fetchStats() {
   }
 }
 
-function refreshStats() {
-  fetchStats();
-}
-
 // 统一导航函数，替代 8 个独立的 goTo* 函数
 function navigateTo(path) {
   router.push(path);
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await settingsStore.load();
   fetchStats();
 });
 </script>
