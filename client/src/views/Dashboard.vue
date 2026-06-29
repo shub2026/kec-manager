@@ -328,11 +328,10 @@ onMounted(() => {
 .dashboard {
   max-width: 1400px;
   margin: 0 auto;
-  height: calc(100vh - 92px - 32px);
+  min-height: calc(100vh - 92px - 32px);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow: hidden;
 }
 
 /* 欢迎区域 */
@@ -374,9 +373,6 @@ onMounted(() => {
 .stats-card,
 .info-card {
   border-radius: 4px;
-  flex-shrink: 1;
-  min-height: 0;
-  overflow: auto;
 }
 
 .card-header {
@@ -502,8 +498,6 @@ onMounted(() => {
   .dashboard {
     padding: 12px;
     gap: 12px;
-    height: auto;
-    overflow: visible;
   }
 
   .welcome-section {

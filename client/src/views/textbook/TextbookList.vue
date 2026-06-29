@@ -107,7 +107,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right" align="center">
+        <el-table-column label="操作" width="180" fixed="right" align="center">
           <template #default="{ row }">
             <div class="op-buttons">
               <el-button

@@ -358,6 +358,7 @@
 .op-buttons {
   display: inline-flex;
   gap: 4px;
+  white-space: nowrap;
 }
 .op-dropdown {
   display: none;
