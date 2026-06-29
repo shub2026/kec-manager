@@ -13,8 +13,7 @@ vi.mock('../utils/logger.js', () => ({
   log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
-const { parseSemesterString, formatSemesterLabel } =
-  await import('../settings.service.js');
+const { parseSemesterString, formatSemesterLabel } = await import('../settings.service.js');
 
 // ──────────────────────────────────────────────
 // parseSemesterString

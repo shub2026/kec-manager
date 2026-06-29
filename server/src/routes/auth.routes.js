@@ -4,6 +4,8 @@ import { AuthService } from '../services/auth.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { success, fail } from '../utils/response.js';
 import { prisma } from '../lib/prisma.js';
+import jwt from 'jsonwebtoken';
+import { authConfig } from '../config/auth.config.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { AuthenticationError, ValidationError } from '../utils/error.js';
 import { sanitizeBody } from '../middleware/xss.js'; // H7修复：XSS防护中间件
@@ -80,6 +82,17 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
     }
 
     const result = await AuthService.refreshToken(refresh_token);
+
+    // H2+M4修复：将旧Refresh Token加入黑名单，防止重放攻击
+    try {
+      const oldDecoded = jwt.verify(refresh_token, authConfig.jwtRefreshSecret);
+      if (oldDecoded.jti) {
+        await AuthService.addToBlacklist(oldDecoded.jti, (oldDecoded.exp || 0) * 1000);
+      }
+    } catch {
+      // 旧token已过期或无效，无需黑名单
+    }
+
     success(res, result);
   } catch (error) {
     next(error);
@@ -92,6 +105,11 @@ router.post('/logout', logoutLimiter, async (req, res, next) => {
     const decoded = token ? AuthService.verifyToken(token) : null;
 
     if (decoded) {
+      // H2修复：将Access Token加入黑名单
+      if (decoded.jti) {
+        await AuthService.addToBlacklist(decoded.jti, (decoded.exp || 0) * 1000);
+      }
+
       await createAuditLog({
         action: 'logout',
         module: 'auth',
@@ -170,6 +188,16 @@ router.put(
       }
 
       await AuthService.changePassword(req.user.id, old_password, new_password, req.ip);
+
+      // H2修复：密码修改后将当前Token加入黑名单
+      const token = req.headers.authorization?.substring(7);
+      if (token) {
+        const decoded = AuthService.verifyToken(token);
+        if (decoded?.jti) {
+          await AuthService.addToBlacklist(decoded.jti, (decoded.exp || 0) * 1000);
+        }
+      }
+
       success(res, null, '密码修改成功');
     } catch (error) {
       next(error);

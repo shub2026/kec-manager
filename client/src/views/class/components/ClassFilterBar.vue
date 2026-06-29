@@ -111,7 +111,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Plus } from '@element-plus/icons-vue';
-import { getCookie } from '@/utils/cookies';
+import { useAuthStore } from '@/stores/auth';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 
 const props = defineProps({
@@ -178,9 +178,9 @@ const props = defineProps({
 });
 
 // 获取认证token用于上传请求
+const authStore = useAuthStore();
 const uploadHeaders = computed(() => {
-  const token = getCookie('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {};
 });
 
 const emit = defineEmits([

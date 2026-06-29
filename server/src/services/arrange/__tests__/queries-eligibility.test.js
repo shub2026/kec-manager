@@ -11,8 +11,7 @@ import { describe, it, expect, vi } from 'vitest';
 // Mock prisma（模块加载依赖）
 vi.mock('../../lib/prisma.js', () => ({ prisma: {} }));
 
-const { isTextbookMatch, isCollegeEligible, isLevelEligible } =
-  await import('../queries.js');
+const { isTextbookMatch, isCollegeEligible, isLevelEligible } = await import('../queries.js');
 
 // ──────────────────────────────────────────────
 // isTextbookMatch

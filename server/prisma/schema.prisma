@@ -305,3 +305,12 @@ model teaching_assignments {
   @@index([teacher_id, semester])
   @@map("teaching_assignments")
 }
+
+model token_blacklist {
+  id         Int      @id @default(autoincrement())
+  jti        String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  @@index([expires_at])
+}

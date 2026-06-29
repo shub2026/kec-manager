@@ -1,9 +1,28 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma.js';
 import { authConfig } from '../config/auth.config.js';
 import { createAuditLog } from './audit.service.js';
 import { AuthenticationError, ValidationError } from '../utils/error.js';
+import { invalidateUserStatusCache } from '../middleware/auth.middleware.js';
+
+// H2修复：Token黑名单负缓存，减少DB查询频率（10s TTL）
+const blacklistNegativeCache = new Map();
+const BLACKLIST_NEGATIVE_TTL = 10 * 1000;
+
+// 定时清理过期黑名单记录（每小时一次）
+setInterval(
+  () => {
+    AuthService.cleanExpiredBlacklist();
+    // 同时清理负缓存中的过期条目
+    const now = Date.now();
+    for (const [key, value] of blacklistNegativeCache) {
+      if (value.expireAt <= now) blacklistNegativeCache.delete(key);
+    }
+  },
+  60 * 60 * 1000
+).unref();
 
 export class AuthService {
   static async login(username, password, ip) {
@@ -107,12 +126,61 @@ export class AuthService {
     return { token: newToken, refreshToken: newRefreshToken };
   }
 
+  // H2修复：Token黑名单管理
+  static async addToBlacklist(jti, expiresAt) {
+    if (!jti) return;
+    try {
+      await prisma.token_blacklist.upsert({
+        where: { jti },
+        update: {},
+        create: { jti, expires_at: new Date(expiresAt) },
+      });
+      // 从负缓存中移除（如果存在），确保下次检查命中DB
+      blacklistNegativeCache.delete(jti);
+    } catch (error) {
+      // 黑名单写入失败不应阻断主流程，但需记录日志
+      console.error('Token黑名单写入失败:', error.message);
+    }
+  }
+
+  static async isBlacklisted(jti) {
+    if (!jti) return false;
+    const now = Date.now();
+    // 检查负缓存：已知非黑名单的jti在TTL内直接返回false
+    const cached = blacklistNegativeCache.get(jti);
+    if (cached && cached.expireAt > now) return false;
+    try {
+      const entry = await prisma.token_blacklist.findUnique({ where: { jti } });
+      if (entry) return true;
+      // 记录负缓存，10s内不再查库
+      blacklistNegativeCache.set(jti, { expireAt: now + BLACKLIST_NEGATIVE_TTL });
+      return false;
+    } catch {
+      // DB异常时安全降级：允许通过（避免误杀所有请求）
+      return false;
+    }
+  }
+
+  static async cleanExpiredBlacklist() {
+    try {
+      const result = await prisma.token_blacklist.deleteMany({
+        where: { expires_at: { lt: new Date() } },
+      });
+      if (result.count > 0) {
+        console.log(`已清理 ${result.count} 条过期黑名单记录`);
+      }
+    } catch (error) {
+      console.error('清理过期黑名单失败:', error.message);
+    }
+  }
+
   static generateToken(user) {
     return jwt.sign(
       {
         id: user.id,
         username: user.username,
         role: user.role,
+        jti: crypto.randomUUID(),
       },
       authConfig.jwtSecret,
       { expiresIn: authConfig.jwtExpiresIn }
@@ -124,6 +192,7 @@ export class AuthService {
       {
         id: user.id,
         type: 'refresh',
+        jti: crypto.randomUUID(),
       },
       authConfig.jwtRefreshSecret, // M10修复：使用独立的Refresh密钥
       { expiresIn: authConfig.jwtRefreshExpiresIn }
@@ -182,6 +251,9 @@ export class AuthService {
       where: { id: userId },
       data: { password: hashedPassword },
     });
+
+    // H3修复：密码修改后立即清除用户状态缓存，使后续请求重新查库验证
+    invalidateUserStatusCache(userId);
 
     await createAuditLog({
       action: 'update',

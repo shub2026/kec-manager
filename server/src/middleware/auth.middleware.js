@@ -87,6 +87,19 @@ export async function authMiddleware(req, res, next) {
     });
   }
 
+  // H2修复：检查Token是否在黑名单中（已登出/已重置的Token）
+  try {
+    if (decoded.jti && (await AuthService.isBlacklisted(decoded.jti))) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token已失效，请重新登录',
+      });
+    }
+  } catch (err) {
+    log.error('Token黑名单检查失败', { message: err.message });
+    // 黑名单检查失败不阻断请求（安全降级）
+  }
+
   // 校验用户是否仍存在且处于激活状态，并获取最新角色（防止降级/禁用后旧 token 仍生效）
   try {
     const status = await getActiveUserStatus(decoded.id);

@@ -54,9 +54,10 @@ export function errorHandler(err, req, res, next) {
   log.error('[Unhandled Error]', { message: err.message, stack: err.stack });
   const status = err.statusCode || err.status || 500;
 
+  // M1修复：始终返回安全消息，不向客户端泄露堆栈信息
+  // 开发调试时通过服务器日志查看错误详情
   res.status(status).json({
     success: false,
     message: isProduction ? getSafeMessage(err) : err.message || '服务器内部错误',
-    ...(isProduction ? {} : { stack: err.stack }),
   });
 }

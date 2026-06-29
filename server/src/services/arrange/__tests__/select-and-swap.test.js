@@ -93,7 +93,7 @@ describe('selectBestTeacher', () => {
     it('负载率差异恰好大于阈值时按负载率排序', () => {
       const candidates = [
         { teacher: { id: 1 }, score: 10, loadRate: 0.51 },
-        { teacher: { id: 2 }, score: 10, loadRate: 0.30 },
+        { teacher: { id: 2 }, score: 10, loadRate: 0.3 },
       ];
       // 差 = 0.21 > 0.2 → 按负载率升序
       const best = selectBestTeacher(candidates);
@@ -103,7 +103,7 @@ describe('selectBestTeacher', () => {
     it('负载率差异不大于阈值时回退到分数降序', () => {
       const candidates = [
         { teacher: { id: 1 }, score: 10, loadRate: 0.35 },
-        { teacher: { id: 2 }, score: 10.5, loadRate: 0.30 },
+        { teacher: { id: 2 }, score: 10.5, loadRate: 0.3 },
       ];
       // 分数差 = 0.5 < 1, 负载率差 = 0.05 < 0.2 → 综合排序：分数降序
       const best = selectBestTeacher(candidates);
@@ -217,8 +217,16 @@ describe('trySwapOne', () => {
       const assignmentsByTeacher = new Map([[1, assignments]]);
 
       const result = trySwapOne(
-        u, assignments, assignmentsByTeacher, teacherMap, [t1],
-        'standard', 1, '2025-2026-1', classTextbookMap, classInfoMap
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
       );
       expect(result).toBe(false);
     });
@@ -233,8 +241,16 @@ describe('trySwapOne', () => {
       const assignmentsByTeacher = new Map([[1, assignments]]);
 
       const result = trySwapOne(
-        u, assignments, assignmentsByTeacher, teacherMap, [t1],
-        'standard', 1, '2025-2026-1', classTextbookMap, classInfoMap
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
       );
       expect(result).toBe(false);
     });
@@ -247,12 +263,23 @@ describe('trySwapOne', () => {
       const { classTextbookMap, classInfoMap } = makeMaps(assignments);
 
       const u = makeUnassigned(200, { collegeId: 10, weeklyHours: 4 });
-      const teacherMap = new Map([[1, t1], [2, t2]]);
+      const teacherMap = new Map([
+        [1, t1],
+        [2, t2],
+      ]);
       const assignmentsByTeacher = new Map([[1, assignments]]);
 
       const result = trySwapOne(
-        u, assignments, assignmentsByTeacher, teacherMap, [t1, t2],
-        'standard', 1, '2025-2026-1', classTextbookMap, classInfoMap
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1, t2],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
       );
       // T1 有已分配 V(学院10)，T1 对 U(学院10) 资格OK
       // 但 T2 对 V(学院10) 学院限制不匹配 → 跳过 T2
@@ -272,12 +299,23 @@ describe('trySwapOne', () => {
       const { classTextbookMap, classInfoMap } = makeMaps(assignments);
 
       const u = makeUnassigned(200, { weeklyHours: 8 });
-      const teacherMap = new Map([[1, t1], [2, t2]]);
+      const teacherMap = new Map([
+        [1, t1],
+        [2, t2],
+      ]);
       const assignmentsByTeacher = new Map([[1, assignments]]);
 
       const result = trySwapOne(
-        u, assignments, assignmentsByTeacher, teacherMap, [t1, t2],
-        'standard', 1, '2025-2026-1', classTextbookMap, classInfoMap
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1, t2],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
       );
       expect(result).toBe(false);
     });
@@ -291,12 +329,23 @@ describe('trySwapOne', () => {
       const { classTextbookMap, classInfoMap } = makeMaps(assignments);
 
       const u = makeUnassigned(200, { weeklyHours: 4 });
-      const teacherMap = new Map([[1, t1], [2, t2]]);
+      const teacherMap = new Map([
+        [1, t1],
+        [2, t2],
+      ]);
       const assignmentsByTeacher = new Map([[1, assignments]]);
 
       const result = trySwapOne(
-        u, assignments, assignmentsByTeacher, teacherMap, [t1, t2],
-        'standard', 1, '2025-2026-1', classTextbookMap, classInfoMap
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1, t2],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
       );
       expect(result).toBe(false);
     });
@@ -319,12 +368,23 @@ describe('trySwapOne', () => {
       const classInfoMap = new Map([[100, { collegeId: 10, trainingLevelId: 20 }]]);
 
       const u = makeUnassigned(200, { textbookIds: [302, 303], weeklyHours: 4 });
-      const teacherMap = new Map([[1, t1], [2, t2]]);
+      const teacherMap = new Map([
+        [1, t1],
+        [2, t2],
+      ]);
       const assignmentsByTeacher = new Map([[1, assignments]]);
 
       const result = trySwapOne(
-        u, assignments, assignmentsByTeacher, teacherMap, [t1, t2],
-        'standard', 1, '2025-2026-1', classTextbookMap, classInfoMap
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1, t2],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
       );
       expect(result).toBe(false);
     });
@@ -342,12 +402,23 @@ describe('trySwapOne', () => {
       const classInfoMap = new Map([[100, { collegeId: 10, trainingLevelId: 20 }]]);
 
       const u = makeUnassigned(200, { textbookIds: [300], weeklyHours: 4 });
-      const teacherMap = new Map([[1, t1], [2, t2]]);
+      const teacherMap = new Map([
+        [1, t1],
+        [2, t2],
+      ]);
       const assignmentsByTeacher = new Map([[1, assignments]]);
 
       const result = trySwapOne(
-        u, assignments, assignmentsByTeacher, teacherMap, [t1, t2],
-        'standard', 1, '2025-2026-1', classTextbookMap, classInfoMap
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1, t2],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
       );
       expect(result).toBe(false);
     });
@@ -377,12 +448,23 @@ describe('trySwapOne', () => {
       const classInfoMap = new Map([[100, { collegeId: 10, trainingLevelId: 20 }]]);
 
       const u = makeUnassigned(200, { textbookIds: [300], weeklyHours: 4 });
-      const teacherMap = new Map([[1, t1], [2, t2]]);
+      const teacherMap = new Map([
+        [1, t1],
+        [2, t2],
+      ]);
       const assignmentsByTeacher = new Map([[1, [vAssign]]]);
 
       const result = trySwapOne(
-        u, assignments, assignmentsByTeacher, teacherMap, [t1, t2],
-        'standard', 1, '2025-2026-1', classTextbookMap, classInfoMap
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1, t2],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
       );
       expect(result).toBe(true);
 
@@ -405,8 +487,16 @@ describe('trySwapOne', () => {
       const assignmentsByTeacher = new Map(); // 空的
 
       const result = trySwapOne(
-        u, [], assignmentsByTeacher, teacherMap, [t1],
-        'standard', 1, '2025-2026-1', new Map(), new Map()
+        u,
+        [],
+        assignmentsByTeacher,
+        teacherMap,
+        [t1],
+        'standard',
+        1,
+        '2025-2026-1',
+        new Map(),
+        new Map()
       );
       expect(result).toBe(false);
     });
@@ -421,8 +511,16 @@ describe('trySwapOne', () => {
       const assignmentsByTeacher = new Map([[1, assignments]]);
 
       const result = trySwapOne(
-        u, assignments, assignmentsByTeacher, teacherMap, [t1],
-        'standard', 1, '2025-2026-1', classTextbookMap, classInfoMap
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
       );
       // T1 是唯一教师，T2 不存在（t2.id === t1.id 时 continue）→ 无可接管
       expect(result).toBe(false);

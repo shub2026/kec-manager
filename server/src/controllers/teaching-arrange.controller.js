@@ -170,13 +170,15 @@ export async function assignTeacher(req, res, next) {
       // H1 修复：使用 findBestMatchPlan 选定最佳方案（major > level 优先级，与排课算法一致）
       const candidatePlans = planCourses.map((pc) => pc.training_plans).filter(Boolean);
       const planCourseByPlanId = new Map(planCourses.map((pc) => [pc.training_plans?.id, pc]));
-      
+
       const bestPlan = findBestMatchPlan(cls, candidatePlans);
       if (bestPlan) {
         const pc = planCourseByPlanId.get(bestPlan.id);
         if (pc) {
           if (currentSemesterNum !== null) {
-            const semRecord = pc.plan_course_semesters.find((s) => s.semester === currentSemesterNum);
+            const semRecord = pc.plan_course_semesters.find(
+              (s) => s.semester === currentSemesterNum
+            );
             createWeeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours ?? 0;
           } else {
             createWeeklyHours = pc.weekly_hours ?? 0;

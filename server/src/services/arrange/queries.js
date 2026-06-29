@@ -26,6 +26,8 @@ export function parseSemester(semesterStr) {
   if (isNaN(startYear) || isNaN(endYear) || semesterIndex < 1 || semesterIndex > 2) return null;
   // H2 修复：校验年份连续性（endYear 必须等于 startYear + 1，与 settings.service.js parseSemesterString 一致）
   if (endYear !== startYear + 1) return null;
+  // B1修复：与 parseSemesterString 保持一致的年份范围校验
+  if (startYear < 2000 || startYear > 2099) return null;
   return {
     startYear,
     endYear,

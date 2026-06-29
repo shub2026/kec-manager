@@ -38,8 +38,7 @@ vi.mock('../../../constants/index.js', () => ({
 
 vi.mock('../../lib/prisma.js', () => ({ prisma: {} }));
 
-const { calcMatchScore, isTeacherEligible, calcAllMatchRates } =
-  await import('../auto-arrange.js');
+const { calcMatchScore, isTeacherEligible, calcAllMatchRates } = await import('../auto-arrange.js');
 
 const C = {
   COLLEGE_WEIGHT: 5,
@@ -60,7 +59,7 @@ function baseTeacher() {
     name: 'T',
     personnelType: 'full_time',
     schedulingCollegeIds: [], // 无限制
-    schedulingLevelIds: [],   // 无限制
+    schedulingLevelIds: [], // 无限制
     assignedTextbookIds: new Set([300]),
     assignedCollegeIds: new Set(),
     assignedHours: 0,
@@ -252,15 +251,21 @@ describe('isTeacherEligible', () => {
 
   it('容量足够时应返回 true', () => {
     const t = baseTeacher();
-    t.standardCap = 16; t.fullCap = 20; t.assignedHours = 4;
-    const c = baseClass(); c.weeklyHours = 4;
+    t.standardCap = 16;
+    t.fullCap = 20;
+    t.assignedHours = 4;
+    const c = baseClass();
+    c.weeklyHours = 4;
     expect(isTeacherEligible(t, c, mode)).toBe(true);
   });
 
   it('容量不足时应返回 false', () => {
     const t = baseTeacher();
-    t.standardCap = 16; t.fullCap = 20; t.assignedHours = 14;
-    const c = baseClass(); c.weeklyHours = 4; // 14+4 > 16
+    t.standardCap = 16;
+    t.fullCap = 20;
+    t.assignedHours = 14;
+    const c = baseClass();
+    c.weeklyHours = 4; // 14+4 > 16
     expect(isTeacherEligible(t, c, mode)).toBe(false);
   });
 
@@ -289,7 +294,8 @@ describe('isTeacherEligible', () => {
     const t = baseTeacher();
     t.assignedTextbookIds = new Set([300, 301]);
     t.inherentTextbookIds = [300, 301];
-    const c = baseClass(); c.textbookIds = [302];
+    const c = baseClass();
+    c.textbookIds = [302];
     expect(isTeacherEligible(t, c, mode)).toBe(false);
   });
 
@@ -297,7 +303,8 @@ describe('isTeacherEligible', () => {
     const t = baseTeacher();
     t.assignedTextbookIds = new Set([300, 301]);
     t.inherentTextbookIds = [300, 301];
-    const c = baseClass(); c.textbookIds = [300];
+    const c = baseClass();
+    c.textbookIds = [300];
     expect(isTeacherEligible(t, c, mode)).toBe(true);
   });
 });
@@ -308,9 +315,7 @@ describe('isTeacherEligible', () => {
 describe('calcAllMatchRates', () => {
   it('完全匹配时匹配率应为 100%', () => {
     const assignments = [{ teacher_id: 1, class_id: 100 }];
-    const classes = [
-      { classId: 100, collegeId: 10, trainingLevelId: 20, textbookIds: [300] },
-    ];
+    const classes = [{ classId: 100, collegeId: 10, trainingLevelId: 20, textbookIds: [300] }];
     const teacherMap = new Map([
       [1, { schedulingCollegeIds: [10], schedulingLevelIds: [20], inherentTextbookIds: [300] }],
     ]);
@@ -323,9 +328,7 @@ describe('calcAllMatchRates', () => {
 
   it('完全不匹配时匹配率应为 0%', () => {
     const assignments = [{ teacher_id: 1, class_id: 100 }];
-    const classes = [
-      { classId: 100, collegeId: 10, trainingLevelId: 20, textbookIds: [300] },
-    ];
+    const classes = [{ classId: 100, collegeId: 10, trainingLevelId: 20, textbookIds: [300] }];
     const teacherMap = new Map([
       [1, { schedulingCollegeIds: [99], schedulingLevelIds: [99], inherentTextbookIds: [999] }],
     ]);

@@ -93,8 +93,8 @@ describe('isClassMatchPlan', () => {
 describe('findBestMatchPlan', () => {
   const plans = [
     { id: 1, major_id: null, training_level_id: 10 }, // 层次方案 A
-    { id: 2, major_id: 5, training_level_id: null },   // 专业方案 B
-    { id: 3, major_id: 6, training_level_id: null },   // 专业方案 C
+    { id: 2, major_id: 5, training_level_id: null }, // 专业方案 B
+    { id: 3, major_id: 6, training_level_id: null }, // 专业方案 C
     { id: 4, major_id: null, training_level_id: 11 }, // 层次方案 D
   ];
 

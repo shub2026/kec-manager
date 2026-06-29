@@ -34,9 +34,16 @@ const mockPrismaUsers = {
   update: vi.fn(),
 };
 
+const mockTokenBlacklist = {
+  upsert: vi.fn(),
+  findUnique: vi.fn(),
+  deleteMany: vi.fn(),
+};
+
 vi.mock('../../lib/prisma.js', () => ({
   prisma: {
     users: mockPrismaUsers,
+    token_blacklist: mockTokenBlacklist,
   },
 }));
 
@@ -53,10 +60,16 @@ vi.mock('../audit.service.js', () => ({
 // ──────────────────────────────────────────────
 vi.mock('../utils/error.js', () => ({
   AuthenticationError: class AuthenticationError extends Error {
-    constructor(msg) { super(msg); this.name = 'AuthenticationError'; }
+    constructor(msg) {
+      super(msg);
+      this.name = 'AuthenticationError';
+    }
   },
   ValidationError: class ValidationError extends Error {
-    constructor(msg) { super(msg); this.name = 'ValidationError'; }
+    constructor(msg) {
+      super(msg);
+      this.name = 'ValidationError';
+    }
   },
 }));
 
@@ -88,11 +101,9 @@ const { AuthService } = await import('../auth.service.js');
 // ──────────────────────────────────────────────
 describe('AuthService.verifyToken', () => {
   it('应正确验证合法 token 并返回 payload', () => {
-    const token = jwt.sign(
-      { id: 1, username: 'admin', role: 'super_admin' },
-      TEST_SECRET,
-      { expiresIn: '1h' }
-    );
+    const token = jwt.sign({ id: 1, username: 'admin', role: 'super_admin' }, TEST_SECRET, {
+      expiresIn: '1h',
+    });
     const result = AuthService.verifyToken(token);
     expect(result.id).toBe(1);
     expect(result.username).toBe('admin');
@@ -115,6 +126,9 @@ describe('AuthService token generation', () => {
     const decoded = jwt.verify(token, TEST_SECRET);
     expect(decoded.id).toBe(1);
     expect(decoded.username).toBe('admin');
+    // H2修复：Token应包含唯一jti
+    expect(decoded.jti).toBeTruthy();
+    expect(typeof decoded.jti).toBe('string');
   });
 
   it('generateRefreshToken 应设置 type=refresh', () => {
@@ -123,6 +137,18 @@ describe('AuthService token generation', () => {
     const decoded = jwt.verify(token, TEST_REFRESH_SECRET);
     expect(decoded.type).toBe('refresh');
     expect(decoded.id).toBe(1);
+    // H2修复：Refresh Token也应包含唯一jti
+    expect(decoded.jti).toBeTruthy();
+    expect(typeof decoded.jti).toBe('string');
+  });
+
+  it('两次生成的 token 应有不同的 jti', () => {
+    const user = { id: 1, username: 'admin', role: 'super_admin' };
+    const token1 = AuthService.generateToken(user);
+    const token2 = AuthService.generateToken(user);
+    const decoded1 = jwt.verify(token1, TEST_SECRET);
+    const decoded2 = jwt.verify(token2, TEST_SECRET);
+    expect(decoded1.jti).not.toBe(decoded2.jti);
   });
 
   it('verifyDownloadToken 用独立 downloadSecret 验证', () => {
@@ -133,6 +159,79 @@ describe('AuthService token generation', () => {
 
     // 用 jwtSecret 验证 downloadToken 应失败（独立密钥）
     expect(() => jwt.verify(token, TEST_SECRET)).toThrow();
+  });
+});
+
+// ──────────────────────────────────────────────
+// Token 黑名单管理
+// ──────────────────────────────────────────────
+describe('AuthService Token Blacklist', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('addToBlacklist 应将 jti 写入数据库', async () => {
+    mockTokenBlacklist.upsert.mockResolvedValue({});
+    const expiresAt = Date.now() + 60000;
+    await AuthService.addToBlacklist('test-jti-1', expiresAt);
+    expect(mockTokenBlacklist.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { jti: 'test-jti-1' },
+      })
+    );
+  });
+
+  it('addToBlacklist jti 为空时不应查库', async () => {
+    await AuthService.addToBlacklist(null, Date.now());
+    await AuthService.addToBlacklist('', Date.now());
+    await AuthService.addToBlacklist(undefined, Date.now());
+    expect(mockTokenBlacklist.upsert).not.toHaveBeenCalled();
+  });
+
+  it('isBlacklisted 命中黑名单时应返回 true', async () => {
+    mockTokenBlacklist.findUnique.mockResolvedValue({ jti: 'blacklisted-jti' });
+    const result = await AuthService.isBlacklisted('blacklisted-jti');
+    expect(result).toBe(true);
+  });
+
+  it('isBlacklisted 未命中时应返回 false 并写入负缓存', async () => {
+    mockTokenBlacklist.findUnique.mockResolvedValue(null);
+    const result = await AuthService.isBlacklisted('clean-jti');
+    expect(result).toBe(false);
+
+    // 第二次调用应命中负缓存，不再查库
+    const result2 = await AuthService.isBlacklisted('clean-jti');
+    expect(result2).toBe(false);
+    // findUnique 只应被调用一次（第二次走负缓存）
+    expect(mockTokenBlacklist.findUnique).toHaveBeenCalledTimes(1);
+  });
+
+  it('isBlacklisted jti 为空时应返回 false', async () => {
+    expect(await AuthService.isBlacklisted(null)).toBe(false);
+    expect(await AuthService.isBlacklisted('')).toBe(false);
+    expect(await AuthService.isBlacklisted(undefined)).toBe(false);
+    expect(mockTokenBlacklist.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('addToBlacklist 后应清除对应负缓存', async () => {
+    // 先检查一个jti，建立负缓存
+    mockTokenBlacklist.findUnique.mockResolvedValue(null);
+    await AuthService.isBlacklisted('jti-to-blacklist');
+    expect(mockTokenBlacklist.findUnique).toHaveBeenCalledTimes(1);
+
+    // 将该jti加入黑名单
+    mockTokenBlacklist.upsert.mockResolvedValue({});
+    await AuthService.addToBlacklist('jti-to-blacklist', Date.now() + 60000);
+
+    // 再次检查，应重新查库并命中黑名单
+    mockTokenBlacklist.findUnique.mockResolvedValue({ jti: 'jti-to-blacklist' });
+    const result = await AuthService.isBlacklisted('jti-to-blacklist');
+    expect(result).toBe(true);
+    expect(mockTokenBlacklist.findUnique).toHaveBeenCalledTimes(2);
+  });
+
+  it('cleanExpiredBlacklist 应删除过期记录', async () => {
+    mockTokenBlacklist.deleteMany.mockResolvedValue({ count: 5 });
+    await AuthService.cleanExpiredBlacklist();
+    expect(mockTokenBlacklist.deleteMany).toHaveBeenCalled();
   });
 });
 
@@ -217,12 +316,18 @@ describe('AuthService.refreshToken', () => {
     expect(result.refreshToken).toBeTruthy();
   });
 
-    it('type 不为 refresh 的 token 应抛 AuthenticationError', async () => {
-      const accessToken = AuthService.generateToken({ id: 1, username: 'admin', role: 'super_admin' });
-      // generateToken 生成的 token 用 jwtSecret 签名，refreshToken 验证用 jwtRefreshSecret
-      // 所以 jwt.verify 会失败，进入 catch，抛 'Refresh Token已过期或无效'
-      await expect(AuthService.refreshToken(accessToken)).rejects.toThrow('Refresh Token已过期或无效');
+  it('type 不为 refresh 的 token 应抛 AuthenticationError', async () => {
+    const accessToken = AuthService.generateToken({
+      id: 1,
+      username: 'admin',
+      role: 'super_admin',
     });
+    // generateToken 生成的 token 用 jwtSecret 签名，refreshToken 验证用 jwtRefreshSecret
+    // 所以 jwt.verify 会失败，进入 catch，抛 'Refresh Token已过期或无效'
+    await expect(AuthService.refreshToken(accessToken)).rejects.toThrow(
+      'Refresh Token已过期或无效'
+    );
+  });
 
   it('用户不存在或已禁用时应抛 AuthenticationError', async () => {
     const user = { id: 1, username: 'admin', role: 'super_admin', is_active: true };
@@ -248,7 +353,9 @@ describe('AuthService.changePassword', () => {
     const hashed = await bcrypt.hash('oldpass', 10);
     mockPrismaUsers.findUnique.mockResolvedValue({ id: 1, password: hashed });
 
-    await expect(AuthService.changePassword(1, 'wrongold', 'newpass', ip)).rejects.toThrow('原密码错误');
+    await expect(AuthService.changePassword(1, 'wrongold', 'newpass', ip)).rejects.toThrow(
+      '原密码错误'
+    );
   });
 
   it('合法请求应成功修改密码', async () => {

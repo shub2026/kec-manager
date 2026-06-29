@@ -11,12 +11,7 @@
  * - shallow 版本只转换第一层
  */
 import { describe, it, expect } from 'vitest';
-import {
-  camelToSnake,
-  snakeToCamel,
-  shallowSnakeToCamel,
-  shallowCamelToSnake,
-} from '../naming.js';
+import { camelToSnake, snakeToCamel, shallowSnakeToCamel, shallowCamelToSnake } from '../naming.js';
 
 // ──────────────────────────────────────────────
 // 模拟 Prisma Decimal 类实例

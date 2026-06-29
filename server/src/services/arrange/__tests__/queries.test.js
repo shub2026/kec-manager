@@ -35,11 +35,11 @@ describe('parseSemester', () => {
   });
 
   it('格式不正确的字符串应返回 null', () => {
-    expect(parseSemester('2025-2026')).toBeNull();     // 只有两段
-    expect(parseSemester('2025')).toBeNull();           // 只有一段
-    expect(parseSemester('')).toBeNull();               // 空字符串
-    expect(parseSemester(null)).toBeNull();             // null
-    expect(parseSemester(undefined)).toBeNull();        // undefined
+    expect(parseSemester('2025-2026')).toBeNull(); // 只有两段
+    expect(parseSemester('2025')).toBeNull(); // 只有一段
+    expect(parseSemester('')).toBeNull(); // 空字符串
+    expect(parseSemester(null)).toBeNull(); // null
+    expect(parseSemester(undefined)).toBeNull(); // undefined
   });
 
   it('endYear 不等于 startYear+1 时应返回 null（H2 修复：年份连续性校验）', () => {
@@ -47,5 +47,12 @@ describe('parseSemester', () => {
     expect(parseSemester('2026-2025-1')).toBeNull(); // endYear < startYear
     expect(parseSemester('2025-2027-1')).toBeNull(); // endYear != startYear + 1
     expect(parseSemester('2025-2028-2')).toBeNull(); // endYear 跨度过大
+  });
+
+  it('年份超出 2000-2099 范围时应返回 null（B1 修复：与 parseSemesterString 一致）', () => {
+    expect(parseSemester('1999-2000-1')).toBeNull(); // 起始年 < 2000
+    expect(parseSemester('2100-2101-1')).toBeNull(); // 起始年 > 2099
+    expect(parseSemester('0000-0001-1')).toBeNull(); // 极端值
+    expect(parseSemester('9999-9999-1')).toBeNull(); // 极端值（endYear != startYear+1 也会拦截）
   });
 });

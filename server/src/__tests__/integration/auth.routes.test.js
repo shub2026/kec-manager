@@ -27,7 +27,7 @@ vi.mock('../../lib/prisma.js', () => ({
   prisma: {
     users: mockPrismaUsers,
     audit_logs: mockPrismaAuditLogs,
-    $queryRaw: vi.fn().mockResolvedValue([{ '1': 1 }]),
+    $queryRaw: vi.fn().mockResolvedValue([{ 1: 1 }]),
   },
 }));
 
@@ -182,9 +182,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('用户名缺失应返回 422 验证错误', async () => {
-    const res = await request(app)
-      .post('/api/auth/login')
-      .send({ password: '12345678' });
+    const res = await request(app).post('/api/auth/login').send({ password: '12345678' });
 
     expect(res.status).toBe(422);
   });
@@ -208,9 +206,7 @@ describe('POST /api/auth/refresh', () => {
     );
     mockPrismaUsers.findUnique.mockResolvedValue(TEST_USER);
 
-    const res = await request(app)
-      .post('/api/auth/refresh')
-      .send({ refresh_token: refreshToken });
+    const res = await request(app).post('/api/auth/refresh').send({ refresh_token: refreshToken });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -245,9 +241,7 @@ describe('GET /api/auth/me', () => {
   });
 
   it('无效 token 应返回 401', async () => {
-    const res = await request(app)
-      .get('/api/auth/me')
-      .set('Authorization', 'Bearer invalid-token');
+    const res = await request(app).get('/api/auth/me').set('Authorization', 'Bearer invalid-token');
 
     expect(res.status).toBe(401);
   });
@@ -265,9 +259,7 @@ describe('GET /api/auth/me', () => {
     });
 
     const token = makeToken();
-    const res = await request(app)
-      .get('/api/auth/me')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -365,9 +357,7 @@ describe('PUT /api/auth/password', () => {
 describe('POST /api/auth/logout', () => {
   it('应返回 200 登出成功', async () => {
     const token = makeToken();
-    const res = await request(app)
-      .post('/api/auth/logout')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).post('/api/auth/logout').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);

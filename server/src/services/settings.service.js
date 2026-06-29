@@ -5,12 +5,15 @@ import { log } from '../utils/logger.js'; // L1修复：使用winston logger
 const semesterCache = new Map();
 const SEMESTER_TTL = 30 * 1000; // 30 秒
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of semesterCache) {
-    if (value.expireAt <= now) semesterCache.delete(key);
-  }
-}, 5 * 60 * 1000).unref();
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, value] of semesterCache) {
+      if (value.expireAt <= now) semesterCache.delete(key);
+    }
+  },
+  5 * 60 * 1000
+).unref();
 
 export function invalidateSemesterCache() {
   semesterCache.delete('current_semester');

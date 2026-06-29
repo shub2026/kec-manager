@@ -24,6 +24,7 @@ import { errorHandler } from './middleware/error.js';
 import { convertResponseNaming, convertRequestNaming } from './middleware/naming.middleware.js';
 import { sanitizeBody, sanitizeQuery } from './middleware/xss.js';
 import { log } from './utils/logger.js'; // L1修复：使用winston logger
+import rateLimit from 'express-rate-limit';
 
 const app = express();
 
@@ -80,6 +81,17 @@ app.use((req, res, next) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
 });
+
+// H4修复：全局 API 速率限制，防止无限制调用导致 DoS 或数据爬取
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1分钟
+  max: 120, // 每 IP 每分钟最多 120 次
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path === '/api/health', // 健康检查不限流
+  message: { success: false, message: '请求过于频繁，请稍后再试' },
+});
+app.use('/api', apiLimiter);
 
 // #25修复：注册命名转换中间件（在所有路由之前）
 app.use(convertRequestNaming); // 请求：camelCase → snake_case

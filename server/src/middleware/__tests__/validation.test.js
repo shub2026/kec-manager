@@ -111,8 +111,20 @@ async function runValidation(middlewares, reqData = {}) {
 // ──────────────────────────────────────────────
 describe('handleValidationErrors', () => {
   it('无验证错误时应调用 next', async () => {
-    const req = { body: { username: 'admin', password: '12345678' }, method: 'POST', path: '/test' };
-    const res = { _jsonCall: null, status() { return this; }, json(d) { this._jsonCall = d; } };
+    const req = {
+      body: { username: 'admin', password: '12345678' },
+      method: 'POST',
+      path: '/test',
+    };
+    const res = {
+      _jsonCall: null,
+      status() {
+        return this;
+      },
+      json(d) {
+        this._jsonCall = d;
+      },
+    };
     let nextCalled = false;
 
     // 手动构造一个无错误的请求

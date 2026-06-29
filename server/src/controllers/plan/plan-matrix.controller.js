@@ -204,7 +204,9 @@ export async function updatePlanCourse(req, res, next) {
           await tx.plan_course_semesters.updateMany({
             where: { plan_course_id: Number(id) },
             data: {
-              ...(newWeeklyHours !== currentPc.weekly_hours ? { weekly_hours: newWeeklyHours } : {}),
+              ...(newWeeklyHours !== currentPc.weekly_hours
+                ? { weekly_hours: newWeeklyHours }
+                : {}),
               ...(newWeeksPerSemester !== currentPc.weeks_per_semester
                 ? { weeks_count: newWeeksPerSemester }
                 : {}),

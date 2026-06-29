@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import request from '../utils/request';
-import { getCookie } from '../utils/cookies';
+import { useAuthStore } from '../stores/auth';
 
 /**
  * 通用导入 Composable
@@ -15,8 +15,8 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
   const pendingFile = ref(null);
 
   const uploadHeaders = computed(() => {
-    const token = getCookie('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    const authStore = useAuthStore();
+    return authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {};
   });
 
   async function beforeImport(file) {

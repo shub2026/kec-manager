@@ -108,9 +108,7 @@ describe('diagnoseFailure', () => {
     });
 
     it('full 模式下应使用 fullCap', () => {
-      const teachers = [
-        makeTeacher({ assignedHours: 18, fullCap: 20 }),
-      ];
+      const teachers = [makeTeacher({ assignedHours: 18, fullCap: 20 })];
       const cls = makeClass({ weeklyHours: 4 }); // 18+4=22>20
       const result = diagnoseFailure(cls, teachers, 'full');
       expect(result.reason).toContain('容量已满');
@@ -121,14 +119,16 @@ describe('diagnoseFailure', () => {
     it('所有教师 courseExistingHours + assignedHours + weeklyHours > defaultWeeklyHours', () => {
       const teachers = [
         makeTeacher({
-          id: 1, name: 'T1',
+          id: 1,
+          name: 'T1',
           defaultWeeklyHours: 8,
           courseExistingHours: 4,
           assignedHours: 2,
           standardCap: 20, // 容量足够
         }),
         makeTeacher({
-          id: 2, name: 'T2',
+          id: 2,
+          name: 'T2',
           defaultWeeklyHours: 6,
           courseExistingHours: 4,
           assignedHours: 0,
@@ -149,14 +149,16 @@ describe('diagnoseFailure', () => {
       // → isTeacherEligible 返回 false → eligibleTeachers 为空 → 走 fallback
       const teachers = [
         makeTeacher({
-          id: 1, name: 'T1',
+          id: 1,
+          name: 'T1',
           schedulingCollegeIds: [10], // 学院匹配
-          schedulingLevelIds: [20],   // 层次匹配
+          schedulingLevelIds: [20], // 层次匹配
           assignedHours: 14,
-          standardCap: 16,            // 14+4=18 > 16 → 容量满
+          standardCap: 16, // 14+4=18 > 16 → 容量满
         }),
         makeTeacher({
-          id: 2, name: 'T2',
+          id: 2,
+          name: 'T2',
           schedulingCollegeIds: [99], // 学院不匹配
           assignedHours: 0,
           standardCap: 16,
@@ -168,7 +170,7 @@ describe('diagnoseFailure', () => {
       expect(result.reason).toContain('无匹配的教师');
       expect(result.details.totalTeachers).toBe(2);
       expect(result.details.collegeMatchCount).toBe(1); // T1 学院匹配
-      expect(result.details.levelMatchCount).toBe(1);   // T1 层次匹配
+      expect(result.details.levelMatchCount).toBe(1); // T1 层次匹配
     });
   });
 
@@ -176,7 +178,8 @@ describe('diagnoseFailure', () => {
     it('学院/层次/教材不匹配时应返回详细统计', () => {
       const teachers = [
         makeTeacher({
-          id: 1, name: 'T1',
+          id: 1,
+          name: 'T1',
           schedulingCollegeIds: [99],
           schedulingLevelIds: [99],
           inherentTextbookIds: [999],
@@ -184,7 +187,8 @@ describe('diagnoseFailure', () => {
           standardCap: 16,
         }),
         makeTeacher({
-          id: 2, name: 'T2',
+          id: 2,
+          name: 'T2',
           schedulingCollegeIds: [10],
           schedulingLevelIds: [99],
           inherentTextbookIds: [999],

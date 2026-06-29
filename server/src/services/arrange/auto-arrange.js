@@ -1344,7 +1344,7 @@ export async function autoArrange(
       teacherConstraints,
       mode
     );
-    } finally {
+  } finally {
     // C-2: 无论成功或异常，始终释放锁
     arrangeLocks.delete(lockKey);
   }
@@ -1352,4 +1352,11 @@ export async function autoArrange(
 
 // ── 测试专用导出（不对生产代码产生影响）──
 // 这些函数在生产代码中被内部调用，导出仅为支持单元测试直接验证核心逻辑
-export { calcMatchScore, isTeacherEligible, calcAllMatchRates, diagnoseFailure, selectBestTeacher, trySwapOne };
+export {
+  calcMatchScore,
+  isTeacherEligible,
+  calcAllMatchRates,
+  diagnoseFailure,
+  selectBestTeacher,
+  trySwapOne,
+};

@@ -21,10 +21,12 @@ vi.mock('../../lib/prisma.js', () => ({
 // ──────────────────────────────────────────────
 const mockVerifyToken = vi.fn();
 const mockVerifyDownloadToken = vi.fn();
+const mockIsBlacklisted = vi.fn();
 vi.mock('../../services/auth.service.js', () => ({
   AuthService: {
     verifyToken: (...args) => mockVerifyToken(...args),
     verifyDownloadToken: (...args) => mockVerifyDownloadToken(...args),
+    isBlacklisted: (...args) => mockIsBlacklisted(...args),
   },
 }));
 
@@ -33,10 +35,16 @@ vi.mock('../../services/auth.service.js', () => ({
 // ──────────────────────────────────────────────
 vi.mock('../../utils/logger.js', () => ({
   default: {
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
   },
   log: {
-    error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -58,8 +66,14 @@ function makeRes() {
   const res = {
     statusCode: 200,
     body: null,
-    status(code) { this.statusCode = code; return this; },
-    json(data) { this.body = data; return this; },
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(data) {
+      this.body = data;
+      return this;
+    },
   };
   return res;
 }
@@ -107,7 +121,9 @@ describe('authMiddleware', () => {
 
     mockVerifyToken.mockReturnValue({ id: 1, username: 'admin' });
     mockPrismaUsers.findUnique.mockResolvedValue({
-      id: 1, role: 'admin', is_active: false,
+      id: 1,
+      role: 'admin',
+      is_active: false,
     });
 
     await authMiddleware(req, res, next);
@@ -136,7 +152,9 @@ describe('authMiddleware', () => {
 
     mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'super_admin' });
     mockPrismaUsers.findUnique.mockResolvedValue({
-      id: 1, role: 'super_admin', is_active: true,
+      id: 1,
+      role: 'super_admin',
+      is_active: true,
     });
 
     await authMiddleware(req, res, next);
@@ -149,7 +167,9 @@ describe('authMiddleware', () => {
   it('用户状态缓存生效时第二次不应查库', async () => {
     mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin' });
     mockPrismaUsers.findUnique.mockResolvedValue({
-      id: 1, role: 'admin', is_active: true,
+      id: 1,
+      role: 'admin',
+      is_active: true,
     });
 
     // 第一次请求，查库
@@ -166,15 +186,25 @@ describe('authMiddleware', () => {
   it('invalidateUserStatusCache 后应重新查库', async () => {
     mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin' });
     mockPrismaUsers.findUnique.mockResolvedValue({
-      id: 1, role: 'admin', is_active: true,
+      id: 1,
+      role: 'admin',
+      is_active: true,
     });
 
-    await authMiddleware(makeReq({ headers: { authorization: 'Bearer valid' } }), makeRes(), vi.fn());
+    await authMiddleware(
+      makeReq({ headers: { authorization: 'Bearer valid' } }),
+      makeRes(),
+      vi.fn()
+    );
     expect(mockPrismaUsers.findUnique).toHaveBeenCalledTimes(1);
 
     invalidateUserStatusCache(1);
 
-    await authMiddleware(makeReq({ headers: { authorization: 'Bearer valid' } }), makeRes(), vi.fn());
+    await authMiddleware(
+      makeReq({ headers: { authorization: 'Bearer valid' } }),
+      makeRes(),
+      vi.fn()
+    );
     expect(mockPrismaUsers.findUnique).toHaveBeenCalledTimes(2);
   });
 
@@ -185,7 +215,9 @@ describe('authMiddleware', () => {
 
     mockVerifyDownloadToken.mockReturnValue({ id: 1, username: 'admin' });
     mockPrismaUsers.findUnique.mockResolvedValue({
-      id: 1, role: 'super_admin', is_active: true,
+      id: 1,
+      role: 'super_admin',
+      is_active: true,
     });
 
     await authMiddleware(req, res, next);
@@ -203,6 +235,63 @@ describe('authMiddleware', () => {
     await authMiddleware(req, res, next);
     expect(res.statusCode).toBe(401);
     expect(next).not.toHaveBeenCalled();
+  });
+
+  // H2修复：Token黑名单拦截测试
+  it('Token 已在黑名单中时应返回 401', async () => {
+    const req = makeReq({ headers: { authorization: 'Bearer valid' } });
+    const res = makeRes();
+    const next = vi.fn();
+
+    mockVerifyToken.mockReturnValue({
+      id: 1,
+      username: 'admin',
+      role: 'admin',
+      jti: 'blacklisted-jti',
+    });
+    mockIsBlacklisted.mockResolvedValue(true);
+
+    await authMiddleware(req, res, next);
+    expect(res.statusCode).toBe(401);
+    expect(res.body.message).toContain('已失效');
+    expect(next).not.toHaveBeenCalled();
+    expect(mockIsBlacklisted).toHaveBeenCalledWith('blacklisted-jti');
+  });
+
+  it('Token 不在黑名单中且用户激活时应正常通过', async () => {
+    const req = makeReq({ headers: { authorization: 'Bearer valid' } });
+    const res = makeRes();
+    const next = vi.fn();
+
+    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin', jti: 'clean-jti' });
+    mockIsBlacklisted.mockResolvedValue(false);
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      id: 1,
+      role: 'admin',
+      is_active: true,
+    });
+
+    await authMiddleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+    expect(req.user.id).toBe(1);
+  });
+
+  it('黑名单检查失败时应安全降级（不阻断请求）', async () => {
+    const req = makeReq({ headers: { authorization: 'Bearer valid' } });
+    const res = makeRes();
+    const next = vi.fn();
+
+    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin', jti: 'error-jti' });
+    mockIsBlacklisted.mockRejectedValue(new Error('DB connection failed'));
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      id: 1,
+      role: 'admin',
+      is_active: true,
+    });
+
+    await authMiddleware(req, res, next);
+    // 黑名单检查失败时应安全降级，继续执行后续逻辑
+    expect(next).toHaveBeenCalled();
   });
 });
 
