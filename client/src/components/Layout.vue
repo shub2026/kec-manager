@@ -130,6 +130,30 @@
 
   <!-- 修改密码对话框 -->
   <ChangePasswordDialog v-model="passwordDialogVisible" @success="handlePasswordChangeSuccess" />
+
+  <!-- 退出登录确认弹窗 -->
+  <el-dialog
+    v-model="logoutDialogVisible"
+    title="退出登录"
+    width="400px"
+    :close-on-click-modal="false"
+    destroy-on-close
+    align-center
+  >
+    <div style="padding: 8px 0">
+      <p style="font-size: 14px; color: #303133; margin: 0 0 12px">
+        <el-icon style="vertical-align: middle; color: #e6a23c; margin-right: 6px"
+          ><SwitchButton
+        /></el-icon>
+        当前用户：<strong>{{ authStore.realName || authStore.username }}</strong>
+      </p>
+      <p style="font-size: 13px; color: #909399; margin: 0">退出后需重新登录才能使用系统功能。</p>
+    </div>
+    <template #footer>
+      <el-button @click="logoutDialogVisible = false">取消</el-button>
+      <el-button type="warning" @click="confirmLogout">确认退出</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -137,7 +161,7 @@ import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue
 import { useRoute, useRouter } from 'vue-router';
 import { useSettingsStore } from '../stores/settings';
 import { useAuthStore } from '../stores/auth';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 const ChangePasswordDialog = defineAsyncComponent(() => import('./ChangePasswordDialog.vue'));
 
 const route = useRoute();
@@ -159,6 +183,7 @@ function handleResize() {
 
 // 修改密码相关
 const passwordDialogVisible = ref(false);
+const logoutDialogVisible = ref(false);
 
 const activeMenu = computed(() => route.path);
 const currentTitle = computed(() => route.meta?.title || '首页');
@@ -181,19 +206,18 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
 });
 
-async function handleCommand(command) {
+function handleCommand(command) {
   if (command === 'password') {
     passwordDialogVisible.value = true;
   } else if (command === 'logout') {
-    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    });
-
-    await authStore.logout();
-    ElMessage.success('已退出登录');
+    logoutDialogVisible.value = true;
   }
+}
+
+async function confirmLogout() {
+  logoutDialogVisible.value = false;
+  await authStore.logout();
+  ElMessage.success('已退出登录');
 }
 
 function handlePasswordChangeSuccess() {

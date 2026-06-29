@@ -143,60 +143,6 @@
       </el-row>
     </el-card>
 
-    <!-- 快捷操作 -->
-    <el-card class="actions-card">
-      <template #header>
-        <span class="card-title">
-          <el-icon><Lightning /></el-icon>
-          快捷操作
-        </span>
-      </template>
-
-      <el-row :gutter="20">
-        <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="navigateTo('/plans')">
-            <el-icon :size="28" color="#409EFF"><EditPen /></el-icon>
-            <span>编辑培养方案</span>
-          </div>
-        </el-col>
-
-        <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="navigateTo('/teaching/arrange')">
-            <el-icon :size="28" color="#67C23A"><SetUp /></el-icon>
-            <span>智能排课</span>
-          </div>
-        </el-col>
-
-        <el-col :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="navigateTo('/query/semester')">
-            <el-icon :size="28" color="#E6A23C"><Search /></el-icon>
-            <span>开课查询</span>
-          </div>
-        </el-col>
-
-        <el-col :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="navigateTo('/query/textbook')">
-            <el-icon :size="28" color="#F56C6C"><Document /></el-icon>
-            <span>教材查询</span>
-          </div>
-        </el-col>
-
-        <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="goToImport">
-            <el-icon :size="28" color="#909399"><Upload /></el-icon>
-            <span>数据导入</span>
-          </div>
-        </el-col>
-
-        <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="navigateTo('/teaching/statistics')">
-            <el-icon :size="28" color="#8B5CF6"><DataAnalysis /></el-icon>
-            <span>课时统计</span>
-          </div>
-        </el-col>
-      </el-row>
-    </el-card>
-
     <!-- 平台信息 -->
     <el-card class="info-card">
       <template #header>
@@ -298,7 +244,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
 import { getDashboardStats } from '../api/dashboard';
@@ -310,7 +255,6 @@ const settingsStore = useSettingsStore();
 
 const version = __APP_VERSION__;
 const loading = ref(false);
-const canEdit = computed(() => ['admin', 'super_admin'].includes(authStore.userInfo?.role));
 
 const userName = computed(() => authStore.userInfo?.realName || '用户');
 const semesterLabel = computed(() => settingsStore.semesterLabel);
@@ -375,10 +319,6 @@ function navigateTo(path) {
   router.push(path);
 }
 
-function goToImport() {
-  ElMessage.info('数据导入功能开发中');
-}
-
 onMounted(() => {
   fetchStats();
 });
@@ -388,27 +328,30 @@ onMounted(() => {
 .dashboard {
   max-width: 1400px;
   margin: 0 auto;
+  height: calc(100vh - 92px - 32px);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
+  overflow: hidden;
 }
 
 /* 欢迎区域 */
 .welcome-section {
   background: #fff;
-  padding: 24px;
+  padding: 16px 24px;
   border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .welcome-title {
-  margin: 0 0 8px 0;
-  font-size: 24px;
+  margin: 0 0 4px 0;
+  font-size: 20px;
   font-weight: 600;
   color: #303133;
 }
@@ -429,9 +372,11 @@ onMounted(() => {
 
 /* 卡片通用样式 */
 .stats-card,
-.actions-card,
 .info-card {
   border-radius: 4px;
+  flex-shrink: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .card-header {
@@ -453,14 +398,14 @@ onMounted(() => {
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: 12px;
+  padding: 12px 16px;
   background: #fafbfc;
   border-radius: 4px;
   border: 1px solid #f0f0f0;
   cursor: pointer;
   transition: all 0.2s;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .stat-item:hover {
@@ -471,9 +416,9 @@ onMounted(() => {
 
 .stat-icon {
   flex-shrink: 0;
-  width: 52px;
-  height: 52px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -485,41 +430,17 @@ onMounted(() => {
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   color: #303133;
   line-height: 1.2;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .stat-label {
   font-size: 13px;
   color: #909399;
   font-weight: 500;
-}
-
-/* 快捷操作 */
-.action-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 24px 16px;
-  background: #fafbfc;
-  border-radius: 4px;
-  border: 1px solid #f0f0f0;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 20px;
-  font-size: 14px;
-  color: #606266;
-}
-
-.action-item:hover {
-  background: #ecf5ff;
-  border-color: #409eff;
-  color: #409eff;
 }
 
 /* 平台信息 */
@@ -532,22 +453,22 @@ onMounted(() => {
 .feature-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 10px 12px;
   background: #fafbfc;
   border-radius: 4px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .feature-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #303133;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .feature-desc {
-  font-size: 12px;
+  font-size: 11px;
   color: #909399;
 }
 
@@ -580,7 +501,9 @@ onMounted(() => {
 @media (max-width: 768px) {
   .dashboard {
     padding: 12px;
-    gap: 16px;
+    gap: 12px;
+    height: auto;
+    overflow: visible;
   }
 
   .welcome-section {
@@ -597,25 +520,21 @@ onMounted(() => {
   }
 
   .welcome-title {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .stat-item {
-    padding: 16px;
-    gap: 12px;
+    padding: 10px 12px;
+    gap: 10px;
   }
 
   .stat-icon {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
   }
 
   .stat-value {
-    font-size: 22px;
-  }
-
-  .action-item {
-    padding: 16px 12px;
+    font-size: 18px;
   }
 }
 </style>
