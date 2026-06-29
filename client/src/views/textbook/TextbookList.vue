@@ -66,7 +66,7 @@
         <el-table-column label="定价" min-width="65">
           <template #default="{ row }">{{ row.price || '-' }}</template>
         </el-table-column>
-        <el-table-column label="类别" min-width="65">
+        <el-table-column label="类别" min-width="80">
           <template #default="{ row }">
             <el-tag
               v-if="row.category"

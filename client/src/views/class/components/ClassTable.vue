@@ -37,7 +37,7 @@
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column label="状态" min-width="65">
+      <el-table-column label="状态" min-width="80">
         <template #default="{ row }">
           <el-tag :type="getStatusType(row.status)">
             {{ getStatusText(row.status) }}
