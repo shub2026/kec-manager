@@ -5,6 +5,7 @@ WORKDIR /app
 
 # 使用淘宝镜像加速依赖安装
 RUN npm config set registry https://registry.npmmirror.com
+ENV PRISMA_NODE_BINARY_MIRROR=https://prisma-binaries.npmmirror.com
 
 # 复制 package.json 并安装依赖
 COPY package*.json ./
@@ -27,6 +28,7 @@ RUN apk add --no-cache sqlite-libs
 
 # 使用淘宝镜像加速依赖安装
 RUN npm config set registry https://registry.npmmirror.com
+ENV PRISMA_NODE_BINARY_MIRROR=https://prisma-binaries.npmmirror.com
 
 # 复制 package.json 并安装生产依赖
 COPY package*.json ./
