@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# 使用淘宝镜像加速依赖安装
+RUN npm config set registry https://registry.npmmirror.com
+
 # 复制 package.json 并安装依赖
 COPY package*.json ./
 RUN npm ci
@@ -22,9 +25,12 @@ WORKDIR /app
 # 安装运行时依赖（SQLite 支持）
 RUN apk add --no-cache sqlite-libs
 
+# 使用淘宝镜像加速依赖安装
+RUN npm config set registry https://registry.npmmirror.com
+
 # 复制 package.json 并安装生产依赖
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # 复制 Prisma schema 和迁移工具
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

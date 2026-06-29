@@ -49,8 +49,8 @@ services:
   # 前端服务 - Nginx 静态文件服务器
   client:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: client/Dockerfile
     container_name: ${CONTAINER_PREFIX:-kec}-client
     restart: always
     ports:
