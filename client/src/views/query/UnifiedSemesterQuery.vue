@@ -6,73 +6,82 @@
           <span
             ><el-icon><DocumentChecked /></el-icon> 开课查询</span
           >
-          <div class="card-header-actions">
-            <el-button @click="goToCurrentSemester">
-              <el-icon><Calendar /></el-icon> 当前学期
-            </el-button>
-            <el-select
-              v-model="selectedSemester"
-              placeholder="选择学期"
-              class="semester-select"
-              @change="handleSemesterChange"
-            >
-              <el-option
-                v-for="sem in availableSemesters"
-                :key="sem.value"
-                :label="sem.label"
-                :value="sem.value"
-              />
-            </el-select>
-            <el-select
-              v-model="filterCollege"
-              clearable
-              placeholder="按学院筛选"
-              class="filter-select"
-              @change="handleCollegeChange"
-            >
-              <el-option v-for="c in filteredColleges" :key="c.id" :label="c.name" :value="c.id" />
-            </el-select>
-            <el-select
-              v-model="filterMajor"
-              clearable
-              placeholder="按专业筛选"
-              class="filter-select"
-              @change="handleMajorChange"
-            >
-              <el-option v-for="m in filteredMajors" :key="m.id" :label="m.name" :value="m.id" />
-            </el-select>
-            <el-select
-              v-model="filterLevel"
-              clearable
-              placeholder="按层次筛选"
-              class="filter-select"
-              @change="resetPaginationAndLoad"
-            >
-              <el-option v-for="l in filteredLevels" :key="l.id" :label="l.name" :value="l.id" />
-            </el-select>
-            <el-select
-              v-model="filterEnrollmentYear"
-              clearable
-              placeholder="按入学年份筛选"
-              class="filter-select"
-              @change="resetPaginationAndLoad"
-            >
-              <el-option
-                v-for="year in enrollmentYears"
-                :key="year"
-                :label="year + '年'"
-                :value="year"
-              />
-            </el-select>
-            <el-select
-              v-model="filterGrade"
-              clearable
-              placeholder="按年级筛选"
-              class="filter-select"
-              @change="resetPaginationAndLoad"
-            >
-              <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
-            </el-select>
+        </div>
+      </template>
+
+      <!-- 未选学期时显示空状态 -->
+      <el-empty v-if="!selectedSemester" description="请先选择学期，然后查看开课情况" />
+
+      <!-- 已选学期时显示筛选、统计、表格 -->
+      <template v-else>
+        <div class="page-toolbar">
+          <el-button @click="goToCurrentSemester">
+            <el-icon><Calendar /></el-icon> 当前学期
+          </el-button>
+          <el-select
+            v-model="selectedSemester"
+            placeholder="选择学期"
+            class="filter-2xl"
+            @change="handleSemesterChange"
+          >
+            <el-option
+              v-for="sem in availableSemesters"
+              :key="sem.value"
+              :label="sem.label"
+              :value="sem.value"
+            />
+          </el-select>
+          <el-select
+            v-model="filterCollege"
+            clearable
+            placeholder="按学院筛选"
+            class="filter-xl"
+            @change="handleCollegeChange"
+          >
+            <el-option v-for="c in filteredColleges" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+          <el-select
+            v-model="filterMajor"
+            clearable
+            placeholder="按专业筛选"
+            class="filter-xl"
+            @change="handleMajorChange"
+          >
+            <el-option v-for="m in filteredMajors" :key="m.id" :label="m.name" :value="m.id" />
+          </el-select>
+          <el-select
+            v-model="filterLevel"
+            clearable
+            placeholder="按层次筛选"
+            class="filter-lg"
+            @change="resetPaginationAndLoad"
+          >
+            <el-option v-for="l in filteredLevels" :key="l.id" :label="l.name" :value="l.id" />
+          </el-select>
+          <el-select
+            v-model="filterEnrollmentYear"
+            clearable
+            placeholder="按入学年份筛选"
+            class="filter-lg"
+            @change="resetPaginationAndLoad"
+          >
+            <el-option
+              v-for="year in enrollmentYears"
+              :key="year"
+              :label="year + '年'"
+              :value="year"
+            />
+          </el-select>
+          <el-select
+            v-model="filterGrade"
+            clearable
+            placeholder="按年级筛选"
+            class="filter-md"
+            @change="resetPaginationAndLoad"
+          >
+            <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
+          </el-select>
+          <div class="action-buttons">
             <el-button
               :disabled="
                 !selectedSemester &&
@@ -91,13 +100,6 @@
             </el-button>
           </div>
         </div>
-      </template>
-
-      <!-- 未选学期时显示空状态 -->
-      <el-empty v-if="!selectedSemester" description="请先选择学期，然后查看开课情况" />
-
-      <!-- 已选学期时显示统计信息、表格和分页 -->
-      <template v-else>
         <el-alert
           :title="`查询学期：${semesterLabel} | 共 ${totalClasses} 个班级`"
           type="info"
@@ -201,7 +203,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Download, Refresh, Calendar } from '@element-plus/icons-vue';
 import { getSemesterQuery } from '../../api/query';
 import { getMajors } from '../../api/major';
 import { getTrainingLevels } from '../../api/trainingLevel';
@@ -209,6 +210,7 @@ import { getColleges } from '../../api/college';
 import request from '../../utils/request';
 import { useSemesters, downloadBlob } from '../../composables/useSemesters';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
+import { getWithCache } from '../../utils/cache';
 
 const data = ref([]);
 const loading = ref(false);
@@ -271,7 +273,11 @@ async function load() {
     if (filterLevel.value) params.trainingLevelId = filterLevel.value;
     if (filterEnrollmentYear.value) params.enrollmentYear = filterEnrollmentYear.value;
     if (filterGrade.value) params.grade = filterGrade.value;
-    const res = await getSemesterQuery(params);
+    const res = await getWithCache(
+      () => getSemesterQuery(params),
+      `semester-query:${JSON.stringify(params)}`,
+      2 * 60 * 1000 // 2 分钟缓存
+    );
     data.value = res.data?.data || [];
     semesterLabel.value = res.data?.semesterInfo?.label || '';
     totalClasses.value = res.data?.totalClasses || 0;
@@ -478,13 +484,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.semester-select {
-  width: auto;
-  min-width: 240px;
-}
-.filter-select {
-  width: 140px;
-}
 /* 外层表格单元格防换行 */
 :deep(.el-table__body td .cell) {
   white-space: nowrap;

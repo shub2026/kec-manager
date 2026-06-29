@@ -45,7 +45,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Setting } from '@element-plus/icons-vue';
 import { useSettingsStore } from '../../stores/settings';
 import request from '../../utils/request';
 import SemesterConfig from './components/SemesterConfig.vue';
@@ -186,7 +185,6 @@ onMounted(() => {
 
 <style scoped>
 .settings-page {
-  padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
 }

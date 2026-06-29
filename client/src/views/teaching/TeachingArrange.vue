@@ -585,19 +585,9 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import {
-  MagicStick,
-  SetUp,
-  RefreshRight,
-  Check,
-  ArrowDown,
-  ArrowRight,
-  WarningFilled,
-  Warning,
-  CircleCheckFilled,
-} from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
+import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
 import request from '../../utils/request';
 import { downloadBlob } from '../../utils/download';
@@ -670,43 +660,47 @@ const { handleParentChange } = useFilterLinkage({
   relations: {}, // 教学安排页不需要关联数据,直接从classList过滤
 });
 
-const collegeOptions = computed(() => {
-  const set = new Set(classList.value.map((c) => c.collegeName).filter(Boolean));
-  return [...set].sort();
+// 合并 5 个筛选 computed 为单次遍历，减少重复计算
+const filterOptions = computed(() => {
+  const colleges = new Set();
+  const majors = new Set();
+  const grades = new Set();
+  const trainingLevels = new Set();
+  const textbooks = new Set();
+
+  const fCollege = filterCollege.value;
+  const fMajor = filterMajor.value;
+
+  for (const c of classList.value) {
+    if (c.collegeName) colleges.add(c.collegeName);
+
+    const matchCollege = !fCollege || c.collegeName === fCollege;
+    const matchCollegeMajor = matchCollege && (!fMajor || c.majorName === fMajor);
+
+    if (c.majorName && matchCollege) majors.add(c.majorName);
+    if (c.grade && matchCollegeMajor) grades.add(c.grade);
+    if (c.trainingLevelName && matchCollegeMajor) trainingLevels.add(c.trainingLevelName);
+    if (c.textbooks) {
+      for (const tb of c.textbooks) {
+        if (tb.title) textbooks.add(tb.title);
+      }
+    }
+  }
+
+  return {
+    colleges: [...colleges].sort(),
+    majors: [...majors].sort(),
+    grades: [...grades].sort((a, b) => a - b),
+    trainingLevels: [...trainingLevels].sort(),
+    textbooks: [...textbooks].sort(),
+  };
 });
 
-const majorOptions = computed(() => {
-  let list = classList.value;
-  if (filterCollege.value) list = list.filter((c) => c.collegeName === filterCollege.value);
-  const set = new Set(list.map((c) => c.majorName).filter(Boolean));
-  return [...set].sort();
-});
-
-const gradeOptions = computed(() => {
-  let list = classList.value;
-  if (filterCollege.value) list = list.filter((c) => c.collegeName === filterCollege.value);
-  if (filterMajor.value) list = list.filter((c) => c.majorName === filterMajor.value);
-  const set = new Set(list.map((c) => c.grade).filter(Boolean));
-  return [...set].sort((a, b) => a - b);
-});
-
-const trainingLevelOptions = computed(() => {
-  let list = classList.value;
-  if (filterCollege.value) list = list.filter((c) => c.collegeName === filterCollege.value);
-  if (filterMajor.value) list = list.filter((c) => c.majorName === filterMajor.value);
-  const set = new Set(list.map((c) => c.trainingLevelName).filter(Boolean));
-  return [...set].sort();
-});
-
-const textbookOptions = computed(() => {
-  const set = new Set();
-  classList.value.forEach((c) => {
-    (c.textbooks || []).forEach((tb) => {
-      if (tb.title) set.add(tb.title);
-    });
-  });
-  return [...set].sort();
-});
+const collegeOptions = computed(() => filterOptions.value.colleges);
+const majorOptions = computed(() => filterOptions.value.majors);
+const gradeOptions = computed(() => filterOptions.value.grades);
+const trainingLevelOptions = computed(() => filterOptions.value.trainingLevels);
+const textbookOptions = computed(() => filterOptions.value.textbooks);
 
 const filteredClassList = computed(() => {
   return classList.value.filter((c) => {
@@ -822,13 +816,12 @@ async function handleSaveHourSettings() {
   }
 }
 
+const settingsStore = useSettingsStore();
+
 async function loadSemester() {
   try {
-    const res = await request.get('/settings');
-    const settings = res.data || {};
-    if (settings.currentSemester) {
-      currentSemesterLabel.value = settings.currentSemester.value;
-    }
+    await settingsStore.load();
+    currentSemesterLabel.value = settingsStore.currentSemesterValue();
   } catch (e) {
     if (import.meta.env.DEV) {
       console.error('获取学期失败:', e);

@@ -108,7 +108,6 @@
 
 <script setup>
 import { computed } from 'vue';
-import { WarningFilled } from '@element-plus/icons-vue';
 
 const props = defineProps({
   dialogVisible: {

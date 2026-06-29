@@ -6,33 +6,31 @@
           <span
             ><el-icon><Reading /></el-icon> 课程管理</span
           >
-          <div class="card-header-actions">
-            <el-input
-              v-model="filterName"
-              clearable
-              placeholder="搜索课程名称"
-              class="filter-input"
-            />
-            <el-button @click="exportData">数据导出</el-button>
-            <el-button @click="downloadTemplate">下载模板</el-button>
-            <el-upload
-              :show-file-list="false"
-              accept=".xlsx,.xls"
-              action="/api/import/courses"
-              name="file"
-              :headers="uploadHeaders"
-              :on-success="onImportSuccess"
-              :on-error="onImportError"
-              :before-upload="beforeImport"
-            >
-              <el-button>导入Excel</el-button>
-            </el-upload>
-            <el-button type="primary" @click="openDialog()">
-              <el-icon><Plus /></el-icon> 新增课程
-            </el-button>
-          </div>
+          <el-button type="primary" @click="openDialog()">
+            <el-icon><Plus /></el-icon> 新增课程
+          </el-button>
         </div>
       </template>
+
+      <div class="page-toolbar">
+        <el-input v-model="filterName" clearable placeholder="搜索课程名称" class="filter-2xl" />
+        <div class="action-buttons">
+          <el-button @click="exportData">数据导出</el-button>
+          <el-button @click="downloadTemplate">下载模板</el-button>
+          <el-upload
+            :show-file-list="false"
+            accept=".xlsx,.xls"
+            action="/api/import/courses"
+            name="file"
+            :headers="uploadHeaders"
+            :on-success="onImportSuccess"
+            :on-error="onImportError"
+            :before-upload="beforeImport"
+          >
+            <el-button>导入Excel</el-button>
+          </el-upload>
+        </div>
+      </div>
 
       <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
         <template #empty>
@@ -88,8 +86,9 @@
       v-model="dialogVisible"
       :title="form.id ? '编辑课程' : '新增课程'"
       width="min(500px, 90vw)"
+      destroy-on-close
     >
-      <el-form :model="form" label-width="80px">
+      <el-form :model="form" label-width="90px">
         <el-form-item label="课程名称" required>
           <el-input v-model="form.name" placeholder="请输入课程名称" />
         </el-form-item>
@@ -120,8 +119,8 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { ElMessage } from 'element-plus';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course';
 import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
@@ -225,13 +224,4 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.filter-input {
-  width: 180px;
-}
-.sort-buttons {
-  display: flex;
-  gap: 4px;
-  justify-content: center;
-}
-</style>
+<style scoped></style>

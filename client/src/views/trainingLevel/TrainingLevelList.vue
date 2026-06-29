@@ -61,8 +61,9 @@
       v-model="dialogVisible"
       :title="form.id ? '编辑层次' : '新增层次'"
       width="min(500px, 90vw)"
+      destroy-on-close
     >
-      <el-form :model="form" label-width="80px">
+      <el-form :model="form" label-width="90px">
         <el-form-item label="层次名称" required>
           <el-input v-model="form.name" placeholder="请输入层次名称" />
         </el-form-item>

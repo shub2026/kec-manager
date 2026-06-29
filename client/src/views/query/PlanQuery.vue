@@ -6,24 +6,26 @@
           <span
             ><el-icon><Document /></el-icon> 方案查询</span
           >
-          <div class="card-header-actions">
-            <el-select
-              v-model="selectedPlanId"
-              placeholder="请选择培养方案"
-              clearable
-              class="filter-select"
-              @change="handlePlanChange"
-            >
-              <el-option
-                v-for="plan in plans"
-                :key="plan.id"
-                :label="getPlanLabel(plan)"
-                :value="plan.id"
-              />
-            </el-select>
-          </div>
         </div>
       </template>
+
+      <div class="page-toolbar">
+        <el-select
+          v-model="selectedPlanId"
+          placeholder="请选择培养方案"
+          clearable
+          class="filter-2xl"
+          style="max-width: 400px"
+          @change="handlePlanChange"
+        >
+          <el-option
+            v-for="plan in plans"
+            :key="plan.id"
+            :label="getPlanLabel(plan)"
+            :value="plan.id"
+          />
+        </el-select>
+      </div>
 
       <!-- 矩阵表展示：复用 CourseMatrixTable 只读模式 -->
       <div v-if="selectedPlanId && planCourses.length > 0" class="matrix-container">
@@ -149,10 +151,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.filter-select {
-  width: 400px;
-}
-
 .matrix-container {
   margin-top: 20px;
 }

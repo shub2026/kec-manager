@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Layout from '../components/Layout.vue';
 import { useAuthStore } from '../stores/auth';
+import { useSettingsStore } from '../stores/settings';
 
 const routes = [
   {
@@ -199,7 +200,9 @@ router.beforeEach(async (to, from, next) => {
 
       // 确保用户信息已加载
       if (!authStore.userInfo) {
-        await authStore.fetchUserInfo();
+        // 并行加载用户信息 + 系统设置，减少首屏串行等待
+        const settingsStore = useSettingsStore();
+        await Promise.all([authStore.fetchUserInfo(), settingsStore.load()]);
       }
 
       // 再次检查用户信息是否加载成功

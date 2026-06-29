@@ -1,10 +1,10 @@
 <template>
-  <div class="filter-bar">
+  <div class="page-toolbar">
     <el-input
       v-model="localFilters.name"
       clearable
       placeholder="按班级名称筛选"
-      class="filter-name"
+      class="filter-2xl"
       @clear="$emit('search')"
       @keyup.enter="$emit('search')"
     />
@@ -12,7 +12,7 @@
       v-model="localFilters.collegeId"
       clearable
       placeholder="选择学院"
-      class="filter-medium"
+      class="filter-xl"
       @change="handleCollegeChange"
     >
       <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
@@ -21,7 +21,7 @@
       v-model="localFilters.majorId"
       clearable
       placeholder="选择专业"
-      class="filter-medium"
+      class="filter-xl"
       :disabled="!filteredMajors.length && localFilters.collegeId"
       @change="handleMajorChange"
     >
@@ -31,7 +31,7 @@
       v-model="localFilters.trainingLevelId"
       clearable
       placeholder="培养层次"
-      class="filter-narrow"
+      class="filter-md"
       :disabled="!filteredTrainingLevels.length && (localFilters.collegeId || localFilters.majorId)"
       @change="handleTrainingLevelChange"
     >
@@ -46,7 +46,7 @@
       v-model="localFilters.enrollmentYear"
       clearable
       placeholder="入学年份"
-      class="filter-narrow"
+      class="filter-md"
       :disabled="
         !filteredEnrollmentYears.length &&
         (localFilters.collegeId || localFilters.majorId || localFilters.trainingLevelId)
@@ -64,7 +64,7 @@
       v-model="localFilters.status"
       clearable
       placeholder="状态"
-      class="filter-small"
+      class="filter-sm"
       @change="$emit('change')"
     >
       <el-option label="在读" value="active" />
@@ -75,7 +75,7 @@
       v-model="localFilters.planId"
       clearable
       placeholder="培养方案"
-      class="filter-medium"
+      class="filter-xl"
       :disabled="
         !filteredPlans.length &&
         (localFilters.collegeId || localFilters.majorId || localFilters.trainingLevelId)
@@ -101,16 +101,12 @@
       >
         <el-button>导入Excel</el-button>
       </el-upload>
-      <el-button type="primary" @click="$emit('add')">
-        <el-icon><Plus /></el-icon> 新增班级
-      </el-button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
-import { Plus } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 
@@ -327,46 +323,10 @@ function handleTrainingLevelChange() {
 </script>
 
 <style scoped>
-.filter-bar {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.filter-name {
-  width: 200px;
-}
-
-.filter-medium {
-  width: 160px;
-}
-
-.filter-narrow {
-  width: 120px;
-}
-
-.filter-small {
-  width: 100px;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
+/* filter-bar 布局由 global.css .page-toolbar 统一处理 */
 
 @media (max-width: 768px) {
-  .filter-name,
-  .filter-medium,
-  .filter-narrow,
-  .filter-small {
-    width: 100%;
-  }
-
   .action-buttons {
-    width: 100%;
-    margin-left: 0;
     flex-wrap: wrap;
   }
 }

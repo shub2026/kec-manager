@@ -6,36 +6,38 @@
           <span
             ><el-icon><User /></el-icon> 班级管理</span
           >
-          <div class="card-header-actions">
-            <!-- 筛选器组件 -->
-            <ClassFilterBar
-              v-model:filters="filters"
-              :colleges="colleges"
-              :majors="majors"
-              :training-levels="trainingLevels"
-              :enrollment-years="enrollmentYears"
-              :plans="plans"
-              :college-major-relation="collegeMajorRelation"
-              :college-level-relation="collegeLevelRelation"
-              :major-level-relation="majorLevelRelation"
-              :college-year-relation="collegeYearRelation"
-              :major-year-relation="majorYearRelation"
-              :level-year-relation="levelYearRelation"
-              :plan-college-relation="planCollegeRelation"
-              :plan-major-relation="planMajorRelation"
-              :plan-level-relation="planLevelRelation"
-              @change="resetPaginationAndLoad"
-              @search="load"
-              @export="handleExport"
-              @download-template="downloadTemplate"
-              @import-success="onImportSuccess"
-              @import-error="onImportError"
-              @before-upload="beforeImport"
-              @add="openDialog"
-            />
-          </div>
+          <el-button type="primary" @click="openDialog()">
+            <el-icon><Plus /></el-icon> 新增班级
+          </el-button>
         </div>
       </template>
+
+      <!-- 筛选器组件（移至卡片体内） -->
+      <ClassFilterBar
+        v-model:filters="filters"
+        :colleges="colleges"
+        :majors="majors"
+        :training-levels="trainingLevels"
+        :enrollment-years="enrollmentYears"
+        :plans="plans"
+        :college-major-relation="collegeMajorRelation"
+        :college-level-relation="collegeLevelRelation"
+        :major-level-relation="majorLevelRelation"
+        :college-year-relation="collegeYearRelation"
+        :major-year-relation="majorYearRelation"
+        :level-year-relation="levelYearRelation"
+        :plan-college-relation="planCollegeRelation"
+        :plan-major-relation="planMajorRelation"
+        :plan-level-relation="planLevelRelation"
+        @change="resetPaginationAndLoad"
+        @search="load"
+        @export="handleExport"
+        @download-template="downloadTemplate"
+        @import-success="onImportSuccess"
+        @import-error="onImportError"
+        @before-upload="beforeImport"
+        @add="openDialog"
+      />
 
       <!-- 表格组件 -->
       <ClassTable
@@ -101,13 +103,13 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Loading } from '@element-plus/icons-vue';
 import request from '../../utils/request';
 import { getClasses, createClass, updateClass, deleteClass } from '../../api/class';
 import { getMajors } from '../../api/major';
 import { getPlans } from '../../api/plan';
 import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
+import { useSettingsStore } from '../../stores/settings';
 import { useExport } from '../../composables/useExport';
 import ClassFilterBar from './components/ClassFilterBar.vue';
 import ClassTable from './components/ClassTable.vue';
@@ -258,21 +260,22 @@ async function load() {
 
 async function loadBaseData() {
   try {
-    const [majorsRes, plansRes, levelsRes, collegesRes, settingsRes] = await Promise.all([
+    const settingsStore = useSettingsStore();
+    const [majorsRes, plansRes, levelsRes, collegesRes] = await Promise.all([
       getMajors(),
       getPlans(),
       getTrainingLevels(),
       getColleges(),
-      request.get('/settings'),
+      settingsStore.load(),
     ]);
     majors.value = majorsRes?.data || [];
     plans.value = plansRes?.data || [];
     trainingLevels.value = levelsRes?.data || [];
     colleges.value = collegesRes?.data || [];
 
-    // 解析当前学期信息
-    if (settingsRes?.data?.currentSemester?.value) {
-      const semesterValue = settingsRes.data.currentSemester.value;
+    // 解析当前学期信息（从 settingsStore 获取）
+    const semesterValue = settingsStore.currentSemesterValue();
+    if (semesterValue) {
       const parts = semesterValue.split('-');
       if (parts.length === 3) {
         currentSemesterInfo.value = {
@@ -470,9 +473,9 @@ async function handleBatchSet() {
       updates.is_left_school = batchForm.value.isLeftSchool;
     }
 
-    for (const cls of selectedClasses.value) {
-      await updateClass(cls.id, { ...cls, ...updates });
-    }
+    await Promise.all(
+      selectedClasses.value.map((cls) => updateClass(cls.id, { ...cls, ...updates }))
+    );
 
     ElMessage.success('批量设置成功');
     batchDialogVisible.value = false;

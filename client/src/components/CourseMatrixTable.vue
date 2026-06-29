@@ -136,7 +136,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { ArrowUp, ArrowDown, Setting, Delete, Check, Warning } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown } from '@element-plus/icons-vue';
 import { useMatrixCalculations } from '../composables/useMatrixCalculations';
 
 const props = defineProps({

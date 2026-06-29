@@ -290,21 +290,6 @@
 
 <script setup>
 import { ref } from 'vue';
-import {
-  WarningFilled,
-  Grid,
-  Document,
-  Setting,
-  DocumentChecked,
-  Delete,
-  User,
-  UserFilled,
-  Reading,
-  Notebook,
-  Collection,
-  OfficeBuilding,
-  Rank,
-} from '@element-plus/icons-vue';
 
 const props = defineProps({
   resetting: {

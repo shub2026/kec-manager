@@ -90,13 +90,7 @@
     <el-container>
       <el-header class="layout-header">
         <div class="layout-header-left">
-          <el-icon
-            class="collapse-icon"
-            @click="
-              userCollapsed = !userCollapsed;
-              handleResize();
-            "
-          >
+          <el-icon class="collapse-icon" @click="userCollapsed = !userCollapsed">
             <Fold v-if="!isCollapse" />
             <Expand v-else />
           </el-icon>
@@ -150,15 +144,17 @@ const route = useRoute();
 const router = useRouter();
 const settingsStore = useSettingsStore();
 const authStore = useAuthStore();
-const isCollapse = ref(false);
 const userCollapsed = ref(false); // 用户手动折叠标记
+const windowNarrow = ref(false); // 窗口窄屏标记
 const version = __APP_VERSION__;
+
+// 侧边栏折叠状态 = 窗口窄屏 || 用户手动折叠
+const isCollapse = computed(() => windowNarrow.value || userCollapsed.value);
 
 // 响应式侧边栏：窄屏自动折叠
 const SIDEBAR_BREAKPOINT = 1024;
 function handleResize() {
-  const narrow = window.innerWidth < SIDEBAR_BREAKPOINT;
-  isCollapse.value = narrow || userCollapsed.value;
+  windowNarrow.value = window.innerWidth < SIDEBAR_BREAKPOINT;
 }
 
 // 修改密码相关

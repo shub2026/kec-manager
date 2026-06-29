@@ -3,7 +3,9 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>用户管理</span>
+          <span
+            ><el-icon><UserFilled /></el-icon> 用户管理</span
+          >
           <el-button type="primary" @click="showCreateDialog">
             <el-icon><Plus /></el-icon>
             创建用户
@@ -22,6 +24,9 @@
 
       <!-- 用户列表 -->
       <el-table v-loading="loading" :data="users" stripe row-key="id">
+        <template #empty>
+          <el-empty description="暂无用户数据" />
+        </template>
         <el-table-column type="index" label="序号" min-width="60" align="center" />
         <el-table-column prop="username" label="用户名" min-width="120" />
         <el-table-column prop="realName" label="姓名" min-width="100" />
@@ -150,6 +155,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { UserFilled } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import request from '@/utils/request';
@@ -349,13 +355,4 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.user-management {
-  padding: 20px;
-}
-
-.text-muted {
-  color: #909399;
-  font-size: 13px;
-}
-</style>
+<style scoped></style>

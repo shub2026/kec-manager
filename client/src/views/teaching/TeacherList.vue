@@ -6,87 +6,83 @@
           <span
             ><el-icon><Avatar /></el-icon> 教师信息</span
           >
-          <div class="card-header-actions">
-            <el-input v-model="filterName" placeholder="搜索姓名" clearable class="filter-name" />
-            <el-select
-              v-model="filterPersonnelType"
-              placeholder="人员类别"
-              clearable
-              class="filter-small"
-            >
-              <el-option label="专职" value="full_time" />
-              <el-option label="兼职" value="part_time" />
-              <el-option label="外聘" value="external" />
-            </el-select>
-            <el-select
-              v-model="filterCourseId"
-              placeholder="学科"
-              clearable
-              filterable
-              class="filter-medium"
-            >
-              <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
-            </el-select>
-            <el-select
-              v-model="filterCollegeId"
-              placeholder="意向学院"
-              clearable
-              filterable
-              class="filter-medium"
-              @change="handleCollegeFilterChange"
-            >
-              <el-option v-for="c in filteredColleges" :key="c.id" :label="c.name" :value="c.id" />
-            </el-select>
-            <el-select
-              v-model="filterTrainingLevelId"
-              placeholder="意向层次"
-              clearable
-              filterable
-              class="filter-narrow"
-              @change="handleTrainingLevelFilterChange"
-            >
-              <el-option
-                v-for="l in filteredTrainingLevels"
-                :key="l.id"
-                :label="l.name"
-                :value="l.id"
-              />
-            </el-select>
-            <el-select
-              v-model="filterAffiliatedCollegeId"
-              placeholder="归属学院"
-              clearable
-              filterable
-              class="filter-medium"
-            >
-              <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
-            </el-select>
-            <el-select v-model="filterStatus" placeholder="状态" clearable class="filter-small">
-              <el-option label="启用" value="active" />
-              <el-option label="禁用" value="disabled" />
-            </el-select>
-            <div class="action-buttons">
-              <el-button @click="exportData">数据导出</el-button>
-              <el-button @click="downloadTemplate">下载模板</el-button>
-              <el-upload
-                :show-file-list="false"
-                accept=".xlsx,.xls"
-                action="/api/import/teachers"
-                name="file"
-                :headers="uploadHeaders"
-                :on-success="onImportSuccess"
-                :on-error="onImportError"
-                :before-upload="beforeImport"
-              >
-                <el-button>导入Excel</el-button>
-              </el-upload>
-              <el-button type="primary" @click="openDialog()">
-                <el-icon><Plus /></el-icon> 新增教师
-              </el-button>
-            </div>
-          </div>
+          <el-button type="primary" @click="openDialog()">
+            <el-icon><Plus /></el-icon> 新增教师
+          </el-button>
         </div>
       </template>
+
+      <div class="page-toolbar">
+        <el-input v-model="filterName" placeholder="搜索姓名" clearable class="filter-2xl" />
+        <el-select v-model="filterPersonnelType" placeholder="人员类别" clearable class="filter-sm">
+          <el-option label="专职" value="full_time" />
+          <el-option label="兼职" value="part_time" />
+          <el-option label="外聘" value="external" />
+        </el-select>
+        <el-select
+          v-model="filterCourseId"
+          placeholder="学科"
+          clearable
+          filterable
+          class="filter-xl"
+        >
+          <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
+        </el-select>
+        <el-select
+          v-model="filterCollegeId"
+          placeholder="意向学院"
+          clearable
+          filterable
+          class="filter-xl"
+          @change="handleCollegeFilterChange"
+        >
+          <el-option v-for="c in filteredColleges" :key="c.id" :label="c.name" :value="c.id" />
+        </el-select>
+        <el-select
+          v-model="filterTrainingLevelId"
+          placeholder="意向层次"
+          clearable
+          filterable
+          class="filter-md"
+          @change="handleTrainingLevelFilterChange"
+        >
+          <el-option
+            v-for="l in filteredTrainingLevels"
+            :key="l.id"
+            :label="l.name"
+            :value="l.id"
+          />
+        </el-select>
+        <el-select
+          v-model="filterAffiliatedCollegeId"
+          placeholder="归属学院"
+          clearable
+          filterable
+          class="filter-xl"
+        >
+          <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
+        </el-select>
+        <el-select v-model="filterStatus" placeholder="状态" clearable class="filter-sm">
+          <el-option label="启用" value="active" />
+          <el-option label="禁用" value="disabled" />
+        </el-select>
+        <div class="action-buttons">
+          <el-button @click="exportData">数据导出</el-button>
+          <el-button @click="downloadTemplate">下载模板</el-button>
+          <el-upload
+            :show-file-list="false"
+            accept=".xlsx,.xls"
+            action="/api/import/teachers"
+            name="file"
+            :headers="uploadHeaders"
+            :on-success="onImportSuccess"
+            :on-error="onImportError"
+            :before-upload="beforeImport"
+          >
+            <el-button>导入Excel</el-button>
+          </el-upload>
+        </div>
+      </div>
 
       <el-table v-loading="loading" :data="filteredlist" stripe row-key="id">
         <template #empty>
@@ -309,7 +305,7 @@
             controls-position="right"
             style="width: 200px"
           />
-          <span class="form-tip">不填则使用课时要求的标准周课时</span>
+          <span class="form-hint">不填则使用课时要求的标准周课时</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -322,7 +318,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import { Plus, Edit, Delete } from '@element-plus/icons-vue';
+import { Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import {
   getTeachers,
@@ -618,32 +614,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.filter-name {
-  width: 200px;
-}
-.filter-medium {
-  width: 160px;
-}
-.filter-narrow {
-  width: 120px;
-}
-.filter-small {
-  width: 100px;
-}
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
-}
 .tag-item {
   margin: 2px;
-}
-.text-muted {
-  color: #999;
-}
-.form-tip {
-  margin-left: 8px;
-  color: #999;
-  font-size: 12px;
 }
 </style>

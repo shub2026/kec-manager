@@ -3,25 +3,30 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>培养方案管理</span>
-          <div class="card-header-actions">
-            <el-select
-              v-model="filterCollegeId"
-              placeholder="选择使用部门"
-              clearable
-              class="filter-medium"
-              @change="handleFilterChange"
-            >
-              <el-option label="全部部门" value="" />
-              <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
-            </el-select>
-            <el-button type="primary" @click="openDialog()">
-              <el-icon><Plus /></el-icon> 新增方案
-            </el-button>
-          </div>
+          <span
+            ><el-icon><Document /></el-icon> 培养方案管理</span
+          >
+          <el-button type="primary" @click="openDialog()">
+            <el-icon><Plus /></el-icon> 新增方案
+          </el-button>
         </div>
       </template>
+      <div class="page-toolbar">
+        <el-select
+          v-model="filterCollegeId"
+          placeholder="选择使用部门"
+          clearable
+          class="filter-xl"
+          @change="handleFilterChange"
+        >
+          <el-option label="全部部门" value="" />
+          <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
+        </el-select>
+      </div>
       <el-table v-loading="loading" :data="filteredlist" stripe row-key="id">
+        <template #empty>
+          <el-empty description="暂无培养方案，请点击右上角新增" />
+        </template>
         <el-table-column type="index" label="序号" width="55" />
         <el-table-column prop="name" label="方案名称" min-width="200" />
         <el-table-column label="使用部门" min-width="120">
@@ -68,7 +73,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="210" fixed="right">
+        <el-table-column label="操作" width="210" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               size="small"
@@ -97,8 +102,9 @@
       v-model="dialogVisible"
       :title="form.id ? '编辑方案' : '新增方案'"
       width="min(500px, 90vw)"
+      destroy-on-close
     >
-      <el-form :model="form" label-width="80px">
+      <el-form :model="form" label-width="90px">
         <el-form-item label="方案名称" required>
           <el-input v-model="form.name" placeholder="如：2024级学前教育培养方案" />
         </el-form-item>
@@ -123,7 +129,7 @@
             <el-radio value="major">按专业</el-radio>
             <el-radio value="trainingLevel">按层次</el-radio>
           </el-radio-group>
-          <div class="mode-tip">
+          <div class="form-hint">
             <span v-if="relationMode === 'major'"
               >该方案关联特定专业，适用于同一专业的培养方案</span
             >
@@ -174,8 +180,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { ArrowUp, ArrowDown, Document } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan';
 import { getMajors } from '../../api/major';
 import { getTrainingLevels } from '../../api/trainingLevel';
@@ -339,17 +345,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.filter-medium {
-  width: 160px;
-}
 .relation-mode-group {
   display: flex;
   gap: 16px;
-}
-.mode-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
-  line-height: 1.5;
 }
 </style>

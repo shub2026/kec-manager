@@ -12,12 +12,12 @@
         </div>
       </template>
 
-      <div class="query-toolbar">
+      <div class="page-toolbar">
         <el-select
           v-model="filterAction"
           clearable
           placeholder="操作类型"
-          style="width: 140px"
+          class="filter-lg"
           @change="loadLogs"
         >
           <el-option label="登录" value="login" />
@@ -32,7 +32,7 @@
           v-model="filterModule"
           clearable
           placeholder="所属模块"
-          style="width: 140px"
+          class="filter-lg"
           @change="loadLogs"
         >
           <el-option label="认证" value="auth" />
@@ -52,7 +52,7 @@
           v-model="filterResult"
           clearable
           placeholder="执行结果"
-          style="width: 120px"
+          class="filter-md"
           @change="loadLogs"
         >
           <el-option label="成功" value="success" />
@@ -185,7 +185,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { Document } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getAuditLogs } from '../../api/audit';
 import request from '../../utils/request';
@@ -390,18 +389,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.audit-log {
-  padding: 20px;
-}
-
-.query-toolbar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
 .time-text {
   color: #606266;
   font-size: 13px;

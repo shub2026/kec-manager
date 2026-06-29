@@ -1,9 +1,8 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-import ElementPlus from 'element-plus';
-import 'element-plus/dist/index.css';
+// ElementPlus 通过 vite.config.js 的 unplugin-vue-components 按需引入，不在此处全量导入
+// locale 中文配置在 App.vue 中通过 <el-config-provider> 提供
 import './styles/global.css';
-import zhCn from 'element-plus/dist/locale/zh-cn.mjs';
 import {
   ArrowDown,
   ArrowRight,
@@ -13,18 +12,24 @@ import {
   Check,
   CircleCheck,
   CircleCheckFilled,
+  Clock,
   Collection,
   DataAnalysis,
+  DataLine,
   Delete,
   Document,
   DocumentChecked,
   Download,
   Edit,
+  EditPen,
   Expand,
+  Files,
   Fold,
   Grid,
+  Histogram,
   HomeFilled,
   InfoFilled,
+  Lightning,
   Loading,
   MagicStick,
   Notebook,
@@ -34,9 +39,12 @@ import {
   Reading,
   Refresh,
   RefreshRight,
+  School,
+  Search,
   Setting,
   SetUp,
   Tools,
+  Upload,
   User,
   UserFilled,
   Warning,
@@ -62,9 +70,9 @@ app.config.warnHandler = (msg, instance, trace) => {
 const pinia = createPinia();
 app.use(pinia);
 app.use(router);
-app.use(ElementPlus, { locale: zhCn });
 
-// 只注册实际使用的图标（36个），替代全量注册（280+个）
+// 注册实际使用的图标（46个），替代全量注册（280+个）
+// ElementPlus 组件本身通过 unplugin-vue-components 按需引入
 const icons = {
   ArrowDown,
   ArrowRight,
@@ -74,18 +82,24 @@ const icons = {
   Check,
   CircleCheck,
   CircleCheckFilled,
+  Clock,
   Collection,
   DataAnalysis,
+  DataLine,
   Delete,
   Document,
   DocumentChecked,
   Download,
   Edit,
+  EditPen,
   Expand,
+  Files,
   Fold,
   Grid,
+  Histogram,
   HomeFilled,
   InfoFilled,
+  Lightning,
   Loading,
   MagicStick,
   Notebook,
@@ -95,9 +109,12 @@ const icons = {
   Reading,
   Refresh,
   RefreshRight,
+  School,
+  Search,
   Setting,
   SetUp,
   Tools,
+  Upload,
   User,
   UserFilled,
   Warning,

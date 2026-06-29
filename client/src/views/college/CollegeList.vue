@@ -61,8 +61,9 @@
       v-model="dialogVisible"
       :title="form.id ? '编辑学院' : '新增学院'"
       width="min(500px, 90vw)"
+      destroy-on-close
     >
-      <el-form :model="form" label-width="80px">
+      <el-form :model="form" label-width="90px">
         <el-form-item label="学院名称" required>
           <el-input v-model="form.name" placeholder="请输入学院名称" />
         </el-form-item>

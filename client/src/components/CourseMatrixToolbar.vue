@@ -10,8 +10,6 @@
 </template>
 
 <script setup>
-import { Plus } from '@element-plus/icons-vue';
-
 defineProps({
   allCourses: { type: Array, default: () => [] },
 });

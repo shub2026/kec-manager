@@ -1,6 +1,9 @@
-/* 全局共享样式 — 抽取自各 .vue 组件中的重复 CSS */
+/* ================================================================
+   KEC 管理平台 — 全局共享样式
+   设计令牌：间距基数 8px，卡片圆角 8px，阴影统一 ElementPlus 默认
+   ================================================================ */
 
-/* 卡片头部 */
+/* ----- 卡片头部（标题行） ----- */
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -11,12 +14,77 @@
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
-/* 排序按钮 */
-.sort-buttons {
+/* ----- 页面工具栏（筛选区，位于 card 内、table 上方） ----- */
+.page-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 16px;
+  margin-bottom: 0;
+}
+
+.page-toolbar + .el-table {
+  margin-top: 0;
+}
+
+/* 工具栏内操作按钮组 */
+.page-toolbar .action-buttons {
+  margin-left: 8px;
+}
+
+/* ----- 操作按钮组（导出/导入/新增等） ----- */
+.action-buttons {
   display: flex;
   gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ----- 筛选控件标准宽度（统一命名规范） ----- */
+/* 尺寸档位：xs=80  sm=100  md=120  lg=140  xl=160  2xl=200 */
+/* 使用 .page-toolbar 前缀提升特异性，压过 Element Plus .el-input/.el-select 的 width:100% */
+.page-toolbar .filter-xs {
+  width: 80px;
+}
+.page-toolbar .filter-sm {
+  width: 100px;
+}
+.page-toolbar .filter-md {
+  width: 120px;
+}
+.page-toolbar .filter-lg {
+  width: 140px;
+}
+.page-toolbar .filter-xl {
+  width: 160px;
+}
+.page-toolbar .filter-2xl {
+  width: 200px;
+}
+
+/* 向后兼容旧类名映射 */
+.page-toolbar .filter-select-sm {
+  width: 100px;
+}
+.page-toolbar .filter-select-md {
+  width: 120px;
+}
+.page-toolbar .filter-select-lg {
+  width: 140px;
+}
+.page-toolbar .filter-select-xl {
+  width: 160px;
+}
+
+/* ----- 排序按钮 ----- */
+.sort-buttons {
+  display: flex;
+  gap: 4px;
   justify-content: center;
   align-items: center;
 }
@@ -25,7 +93,7 @@
   opacity: 0.3;
 }
 
-/* 分页容器 */
+/* ----- 分页容器 ----- */
 .pagination-container {
   display: flex;
   justify-content: flex-end;
@@ -33,36 +101,12 @@
   padding: 12px 0;
 }
 
-/* 提示信息 */
-.alert-info {
-  margin-bottom: 16px;
-}
-
-/* 展开行内容 */
-.expand-content {
-  padding: 12px 24px;
-}
-
-/* 筛选下拉框标准宽度 */
-.filter-select-sm {
-  width: 100px;
-}
-.filter-select-md {
-  width: 120px;
-}
-.filter-select-lg {
-  width: 140px;
-}
-.filter-select-xl {
-  width: 160px;
-}
-
-/* 批量操作栏 */
+/* ----- 批量操作栏 ----- */
 .batch-operations {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 16px;
+  padding: 10px 16px;
   background: #f5f7fa;
   border-radius: 6px;
   flex-wrap: wrap;
@@ -75,7 +119,17 @@
   margin-right: auto;
 }
 
-/* 表单提示文字 */
+/* ----- 提示信息 ----- */
+.alert-info {
+  margin-bottom: 16px;
+}
+
+/* ----- 展开行内容 ----- */
+.expand-content {
+  padding: 12px 24px;
+}
+
+/* ----- 表单提示文字 ----- */
 .form-hint {
   color: #909399;
   font-size: 12px;
@@ -83,27 +137,114 @@
   line-height: 1.5;
 }
 
-/* 通用全宽 */
+/* ----- 次要文字 ----- */
+.text-muted {
+  color: #909399;
+  font-size: 13px;
+}
+
+/* ----- 通用全宽 ----- */
 .full-width {
   width: 100%;
 }
 
-/* 无教材提示 */
+/* ----- 无教材提示 ----- */
 .no-textbook {
   color: #909399;
 }
 
-/* ===== 响应式适配 ===== */
-
-/* 平板（≤992px）：筛选器控制宽度适度缩小 */
-@media (max-width: 992px) {
-  .filter-select-sm { width: 90px; }
-  .filter-select-md { width: 120px; }
-  .filter-select-lg { width: 120px; }
-  .filter-select-xl { width: 140px; }
+/* ----- 空状态增强 ----- */
+.el-empty {
+  padding: 40px 0;
 }
 
-/* 窄屏（≤768px）：卡片纵向堆叠，表单标签改顶部，筛选器全宽 */
+/* ----- 筛选折叠图标动画 ----- */
+.expand-icon {
+  transition: transform 0.3s;
+  margin-left: 2px;
+}
+
+.expand-icon.is-expanded {
+  transform: rotate(180deg);
+}
+
+/* ----- 错误状态占位 ----- */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.error-state .error-icon {
+  font-size: 48px;
+  color: #f56c6c;
+  margin-bottom: 16px;
+}
+
+.error-state .error-message {
+  color: #606266;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* ================================================================
+   响应式适配
+   断点：1440（桌面）→ 1200（小桌面）→ 992（平板）→ 768（窄屏）→ 480（手机）
+   ================================================================ */
+
+/* 小桌面（≤1440px）：筛选器宽度适度收缩 */
+@media (max-width: 1440px) {
+  .page-toolbar .filter-2xl {
+    width: 180px;
+  }
+  .page-toolbar .filter-xl {
+    width: 140px;
+  }
+  .page-toolbar .filter-lg {
+    width: 120px;
+  }
+  /* 兼容旧类名 */
+  .page-toolbar .filter-select-xl {
+    width: 140px;
+  }
+  .page-toolbar .filter-select-lg {
+    width: 120px;
+  }
+}
+
+/* 平板（≤992px）：筛选器进一步收缩 */
+@media (max-width: 992px) {
+  .page-toolbar .filter-2xl {
+    width: 160px;
+  }
+  .page-toolbar .filter-xl {
+    width: 130px;
+  }
+  .page-toolbar .filter-lg {
+    width: 110px;
+  }
+  .page-toolbar .filter-md {
+    width: 100px;
+  }
+  /* 兼容旧类名 */
+  .page-toolbar .filter-select-sm {
+    width: 90px;
+  }
+  .page-toolbar .filter-select-md {
+    width: 120px;
+  }
+  .page-toolbar .filter-select-lg {
+    width: 120px;
+  }
+  .page-toolbar .filter-select-xl {
+    width: 140px;
+  }
+}
+
+/* 窄屏（≤768px）：卡片纵向堆叠，筛选器全宽 */
 @media (max-width: 768px) {
   /* 卡片头部纵向堆叠 */
   .card-header {
@@ -121,11 +262,40 @@
     width: 100% !important;
   }
 
-  /* 筛选下拉框全宽 */
-  .filter-select-sm,
-  .filter-select-md,
-  .filter-select-lg,
-  .filter-select-xl {
+  /* 工具栏纵向全宽 */
+  .page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding-bottom: 12px;
+  }
+
+  .page-toolbar .el-select,
+  .page-toolbar .el-input {
+    width: 100% !important;
+  }
+
+  .page-toolbar .action-buttons {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* 所有筛选控件全宽 */
+  .page-toolbar .filter-xs,
+  .page-toolbar .filter-sm,
+  .page-toolbar .filter-md,
+  .page-toolbar .filter-lg,
+  .page-toolbar .filter-xl,
+  .page-toolbar .filter-2xl,
+  .page-toolbar .filter-select-sm,
+  .page-toolbar .filter-select-md,
+  .page-toolbar .filter-select-lg,
+  .page-toolbar .filter-select-xl {
+    width: 100%;
+  }
+
+  /* 操作按钮组全宽 */
+  .action-buttons {
     width: 100%;
   }
 
@@ -184,7 +354,7 @@
   }
 }
 
-/* 操作列响应式：桌面显示按钮行，窄屏显示下拉菜单 */
+/* ----- 操作列响应式：桌面显示按钮行，窄屏显示下拉菜单 ----- */
 .op-buttons {
   display: inline-flex;
   gap: 4px;

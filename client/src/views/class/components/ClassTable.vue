@@ -8,10 +8,10 @@
       @selection-change="$emit('selection-change', $event)"
     >
       <template #empty>
-        <el-empty description="暂无班级数据" />
+        <el-empty description="暂无班级数据，请点击右上角新增" />
       </template>
       <el-table-column type="selection" width="45" />
-      <el-table-column type="index" label="序号" width="60" />
+      <el-table-column type="index" label="序号" width="60" align="center" />
       <el-table-column prop="name" label="班级名称" min-width="180" show-overflow-tooltip />
       <el-table-column label="二级学院" min-width="115" show-overflow-tooltip>
         <template #default="{ row }">{{ row.colleges?.name || '-' }}</template>
@@ -66,7 +66,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="100" fixed="right">
+      <el-table-column label="操作" width="100" fixed="right" align="center">
         <template #default="{ row }">
           <el-button size="small" :icon="Edit" circle title="编辑" @click="$emit('edit', row)" />
           <el-popconfirm title="确定删除？" @confirm="$emit('delete', row.id)">
@@ -120,7 +120,7 @@
 </template>
 
 <script setup>
-import { Edit, Delete, Warning } from '@element-plus/icons-vue';
+import { Edit, Delete } from '@element-plus/icons-vue';
 
 const props = defineProps({
   classes: {
@@ -242,28 +242,6 @@ function getCurrentPlanName(row) {
 </script>
 
 <style scoped>
-.batch-operations {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  margin-top: 16px;
-  background: #f5f7fa;
-  border-radius: 6px;
-}
-
-.selected-count {
-  margin-right: auto;
-  font-weight: 500;
-  color: #409eff;
-}
-
-.pagination-container {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-
 .plan-warning {
   display: inline-block;
 }

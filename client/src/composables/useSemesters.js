@@ -1,5 +1,5 @@
 import { computed } from 'vue';
-import request from '../utils/request';
+import { useSettingsStore } from '../stores/settings';
 
 export { downloadBlob } from '../utils/download';
 
@@ -40,10 +40,11 @@ export function useSemesters(options = {}) {
   /** 从后端系统设置获取当前学期，失败时回退到本地日期计算 */
   async function fetchCurrentSemester() {
     try {
-      const res = await request.get('/settings');
-      const cs = res.data?.currentSemester;
-      if (cs?.value && typeof cs.value === 'string' && /^\d{4}-\d{4}-[12]$/.test(cs.value)) {
-        return cs.value;
+      const store = useSettingsStore();
+      await store.load();
+      const value = store.currentSemesterValue();
+      if (value && /^\d{4}-\d{4}-[12]$/.test(value)) {
+        return value;
       }
     } catch (e) {
       if (import.meta.env.DEV) console.warn('获取系统学期失败，使用本地计算:', e);

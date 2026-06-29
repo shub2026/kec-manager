@@ -6,51 +6,43 @@
           <span
             ><el-icon><Notebook /></el-icon> 教材管理</span
           >
-          <div class="card-header-actions">
-            <el-input
-              v-model="filterTitle"
-              clearable
-              placeholder="按书名筛选"
-              class="filter-title"
-            />
-            <el-select
-              v-model="filterCategory"
-              placeholder="类别筛选"
-              clearable
-              style="width: 120px"
-            >
-              <el-option label="技工" value="技工" />
-              <el-option label="非技工" value="非技工" />
-            </el-select>
-            <el-select
-              v-model="filterPublisher"
-              placeholder="出版社筛选"
-              clearable
-              filterable
-              style="width: 160px"
-            >
-              <el-option v-for="pub in publishers" :key="pub" :label="pub" :value="pub" />
-            </el-select>
-            <el-button @click="exportData">数据导出</el-button>
-            <el-button @click="downloadTemplate">下载模板</el-button>
-            <el-upload
-              :show-file-list="false"
-              accept=".xlsx,.xls"
-              action="/api/import/textbooks"
-              name="file"
-              :headers="uploadHeaders"
-              :on-success="onImportSuccess"
-              :on-error="onImportError"
-              :before-upload="beforeImport"
-            >
-              <el-button>导入Excel</el-button>
-            </el-upload>
-            <el-button type="primary" @click="openDialog()">
-              <el-icon><Plus /></el-icon> 新增教材
-            </el-button>
-          </div>
+          <el-button type="primary" @click="openDialog()">
+            <el-icon><Plus /></el-icon> 新增教材
+          </el-button>
         </div>
       </template>
+      <div class="page-toolbar">
+        <el-input v-model="filterTitle" clearable placeholder="按书名筛选" class="filter-2xl" />
+        <el-select v-model="filterCategory" placeholder="类别筛选" clearable class="filter-md">
+          <el-option label="技工" value="技工" />
+          <el-option label="非技工" value="非技工" />
+        </el-select>
+        <el-select
+          v-model="filterPublisher"
+          placeholder="出版社筛选"
+          clearable
+          filterable
+          class="filter-xl"
+        >
+          <el-option v-for="pub in publishers" :key="pub" :label="pub" :value="pub" />
+        </el-select>
+        <div class="action-buttons">
+          <el-button @click="exportData">数据导出</el-button>
+          <el-button @click="downloadTemplate">下载模板</el-button>
+          <el-upload
+            :show-file-list="false"
+            accept=".xlsx,.xls"
+            action="/api/import/textbooks"
+            name="file"
+            :headers="uploadHeaders"
+            :on-success="onImportSuccess"
+            :on-error="onImportError"
+            :before-upload="beforeImport"
+          >
+            <el-button>导入Excel</el-button>
+          </el-upload>
+        </div>
+      </div>
       <el-table
         v-loading="loading"
         :data="filteredlist"
@@ -115,9 +107,9 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="150" fixed="right" align="center">
           <template #default="{ row }">
-            <div class="action-buttons">
+            <div class="op-buttons">
               <el-button
                 size="small"
                 :type="row.isActive ? 'warning' : 'success'"
@@ -159,8 +151,13 @@
     </el-card>
 
     <!-- 批量设置对话框 -->
-    <el-dialog v-model="batchDialogVisible" :title="batchDialogTitle" width="min(500px, 90vw)">
-      <el-form label-width="100px">
+    <el-dialog
+      v-model="batchDialogVisible"
+      :title="batchDialogTitle"
+      width="min(500px, 90vw)"
+      destroy-on-close
+    >
+      <el-form label-width="90px">
         <el-form-item v-if="batchFormType === 'publisher'" label="出版社">
           <el-input v-model="batchForm.publisher" placeholder="请输入出版社名称" />
         </el-form-item>
@@ -184,8 +181,9 @@
       v-model="dialogVisible"
       :title="form.id ? '编辑教材' : '新增教材'"
       width="min(600px, 90vw)"
+      destroy-on-close
     >
-      <el-form :model="form" label-width="80px">
+      <el-form :model="form" label-width="90px">
         <el-row :gutter="16">
           <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="书名" required>
@@ -251,8 +249,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import {
   getTextbooks,
   createTextbook,
@@ -518,14 +516,4 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.filter-title {
-  width: 200px;
-}
-.action-buttons {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  white-space: nowrap;
-}
-</style>
+<style scoped></style>

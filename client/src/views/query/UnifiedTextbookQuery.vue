@@ -6,51 +6,54 @@
           <span
             ><el-icon><Notebook /></el-icon> 教材查询</span
           >
-          <div class="card-header-actions">
-            <el-button @click="goToCurrentSemester">
-              <el-icon><Calendar /></el-icon> 当前学期
-            </el-button>
-            <el-select
-              v-model="selectedSemester"
-              placeholder="选择学期"
-              class="semester-select"
-              @change="handleSemesterChange"
-            >
-              <el-option
-                v-for="sem in availableSemesters"
-                :key="sem.value"
-                :label="sem.label"
-                :value="sem.value"
-              />
-            </el-select>
-            <el-select
-              v-model="selectedTextbook"
-              filterable
-              placeholder="搜索并选择教材"
-              class="filter-select-wide"
-              :disabled="!selectedSemester"
-              @change="loadDetail"
-            >
-              <el-option
-                v-for="tb in textbooks"
-                :key="tb.id"
-                :label="`${tb.title} - ${tb.publisher || '未知出版社'}`"
-                :value="tb.id"
-              />
-            </el-select>
-            <el-button :disabled="!selectedSemester && !selectedTextbook" @click="resetFilters">
-              <el-icon><Refresh /></el-icon> 重置
-            </el-button>
-            <el-button
-              type="success"
-              :disabled="!selectedTextbook || !selectedSemester"
-              @click="exportExcel"
-            >
-              <el-icon><Download /></el-icon> 导出Excel
-            </el-button>
-          </div>
         </div>
       </template>
+
+      <div class="page-toolbar">
+        <el-button @click="goToCurrentSemester">
+          <el-icon><Calendar /></el-icon> 当前学期
+        </el-button>
+        <el-select
+          v-model="selectedSemester"
+          placeholder="选择学期"
+          class="filter-2xl"
+          @change="handleSemesterChange"
+        >
+          <el-option
+            v-for="sem in availableSemesters"
+            :key="sem.value"
+            :label="sem.label"
+            :value="sem.value"
+          />
+        </el-select>
+        <el-select
+          v-model="selectedTextbook"
+          filterable
+          placeholder="搜索并选择教材"
+          class="filter-2xl"
+          :disabled="!selectedSemester"
+          @change="loadDetail"
+        >
+          <el-option
+            v-for="tb in textbooks"
+            :key="tb.id"
+            :label="`${tb.title} - ${tb.publisher || '未知出版社'}`"
+            :value="tb.id"
+          />
+        </el-select>
+        <div class="action-buttons">
+          <el-button :disabled="!selectedSemester && !selectedTextbook" @click="resetFilters">
+            <el-icon><Refresh /></el-icon> 重置
+          </el-button>
+          <el-button
+            type="success"
+            :disabled="!selectedTextbook || !selectedSemester"
+            @click="exportExcel"
+          >
+            <el-icon><Download /></el-icon> 导出Excel
+          </el-button>
+        </div>
+      </div>
 
       <!-- 统一使用一个容器，保持最小高度 -->
       <div v-loading="loadingDetail" class="content-container">
@@ -146,11 +149,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Download, Refresh, Calendar } from '@element-plus/icons-vue';
 import { getTextbooks } from '../../api/textbook';
 import { getTextbookQuery } from '../../api/query';
 import request from '../../utils/request';
 import { useSemesters, downloadBlob } from '../../composables/useSemesters';
+import { getWithCache } from '../../utils/cache';
 
 const textbooks = ref([]);
 const loadingDetail = ref(false);
@@ -190,7 +193,11 @@ async function loadDetail(id) {
   hasDetail.value = true;
   loadingDetail.value = true;
   try {
-    const res = await getTextbookQuery(id, { semester: selectedSemester.value });
+    const res = await getWithCache(
+      () => getTextbookQuery(id, { semester: selectedSemester.value }),
+      `textbook-query:${id}:${selectedSemester.value}`,
+      2 * 60 * 1000 // 2 分钟缓存
+    );
     detail.value = res.data;
     // 重置分页并设置总数
     pagination.value.page = 1;
@@ -283,16 +290,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.semester-select {
-  width: auto;
-  min-width: 240px;
-}
-.filter-select-wide {
-  min-width: 300px;
-  flex: 1.5;
-  max-width: 500px;
-}
-
 /* 内容容器，保持最小高度 */
 .content-container {
   min-height: 400px;

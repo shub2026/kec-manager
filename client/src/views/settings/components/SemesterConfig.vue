@@ -108,7 +108,6 @@
 
 <script setup>
 import { computed } from 'vue';
-import { InfoFilled, Warning, CircleCheck, Check, Calendar } from '@element-plus/icons-vue';
 import { useSemesters } from '../../../composables/useSemesters';
 
 const props = defineProps({

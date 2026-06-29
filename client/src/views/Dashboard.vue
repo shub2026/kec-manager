@@ -10,11 +10,11 @@
         </p>
       </div>
       <div class="welcome-actions">
-        <el-button type="primary" @click="goToTeaching">
+        <el-button type="primary" @click="navigateTo('/teaching/arrange')">
           <el-icon><EditPen /></el-icon>
           开始排课
         </el-button>
-        <el-button @click="goToQuery">
+        <el-button @click="navigateTo('/query/semester')">
           <el-icon><Search /></el-icon>
           查询开课
         </el-button>
@@ -39,7 +39,7 @@
       <el-row :gutter="20">
         <!-- 专业类别 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="goToMajor">
+          <div class="stat-item" @click="navigateTo('/majors')">
             <div class="stat-icon" style="background-color: #ecf5ff; color: #409eff">
               <el-icon :size="24"><OfficeBuilding /></el-icon>
             </div>
@@ -52,7 +52,7 @@
 
         <!-- 课程数量 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="goToCourse">
+          <div class="stat-item" @click="navigateTo('/courses')">
             <div class="stat-icon" style="background-color: #f0f9eb; color: #67c23a">
               <el-icon :size="24"><Reading /></el-icon>
             </div>
@@ -65,7 +65,7 @@
 
         <!-- 班级数量 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="goToClass">
+          <div class="stat-item" @click="navigateTo('/classes')">
             <div class="stat-icon" style="background-color: #fdf6ec; color: #e6a23c">
               <el-icon :size="24"><Histogram /></el-icon>
             </div>
@@ -78,7 +78,7 @@
 
         <!-- 活跃教材 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="goToTextbook">
+          <div class="stat-item" @click="navigateTo('/textbooks')">
             <div class="stat-icon" style="background-color: #fef0f0; color: #f56c6c">
               <el-icon :size="24"><Notebook /></el-icon>
             </div>
@@ -91,7 +91,7 @@
 
         <!-- 培养方案 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="goToPlan">
+          <div class="stat-item" @click="navigateTo('/plans')">
             <div class="stat-icon" style="background-color: #f4f4f5; color: #909399">
               <el-icon :size="24"><Files /></el-icon>
             </div>
@@ -117,7 +117,7 @@
 
         <!-- 参与教师 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="goToTeaching">
+          <div class="stat-item" @click="navigateTo('/teaching/arrange')">
             <div class="stat-icon" style="background-color: #fdf6ec; color: #e6a23c">
               <el-icon :size="24"><UserFilled /></el-icon>
             </div>
@@ -130,7 +130,7 @@
 
         <!-- 总周课时 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="goToTeaching">
+          <div class="stat-item" @click="navigateTo('/teaching/arrange')">
             <div class="stat-icon" style="background-color: #f0f9eb; color: #67c23a">
               <el-icon :size="24"><Clock /></el-icon>
             </div>
@@ -154,28 +154,28 @@
 
       <el-row :gutter="20">
         <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="goToPlanEdit">
+          <div class="action-item" @click="navigateTo('/plans')">
             <el-icon :size="28" color="#409EFF"><EditPen /></el-icon>
             <span>编辑培养方案</span>
           </div>
         </el-col>
 
         <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="goToTeaching">
+          <div class="action-item" @click="navigateTo('/teaching/arrange')">
             <el-icon :size="28" color="#67C23A"><SetUp /></el-icon>
             <span>智能排课</span>
           </div>
         </el-col>
 
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="goToQuery">
+          <div class="action-item" @click="navigateTo('/query/semester')">
             <el-icon :size="28" color="#E6A23C"><Search /></el-icon>
             <span>开课查询</span>
           </div>
         </el-col>
 
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="goToTextbookQuery">
+          <div class="action-item" @click="navigateTo('/query/textbook')">
             <el-icon :size="28" color="#F56C6C"><Document /></el-icon>
             <span>教材查询</span>
           </div>
@@ -189,7 +189,7 @@
         </el-col>
 
         <el-col v-if="canEdit" :xs="12" :sm="8" :md="6">
-          <div class="action-item" @click="goToStatistics">
+          <div class="action-item" @click="navigateTo('/teaching/statistics')">
             <el-icon :size="28" color="#8B5CF6"><DataAnalysis /></el-icon>
             <span>课时统计</span>
           </div>
@@ -301,28 +301,6 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
-import {
-  Calendar,
-  EditPen,
-  Search,
-  DataLine,
-  Refresh,
-  OfficeBuilding,
-  Reading,
-  Histogram,
-  Notebook,
-  Files,
-  User,
-  UserFilled,
-  Clock,
-  Lightning,
-  Document,
-  Upload,
-  DataAnalysis,
-  Setting,
-  InfoFilled,
-  School,
-} from '@element-plus/icons-vue';
 import { getDashboardStats } from '../api/dashboard';
 import { getWithCache } from '../utils/cache';
 
@@ -392,48 +370,13 @@ function refreshStats() {
   fetchStats();
 }
 
-function goToTeaching() {
-  router.push('/teaching/arrange');
-}
-
-function goToQuery() {
-  router.push('/query/semester');
-}
-
-function goToMajor() {
-  router.push('/majors');
-}
-
-function goToCourse() {
-  router.push('/courses');
-}
-
-function goToClass() {
-  router.push('/classes');
-}
-
-function goToTextbook() {
-  router.push('/textbooks');
-}
-
-function goToPlan() {
-  router.push('/plans');
-}
-
-function goToPlanEdit() {
-  router.push('/plans');
-}
-
-function goToTextbookQuery() {
-  router.push('/query/textbook');
+// 统一导航函数，替代 8 个独立的 goTo* 函数
+function navigateTo(path) {
+  router.push(path);
 }
 
 function goToImport() {
   ElMessage.info('数据导入功能开发中');
-}
-
-function goToStatistics() {
-  router.push('/teaching/statistics');
 }
 
 onMounted(() => {
@@ -443,7 +386,6 @@ onMounted(() => {
 
 <style scoped>
 .dashboard {
-  padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
   display: flex;
