@@ -24,6 +24,7 @@ export async function listMajors(req, res, next) {
       classCount: major._count?.classes || 0,
       planCount: major._count?.training_plans || 0,
     }));
+    // 注：major 删除检查项仅 classes 和 training_plans，与上面 _count 完全对应
     success(res, formattedMajors);
   } catch (e) {
     next(e);

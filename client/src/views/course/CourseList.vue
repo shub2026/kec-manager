@@ -72,11 +72,7 @@
         <el-table-column label="操作" width="100" fixed="right" align="center">
           <template #default="{ row }">
             <el-button size="small" :icon="Edit" circle @click="openDialog(row)" />
-            <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
-              <template #reference>
-                <el-button size="small" type="danger" :icon="Delete" circle />
-              </template>
-            </el-popconfirm>
+            <el-button size="small" type="danger" :icon="Delete" circle @click="handleDelete(row)" />
           </template>
         </el-table-column>
       </el-table>
@@ -114,12 +110,41 @@
         <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 删除确认弹窗 -->
+    <el-dialog v-model="deleteConfirmVisible" title="确认删除" width="min(420px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <div style="flex: 1; line-height: 1.6; color: #606266">
+          <p style="margin: 0">确定要删除此课程吗？此操作不可撤销。</p>
+          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #E6A23C; font-size: 13px">
+            <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
+          </p>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="cancelDelete">取消</el-button>
+        <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 导入确认弹窗 -->
+    <el-dialog v-model="importConfirmVisible" title="导入确认" width="min(420px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">{{ confirmMessage }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="cancelImport">取消</el-button>
+        <el-button type="warning" :loading="importing" @click="confirmImport">确定导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown, Edit, Delete, WarningFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course';
 import { useExport } from '../../composables/useExport';
@@ -144,7 +169,17 @@ const saving = ref(false);
 const form = ref({ id: null, name: '', code: '', type: 'public', description: '' });
 
 // 使用导入 composable
-const { uploadHeaders, beforeImport, onImportSuccess, onImportError } = useImport(
+const {
+  uploadHeaders,
+  beforeImport,
+  onImportSuccess,
+  onImportError,
+  importConfirmVisible,
+  confirmMessage,
+  importing,
+  confirmImport,
+  cancelImport,
+} = useImport(
   '/import/courses',
   '导入将以数据第一列（课程名称）进行匹配，已存在的课程将被覆盖更新，确定继续导入吗？',
   silentReload
@@ -206,16 +241,48 @@ async function handleSave() {
   }
 }
 
-async function handleDelete(id) {
+const deleteConfirmVisible = ref(false);
+const deleting = ref(false);
+const pendingDeleteRow = ref(null);
+const deleteWarning = computed(() => {
+  const row = pendingDeleteRow.value;
+  if (!row) return '';
+  const parts = [];
+  if (row.planCount > 0) parts.push(`${row.planCount} 个培养方案`);
+  if (row.assignmentCount > 0) parts.push(`${row.assignmentCount} 条排课记录`);
+  if (row.teacherCourseCount > 0) parts.push(`${row.teacherCourseCount} 位教师关联`);
+  if (parts.length === 0) return '';
+  return `该课程已被使用（${parts.join('、')}），删除将被拒绝。请先解除上述关联后再删除。`;
+});
+let pendingDeleteId = null;
+
+function handleDelete(row) {
+  pendingDeleteRow.value = row;
+  pendingDeleteId = row?.id ?? null;
+  deleteConfirmVisible.value = true;
+}
+
+function cancelDelete() {
+  deleteConfirmVisible.value = false;
+  pendingDeleteRow.value = null;
+  pendingDeleteId = null;
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  deleting.value = true;
   try {
-    await deleteCourse(id);
+    await deleteCourse(pendingDeleteId);
     ElMessage.success('删除成功');
     await silentReload();
+    deleteConfirmVisible.value = false;
   } catch (e) {
-    if (import.meta.env.DEV) {
-      console.error('删除课程失败:', e);
-    }
-    ElMessage.error('删除失败，请重试');
+    deleteConfirmVisible.value = false;
+    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
+  } finally {
+    pendingDeleteId = null;
+    pendingDeleteRow.value = null;
+    deleting.value = false;
   }
 }
 

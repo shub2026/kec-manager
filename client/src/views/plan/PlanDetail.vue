@@ -77,13 +77,25 @@
         <el-button type="primary" :loading="saving" @click="saveSemester">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 课程删除确认弹窗 -->
+    <el-dialog v-model="deleteCourseConfirmVisible" title="确认删除" width="min(400px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">{{ deleteCourseConfirmMessage }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="deleteCourseConfirmVisible = false">取消</el-button>
+        <el-button type="danger" :loading="courseDeleting" @click="confirmDeleteCourse">确定删除</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import { getPlanById, addPlanCourse, deletePlanCourse } from '../../api/plan';
 import { getCourses } from '../../api/course';
 import { getTextbooks } from '../../api/textbook';
@@ -96,6 +108,12 @@ const plan = ref(null);
 const allCourses = ref([]);
 const allTextbooks = ref([]);
 const saving = ref(false);
+
+// 课程删除确认弹窗
+const deleteCourseConfirmVisible = ref(false);
+const deleteCourseConfirmMessage = ref('');
+const courseDeleting = ref(false);
+const pendingDeleteCourse = ref(null);
 
 const showSemesterDialog = ref(false);
 const semesterForm = ref({
@@ -158,22 +176,27 @@ async function saveSemester() {
 }
 
 async function handleDeleteCourse(course) {
-  try {
-    await ElMessageBox.confirm(`确定删除课程"${course.courseName}"？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    });
+  pendingDeleteCourse.value = course;
+  deleteCourseConfirmMessage.value = `确定删除课程“${course.courseName}”？`;
+  deleteCourseConfirmVisible.value = true;
+}
 
+async function confirmDeleteCourse() {
+  const course = pendingDeleteCourse.value;
+  if (!course) return;
+
+  deleteCourseConfirmVisible.value = false;
+  courseDeleting.value = true;
+  try {
     await deletePlanCourse(course.id);
     ElMessage.success('删除成功');
-    // 刷新矩阵数据
     await refreshMatrix();
   } catch (e) {
-    if (e !== 'cancel') {
-      if (import.meta.env.DEV) console.error(e);
-      ElMessage.error('删除失败');
-    }
+    if (import.meta.env.DEV) console.error(e);
+    ElMessage.error('删除失败');
+  } finally {
+    courseDeleting.value = false;
+    pendingDeleteCourse.value = null;
   }
 }
 

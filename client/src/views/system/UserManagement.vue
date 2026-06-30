@@ -150,6 +150,30 @@
         <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 用户状态切换确认弹窗 -->
+    <el-dialog v-model="statusConfirmVisible" title="确认操作" width="min(400px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">{{ statusConfirmMessage }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="statusConfirmVisible = false">取消</el-button>
+        <el-button type="warning" :loading="statusChanging" @click="confirmToggleStatus">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 用户删除确认弹窗 -->
+    <el-dialog v-model="deleteConfirmVisible" title="确认删除" width="min(400px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">{{ deleteConfirmMessage }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="deleteConfirmVisible = false">取消</el-button>
+        <el-button type="danger" :loading="userDeleting" @click="confirmDeleteUser">确定删除</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -157,7 +181,7 @@
 import { ref, onMounted } from 'vue';
 import { UserFilled } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import request from '@/utils/request';
 
 const authStore = useAuthStore();
@@ -168,6 +192,18 @@ const dialogVisible = ref(false);
 const isEdit = ref(false);
 const submitting = ref(false);
 const formRef = ref(null);
+
+// 状态切换确认弹窗
+const statusConfirmVisible = ref(false);
+const statusConfirmMessage = ref('');
+const statusChanging = ref(false);
+const pendingStatusUser = ref(null);
+
+// 删除确认弹窗
+const deleteConfirmVisible = ref(false);
+const deleteConfirmMessage = ref('');
+const userDeleting = ref(false);
+const pendingDeleteUser = ref(null);
 
 const formData = ref({
   username: '',
@@ -282,49 +318,58 @@ async function handleSubmit() {
   }
 }
 
-async function toggleUserStatus(user) {
+function toggleUserStatus(user) {
+  const action = user.isActive ? '禁用' : '激活';
+  pendingStatusUser.value = user;
+  statusConfirmMessage.value = `确定要${action}用户 "${user.username}" 吗？`;
+  statusConfirmVisible.value = true;
+}
+
+async function confirmToggleStatus() {
+  const user = pendingStatusUser.value;
+  if (!user) return;
   const action = user.isActive ? '禁用' : '激活';
 
+  statusConfirmVisible.value = false;
+  statusChanging.value = true;
   try {
-    await ElMessageBox.confirm(`确定要${action}用户 "${user.username}" 吗？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    });
-
     const requestData = { is_active: !user.isActive };
-
     await request.put(`/users/${user.id}/status`, requestData);
-
     ElMessage.success(`${action}成功`);
     await silentReload();
   } catch (error) {
-    if (error !== 'cancel' && error?.toString() !== 'cancel') {
-      ElMessage.error(`${action}失败：` + (error.message || '未知错误'));
-    }
+    ElMessage.error(`${action}失败：` + (error.message || '未知错误'));
+  } finally {
+    statusChanging.value = false;
+    pendingStatusUser.value = null;
   }
 }
 
-async function deleteUser(user) {
+function deleteUser(user) {
   if (user.id === authStore.userInfo?.id) {
     ElMessage.warning('不能删除当前登录的用户');
     return;
   }
+  pendingDeleteUser.value = user;
+  deleteConfirmMessage.value = `确定要删除用户 "${user.username}" 吗？此操作不可恢复！`;
+  deleteConfirmVisible.value = true;
+}
 
+async function confirmDeleteUser() {
+  const user = pendingDeleteUser.value;
+  if (!user) return;
+
+  deleteConfirmVisible.value = false;
+  userDeleting.value = true;
   try {
-    await ElMessageBox.confirm(`确定要删除用户 "${user.username}" 吗？此操作不可恢复！`, '警告', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'error',
-    });
-
     await request.delete(`/users/${user.id}`);
     ElMessage.success('删除成功');
     await silentReload();
   } catch (error) {
-    if (error !== 'cancel' && error?.toString() !== 'cancel') {
-      ElMessage.error('删除失败：' + (error.message || '未知错误'));
-    }
+    ElMessage.error('删除失败：' + (error.message || '未知错误'));
+  } finally {
+    userDeleting.value = false;
+    pendingDeleteUser.value = null;
   }
 }
 

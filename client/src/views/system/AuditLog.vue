@@ -347,13 +347,15 @@ function showClearDialog() {
 async function handleClearLogs() {
   clearing.value = true;
   try {
-    await request.post('/settings/reset/audit-logs');
+    // 后端 validateAuditLogReset 中间件要求 body.confirm === 'DELETE'，否则 400
+    await request.post('/settings/reset/audit-logs', { confirm: 'DELETE' });
     ElMessage.success('操作日志已清空');
-    clearDialogVisible.value = false;
     loadLogs();
   } catch (e) {
-    ElMessage.error('清空操作日志失败：' + (e.message || '未知错误'));
+    const msg = e?.response?.data?.message || e?.message || '未知错误';
+    ElMessage.error('清空操作日志失败：' + msg);
   } finally {
+    clearDialogVisible.value = false;
     clearing.value = false;
   }
 }

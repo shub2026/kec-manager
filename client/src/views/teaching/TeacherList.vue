@@ -177,11 +177,7 @@
         <el-table-column label="操作" width="100" fixed="right" align="center">
           <template #default="{ row }">
             <el-button size="small" :icon="Edit" circle @click="openDialog(row)" />
-            <el-popconfirm title="确定删除该教师？" @confirm="handleDelete(row.id)">
-              <template #reference>
-                <el-button size="small" type="danger" :icon="Delete" circle />
-              </template>
-            </el-popconfirm>
+            <el-button size="small" type="danger" :icon="Delete" circle @click="handleDelete(row.id)" />
           </template>
         </el-table-column>
       </el-table>
@@ -313,6 +309,30 @@
         <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 删除确认弹窗 -->
+    <el-dialog v-model="deleteConfirmVisible" title="确认删除" width="min(380px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">确定要删除此教师吗？此操作不可撤销。</p>
+      </div>
+      <template #footer>
+        <el-button @click="deleteConfirmVisible = false">取消</el-button>
+        <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 导入确认弹窗 -->
+    <el-dialog v-model="importConfirmVisible" title="导入确认" width="min(420px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">{{ confirmMessage }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="cancelImport">取消</el-button>
+        <el-button type="warning" :loading="importing" @click="confirmImport">确定导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -345,7 +365,17 @@ const allTrainingLevels = ref([]);
 const collegeLevelMapping = ref({ collegeToLevels: {}, levelToColleges: {} });
 
 // 使用导入 composable
-const { uploadHeaders, beforeImport, onImportSuccess, onImportError } = useImport(
+const {
+  uploadHeaders,
+  beforeImport,
+  onImportSuccess,
+  onImportError,
+  importConfirmVisible,
+  confirmMessage,
+  importing,
+  confirmImport,
+  cancelImport,
+} = useImport(
   '/import/teachers',
   '导入将以教师姓名进行匹配，已存在的教师将被覆盖更新，确定继续导入吗？',
   load
@@ -586,13 +616,32 @@ async function handleSave() {
   }
 }
 
-async function handleDelete(id) {
+const deleteConfirmVisible = ref(false);
+const deleting = ref(false);
+let pendingDeleteId = null;
+
+function handleDelete(id) {
+  pendingDeleteId = id;
+  deleteConfirmVisible.value = true;
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  deleting.value = true;
   try {
-    await deleteTeacher(id);
+    await deleteTeacher(pendingDeleteId);
     ElMessage.success('删除成功');
     await load();
+    deleteConfirmVisible.value = false;
   } catch (e) {
-    ElMessage.error(e?.response?.data?.message || '删除失败');
+    deleteConfirmVisible.value = false;
+    const msg = e?.response?.data?.message || e?.message || '删除失败';
+    setTimeout(() => {
+      ElMessage({ message: msg, type: 'error', duration: 5000, showClose: true });
+    }, 350);
+  } finally {
+    pendingDeleteId = null;
+    deleting.value = false;
   }
 }
 

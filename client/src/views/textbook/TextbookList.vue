@@ -118,11 +118,14 @@
                 {{ row.isActive ? '停用' : '启用' }}
               </el-button>
               <el-button size="small" :icon="Edit" circle title="编辑" @click="openDialog(row)" />
-              <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
-                <template #reference>
-                  <el-button size="small" :icon="Delete" circle type="danger" title="删除" />
-                </template>
-              </el-popconfirm>
+              <el-button
+                size="small"
+                :icon="Delete"
+                circle
+                type="danger"
+                title="删除"
+                @click="handleDelete(row)"
+              />
             </div>
           </template>
         </el-table-column>
@@ -140,13 +143,9 @@
         <el-button size="small" @click="openBatchSetDialog('category')">
           <el-icon><Edit /></el-icon> 批量设置类别
         </el-button>
-        <el-popconfirm title="确定批量删除选中的教材？" @confirm="handleBatchDelete">
-          <template #reference>
-            <el-button size="small" type="danger">
-              <el-icon><Delete /></el-icon> 批量删除
-            </el-button>
-          </template>
-        </el-popconfirm>
+        <el-button size="small" type="danger" @click="handleBatchDelete">
+          <el-icon><Delete /></el-icon> 批量删除
+        </el-button>
       </div>
     </el-card>
 
@@ -244,6 +243,70 @@
         <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 批量删除确认弹窗 -->
+    <el-dialog
+      v-model="batchDeleteConfirmVisible"
+      title="批量删除"
+      width="min(420px, 90vw)"
+      align-center
+    >
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">{{ batchDeleteConfirmMessage }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
+        <el-button type="danger" :loading="batchDeleting" @click="confirmBatchDelete"
+          >确定删除</el-button
+        >
+      </template>
+    </el-dialog>
+
+    <!-- 删除确认弹窗 -->
+    <el-dialog
+      v-model="deleteConfirmVisible"
+      title="确认删除"
+      width="min(420px, 90vw)"
+      align-center
+    >
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
+        <div style="flex: 1; line-height: 1.6; color: #606266">
+          <p style="margin: 0">确定要删除此教材吗？此操作不可撤销。</p>
+          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #e6a23c; font-size: 13px">
+            <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
+          </p>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="cancelDelete">取消</el-button>
+        <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 导入确认弹窗 -->
+    <el-dialog
+      v-model="importConfirmVisible"
+      title="导入确认"
+      width="min(420px, 90vw)"
+      align-center
+    >
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">{{ confirmMessage }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="cancelImport">取消</el-button>
+        <el-button type="warning" :loading="importing" @click="confirmImport">确定导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -265,7 +328,17 @@ import { useSortable } from '../../composables/useSortable';
 const list = ref([]);
 
 // 使用导入 composable
-const { uploadHeaders, beforeImport, onImportSuccess, onImportError } = useImport(
+const {
+  uploadHeaders,
+  beforeImport,
+  onImportSuccess,
+  onImportError,
+  importConfirmVisible,
+  confirmMessage,
+  importing,
+  confirmImport,
+  cancelImport,
+} = useImport(
   '/import/textbooks',
   '导入将以数据第一列（书名）进行匹配，已存在的教材将被覆盖更新，确定继续导入吗？',
   silentReload
@@ -351,7 +424,7 @@ async function silentReload() {
   try {
     const res = await getTextbooks();
     list.value = res.data || [];
-  } catch (e) {
+  } catch {
     // silently ignore
   }
 }
@@ -394,16 +467,44 @@ async function handleSave() {
   }
 }
 
-async function handleDelete(id) {
+const deleteConfirmVisible = ref(false);
+const deleting = ref(false);
+const pendingDeleteRow = ref(null);
+const deleteWarning = computed(() => {
+  const count = pendingDeleteRow.value?.usageCount || 0;
+  return count > 0
+    ? `该教材已被 ${count} 个培养方案引用，删除将被拒绝。请先解除关联后再删除。`
+    : '';
+});
+let pendingDeleteId = null;
+
+function handleDelete(row) {
+  pendingDeleteRow.value = row;
+  pendingDeleteId = row?.id ?? null;
+  deleteConfirmVisible.value = true;
+}
+
+function cancelDelete() {
+  deleteConfirmVisible.value = false;
+  pendingDeleteRow.value = null;
+  pendingDeleteId = null;
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  deleting.value = true;
   try {
-    await deleteTextbook(id);
+    await deleteTextbook(pendingDeleteId);
     ElMessage.success('删除成功');
     await silentReload();
-  } catch (e) {
-    if (import.meta.env.DEV) {
-      console.error('删除教材失败:', e);
-    }
-    ElMessage.error('删除失败，请重试');
+    deleteConfirmVisible.value = false;
+  } catch {
+    deleteConfirmVisible.value = false;
+    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
+  } finally {
+    pendingDeleteId = null;
+    pendingDeleteRow.value = null;
+    deleting.value = false;
   }
 }
 
@@ -414,7 +515,7 @@ async function handleToggleStatus(row) {
     const newStatus = res.data?.isActive ?? res.data?.is_active;
     ElMessage.success(newStatus ? '已启用' : '已停用');
     await silentReload();
-  } catch (e) {
+  } catch {
     ElMessage.error('操作失败');
   }
 }
@@ -493,22 +594,69 @@ async function handleBatchSet() {
 }
 
 // 批量删除
-async function handleBatchDelete() {
+const batchDeleteConfirmVisible = ref(false);
+const batchDeleteConfirmMessage = ref('');
+const batchDeleting = ref(false);
+
+function handleBatchDelete() {
   if (selectedTextbooks.value.length === 0) return;
+  batchDeleteConfirmMessage.value = `确定要删除选中的 ${selectedTextbooks.value.length} 个教材吗？被培养方案引用的教材将无法删除。`;
+  batchDeleteConfirmVisible.value = true;
+}
 
-  const ids = selectedTextbooks.value.map((t) => t.id);
-
+async function confirmBatchDelete() {
+  batchDeleteConfirmVisible.value = false;
+  batchDeleting.value = true;
   try {
-    await Promise.all(ids.map((id) => deleteTextbook(id)));
-    ElMessage.success(`已删除 ${ids.length} 个教材`);
-    selectedTextbooks.value = [];
-    await silentReload();
-  } catch (e) {
-    if (import.meta.env.DEV) {
-      console.error('批量删除失败:', e);
-    }
-    ElMessage.error('批量删除失败');
+    await doBatchDelete();
+  } finally {
+    batchDeleting.value = false;
   }
+}
+
+async function doBatchDelete() {
+  const ids = selectedTextbooks.value.map((t) => t.id);
+  const titles = selectedTextbooks.value.map((t) => t.title);
+
+  const results = await Promise.allSettled(ids.map((id) => deleteTextbook(id, { silent: true })));
+
+  const succeeded = [];
+  const failed = [];
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      succeeded.push(titles[i]);
+    } else {
+      // axios 错误：后端真实 message 在 error.response.data.message；
+      // error.message 只是 "Request failed with status code 400" 这样的默认消息
+      const reason = r.reason?.response?.data?.message || r.reason?.message || '未知错误';
+      failed.push({ title: titles[i], reason });
+    }
+  });
+
+  if (failed.length === 0) {
+    ElMessage.success(`已成功删除 ${succeeded.length} 个教材`);
+  } else if (succeeded.length === 0) {
+    // 全部失败
+    const refCount = failed.filter((f) => f.reason.includes('培养方案')).length;
+    if (refCount === failed.length) {
+      // 全部因被培养方案引用
+      ElMessage.warning(`${refCount} 个教材已被培养方案引用，无法删除`);
+    } else {
+      // 其他原因导致的全失败，给出具体原因
+      ElMessage.error(`删除失败：${failed[0].reason}`);
+    }
+  } else {
+    // 部分成功部分失败
+    const refCount = failed.filter((f) => f.reason.includes('培养方案')).length;
+    const otherCount = failed.length - refCount;
+    let msg = `成功删除 ${succeeded.length} 个`;
+    if (refCount > 0) msg += `，${refCount} 个被培养方案引用无法删除`;
+    if (otherCount > 0) msg += `，${otherCount} 个删除失败`;
+    ElMessage({ message: msg, type: 'warning', duration: 8000, showClose: true });
+  }
+
+  selectedTextbooks.value = [];
+  await silentReload();
 }
 
 onMounted(() => {

@@ -12,13 +12,25 @@ export async function listColleges(req, res, next) {
   try {
     await autoFixSortOrder('colleges');
     const colleges = await prisma.colleges.findMany({
-      include: { _count: { select: { classes: true } } },
+      include: {
+        _count: {
+          select: {
+            classes: true,
+            training_plans: true,
+            teacher_scheduling_colleges: true,
+            affiliated_teachers: true,
+          },
+        },
+      },
       orderBy: { sort_order: 'asc' },
     });
 
     const formattedColleges = colleges.map((college) => ({
       ...college,
       classCount: college._count?.classes || 0,
+      planCount: college._count?.training_plans || 0,
+      schedulingCount: college._count?.teacher_scheduling_colleges || 0,
+      affiliatedCount: college._count?.affiliated_teachers || 0,
     }));
     success(res, formattedColleges);
   } catch (e) {

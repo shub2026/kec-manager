@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import request from '../utils/request';
 import { useAuthStore } from '../stores/auth';
 
@@ -13,6 +13,8 @@ import { useAuthStore } from '../stores/auth';
  */
 export function useImport(endpoint, confirmMessage, onSuccess) {
   const pendingFile = ref(null);
+  const importConfirmVisible = ref(false);
+  const importing = ref(false);
 
   const uploadHeaders = computed(() => {
     const authStore = useAuthStore();
@@ -26,20 +28,13 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
       return false;
     }
     pendingFile.value = file;
-    try {
-      await ElMessageBox.confirm(confirmMessage, '导入确认', {
-        confirmButtonText: '确定导入',
-        cancelButtonText: '取消',
-        type: 'warning',
-      });
-      confirmImport();
-    } catch {
-      pendingFile.value = null;
-    }
+    importConfirmVisible.value = true;
     return false;
   }
 
   async function confirmImport() {
+    importConfirmVisible.value = false;
+    importing.value = true;
     try {
       const formData = new FormData();
       formData.append('file', pendingFile.value);
@@ -51,7 +46,13 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
       onImportError(err);
     } finally {
       pendingFile.value = null;
+      importing.value = false;
     }
+  }
+
+  function cancelImport() {
+    importConfirmVisible.value = false;
+    pendingFile.value = null;
   }
 
   function onImportSuccess(res) {
@@ -87,5 +88,11 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
     beforeImport,
     onImportSuccess,
     onImportError,
+    // 新增：用于页面自定义弹窗
+    importConfirmVisible,
+    confirmMessage,
+    importing,
+    confirmImport,
+    cancelImport,
   };
 }

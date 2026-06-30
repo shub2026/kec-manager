@@ -97,12 +97,48 @@
         </div>
       </div>
     </el-dialog>
+
+    <!-- 单个删除确认弹窗 -->
+    <el-dialog v-model="deleteConfirmVisible" title="确认删除" width="min(380px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">确定要删除此班级吗？此操作不可撤销。</p>
+      </div>
+      <template #footer>
+        <el-button @click="deleteConfirmVisible = false">取消</el-button>
+        <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量删除确认弹窗 -->
+    <el-dialog v-model="batchDeleteConfirmVisible" title="批量删除" width="min(420px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">{{ batchDeleteConfirmMessage }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
+        <el-button type="danger" :loading="batchDeleting" @click="confirmBatchDelete">确定删除</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量离校确认弹窗 -->
+    <el-dialog v-model="leftSchoolConfirmVisible" title="确认批量离校" width="min(450px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">{{ leftSchoolConfirmMessage }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="cancelLeftSchoolConfirm">取消</el-button>
+        <el-button type="warning" @click="confirmLeftSchool">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import request from '../../utils/request';
 import { getClasses, createClass, updateClass, deleteClass } from '../../api/class';
 import { getMajors } from '../../api/major';
@@ -160,6 +196,16 @@ const progressPercent = ref(0);
 const progressStatus = ref('');
 const progressText = ref('');
 const progressDetail = ref('');
+
+// 批量删除确认弹窗
+const batchDeleteConfirmVisible = ref(false);
+const batchDeleteConfirmMessage = ref('');
+const batchDeleting = ref(false);
+
+// 批量离校确认弹窗
+const leftSchoolConfirmVisible = ref(false);
+const leftSchoolConfirmMessage = ref('');
+let _leftSchoolResolve = null;
 
 const form = ref({
   id: null,
@@ -380,13 +426,32 @@ async function handleSave() {
   }
 }
 
-async function handleDelete(id) {
+const deleteConfirmVisible = ref(false);
+const deleting = ref(false);
+let pendingDeleteId = null;
+
+function handleDelete(id) {
+  pendingDeleteId = id;
+  deleteConfirmVisible.value = true;
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  deleting.value = true;
   try {
-    await deleteClass(id);
+    await deleteClass(pendingDeleteId);
     ElMessage.success('删除成功');
     load();
+    deleteConfirmVisible.value = false;
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '删除失败');
+    deleteConfirmVisible.value = false;
+    const msg = error?.response?.data?.message || error?.message || '删除失败';
+    setTimeout(() => {
+      ElMessage({ message: msg, type: 'error', duration: 5000, showClose: true });
+    }, 350);
+  } finally {
+    pendingDeleteId = null;
+    deleting.value = false;
   }
 }
 
@@ -394,25 +459,23 @@ function handleSelectionChange(selection) {
   selectedClasses.value = selection;
 }
 
-async function handleBatchDelete() {
+function handleBatchDelete() {
+  batchDeleteConfirmMessage.value = `确定要删除选中的 ${selectedClasses.value.length} 个班级吗？`;
+  batchDeleteConfirmVisible.value = true;
+}
+
+async function confirmBatchDelete() {
+  batchDeleteConfirmVisible.value = false;
+  batchDeleting.value = true;
   try {
-    await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedClasses.value.length} 个班级吗？`,
-      '批量删除',
-      {
-        type: 'warning',
-      }
-    );
-
     await Promise.all(selectedClasses.value.map((cls) => deleteClass(cls.id)));
-
     ElMessage.success('批量删除成功');
     selectedClasses.value = [];
     load();
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('批量删除失败');
-    }
+    ElMessage.error('批量删除失败');
+  } finally {
+    batchDeleting.value = false;
   }
 }
 
@@ -436,17 +499,35 @@ function resetBatchForm() {
 async function handleBatchSet() {
   // 批量标记离校时确认级联删除排课
   if (batchFormType.value === 'leftSchool' && batchForm.value.isLeftSchool) {
-    try {
-      await ElMessageBox.confirm(
-        `标记为"离校"将自动删除所选 ${selectedClasses.value.length} 个班级在当前学期的所有排课记录，释放教师课时容量。确定继续？`,
-        '确认批量离校',
-        { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' }
-      );
-    } catch {
-      return;
-    }
+    leftSchoolConfirmMessage.value = `标记为“离校”将自动删除所选 ${selectedClasses.value.length} 个班级在当前学期的所有排课记录，释放教师课时容量。确定继续？`;
+    leftSchoolConfirmVisible.value = true;
+    // 等待用户确认
+    const confirmed = await new Promise((resolve) => {
+      _leftSchoolResolve = resolve;
+    });
+    if (!confirmed) return;
   }
 
+  doBatchSet();
+}
+
+function confirmLeftSchool() {
+  leftSchoolConfirmVisible.value = false;
+  if (_leftSchoolResolve) {
+    _leftSchoolResolve(true);
+    _leftSchoolResolve = null;
+  }
+}
+
+function cancelLeftSchoolConfirm() {
+  leftSchoolConfirmVisible.value = false;
+  if (_leftSchoolResolve) {
+    _leftSchoolResolve(false);
+    _leftSchoolResolve = null;
+  }
+}
+
+async function doBatchSet() {
   batchSaving.value = true;
   try {
     const updates = {};

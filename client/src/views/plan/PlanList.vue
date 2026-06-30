@@ -86,13 +86,9 @@
             <el-button size="small" title="编辑信息" @click="openDialog(row)">
               <el-icon><Edit /></el-icon>
             </el-button>
-            <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
-              <template #reference>
-                <el-button size="small" type="danger" title="删除">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </template>
-            </el-popconfirm>
+            <el-button size="small" type="danger" title="删除" @click="handleDelete(row)">
+              <el-icon><Delete /></el-icon>
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -175,12 +171,36 @@
         <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 删除确认弹窗 -->
+    <el-dialog
+      v-model="deleteConfirmVisible"
+      title="确认删除"
+      width="min(420px, 90vw)"
+      align-center
+    >
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
+        <div style="flex: 1; line-height: 1.6; color: #606266">
+          <p style="margin: 0">确定要删除此培养方案吗？此操作不可撤销。</p>
+          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #e6a23c; font-size: 13px">
+            <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
+          </p>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="cancelDelete">取消</el-button>
+        <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { ArrowUp, ArrowDown, Document } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown, Document, Edit, Delete, WarningFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan';
 import { getMajors } from '../../api/major';
@@ -231,7 +251,7 @@ async function silentReload() {
   try {
     const res = await getPlans();
     list.value = res.data || [];
-  } catch (e) {
+  } catch {
     // 静默刷新失败时回退到带 loading 的 load
     await load();
   }
@@ -325,16 +345,47 @@ async function handleSave() {
   }
 }
 
-async function handleDelete(id) {
+const deleteConfirmVisible = ref(false);
+const deleting = ref(false);
+const pendingDeleteRow = ref(null);
+const deleteWarning = computed(() => {
+  // 后端 deletePlan 现在允许删除关联了班级的方案：
+  // - custom_plan_id 直接引用的班级会被解除关联（置 null），班级回归未关联状态
+  // - 按专业/层次匹配的班级无需修改，删除方案后自然不再匹配
+  const count = pendingDeleteRow.value?.blockingClassCount || 0;
+  return count > 0
+    ? `该方案当前匹配 ${count} 个班级，删除后将自动解除这些班级的关联（班级回归未关联状态）。`
+    : '';
+});
+let pendingDeleteId = null;
+
+function handleDelete(row) {
+  pendingDeleteRow.value = row;
+  pendingDeleteId = row?.id ?? null;
+  deleteConfirmVisible.value = true;
+}
+
+function cancelDelete() {
+  deleteConfirmVisible.value = false;
+  pendingDeleteRow.value = null;
+  pendingDeleteId = null;
+}
+
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  deleting.value = true;
   try {
-    await deletePlan(id);
+    await deletePlan(pendingDeleteId);
     ElMessage.success('删除成功');
     await silentReload();
-  } catch (e) {
-    if (import.meta.env.DEV) {
-      console.error('删除培养方案失败:', e);
-    }
-    ElMessage.error('删除失败，请重试');
+    deleteConfirmVisible.value = false;
+  } catch {
+    deleteConfirmVisible.value = false;
+    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
+  } finally {
+    pendingDeleteId = null;
+    pendingDeleteRow.value = null;
+    deleting.value = false;
   }
 }
 

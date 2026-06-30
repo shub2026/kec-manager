@@ -52,7 +52,9 @@ request.interceptors.response.use(
   (response) => {
     const res = response.data;
     if (res.success !== undefined && !res.success) {
-      ElMessage.error(res.message || '请求失败');
+      if (!response.config?.silentError) {
+        ElMessage({ message: res.message || '请求失败', type: 'error', duration: 5000, showClose: true });
+      }
       return Promise.reject(new Error(res.message));
     }
     return res;
@@ -113,12 +115,13 @@ request.interceptors.response.use(
 
     // 处理403权限不足
     if (error.response?.status === 403) {
-      ElMessage.error('权限不足，无法执行此操作');
+      ElMessage({ message: '权限不足，无法执行此操作', type: 'error', duration: 5000, showClose: true });
       return Promise.reject(error);
     }
 
     // 处理其他错误
     if (error.response) {
+      const silentError = error.config?.silentError;
       const status = error.response.status;
       const msgMap = {
         400: '请求参数错误',
@@ -129,13 +132,15 @@ request.interceptors.response.use(
       };
       const rawMsg = error.response.data?.message;
       const msg = typeof rawMsg === 'string' ? rawMsg : msgMap[status] || `请求失败 (${status})`;
-      ElMessage.error(msg);
+      if (!silentError) {
+        ElMessage({ message: msg, type: 'error', duration: 5000, showClose: true });
+      }
     } else if (error.code === 'ECONNABORTED') {
-      ElMessage.error('请求超时，请稍后重试');
+      if (!error.config?.silentError) ElMessage.error('请求超时，请稍后重试');
     } else if (!error.response) {
-      ElMessage.error('网络连接失败，请检查网络');
+      if (!error.config?.silentError) ElMessage.error('网络连接失败，请检查网络');
     } else {
-      ElMessage.error(error.message || '网络错误');
+      if (!error.config?.silentError) ElMessage.error(error.message || '网络错误');
     }
     return Promise.reject(error);
   }

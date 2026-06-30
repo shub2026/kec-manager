@@ -69,11 +69,7 @@
       <el-table-column label="操作" width="100" fixed="right" align="center">
         <template #default="{ row }">
           <el-button size="small" :icon="Edit" circle title="编辑" @click="$emit('edit', row)" />
-          <el-popconfirm title="确定删除？" @confirm="$emit('delete', row.id)">
-            <template #reference>
-              <el-button size="small" :icon="Delete" type="danger" circle title="删除" />
-            </template>
-          </el-popconfirm>
+          <el-button size="small" :icon="Delete" type="danger" circle title="删除" @click="$emit('delete', row.id)" />
         </template>
       </el-table-column>
     </el-table>

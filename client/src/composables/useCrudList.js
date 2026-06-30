@@ -1,5 +1,5 @@
-import { ref, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ref, computed, onMounted } from 'vue';
+import { ElMessage } from 'element-plus';
 import { useSortable } from './useSortable';
 
 /**
@@ -13,6 +13,8 @@ import { useSortable } from './useSortable';
  * @param {string} options.nameField - 名称字段名（默认 'name'）
  * @param {string} options.nameLabel - 名称标签（用于验证提示，如 '学院名称'）
  * @param {object} options.defaultForm - 默认表单值
+ * @param {Function} [options.getDeleteWarning] - 计算"删除前置警告文案"的函数：(row) => string | ''
+ *        返回非空字符串时，删除确认弹窗会额外显示一段红色提示
  * @returns {object}
  */
 export function useCrudList(api, options = {}) {
@@ -20,6 +22,7 @@ export function useCrudList(api, options = {}) {
     nameField = 'name',
     nameLabel = '名称',
     defaultForm = { id: null, name: '', code: '', description: '' },
+    getDeleteWarning = null,
   } = options;
 
   const list = ref([]);
@@ -27,6 +30,18 @@ export function useCrudList(api, options = {}) {
   const dialogVisible = ref(false);
   const saving = ref(false);
   const form = ref({ ...defaultForm });
+
+  // 删除确认弹窗状态
+  const deleteConfirmVisible = ref(false);
+  const deletingId = ref(null);
+  const deletingRow = ref(null);
+  const deleting = ref(false);
+
+  // 弹窗前置警告文案（基于当前 deletingRow 计算）
+  const deleteWarning = computed(() => {
+    if (!deletingRow.value || typeof getDeleteWarning !== 'function') return '';
+    return getDeleteWarning(deletingRow.value) || '';
+  });
 
   const { handleMoveUp, handleMoveDown } = useSortable(list, api.update, silentReload);
 
@@ -77,26 +92,33 @@ export function useCrudList(api, options = {}) {
   }
 
   async function handleDelete(id) {
+    deletingId.value = id;
+    // 同步查找对应行数据，供弹窗显示关联警告
+    deletingRow.value = list.value.find((item) => item.id === id) || null;
+    deleteConfirmVisible.value = true;
+  }
+
+  async function confirmDelete() {
+    deleting.value = true;
     try {
-      await ElMessageBox.confirm('确定要删除此条目吗？此操作不可撤销。', '确认删除', {
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-      });
-    } catch (action) {
-      // 用户取消删除
-      return;
-    }
-    try {
-      await api.remove(id);
+      await api.remove(deletingId.value);
       ElMessage.success('删除成功');
       await silentReload();
-    } catch (e) {
-      if (import.meta.env.DEV) {
-        console.error(`删除失败:`, e);
-      }
-      ElMessage.error('删除失败，请重试');
+      deleteConfirmVisible.value = false;
+    } catch {
+      deleteConfirmVisible.value = false;
+      // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
+    } finally {
+      deletingId.value = null;
+      deletingRow.value = null;
+      deleting.value = false;
     }
+  }
+
+  function cancelDelete() {
+    deleteConfirmVisible.value = false;
+    deletingId.value = null;
+    deletingRow.value = null;
   }
 
   onMounted(() => {
@@ -116,5 +138,12 @@ export function useCrudList(api, options = {}) {
     handleDelete,
     load,
     silentReload,
+    // 删除确认弹窗相关
+    deleteConfirmVisible,
+    deleting,
+    deletingRow,
+    deleteWarning,
+    confirmDelete,
+    cancelDelete,
   };
 }

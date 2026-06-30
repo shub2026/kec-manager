@@ -12,13 +12,23 @@ export async function listTrainingLevels(req, res, next) {
   try {
     await autoFixSortOrder('training_levels');
     const levels = await prisma.training_levels.findMany({
-      include: { _count: { select: { classes: true } } },
+      include: {
+        _count: {
+          select: {
+            classes: true,
+            training_plans: true,
+            scheduling_teachers: true,
+          },
+        },
+      },
       orderBy: { sort_order: 'asc' },
     });
 
     const formattedLevels = levels.map((level) => ({
       ...level,
       classCount: level._count?.classes || 0,
+      planCount: level._count?.training_plans || 0,
+      schedulingCount: level._count?.scheduling_teachers || 0,
     }));
     success(res, formattedLevels);
   } catch (e) {

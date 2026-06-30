@@ -13,8 +13,26 @@ export async function listCourses(req, res, next) {
     const { type } = req.query;
     const where = type ? { type } : {};
     await autoFixSortOrder('courses', type ? { type } : {});
-    const courses = await prisma.courses.findMany({ where, orderBy: { sort_order: 'asc' } });
-    success(res, courses);
+    const courses = await prisma.courses.findMany({
+      where,
+      include: {
+        _count: {
+          select: {
+            plan_courses: true,
+            teaching_assignments: true,
+            teacher_courses: true,
+          },
+        },
+      },
+      orderBy: { sort_order: 'asc' },
+    });
+    const formattedCourses = courses.map((course) => ({
+      ...course,
+      planCount: course._count?.plan_courses || 0,
+      assignmentCount: course._count?.teaching_assignments || 0,
+      teacherCourseCount: course._count?.teacher_courses || 0,
+    }));
+    success(res, formattedCourses);
   } catch (e) {
     next(e);
   }

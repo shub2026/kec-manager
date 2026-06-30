@@ -11,8 +11,15 @@ import {
 export async function listTextbooks(req, res, next) {
   try {
     await autoFixSortOrder('textbooks');
-    const textbooks = await prisma.textbooks.findMany({ orderBy: { sort_order: 'asc' } });
-    success(res, textbooks);
+    const textbooks = await prisma.textbooks.findMany({
+      include: { _count: { select: { plan_textbooks: true } } },
+      orderBy: { sort_order: 'asc' },
+    });
+    const formattedTextbooks = textbooks.map((textbook) => ({
+      ...textbook,
+      usageCount: textbook._count?.plan_textbooks || 0,
+    }));
+    success(res, formattedTextbooks);
   } catch (e) {
     next(e);
   }
