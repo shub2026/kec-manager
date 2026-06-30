@@ -111,7 +111,7 @@
           <el-table-column type="expand">
             <template #default="{ row }">
               <div class="expand-content">
-                <el-table :data="row.courses" size="small" border>
+                <el-table :data="row.courses" size="small" border row-key="courseName">
                   <el-table-column
                     prop="courseName"
                     label="课程"
@@ -207,7 +207,7 @@ import { getSemesterQuery } from '../../api/query';
 import { getMajors } from '../../api/major';
 import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
-import request from '../../utils/request';
+import { exportSemester } from '../../api/export';
 import { useSemesters, downloadBlob } from '../../composables/useSemesters';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { getWithCache } from '../../utils/cache';
@@ -447,9 +447,7 @@ async function exportExcel() {
       grade: filterGrade.value || undefined,
     };
 
-    const response = await request.post('/export/semester', params, {
-      responseType: 'blob',
-    });
+    const response = await exportSemester(params);
 
     downloadBlob(
       response,

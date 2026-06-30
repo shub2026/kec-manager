@@ -128,8 +128,8 @@ async function handleSubmit() {
     } else {
       ElMessage.error(result.message);
     }
-  } catch (error) {
-    ElMessage.error('密码修改失败，请稍后重试');
+  } catch {
+    // 拦截器已弹窗，避免重复提示
   } finally {
     loading.value = false;
   }

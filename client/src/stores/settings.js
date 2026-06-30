@@ -1,6 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import request from '../utils/request';
+
+// 延迟导入 api/settings，避免与 request.js → stores/auth.js → api/auth.js → request.js 形成循环依赖
+let _settingsApi = null;
+async function getSettingsApi() {
+  if (!_settingsApi) {
+    _settingsApi = await import('../api/settings');
+  }
+  return _settingsApi;
+}
 
 export const useSettingsStore = defineStore('settings', () => {
   const settings = ref({});
@@ -58,21 +66,23 @@ export const useSettingsStore = defineStore('settings', () => {
       return _pendingPromise;
     }
 
-    _pendingPromise = request
-      .get('/settings')
-      .then((res) => {
-        settings.value = res.data || {};
-        _lastLoadTime = Date.now();
-        _parseSemesterLabel(settings.value.currentSemester);
-      })
-      .catch((e) => {
-        if (import.meta.env.DEV) console.error('加载系统设置失败:', e);
-      })
-      .finally(() => {
-        _pendingPromise = null;
-      });
+    // 先标记 pending，避免 await 动态 import 期间另一个调用者重复进入主分支
+    _pendingPromise = (async () => {
+      const { getSettings: apiGetSettings } = await getSettingsApi();
+      const res = await apiGetSettings();
+      settings.value = res.data || {};
+      _lastLoadTime = Date.now();
+      _parseSemesterLabel(settings.value.currentSemester);
+    })().catch((e) => {
+      if (import.meta.env.DEV) console.error('加载系统设置失败:', e);
+    });
 
-    return _pendingPromise;
+    // finally 不能直接链在原 _pendingPromise 上（会被覆盖），用局部引用清理
+    const p = _pendingPromise.finally(() => {
+      if (_pendingPromise === p) _pendingPromise = null;
+    });
+    _pendingPromise = p;
+    return p;
   }
 
   /** 获取当前学期值（如 "2025-2026-2"），未加载时返回空字符串 */
@@ -81,7 +91,8 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   async function save(data) {
-    await request.put('/settings', data);
+    const { updateSettings: apiUpdateSettings } = await getSettingsApi();
+    await apiUpdateSettings(data);
     await load(true);
   }
 

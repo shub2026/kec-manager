@@ -46,7 +46,18 @@
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useSettingsStore } from '../../stores/settings';
-import request from '../../utils/request';
+import {
+  resetAuditLogs,
+  resetTeachers,
+  resetMajors,
+  resetColleges,
+  resetLevels,
+  resetCourses,
+  resetTextbooks,
+  resetClasses,
+  resetPlans,
+  resetSettings,
+} from '../../api/settings';
 import SemesterConfig from './components/SemesterConfig.vue';
 import DataReset from './components/DataReset.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
@@ -55,8 +66,8 @@ const settingsStore = useSettingsStore();
 const saving = ref(false);
 const resetting = ref(false);
 const form = ref({
-  current_semester: '',
-  organization_name: '',
+  currentSemester: '',
+  organizationName: '',
 });
 
 // 跟踪当前选中的学期和已保存的学期
@@ -76,8 +87,8 @@ async function load() {
   const s = settingsStore.settings;
   const semesterValue = s.currentSemester?.value || '';
   const orgName = s.organizationName?.value || '欢迎回来';
-  form.value.current_semester = semesterValue;
-  form.value.organization_name = orgName;
+  form.value.currentSemester = semesterValue;
+  form.value.organizationName = orgName;
   selectedSemester.value = semesterValue;
   savedSemester.value = semesterValue;
 }
@@ -90,7 +101,7 @@ async function confirmSave() {
   saving.value = true;
   try {
     await settingsStore.save(form.value);
-    savedSemester.value = form.value.current_semester;
+    savedSemester.value = form.value.currentSemester;
     ElMessage.success('学期设置已保存');
     saveConfirmVisible.value = false;
   } catch (e) {
@@ -132,19 +143,19 @@ async function handleReset() {
 
   resetting.value = true;
   try {
-    const endpoints = {
-      teachers: '/settings/reset/teachers',
-      majors: '/settings/reset/majors',
-      colleges: '/settings/reset/colleges',
-      levels: '/settings/reset/levels',
-      courses: '/settings/reset/courses',
-      textbooks: '/settings/reset/textbooks',
-      classes: '/settings/reset/classes',
-      plans: '/settings/reset/plans',
-      settings: '/settings/reset/settings',
+    const resetFnMap = {
+      teachers: resetTeachers,
+      majors: resetMajors,
+      colleges: resetColleges,
+      levels: resetLevels,
+      courses: resetCourses,
+      textbooks: resetTextbooks,
+      classes: resetClasses,
+      plans: resetPlans,
+      settings: resetSettings,
     };
 
-    await request.post(endpoints[resetType.value], {
+    await resetFnMap[resetType.value]({
       confirm: 'DELETE',
       ...(reasonInput.value.length >= 10 ? { reason: reasonInput.value } : {}),
     });
@@ -168,7 +179,7 @@ async function handleReset() {
 async function handleClearAuditLogs() {
   resetting.value = true;
   try {
-    await request.post('/settings/reset/audit-logs');
+    await resetAuditLogs();
     ElMessage.success('操作日志已清空');
     clearAuditDialogVisible.value = false;
   } catch (error) {

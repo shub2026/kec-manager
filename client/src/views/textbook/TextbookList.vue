@@ -45,13 +45,17 @@
       </div>
       <el-table
         v-loading="loading"
-        :data="filteredlist"
+        :data="filteredList"
         stripe
         row-key="id"
         @selection-change="handleSelectionChange"
       >
         <template #empty>
-          <el-empty description="暂无教材数据，请点击右上角新增" />
+          <el-empty
+            :description="
+              list.length === 0 ? '暂无教材数据，请点击右上角新增' : '未匹配到筛选条件，请重置筛选'
+            "
+          />
         </template>
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
@@ -99,7 +103,7 @@
               <el-button
                 size="small"
                 :icon="ArrowDown"
-                :disabled="$index === filteredlist.length - 1"
+                :disabled="$index === filteredList.length - 1"
                 circle
                 title="下移"
                 @click="handleMoveDown(row)"
@@ -179,13 +183,14 @@
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑教材' : '新增教材'"
+      :fullscreen="isMobile"
       width="min(600px, 90vw)"
       destroy-on-close
     >
-      <el-form :model="form" label-width="90px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
         <el-row :gutter="16">
           <el-col :span="12" :xs="24" :sm="12">
-            <el-form-item label="书名" required>
+            <el-form-item label="书名" prop="title" required>
               <el-input v-model="form.title" />
             </el-form-item>
           </el-col>
@@ -214,7 +219,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12" :xs="24" :sm="12">
-            <el-form-item label="定价">
+            <el-form-item label="定价" prop="price">
               <el-input-number v-model="form.price" :min="0" :precision="2" style="width: 100%" />
             </el-form-item>
           </el-col>
@@ -278,7 +283,7 @@
         /></el-icon>
         <div style="flex: 1; line-height: 1.6; color: #606266">
           <p style="margin: 0">确定要删除此教材吗？此操作不可撤销。</p>
-          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #e6a23c; font-size: 13px">
+          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #f56c6c; font-size: 13px">
             <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
           </p>
         </div>
@@ -311,7 +316,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import {
@@ -348,8 +353,35 @@ const loading = ref(false);
 const dialogVisible = ref(false);
 const saving = ref(false);
 const filterTitle = ref('');
+const debouncedFilterTitle = ref('');
 const filterCategory = ref('');
 const filterPublisher = ref('');
+
+// 防抖：文本输入200ms后再触发筛选，减少每次按键的computed重算
+let _filterTimer = null;
+watch(filterTitle, (val) => {
+  clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(() => {
+    debouncedFilterTitle.value = val;
+  }, 200);
+});
+
+// 表单引用与校验规则
+const formRef = ref(null);
+const rules = {
+  title: [{ required: true, message: '请输入教材名称', trigger: 'blur' }],
+  price: [{ type: 'number', min: 0, message: '定价必须大于等于0', trigger: 'blur' }],
+};
+
+// 弹窗小屏全屏
+const isMobile = ref(window.innerWidth < 768);
+const _handleResize = () => {
+  isMobile.value = window.innerWidth < 768;
+};
+window.addEventListener('resize', _handleResize);
+onUnmounted(() => {
+  window.removeEventListener('resize', _handleResize);
+});
 const defaultForm = {
   id: null,
   title: '',
@@ -390,10 +422,10 @@ const publishers = computed(() => {
 });
 
 // 筛选后的列表
-const filteredlist = computed(() => {
+const filteredList = computed(() => {
   let result = list.value;
-  if (filterTitle.value) {
-    const titleLower = filterTitle.value.toLowerCase();
+  if (debouncedFilterTitle.value) {
+    const titleLower = debouncedFilterTitle.value.toLowerCase();
     result = result.filter((item) => item.title && item.title.toLowerCase().includes(titleLower));
   }
   if (filterCategory.value) {
@@ -405,9 +437,9 @@ const filteredlist = computed(() => {
   return result;
 });
 
-// 使用排序 composable（注意：TextbookList 使用 filteredlist 而非 list）
-const { handleMoveUp, handleMoveDown } = useSortable(filteredlist, updateTextbook, silentReload, {
-  indexFinder: (item) => filteredlist.value.findIndex((i) => i.id === item.id),
+// 使用排序 composable（注意：TextbookList 使用 filteredList 而非 list）
+const { handleMoveUp, handleMoveDown } = useSortable(filteredList, updateTextbook, silentReload, {
+  indexFinder: (item) => filteredList.value.findIndex((i) => i.id === item.id),
 });
 
 async function load() {
@@ -435,23 +467,28 @@ function openDialog(row) {
 }
 
 async function handleSave() {
-  if (!form.value.title) return ElMessage.warning('请输入书名');
+  if (!formRef.value) return;
+  try {
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
   saving.value = true;
   try {
-    // 转换字段名为snake_case以匹配后端期望，并过滤空字符串
+    // 前端统一使用 camelCase，由 naming 中间件自动转换为 snake_case 给后端
     const textbookData = {
       title: form.value.title,
       isbn: form.value.isbn || undefined,
       publisher: form.value.publisher || undefined,
       author: form.value.author || undefined,
       edition: form.value.edition || undefined,
-      publish_date: form.value.publishDate || undefined,
+      publishDate: form.value.publishDate || undefined,
       price:
         form.value.price !== null && form.value.price !== '' ? Number(form.value.price) : undefined,
       category: form.value.category || undefined,
       description: form.value.description || undefined,
-      is_active: form.value.isActive,
-      sort_order: form.value.sortOrder,
+      isActive: form.value.isActive,
+      sortOrder: form.value.sortOrder,
     };
 
     if (form.value.id) {
@@ -511,12 +548,12 @@ async function confirmDelete() {
 async function handleToggleStatus(row) {
   try {
     const res = await toggleTextbookStatus(row.id);
-    // 使用后端返回的最新状态（经过命名转换中间件后是isActive）
-    const newStatus = res.data?.isActive ?? res.data?.is_active;
+    // 使用后端返回的最新状态（命名转换中间件已统一转为 camelCase）
+    const newStatus = res.data?.isActive;
     ElMessage.success(newStatus ? '已启用' : '已停用');
     await silentReload();
   } catch {
-    ElMessage.error('操作失败');
+    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
   }
 }
 
@@ -587,7 +624,7 @@ async function handleBatchSet() {
     if (import.meta.env.DEV) {
       console.error('批量更新失败:', e);
     }
-    ElMessage.error('批量更新失败');
+    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
   } finally {
     batchSaving.value = false;
   }

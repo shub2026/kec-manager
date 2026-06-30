@@ -46,8 +46,8 @@ export async function authMiddleware(req, res, next) {
     token = authHeader.substring(7);
   }
   // 备选：从查询参数获取短期下载令牌（用于 window.open 等场景，有效期60秒）
-  else if (req.query.downloadToken) {
-    const decoded = AuthService.verifyDownloadToken(req.query.downloadToken);
+  else if (req.query.download_token) {
+    const decoded = AuthService.verifyDownloadToken(req.query.download_token);
     if (decoded) {
       // S-12 修复：下载令牌也需校验用户状态，防止被禁用用户在令牌有效期内绕过
       try {

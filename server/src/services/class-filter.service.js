@@ -7,17 +7,18 @@ import { getCurrentSemesterInfo } from './settings.service.js';
  * @returns {Promise<Object>} Prisma where 条件
  */
 export async function buildClassFilter(query) {
-  const { name, majorId, collegeId, status, trainingLevelId, planId, enrollmentYear } = query;
+  const { name, major_id, college_id, status, training_level_id, plan_id, enrollment_year } =
+    query;
 
   const where = {};
   if (name) where.name = { contains: name };
 
-  if (majorId) {
-    where.major_id = Number(majorId);
+  if (major_id) {
+    where.major_id = Number(major_id);
   }
 
-  if (collegeId) {
-    where.college_id = Number(collegeId);
+  if (college_id) {
+    where.college_id = Number(college_id);
   }
 
   let dynamicStatusFilter = null;
@@ -42,16 +43,16 @@ export async function buildClassFilter(query) {
     }
   }
 
-  if (trainingLevelId) {
-    where.training_level_id = Number(trainingLevelId);
+  if (training_level_id) {
+    where.training_level_id = Number(training_level_id);
   }
 
-  if (enrollmentYear) {
-    where.enrollment_year = Number(enrollmentYear);
+  if (enrollment_year) {
+    where.enrollment_year = Number(enrollment_year);
   }
 
-  if (planId) {
-    if (planId === 'none') {
+  if (plan_id) {
+    if (plan_id === 'none') {
       const allPlans = await prisma.training_plans.findMany({
         select: { id: true, major_id: true, training_level_id: true },
       });
@@ -77,7 +78,7 @@ export async function buildClassFilter(query) {
         where.NOT = { OR: notConditions };
       }
     } else {
-      const planIdNum = Number(planId);
+      const planIdNum = Number(plan_id);
       const plan = await prisma.training_plans.findUnique({
         where: { id: planIdNum },
         select: { major_id: true, training_level_id: true },

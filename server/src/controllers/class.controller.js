@@ -44,9 +44,9 @@ export async function getClassStats(req, res, next) {
 
 export async function listClasses(req, res, next) {
   try {
-    const { page, pageSize } = req.query;
+    const { page, page_size } = req.query;
     const pageNum = page ? Number(page) : 1;
-    const pageSizeNum = pageSize ? Number(pageSize) : 20;
+    const pageSizeNum = page_size ? Number(page_size) : 20;
 
     const filterResult = await buildClassFilter(req.query);
     if (filterResult.planNotFound) {

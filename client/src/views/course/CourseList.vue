@@ -34,7 +34,11 @@
 
       <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
         <template #empty>
-          <el-empty description="暂无课程数据，请点击右上角新增" />
+          <el-empty
+            :description="
+              list.length === 0 ? '暂无课程数据，请点击右上角新增' : '未匹配到筛选条件，请重置筛选'
+            "
+          />
         </template>
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="课程名称" min-width="150" />
@@ -72,7 +76,13 @@
         <el-table-column label="操作" width="100" fixed="right" align="center">
           <template #default="{ row }">
             <el-button size="small" :icon="Edit" circle @click="openDialog(row)" />
-            <el-button size="small" type="danger" :icon="Delete" circle @click="handleDelete(row)" />
+            <el-button
+              size="small"
+              type="danger"
+              :icon="Delete"
+              circle
+              @click="handleDelete(row)"
+            />
           </template>
         </el-table-column>
       </el-table>
@@ -84,12 +94,12 @@
       width="min(500px, 90vw)"
       destroy-on-close
     >
-      <el-form :model="form" label-width="90px">
-        <el-form-item label="课程名称" required>
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+        <el-form-item label="课程名称" prop="name" required>
           <el-input v-model="form.name" placeholder="请输入课程名称" />
         </el-form-item>
-        <el-form-item label="编码">
-          <el-input v-model="form.code" placeholder="请输入编码（可选）" />
+        <el-form-item label="编码" prop="code" required>
+          <el-input v-model="form.code" placeholder="请输入编码" />
         </el-form-item>
         <el-form-item label="类型">
           <el-radio-group v-model="form.type">
@@ -112,12 +122,19 @@
     </el-dialog>
 
     <!-- 删除确认弹窗 -->
-    <el-dialog v-model="deleteConfirmVisible" title="确认删除" width="min(420px, 90vw)" align-center>
+    <el-dialog
+      v-model="deleteConfirmVisible"
+      title="确认删除"
+      width="min(420px, 90vw)"
+      align-center
+    >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
         <div style="flex: 1; line-height: 1.6; color: #606266">
           <p style="margin: 0">确定要删除此课程吗？此操作不可撤销。</p>
-          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #E6A23C; font-size: 13px">
+          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #f56c6c; font-size: 13px">
             <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
           </p>
         </div>
@@ -129,9 +146,16 @@
     </el-dialog>
 
     <!-- 导入确认弹窗 -->
-    <el-dialog v-model="importConfirmVisible" title="导入确认" width="min(420px, 90vw)" align-center>
+    <el-dialog
+      v-model="importConfirmVisible"
+      title="导入确认"
+      width="min(420px, 90vw)"
+      align-center
+    >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
         <p style="margin: 0; line-height: 1.6; color: #606266">{{ confirmMessage }}</p>
       </div>
       <template #footer>
@@ -167,6 +191,13 @@ const loading = ref(false);
 const dialogVisible = ref(false);
 const saving = ref(false);
 const form = ref({ id: null, name: '', code: '', type: 'public', description: '' });
+
+// 表单引用与校验规则
+const formRef = ref(null);
+const rules = {
+  name: [{ required: true, message: '请输入课程名称', trigger: 'blur' }],
+  code: [{ required: true, message: '请输入编码', trigger: 'blur' }],
+};
 
 // 使用导入 composable
 const {
@@ -225,7 +256,12 @@ function openDialog(row) {
 }
 
 async function handleSave() {
-  if (!form.value.name) return ElMessage.warning('请输入课程名称');
+  if (!formRef.value) return;
+  try {
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
   saving.value = true;
   try {
     if (form.value.id) {

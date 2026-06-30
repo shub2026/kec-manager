@@ -147,13 +147,13 @@ async function saveSemester() {
 
   saving.value = true;
   try {
-    // 转换字段名为snake_case以匹配后端期望
+    // 前端统一使用 camelCase，由 naming 中间件自动转换为 snake_case 给后端
     const courseData = {
-      course_id: semesterForm.value.courseId,
-      start_semester: semesterForm.value.startSemester,
-      end_semester: semesterForm.value.endSemester,
-      weekly_hours: semesterForm.value.weeklyHours,
-      weeks_per_semester: semesterForm.value.weeksPerSemester || 18,
+      courseId: semesterForm.value.courseId,
+      startSemester: semesterForm.value.startSemester,
+      endSemester: semesterForm.value.endSemester,
+      weeklyHours: semesterForm.value.weeklyHours,
+      weeksPerSemester: semesterForm.value.weeksPerSemester || 18,
     };
     await addPlanCourse(planId, courseData);
     ElMessage.success('添加成功');

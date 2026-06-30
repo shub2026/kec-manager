@@ -10,11 +10,11 @@ import { findBestMatchPlan, isClassMatchPlan } from '../../services/plan.service
  */
 export async function listPlans(req, res, next) {
   try {
-    const { collegeId } = req.query;
+    const { college_id } = req.query;
     const where = {};
 
-    if (collegeId) {
-      where.college_id = Number(collegeId);
+    if (college_id) {
+      where.college_id = Number(college_id);
     }
 
     await autoFixSortOrder('training_plans');

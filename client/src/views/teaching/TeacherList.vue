@@ -84,9 +84,11 @@
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="filteredlist" stripe row-key="id">
+      <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
         <template #empty>
-          <el-empty description="暂无教师数据，请点击右上角新增" />
+          <el-empty
+            :description="list.length === 0 ? '暂无数据，请点击新增' : '未匹配到筛选条件'"
+          />
         </template>
         <el-table-column type="index" label="序号" min-width="60" align="center" />
         <el-table-column prop="name" label="姓名" min-width="100">
@@ -177,7 +179,13 @@
         <el-table-column label="操作" width="100" fixed="right" align="center">
           <template #default="{ row }">
             <el-button size="small" :icon="Edit" circle @click="openDialog(row)" />
-            <el-button size="small" type="danger" :icon="Delete" circle @click="handleDelete(row.id)" />
+            <el-button
+              size="small"
+              type="danger"
+              :icon="Delete"
+              circle
+              @click="handleDelete(row.id)"
+            />
           </template>
         </el-table-column>
       </el-table>
@@ -188,10 +196,11 @@
       v-model="dialogVisible"
       :title="form.id ? '编辑教师' : '新增教师'"
       width="min(600px, 90vw)"
+      :fullscreen="isMobile"
       destroy-on-close
     >
-      <el-form :model="form" label-width="100px">
-        <el-form-item label="教师姓名" required>
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+        <el-form-item label="教师姓名" prop="name" required>
           <el-input v-model="form.name" placeholder="请输入教师姓名" />
         </el-form-item>
         <el-row :gutter="16">
@@ -311,10 +320,19 @@
     </el-dialog>
 
     <!-- 删除确认弹窗 -->
-    <el-dialog v-model="deleteConfirmVisible" title="确认删除" width="min(380px, 90vw)" align-center>
+    <el-dialog
+      v-model="deleteConfirmVisible"
+      title="确认删除"
+      width="min(380px, 90vw)"
+      align-center
+    >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: #606266">确定要删除此教师吗？此操作不可撤销。</p>
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">
+          确定要删除此教师吗？此操作不可撤销。
+        </p>
       </div>
       <template #footer>
         <el-button @click="deleteConfirmVisible = false">取消</el-button>
@@ -323,9 +341,16 @@
     </el-dialog>
 
     <!-- 导入确认弹窗 -->
-    <el-dialog v-model="importConfirmVisible" title="导入确认" width="min(420px, 90vw)" align-center>
+    <el-dialog
+      v-model="importConfirmVisible"
+      title="导入确认"
+      width="min(420px, 90vw)"
+      align-center
+    >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
         <p style="margin: 0; line-height: 1.6; color: #606266">{{ confirmMessage }}</p>
       </div>
       <template #footer>
@@ -444,8 +469,19 @@ function handleTrainingLevelFilterChange() {
   handleParentChange('trainingLevelId', ['collegeId'], () => {});
 }
 
+const formRef = ref(null);
+const rules = {
+  name: [{ required: true, message: '请输入教师姓名', trigger: 'blur' }],
+};
+
+// 小屏弹窗全屏
+const isMobile = ref(window.innerWidth < 768);
+window.addEventListener('resize', () => {
+  isMobile.value = window.innerWidth < 768;
+});
+
 // 客户端筛选
-const filteredlist = computed(() => {
+const filteredList = computed(() => {
   let result = list.value;
   if (filterName.value) {
     const keyword = filterName.value.toLowerCase();
@@ -587,7 +623,11 @@ function openDialog(row) {
 }
 
 async function handleSave() {
-  if (!form.value.name) return ElMessage.warning('请输入教师姓名');
+  try {
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
   saving.value = true;
   try {
     const data = {
@@ -633,12 +673,9 @@ async function confirmDelete() {
     ElMessage.success('删除成功');
     await load();
     deleteConfirmVisible.value = false;
-  } catch (e) {
+  } catch {
     deleteConfirmVisible.value = false;
-    const msg = e?.response?.data?.message || e?.message || '删除失败';
-    setTimeout(() => {
-      ElMessage({ message: msg, type: 'error', duration: 5000, showClose: true });
-    }, 350);
+    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
   } finally {
     pendingDeleteId = null;
     deleting.value = false;
@@ -652,7 +689,7 @@ async function handleToggleStatus(row, val) {
     ElMessage.success(val ? '已启用' : '已禁用');
     await load();
   } catch (e) {
-    ElMessage.error('状态切换失败');
+    if (import.meta.env.DEV) console.error('状态切换失败:', e);
   }
 }
 

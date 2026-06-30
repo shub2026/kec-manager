@@ -1,7 +1,37 @@
 import request from '../utils/request';
+import './types';
 
+/**
+ * 获取班级列表
+ * @param {import('./types').ClassListParams} [params]
+ * @returns {Promise<import('./types').ApiResponse<import('./types').PaginatedResponse<import('./types').Class>>>}
+ */
 export const getClasses = (params) => request.get('/classes', { params });
+
+/**
+ * 获取班级统计
+ * @returns {Promise<import('./types').ApiResponse<{totalClasses: number, totalStudents: number}>>}
+ */
 export const getClassStats = () => request.get('/classes/stats');
+
+/**
+ * 创建班级
+ * @param {import('./types').ClassInput} data
+ * @returns {Promise<import('./types').ApiResponse<import('./types').Class>>}
+ */
 export const createClass = (data) => request.post('/classes', data);
+
+/**
+ * 更新班级
+ * @param {number} id
+ * @param {import('./types').ClassInput} data
+ * @returns {Promise<import('./types').ApiResponse<import('./types').Class>>}
+ */
 export const updateClass = (id, data) => request.put(`/classes/${id}`, data);
+
+/**
+ * 删除班级
+ * @param {number} id
+ * @returns {Promise<import('./types').ApiResponse<void>>}
+ */
 export const deleteClass = (id) => request.delete(`/classes/${id}`);

@@ -171,7 +171,7 @@ function calcGrade(row) {
   // 年级必须在有效范围内才显示：
   // 1. 年级 >= 1（已入学）
   // 2. 年级 <= 学制年限（未毕业）
-  const durationYears = row.durationYears || row.duration_years || 99;
+  const durationYears = row.durationYears || 99;
   if (grade >= 1 && grade <= durationYears) {
     return grade;
   }

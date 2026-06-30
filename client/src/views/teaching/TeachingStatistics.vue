@@ -98,7 +98,13 @@
               <div class="expand-content">
                 <div v-for="detail in row.details" :key="detail.course.id" class="course-detail">
                   <h4>{{ detail.course.name }}（周课时：{{ detail.weeklyHours }}）</h4>
-                  <el-table :data="detail.classes" size="small" border style="margin: 8px 0">
+                  <el-table
+                    :data="detail.classes"
+                    size="small"
+                    border
+                    style="margin: 8px 0"
+                    row-key="className"
+                  >
                     <el-table-column prop="className" label="班级" min-width="150" />
                     <el-table-column
                       prop="weeklyHours"
@@ -189,7 +195,8 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getTeachingStatistics } from '../../api/teachingArrange';
-import request from '../../utils/request';
+import { getSettings } from '../../api/settings';
+import { exportStatistics } from '../../api/export';
 import { downloadBlob } from '../../utils/download';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
 
@@ -291,7 +298,7 @@ const filteredSummary = computed(() => {
 
 async function loadSemester() {
   try {
-    const res = await request.get('/settings');
+    const res = await getSettings();
     const settings = res.data || {};
     if (settings.currentSemester) {
       semester.value = settings.currentSemester.value;
@@ -329,14 +336,11 @@ async function handleExport() {
     if (filterName.value) params.name = filterName.value;
     if (filterType.value) params.type = filterType.value;
     if (filterSubject.value) params.subject = filterSubject.value;
-    if (filterAffiliatedCollege.value) params.affiliated_college = filterAffiliatedCollege.value;
+    if (filterAffiliatedCollege.value) params.affiliatedCollege = filterAffiliatedCollege.value;
     if (filterLevel.value) params.level = filterLevel.value;
     if (filterCollege.value) params.college = filterCollege.value;
 
-    const response = await request.get('/export/statistics', {
-      params,
-      responseType: 'blob',
-    });
+    const response = await exportStatistics(params);
     downloadBlob(response, `课时统计_${semester.value}.xlsx`);
     ElMessage.success('导出成功');
   } catch (error) {

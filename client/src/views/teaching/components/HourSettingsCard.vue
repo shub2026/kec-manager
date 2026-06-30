@@ -76,20 +76,20 @@ const props = defineProps({
 const emit = defineEmits(['update:selectedCourseId', 'course-change']);
 
 const personnelTypes = [
-  { key: 'full_time', label: '专职' },
-  { key: 'part_time', label: '兼职' },
+  { key: 'fullTime', label: '专职' },
+  { key: 'partTime', label: '兼职' },
   { key: 'external', label: '外聘' },
 ];
 
 const defaultHourSettings = {
-  full_time: { standard: 16, max: 20 },
-  part_time: { standard: 12, max: 16 },
+  fullTime: { standard: 16, max: 20 },
+  partTime: { standard: 12, max: 16 },
   external: { standard: 12, max: 16 },
 };
 
 const hourSettings = reactive({
-  full_time: { standard: 16, max: 20 },
-  part_time: { standard: 12, max: 16 },
+  fullTime: { standard: 16, max: 20 },
+  partTime: { standard: 12, max: 16 },
   external: { standard: 12, max: 16 },
 });
 
@@ -99,11 +99,11 @@ async function loadHourSettings(courseId) {
   Object.assign(hourSettings, JSON.parse(JSON.stringify(defaultHourSettings)));
   if (!courseId) return;
   try {
-    const res = await getHourSettings({ course_id: courseId });
+    const res = await getHourSettings({ courseId });
     if (res.data) {
       const d = res.data;
-      if (d.fullTime) hourSettings.full_time = { ...d.fullTime };
-      if (d.partTime) hourSettings.part_time = { ...d.partTime };
+      if (d.fullTime) hourSettings.fullTime = { ...d.fullTime };
+      if (d.partTime) hourSettings.partTime = { ...d.partTime };
       if (d.external) hourSettings.external = { ...d.external };
     }
   } catch (e) {
@@ -117,8 +117,8 @@ async function handleSave() {
   savingSettings.value = true;
   try {
     await saveHourSettings({
-      course_id: props.selectedCourseId,
-      hour_settings: hourSettings,
+      courseId: props.selectedCourseId,
+      hourSettings,
     });
     ElMessage.success('课时要求已保存');
   } catch (e) {

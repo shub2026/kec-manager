@@ -15,6 +15,9 @@ import { useSortable } from './useSortable';
  * @param {object} options.defaultForm - 默认表单值
  * @param {Function} [options.getDeleteWarning] - 计算"删除前置警告文案"的函数：(row) => string | ''
  *        返回非空字符串时，删除确认弹窗会额外显示一段红色提示
+ * @param {import('vue').Ref} [options.formRef] - el-form 的 ref，用于提交前 validate
+ * @param {Function} [options.transformForm] - 提交前转换表单数据的函数（如 snake_case 转换）
+ * @param {import('vue').Ref|Function} [options.listParams] - 加载列表时的参数 ref/computed/函数
  * @returns {object}
  */
 export function useCrudList(api, options = {}) {
@@ -23,6 +26,9 @@ export function useCrudList(api, options = {}) {
     nameLabel = '名称',
     defaultForm = { id: null, name: '', code: '', description: '' },
     getDeleteWarning = null,
+    formRef = null,
+    transformForm = null,
+    listParams = null,
   } = options;
 
   const list = ref([]);
@@ -48,8 +54,11 @@ export function useCrudList(api, options = {}) {
   async function load() {
     loading.value = true;
     try {
-      const res = await api.list();
-      list.value = res.data || [];
+      const params = typeof listParams === 'function' ? listParams() : listParams?.value || {};
+      const res = await api.list(params);
+      list.value = res.data || res;
+    } catch (e) {
+      if (import.meta.env.DEV) console.error('加载失败:', e);
     } finally {
       loading.value = false;
     }
@@ -72,20 +81,25 @@ export function useCrudList(api, options = {}) {
   }
 
   async function handleSave() {
-    if (!form.value[nameField]) return ElMessage.warning(`请输入${nameLabel}`);
+    // 如果有 formRef，先 validate
+    if (formRef?.value) {
+      await formRef.value.validate();
+    }
     saving.value = true;
     try {
+      const submitData = transformForm ? transformForm(form.value) : form.value;
       if (form.value.id) {
-        await api.update(form.value.id, form.value);
+        await api.update(form.value.id, submitData);
+        ElMessage.success('更新成功');
       } else {
-        await api.create(form.value);
+        await api.create(submitData);
+        ElMessage.success('创建成功');
       }
-      ElMessage.success('保存成功');
       dialogVisible.value = false;
       await silentReload();
     } catch (e) {
+      // 拦截器已显示错误，不重复弹窗
       if (import.meta.env.DEV) console.error('保存失败:', e);
-      ElMessage.error(e?.response?.data?.message || '保存失败，请重试');
     } finally {
       saving.value = false;
     }

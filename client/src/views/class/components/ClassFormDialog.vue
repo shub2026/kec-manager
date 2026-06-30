@@ -5,12 +5,13 @@
       v-model="visible"
       :title="form.id ? '编辑班级' : '新增班级'"
       width="min(800px, 92vw)"
+      :fullscreen="isMobile"
       @close="$emit('close')"
     >
-      <el-form :model="localForm" label-width="100px">
+      <el-form ref="formRef" :model="localForm" :rules="rules" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12" :xs="24" :sm="12">
-            <el-form-item label="班级名称" required>
+            <el-form-item label="班级名称" prop="name" required>
               <el-input v-model="localForm.name" placeholder="如：2024级学前1班" />
             </el-form-item>
           </el-col>
@@ -64,7 +65,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8" :xs="24" :sm="8">
-            <el-form-item label="入学年份" required>
+            <el-form-item label="入学年份" prop="enrollmentYear" required>
               <el-input-number
                 v-model="localForm.enrollmentYear"
                 :min="2000"
@@ -74,7 +75,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="8" :xs="24" :sm="8">
-            <el-form-item label="学制(年)" required>
+            <el-form-item label="学制(年)" prop="durationYears" required>
               <el-input-number
                 v-model="localForm.durationYears"
                 :min="1"
@@ -84,7 +85,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="8" :xs="24" :sm="8">
-            <el-form-item label="班级人数">
+            <el-form-item label="班级人数" prop="studentCount">
               <el-input-number v-model="localForm.studentCount" :min="0" class="full-width" />
             </el-form-item>
           </el-col>
@@ -115,7 +116,7 @@
       </el-form>
       <template #footer>
         <el-button @click="visible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="$emit('save')">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
 
@@ -184,7 +185,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
   visible: {
@@ -263,6 +264,46 @@ const batchForm = computed({
   get: () => props.batchForm,
   set: (val) => emit('update:batchForm', val),
 });
+
+const formRef = ref(null);
+const rules = {
+  name: [{ required: true, message: '请输入班级名称', trigger: 'blur' }],
+  enrollmentYear: [
+    { required: true, message: '请输入入学年份', trigger: 'blur' },
+    { type: 'number', message: '入学年份必须为数字', trigger: 'blur' },
+  ],
+  durationYears: [
+    { required: true, message: '请输入学制', trigger: 'blur' },
+    {
+      validator: (rule, value, cb) =>
+        value != null && value > 0 ? cb() : cb(new Error('学制必须大于 0')),
+      trigger: 'blur',
+    },
+  ],
+  studentCount: [
+    { required: true, message: '请输入班级人数', trigger: 'blur' },
+    {
+      validator: (rule, value, cb) =>
+        value != null && value >= 0 ? cb() : cb(new Error('班级人数不能为负数')),
+      trigger: 'blur',
+    },
+  ],
+};
+
+// 小屏弹窗全屏
+const isMobile = ref(window.innerWidth < 768);
+window.addEventListener('resize', () => {
+  isMobile.value = window.innerWidth < 768;
+});
+
+async function handleSave() {
+  try {
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
+  emit('save');
+}
 </script>
 
 <style scoped>

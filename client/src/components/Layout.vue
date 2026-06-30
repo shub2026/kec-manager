@@ -90,7 +90,14 @@
     <el-container>
       <el-header class="layout-header">
         <div class="layout-header-left">
-          <el-icon class="collapse-icon" @click="userCollapsed = !userCollapsed">
+          <el-icon
+            class="collapse-icon"
+            role="button"
+            tabindex="0"
+            :aria-label="isCollapse ? '展开菜单' : '折叠菜单'"
+            @click="toggleSidebar"
+            @keyup.enter="toggleSidebar"
+          >
             <Fold v-if="!isCollapse" />
             <Expand v-else />
           </el-icon>
@@ -98,8 +105,8 @@
         </div>
         <div class="layout-header-right">
           <el-tag v-if="semesterLabel" type="info">{{ semesterLabel }}</el-tag>
-          <el-dropdown @command="handleCommand">
-            <span class="user-info">
+          <el-dropdown aria-haspopup="true" @command="handleCommand">
+            <span class="user-info" aria-label="用户菜单">
               <el-icon><User /></el-icon>
               {{ authStore.realName || authStore.username }}
               <el-tag
@@ -120,7 +127,11 @@
         </div>
       </el-header>
       <el-main class="layout-main">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <keep-alive :include="cachedViews">
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </el-main>
       <el-footer class="layout-footer" height="32px">
         <span>KEC课程管理平台 v{{ version }}</span>
@@ -172,13 +183,33 @@ const userCollapsed = ref(false); // 用户手动折叠标记
 const windowNarrow = ref(false); // 窗口窄屏标记
 const version = __APP_VERSION__;
 
+// keep-alive 缓存的列表页组件名（需与各列表组件 defineOptions({ name }) 一致）
+const cachedViews = [
+  'ClassList',
+  'TextbookList',
+  'TeacherList',
+  'PlanList',
+  'CourseList',
+  'MajorList',
+  'CollegeList',
+  'TrainingLevelList',
+];
+
 // 侧边栏折叠状态 = 窗口窄屏 || 用户手动折叠
 const isCollapse = computed(() => windowNarrow.value || userCollapsed.value);
 
-// 响应式侧边栏：窄屏自动折叠
+function toggleSidebar() {
+  userCollapsed.value = !userCollapsed.value;
+}
+
+// 响应式侧边栏：窄屏自动折叠（用 rAF 节流避免 resize 高频触发）
 const SIDEBAR_BREAKPOINT = 1024;
+let resizeRaf = null;
 function handleResize() {
-  windowNarrow.value = window.innerWidth < SIDEBAR_BREAKPOINT;
+  if (resizeRaf) window.cancelAnimationFrame(resizeRaf);
+  resizeRaf = window.requestAnimationFrame(() => {
+    windowNarrow.value = window.innerWidth < SIDEBAR_BREAKPOINT;
+  });
 }
 
 // 修改密码相关

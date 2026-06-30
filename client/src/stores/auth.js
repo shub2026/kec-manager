@@ -1,9 +1,17 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import router from '@/router';
-import request from '@/utils/request';
 import { setCookie, getCookie, deleteCookie, clearAuthCookies } from '@/utils/cookies';
 import { clearAllCache } from '@/utils/cache';
+
+// 延迟导入 api/auth，避免与 request.js → stores/auth.js → api/auth.js → request.js 形成循环依赖
+let _authApi = null;
+async function getAuthApi() {
+  if (!_authApi) {
+    _authApi = await import('@/api/auth');
+  }
+  return _authApi;
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(getCookie('token') || '');
@@ -47,7 +55,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(username, password) {
     try {
-      const response = await request.post('/auth/login', {
+      const { login: apiLogin } = await getAuthApi();
+      const response = await apiLogin({
         username,
         password,
       });
@@ -91,7 +100,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     try {
       if (token.value) {
-        await request.post('/auth/logout');
+        const { logout: apiLogout } = await getAuthApi();
+        await apiLogout();
       }
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -105,7 +115,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function refreshAccessToken() {
     try {
-      const response = await request.post('/auth/refresh', {
+      const { refreshAccessToken: apiRefresh } = await getAuthApi();
+      const response = await apiRefresh({
         refresh_token: refreshToken.value,
       });
 
@@ -129,7 +140,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchUserInfo(retryCount = 0) {
     try {
-      const response = await request.get('/auth/me');
+      const { fetchUserInfo: apiFetchUserInfo } = await getAuthApi();
+      const response = await apiFetchUserInfo();
       userInfo.value = response.data;
 
       localStorage.setItem('userInfo', JSON.stringify(response.data));
@@ -152,7 +164,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function changePassword(oldPassword, newPassword) {
     try {
-      await request.put('/auth/password', {
+      const { changePassword: apiChangePassword } = await getAuthApi();
+      await apiChangePassword({
         oldPassword,
         newPassword,
       });

@@ -209,7 +209,7 @@ describe('authMiddleware', () => {
   });
 
   it('downloadToken 合法且用户激活时应通过', async () => {
-    const req = makeReq({ query: { downloadToken: 'valid-download' } });
+    const req = makeReq({ query: { download_token: 'valid-download' } });
     const res = makeRes();
     const next = vi.fn();
 
@@ -226,7 +226,7 @@ describe('authMiddleware', () => {
   });
 
   it('downloadToken 无效时应返回 401', async () => {
-    const req = makeReq({ query: { downloadToken: 'invalid' } });
+    const req = makeReq({ query: { download_token: 'invalid' } });
     const res = makeRes();
     const next = vi.fn();
 

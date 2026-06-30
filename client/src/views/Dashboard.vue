@@ -22,21 +22,27 @@
     </div>
 
     <!-- 统计卡片 -->
-    <el-card v-loading="loading" class="stats-card">
+    <el-card class="stats-card">
       <template #header>
         <div class="card-header">
           <span class="card-title">
             <el-icon><DataLine /></el-icon>
             数据概览
           </span>
-
         </div>
       </template>
 
-      <el-row :gutter="20">
+      <el-skeleton v-if="loading" :rows="6" animated />
+      <el-row v-else :gutter="20">
         <!-- 专业类别 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="navigateTo('/majors')">
+          <div
+            class="stat-item"
+            role="button"
+            tabindex="0"
+            @click="navigateTo('/majors')"
+            @keyup.enter="navigateTo('/majors')"
+          >
             <div class="stat-icon" style="background-color: #ecf5ff; color: #409eff">
               <el-icon :size="24"><OfficeBuilding /></el-icon>
             </div>
@@ -49,7 +55,13 @@
 
         <!-- 课程数量 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="navigateTo('/courses')">
+          <div
+            class="stat-item"
+            role="button"
+            tabindex="0"
+            @click="navigateTo('/courses')"
+            @keyup.enter="navigateTo('/courses')"
+          >
             <div class="stat-icon" style="background-color: #f0f9eb; color: #67c23a">
               <el-icon :size="24"><Reading /></el-icon>
             </div>
@@ -62,7 +74,13 @@
 
         <!-- 班级数量 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="navigateTo('/classes')">
+          <div
+            class="stat-item"
+            role="button"
+            tabindex="0"
+            @click="navigateTo('/classes')"
+            @keyup.enter="navigateTo('/classes')"
+          >
             <div class="stat-icon" style="background-color: #fdf6ec; color: #e6a23c">
               <el-icon :size="24"><Histogram /></el-icon>
             </div>
@@ -75,7 +93,13 @@
 
         <!-- 活跃教材 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="navigateTo('/textbooks')">
+          <div
+            class="stat-item"
+            role="button"
+            tabindex="0"
+            @click="navigateTo('/textbooks')"
+            @keyup.enter="navigateTo('/textbooks')"
+          >
             <div class="stat-icon" style="background-color: #fef0f0; color: #f56c6c">
               <el-icon :size="24"><Notebook /></el-icon>
             </div>
@@ -88,7 +112,13 @@
 
         <!-- 培养方案 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="navigateTo('/plans')">
+          <div
+            class="stat-item"
+            role="button"
+            tabindex="0"
+            @click="navigateTo('/plans')"
+            @keyup.enter="navigateTo('/plans')"
+          >
             <div class="stat-icon" style="background-color: #f4f4f5; color: #909399">
               <el-icon :size="24"><Files /></el-icon>
             </div>
@@ -114,7 +144,13 @@
 
         <!-- 参与教师 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="navigateTo('/teaching/arrange')">
+          <div
+            class="stat-item"
+            role="button"
+            tabindex="0"
+            @click="navigateTo('/teaching/arrange')"
+            @keyup.enter="navigateTo('/teaching/arrange')"
+          >
             <div class="stat-icon" style="background-color: #fdf6ec; color: #e6a23c">
               <el-icon :size="24"><UserFilled /></el-icon>
             </div>
@@ -127,7 +163,13 @@
 
         <!-- 总周课时 -->
         <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item" @click="navigateTo('/teaching/arrange')">
+          <div
+            class="stat-item"
+            role="button"
+            tabindex="0"
+            @click="navigateTo('/teaching/arrange')"
+            @keyup.enter="navigateTo('/teaching/arrange')"
+          >
             <div class="stat-icon" style="background-color: #f0f9eb; color: #67c23a">
               <el-icon :size="24"><Clock /></el-icon>
             </div>
@@ -281,7 +323,12 @@ const stats = ref({
 async function fetchStats() {
   loading.value = true;
   try {
-    const semester = settingsStore.settings?.currentSemester?.value;
+    let semester = settingsStore.settings?.currentSemester?.value;
+    // settings 尚未加载完成时，强制重新拉取一次（避免首次竞态导致 semester 为空）
+    if (!semester) {
+      await settingsStore.load(true);
+      semester = settingsStore.settings?.currentSemester?.value;
+    }
     if (!semester) return;
 
     const CACHE_TTL = 5 * 60 * 1000;
@@ -302,6 +349,8 @@ async function fetchStats() {
       stats.value.teachingTeachers = d.teachingTeachers || 0;
       stats.value.totalWeeklyHours = d.totalWeeklyHours || 0;
     }
+  } catch (e) {
+    if (import.meta.env.DEV) console.error('Dashboard 统计加载失败:', e);
   } finally {
     loading.value = false;
   }
@@ -313,8 +362,9 @@ function navigateTo(path) {
 }
 
 onMounted(async () => {
+  loading.value = true; // 立即显示骨架屏，避免首次渲染闪现全 0 数据
   await settingsStore.load();
-  fetchStats();
+  await fetchStats();
 });
 </script>
 

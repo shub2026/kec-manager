@@ -174,14 +174,14 @@ async function saveEdit() {
   saving.value = true;
   try {
     await updateSemester(editingSemester.value.id, {
-      weekly_hours: editingSemester.value.weeklyHours,
+      weeklyHours: editingSemester.value.weeklyHours,
     });
 
     // 教材关联
     if (editingTextbookId.value) {
       await setSemesterTextbook(editingSemester.value.id, {
-        textbook_id: editingTextbookId.value,
-        is_required: true,
+        textbookId: editingTextbookId.value,
+        isRequired: true,
       });
     } else {
       await removeSemesterTextbook(editingSemester.value.id);

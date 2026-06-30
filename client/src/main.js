@@ -127,6 +127,8 @@ for (const [key, component] of Object.entries(icons)) {
 }
 
 const authStore = useAuthStore();
+// initAuth 涉及网络请求（fetchUserInfo / refreshAccessToken），路由守卫依赖 token 状态，
+// 故保持 await 再挂载，避免挂载后守卫读到未初始化的认证状态导致误跳登录页
 (async () => {
   await authStore.initAuth();
   app.mount('#app');

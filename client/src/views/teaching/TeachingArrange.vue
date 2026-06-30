@@ -2,10 +2,10 @@
   <div class="teaching-arrange">
     <!-- 设置区 -->
     <HourSettingsCard
+      ref="settingsCardRef"
       v-model:selected-course-id="selectedCourseId"
       :current-semester-label="currentSemesterLabel"
       :all-courses="allCourses"
-      ref="settingsCardRef"
       @course-change="onCourseChange"
     />
 
@@ -217,7 +217,7 @@ import { ElMessage } from 'element-plus';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
-import request from '../../utils/request';
+import { exportTeachingArrange } from '../../api/export';
 import { downloadBlob } from '../../utils/download';
 import {
   getCourseClasses,
@@ -426,9 +426,9 @@ async function loadData() {
   tableLoading.value = true;
   try {
     const [classesRes, teachersRes] = await Promise.all([
-      getCourseClasses({ course_id: selectedCourseId.value, semester: currentSemesterLabel.value }),
+      getCourseClasses({ courseId: selectedCourseId.value, semester: currentSemesterLabel.value }),
       getCourseTeachers({
-        course_id: selectedCourseId.value,
+        courseId: selectedCourseId.value,
         semester: currentSemesterLabel.value,
       }),
     ]);
@@ -625,20 +625,17 @@ async function handleExportArrange() {
   exporting.value = true;
   try {
     const params = {
-      course_id: selectedCourseId.value,
+      courseId: selectedCourseId.value,
       semester: currentSemesterLabel.value,
     };
 
     if (filterCollege.value) params.college = filterCollege.value;
     if (filterMajor.value) params.major = filterMajor.value;
-    if (filterTrainingLevel.value) params.training_level = filterTrainingLevel.value;
+    if (filterTrainingLevel.value) params.trainingLevel = filterTrainingLevel.value;
     if (filterGrade.value) params.grade = filterGrade.value;
     if (filterTextbook.value) params.textbook = filterTextbook.value;
 
-    const response = await request.get('/export/teaching-arrange', {
-      params,
-      responseType: 'blob',
-    });
+    const response = await exportTeachingArrange(params);
     downloadBlob(
       response,
       `教学安排_${courseInfo.value?.name || ''}_${currentSemesterLabel.value}.xlsx`

@@ -1,7 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
 import Layout from '../components/Layout.vue';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
+
+NProgress.configure({ showSpinner: false, trickleSpeed: 200 });
 
 const routes = [
   {
@@ -147,10 +151,15 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition;
+    return { top: 0 };
+  },
 });
 
 // 全局前置守卫（包 try-catch 防止守卫异常导致白屏）
 router.beforeEach(async (to, from, next) => {
+  NProgress.start();
   try {
     const authStore = useAuthStore();
 
@@ -239,8 +248,13 @@ router.beforeEach(async (to, from, next) => {
     if (import.meta.env.DEV) {
       console.error('[Router Guard Error]', err);
     }
+    NProgress.done();
     next('/login');
   }
+});
+
+router.afterEach(() => {
+  NProgress.done();
 });
 
 export default router;

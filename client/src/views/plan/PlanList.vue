@@ -23,9 +23,13 @@
           <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
       </div>
-      <el-table v-loading="loading" :data="filteredlist" stripe row-key="id">
+      <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
         <template #empty>
-          <el-empty description="暂无培养方案，请点击右上角新增" />
+          <el-empty
+            :description="
+              list.length === 0 ? '暂无培养方案，请点击右上角新增' : '未匹配到筛选条件，请重置筛选'
+            "
+          />
         </template>
         <el-table-column type="index" label="序号" width="55" />
         <el-table-column prop="name" label="方案名称" min-width="200" />
@@ -65,7 +69,7 @@
               <el-button
                 size="small"
                 :icon="ArrowDown"
-                :disabled="$index === filteredlist.length - 1"
+                :disabled="$index === filteredList.length - 1"
                 circle
                 title="下移"
                 @click="handleMoveDown(row)"
@@ -100,8 +104,8 @@
       width="min(500px, 90vw)"
       destroy-on-close
     >
-      <el-form :model="form" label-width="90px">
-        <el-form-item label="方案名称" required>
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+        <el-form-item label="方案名称" prop="name" required>
           <el-input v-model="form.name" placeholder="如：2024级学前教育培养方案" />
         </el-form-item>
 
@@ -185,7 +189,7 @@
         /></el-icon>
         <div style="flex: 1; line-height: 1.6; color: #606266">
           <p style="margin: 0">确定要删除此培养方案吗？此操作不可撤销。</p>
-          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #e6a23c; font-size: 13px">
+          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #f56c6c; font-size: 13px">
             <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
           </p>
         </div>
@@ -214,7 +218,7 @@ const majors = ref([]);
 const trainingLevels = ref([]);
 const colleges = ref([]);
 const filterCollegeId = ref('');
-const filteredlist = computed(() => {
+const filteredList = computed(() => {
   if (!filterCollegeId.value || filterCollegeId.value === '') return list.value;
   return list.value.filter((item) => item.collegeId === Number(filterCollegeId.value));
 });
@@ -231,9 +235,15 @@ const form = ref({
   description: '',
 });
 
-// 使用排序 composable（针对 filteredlist）
-const { handleMoveUp, handleMoveDown } = useSortable(filteredlist, updatePlan, silentReload, {
-  indexFinder: (item) => filteredlist.value.findIndex((i) => i.id === item.id),
+// 表单引用与校验规则
+const formRef = ref(null);
+const rules = {
+  name: [{ required: true, message: '请输入方案名称', trigger: 'blur' }],
+};
+
+// 使用排序 composable（针对 filteredList）
+const { handleMoveUp, handleMoveDown } = useSortable(filteredList, updatePlan, silentReload, {
+  indexFinder: (item) => filteredList.value.findIndex((i) => i.id === item.id),
 });
 
 async function load() {
@@ -269,7 +279,7 @@ async function loadMeta() {
 }
 
 function handleFilterChange() {
-  // filteredlist 是 computed，自动响应 filterCollegeId 变化
+  // filteredList 是 computed，自动响应 filterCollegeId 变化
 }
 
 function handleModeChange(mode) {
@@ -312,7 +322,12 @@ function openDialog(row) {
 }
 
 async function handleSave() {
-  if (!form.value.name) return ElMessage.warning('请填写方案名称');
+  if (!formRef.value) return;
+  try {
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
 
   // 根据关联模式验证必填项
   if (relationMode.value === 'major' && !form.value.majorId) {
@@ -326,9 +341,9 @@ async function handleSave() {
   try {
     const data = {
       name: form.value.name,
-      college_id: form.value.collegeId || null,
-      major_id: form.value.majorId || null,
-      training_level_id: form.value.trainingLevelId || null,
+      collegeId: form.value.collegeId || null,
+      majorId: form.value.majorId || null,
+      trainingLevelId: form.value.trainingLevelId || null,
       version: form.value.version,
       description: form.value.description,
     };

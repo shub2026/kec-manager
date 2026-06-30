@@ -99,10 +99,19 @@
     </el-dialog>
 
     <!-- 单个删除确认弹窗 -->
-    <el-dialog v-model="deleteConfirmVisible" title="确认删除" width="min(380px, 90vw)" align-center>
+    <el-dialog
+      v-model="deleteConfirmVisible"
+      title="确认删除"
+      width="min(380px, 90vw)"
+      align-center
+    >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: #606266">确定要删除此班级吗？此操作不可撤销。</p>
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
+        <p style="margin: 0; line-height: 1.6; color: #606266">
+          确定要删除此班级吗？此操作不可撤销。
+        </p>
       </div>
       <template #footer>
         <el-button @click="deleteConfirmVisible = false">取消</el-button>
@@ -111,21 +120,37 @@
     </el-dialog>
 
     <!-- 批量删除确认弹窗 -->
-    <el-dialog v-model="batchDeleteConfirmVisible" title="批量删除" width="min(420px, 90vw)" align-center>
+    <el-dialog
+      v-model="batchDeleteConfirmVisible"
+      title="批量删除"
+      width="min(420px, 90vw)"
+      align-center
+    >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
         <p style="margin: 0; line-height: 1.6; color: #606266">{{ batchDeleteConfirmMessage }}</p>
       </div>
       <template #footer>
         <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
-        <el-button type="danger" :loading="batchDeleting" @click="confirmBatchDelete">确定删除</el-button>
+        <el-button type="danger" :loading="batchDeleting" @click="confirmBatchDelete"
+          >确定删除</el-button
+        >
       </template>
     </el-dialog>
 
     <!-- 批量离校确认弹窗 -->
-    <el-dialog v-model="leftSchoolConfirmVisible" title="确认批量离校" width="min(450px, 90vw)" align-center>
+    <el-dialog
+      v-model="leftSchoolConfirmVisible"
+      title="确认批量离校"
+      width="min(450px, 90vw)"
+      align-center
+    >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
         <p style="margin: 0; line-height: 1.6; color: #606266">{{ leftSchoolConfirmMessage }}</p>
       </div>
       <template #footer>
@@ -139,7 +164,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { ElMessage } from 'element-plus';
-import request from '../../utils/request';
 import { getClasses, createClass, updateClass, deleteClass } from '../../api/class';
 import { getMajors } from '../../api/major';
 import { getPlans } from '../../api/plan';
@@ -147,6 +171,7 @@ import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
 import { useSettingsStore } from '../../stores/settings';
 import { useExport } from '../../composables/useExport';
+import { showImportResultCard } from '../../composables/useImport';
 import ClassFilterBar from './components/ClassFilterBar.vue';
 import ClassTable from './components/ClassTable.vue';
 import ClassFormDialog from './components/ClassFormDialog.vue';
@@ -394,20 +419,20 @@ async function handleSave() {
 
   saving.value = true;
   try {
-    // 转换字段名为snake_case以匹配后端期望，并过滤空值
+    // 前端统一使用 camelCase，由 naming 中间件自动转换为 snake_case 给后端
     const classData = {
       name: form.value.name,
-      enrollment_year: form.value.enrollmentYear,
-      duration_years: form.value.durationYears,
-      major_id: form.value.majorId || undefined,
-      college_id: form.value.collegeId || undefined,
-      training_level_id: form.value.trainingLevelId,
-      student_count:
+      enrollmentYear: form.value.enrollmentYear,
+      durationYears: form.value.durationYears,
+      majorId: form.value.majorId || undefined,
+      collegeId: form.value.collegeId || undefined,
+      trainingLevelId: form.value.trainingLevelId,
+      studentCount:
         form.value.studentCount !== null && form.value.studentCount !== undefined
           ? Number(form.value.studentCount)
           : undefined,
-      custom_plan_id: form.value.customPlanId || undefined,
-      is_left_school: form.value.isLeftSchool,
+      customPlanId: form.value.customPlanId || undefined,
+      isLeftSchool: form.value.isLeftSchool,
     };
 
     if (form.value.id) {
@@ -443,12 +468,9 @@ async function confirmDelete() {
     ElMessage.success('删除成功');
     load();
     deleteConfirmVisible.value = false;
-  } catch (error) {
+  } catch {
     deleteConfirmVisible.value = false;
-    const msg = error?.response?.data?.message || error?.message || '删除失败';
-    setTimeout(() => {
-      ElMessage({ message: msg, type: 'error', duration: 5000, showClose: true });
-    }, 350);
+    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
   } finally {
     pendingDeleteId = null;
     deleting.value = false;
@@ -537,21 +559,21 @@ async function doBatchSet() {
         ElMessage.error('请选择专业');
         return;
       }
-      updates.major_id = batchForm.value.majorId;
+      updates.majorId = batchForm.value.majorId;
     } else if (batchFormType.value === 'college') {
-      updates.college_id = batchForm.value.collegeId;
+      updates.collegeId = batchForm.value.collegeId;
     } else if (batchFormType.value === 'level') {
       if (!batchForm.value.trainingLevelId) {
         ElMessage.error('请选择培养层次');
         return;
       }
-      updates.training_level_id = batchForm.value.trainingLevelId;
+      updates.trainingLevelId = batchForm.value.trainingLevelId;
     } else if (batchFormType.value === 'year') {
-      updates.enrollment_year = batchForm.value.enrollmentYear;
+      updates.enrollmentYear = batchForm.value.enrollmentYear;
     } else if (batchFormType.value === 'duration') {
-      updates.duration_years = batchForm.value.durationYears;
+      updates.durationYears = batchForm.value.durationYears;
     } else if (batchFormType.value === 'leftSchool') {
-      updates.is_left_school = batchForm.value.isLeftSchool;
+      updates.isLeftSchool = batchForm.value.isLeftSchool;
     }
 
     await Promise.all(
@@ -580,49 +602,44 @@ function beforeImport(file) {
 
 function onImportSuccess(res) {
   progressPercent.value = 100;
-  const data = res.data || {};
-  const message = res.message || '导入完成';
+  const data = res?.data || {};
+  const total = Number(data.total) || 0;
+  const imported = Number(data.imported) || 0;
+  const overwritten = Number(data.overwritten) || 0;
+  const failed = Number(data.failed) || 0;
+  const errors = Array.isArray(data.errors) ? data.errors : [];
+  const succeeded = imported + overwritten;
 
-  // 构建详细消息
-  let detailMsg = message;
+  // 判定结果类型
+  let type = 'success';
+  if (succeeded === 0 && failed > 0) type = 'error';
+  else if (failed > 0) type = 'warning';
 
-  // 添加失败详情
-  if (data.errors && data.errors.length > 0) {
-    detailMsg += '\n\n❌ 失败详情：';
-    data.errors.forEach((error, index) => {
-      detailMsg += `\n${index + 1}. ${error}`;
+  const titleMap = {
+    success: '导入成功',
+    warning: '导入完成（部分失败）',
+    error: '导入失败',
+  };
+
+  // 进度弹窗短暂展示成功状态后关闭，再用统一的通知卡片显示详细结果
+  progressStatus.value =
+    type === 'error' ? 'exception' : type === 'warning' ? 'warning' : 'success';
+  progressText.value = titleMap[type];
+  progressDetail.value = '';
+
+  setTimeout(() => {
+    progressDialogVisible.value = false;
+    showImportResultCard({
+      title: titleMap[type],
+      type,
+      total,
+      imported,
+      overwritten,
+      failed,
+      errors,
     });
-  }
-
-  // 根据结果显示不同类型的消息
-  if (data.failed && data.failed > 0) {
-    progressStatus.value = 'warning';
-    progressText.value = '导入部分完成';
-    progressDetail.value = detailMsg;
-    setTimeout(() => {
-      progressDialogVisible.value = false;
-      ElMessage({ message: detailMsg, type: 'warning', duration: 10000, showClose: true });
-      load();
-    }, 1500);
-  } else if (data.imported > 0 || data.overwritten > 0) {
-    progressStatus.value = 'success';
-    progressText.value = '导入完成';
-    progressDetail.value = detailMsg;
-    setTimeout(() => {
-      progressDialogVisible.value = false;
-      ElMessage({ message: detailMsg, type: 'success', duration: 8000, showClose: true });
-      load();
-    }, 1500);
-  } else {
-    progressStatus.value = 'exception';
-    progressText.value = '导入失败';
-    progressDetail.value = detailMsg;
-    setTimeout(() => {
-      progressDialogVisible.value = false;
-      ElMessage({ message: detailMsg, type: 'info', duration: 6000, showClose: true });
-      load();
-    }, 1500);
-  }
+    load();
+  }, 800);
 }
 
 function onImportError(err) {

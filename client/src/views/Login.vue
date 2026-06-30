@@ -54,6 +54,7 @@
               size="large"
               :loading="loading"
               class="login-btn"
+              aria-label="登录"
               @click="handleLogin"
             >
               {{ loading ? '登录中...' : '登 录' }}
@@ -141,8 +142,8 @@ async function handleLogin() {
     } else {
       ElMessage.error(result.message);
     }
-  } catch (error) {
-    ElMessage.error('登录失败，请稍后重试');
+  } catch {
+    // 拦截器已弹窗，避免重复提示
   } finally {
     loading.value = false;
   }

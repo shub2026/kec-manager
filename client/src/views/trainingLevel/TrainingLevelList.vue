@@ -65,8 +65,8 @@
       width="min(500px, 90vw)"
       destroy-on-close
     >
-      <el-form :model="form" label-width="90px">
-        <el-form-item label="层次名称" required>
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+        <el-form-item label="层次名称" prop="name" required>
           <el-input v-model="form.name" placeholder="请输入层次名称" />
         </el-form-item>
         <el-form-item label="编码">
@@ -99,7 +99,7 @@
         /></el-icon>
         <div style="flex: 1; line-height: 1.6; color: #606266">
           <p style="margin: 0">确定要删除此培养层次吗？此操作不可撤销。</p>
-          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #e6a23c; font-size: 13px">
+          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #f56c6c; font-size: 13px">
             <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
           </p>
         </div>
@@ -113,6 +113,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete, WarningFilled } from '@element-plus/icons-vue';
 import {
   getTrainingLevels,
@@ -121,6 +122,11 @@ import {
   deleteTrainingLevel,
 } from '../../api/trainingLevel';
 import { useCrudList } from '../../composables/useCrudList';
+
+const formRef = ref(null);
+const rules = {
+  name: [{ required: true, message: '请输入层次名称', trigger: 'blur' }],
+};
 
 const {
   list,
@@ -147,6 +153,7 @@ const {
   },
   {
     nameLabel: '层次名称',
+    formRef,
     getDeleteWarning: (row) => {
       const parts = [];
       if (row.classCount > 0) parts.push(`${row.classCount} 个班级`);

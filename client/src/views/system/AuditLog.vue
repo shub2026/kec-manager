@@ -149,7 +149,7 @@
       </div>
       <!-- 表格视图 -->
       <div v-if="!showRawJson" class="details-table-wrap">
-        <el-table :data="parsedDetails" stripe size="small" border>
+        <el-table :data="parsedDetails" stripe size="small" border row-key="label">
           <el-table-column label="字段" prop="label" min-width="140" />
           <el-table-column label="值" prop="value" min-width="200">
             <template #default="{ row }">
@@ -187,7 +187,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getAuditLogs } from '../../api/audit';
-import request from '../../utils/request';
+import { resetAuditLogs } from '../../api/settings';
 
 const logs = ref([]);
 const loading = ref(false);
@@ -348,12 +348,13 @@ async function handleClearLogs() {
   clearing.value = true;
   try {
     // 后端 validateAuditLogReset 中间件要求 body.confirm === 'DELETE'，否则 400
-    await request.post('/settings/reset/audit-logs', { confirm: 'DELETE' });
+    await resetAuditLogs({ confirm: 'DELETE' });
     ElMessage.success('操作日志已清空');
     loadLogs();
   } catch (e) {
-    const msg = e?.response?.data?.message || e?.message || '未知错误';
-    ElMessage.error('清空操作日志失败：' + msg);
+    if (import.meta.env.DEV) {
+      console.error('清空操作日志失败:', e);
+    }
   } finally {
     clearDialogVisible.value = false;
     clearing.value = false;
@@ -376,7 +377,6 @@ async function loadLogs() {
     logs.value = res.data.logs;
     total.value = res.data.total;
   } catch (e) {
-    ElMessage.error('加载操作日志失败');
     if (import.meta.env.DEV) {
       console.error('加载操作日志失败:', e);
     }

@@ -15,7 +15,7 @@
         <div class="config-item">
           <label class="field-label">选择当前学期</label>
           <el-select
-            v-model="localForm.current_semester"
+            v-model="localForm.currentSemester"
             placeholder="请选择当前学期"
             size="large"
             filterable
@@ -50,7 +50,7 @@
         <div class="config-item organization-item">
           <label class="field-label">系统标识（单位）</label>
           <el-input
-            v-model="localForm.organization_name"
+            v-model="localForm.organizationName"
             placeholder="请输入单位名称，如：某某职业技术学院"
             size="large"
             maxlength="20"
@@ -142,8 +142,8 @@ const { availableSemesters } = useSemesters({ rangeBefore: 5 });
 
 // 学期预览
 const currentSemesterPreview = computed(() => {
-  if (!localForm.value.current_semester) return null;
-  const parts = localForm.value.current_semester.split('-');
+  if (!localForm.value.currentSemester) return null;
+  const parts = localForm.value.currentSemester.split('-');
   const season = parts[2] === '1' ? '秋季' : '春季';
   return {
     yearRange: `${parts[0]} - ${parts[1]} 学年`,

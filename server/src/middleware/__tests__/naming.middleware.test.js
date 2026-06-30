@@ -21,6 +21,25 @@ function mockReq(body = {}) {
   return { body, method: 'POST', path: '/api/test' };
 }
 
+/**
+ * 模拟 Express 5 的 req.query getter 行为：
+ * 每次访问都重新返回一个新对象（基于原始 query 解析），
+ * 原地修改无效，必须用 Object.defineProperty 重定义 getter。
+ */
+function mockReqWithQuery(queryObj) {
+  const req = { body: {}, method: 'GET', path: '/api/test' };
+  // 用 getter 模拟 Express 5：每次访问返回新对象（与真实行为一致）
+  Object.defineProperty(req, 'query', {
+    configurable: true,
+    enumerable: true,
+    get() {
+      // 返回浅拷贝，模拟每次解析返回新对象
+      return { ...queryObj };
+    },
+  });
+  return req;
+}
+
 function mockRes() {
   const res = {
     _jsonCall: null,
@@ -92,6 +111,49 @@ describe('convertRequestNaming', () => {
     expect(req.body).toEqual({
       outer_field: { inner_field: 'value' },
     });
+  });
+
+  // ── query params 转换（Express 5 getter 场景）──
+  it('应将 query 中的驼峰参数转为下划线', () => {
+    const req = mockReqWithQuery({ courseId: 1, semester: '2025-2026-1' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    convertRequestNaming(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(req.query.course_id).toBe(1);
+    expect(req.query.semester).toBe('2025-2026-1');
+    expect(req.query.courseId).toBeUndefined();
+  });
+
+  it('多次访问 req.query 应返回一致的转换结果（getter 缓存生效）', () => {
+    const req = mockReqWithQuery({ downloadToken: 'abc', courseId: 1 });
+    const res = mockRes();
+    const next = vi.fn();
+
+    convertRequestNaming(req, res, next);
+
+    // 模拟 controller 多次访问 req.query
+    const first = req.query;
+    const second = req.query;
+    expect(first.download_token).toBe('abc');
+    expect(second.download_token).toBe('abc');
+    expect(first.course_id).toBe(1);
+    expect(second.course_id).toBe(1);
+    expect(first.downloadToken).toBeUndefined();
+  });
+
+  it('无驼峰字段的 query 不应被重定义', () => {
+    const req = mockReqWithQuery({ semester: '2025-2026-1', page: 1 });
+    const res = mockRes();
+    const next = vi.fn();
+
+    convertRequestNaming(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(req.query.semester).toBe('2025-2026-1');
+    expect(req.query.page).toBe(1);
   });
 });
 

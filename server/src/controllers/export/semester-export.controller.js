@@ -230,13 +230,13 @@ export async function exportSemesterSchedule(req, res, next) {
       }
     }
 
-    // req.query 未经命名中间件转换，保持 camelCase
-    const { collegeId, majorId, trainingLevelId, enrollmentYear, grade } = req.query;
+    // 中间件已将 camelCase query 转为 snake_case
+    const { college_id, major_id, training_level_id, enrollment_year, grade } = req.query;
     const filters = {
-      college_id: collegeId,
-      major_id: majorId,
-      training_level_id: trainingLevelId,
-      enrollment_year: enrollmentYear,
+      college_id,
+      major_id,
+      training_level_id,
+      enrollment_year,
       grade,
     };
 

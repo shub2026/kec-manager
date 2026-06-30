@@ -97,7 +97,13 @@
             class="alert-success"
           />
 
-          <el-table :data="paginatedClasses" stripe class="textbook-query-table" :fit="true">
+          <el-table
+            :data="paginatedClasses"
+            stripe
+            class="textbook-query-table"
+            :fit="true"
+            row-key="classId"
+          >
             <el-table-column prop="className" label="班级" min-width="260" show-overflow-tooltip />
             <el-table-column
               prop="courseName"
@@ -151,7 +157,7 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getTextbooks } from '../../api/textbook';
 import { getTextbookQuery } from '../../api/query';
-import request from '../../utils/request';
+import { exportTextbook } from '../../api/export';
 import { useSemesters, downloadBlob } from '../../composables/useSemesters';
 import { getWithCache } from '../../utils/cache';
 
@@ -257,9 +263,8 @@ async function exportExcel() {
   }
 
   try {
-    const response = await request.get(`/export/textbook/${selectedTextbook.value}`, {
-      params: { semester: selectedSemester.value },
-      responseType: 'blob',
+    const response = await exportTextbook(selectedTextbook.value, {
+      semester: selectedSemester.value,
     });
 
     downloadBlob(response, `教材使用_${selectedSemester.value}_${new Date().getTime()}.xlsx`);

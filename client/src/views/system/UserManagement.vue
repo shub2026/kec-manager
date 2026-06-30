@@ -58,6 +58,7 @@
               size="small"
               type="primary"
               :disabled="row.role === 'super_admin'"
+              aria-label="编辑用户"
               @click="showEditDialog(row)"
             >
               编辑
@@ -66,6 +67,7 @@
               size="small"
               :type="row.isActive ? 'warning' : 'success'"
               :disabled="row.role === 'super_admin'"
+              :aria-label="row.isActive ? '禁用用户' : '激活用户'"
               @click="toggleUserStatus(row)"
             >
               {{ row.isActive ? '禁用' : '激活' }}
@@ -74,6 +76,7 @@
               size="small"
               type="danger"
               :disabled="row.id === authStore.userInfo?.id || row.role === 'super_admin'"
+              aria-label="删除用户"
               @click="deleteUser(row)"
             >
               删除
@@ -152,26 +155,44 @@
     </el-dialog>
 
     <!-- 用户状态切换确认弹窗 -->
-    <el-dialog v-model="statusConfirmVisible" title="确认操作" width="min(400px, 90vw)" align-center>
+    <el-dialog
+      v-model="statusConfirmVisible"
+      title="确认操作"
+      width="min(400px, 90vw)"
+      align-center
+    >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
         <p style="margin: 0; line-height: 1.6; color: #606266">{{ statusConfirmMessage }}</p>
       </div>
       <template #footer>
         <el-button @click="statusConfirmVisible = false">取消</el-button>
-        <el-button type="warning" :loading="statusChanging" @click="confirmToggleStatus">确定</el-button>
+        <el-button type="warning" :loading="statusChanging" @click="confirmToggleStatus"
+          >确定</el-button
+        >
       </template>
     </el-dialog>
 
     <!-- 用户删除确认弹窗 -->
-    <el-dialog v-model="deleteConfirmVisible" title="确认删除" width="min(400px, 90vw)" align-center>
+    <el-dialog
+      v-model="deleteConfirmVisible"
+      title="确认删除"
+      width="min(400px, 90vw)"
+      align-center
+    >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
         <p style="margin: 0; line-height: 1.6; color: #606266">{{ deleteConfirmMessage }}</p>
       </div>
       <template #footer>
         <el-button @click="deleteConfirmVisible = false">取消</el-button>
-        <el-button type="danger" :loading="userDeleting" @click="confirmDeleteUser">确定删除</el-button>
+        <el-button type="danger" :loading="userDeleting" @click="confirmDeleteUser"
+          >确定删除</el-button
+        >
       </template>
     </el-dialog>
   </div>
@@ -182,7 +203,13 @@ import { ref, onMounted } from 'vue';
 import { UserFilled } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { ElMessage } from 'element-plus';
-import request from '@/utils/request';
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser as apiDeleteUser,
+  toggleUserStatus as apiToggleUserStatus,
+} from '../../api/user';
 
 const authStore = useAuthStore();
 
@@ -229,7 +256,7 @@ const rules = {
 async function loadUsers() {
   loading.value = true;
   try {
-    const response = await request.get('/users');
+    const response = await getUsers();
     users.value = response.data;
   } catch (error) {
     ElMessage.error('加载用户列表失败：' + (error.message || '未知错误'));
@@ -240,7 +267,7 @@ async function loadUsers() {
 
 async function silentReload() {
   try {
-    const response = await request.get('/users');
+    const response = await getUsers();
     users.value = response.data;
   } catch (error) {
     ElMessage.error('加载用户列表失败：' + (error.message || '未知错误'));
@@ -285,8 +312,8 @@ async function handleSubmit() {
 
   try {
     if (isEdit.value) {
-      await request.put(`/users/${formData.value.id}`, {
-        real_name: formData.value.realName,
+      await updateUser(formData.value.id, {
+        realName: formData.value.realName,
         email: formData.value.email,
         role: formData.value.role,
       });
@@ -295,11 +322,11 @@ async function handleSubmit() {
       const userData = {
         username: formData.value.username,
         password: formData.value.password,
-        real_name: formData.value.realName || undefined,
+        realName: formData.value.realName || undefined,
         email: formData.value.email || undefined,
         role: formData.value.role,
       };
-      await request.post('/users', userData);
+      await createUser(userData);
       ElMessage.success('创建成功');
     }
 
@@ -333,8 +360,8 @@ async function confirmToggleStatus() {
   statusConfirmVisible.value = false;
   statusChanging.value = true;
   try {
-    const requestData = { is_active: !user.isActive };
-    await request.put(`/users/${user.id}/status`, requestData);
+    const requestData = { isActive: !user.isActive };
+    await apiToggleUserStatus(user.id, requestData);
     ElMessage.success(`${action}成功`);
     await silentReload();
   } catch (error) {
@@ -362,7 +389,7 @@ async function confirmDeleteUser() {
   deleteConfirmVisible.value = false;
   userDeleting.value = true;
   try {
-    await request.delete(`/users/${user.id}`);
+    await apiDeleteUser(user.id);
     ElMessage.success('删除成功');
     await silentReload();
   } catch (error) {
