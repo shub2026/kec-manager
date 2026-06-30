@@ -79,14 +79,26 @@
     </el-dialog>
 
     <!-- 课程删除确认弹窗 -->
-    <el-dialog v-model="deleteCourseConfirmVisible" title="确认删除" width="min(400px, 90vw)" align-center>
+    <el-dialog
+      v-model="deleteCourseConfirmVisible"
+      title="确认删除"
+      width="min(420px, 90vw)"
+      align-center
+    >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"><WarningFilled /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: #606266">{{ deleteCourseConfirmMessage }}</p>
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+          ><WarningFilled
+        /></el-icon>
+        <div style="flex: 1; line-height: 1.6; color: #606266">
+          <p style="margin: 0">{{ deleteCourseConfirmMessage }}</p>
+          <p style="margin: 8px 0 0; color: #909399; font-size: 13px">此操作不可撤销。</p>
+        </div>
       </div>
       <template #footer>
         <el-button @click="deleteCourseConfirmVisible = false">取消</el-button>
-        <el-button type="danger" :loading="courseDeleting" @click="confirmDeleteCourse">确定删除</el-button>
+        <el-button type="danger" :loading="courseDeleting" @click="confirmDeleteCourse"
+          >确定删除</el-button
+        >
       </template>
     </el-dialog>
   </div>
@@ -165,6 +177,8 @@ async function saveSemester() {
       weeklyHours: 4,
       weeksPerSemester: 18,
     };
+    // 标记 PlanList 需要刷新课程数
+    sessionStorage.setItem('planListNeedsRefresh', 'true');
     // 刷新矩阵数据
     await refreshMatrix();
   } catch (e) {
@@ -177,7 +191,7 @@ async function saveSemester() {
 
 async function handleDeleteCourse(course) {
   pendingDeleteCourse.value = course;
-  deleteCourseConfirmMessage.value = `确定删除课程“${course.courseName}”？`;
+  deleteCourseConfirmMessage.value = `确定要删除课程“${course.courseName}”吗？`;
   deleteCourseConfirmVisible.value = true;
 }
 
@@ -190,10 +204,12 @@ async function confirmDeleteCourse() {
   try {
     await deletePlanCourse(course.id);
     ElMessage.success('删除成功');
+    // 标记 PlanList 需要刷新课程数
+    sessionStorage.setItem('planListNeedsRefresh', 'true');
     await refreshMatrix();
   } catch (e) {
     if (import.meta.env.DEV) console.error(e);
-    ElMessage.error('删除失败');
+    // request.js 拦截器已统一弹错误提示，此处不再重复
   } finally {
     courseDeleting.value = false;
     pendingDeleteCourse.value = null;

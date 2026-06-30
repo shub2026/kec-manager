@@ -203,7 +203,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { ArrowUp, ArrowDown, Document, Edit, Delete, WarningFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan';
@@ -212,6 +213,7 @@ import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
 import { useSortable } from '../../composables/useSortable';
 
+const route = useRoute();
 const list = ref([]);
 const loading = ref(false);
 const majors = ref([]);
@@ -415,10 +417,39 @@ async function confirmDelete() {
   }
 }
 
+// PlanDetail 修改课程后会设置 sessionStorage 标志，返回时据此刷新课程数
+// keep-alive 生效时 onMounted 不触发，用 watch route 检查标志
+// keep-alive 未生效时 onMounted 触发，load() 会加载最新数据并清除标志
+function consumeRefreshFlag() {
+  if (sessionStorage.getItem('planListNeedsRefresh') === 'true') {
+    sessionStorage.removeItem('planListNeedsRefresh');
+    return true;
+  }
+  return false;
+}
+
 onMounted(async () => {
-  await loadMeta();
+  try {
+    await loadMeta();
+  } catch (e) {
+    if (import.meta.env.DEV) console.error('加载元数据失败:', e);
+  }
+  // 清除标志（load() 会加载最新数据）
+  sessionStorage.removeItem('planListNeedsRefresh');
   load();
 });
+
+watch(
+  () => route.path,
+  (newPath, oldPath) => {
+    // 跳过首次（oldPath 为 undefined）和同路由变化
+    if (newPath === '/plans' && oldPath && oldPath !== '/plans') {
+      if (consumeRefreshFlag()) {
+        silentReload();
+      }
+    }
+  }
+);
 </script>
 
 <style scoped>

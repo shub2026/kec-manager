@@ -53,7 +53,12 @@ request.interceptors.response.use(
     const res = response.data;
     if (res.success !== undefined && !res.success) {
       if (!response.config?.silentError) {
-        ElMessage({ message: res.message || '请求失败', type: 'error', duration: 5000, showClose: true });
+        ElMessage({
+          message: res.message || '请求失败',
+          type: 'error',
+          duration: 5000,
+          showClose: true,
+        });
       }
       return Promise.reject(new Error(res.message));
     }
@@ -115,7 +120,12 @@ request.interceptors.response.use(
 
     // 处理403权限不足
     if (error.response?.status === 403) {
-      ElMessage({ message: '权限不足，无法执行此操作', type: 'error', duration: 5000, showClose: true });
+      ElMessage({
+        message: '权限不足，无法执行此操作',
+        type: 'error',
+        duration: 5000,
+        showClose: true,
+      });
       return Promise.reject(error);
     }
 

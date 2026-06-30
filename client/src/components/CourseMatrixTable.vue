@@ -83,13 +83,14 @@
               <el-button size="small" title="设置学期" @click="$emit('set-semester', course)">
                 <el-icon><Setting /></el-icon>
               </el-button>
-              <el-popconfirm title="确定删除该课程？" @confirm="$emit('delete-course', course)">
-                <template #reference>
-                  <el-button size="small" type="danger" title="删除课程">
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
-                </template>
-              </el-popconfirm>
+              <el-button
+                size="small"
+                type="danger"
+                title="删除课程"
+                @click="$emit('delete-course', course)"
+              >
+                <el-icon><Delete /></el-icon>
+              </el-button>
             </div>
           </td>
         </tr>

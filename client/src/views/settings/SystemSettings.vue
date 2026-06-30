@@ -46,18 +46,7 @@
 import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useSettingsStore } from '../../stores/settings';
-import {
-  resetAuditLogs,
-  resetTeachers,
-  resetMajors,
-  resetColleges,
-  resetLevels,
-  resetCourses,
-  resetTextbooks,
-  resetClasses,
-  resetPlans,
-  resetSettings,
-} from '../../api/settings';
+import { resetAuditLogs, resetSettings } from '../../api/settings';
 import SemesterConfig from './components/SemesterConfig.vue';
 import DataReset from './components/DataReset.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
@@ -116,7 +105,7 @@ function showResetDialog(type) {
     clearAuditDialogVisible.value = true;
     return;
   }
-
+  // 仅支持 'settings'（系统重置）
   resetType.value = type;
   confirmInput.value = '';
   reasonInput.value = '';
@@ -124,53 +113,23 @@ function showResetDialog(type) {
 }
 
 async function handleReset() {
-  const expectedTextMap = {
-    teachers: '确认',
-    majors: '确认',
-    colleges: '确认',
-    levels: '确认',
-    courses: '确认',
-    textbooks: '确认',
-    classes: '确认',
-    plans: '确认',
-    settings: '系统重置',
-  };
-
-  if (confirmInput.value !== expectedTextMap[resetType.value]) {
+  // 系统重置要求输入「系统重置」确认文字
+  if (confirmInput.value !== '系统重置') {
     ElMessage.error('确认文字不正确');
     return;
   }
 
   resetting.value = true;
   try {
-    const resetFnMap = {
-      teachers: resetTeachers,
-      majors: resetMajors,
-      colleges: resetColleges,
-      levels: resetLevels,
-      courses: resetCourses,
-      textbooks: resetTextbooks,
-      classes: resetClasses,
-      plans: resetPlans,
-      settings: resetSettings,
-    };
-
-    await resetFnMap[resetType.value]({
+    await resetSettings({
       confirm: 'DELETE',
       ...(reasonInput.value.length >= 10 ? { reason: reasonInput.value } : {}),
     });
-    const successMsg =
-      expectedTextMap[resetType.value] === '确认'
-        ? '数据已清空'
-        : `${expectedTextMap[resetType.value]}成功`;
-    ElMessage.success(successMsg);
+    ElMessage.success('系统重置成功');
     dialogVisible.value = false;
-
-    if (resetType.value === 'settings') {
-      await load();
-    }
-  } catch (error) {
-    ElMessage.error(error.response?.data?.message || '操作失败');
+    await load();
+  } catch {
+    // request.js 拦截器已统一弹错误提示，此处不再重复
   } finally {
     resetting.value = false;
   }
@@ -179,11 +138,11 @@ async function handleReset() {
 async function handleClearAuditLogs() {
   resetting.value = true;
   try {
-    await resetAuditLogs();
+    await resetAuditLogs({ confirm: 'DELETE' });
     ElMessage.success('操作日志已清空');
     clearAuditDialogVisible.value = false;
-  } catch (error) {
-    ElMessage.error(error.response?.data?.message || '清空失败');
+  } catch {
+    // request.js 拦截器已统一弹错误提示，此处不再重复
   } finally {
     resetting.value = false;
   }
