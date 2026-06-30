@@ -115,22 +115,22 @@ describe('diagnoseFailure', () => {
     });
   });
 
-  describe('路径3：所有教师本课程课时达上限', () => {
-    it('所有教师 courseExistingHours + assignedHours + weeklyHours > defaultWeeklyHours', () => {
+  describe('路径3：所有教师总周课时达上限', () => {
+    it('所有教师 effectiveTotal + assignedHours + weeklyHours > defaultWeeklyHours', () => {
       const teachers = [
         makeTeacher({
           id: 1,
           name: 'T1',
           defaultWeeklyHours: 8,
-          courseExistingHours: 4,
+          effectiveTotal: 4, // 全学期总周课时（含其他课程）
           assignedHours: 2,
-          standardCap: 20, // 容量足够
+          standardCap: 20, // 容量足够，排除路径2
         }),
         makeTeacher({
           id: 2,
           name: 'T2',
           defaultWeeklyHours: 6,
-          courseExistingHours: 4,
+          effectiveTotal: 4,
           assignedHours: 0,
           standardCap: 20,
         }),
@@ -138,7 +138,7 @@ describe('diagnoseFailure', () => {
       const cls = makeClass({ weeklyHours: 4 });
       // T1: 4+2+4=10>8, T2: 4+0+4=8>6 → 全部超限
       const result = diagnoseFailure(cls, teachers, mode);
-      expect(result.reason).toContain('本课程课时已达上限');
+      expect(result.reason).toContain('总周课时已达上限');
     });
   });
 

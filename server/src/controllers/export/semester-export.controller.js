@@ -7,6 +7,7 @@ import {
 } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
+import { calcClassSemester } from '../../services/semester.service.js';
 import { findBestMatchPlan, buildClassWithPlanFilter } from '../../services/plan.service.js';
 
 /**
@@ -17,7 +18,8 @@ import { findBestMatchPlan, buildClassWithPlanFilter } from '../../services/plan
  */
 async function buildSemesterExportData(semesterInfo, filters) {
   const planFilter = await buildClassWithPlanFilter();
-  const activeFilter = await getActiveClassFilter();
+  // 传入查询学期，避免学期错位（替代全局学期）
+  const activeFilter = await getActiveClassFilter(semesterInfo);
 
   const baseWhere = {
     AND: [activeFilter, planFilter],
@@ -98,11 +100,11 @@ async function buildSemesterExportData(semesterInfo, filters) {
   const grade = filters.grade;
 
   for (const cls of classes) {
-    const gradeCalc = semesterInfo.startYear - cls.enrollment_year + 1;
-    if (grade && gradeCalc !== Number(grade)) continue;
-    if (gradeCalc < 1 || gradeCalc > cls.duration_years) continue;
+    const calc = calcClassSemester(cls, semesterInfo);
+    if (!calc) continue;
+    if (grade && calc.grade !== Number(grade)) continue;
 
-    const currentSemesterNum = (gradeCalc - 1) * 2 + semesterInfo.semesterIndex;
+    const currentSemesterNum = calc.currentSemesterNum;
     const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
     if (!plan) continue;
 
@@ -124,7 +126,7 @@ async function buildSemesterExportData(semesterInfo, filters) {
       专业: cls.majors?.name || '-',
       培养层次: cls.training_levels?.name || '-',
       入学年份: cls.enrollment_year,
-      年级: gradeCalc,
+      年级: calc.grade,
       在读学期: `第${currentSemesterNum}学期`,
       学生人数: Number(cls.student_count) || 0,
       开课数: courseCount,

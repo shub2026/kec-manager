@@ -19,6 +19,12 @@ import {
 // 若切换为 PM2 cluster 模式或负载均衡多实例部署，需改用 Redis 分布式锁或数据库行级锁。
 const arrangeLocks = new Set();
 
+// M-12 / P1-12: 批量排课并发锁（按学期维度），防止单课程排课与批量排课并发
+// 批量进行中，对同 semester 的单课程 autoArrange 调用直接拒绝，
+// 避免该课程的 arrangeLock 阻止批量到达时被 catch 吞掉、静默跳过
+// S-09 注意：进程内存级别，仅适用于单进程部署。多实例部署需改用分布式锁。
+export const batchLocks = new Set();
+
 /**
  * 计算教师-班级匹配分数（优先级 + 教材内聚）
  * 权重由 TEXTBOOK_COHESION 配置：
@@ -217,21 +223,48 @@ function diagnoseFailure(cls, teacherConstraints, mode) {
     };
   }
 
-  const courseLimitTeachers = allTeachers.filter(
+  // P1-11 修复：defaultWeeklyHours 语义统一为"教师总周课时上限"（与 buildTeacherConstraints 一致）
+  // buildTeacherConstraints 用 effectiveTotal = totalWeeklyHours - autoHoursForCourse + extraHours（全学期）
+  // 此处诊断：教师本学期总周课时 + 本课程新增课时 > defaultWeeklyHours
+  // 原逻辑误用 courseExistingHours（仅本课程），与 buildTeacherConstraints 语义不一致，会误导运维
+  const totalHourCapTeachers = allTeachers.filter(
     (t) =>
       t.defaultWeeklyHours != null &&
-      t.courseExistingHours + t.assignedHours + cls.weeklyHours > t.defaultWeeklyHours
+      t.effectiveTotal + t.assignedHours + cls.weeklyHours > t.defaultWeeklyHours
   );
 
-  if (courseLimitTeachers.length === allTeachers.length) {
+  if (totalHourCapTeachers.length === allTeachers.length) {
     return {
-      reason: '所有候选教师本课程课时已达上限',
-      details: courseLimitTeachers.slice(0, 5).map((t) => ({
+      reason: '所有候选教师总周课时已达上限',
+      details: totalHourCapTeachers.slice(0, 5).map((t) => ({
         teacherName: t.name,
-        courseHours: t.courseExistingHours + t.assignedHours,
+        totalHours: t.effectiveTotal + t.assignedHours,
         limit: t.defaultWeeklyHours,
       })),
     };
+  }
+
+  // P1-2 修复（P2-4）：教材上限诊断
+  // 所有教师已达教材硬上限且无法接纳新教材时，给出明确诊断
+  const diagMaxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
+  if (TEXTBOOK_COHESION.ENABLED && diagMaxTb > 0 && cls.textbookIds?.length > 0) {
+    const textbookFullTeachers = allTeachers.filter((t) => {
+      if (!t.assignedTextbookIds) return false;
+      const newTbCount = cls.textbookIds.filter(
+        (tid) => !t.assignedTextbookIds.has(tid)
+      ).length;
+      return t.assignedTextbookIds.size + newTbCount > diagMaxTb;
+    });
+    if (textbookFullTeachers.length === allTeachers.length) {
+      return {
+        reason: '所有候选教师教材上限已满',
+        details: textbookFullTeachers.slice(0, 5).map((t) => ({
+          teacherName: t.name,
+          textbookCount: t.assignedTextbookIds.size,
+          max: diagMaxTb,
+        })),
+      };
+    }
   }
 
   const eligibleTeachers = allTeachers.filter((t) => isTeacherEligible(t, cls, mode));
@@ -488,6 +521,10 @@ function trySwapOne(
   classTextbookMap,
   classInfoMap
 ) {
+  // P1-10 修复：无效课时班级（weeklyHours <= 0）不参与置换，避免破坏已合理分配
+  // 这类班级已被主算法标记为未分配（课时配置异常），置换会塞入 0 课时废记录
+  if (!u.weeklyHours || u.weeklyHours <= 0) return false;
+
   const uHours = u.weeklyHours;
   const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
 
@@ -636,6 +673,13 @@ export async function autoArrange(
   const { preview = false, extraTeacherHours = null, globalTextbookMap = null } = options;
 
   validateHourSettings(hourSettings);
+
+  // P1-12 修复：批量排课进行中拒绝单课程排课
+  // 否则该课程的 arrangeLock 会阻止批量到达时被 catch 吞掉、静默跳过
+  // 批量内部调用通过 options.skipBatchLockCheck=true 绕过此检查
+  if (!options.skipBatchLockCheck && batchLocks.has(semesterStr)) {
+    throw new Error(`学期 ${semesterStr} 批量排课进行中，请稍后再试`);
+  }
 
   // C-2: 并发保护——同一课程+学期不允许并发排课
   const lockKey = `${courseId}:${semesterStr}`;
@@ -966,6 +1010,11 @@ export async function autoArrange(
       const taken = [];
       let usedHours = 0;
 
+      // P1-2 修复：追踪"假设拿取后"的教材集合，防止累计超限
+      const takeMaxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
+      const useTbLimit = TEXTBOOK_COHESION.ENABLED && takeMaxTb > 0;
+      const projectedTextbooks = useTbLimit ? new Set(teacher.assignedTextbookIds) : null;
+
       // 按学院排序：教师已分配的学院优先，然后按学院ID排序
       const sorted = [...availableClasses].sort((a, b) => {
         const aHasCollege = teacher.assignedCollegeIds?.has(a.collegeId) ? 0 : 1;
@@ -980,6 +1029,13 @@ export async function autoArrange(
 
         // 意向约束检查（严格）：有意向的教师只能拿匹配的班级
         if (strictPrefCheck && !isPrefMatch(teacher, cls)) continue;
+
+        // P1-2 修复：教材上限校验 - 假设拿取此班级后教材总数不能超过上限
+        if (useTbLimit && cls.textbookIds?.length > 0) {
+          const newTbs = cls.textbookIds.filter((tid) => !projectedTextbooks.has(tid));
+          if (projectedTextbooks.size + newTbs.length > takeMaxTb) continue;
+          for (const tid of newTbs) projectedTextbooks.add(tid);
+        }
 
         taken.push(cls);
         usedHours += cls.weeklyHours;
@@ -1161,7 +1217,19 @@ export async function autoArrange(
           // 跳过已持有此教材的教师（已在阶段3处理）
           if (textbookIds.some((tid) => t.assignedTextbookIds.has(tid))) return false;
           // 检查是否有剩余容量
-          return maxCapFn(t) - t.assignedHours > 0;
+          if (maxCapFn(t) - t.assignedHours <= 0) return false;
+          // P1-2 修复：教材硬上限校验
+          // 阶段4教师未持有此组任何教材（上方 filter 已保证），新增教材数 = textbookIds.length
+          if (
+            TEXTBOOK_COHESION.ENABLED &&
+            TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER > 0 &&
+            textbookIds.length > 0 &&
+            t.assignedTextbookIds.size + textbookIds.length >
+              TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER
+          ) {
+            return false;
+          }
+          return true;
         })
         .sort((a, b) => maxCapFn(b) - b.assignedHours - (maxCapFn(a) - a.assignedHours));
 
@@ -1286,6 +1354,24 @@ export async function autoArrange(
         const constraintMap = new Map(teacherConstraints.map((t) => [t.id, t]));
         // M-5: 用 Map 累加每位教师已写入课时，避免 O(A²) 的 filter+reduce
         const writtenMap = new Map();
+        // P1-2 修复：事务内教材上限二次校验
+        // baseline = assignedTextbookIds ∩ inherentTextbookIds（pre-existing 快照），
+        // 即教师写入前的教材集合；written 累加已通过校验的本次安排新增教材
+        const txMaxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
+        const useTxTbLimit = TEXTBOOK_COHESION.ENABLED && txMaxTb > 0;
+        const baselineTextbooks = new Map();
+        const writtenTextbooks = new Map();
+        if (useTxTbLimit) {
+          for (const t of teacherConstraints) {
+            const inherentSet = new Set(t.inherentTextbookIds || []);
+            const baseline = new Set();
+            for (const tid of t.assignedTextbookIds) {
+              if (inherentSet.has(tid)) baseline.add(tid);
+            }
+            baselineTextbooks.set(t.id, baseline);
+            writtenTextbooks.set(t.id, new Set());
+          }
+        }
         for (const a of assignments) {
           const t = constraintMap.get(a.teacher_id);
           if (!t) {
@@ -1300,6 +1386,22 @@ export async function autoArrange(
             // 超载，跳过该分配（并发导致容量已变）
             overloadSkipped.push(a);
             continue;
+          }
+          // P1-2 修复：教材上限二次校验，违规的不写入 DB
+          if (useTxTbLimit) {
+            const baseline = baselineTextbooks.get(a.teacher_id);
+            const written = writtenTextbooks.get(a.teacher_id);
+            const tbIds = classTextbookMap.get(a.class_id) || [];
+            if (baseline && written && tbIds.length > 0) {
+              const projected = new Set(baseline);
+              for (const tid of written) projected.add(tid);
+              for (const tid of tbIds) projected.add(tid);
+              if (projected.size > txMaxTb) {
+                overloadSkipped.push(a);
+                continue;
+              }
+              for (const tid of tbIds) written.add(tid);
+            }
           }
           safeAssignments.push(a);
           writtenMap.set(a.teacher_id, alreadyWritten + a.weekly_hours);

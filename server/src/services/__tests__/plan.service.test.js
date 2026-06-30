@@ -107,10 +107,18 @@ describe('findBestMatchPlan', () => {
       expect(result.id).toBe(3);
     });
 
-    it('无 classPlanMap 时自定义方案不应生效，且跳过 major/level 匹配（返回 null）', () => {
+    it('无 classPlanMap 时应自动从 matchingPlans 中查找并返回自定义方案（消除 footgun）', () => {
       const cls = { id: 100, custom_plan_id: 3, major_id: 5, training_level_id: 10 };
       const result = findBestMatchPlan(cls, plans);
-      // custom_plan_id 设置时，major/level 匹配被 !cls.custom_plan_id 守卫跳过，返回 null
+      // Map 缺失时回退到 matchingPlans 查找，避免静默返回 null
+      expect(result).not.toBeNull();
+      expect(result.id).toBe(3);
+    });
+
+    it('无 classPlanMap 且 matchingPlans 中也找不到 custom_plan_id 时才返回 null', () => {
+      const cls = { id: 100, custom_plan_id: 999, major_id: 5, training_level_id: 10 };
+      const result = findBestMatchPlan(cls, plans);
+      // custom_plan_id 设置但找不到对应方案时，major/level 匹配被 !cls.custom_plan_id 守卫跳过，返回 null
       expect(result).toBeNull();
     });
   });

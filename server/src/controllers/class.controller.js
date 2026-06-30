@@ -82,6 +82,9 @@ export async function listClasses(req, res, next) {
         status = 'left_school';
       } else if (cls.enrollment_year && cls.duration_years) {
         status = calculateClassStatus(cls.enrollment_year, cls.duration_years, semesterInfo);
+      } else {
+        // P2-5: enrollment_year/duration_years 缺失时兜底为 active，避免 status 为 undefined
+        status = 'active';
       }
 
       // 计算匹配的培养方案名称
@@ -426,7 +429,19 @@ export async function deleteClass(req, res, next) {
       where: { class_id: classId },
     });
     if (assignmentCount > 0) {
-      return fail(res, `该班级存在 ${assignmentCount} 条排课记录，请先删除排课后再删除班级`);
+      // P2-8: 列出涉及的学期，帮助用户定位需清理的排课记录
+      const semesters = await prisma.teaching_assignments.findMany({
+        where: { class_id: classId },
+        select: { semester: true },
+        distinct: ['semester'],
+      });
+      const semesterList = semesters.map((s) => s.semester).filter(Boolean).join('、');
+      return fail(
+        res,
+        `该班级存在 ${assignmentCount} 条排课记录${
+          semesterList ? `（涉及学期：${semesterList}）` : ''
+        }，请先删除排课后再删除班级`
+      );
     }
     try {
       const cls = await prisma.classes.findUnique({ where: { id: classId } });

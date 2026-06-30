@@ -8,7 +8,8 @@ describe('parseSemester', () => {
       startYear: 2025,
       endYear: 2026,
       semesterIndex: 1,
-      label: '2025-2026-1',
+      raw: '2025-2026-1',
+      label: '2025年秋季(第1学期)',
     });
   });
 
@@ -18,7 +19,8 @@ describe('parseSemester', () => {
       startYear: 2024,
       endYear: 2025,
       semesterIndex: 2,
-      label: '2024-2025-2',
+      raw: '2024-2025-2',
+      label: '2025年春季(第2学期)',
     });
   });
 

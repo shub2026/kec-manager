@@ -366,14 +366,57 @@ export async function toggleTeacherStatus(req, res, next) {
       return fail(res, '状态值无效，应为 active 或 disabled');
     }
 
-    const teacher = await prisma.teachers.findUnique({ where: { id: Number(id) } });
-    if (!teacher) return fail(res, '教师不存在', 404);
+    const teacherId = Number(id);
 
-    await prisma.teachers.update({
-      where: { id: Number(id) },
-      data: { status },
+    // 预检查教师是否存在（保持原 404 响应语义）
+    const existing = await prisma.teachers.findUnique({
+      where: { id: teacherId },
+      select: { id: true, name: true, status: true },
+    });
+    if (!existing) return fail(res, '教师不存在', 404);
+
+    const willCascade = status === 'disabled' && existing.status !== 'disabled';
+
+    // 事务内级联清理：禁用教师时同步删除其历史排课，避免污染课时统计
+    const { deletedCount, deletedDetails } = await prisma.$transaction(async (tx) => {
+      let deletedCount = 0;
+      let deletedDetails = [];
+
+      // 仅在 active -> disabled 切换时清理排课（不限学期，禁用教师不应保留任何排课）
+      if (willCascade) {
+        const assignments = await tx.teaching_assignments.findMany({
+          where: { teacher_id: teacherId },
+          include: {
+            class: { select: { id: true, name: true } },
+            course: { select: { id: true, name: true } },
+          },
+        });
+        deletedDetails = assignments.map((a) => ({
+          id: a.id,
+          semester: a.semester,
+          class_id: a.class_id,
+          class_name: a.class?.name,
+          course_id: a.course_id,
+          course_name: a.course?.name,
+          weekly_hours: a.weekly_hours,
+          is_auto: a.is_auto,
+        }));
+
+        const result = await tx.teaching_assignments.deleteMany({
+          where: { teacher_id: teacherId },
+        });
+        deletedCount = result.count;
+      }
+
+      await tx.teachers.update({
+        where: { id: teacherId },
+        data: { status },
+      });
+
+      return { deletedCount, deletedDetails };
     });
 
+    const teacherName = existing.name;
     const statusLabel = status === 'active' ? '启用' : '禁用';
 
     await createAuditLog({
@@ -381,13 +424,26 @@ export async function toggleTeacherStatus(req, res, next) {
       module: 'teacher',
       userId: req.user?.id,
       ip: req.ip,
-      details: { id: Number(id), name: teacher.name, status },
+      details: {
+        id: teacherId,
+        name: teacherName,
+        status,
+        cascadedDeletedAssignments: deletedCount,
+        deletedAssignmentDetails: deletedDetails,
+      },
       result: 'success',
-      message: `${statusLabel}教师：${teacher.name}`,
+      message:
+        deletedCount > 0
+          ? `${statusLabel}教师：${teacherName}，级联删除${deletedCount}条排课记录`
+          : `${statusLabel}教师：${teacherName}`,
     });
 
     invalidateSortOrderCache('teachers');
-    success(res, { id: Number(id), status }, `${statusLabel}成功`);
+    success(
+      res,
+      { id: teacherId, status, cascadedDeletedAssignments: deletedCount },
+      deletedCount > 0 ? `${statusLabel}成功，已清理${deletedCount}条历史排课` : `${statusLabel}成功`,
+    );
   } catch (e) {
     next(e);
   }

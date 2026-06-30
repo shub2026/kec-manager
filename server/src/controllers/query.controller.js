@@ -5,22 +5,13 @@ import {
   getSemesterInfoFromRequest,
 } from '../services/settings.service.js';
 import { getActiveClassFilter } from '../services/class.service.js';
+import { calcClassSemester } from '../services/semester.service.js';
 import {
   findBestMatchPlan,
   buildClassWithPlanFilter,
   isClassMatchPlan,
 } from '../services/plan.service.js';
 import { log } from '../utils/logger.js';
-
-/**
- * 计算班级在当前全局学期下的相对学期序号
- */
-function calcClassSemester(cls, semesterInfo) {
-  const grade = semesterInfo.startYear - cls.enrollment_year + 1;
-  if (grade < 1 || grade > cls.duration_years) return null;
-  const currentSemesterNum = (grade - 1) * 2 + semesterInfo.semesterIndex;
-  return { grade, currentSemesterNum };
-}
 
 /**
  * GET /api/query/semester - 当前学期开课查询
@@ -54,8 +45,8 @@ export async function querySemester(req, res, next) {
     // 构建"能关联到培养方案"的过滤条件
     const planFilter = await buildClassWithPlanFilter();
 
-    // 基础过滤：在读班级 + 能关联到培养方案
-    const activeFilter = await getActiveClassFilter();
+    // 基础过滤：在读班级 + 能关联到培养方案（传入查询学期，避免学期错位）
+    const activeFilter = await getActiveClassFilter(semesterInfo);
     const baseWhere = {
       AND: [activeFilter, planFilter],
     };
@@ -363,7 +354,7 @@ export async function queryTextbookUsage(req, res, next) {
     const textbook = await prisma.textbooks.findUnique({ where: { id: Number(id) } });
     if (!textbook) return fail(res, '教材不存在', 404);
 
-    const activeFilter = await getActiveClassFilter();
+    const activeFilter = await getActiveClassFilter(semesterInfo);
     const [planTextbooks, allClasses] = await Promise.all([
       prisma.plan_textbooks.findMany({
         where: { textbook_id: Number(id) },
@@ -466,7 +457,7 @@ export async function queryAllTextbooksUsage(req, res, next) {
       }
     }
 
-    const activeFilter = await getActiveClassFilter();
+    const activeFilter = await getActiveClassFilter(semesterInfo);
     const [textbooks, allClasses] = await Promise.all([
       prisma.textbooks.findMany({
         include: {

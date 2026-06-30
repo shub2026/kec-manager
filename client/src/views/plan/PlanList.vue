@@ -364,13 +364,24 @@ const deleteConfirmVisible = ref(false);
 const deleting = ref(false);
 const pendingDeleteRow = ref(null);
 const deleteWarning = computed(() => {
-  // 后端 deletePlan 现在允许删除关联了班级的方案：
-  // - custom_plan_id 直接引用的班级会被解除关联（置 null），班级回归未关联状态
-  // - 按专业/层次匹配的班级无需修改，删除方案后自然不再匹配
-  const count = pendingDeleteRow.value?.blockingClassCount || 0;
-  return count > 0
-    ? `该方案当前匹配 ${count} 个班级，删除后将自动解除这些班级的关联（班级回归未关联状态）。`
-    : '';
+  // 后端 deletePlan 现在允许删除关联了班级的方案，但需区分两类影响：
+  // - customLinkedClassCount：custom_plan_id 直接引用的班级，删除时会被解除关联（置 null），班级回归未关联状态
+  // - matchedClassCount：通过专业/层次匹配的班级（含 custom），删除方案后自然不再匹配此方案
+  //   （班级自身的 major_id/training_level_id 是班级属性，保持不变，不视为"关联"）
+  const row = pendingDeleteRow.value;
+  if (!row) return '';
+  const customCount = row.customLinkedClassCount || 0;
+  const matchedCount = row.matchedClassCount || 0;
+  const parts = [];
+  if (customCount > 0) {
+    parts.push(`该方案当前自定义关联 ${customCount} 个班级，删除后将解除这些班级的关联`);
+  }
+  if (matchedCount > 0) {
+    parts.push(
+      `该方案当前匹配 ${matchedCount} 个班级（含专业/层次匹配），删除后这些班级将不再匹配此方案`
+    );
+  }
+  return parts.join('；');
 });
 let pendingDeleteId = null;
 

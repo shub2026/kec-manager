@@ -1,40 +1,11 @@
 import { prisma } from '../../lib/prisma.js';
 import { TEXTBOOK_COHESION } from '../../constants/index.js';
 import { isClassMatchPlan, findBestMatchPlan } from '../plan.service.js';
+// 学期相关函数统一收敛至 semester.service.js
+import { parseSemester, calcClassSemester, getActiveClassFilter } from '../semester.service.js';
 
-/**
- * 计算班级在指定学期下的相对学期序号
- */
-function calcClassSemester(cls, semesterInfo) {
-  const grade = semesterInfo.startYear - cls.enrollment_year + 1;
-  if (grade < 1 || grade > cls.duration_years) return null;
-  const currentSemesterNum = (grade - 1) * 2 + semesterInfo.semesterIndex;
-  return { grade, currentSemesterNum };
-}
-
-/**
- * 解析学期字符串 "2025-2026-1" → { startYear, endYear, semesterIndex, label }
- * 仅支持学期索引：1（秋季）、2（春季）；calcClassSemester 按 2 学期/年计算
- */
-export function parseSemester(semesterStr) {
-  if (!semesterStr) return null;
-  const parts = semesterStr.split('-');
-  if (parts.length !== 3) return null;
-  const startYear = parseInt(parts[0]);
-  const endYear = parseInt(parts[1]);
-  const semesterIndex = parseInt(parts[2]);
-  if (isNaN(startYear) || isNaN(endYear) || semesterIndex < 1 || semesterIndex > 2) return null;
-  // H2 修复：校验年份连续性（endYear 必须等于 startYear + 1，与 settings.service.js parseSemesterString 一致）
-  if (endYear !== startYear + 1) return null;
-  // B1修复：与 parseSemesterString 保持一致的年份范围校验
-  if (startYear < 2000 || startYear > 2099) return null;
-  return {
-    startYear,
-    endYear,
-    semesterIndex,
-    label: semesterStr,
-  };
-}
+// 重新导出 parseSemester，保持 `export { parseSemester, ... } from './arrange/queries.js'` 链路
+export { parseSemester };
 
 // === 模块级匹配工具函数 ===
 
@@ -81,20 +52,9 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
     orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
   });
 
-  const durations = await prisma.classes.findMany({
-    select: { duration_years: true },
-    distinct: ['duration_years'],
-  });
-  const durationValues = durations.map((d) => d.duration_years).filter((d) => d != null);
-
-  // 构建班级查询条件
-  const classWhere = {
-    OR: durationValues.map((d) => ({
-      duration_years: d,
-      is_left_school: false,
-      enrollment_year: { gte: semesterInfo.startYear - d + 1 },
-    })),
-  };
+  // 使用统一的 getActiveClassFilter，传入查询学期（替代内部读取全局学期）
+  // 注意：getActiveClassFilter 内部已自带 duration 缓存
+  const classWhere = await getActiveClassFilter(semesterInfo);
 
   // 添加筛选条件
   if (filters.college) {
@@ -111,7 +71,9 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
     const enrollmentYear = semesterInfo.startYear - gradeNum + 1;
     // S-03 修复：改为范围匹配，保留所有 gte <= enrollmentYear 的学制条件
     // 原精确匹配(gte === enrollmentYear)会漏掉多学制场景下的合法班级
-    classWhere.OR = classWhere.OR.filter((o) => o.enrollment_year.gte <= enrollmentYear);
+    if (Array.isArray(classWhere.OR)) {
+      classWhere.OR = classWhere.OR.filter((o) => o.enrollment_year?.gte <= enrollmentYear);
+    }
   }
 
   const allClasses = await prisma.classes.findMany({
@@ -332,6 +294,8 @@ export async function getTeachersForCourse(courseId, semesterStr) {
           },
         },
       },
+      // P1-6 修复：补 orderBy，保证多方案匹配时教材取值确定、与 getClassesWithCourse 口径一致
+      orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
     });
     // 按 course_id 分组
     const planCoursesByCourse = new Map();
@@ -374,7 +338,13 @@ export async function getTeachersForCourse(courseId, semesterStr) {
 
       // 高-5修复：使用 findBestMatchPlan 选定最佳方案，与 getClassesWithCourse 口径一致
       const candidatePlans = pcs.map((pc) => pc.training_plans).filter(Boolean);
-      const bestPlan = findBestMatchPlan(cls, candidatePlans);
+      // P1-1-派生修复：构建 classPlanMap 并传给 findBestMatchPlan，与 getClassesWithCourse 口径一致
+      const classPlanMap = new Map();
+      if (cls.custom_plan_id) {
+        const customPlan = candidatePlans.find((p) => p.id === cls.custom_plan_id);
+        if (customPlan) classPlanMap.set(cls.id, customPlan);
+      }
+      const bestPlan = findBestMatchPlan(cls, candidatePlans, classPlanMap);
 
       for (const pc of pcs) {
         const plan = pc.training_plans;

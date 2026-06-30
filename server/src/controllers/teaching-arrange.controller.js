@@ -12,6 +12,7 @@ import {
   parseSemester,
   validateHourSettings,
 } from '../services/teaching-arrange.service.js';
+import { calcClassSemester } from '../services/semester.service.js';
 
 /**
  * 安全解析 JSON 字符串，失败时返回 fallback 并记录告警
@@ -110,9 +111,11 @@ export async function assignTeacher(req, res, next) {
       return fail(res, '缺少必要参数');
     }
 
-    // 校验班级存在
-    const classExists = await prisma.classes.findUnique({ where: { id: Number(class_id) } });
-    if (!classExists) return fail(res, '班级不存在', 404);
+    // P1-8 修复：校验班级存在且未离校
+    const classExists = await prisma.classes.findFirst({
+      where: { id: Number(class_id), is_left_school: false },
+    });
+    if (!classExists) return fail(res, '班级不存在或已离校', 400);
 
     // 校验教师存在且处于启用状态
     const teacher = await prisma.teachers.findUnique({ where: { id: Number(teacher_id) } });
@@ -147,23 +150,25 @@ export async function assignTeacher(req, res, next) {
         },
       });
 
-      // 解析学期字符串，计算班级当前程序学期号
+      // 解析学期字符串，计算班级当前程序学期号（复用统一 calcClassSemester，含越界检查）
       const semInfo = parseSemester(semester);
       let currentSemesterNum = null;
       if (cls && semInfo) {
-        const grade = semInfo.startYear - cls.enrollment_year + 1;
-        if (grade >= 1 && grade <= cls.duration_years) {
-          currentSemesterNum = (grade - 1) * 2 + semInfo.semesterIndex;
+        const calc = calcClassSemester(cls, semInfo);
+        if (calc) {
+          currentSemesterNum = calc.currentSemesterNum;
         }
       }
 
       // 查询包含该课程的所有方案课程记录（含学期明细和方案信息）
+      // P1-6 修复：补 orderBy（training_plans.sort_order + id），保证多方案匹配时取值确定、可复现
       const planCourses = await prisma.plan_courses.findMany({
         where: { course_id: Number(course_id) },
         include: {
           plan_course_semesters: true,
           training_plans: { select: { id: true, major_id: true, training_level_id: true } },
         },
+        orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
       });
 
       createWeeklyHours = 0;
@@ -171,19 +176,35 @@ export async function assignTeacher(req, res, next) {
       const candidatePlans = planCourses.map((pc) => pc.training_plans).filter(Boolean);
       const planCourseByPlanId = new Map(planCourses.map((pc) => [pc.training_plans?.id, pc]));
 
-      const bestPlan = findBestMatchPlan(cls, candidatePlans);
+      // P1-1 修复：构建 classPlanMap 并显式传给 findBestMatchPlan，与 getClassesWithCourse 口径一致
+      const classPlanMap = new Map();
+      if (cls?.custom_plan_id) {
+        const customPlan = candidatePlans.find((p) => p.id === cls.custom_plan_id);
+        if (customPlan) classPlanMap.set(cls.id, customPlan);
+      }
+
+      const bestPlan = findBestMatchPlan(cls, candidatePlans, classPlanMap);
       if (bestPlan) {
         const pc = planCourseByPlanId.get(bestPlan.id);
         if (pc) {
           if (currentSemesterNum !== null) {
+            // P1-5 修复：semRecord 查找加 start/end_semester 范围校验
             const semRecord = pc.plan_course_semesters.find(
-              (s) => s.semester === currentSemesterNum
+              (s) =>
+                s.semester === currentSemesterNum &&
+                s.semester >= pc.start_semester &&
+                s.semester <= pc.end_semester
             );
             createWeeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours ?? 0;
           } else {
             createWeeklyHours = pc.weekly_hours ?? 0;
           }
         }
+      }
+
+      // P1-2-派生修复：bestPlan 为 null 且周课时仍为 0 时，返回 fail 而非写 0
+      if (!bestPlan && createWeeklyHours === 0) {
+        return fail(res, '该班级的培养方案未包含此课程，无法推导周课时', 400);
       }
     }
 
@@ -245,6 +266,23 @@ export async function assignTeacher(req, res, next) {
 
     success(res, { ...assignment, workloadWarning }, '安排成功');
   } catch (e) {
+    // P1-13 修复：补失败审计日志（catch 块重新从 req 提取参数，避免引用 try 内变量）
+    const { class_id: _cid, course_id: _coid, semester: _sem, teacher_id: _tid } = req.body || {};
+    await createAuditLog({
+      action: 'update',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        class_id: _cid != null ? Number(_cid) : undefined,
+        course_id: _coid != null ? Number(_coid) : undefined,
+        semester: _sem,
+        teacher_id: _tid != null ? Number(_tid) : undefined,
+        error: e.message,
+      },
+      result: 'failed',
+      message: `手动安排教师失败：${e.message}`,
+    }).catch(() => {}); // 审计日志失败不阻塞主流程
     next(e);
   }
 }
@@ -288,6 +326,20 @@ export async function deleteAssignment(req, res, next) {
 
     success(res, null, `删除成功${hint}`);
   } catch (e) {
+    // P1-13 修复：补失败审计日志（catch 块重新从 req 提取参数）
+    const _id = req.params?.id;
+    await createAuditLog({
+      action: 'delete',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        id: _id != null ? Number(_id) : undefined,
+        error: e.message,
+      },
+      result: 'failed',
+      message: `删除教学安排失败：${e.message}`,
+    }).catch(() => {}); // 审计日志失败不阻塞主流程
     next(e);
   }
 }
@@ -328,6 +380,14 @@ export async function runAutoArrange(req, res, next) {
 
     const conditions = scheduleConditions || [];
 
+    // P1-9 修复：scheduleConditions 暂未实现，显式拒绝非空值避免用户配置被静默忽略
+    if (
+      (Array.isArray(conditions) && conditions.length > 0) ||
+      (scheduleConditions && !Array.isArray(scheduleConditions))
+    ) {
+      return fail(res, '排课条件功能暂未实现，请联系管理员');
+    }
+
     const result = await autoArrange(courseId, semester, mode, finalHourSettings, conditions, {
       preview: !!preview,
     });
@@ -356,15 +416,19 @@ export async function runAutoArrange(req, res, next) {
       preview ? '预览完成（未写入）' : `自动排课完成：安排${result.autoCount}个班级`
     );
   } catch (e) {
+    // P1-13 修复：补失败审计日志（catch 块重新从 req 提取参数）
+    const _courseId = req.body?.course_id;
+    const _semester = req.body?.semester;
+    const _mode = req.body?.mode;
     await createAuditLog({
       action: 'update',
       module: 'teachingArrange',
       userId: req.user?.id,
       ip: req.ip,
-      details: { course_id: courseId, semester, mode, error: e.message },
+      details: { course_id: _courseId, semester: _semester, mode: _mode, error: e.message },
       result: 'failed',
       message: `自动排课失败：${e.message}`,
-    });
+    }).catch(() => {});
     next(e);
   }
 }
@@ -409,10 +473,13 @@ export async function getStatistics(req, res, next) {
     const { semester } = req.query;
     if (!semester) return fail(res, '请选择学期');
 
-    // 按教师聚合统计
+    // 按教师聚合统计（P1-4 双保险：仅统计在职教师，避免禁用教师历史排课污染）
     const stats = await prisma.teaching_assignments.groupBy({
       by: ['teacher_id'],
-      where: { semester },
+      where: {
+        semester,
+        teacher: { status: 'active' },
+      },
       _sum: { weekly_hours: true },
       _count: { id: true },
     });
@@ -420,7 +487,7 @@ export async function getStatistics(req, res, next) {
     // 获取教师详细信息
     const teacherIds = stats.map((s) => s.teacher_id);
     const teachers = await prisma.teachers.findMany({
-      where: { id: { in: teacherIds } },
+      where: { id: { in: teacherIds }, status: 'active' },
       include: {
         affiliated_college: { select: { id: true, name: true } },
         courses: { include: { course: { select: { id: true, name: true } } } },
@@ -638,6 +705,14 @@ export async function runBatchAutoArrange(req, res, next) {
     }
 
     const conditions = scheduleConditions || [];
+
+    // P1-9 修复：scheduleConditions 暂未实现，显式拒绝非空值避免用户配置被静默忽略
+    if (
+      (Array.isArray(conditions) && conditions.length > 0) ||
+      (scheduleConditions && !Array.isArray(scheduleConditions))
+    ) {
+      return fail(res, '排课条件功能暂未实现，请联系管理员');
+    }
 
     const result = await batchAutoArrange(semester, mode, finalHourSettings, conditions, {
       preview: !!preview,

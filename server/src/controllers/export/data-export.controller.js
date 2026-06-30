@@ -7,6 +7,7 @@ import {
 } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
+import { calcClassSemester } from '../../services/semester.service.js';
 import { isClassMatchPlan, findBestMatchPlan } from '../../services/plan.service.js';
 import { buildClassFilter } from '../../services/class-filter.service.js';
 import { getClassesWithCourse } from '../../services/teaching-arrange.service.js';
@@ -299,7 +300,8 @@ export async function exportTextbookUsage(req, res, next) {
       }
     }
 
-    const activeFilter = await getActiveClassFilter();
+    // P1-7 修复：传入查询学期，避免学期错位（替代全局学期）
+    const activeFilter = await getActiveClassFilter(semesterInfo);
     const [textbook, allClasses] = await Promise.all([
       prisma.textbooks.findUnique({
         where: { id: Number(id) },
@@ -336,9 +338,10 @@ export async function exportTextbookUsage(req, res, next) {
       const plan = pc.training_plans;
 
       for (const cls of allClasses) {
-        const grade = semesterInfo.startYear - cls.enrollment_year + 1;
-        const currentSemesterNum = (grade - 1) * 2 + semesterInfo.semesterIndex;
-        if (currentSemesterNum !== sem.semester) continue;
+        // 复用统一 calcClassSemester（含越界检查），替代无边界检查的内联副本
+        const calc = calcClassSemester(cls, semesterInfo);
+        if (!calc) continue;
+        if (calc.currentSemesterNum !== sem.semester) continue;
 
         if (!isClassMatchPlan(cls, plan)) continue;
 
@@ -349,7 +352,7 @@ export async function exportTextbookUsage(req, res, next) {
           使用班级: cls.name,
           专业: cls.majors?.name || '-',
           培养层次: cls.training_levels?.name || '-',
-          年级: grade,
+          年级: calc.grade,
           学生人数: Number(cls.student_count) || 0,
           使用学期: `第${sem.semester}学期`,
           是否必订: pt.is_required ? '是' : '否',

@@ -70,8 +70,13 @@ export function isClassMatchPlan(cls, plan) {
  */
 export function findBestMatchPlan(cls, matchingPlans, classPlanMap = null) {
   // 1. 自定义方案优先
-  if (cls.custom_plan_id && classPlanMap) {
-    const customPlan = classPlanMap.get(cls.id);
+  if (cls.custom_plan_id) {
+    // 优先从传入的 Map 取
+    let customPlan = classPlanMap?.get(cls.id);
+    // Map 缺失或未命中时，自动从 matchingPlans 中查找（消除 footgun）
+    if (!customPlan) {
+      customPlan = matchingPlans.find((p) => p.id === cls.custom_plan_id);
+    }
     if (customPlan) return customPlan;
   }
 

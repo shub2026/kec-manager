@@ -207,6 +207,11 @@ export async function updateUserStatus(req, res, next) {
 
 /**
  * 删除用户
+ *
+ * P2-9: 删除用户后未对仍有效的活跃 JWT 做黑名单处理。
+ * 安全兜底：auth.middleware.js#getActiveUserStatus 对 null 用户返回 is_active=false，
+ * 被删用户的后续请求在 30s 缓存 TTL 内即会被拦截（401）。
+ * 如需更严格可引入 Redis 黑名单，当前 TTL 内安全可接受。
  */
 export async function deleteUser(req, res, next) {
   try {

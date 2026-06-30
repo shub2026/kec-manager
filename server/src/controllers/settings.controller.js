@@ -80,10 +80,19 @@ export async function updateSettings(req, res, next) {
 
     // H-1修复：用 parseSemesterString 统一校验，与读取/查询路径一致
     // 原正则 /^\d{4}-\d{4}-[12]$/ 允许 0000-0001-1、2025-2027-2 等非法值入库
-    if (updates.current_semester) {
+    // P2-1: 用显式 != null 判空替代真值判断，避免空串 '' 被跳过校验后写入 DB
+    if (updates.current_semester != null) {
+      if (updates.current_semester === '') {
+        return fail(res, '当前学期不能为空', 400);
+      }
       const semResult = parseSemesterString(String(updates.current_semester));
       if (!semResult.success) {
-        return fail(res, semResult.error || '当前学期格式错误', 400);
+        // P2-2: 返回更友好的错误信息，明确格式、年份范围与结束年份规则
+        return fail(
+          res,
+          '当前学期格式错误，应为 YYYY-YYYY-N（如 2025-2026-1）；起始年份应在 2000-2099 之间，结束年份自动为起始+1，N 为 1（秋季）或 2（春季）',
+          400
+        );
       }
     }
 

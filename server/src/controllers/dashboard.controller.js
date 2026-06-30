@@ -30,16 +30,16 @@ export async function getDashboardStats(req, res, next) {
         prisma.textbooks.count({ where: { is_active: true } }),
         // 在读班级筛选条件
         getActiveClassFilter(),
-        // 本学期授课课程（去重）
+        // 本学期授课课程（去重，P1-4：仅统计在职教师的排课）
         prisma.teaching_assignments.findMany({
-          where: { semester },
+          where: { semester, teacher: { status: 'active' } },
           select: { course_id: true },
           distinct: ['course_id'],
         }),
-        // 本学期教师+课时聚合
+        // 本学期教师+课时聚合（P1-4：仅统计在职教师，避免禁用教师历史排课污染）
         prisma.teaching_assignments.groupBy({
           by: ['teacher_id'],
-          where: { semester },
+          where: { semester, teacher: { status: 'active' } },
           _sum: { weekly_hours: true },
         }),
       ]);

@@ -1,12 +1,8 @@
 import { prisma } from '../../lib/prisma.js';
 import { DEFAULT_HOUR_SETTINGS } from '../../constants/index.js';
 import { validateHourSettings } from './validate.js';
-import { autoArrange } from './auto-arrange.js';
+import { autoArrange, batchLocks } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
-
-// M-12: 并发锁，防止同一学期被并发批量排课
-// S-09 注意：进程内存级别，仅适用于单进程部署。多实例部署需改用分布式锁。
-const batchLocks = new Set();
 
 // M-13: 批量排课超时上限（5分钟）
 const BATCH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -24,8 +20,9 @@ export async function batchAutoArrange(
 ) {
   validateHourSettings(hourSettings);
 
-  // M-12: 并发保护
-  const lockKey = `${semesterStr}:${mode}`;
+  // M-12 / P1-12: 并发保护——按学期锁定整个学期，扩大锁范围避免单课程排课插入
+  // 原先按 semesterStr:mode 锁定，导致同 semester 不同 mode 仍可与单课程排课并发
+  const lockKey = semesterStr;
   if (batchLocks.has(lockKey)) {
     throw new Error(`学期 ${semesterStr} 的批量排课正在进行中，请稍后再试`);
   }
@@ -120,7 +117,13 @@ export async function batchAutoArrange(
           mode,
           hourSettings,
           scheduleConditions,
-          { ...options, extraTeacherHours: virtualTeacherHours, globalTextbookMap }
+          {
+            ...options,
+            extraTeacherHours: virtualTeacherHours,
+            globalTextbookMap,
+            // P1-12 修复：批量内部调用绕过 batchLocks 检查，由 batch.js 持有学期锁
+            skipBatchLockCheck: true,
+          }
         );
         if (options.preview && virtualTeacherHours) {
           for (const a of result.assigned) {

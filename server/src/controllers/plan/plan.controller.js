@@ -35,10 +35,12 @@ export async function listPlans(req, res, next) {
     });
 
     const classCountMap = {};
-    const blockingCountMap = {};
+    const customLinkedCountMap = {};
+    const matchedCountMap = {};
     plans.forEach((p) => {
       classCountMap[p.id] = 0;
-      blockingCountMap[p.id] = 0;
+      customLinkedCountMap[p.id] = 0;
+      matchedCountMap[p.id] = 0;
     });
 
     // S-05 修复：使用 findBestMatchPlan 优先级语义（自定义>专业>层次），
@@ -59,21 +61,38 @@ export async function listPlans(req, res, next) {
       if (bestPlan && classCountMap[bestPlan.id] !== undefined) {
         classCountMap[bestPlan.id]++;
       }
-      // blockingClassCount：任意匹配（与 deletePlan 的 isClassMatchPlan 检查一致，
-      // 用于前端删除弹窗预告"删除会被拒绝的班级数"）
+      // customLinkedClassCount：仅 custom_plan_id === plan.id 的班级数。
+      // deletePlan 在事务中显式将这些班级的 custom_plan_id 置 null，
+      // 让班级回归未关联状态——这才是删除时真正会被"解除关联"的班级。
+      if (cls.custom_plan_id && customLinkedCountMap[cls.custom_plan_id] !== undefined) {
+        customLinkedCountMap[cls.custom_plan_id]++;
+      }
+      // matchedClassCount：通过 isClassMatchPlan 任意匹配的班级数（含 major/level 匹配，
+      // 也含 custom 匹配）。删除方案后这些班级将不再匹配此方案。
+      // 注意：deletePlan 从不调用 isClassMatchPlan、也从不真正阻塞删除，
+      // 此字段仅用于前端删除弹窗准确预告"删除后将丢失匹配的班级数"。
       for (const plan of plans) {
         if (isClassMatchPlan(cls, plan)) {
-          if (blockingCountMap[plan.id] !== undefined) blockingCountMap[plan.id]++;
+          if (matchedCountMap[plan.id] !== undefined) matchedCountMap[plan.id]++;
         }
       }
     }
 
-    const plansWithCount = plans.map((plan) => ({
-      ...plan,
-      courseCount: plan.plan_courses.length,
-      classCount: classCountMap[plan.id] || 0,
-      blockingClassCount: blockingCountMap[plan.id] || 0,
-    }));
+    const plansWithCount = plans.map((plan) => {
+      const customLinked = customLinkedCountMap[plan.id] || 0;
+      return {
+        ...plan,
+        courseCount: plan.plan_courses.length,
+        classCount: classCountMap[plan.id] || 0,
+        // 删除时实际会被解除关联（custom_plan_id 置 null）的班级数
+        customLinkedClassCount: customLinked,
+        // 通过任意匹配（含 major/level 匹配）的班级数，删除后将丢失匹配
+        matchedClassCount: matchedCountMap[plan.id] || 0,
+        // 向后兼容：保留旧字段，值同 customLinkedClassCount。
+        // deletePlan 从不真正阻塞删除流程，旧字段名保留以避免前端立即崩溃。
+        blockingClassCount: customLinked,
+      };
+    });
 
     success(res, plansWithCount);
   } catch (e) {
@@ -306,21 +325,29 @@ export async function deletePlan(req, res, next) {
     });
     if (!plan) throw new NotFoundError('培养方案');
 
-    // 预先统计将被解除关联的班级（用于审计日志）
-    const affectedClasses = await prisma.classes.findMany({
-      where: { custom_plan_id: planId },
-      select: { id: true, name: true },
-    });
+    // 预先统计将被级联删除的子记录（用于审计日志，P2-3）
+    // schema: plan_courses → plan_course_semesters → plan_textbooks（均 onDelete: Cascade）
+    const [cascadeCourseCount, cascadeSemesterCount, cascadeTextbookCount] = await Promise.all([
+      prisma.plan_courses.count({ where: { plan_id: planId } }),
+      prisma.plan_course_semesters.count({
+        where: { plan_courses: { plan_id: planId } },
+      }),
+      prisma.plan_textbooks.count({
+        where: { plan_course_semesters: { plan_courses: { plan_id: planId } } },
+      }),
+    ]);
 
     try {
+      // P2-7: 将解除关联操作移入事务内，并直接读取 updateMany 返回的 count 作为审计依据，
+      // 避免原 findMany 在事务外读取导致的竞态（统计与实际解除数不一致）
+      let unlinkedCount = 0;
       await prisma.$transaction(async (tx) => {
         // 1. 解除 custom_plan_id 直接引用，让班级回归未关联状态
-        if (affectedClasses.length > 0) {
-          await tx.classes.updateMany({
-            where: { custom_plan_id: planId },
-            data: { custom_plan_id: null },
-          });
-        }
+        const unlinkResult = await tx.classes.updateMany({
+          where: { custom_plan_id: planId },
+          data: { custom_plan_id: null },
+        });
+        unlinkedCount = unlinkResult.count;
         // 2. 删除方案；plan_courses/plan_course_semesters/plan_textbooks 级联删除
         await tx.training_plans.delete({ where: { id: planId } });
       });
@@ -334,10 +361,13 @@ export async function deletePlan(req, res, next) {
         details: {
           plan_id: planId,
           plan_name: plan.name,
-          unlinked_classes: affectedClasses.map((c) => ({ id: c.id, name: c.name })),
-          unlinked_count: affectedClasses.length,
+          unlinked_count: unlinkedCount,
+          // 级联删除的子记录数量（schema onDelete: Cascade 自动执行）
+          cascaded_plan_courses: cascadeCourseCount,
+          cascaded_plan_course_semesters: cascadeSemesterCount,
+          cascaded_plan_textbooks: cascadeTextbookCount,
         },
-        message: `删除培养方案：${plan.name}${affectedClasses.length > 0 ? `（同时解除 ${affectedClasses.length} 个班级关联）` : ''}`,
+        message: `删除培养方案：${plan.name}${unlinkedCount > 0 ? `（同时解除 ${unlinkedCount} 个班级关联）` : ''}`,
       });
 
       invalidateSortOrderCache('training_plans');

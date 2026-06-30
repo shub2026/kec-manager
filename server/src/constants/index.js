@@ -29,7 +29,9 @@ export const IMPORT = {
 // 默认教材类别
 export const DEFAULT_TEXTBOOK_CATEGORY = '技工';
 
-// 默认学期（系统初始化时使用，可通过环境变量覆盖）
+// 默认学期（系统初始化时使用）
+// P2-4: 此处 2025-2026-2 为开发默认值；部署时建议通过 DEFAULT_SEMESTER 环境变量覆盖，
+// 避免硬编码时间相关值导致不同环境学期不一致
 export const DEFAULT_SEMESTER = process.env.DEFAULT_SEMESTER || '2025-2026-2';
 
 // 密码策略

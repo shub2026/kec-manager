@@ -41,6 +41,10 @@ export async function buildClassFilter(query) {
           status === 'active' ? { gte: startYear - d + 1 } : { lt: startYear - d + 1 },
       }));
     }
+  } else if (status) {
+    // P2-6: 班级 status 状态机不存在 inactive 等取值，但 schema 允许任意字符串。
+    // 对未知 status 显式返回永远不匹配的条件，避免静默忽略导致返回全量数据。
+    return { where: { id: -1 }, planNotFound: false };
   }
 
   if (training_level_id) {
