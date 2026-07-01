@@ -185,6 +185,25 @@ export async function updateTeacher(req, res, next) {
 
         // 更新课程关联
         if (course_ids !== undefined) {
+          // 找出被移除的课程关联，级联清理对应的 teaching_assignments 残留
+          const newCourseIdSet = new Set(course_ids.map((cid) => Number(cid)));
+          const existingTeacherCourses = await tx.teacher_courses.findMany({
+            where: { teacher_id: Number(id) },
+            select: { course_id: true },
+          });
+          const removedCourseIds = existingTeacherCourses
+            .map((tc) => tc.course_id)
+            .filter((cid) => !newCourseIdSet.has(cid));
+
+          if (removedCourseIds.length > 0) {
+            await tx.teaching_assignments.deleteMany({
+              where: {
+                teacher_id: Number(id),
+                course_id: { in: removedCourseIds },
+              },
+            });
+          }
+
           await tx.teacher_courses.deleteMany({ where: { teacher_id: Number(id) } });
           if (course_ids.length > 0) {
             await tx.teacher_courses.createMany({

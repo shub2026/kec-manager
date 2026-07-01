@@ -2,6 +2,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// 当前使用 SQLite 进行生产部署，已做好切换 MySQL 的准备：
+// 1. 切换步骤：将 provider 改为 "mysql"，DATABASE_URL 改为 mysql:// 连接串
+// 2. 执行 npx prisma migrate deploy 应用迁移
+// 3. SQLite 不支持并发写入，已通过 WAL 模式 + busy_timeout 缓解（见 lib/prisma.js）
+// 4. 所有 SQL 均通过 Prisma Client 高级 API，无 SQLite 专有语法依赖
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")

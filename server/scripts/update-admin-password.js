@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { authConfig } from '../src/config/auth.config.js';
 
 const prisma = new PrismaClient();
 
@@ -21,8 +22,8 @@ async function updateAdminPassword() {
 
     console.log(`找到用户: ${admin.username} (${admin.real_name})`);
 
-    // 生成新的密码哈希
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // 生成新的密码哈希（与主应用统一 bcrypt rounds，避免弱哈希）
+    const hashedPassword = await bcrypt.hash(newPassword, authConfig.bcryptRounds);
     console.log('✓ 已生成新密码哈希\n');
 
     // 更新密码

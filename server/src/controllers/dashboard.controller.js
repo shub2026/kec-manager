@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { getActiveClassFilter } from '../services/class.service.js';
+import { getSemesterInfoFromRequest } from '../services/semester.service.js';
 
 /**
  * GET /api/dashboard/stats?semester=YYYY-YYYY-N
@@ -21,6 +22,9 @@ export async function getDashboardStats(req, res, next) {
     const { semester } = req.query;
     if (!semester) return fail(res, '请选择学期');
 
+    // 显式解析查询学期信息，避免 getActiveClassFilter 回退全局学期导致的巧合性正确
+    const semesterInfo = await getSemesterInfoFromRequest(req);
+
     // 并行查询所有统计数据
     const [majorsCount, plansCount, textbooksCount, activeFilter, courseStats, teacherStats] =
       await Promise.all([
@@ -29,7 +33,7 @@ export async function getDashboardStats(req, res, next) {
         prisma.training_plans.count(),
         prisma.textbooks.count({ where: { is_active: true } }),
         // 在读班级筛选条件
-        getActiveClassFilter(),
+        getActiveClassFilter(semesterInfo),
         // 本学期授课课程（去重，P1-4：仅统计在职教师的排课）
         prisma.teaching_assignments.findMany({
           where: { semester, teacher: { status: 'active' } },

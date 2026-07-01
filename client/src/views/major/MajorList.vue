@@ -121,7 +121,6 @@ import { useCrudList } from '../../composables/useCrudList';
 const formRef = ref(null);
 const rules = {
   name: [{ required: true, message: '请输入专业名称', trigger: 'blur' }],
-  code: [{ required: true, message: '请输入专业代码', trigger: 'blur' }],
 };
 
 const {

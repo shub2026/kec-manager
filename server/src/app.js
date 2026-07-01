@@ -164,6 +164,11 @@ app.use('/api/audit', authMiddleware, roleMiddleware('super_admin'), auditRoutes
 // 首页概览 - 所有登录用户可访问
 app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 
+// 404 catch-all：未匹配的路由返回 JSON（在 errorHandler 之前）
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: '接口不存在' });
+});
+
 app.use(errorHandler);
 
 export default app;

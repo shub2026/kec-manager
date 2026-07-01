@@ -40,6 +40,16 @@ export function errorHandler(err, req, res, next) {
     return res.status(404).json({ success: false, message: '记录不存在' });
   }
 
+  // Prisma 唯一约束冲突 → 409 Conflict
+  if (err.code === 'P2002') {
+    const target = err.meta?.target?.join(', ') || '';
+    log.warn('[P2002 唯一约束冲突]', { target });
+    return res.status(409).json({
+      success: false,
+      message: isProduction ? '该记录已存在，请修改后重试' : `唯一约束冲突: ${target}`,
+    });
+  }
+
   // 自定义应用错误
   if (err instanceof AppError) {
     log.error(`[AppError] ${err.message}`, { statusCode: err.statusCode, code: err.code });

@@ -6,6 +6,7 @@ import { authConfig } from '../config/auth.config.js';
 import { createAuditLog } from './audit.service.js';
 import { AuthenticationError, ValidationError } from '../utils/error.js';
 import { invalidateUserStatusCache } from '../middleware/auth.middleware.js';
+import { log } from '../utils/logger.js';
 
 // H2修复：Token黑名单负缓存，减少DB查询频率（10s TTL）
 const blacklistNegativeCache = new Map();
@@ -167,10 +168,10 @@ export class AuthService {
         where: { expires_at: { lt: new Date() } },
       });
       if (result.count > 0) {
-        console.log(`已清理 ${result.count} 条过期黑名单记录`);
+        log.info(`已清理 ${result.count} 条过期黑名单记录`);
       }
     } catch (error) {
-      console.error('清理过期黑名单失败:', error.message);
+      log.error('清理过期黑名单失败', { error: error.message });
     }
   }
 

@@ -98,8 +98,8 @@
         <el-form-item label="课程名称" prop="name" required>
           <el-input v-model="form.name" placeholder="请输入课程名称" />
         </el-form-item>
-        <el-form-item label="编码" prop="code" required>
-          <el-input v-model="form.code" placeholder="请输入编码" />
+        <el-form-item label="编码" prop="code">
+          <el-input v-model="form.code" placeholder="请输入编码（可选）" />
         </el-form-item>
         <el-form-item label="类型">
           <el-radio-group v-model="form.type">
@@ -196,7 +196,6 @@ const form = ref({ id: null, name: '', code: '', type: 'public', description: ''
 const formRef = ref(null);
 const rules = {
   name: [{ required: true, message: '请输入课程名称', trigger: 'blur' }],
-  code: [{ required: true, message: '请输入编码', trigger: 'blur' }],
 };
 
 // 使用导入 composable

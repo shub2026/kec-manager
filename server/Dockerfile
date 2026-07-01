@@ -50,5 +50,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
-# 启动服务（首次启动时自动同步数据库 Schema）
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node src/server.js"]
+# 启动服务（应用迁移文件，确保 schema 变更可追溯、可回滚）
+CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]

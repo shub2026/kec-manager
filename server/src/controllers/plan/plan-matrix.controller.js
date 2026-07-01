@@ -44,6 +44,9 @@ export async function addCourseToPlan(req, res, next) {
     if (!course_id || start_semester === undefined || end_semester === undefined || !weekly_hours) {
       return fail(res, '课程、开课学期、周课时为必填项');
     }
+    if (Number(start_semester) > Number(end_semester)) {
+      return fail(res, '开始学期不能大于结束学期', 400);
+    }
     const weeks = weeks_per_semester ? Number(weeks_per_semester) : 18;
 
     const pc = await prisma.$transaction(async (tx) => {
@@ -196,21 +199,23 @@ export async function updatePlanCourse(req, res, next) {
         // 保留区间内已存在的学期记录及其 plan_textbooks（不动）
       } else {
         // M2 修复：学期范围未变时，如果 weekly_hours 或 weeks_per_semester 发生变化，
-        // 同步更新已有学期记录（保留教材关联，仅 update 字段值）
-        if (
-          newWeeklyHours !== currentPc.weekly_hours ||
-          newWeeksPerSemester !== currentPc.weeks_per_semester
-        ) {
+        // 仅同步仍等于旧默认值的学期记录，保留用户对特定学期的单独设置
+        if (newWeeklyHours !== currentPc.weekly_hours) {
           await tx.plan_course_semesters.updateMany({
-            where: { plan_course_id: Number(id) },
-            data: {
-              ...(newWeeklyHours !== currentPc.weekly_hours
-                ? { weekly_hours: newWeeklyHours }
-                : {}),
-              ...(newWeeksPerSemester !== currentPc.weeks_per_semester
-                ? { weeks_count: newWeeksPerSemester }
-                : {}),
+            where: {
+              plan_course_id: Number(id),
+              weekly_hours: currentPc.weekly_hours,
             },
+            data: { weekly_hours: newWeeklyHours },
+          });
+        }
+        if (newWeeksPerSemester !== currentPc.weeks_per_semester) {
+          await tx.plan_course_semesters.updateMany({
+            where: {
+              plan_course_id: Number(id),
+              weeks_count: currentPc.weeks_per_semester,
+            },
+            data: { weeks_count: newWeeksPerSemester },
           });
         }
       }
@@ -349,6 +354,16 @@ export async function upsertSemester(req, res, next) {
 
     if (!planCourse) {
       return fail(res, '方案课程不存在', 404);
+    }
+
+    // 校验学期在 plan_courses 的开课范围内，避免创建孤立学期记录
+    const semValue = Number(semester);
+    if (semValue < planCourse.start_semester || semValue > planCourse.end_semester) {
+      return fail(
+        res,
+        `学期必须在 ${planCourse.start_semester}~${planCourse.end_semester} 范围内`,
+        400
+      );
     }
 
     const sem = await prisma.plan_course_semesters.upsert({
