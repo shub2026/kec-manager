@@ -5,7 +5,7 @@ import { getCurrentSemesterInfo } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
-import { cleanupFile, sanitizeInput } from '../import-shared.js';
+import { cleanupFile, sanitizeInput, verifyExcelMagicNumber } from '../import-shared.js';
 
 /**
  * POST /api/import/classes - 批量导入班级
@@ -17,11 +17,13 @@ export async function importClasses(req, res, next) {
 
   let rows;
   try {
+    await verifyExcelMagicNumber(req.file.path);
     rows = await readWorkbook(req.file.path);
     cleanupFile(req.file.path);
   } catch (e) {
     cleanupFile(req.file.path);
-    throw new ValidationError('Excel文件读取失败: ' + e.message);
+    log.error('[班级导入] Excel文件读取失败', { error: e.message, stack: e.stack });
+    throw new ValidationError('Excel文件读取失败，请检查文件格式');
   }
 
   const errors = [];
@@ -167,21 +169,20 @@ export async function importClasses(req, res, next) {
 
     // 交互式事务：先创建基础数据，再处理班级，确保回滚一致（H-13 修复）
     if (classOps.length > 0) {
-      // L2 修复：预加载同名班级索引，用于重复检测（与教师导入同名检测逻辑一致）
-      const classNames = [...new Set(classOps.map((op) => op.name))];
-      const existingClassesByName = new Map();
-      if (classNames.length > 0) {
-        const existingClasses = await prisma.classes.findMany({
-          where: { name: { in: classNames } },
-          select: { id: true, name: true },
-        });
-        for (const c of existingClasses) {
-          if (!existingClassesByName.has(c.name)) existingClassesByName.set(c.name, []);
-          existingClassesByName.get(c.name).push(c);
-        }
-      }
-
       await prisma.$transaction(async (tx) => {
+        // L2 修复：事务内预加载同名班级索引，用于重复检测（避免预加载与事务执行之间的竞态）
+        const classNames = [...new Set(classOps.map((op) => op.name))];
+        const existingClassesByName = new Map();
+        if (classNames.length > 0) {
+          const existingClasses = await tx.classes.findMany({
+            where: { name: { in: classNames } },
+            select: { id: true, name: true },
+          });
+          for (const c of existingClasses) {
+            if (!existingClassesByName.has(c.name)) existingClassesByName.set(c.name, []);
+            existingClassesByName.get(c.name).push(c);
+          }
+        }
         // 1. 事务内创建待建基础数据
         for (const levelName of pendingLevelNames) {
           const existing = await tx.training_levels.findUnique({ where: { name: levelName } });

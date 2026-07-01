@@ -68,6 +68,20 @@ app.config.warnHandler = (msg, instance, trace) => {
   }
 };
 
+// 全局未捕获的 Promise rejection
+window.addEventListener('unhandledrejection', (event) => {
+  if (import.meta.env.DEV) {
+    console.error('[Unhandled Rejection]', event.reason);
+  }
+});
+
+// 全局同步错误
+window.addEventListener('error', (event) => {
+  if (import.meta.env.DEV) {
+    console.error('[Global Error]', event.message);
+  }
+});
+
 const pinia = createPinia();
 app.use(pinia);
 app.use(router);

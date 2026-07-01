@@ -316,7 +316,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import {
@@ -365,6 +365,11 @@ watch(filterTitle, (val) => {
   _filterTimer = setTimeout(() => {
     debouncedFilterTitle.value = val;
   }, 200);
+});
+
+// 卸载时清理防抖定时器，避免内存泄漏
+onUnmounted(() => {
+  if (_filterTimer) clearTimeout(_filterTimer);
 });
 
 // 表单引用与校验规则

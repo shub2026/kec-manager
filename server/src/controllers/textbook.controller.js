@@ -41,6 +41,8 @@ export async function createTextbook(req, res, next) {
       sort_order,
     } = req.body;
     if (!title) return fail(res, '书名不能为空');
+    const existing = await prisma.textbooks.findFirst({ where: { title } });
+    if (existing) return fail(res, '该教材名称已存在', 409);
     const newSortOrder = await getNextSortOrder(prisma, 'textbooks');
     const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const textbook = await prisma.textbooks.create({
@@ -106,6 +108,13 @@ export async function updateTextbook(req, res, next) {
       updateData.price = req.body.price ? Number(req.body.price) : null;
     if (req.body.publish_date !== undefined)
       updateData.publish_date = req.body.publish_date || null;
+
+    if (updateData.title) {
+      const duplicate = await prisma.textbooks.findFirst({
+        where: { title: updateData.title, NOT: { id: Number(id) } },
+      });
+      if (duplicate) return fail(res, '该教材名称已存在', 409);
+    }
 
     try {
       const textbook = await prisma.textbooks.update({

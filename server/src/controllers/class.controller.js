@@ -376,10 +376,10 @@ export async function updateClass(req, res, next) {
         include: { majors: true, colleges: true, training_levels: true, training_plans: true },
       });
 
-      // 班级标记离校时，级联删除当前学期排课记录，释放教师课时容量
+      // 班级标记离校时，级联删除当前及未来学期排课记录，释放教师课时容量
       if (leftSchool && semesterInfo) {
         const result = await tx.teaching_assignments.deleteMany({
-          where: { class_id: Number(id), semester: semesterInfo.raw },
+          where: { class_id: Number(id), semester: { gte: semesterInfo.raw } },
         });
         deletedAssignmentCount = result.count;
       }

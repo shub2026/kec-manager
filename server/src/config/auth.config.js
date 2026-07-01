@@ -36,6 +36,30 @@ if (usingDerivedRefresh || usingDerivedDownload) {
   }
 }
 
+// JWT 密钥强度校验：生产环境强制拒绝弱密钥与占位符，开发环境仅告警
+const PLACEHOLDER_SECRETS = new Set([
+  'your-jwt-secret-here',
+  'your-jwt-refresh-secret-here',
+  'your-jwt-download-secret-here',
+  'change-me',
+  'secret',
+]);
+
+function validateSecretStrength(name, value) {
+  if (value === undefined) return; // 未显式配置的密钥走派生逻辑，跳过
+  if (value.length < 32 || PLACEHOLDER_SECRETS.has(value)) {
+    if (isProduction) {
+      throw new Error('生产环境 JWT 密钥必须至少 32 字符且不能使用占位符');
+    } else {
+      log.warn(`安全警告: ${name} 强度不足（少于32字符或为占位符），生产环境将拒绝启动`);
+    }
+  }
+}
+
+validateSecretStrength('JWT_SECRET', jwtSecret);
+validateSecretStrength('JWT_REFRESH_SECRET', jwtRefreshSecret);
+validateSecretStrength('JWT_DOWNLOAD_SECRET', jwtDownloadSecret);
+
 /**
  * 使用 HKDF 从主密钥派生子密钥，替代简单字符串拼接
  */

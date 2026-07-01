@@ -28,6 +28,7 @@ export async function listUsers(req, res, next) {
         last_login_at: true,
         created_at: true,
       },
+      take: Math.min(req.query.limit ? Number(req.query.limit) : 1000, 1000),
       orderBy: { created_at: 'desc' },
     });
 
@@ -87,6 +88,15 @@ export async function createUser(req, res, next) {
 
     success(res, user, '创建成功');
   } catch (error) {
+    await createAuditLog({
+      action: 'create',
+      module: 'user',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { username: req.body.username, error: error.message },
+      result: 'failed',
+      message: `创建用户失败：${error.message}`,
+    });
     next(error);
   }
 }
@@ -152,6 +162,15 @@ export async function updateUser(req, res, next) {
 
     success(res, updated, '更新成功');
   } catch (error) {
+    await createAuditLog({
+      action: 'update',
+      module: 'user',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { id: req.params.id, changes: req.body, error: error.message },
+      result: 'failed',
+      message: `更新用户失败：${error.message}`,
+    });
     next(error);
   }
 }
@@ -201,6 +220,15 @@ export async function updateUserStatus(req, res, next) {
 
     success(res, null, `${is_active ? '激活' : '禁用'}成功`);
   } catch (error) {
+    await createAuditLog({
+      action: 'update',
+      module: 'user',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { id: req.params.id, is_active: req.body.is_active, error: error.message },
+      result: 'failed',
+      message: `更新用户状态失败：${error.message}`,
+    });
     next(error);
   }
 }
@@ -251,6 +279,15 @@ export async function deleteUser(req, res, next) {
 
     success(res, null, '删除成功');
   } catch (error) {
+    await createAuditLog({
+      action: 'delete',
+      module: 'user',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { id: req.params.id, error: error.message },
+      result: 'failed',
+      message: `删除用户失败：${error.message}`,
+    });
     next(error);
   }
 }

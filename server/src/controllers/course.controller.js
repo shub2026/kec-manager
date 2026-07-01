@@ -42,6 +42,8 @@ export async function createCourse(req, res, next) {
   try {
     const { name, code, type, description, sort_order } = req.body;
     if (!name) return fail(res, '课程名称不能为空');
+    const existing = await prisma.courses.findFirst({ where: { name } });
+    if (existing) return fail(res, '该课程名称已存在', 409);
     const newSortOrder = await getNextSortOrder(prisma, 'courses');
     const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const course = await prisma.courses.create({
@@ -78,6 +80,12 @@ export async function updateCourse(req, res, next) {
   try {
     const { id } = req.params;
     const data = buildUpdateData(req.body, ['name', 'code', 'type', 'description', 'sort_order']);
+    if (data.name) {
+      const duplicate = await prisma.courses.findFirst({
+        where: { name: data.name, NOT: { id: Number(id) } },
+      });
+      if (duplicate) return fail(res, '该课程名称已存在', 409);
+    }
     try {
       const course = await prisma.courses.update({ where: { id: Number(id) }, data });
 

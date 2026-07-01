@@ -50,5 +50,11 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
+# 创建非 root 用户运行应用
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# 确保 prisma 目录和数据目录权限正确，让 appuser 可写
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+USER appuser
+
 # 启动服务（应用迁移文件，确保 schema 变更可追溯、可回滚）
 CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]

@@ -34,7 +34,18 @@ app.set('trust proxy', 1);
 // 安全修复：添加helmet安全响应头
 app.use(
   helmet({
-    contentSecurityPolicy: false, // 禁用CSP以避免与前端资源冲突
+    contentSecurityPolicy: {
+      // 纯 JSON API 服务：默认拒绝所有资源加载与框架嵌入
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
     crossOriginEmbedderPolicy: false, // 允许跨域嵌入资源
   })
 );

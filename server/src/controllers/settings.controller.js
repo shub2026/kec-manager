@@ -96,17 +96,19 @@ export async function updateSettings(req, res, next) {
       }
     }
 
-    for (const [key, value] of Object.entries(updates)) {
-      await prisma.system_settings.upsert({
-        where: { key },
-        update: { value: String(value) },
-        create: {
-          key,
-          value: String(value),
-          description: DEFAULT_SETTINGS[key]?.description || '',
-        },
-      });
-    }
+    await prisma.$transaction(async (tx) => {
+      for (const [key, value] of Object.entries(updates)) {
+        await tx.system_settings.upsert({
+          where: { key },
+          update: { value: String(value) },
+          create: {
+            key,
+            value: String(value),
+            description: DEFAULT_SETTINGS[key]?.description || '',
+          },
+        });
+      }
+    });
     // M3 修复：更新设置后清除学期缓存，确保下次读取获取新值
     invalidateSemesterCache();
     invalidateDurationCache();
@@ -213,6 +215,7 @@ export async function resetSystem(req, res, next) {
           message: '执行系统重置' + (reason ? `，原因：${reason}` : ''),
         },
       });
+      await tx.token_blacklist.deleteMany();
     });
     success(res, null, '系统已重置，所有业务数据和教师信息已清空，用户账号已保留');
   } catch (e) {

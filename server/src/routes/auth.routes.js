@@ -1,5 +1,5 @@
 import express from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { AuthService } from '../services/auth.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { success, fail } from '../utils/response.js';
@@ -20,6 +20,16 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: '登录尝试过于频繁，请15分钟后再试' },
+});
+
+// 基于用户名的登录限流：防止针对单一账号的暴力破解
+const usernameLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req, res) => req.body?.username || ipKeyGenerator(req, res),
+  message: { success: false, message: '该账号登录尝试过于频繁，请15分钟后再试' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 const refreshLimiter = rateLimit({
@@ -58,7 +68,7 @@ const logoutLimiter = rateLimit({
   message: { success: false, message: '登出请求过于频繁，请稍后再试' },
 });
 
-router.post('/login', loginLimiter, validateLogin, async (req, res, next) => {
+router.post('/login', loginLimiter, usernameLimiter, validateLogin, async (req, res, next) => {
   try {
     const { username, password } = req.body;
 

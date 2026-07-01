@@ -4,7 +4,7 @@ import { readWorkbook } from '../../utils/excel.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
-import { cleanupFile, sanitizeInput } from '../import-shared.js';
+import { cleanupFile, sanitizeInput, verifyExcelMagicNumber } from '../import-shared.js';
 
 /**
  * POST /api/import/courses - 批量导入课程
@@ -14,11 +14,13 @@ export async function importCourses(req, res, next) {
 
   let rows;
   try {
+    await verifyExcelMagicNumber(req.file.path);
     rows = await readWorkbook(req.file.path);
     cleanupFile(req.file.path);
   } catch (e) {
     cleanupFile(req.file.path);
-    throw new ValidationError('Excel文件读取失败: ' + e.message);
+    log.error('[课程导入] Excel文件读取失败', { error: e.message, stack: e.stack });
+    throw new ValidationError('Excel文件读取失败，请检查文件格式');
   }
 
   const validationErrors = [];

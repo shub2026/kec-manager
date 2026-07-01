@@ -186,6 +186,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useResponsive } from '../../../composables/useResponsive';
 
 const props = defineProps({
   visible: {
@@ -290,11 +291,8 @@ const rules = {
   ],
 };
 
-// 小屏弹窗全屏
-const isMobile = ref(window.innerWidth < 768);
-window.addEventListener('resize', () => {
-  isMobile.value = window.innerWidth < 768;
-});
+// 小屏弹窗全屏：复用共享响应式断点（由 useResponsive 统一管理 resize 监听）
+const { isMobile } = useResponsive();
 
 async function handleSave() {
   try {

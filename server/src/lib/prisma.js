@@ -7,11 +7,10 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 // 切换 MySQL 后此配置无副作用（MySQL 不识别 PRAGMA，会被忽略）
 async function applySqlitePragmas(client) {
   try {
-    // PRAGMA journal_mode = WAL 会返回新 journal_mode 值，必须用 $queryRawUnsafe
+    // SQLite PRAGMA 均返回值（旧设置），统一用 $queryRawUnsafe
     await client.$queryRawUnsafe('PRAGMA journal_mode = WAL');
-    // busy_timeout / synchronous 不返回结果，用 $executeRawUnsafe
-    await client.$executeRawUnsafe('PRAGMA busy_timeout = 5000');
-    await client.$executeRawUnsafe('PRAGMA synchronous = NORMAL');
+    await client.$queryRawUnsafe('PRAGMA busy_timeout = 5000');
+    await client.$queryRawUnsafe('PRAGMA synchronous = NORMAL');
   } catch {
     // 非 SQLite 数据源会忽略 PRAGMA，无需处理
   }

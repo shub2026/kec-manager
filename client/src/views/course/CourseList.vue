@@ -167,7 +167,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete, WarningFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course';
@@ -186,6 +186,10 @@ watch(filterName, (val) => {
   _filterTimer = setTimeout(() => {
     debouncedFilterName.value = val;
   }, 200);
+});
+// 卸载时清理防抖定时器，避免内存泄漏
+onUnmounted(() => {
+  if (_filterTimer) clearTimeout(_filterTimer);
 });
 const loading = ref(false);
 const dialogVisible = ref(false);

@@ -28,6 +28,7 @@ export async function listTeachers(req, res, next) {
         },
         _count: { select: { assignments: true } },
       },
+      take: 1000,
       orderBy: { sort_order: 'asc' },
     });
 

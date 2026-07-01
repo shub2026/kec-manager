@@ -4,7 +4,7 @@ import { readWorkbook } from '../../utils/excel.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
-import { cleanupFile, sanitizeInput } from '../import-shared.js';
+import { cleanupFile, sanitizeInput, verifyExcelMagicNumber } from '../import-shared.js';
 
 /**
  * POST /api/import/teachers - 批量导入教师
@@ -16,11 +16,13 @@ export async function importTeachers(req, res, next) {
 
   let rows;
   try {
+    await verifyExcelMagicNumber(req.file.path);
     rows = await readWorkbook(req.file.path);
     cleanupFile(req.file.path);
   } catch (e) {
     cleanupFile(req.file.path);
-    throw new ValidationError('Excel文件读取失败: ' + e.message);
+    log.error('[教师导入] Excel文件读取失败', { error: e.message, stack: e.stack });
+    throw new ValidationError('Excel文件读取失败，请检查文件格式');
   }
 
   const errors = [];
@@ -234,6 +236,7 @@ export async function importTeachers(req, res, next) {
       teacherOps.push({
         type: 'update',
         teacherId: existing.id,
+        name: String(name).trim(),
         data: {
           gender,
           birth_date: birthDateStr,
@@ -361,8 +364,51 @@ export async function importTeachers(req, res, next) {
           }
         }
 
+        // 1c 修复：事务内重新校验同名教师，避免预加载与事务执行之间的竞态
+        const recheckNames = [
+          ...new Set(
+            teacherOps
+              .map((op) => (op.type === 'create' ? op.data.name : op.name))
+              .filter(Boolean)
+          ),
+        ];
+        const freshTeachersByName = new Map();
+        if (recheckNames.length > 0) {
+          const freshTeachers = await tx.teachers.findMany({
+            where: { name: { in: recheckNames } },
+            select: { id: true, name: true },
+          });
+          for (const t of freshTeachers) {
+            if (!freshTeachersByName.has(t.name)) freshTeachersByName.set(t.name, []);
+            freshTeachersByName.get(t.name).push(t);
+          }
+        }
+
         // 2. 处理教师操作
         for (const op of teacherOps) {
+          // 1c 修复：事务内重新校验同名教师
+          const opName = op.type === 'create' ? op.data.name : op.name;
+          const freshSameName = freshTeachersByName.get(opName) || [];
+          if (op.type === 'update') {
+            if (freshSameName.length > 1) {
+              errors.push(
+                `教师"${opName}"：存在${freshSameName.length}个同名教师，请先合并或区分后导入`
+              );
+              overwritten--;
+              continue;
+            }
+            if (freshSameName.length === 0 || freshSameName[0].id !== op.teacherId) {
+              errors.push(`教师"${opName}"：原记录已变更，已跳过`);
+              overwritten--;
+              continue;
+            }
+          } else {
+            if (freshSameName.length > 0) {
+              errors.push(`教师"${opName}"：同名教师已存在，已跳过`);
+              imported--;
+              continue;
+            }
+          }
           // 合并已知课程 ID 与新建课程 ID
           const allCourseIds = [
             ...(op.resolvedCourseIds || []),
@@ -388,6 +434,20 @@ export async function importTeachers(req, res, next) {
             });
             // 重建课程关联（H3 修复：仅当 Excel 学科列有内容时才覆盖，与任课学院/层次守卫一致）
             if (op.hasCourseCol) {
+              // 重建 teacher_courses 前级联清理 teaching_assignments（与 updateTeacher 逻辑对齐）
+              const newCourseIdSet = new Set(allCourseIds.map((cid) => Number(cid)));
+              const existingTeacherCourses = await tx.teacher_courses.findMany({
+                where: { teacher_id: op.teacherId },
+                select: { course_id: true },
+              });
+              const removedCourseIds = existingTeacherCourses
+                .map((tc) => tc.course_id)
+                .filter((cid) => !newCourseIdSet.has(cid));
+              if (removedCourseIds.length > 0) {
+                await tx.teaching_assignments.deleteMany({
+                  where: { teacher_id: op.teacherId, course_id: { in: removedCourseIds } },
+                });
+              }
               await tx.teacher_courses.deleteMany({ where: { teacher_id: op.teacherId } });
               if (allCourseIds.length > 0) {
                 await tx.teacher_courses.createMany({

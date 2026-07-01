@@ -192,7 +192,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getTeachingStatistics } from '../../api/teachingArrange';
 import { getSettings } from '../../api/settings';
@@ -221,6 +221,11 @@ watch(filterName, (val) => {
   _filterTimer = setTimeout(() => {
     debouncedFilterName.value = val;
   }, 200);
+});
+
+// 卸载时清理防抖定时器，避免内存泄漏
+onUnmounted(() => {
+  if (_filterTimer) clearTimeout(_filterTimer);
 });
 
 const teacherList = computed(() => statsData.value?.teachers || []);

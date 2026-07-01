@@ -197,6 +197,20 @@ export async function updatePlanCourse(req, res, next) {
           });
         }
         // 保留区间内已存在的学期记录及其 plan_textbooks（不动）
+        // 范围变更时，同步区间内保留的学期记录的 weekly_hours（仅更新仍等于旧默认值的记录）
+        if (newWeeklyHours !== currentPc.weekly_hours) {
+          const retainedSemesters = [...existingSemesterSet].filter((s) => newSemesterSet.has(s));
+          if (retainedSemesters.length > 0) {
+            await tx.plan_course_semesters.updateMany({
+              where: {
+                plan_course_id: Number(id),
+                semester: { in: retainedSemesters },
+                weekly_hours: currentPc.weekly_hours,
+              },
+              data: { weekly_hours: newWeeklyHours },
+            });
+          }
+        }
       } else {
         // M2 修复：学期范围未变时，如果 weekly_hours 或 weeks_per_semester 发生变化，
         // 仅同步仍等于旧默认值的学期记录，保留用户对特定学期的单独设置

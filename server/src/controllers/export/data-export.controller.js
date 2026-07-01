@@ -13,6 +13,26 @@ import { buildClassFilter } from '../../services/class-filter.service.js';
 import { getClassesWithCourse } from '../../services/teaching-arrange.service.js';
 
 /**
+ * 分批查询防止 OOM：每批 500 条用 skip/take 分页累积到数组
+ * 不改变查询结果内容，仅拆分加载过程
+ * @param {object} model - Prisma 模型（如 prisma.classes）
+ * @param {object} args - findMany 参数（where/include/orderBy 等）
+ * @returns {Promise<Array>}
+ */
+async function batchFindMany(model, args) {
+  const BATCH_SIZE = 500;
+  const results = [];
+  let skip = 0;
+  let batch;
+  do {
+    batch = await model.findMany({ ...args, skip, take: BATCH_SIZE });
+    results.push(...batch);
+    skip += BATCH_SIZE;
+  } while (batch.length === BATCH_SIZE);
+  return results;
+}
+
+/**
  * 导出课程数据
  */
 export async function exportCourses(req, res, next) {
@@ -151,8 +171,8 @@ export async function exportClasses(req, res, next) {
     }
     const finalWhere = filterResult.where;
 
-    // 获取筛选后的班级数据
-    const classes = await prisma.classes.findMany({
+    // 获取筛选后的班级数据（分批加载防止 OOM）
+    const classes = await batchFindMany(prisma.classes, {
       where: finalWhere,
       include: {
         colleges: true,
@@ -322,9 +342,10 @@ export async function exportTextbookUsage(req, res, next) {
           },
         },
       }),
-      prisma.classes.findMany({
+      batchFindMany(prisma.classes, {
         where: activeFilter,
         include: { majors: true, training_levels: true },
+        orderBy: { id: 'asc' },
       }),
     ]);
 
@@ -429,7 +450,7 @@ export async function exportTextbookUsage(req, res, next) {
  */
 export async function exportTeachers(req, res, next) {
   try {
-    const teachers = await prisma.teachers.findMany({
+    const teachers = await batchFindMany(prisma.teachers, {
       include: {
         affiliated_college: { select: { name: true } },
         courses: { include: { course: { select: { name: true } } } },
@@ -552,18 +573,19 @@ export async function exportStatistics(req, res, next) {
     });
 
     const teacherIds = stats.map((s) => s.teacher_id);
-    const teachers = await prisma.teachers.findMany({
+    const teachers = await batchFindMany(prisma.teachers, {
       where: { id: { in: teacherIds } },
       include: {
         courses: { include: { course: { select: { name: true } } } },
         scheduling_colleges: { include: { college: { select: { name: true } } } },
         affiliated_college: { select: { name: true } },
       },
+      orderBy: { id: 'asc' },
     });
     const teacherMap = new Map(teachers.map((t) => [t.id, t]));
 
-    // 获取每个教师的安排明细（含班级学院信息，用于推导任课学院）
-    const allAssignments = await prisma.teaching_assignments.findMany({
+    // 获取每个教师的安排明细（含班级学院信息，用于推导任课学院；分批加载防止 OOM）
+    const allAssignments = await batchFindMany(prisma.teaching_assignments, {
       where: { semester, teacher_id: { in: teacherIds } },
       include: {
         class: {

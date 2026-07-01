@@ -87,13 +87,9 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-            <el-popconfirm title="确定重置所有自动安排？" @confirm="handleReset">
-              <template #reference>
-                <el-button type="danger">
-                  <el-icon><RefreshRight /></el-icon> 重置
-                </el-button>
-              </template>
-            </el-popconfirm>
+            <el-button type="danger" @click="resetConfirmVisible = true">
+              <el-icon><RefreshRight /></el-icon> 重置
+            </el-button>
           </div>
         </div>
       </template>
@@ -208,12 +204,32 @@
       :loading="batchArranging"
       @confirm="doBatchAutoArrange"
     />
+
+    <!-- 重置排课确认弹窗 -->
+    <el-dialog v-model="resetConfirmVisible" title="确认重置" width="min(420px, 90vw)" align-center>
+      <div style="display: flex; gap: 12px; align-items: flex-start">
+        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px">
+          <WarningFilled />
+        </el-icon>
+        <div style="flex: 1; line-height: 1.6; color: #606266">
+          <p style="margin: 0">确定要重置当前课程的所有自动排课安排吗？此操作不可撤销。</p>
+          <p style="margin: 8px 0 0; color: #f56c6c; font-size: 13px">
+            将清除该课程在本学期的所有自动分配记录，手动安排不受影响。
+          </p>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="resetConfirmVisible = false">取消</el-button>
+        <el-button type="danger" :loading="resetting" @click="handleReset"> 确定重置 </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
 import { ElMessage } from 'element-plus';
+import { WarningFilled } from '@element-plus/icons-vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
@@ -375,6 +391,8 @@ const batchResult = ref({});
 const arrangeResultVisible = ref(false);
 const arrangeResult = ref({});
 const arrangeResultMode = ref('');
+const resetConfirmVisible = ref(false);
+const resetting = ref(false);
 
 function tableRowClassName({ row }) {
   return row.assignment ? '' : 'unassigned-row';
@@ -607,15 +625,19 @@ async function doBatchAutoArrange() {
 
 // --- 重置 ---
 async function handleReset() {
+  resetting.value = true;
   try {
     const res = await resetAutoAssignments({
       courseId: selectedCourseId.value,
       semester: currentSemesterLabel.value,
     });
     ElMessage.success(res.message || '已重置');
+    resetConfirmVisible.value = false;
     await loadData();
   } catch (e) {
     ElMessage.error('重置失败');
+  } finally {
+    resetting.value = false;
   }
 }
 

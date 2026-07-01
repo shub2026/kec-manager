@@ -149,6 +149,7 @@ model plan_textbooks {
 
   @@index([semester_id])
   @@index([textbook_id])
+  @@unique([semester_id, textbook_id])
 }
 
 model system_settings {

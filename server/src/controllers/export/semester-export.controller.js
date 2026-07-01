@@ -11,6 +11,26 @@ import { calcClassSemester } from '../../services/semester.service.js';
 import { findBestMatchPlan, buildClassWithPlanFilter } from '../../services/plan.service.js';
 
 /**
+ * 分批查询防止 OOM：每批 500 条用 skip/take 分页累积到数组
+ * 不改变查询结果内容，仅拆分加载过程
+ * @param {object} model - Prisma 模型（如 prisma.classes）
+ * @param {object} args - findMany 参数（where/include/orderBy 等）
+ * @returns {Promise<Array>}
+ */
+async function batchFindMany(model, args) {
+  const BATCH_SIZE = 500;
+  const results = [];
+  let skip = 0;
+  let batch;
+  do {
+    batch = await model.findMany({ ...args, skip, take: BATCH_SIZE });
+    results.push(...batch);
+    skip += BATCH_SIZE;
+  } while (batch.length === BATCH_SIZE);
+  return results;
+}
+
+/**
  * 开课导出核心逻辑：查询班级 + 构建导出行数据
  * @param {object} semesterInfo - 学期信息
  * @param {object} filters - 筛选条件 { college_id, major_id, training_level_id, enrollment_year, grade }
@@ -34,7 +54,8 @@ async function buildSemesterExportData(semesterInfo, filters) {
   const whereCondition =
     Object.keys(userFilters).length > 0 ? { AND: [baseWhere, userFilters] } : baseWhere;
 
-  const classes = await prisma.classes.findMany({
+  // 分批加载班级数据（含培养方案深嵌套，数据量大时防止 OOM）
+  const classes = await batchFindMany(prisma.classes, {
     where: whereCondition,
     include: {
       majors: true,
