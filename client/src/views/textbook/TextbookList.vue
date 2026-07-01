@@ -111,7 +111,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right" align="center">
+        <el-table-column label="操作" width="180" align="center">
           <template #default="{ row }">
             <div class="op-buttons">
               <el-button
@@ -316,7 +316,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import {
@@ -329,6 +329,7 @@ import {
 import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
 import { useSortable } from '../../composables/useSortable';
+import { useResponsive } from '../../composables/useResponsive';
 
 const list = ref([]);
 
@@ -373,15 +374,8 @@ const rules = {
   price: [{ type: 'number', min: 0, message: '定价必须大于等于0', trigger: 'blur' }],
 };
 
-// 弹窗小屏全屏
-const isMobile = ref(window.innerWidth < 768);
-const _handleResize = () => {
-  isMobile.value = window.innerWidth < 768;
-};
-window.addEventListener('resize', _handleResize);
-onUnmounted(() => {
-  window.removeEventListener('resize', _handleResize);
-});
+// 弹窗小屏全屏：复用共享响应式断点（由 useResponsive 统一管理 resize 监听）
+const { isMobile } = useResponsive();
 const defaultForm = {
   id: null,
   title: '',

@@ -69,7 +69,7 @@
 
         <!-- 详情内容区：用 hasDetail 控制，加载期间保持旧数据在 DOM 中不卸载 -->
         <div v-else-if="hasDetail" class="detail-content">
-          <el-descriptions :column="3" border :label-width="'90px'" class="textbook-descriptions">
+          <el-descriptions :column="descColumn" border :label-width="'90px'" class="textbook-descriptions">
             <el-descriptions-item label="书名">
               <div class="description-content">{{ detail?.textbook?.title || '-' }}</div>
             </el-descriptions-item>
@@ -111,18 +111,25 @@
               min-width="180"
               show-overflow-tooltip
             />
-            <el-table-column prop="majorName" label="专业" min-width="150" show-overflow-tooltip />
             <el-table-column
+              v-if="!isMobile"
+              prop="majorName"
+              label="专业"
+              min-width="150"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              v-if="!isMobile"
               prop="trainingLevelName"
               label="培养层次"
               min-width="120"
               show-overflow-tooltip
             />
-            <el-table-column label="年级" min-width="90" align="center">
+            <el-table-column v-if="!isMobile" label="年级" min-width="90" align="center">
               <template #default="{ row }">{{ row.grade }}年级</template>
             </el-table-column>
             <el-table-column prop="studentCount" label="学生人数" min-width="100" align="center" />
-            <el-table-column label="使用学期" min-width="110" align="center">
+            <el-table-column v-if="!isMobile" label="使用学期" min-width="110" align="center">
               <template #default="{ row }">第{{ row.semester }}学期</template>
             </el-table-column>
             <el-table-column label="是否必订" min-width="110" align="center">
@@ -141,7 +148,8 @@
               v-model:page-size="pagination.pageSize"
               :page-sizes="[10, 20, 50, 100]"
               :total="pagination.total"
-              layout="total, sizes, prev, pager, next, jumper"
+              :layout="paginationLayout"
+              :size="isMobile ? 'small' : 'default'"
               @size-change="handleSizeChange"
               @current-change="handlePageChange"
             />
@@ -159,6 +167,7 @@ import { getTextbooks } from '../../api/textbook';
 import { getTextbookQuery } from '../../api/query';
 import { exportTextbook } from '../../api/export';
 import { useSemesters, downloadBlob } from '../../composables/useSemesters';
+import { useResponsive } from '../../composables/useResponsive';
 import { getWithCache } from '../../utils/cache';
 
 const textbooks = ref([]);
@@ -168,6 +177,17 @@ const selectedSemester = ref('');
 const detail = ref(null);
 // 标记是否已加载过详情，加载期间保持 true 防止 DOM 卸载导致抖动
 const hasDetail = ref(false);
+
+// 响应式断点：小屏（<768px）下 descriptions 改单列、表格隐藏次要列、分页简化
+const { isMobile } = useResponsive();
+
+// el-descriptions 列数：桌面 3 列，手机 1 列
+const descColumn = computed(() => (isMobile.value ? 1 : 3));
+
+// 分页 layout：桌面完整，手机精简（去除 sizes 和 jumper，避免溢出）
+const paginationLayout = computed(() =>
+  isMobile.value ? 'total, prev, pager, next' : 'total, sizes, prev, pager, next, jumper'
+);
 
 // 分页状态
 const pagination = ref({

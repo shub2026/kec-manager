@@ -176,7 +176,7 @@
             />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right" align="center">
+        <el-table-column label="操作" width="100" align="center">
           <template #default="{ row }">
             <el-button size="small" :icon="Edit" circle @click="openDialog(row)" />
             <el-button
@@ -379,6 +379,7 @@ import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
+import { useResponsive } from '../../composables/useResponsive';
 
 const list = ref([]);
 const loading = ref(false);
@@ -474,11 +475,8 @@ const rules = {
   name: [{ required: true, message: '请输入教师姓名', trigger: 'blur' }],
 };
 
-// 小屏弹窗全屏
-const isMobile = ref(window.innerWidth < 768);
-window.addEventListener('resize', () => {
-  isMobile.value = window.innerWidth < 768;
-});
+// 小屏弹窗全屏：复用共享响应式断点
+const { isMobile } = useResponsive();
 
 // 客户端筛选
 const filteredList = computed(() => {
