@@ -40,21 +40,22 @@ COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/prisma ./prisma
 COPY src ./src
 
-# 创建数据目录和上传目录
-RUN mkdir -p data uploads
+# 创建非 root 用户运行应用
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# 创建数据/上传目录并确保 appuser 拥有所有权
+# named volume 挂载到 /app/data 时会继承镜像中该目录的 owner:group
+RUN mkdir -p /app/data /app/uploads && chown -R appuser:appgroup /app
 
 # 暴露端口
 EXPOSE 3000
 
-# 健康检查
+# 健康检查（用 -O /dev/null 实际请求，避免 --spider 的 HEAD 误判）
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+  CMD wget -q -O /dev/null --tries=1 --timeout=5 http://localhost:3000/api/health || exit 1
 
-# 创建非 root 用户运行应用
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-# 确保 prisma 目录和数据目录权限正确，让 appuser 可写
-RUN mkdir -p /app/data && chown -R appuser:appgroup /app
 USER appuser
 
 # 启动服务（应用迁移文件，确保 schema 变更可追溯、可回滚）
+# 容器单进程运行，migrate deploy 在启动时执行，此时无并发连接，不会触发 SQLite 锁冲突
 CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]

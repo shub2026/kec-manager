@@ -26,13 +26,15 @@ services:
       - BCRYPT_ROUNDS=${BCRYPT_ROUNDS:-12}
       - DEFAULT_SEMESTER=${DEFAULT_SEMESTER}
     volumes:
-      # 数据持久化 - 适配 1Panel 卷挂载
-      - ./data:/app/data
-      - ./uploads:/app/uploads
+      # 数据持久化 - 使用 named volume 避免 bind mount 的宿主机权限冲突
+      # （容器内 appuser 非 root，bind mount 的 ./data 默认 root 所有导致无法写入 SQLite）
+      - kec-data:/app/data
+      - kec-uploads:/app/uploads
     networks:
       - kec-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      # 用 -O /dev/null 实际请求而非 --spider (HEAD)，避免某些后端不支持 HEAD 误判
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "--tries=1", "--timeout=5", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -76,3 +78,10 @@ networks:
   kec-network:
     driver: bridge
     name: ${NETWORK_NAME:-kec-network}
+
+# 数据卷声明 - named volume 由 Docker 管理，容器内 appuser 可正常写入
+volumes:
+  kec-data:
+    name: ${CONTAINER_PREFIX:-kec}-data
+  kec-uploads:
+    name: ${CONTAINER_PREFIX:-kec}-uploads
