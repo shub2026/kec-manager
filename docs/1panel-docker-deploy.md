@@ -48,25 +48,24 @@
 cd /opt && git clone https://gitee.com/shub77/kec-manager.git && cd kec-manager
 
 # 2. 复制环境变量文件
-cp .env.example .env
+cp .env.docker .env
 
-# 3. 生成 JWT 密钥并写入 .env 文件
+# 3. 生成 JWT 密钥并写入 .env 文件（三个密钥都要生成）
 JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
-sed -i "s/your-super-secret-jwt-key-change-in-production/$JWT_SECRET/" .env
+JWT_REFRESH_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+JWT_DOWNLOAD_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+sed -i "s/替换为随机字符串.*/$JWT_SECRET/" .env
 
-# 4. 创建数据目录
-mkdir -p data uploads
-
-# 5. 构建并启动服务
+# 4. 构建并启动服务（named volume 由 Docker 自动创建，无需手动 mkdir）
 docker compose up -d --build
 
-# 6. 等待服务启动（约 30-60 秒）
+# 5. 等待服务启动（约 30-60 秒）
 sleep 45
 
-# 7. 初始化管理员账号
+# 6. 初始化管理员账号
 docker compose exec server npm run db:seed
 
-# 8. 访问系统
+# 7. 访问系统
 echo "前端地址: http://$(hostname -I | awk '{print $1}')"
 echo "后端地址: http://$(hostname -I | awk '{print $1}'):3000"
 echo "默认账号: admin / admin@123456"
@@ -133,16 +132,18 @@ git clone https://gitee.com/shub77/kec-manager.git
 cd kec-manager
 ```
 
-#### 2.2 创建数据目录
+#### 2.2 数据目录说明
 
-在项目根目录创建数据持久化目录：
+当前 `docker-compose.yml` 使用 **named volume**（由 Docker 管理的命名卷）而非 bind mount：
 
-```bash
-cd /opt/kec-manager
-mkdir -p data uploads
-```
+| 卷名 | 容器路径 | 用途 |
+|------|---------|------|
+| `kec-data` | `/app/data` | SQLite 数据库文件 |
+| `kec-uploads` | `/app/uploads` | 用户上传的文件 |
 
-> 💡 **说明**：新版 docker-compose.yml 使用本地目录挂载而非 Docker Volume，方便在 1Panel 中直接管理和备份数据。
+> 💡 **说明**：named volume 由 Docker 自动创建和管理，无需手动 `mkdir`。
+>
+> **为什么不用 bind mount？** 之前用 `./data:/app/data` 挂载时，宿主机目录默认 root 所有，而容器内以非 root 用户 `appuser` 运行，会导致 SQLite 写入权限冲突（"database is locked" 或 "permission denied"）。named volume 由 Docker 管理权限，容器内用户可正常写入。
 
 ---
 
@@ -203,11 +204,18 @@ NETWORK_NAME=kec-network
 | 变量名 | 说明 | 默认值 | 是否必填 |
 |--------|------|--------|---------|
 | `JWT_SECRET` | JWT 签名密钥 | 无 | ✅ 是 |
+| `JWT_REFRESH_SECRET` | JWT 刷新令牌密钥 | 无 | ✅ 是 |
+| `JWT_DOWNLOAD_SECRET` | 下载令牌密钥 | 无 | ✅ 是 |
+| `DEFAULT_SEMESTER` | 当前学期（格式 YYYY-YYYY-N） | 无 | ✅ 是 |
 | `CORS_ORIGINS` | 允许跨域的源 | 无 | ✅ 是 |
 | `CONTAINER_PREFIX` | 容器名称前缀 | `kec` | 否 |
 | `SERVER_PORT` | 后端服务宿主机端口 | `3000` | 否 |
 | `CLIENT_PORT` | 前端服务宿主机端口 | `80` | 否 |
 | `NETWORK_NAME` | Docker 网络名称 | `kec-network` | 否 |
+| `JWT_EXPIRES_IN` | 访问令牌过期时间 | `15m` | 否 |
+| `JWT_REFRESH_EXPIRES_IN` | 刷新令牌过期时间 | `7d` | 否 |
+| `BCRYPT_ROUNDS` | 密码哈希强度 | `12` | 否 |
+| `LOG_LEVEL` | 日志级别（error/warn/info/http/debug） | `info` | 否 |
 
 ---
 
@@ -403,12 +411,14 @@ CORS_ORIGINS=https://kec.your-domain.com,https://api.kec.your-domain.com
 
 ### 数据目录说明
 
-新版配置使用本地目录挂载，数据存储在以下位置：
+当前配置使用 **named volume**，数据存储在 Docker 管理的卷中：
 
-| 目录 | 内容 | 重要性 |
-|------|------|--------|
-| `/opt/kec-manager/data` | SQLite 数据库文件 | ⭐⭐⭐ 核心数据 |
-| `/opt/kec-manager/uploads` | 用户上传的文件 | ⭐⭐ 业务数据 |
+| 卷名 | 容器路径 | 实际宿主机路径（默认） | 内容 |
+|------|---------|----------------------|------|
+| `kec-data` | `/app/data` | `/var/lib/docker/volumes/kec-data/_data` | SQLite 数据库文件 |
+| `kec-uploads` | `/app/uploads` | `/var/lib/docker/volumes/kec-uploads/_data` | 用户上传的文件 |
+
+> 💡 **提示**：实际路径可通过 `docker volume inspect kec-data` 查询。建议直接通过 `docker compose` 命令操作，无需关心实际路径。
 
 ### 自动备份（推荐）
 
@@ -420,30 +430,47 @@ CORS_ORIGINS=https://kec.your-domain.com,https://api.kec.your-domain.com
 
    | 字段 | 值 |
    |------|-----|
-   | 任务类型 | 备份目录 |
+   | 任务类型 | Shell 脚本 |
    | 任务名称 | `KEC数据备份` |
-   | 备份目录 | `/opt/kec-manager/data` 和 `/opt/kec-manager/uploads` |
+   | 脚本内容 | 见下方备份脚本 |
    | 执行周期 | 每天 02:00 |
-   | 备份目标 | 本地磁盘 / OSS / S3 |
    | 保留份数 | 7 天 |
 
-4. 点击 **确认**
+**备份脚本内容**：
+
+```bash
+#!/bin/bash
+# KEC 数据备份脚本
+BACKUP_DIR=/opt/kec-manager/backups
+mkdir -p $BACKUP_DIR
+DATE=$(date +%Y%m%d-%H%M%S)
+
+# 备份 named volume 数据
+docker run --rm -v kec-data:/data -v $BACKUP_DIR:/backup alpine \
+  tar czf /backup/kec-data-$DATE.tar.gz -C /data .
+
+docker run --rm -v kec-uploads:/data -v $BACKUP_DIR:/backup alpine \
+  tar czf /backup/kec-uploads-$DATE.tar.gz -C /data .
+
+# 清理 7 天前的备份
+find $BACKUP_DIR -name "kec-*.tar.gz" -mtime +7 -delete
+```
 
 ### 手动备份
 
-#### 备份全部数据
+#### 备份 named volume 数据
 
 ```bash
 cd /opt/kec-manager
-
-# 创建备份目录
 mkdir -p backups
 
-# 备份数据库
-tar czf backups/db-backup-$(date +%Y%m%d-%H%M%S).tar.gz data/
+# 备份数据库卷
+docker run --rm -v kec-data:/data -v $(pwd)/backups:/backup alpine \
+  tar czf /backup/kec-data-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .
 
-# 备份上传文件
-tar czf backups/uploads-backup-$(date +%Y%m%d-%H%M%S).tar.gz uploads/
+# 备份上传文件卷
+docker run --rm -v kec-uploads:/data -v $(pwd)/backups:/backup alpine \
+  tar czf /backup/kec-uploads-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .
 
 # 查看备份文件
 ls -lh backups/
@@ -457,40 +484,58 @@ cd /opt/kec-manager
 # 停止服务
 docker compose down
 
-# 恢复数据库（以 20260613 的备份为例）
-tar xzf backups/db-backup-20260613-020000.tar.gz
+# 恢复数据库（以 20260702 的备份为例）
+docker run --rm -v kec-data:/data -v $(pwd)/backups:/backup alpine \
+  sh -c "rm -rf /data/* && tar xzf /backup/kec-data-20260702-020000.tar.gz -C /data"
 
 # 恢复上传文件
-tar xzf backups/uploads-backup-20260613-020000.tar.gz
+docker run --rm -v kec-uploads:/data -v $(pwd)/backups:/backup alpine \
+  sh -c "rm -rf /data/* && tar xzf /backup/kec-uploads-20260702-020000.tar.gz -C /data"
 
 # 启动服务
 docker compose up -d
 ```
 
-### 导出完整应用数据
+### 导出完整应用数据（含配置）
 
 ```bash
+# 导出 named volume 数据 + 项目配置（.env 等）
 cd /opt
 tar czf kec-manager-full-backup-$(date +%Y%m%d).tar.gz kec-manager/
+# 注意：named volume 数据不在项目目录内，需单独备份（见上方手动备份）
 ```
 
 ---
 
 ## 常见问题
 
-### Q1: 容器启动失败，日志显示 "Permission denied"
+### Q1: 容器启动失败，日志显示 "Permission denied" 或 "database is locked"
 
-**原因**: 数据目录权限不正确
+**原因**: 数据卷权限不正确（旧版 bind mount 遗留问题）
 
 **解决**:
+
+当前配置已使用 named volume，正常情况下不会出现此问题。如果从旧版本升级且仍残留 bind mount 的 `./data` 目录，请按以下步骤处理：
+
 ```bash
 cd /opt/kec-manager
 
-# 设置正确的所有权（容器内用户 UID 通常为 1000）
-chown -R 1000:1000 data uploads
+# 1. 停止服务
+docker compose down
 
-# 重启服务
-docker compose up -d
+# 2. 删除旧的 bind mount 目录（数据已通过其他方式备份后）
+rm -rf data uploads
+
+# 3. 使用最新的 docker-compose.yml 启动（named volume 会自动创建并设置权限）
+docker compose up -d --build
+```
+
+如果仍遇到权限问题，检查 Dockerfile 中是否正确创建了 appuser 并 chown 数据目录：
+
+```bash
+# 进入容器检查权限
+docker compose exec server ls -la /app/data
+# 应显示 appuser:appgroup 拥有 /app/data
 ```
 
 ### Q2: 前端页面空白，控制台报 404 错误
@@ -607,13 +652,10 @@ docker compose exec server npx prisma studio --port 5555 --hostname 0.0.0.0
 ```bash
 cd /opt/kec-manager
 
-# 停止并删除所有容器和数据卷
+# 停止并删除所有容器和 named volume（-v 会删除 kec-data 和 kec-uploads）
 docker compose down -v
 
-# 删除本地数据
-rm -rf data/* uploads/*
-
-# 重新启动
+# 重新启动（named volume 会自动重建）
 docker compose up -d --build
 
 # 重新初始化
@@ -656,31 +698,54 @@ docker compose up -d
 ### Q9: 如何迁移到其他服务器？
 
 ```bash
-# 在原服务器上打包数据
+# 1. 在原服务器上备份 named volume 数据（见"手动备份"章节）
+cd /opt/kec-manager
+mkdir -p backups
+docker run --rm -v kec-data:/data -v $(pwd)/backups:/backup alpine \
+  tar czf /backup/kec-data-$(date +%Y%m%d).tar.gz -C /data .
+docker run --rm -v kec-uploads:/data -v $(pwd)/backups:/backup alpine \
+  tar czf /backup/kec-uploads-$(date +%Y%m%d).tar.gz -C /data .
+
+# 2. 打包项目配置（含 .env）
 cd /opt
 tar czf kec-manager-migration.tar.gz kec-manager/
 
-# 传输到新服务器
+# 3. 传输到新服务器
 scp kec-manager-migration.tar.gz user@new-server:/opt/
 
-# 在新服务器上解压
+# 4. 在新服务器上解压
 cd /opt
 tar xzf kec-manager-migration.tar.gz
 
-# 启动服务
+# 5. 启动服务（首次启动会创建空的 named volume）
 cd kec-manager
+docker compose up -d --build
+
+# 6. 停止服务，恢复数据卷
+docker compose down
+docker run --rm -v kec-data:/data -v $(pwd)/backups:/backup alpine \
+  sh -c "rm -rf /data/* && tar xzf /backup/kec-data-*.tar.gz -C /data"
+docker run --rm -v kec-uploads:/data -v $(pwd)/backups:/backup alpine \
+  sh -c "rm -rf /data/* && tar xzf /backup/kec-uploads-*.tar.gz -C /data"
+
+# 7. 重新启动
 docker compose up -d
 ```
 
 ### Q10: 数据库文件在哪里？
 
-SQLite 数据库文件位于：
+SQLite 数据库文件存储在 Docker named volume 中：
 
-```
-/opt/kec-manager/data/kec.db
+```bash
+# 查看 volume 实际路径
+docker volume inspect kec-data
+# 实际路径通常为：/var/lib/docker/volumes/kec-data/_data/kec.db
+
+# 进入容器查看
+docker compose exec server ls -la /app/data
 ```
 
-可以直接复制此文件进行备份或迁移。
+> 💡 **提示**：不建议直接操作 volume 实际路径，请通过 `docker compose` 命令或备份脚本操作数据。
 
 ---
 
@@ -703,6 +768,7 @@ SQLite 数据库文件位于：
 
 | 日期 | 版本 | 变更内容 |
 |------|------|---------|
+| 2026-07-02 | v3.0 | 改回 named volume，解决 bind mount 的 appuser 权限冲突；补充完整环境变量表；更新备份/恢复/迁移命令适配 named volume；优化健康检查命令 |
 | 2026-06-13 | v2.0 | 改用本地目录挂载，简化备份流程；新增环境变量配置；添加资源限制 |
 | 2026-06-13 | v1.0 | 初始版本，基于 Docker Volume |
 
@@ -712,6 +778,6 @@ SQLite 数据库文件位于：
 
 **KEC 课程管理平台** · 1Panel 部署指南
 
-最后更新：2026-06-13
+最后更新：2026-07-02
 
 </div>
