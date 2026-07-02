@@ -5,6 +5,19 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.17.2] - 2026-07-02
+
+### 配置与文档整理
+
+- **删除根目录冗余 `.env.example`**：该文件仅含 5 个变量，是 `server/.env.example` 的不完整子集，所有文档引用均指向 server 目录，根目录版本已无存在必要
+- **补全环境变量示例文件**：对照代码中实际使用的 13 个环境变量，补全两个示例文件中缺失的变量
+  - `server/.env.example` 新增 `JWT_DOWNLOAD_EXPIRES_IN=30s`
+  - `server/.env.production.example` 新增 `JWT_DOWNLOAD_EXPIRES_IN=30s`、`BCRYPT_ROUNDS=12`、`DEFAULT_SEMESTER=2025-2026-2`
+  - `server/.env` 同步补全 `JWT_DOWNLOAD_EXPIRES_IN=30s`
+- **`VERSION_MANAGEMENT.md` 移入 `docs/`**：版本管理规范文档性质与 docs/ 中其他运维指南一致，根目录仅保留 README.md 和 CHANGELOG.md
+
+---
+
 ## [2.15.0] - 2026-06-28
 
 ### 架构审计修复（13 项）
