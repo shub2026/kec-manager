@@ -6,7 +6,8 @@ WORKDIR /app
 # 使用淘宝镜像加速依赖安装和 Prisma 引擎下载
 RUN npm config set registry https://registry.npmmirror.com
 # PRISMA_ENGINES_MIRROR: schema-engine 等二进制文件镜像（国内服务器访问 binaries.prisma.sh 受限）
-ENV PRISMA_ENGINES_MIRROR=https://prisma-binaries.npmmirror.com
+# npmmirror 的 Prisma 二进制实际路径
+ENV PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary/prisma
 
 # 复制 package.json 并安装依赖
 COPY package*.json ./
@@ -30,7 +31,8 @@ RUN apk add --no-cache sqlite-libs
 # 使用淘宝镜像加速依赖安装和 Prisma 引擎下载
 RUN npm config set registry https://registry.npmmirror.com
 # PRISMA_ENGINES_MIRROR: schema-engine 等二进制文件镜像（国内服务器访问 binaries.prisma.sh 受限）
-ENV PRISMA_ENGINES_MIRROR=https://prisma-binaries.npmmirror.com
+# npmmirror 的 Prisma 二进制实际路径
+ENV PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary/prisma
 
 # 复制 package.json 并安装生产依赖
 COPY package*.json ./
