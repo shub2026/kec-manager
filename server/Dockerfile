@@ -3,9 +3,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# 使用淘宝镜像加速依赖安装
+# 使用淘宝镜像加速依赖安装和 Prisma 引擎下载
 RUN npm config set registry https://registry.npmmirror.com
-ENV PRISMA_NODE_BINARY_MIRROR=https://prisma-binaries.npmmirror.com
+# PRISMA_ENGINES_MIRROR: schema-engine 等二进制文件镜像（国内服务器访问 binaries.prisma.sh 受限）
+ENV PRISMA_ENGINES_MIRROR=https://prisma-binaries.npmmirror.com
 
 # 复制 package.json 并安装依赖
 COPY package*.json ./
@@ -26,9 +27,10 @@ WORKDIR /app
 # 安装运行时依赖（SQLite 支持）
 RUN apk add --no-cache sqlite-libs
 
-# 使用淘宝镜像加速依赖安装
+# 使用淘宝镜像加速依赖安装和 Prisma 引擎下载
 RUN npm config set registry https://registry.npmmirror.com
-ENV PRISMA_NODE_BINARY_MIRROR=https://prisma-binaries.npmmirror.com
+# PRISMA_ENGINES_MIRROR: schema-engine 等二进制文件镜像（国内服务器访问 binaries.prisma.sh 受限）
+ENV PRISMA_ENGINES_MIRROR=https://prisma-binaries.npmmirror.com
 
 # 复制 package.json 并安装生产依赖
 COPY package*.json ./
