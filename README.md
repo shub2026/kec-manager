@@ -245,17 +245,12 @@ kec-manager/
 
 ## 相关文档
 
+- [部署与运维指南](docs/DEPLOYMENT.md) - 部署、更新、备份恢复、故障排查（统一文档）
+- [排课算法完整说明](docs/SCHEDULING_ALGORITHM.md) - 五阶段算法、评分机制、教材内聚策略、代码索引
 - [代码格式化指南](docs/CODE_FORMATTING.md) - Prettier 和 ESLint 配置与使用
-- [排课逻辑详解](docs/TEACHING_ARRANGE_LOGIC.md) - 自动排课算法、匹配规则、容量约束
-- [自动排课算法 V2](docs/AUTO_ARRANGE_LOGIC_V2.md) - 排课算法优化方案
-- [部署指南](docs/DEPLOYMENT_GUIDE.md) - 详细部署步骤和 Nginx 配置
-- [生产环境部署](docs/PRODUCTION_DEPLOYMENT.md) - 生产环境最佳实践
-- [配置更新指南](docs/CONFIG_UPDATE_GUIDE.md) - 配置文件修改与更新流程
-- [更新操作指南](docs/UPDATE_OPERATIONS_GUIDE.md) - 版本更新与回滚操作
-- [登录指南](docs/LOGIN_GUIDE.md) - 登录流程与常见问题
 - [学期计算说明](docs/semester-calculation.md) - 学期状态计算逻辑
-- [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) - 前后端命名规范
-- [教材相关性分析](docs/TEXTBOOK_COHESION_ANALYSIS.md) - 教材匹配与内聚度算法
+- [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) - 前后端命名规范与迁移方案
+- [版本管理指南](docs/VERSION_MANAGEMENT.md) - 语义化版本与自动化版本脚本
 
 ---
 
