@@ -117,8 +117,11 @@ if execute "command -v pm2 &> /dev/null"; then
 else
     echo "PM2 未安装，跳过（首次部署无需停止）"
 fi
-# 兜底：杀掉可能残留的非 PM2 Node 进程（仅匹配 server/src/server.js）
-execute "pkill -f 'server/src/server.js' 2>/dev/null || true"
+# 兜底：杀掉可能残留的非 PM2 Node 进程
+# 用 ^node 锚定只匹配 node 进程命令行，避免误杀执行 pkill 的 bash -c 子进程自身
+# （pkill -f 会匹配完整命令行，若模式含 server/src/server.js，bash -c "pkill -f ..."
+#  的命令行也包含该字符串，会杀掉自身导致脚本中断）
+execute "pkill -f '^node.*server/src/server\\.js' 2>/dev/null || true"
 # 等待端口释放（SQLite WAL checkpoint 也需要时间）
 echo "等待 2 秒确保端口释放与 WAL checkpoint..."
 sleep 2
