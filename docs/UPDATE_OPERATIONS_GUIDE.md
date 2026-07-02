@@ -13,7 +13,6 @@
 - [方式一：SSH远程部署（推荐）](#方式一ssh远程部署推荐)
 - [方式二：服务器本地部署](#方式二服务器本地部署)
 - [方式三：手动更新](#方式三手动更新)
-- [方式四：Docker 部署（容器化）](#方式四docker-部署容器化)
 - [数据库备份与恢复](#数据库备份与恢复)
 - [常见问题排查](#常见问题排查)
 - [回滚操作](#回滚操作)
@@ -46,7 +45,6 @@ bash deploy_ssh.sh root@your-server-ip
 | **SSH远程部署** | 日常更新 | ⭐ 简单 | 低 | ⭐⭐⭐⭐ |
 | **服务器本地部署** | 首次部署 | ⭐⭐ 中等 | 低 | ⭐⭐⭐⭐⭐ |
 | **手动更新** | 故障排查 | ⭐⭐⭐ 复杂 | 中 | ⭐⭐⭐ |
-| **Docker 部署** | 容器化环境 | ⭐⭐ 中等 | 低 | ⭐⭐⭐⭐ |
 
 ---
 
@@ -335,56 +333,6 @@ curl http://localhost:3000/api/health
 
 # 查看日志
 pm2 logs kec-server --lines 50
-```
-
----
-
-## 方式四：Docker 部署（容器化）
-
-### 适用场景
-
-- 1Panel / 容器化环境
-- 需要环境隔离、便于回滚
-- 不希望直接在宿主机安装 Node.js / PM2
-
-### 关键设计说明
-
-| 要点 | 说明 |
-|------|------|
-| **named volume** | `docker-compose.yml` 中使用 `kec-data` / `kec-uploads` 命名卷（由 Docker 管理），而非 bind mount。原因是容器内 `appuser` 为非 root 用户，bind mount 的 `./data` 默认属主为 root，会导致 SQLite 无法写入。命名卷由 Docker 按容器用户初始化权限，可正常写入。 |
-| **appuser** | `server/Dockerfile` 以非 root 用户 `appuser` 运行进程，符合容器安全最佳实践。 |
-| **WAL 模式** | Prisma 连接 SQLite 时启用 `journal_mode = WAL`（见 `server/src/lib/prisma.js` / `schema.prisma`），提升并发读写性能，降低 `database is locked` 概率。备份时建议同时复制 `-wal` 和 `-shm` 文件，或先执行 `PRAGMA wal_checkpoint(FULL)`。 |
-| **数据库路径** | 容器内为 `/app/data/kec.db`，对应命名卷 `kec-data`。宿主机数据位于 `docker volume inspect kec-data` 返回的 `Mountpoint`。 |
-
-### 使用步骤
-
-```bash
-# 1. 进入项目目录
-cd /opt/1panel/www/sites/kec/index/kec-manager
-
-# 2. 拉取最新代码
-git pull
-
-# 3. 配置环境变量（首次需复制并修改 .env.docker）
-cp .env.docker .env  # 仅首次
-
-# 4. 重新构建并启动
-docker compose up -d --build
-
-# 5. 查看状态
-docker compose ps
-docker compose logs -f server --tail 50
-
-# 6. 健康检查
-curl http://localhost:3000/api/health
-```
-
-### 数据库备份（Docker 环境）
-
-```bash
-# 直接从命名卷备份
-docker run --rm -v kec-data:/data -v $(pwd)/backups:/backup alpine \
-  sh -c "cp /data/kec.db /backup/kec_backup_$(date +%Y%m%d_%H%M%S).db"
 ```
 
 ---
@@ -792,17 +740,17 @@ chmod +x scripts/update.sh
 
 ### 6. 环境变量参考
 
-部署/更新时需关注以下环境变量（详见 `server/.env.example` 与 `.env.docker`）：
+部署/更新时需关注以下环境变量（详见 `server/.env.example`）：
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `JWT_SECRET` / `JWT_REFRESH_SECRET` / `JWT_DOWNLOAD_SECRET` | — | JWT 各类密钥，**生产必须设置** |
 | `JWT_EXPIRES_IN` | `15m` | Access Token 过期时间，不建议超过 1h |
 | `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh Token 过期时间 |
-| `BCRYPT_ROUNDS` | `10`（.env.example）/ `12`（Docker） | 密码哈希轮数，值越大越安全但越慢，建议 10–12 |
+| `BCRYPT_ROUNDS` | `10` | 密码哈希轮数，值越大越安全但越慢，建议 10–12 |
 | `DEFAULT_SEMESTER` | `2025-2026-2` | 默认学期，用于未指定学期参数的查询，格式 `起始年-结束年-序号` |
 | `CORS_ORIGINS` | — | 允许跨域的前端地址，多个用逗号分隔 |
-| `DATABASE_URL` | `file:./data/kec.db` | SQLite 数据库文件路径（Docker 内为 `file:/app/data/kec.db`） |
+| `DATABASE_URL` | `file:./data/kec.db` | SQLite 数据库文件路径 |
 | `LOG_LEVEL` | `info` | 日志级别（`debug`/`info`/`warn`/`error`） |
 
 > 📌 升级到 v2.x 后请确认 `BCRYPT_ROUNDS` 与 `DEFAULT_SEMESTER` 已在 `.env` 中显式配置，否则将使用代码内默认值。

@@ -32,7 +32,6 @@ chmod 755 /opt/1panel/www/sites/kec/index/kec-manager/server/data
 ```
 
 > **权限说明**：无需 `chown www-data:www-data`。
-> - **Docker 部署**：容器内进程以 `appuser:appgroup` 身份运行，数据通过 named volume 挂载，权限由 Dockerfile 统一管理。
 > - **PM2 部署**：以 `root` 用户运行，对数据目录有读写权限，无需额外 chown。
 
 ### 步骤 4：备份当前配置
@@ -152,39 +151,6 @@ bash deploy.sh root@your-server.com
 
 **如果已有生产数据，请使用手动方式更新配置！**
 
-## 🐳 Docker 部署
-
-如果使用 Docker 部署，配置方式与上述 PM2 流程不同，**不要**直接编辑 `server/.env`，而是使用项目根目录的 `.env.docker`。
-
-### 1. 使用 `.env.docker` 配置环境变量
-
-Docker 部署通过根目录的 `.env.docker` 文件向 `docker-compose.yml` 注入变量，参考 `.env.docker.example` 创建：
-
-```bash
-cp .env.docker.example .env.docker
-vim .env.docker
-```
-
-`.env.docker` 中同样需要配置 `NODE_ENV`、`CORS_ORIGINS`、`JWT_*`、`DEFAULT_SEMESTER`、`BCRYPT_ROUNDS` 等项。注意：Docker 部署下 `DATABASE_URL` 指向容器内路径（通常为 `file:/app/server/data/kec.db`），**不要**填宿主机的 `/opt/1panel/...` 绝对路径。
-
-### 2. 使用 docker-compose 编排
-
-```bash
-# 构建并启动
-docker compose up -d --build
-
-# 查看状态与日志
-docker compose ps
-docker compose logs -f
-```
-
-### 3. 关键说明
-
-- **named volume 持久化**：数据库文件通过 `docker-compose.yml` 中定义的 named volume（如 `kec_data`）持久化到 Docker 管理的宿主机路径。**不要**直接到容器内 `/app/server/data` 修改或拷贝 `kec.db`，应通过 volume 操作或进入容器执行 Prisma 命令。
-- **appuser 非 root 运行**：容器内进程以非 root 用户 `appuser`（属组 `appgroup`）运行，镜像构建时已在 `Dockerfile` 中创建并设置目录归属。因此 Docker 部署**无需也不应**执行 `chown www-data`，named volume 挂载后由 appuser 读写。
-- **WAL 模式**：Prisma 连接 SQLite 时已启用 WAL（Write-Ahead Logging）模式，支持并发读、提升写入吞吐。数据目录中出现 `kec.db-wal`、`kec.db-shm` 是正常产物，**不要**手动删除，否则可能丢数据。备份时需连同这两个文件一起复制，或先执行 `PRAGMA wal_checkpoint(TRUNCATE)`。
-- **数据库初始化**：容器首次启动会自动执行 `npx prisma migrate deploy` 应用迁移，**无需**手动 `cp reset.db`。如需种子数据，进入容器执行 `docker compose exec kec-server npm run db:seed`（仅限首次初始化）。
-
 ## 🔍 验证清单
 
 更新完成后，请确认以下项目：
@@ -237,7 +203,7 @@ pm2 logs kec-server --err
 # 常见原因：
 # - 端口被占用：lsof -i:3000
 # - 数据库路径错误：检查 DATABASE_URL
-# - 权限问题：Docker 用 appuser:appgroup（见 Dockerfile），PM2 以 root 运行，均无需 chown www-data
+# - 权限问题：PM2 以 root 运行，无需 chown www-data
 ```
 
 ## 📊 回滚方案

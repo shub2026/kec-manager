@@ -1,6 +1,6 @@
 # KEC 课程管理平台
 
-KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量级教学管理系统，涵盖培养计划、班级管理、教师排课、教材协调和数据导入导出等核心功能。采用前后端分离架构，支持 Docker 容器化部署或裸机部署。
+KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量级教学管理系统，涵盖培养计划、班级管理、教师排课、教材协调和数据导入导出等核心功能。采用前后端分离架构，基于 PM2 + Nginx 部署。
 
 ---
 
@@ -24,9 +24,9 @@ KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量�
 |------|------|
 | 前端 | Vue 3.5 + Element Plus 2.14 + Pinia 3 + Vite 5 |
 | 后端 | Express 5.1 + Prisma 6.19 + Winston 3.19 |
-| 数据库 | SQLite（默认）/ MySQL（可选） |
+| 数据库 | SQLite（WAL 模式） |
 | 认证 | JWT 双令牌（Access 15min + Refresh 7天）+ bcrypt 12轮 |
-| 部署 | Docker Compose / 裸机部署（PM2 + Nginx） |
+| 部署 | PM2 + Nginx |
 
 ---
 
@@ -89,31 +89,7 @@ npm run lint      # 检查并自动修复
 
 ## 部署
 
-### 方式一：Docker Compose（推荐）
-
-```bash
-# 创建环境变量文件
-cat > .env << EOF
-JWT_SECRET=$(openssl rand -hex 32)
-JWT_REFRESH_SECRET=$(openssl rand -hex 32)
-JWT_DOWNLOAD_SECRET=$(openssl rand -hex 32)
-CORS_ORIGINS=https://your-domain.com
-SERVER_PORT=3000
-CLIENT_PORT=80
-CONTAINER_PREFIX=kec
-NETWORK_NAME=kec-network
-EOF
-
-# 构建并启动
-docker-compose up -d --build
-```
-
-服务启动后：
-- 前端：http://your-server:80
-- 后端 API：http://your-server:3000（由 SERVER_PORT 环境变量控制）
-- 健康检查：http://your-server:3000/api/health
-
-### 方式二：裸机部署
+### 一键部署（推荐）
 
 ```bash
 # 一键部署脚本（支持本地或远程服务器）
@@ -124,7 +100,12 @@ bash deploy.sh
 bash deploy_ssh.sh root@your-server.com
 ```
 
-部署脚本会自动完成：环境检查 → 目录创建 → 代码拉取 → 依赖安装 → 密钥生成 → 数据库迁移 → 前端构建 → PM2 启动。
+部署脚本会自动完成 10 个步骤：环境检查 → 目录创建 → 代码拉取 → 依赖安装 → 停止旧服务 → 配置环境变量 → 数据库迁移 → 初始化系统设置 → 前端构建 → PM2 启动。
+
+服务启动后：
+- 前端：http://your-server（80端口，由 Nginx 代理）
+- 后端 API：http://your-server:3000（内部端口，不对外暴露）
+- 健康检查：http://your-server:3000/api/health
 
 ### 服务器要求
 
@@ -176,8 +157,6 @@ kec-manager/
 │   │   └── main.js             # 应用入口
 │   ├── .prettierrc             # Prettier 配置
 │   ├── eslint.config.js        # ESLint 配置
-│   ├── nginx.conf              # Nginx 配置
-│   ├── Dockerfile              # 前端 Docker 构建文件
 │   └── vite.config.js          # Vite 构建配置
 ├── server/                     # 后端（Express + Prisma）
 │   ├── src/
@@ -199,8 +178,7 @@ kec-manager/
 │   ├── eslint.config.js        # ESLint 配置
 │   └── vitest.config.js        # 测试配置
 ├── docs/                       # 项目文档
-├── docker-compose.yml          # Docker 编排配置
-├── deploy.sh                   # 裸机部署脚本
+├── deploy.sh                   # 部署脚本
 ├── deploy_ssh.sh               # SSH 远程部署脚本
 ├── start-dev.bat / start-dev.sh # 开发环境一键启动脚本
 └── CHANGELOG.md                # 变更日志
@@ -272,9 +250,12 @@ kec-manager/
 - [自动排课算法 V2](docs/AUTO_ARRANGE_LOGIC_V2.md) - 排课算法优化方案
 - [部署指南](docs/DEPLOYMENT_GUIDE.md) - 详细部署步骤和 Nginx 配置
 - [生产环境部署](docs/PRODUCTION_DEPLOYMENT.md) - 生产环境最佳实践
-- [1Panel Docker 部署](docs/1panel-docker-deploy.md) - 1Panel 面板容器化部署指南
+- [配置更新指南](docs/CONFIG_UPDATE_GUIDE.md) - 配置文件修改与更新流程
+- [更新操作指南](docs/UPDATE_OPERATIONS_GUIDE.md) - 版本更新与回滚操作
 - [登录指南](docs/LOGIN_GUIDE.md) - 登录流程与常见问题
-- [版本管理说明](VERSION_MANAGEMENT.md) - 版本号管理与更新操作
+- [学期计算说明](docs/semester-calculation.md) - 学期状态计算逻辑
+- [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) - 前后端命名规范
+- [教材相关性分析](docs/TEXTBOOK_COHESION_ANALYSIS.md) - 教材匹配与内聚度算法
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **版本**：v2.17.1
 > **数据库**：SQLite（启用 WAL 模式）
-> **部署方式**：PM2 + deploy.sh（主要）/ Docker（备选）
+> **部署方式**：PM2 + deploy.sh
 > **部署路径**：`/opt/1panel/www/sites/kec/index/kec-manager`
 
 ---
@@ -159,41 +159,7 @@ pm2 startup
 
 ---
 
-## 四、Docker 部署（备选方案）
-
-适用于容器化环境（如 1Panel）。使用 `.env.docker` 作为环境变量模板。
-
-### 1. 准备环境变量
-
-```bash
-cp .env.docker .env
-vim .env  # 必填：JWT_SECRET、JWT_REFRESH_SECRET、JWT_DOWNLOAD_SECRET、DEFAULT_SEMESTER、CORS_ORIGINS
-```
-
-### 2. 启动容器
-
-```bash
-docker compose up -d
-```
-
-### 配置要点
-
-| 项 | 配置 |
-| --- | --- |
-| 后端镜像 | `node:20-alpine`，多阶段构建 |
-| 非 root 用户 | `appuser:appgroup`（`server/Dockerfile` 中创建） |
-| 数据卷 | named volume：`kec-data`（→ `/app/data`）、`kec-uploads`（→ `/app/uploads`） |
-| 健康检查 | `wget -q -O /dev/null --tries=1 --timeout=5 http://localhost:3000/api/health` |
-| 启动命令 | `npx prisma migrate deploy && node src/server.js` |
-| 资源限制 | server：1 CPU / 512M；client：0.5 CPU / 256M |
-| 重启策略 | `on-failure:5`（避免迁移失败导致无限重启） |
-| 端口映射 | `${SERVER_PORT:-3000}:3000`、`${CLIENT_PORT:-80}:80` |
-
-> **named volume 说明**：容器内 `appuser` 非 root，bind mount 的宿主机目录默认 root 所有会导致 SQLite 写入失败，故使用 named volume 由 Docker 管理权限。
-
----
-
-## 五、Nginx 配置
+## 四、Nginx 配置
 
 前端在 `client/dist` 原地构建，Nginx `root` 直接指向该目录，不拷贝到其他位置。
 
@@ -256,7 +222,7 @@ nginx -t && nginx -s reload
 
 ---
 
-## 六、环境变量说明
+## 五、环境变量说明
 
 ### 必填项
 
@@ -279,7 +245,7 @@ nginx -t && nginx -s reload
 | `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh Token 有效期 |
 | `LOG_LEVEL` | `info` | 日志级别（error/warn/info/http/debug） |
 | `MAX_FILE_SIZE` | `10` | 文件上传大小限制（MB） |
-| `BCRYPT_ROUNDS` | `12` | bcrypt 加密轮数（Docker 部署用） |
+| `BCRYPT_ROUNDS` | `12` | bcrypt 加密轮数 |
 
 ### SQLite WAL 配置（自动生效）
 
@@ -293,7 +259,7 @@ PRAGMA synchronous = NORMAL;        -- 平衡性能与数据安全
 
 ---
 
-## 七、备份与恢复
+## 六、备份与恢复
 
 ### 备份脚本
 
@@ -348,7 +314,7 @@ cd ${PROJECT_DIR}/server && pm2 start src/server.js --name kec-server
 
 ---
 
-## 八、更新部署
+## 七、更新部署
 
 ### 方式一：使用 deploy.sh（推荐）
 
@@ -393,7 +359,7 @@ pm2 save
 
 ---
 
-## 九、常见问题
+## 八、常见问题
 
 ### Q1：Prisma 迁移报 "database is locked"
 
@@ -447,13 +413,7 @@ ls /opt/1panel/www/sites/kec/index/kec-manager/client/dist/index.html
 nginx -t && nginx -s reload
 ```
 
-### Q5：Docker 容器内 SQLite 写入失败（权限错误）
-
-**原因**：使用 bind mount 时宿主机目录归属 root，容器内 `appuser` 无写权限。
-
-**解决**：使用 named volume（`docker-compose.yml` 默认配置），不要改为 bind mount。
-
-### Q6：esbuild 二进制异常导致前端构建崩溃
+### Q5：esbuild 二进制异常导致前端构建崩溃
 
 ```bash
 cd client
@@ -466,8 +426,8 @@ npm run build
 
 ---
 
-## 十、更新日志
+## 九、更新日志
 
 | 日期 | 版本 | 变更 |
 | --- | --- | --- |
-| 2026-07-02 | v2.17.1 | 重写文档，对齐当前项目实际配置：SQLite-only、PM2 + deploy.sh 主推、Docker 备选、1Panel 部署路径、named volume、WAL 模式、Node.js 20+ |
+| 2026-07-02 | v2.17.1 | 重写文档，对齐当前项目实际配置：SQLite-only、PM2 + deploy.sh 主推、1Panel 部署路径、WAL 模式、Node.js 20+ |
