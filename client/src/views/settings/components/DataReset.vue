@@ -69,7 +69,12 @@
             </div>
           </div>
           <div class="reset-card-footer">
-            <el-button type="danger" plain :loading="resetting" @click="$emit('reset', 'audit-logs')">
+            <el-button
+              type="danger"
+              plain
+              :loading="resetting"
+              @click="$emit('reset', 'audit-logs')"
+            >
               <el-icon><Delete /></el-icon>
               清空日志
             </el-button>
@@ -157,7 +162,9 @@ defineEmits(['reset']);
   background: #fafafa;
   border: 1px solid #ebeef5;
   border-radius: 8px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .reset-card:hover {

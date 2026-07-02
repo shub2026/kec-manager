@@ -182,6 +182,13 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
       ElMessage.error('请上传Excel文件');
       return false;
     }
+    // M-7 修复：前端文件大小校验（10MB），与生产环境 Nginx client_max_body_size 一致
+    // 避免开发环境测试通过但生产环境返回 413 Request Entity Too Large
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      ElMessage.error(`文件大小 ${(file.size / 1024 / 1024).toFixed(1)}MB 超过限制（最大 10MB）`);
+      return false;
+    }
     pendingFile.value = file;
     importConfirmVisible.value = true;
     return false;

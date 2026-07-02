@@ -13,17 +13,22 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // 注意：变量名以 mock 开头，vitest 允许在 vi.mock 工厂中引用
 // ──────────────────────────────────────────────
 const mockTx = {
-  plan_courses: { create: vi.fn(), update: vi.fn() },
+  plan_courses: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
   plan_course_semesters: { create: vi.fn(), deleteMany: vi.fn(), updateMany: vi.fn() },
+  plan_textbooks: { create: vi.fn(), deleteMany: vi.fn() },
 };
 
 const mockPrisma = {
-  $transaction: vi.fn((fn) => fn(mockTx)),
+  // 支持两种调用模式：回调函数（fn(mockTx)）和 promise 数组（Promise.all）
+  $transaction: vi.fn((arg) =>
+    typeof arg === 'function' ? arg(mockTx) : Promise.all(arg)
+  ),
   plan_courses: {
     create: vi.fn(),
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+    delete: vi.fn(),
   },
   plan_course_semesters: {
     create: vi.fn(),
@@ -31,6 +36,11 @@ const mockPrisma = {
     updateMany: vi.fn(),
     upsert: vi.fn(),
     findFirst: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+  },
+  textbooks: {
+    findUnique: vi.fn(),
   },
 };
 
@@ -53,9 +63,16 @@ vi.mock('../../../services/audit.service.js', () => ({
 // ──────────────────────────────────────────────
 // 动态 import（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { addCourseToPlan, updatePlanCourse, upsertSemester } = await import(
-  '../plan-matrix.controller.js'
-);
+const {
+  addCourseToPlan,
+  updatePlanCourse,
+  upsertSemester,
+  listPlanSemesters,
+  deletePlanCourse,
+  assignTextbookToSemester,
+  batchUpdateSemesterWeeks,
+  batchUpdateCourseSortOrder,
+} = await import('../plan-matrix.controller.js');
 
 // ──────────────────────────────────────────────
 // 工具函数：构造 mock req / res / next
@@ -79,17 +96,26 @@ function mockRes() {
 describe('plan-matrix.controller', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    // resetAllMocks 清掉了 $transaction 的实现，需重新建立
-    mockPrisma.$transaction.mockImplementation((fn) => fn(mockTx));
+    // resetAllMocks 清掉了 $transaction 的实现，需重新建立（支持回调和数组两种模式）
+    mockPrisma.$transaction.mockImplementation((arg) =>
+      typeof arg === 'function' ? arg(mockTx) : Promise.all(arg)
+    );
     // 默认返回值
     mockTx.plan_courses.create.mockResolvedValue({ id: 100, course_id: 1 });
     mockTx.plan_courses.update.mockResolvedValue({ id: 1 });
     mockTx.plan_course_semesters.create.mockResolvedValue({});
     mockTx.plan_course_semesters.deleteMany.mockResolvedValue({ count: 0 });
     mockTx.plan_course_semesters.updateMany.mockResolvedValue({ count: 0 });
+    mockTx.plan_textbooks.create.mockResolvedValue({ id: 200 });
+    mockTx.plan_textbooks.deleteMany.mockResolvedValue({ count: 0 });
     mockPrisma.plan_courses.findUnique.mockResolvedValue(null);
     mockPrisma.plan_courses.findFirst.mockResolvedValue(null);
+    mockPrisma.plan_courses.delete.mockResolvedValue({});
+    mockPrisma.plan_courses.update.mockResolvedValue({});
     mockPrisma.plan_course_semesters.upsert.mockResolvedValue({});
+    mockPrisma.plan_course_semesters.findMany.mockResolvedValue([]);
+    mockPrisma.plan_course_semesters.update.mockResolvedValue({});
+    mockPrisma.textbooks.findUnique.mockResolvedValue(null);
     mockCreateAuditLog.mockResolvedValue({});
   });
 
@@ -140,10 +166,7 @@ describe('plan-matrix.controller', () => {
     });
 
     it('缺 course_id 应返回必填项错误', async () => {
-      const req = mockReq(
-        { start_semester: 1, end_semester: 3, weekly_hours: 4 },
-        { id: '1' }
-      );
+      const req = mockReq({ start_semester: 1, end_semester: 3, weekly_hours: 4 }, { id: '1' });
       const res = mockRes();
       const next = vi.fn();
 
@@ -157,10 +180,7 @@ describe('plan-matrix.controller', () => {
     });
 
     it('缺 weekly_hours 应返回必填项错误', async () => {
-      const req = mockReq(
-        { course_id: 1, start_semester: 1, end_semester: 3 },
-        { id: '1' }
-      );
+      const req = mockReq({ course_id: 1, start_semester: 1, end_semester: 3 }, { id: '1' });
       const res = mockRes();
       const next = vi.fn();
 
@@ -256,10 +276,7 @@ describe('plan-matrix.controller', () => {
         plan_course_semesters: [{ semester: 1 }, { semester: 2 }],
       });
 
-      const req = mockReq(
-        { start_semester: 1, end_semester: 3, weekly_hours: 6 },
-        { id: '1' }
-      );
+      const req = mockReq({ start_semester: 1, end_semester: 3, weekly_hours: 6 }, { id: '1' });
       const res = mockRes();
       const next = vi.fn();
 
@@ -372,10 +389,7 @@ describe('plan-matrix.controller', () => {
         weekly_hours: 4,
       });
 
-      const req = mockReq(
-        { semester: 2, weekly_hours: 4 },
-        { planId: '1', courseId: '2' }
-      );
+      const req = mockReq({ semester: 2, weekly_hours: 4 }, { planId: '1', courseId: '2' });
       const res = mockRes();
       const next = vi.fn();
 
@@ -397,10 +411,7 @@ describe('plan-matrix.controller', () => {
         weeks_per_semester: 18,
       });
 
-      const req = mockReq(
-        { semester: 5, weekly_hours: 4 },
-        { planId: '1', courseId: '2' }
-      );
+      const req = mockReq({ semester: 5, weekly_hours: 4 }, { planId: '1', courseId: '2' });
       const res = mockRes();
       const next = vi.fn();
 
@@ -424,29 +435,21 @@ describe('plan-matrix.controller', () => {
         weeks_per_semester: 18,
       });
 
-      const req = mockReq(
-        { semester: 0, weekly_hours: 4 },
-        { planId: '1', courseId: '2' }
-      );
+      const req = mockReq({ semester: 0, weekly_hours: 4 }, { planId: '1', courseId: '2' });
       const res = mockRes();
       const next = vi.fn();
 
       await upsertSemester(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: false })
-      );
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
       expect(mockPrisma.plan_course_semesters.upsert).not.toHaveBeenCalled();
     });
 
     it('方案课程不存在：findFirst 返回 null 应返回 404', async () => {
       mockPrisma.plan_courses.findFirst.mockResolvedValue(null);
 
-      const req = mockReq(
-        { semester: 2, weekly_hours: 4 },
-        { planId: '1', courseId: '999' }
-      );
+      const req = mockReq({ semester: 2, weekly_hours: 4 }, { planId: '1', courseId: '999' });
       const res = mockRes();
       const next = vi.fn();
 
@@ -461,10 +464,7 @@ describe('plan-matrix.controller', () => {
     });
 
     it('缺必填字段（无 semester）应返回必填项错误', async () => {
-      const req = mockReq(
-        { weekly_hours: 4 },
-        { planId: '1', courseId: '2' }
-      );
+      const req = mockReq({ weekly_hours: 4 }, { planId: '1', courseId: '2' });
       const res = mockRes();
       const next = vi.fn();
 
@@ -477,6 +477,389 @@ describe('plan-matrix.controller', () => {
       });
       // 必填校验在 findFirst 之前，不应查库
       expect(mockPrisma.plan_courses.findFirst).not.toHaveBeenCalled();
+    });
+  });
+
+  // ════════════════════════════════════════════
+  // listPlanSemesters（H-5 修复：移除 distinct，JS 层聚合取最大 weeks_count）
+  // ════════════════════════════════════════════
+  describe('listPlanSemesters', () => {
+    it('同一学期不同 weeks_count 应取最大值', async () => {
+      mockPrisma.plan_course_semesters.findMany.mockResolvedValue([
+        { semester: 1, weeks_count: 16 },
+        { semester: 1, weeks_count: 18 },
+        { semester: 2, weeks_count: 18 },
+        { semester: 2, weeks_count: 14 },
+      ]);
+
+      const req = mockReq({}, { id: '1' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await listPlanSemesters(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: expect.arrayContaining([
+            { semester: 1, weeks_count: 18 },
+            { semester: 2, weeks_count: 18 },
+          ]),
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('无学期记录应返回空数组', async () => {
+      mockPrisma.plan_course_semesters.findMany.mockResolvedValue([]);
+
+      const req = mockReq({}, { id: '1' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await listPlanSemesters(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: true, data: [] })
+      );
+    });
+
+    it('单一学期单一 weeks_count 应原样返回', async () => {
+      mockPrisma.plan_course_semesters.findMany.mockResolvedValue([
+        { semester: 3, weeks_count: 20 },
+      ]);
+
+      const req = mockReq({}, { id: '1' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await listPlanSemesters(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: [{ semester: 3, weeks_count: 20 }],
+        })
+      );
+    });
+  });
+
+  // ════════════════════════════════════════════
+  // deletePlanCourse
+  // ════════════════════════════════════════════
+  describe('deletePlanCourse', () => {
+    it('正常删除应成功并记录审计日志', async () => {
+      mockPrisma.plan_courses.delete.mockResolvedValue({ id: 5 });
+
+      const req = mockReq({}, { id: '5' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await deletePlanCourse(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: true, message: '删除成功' })
+      );
+      expect(mockPrisma.plan_courses.delete).toHaveBeenCalledWith({
+        where: { id: 5 },
+      });
+      expect(mockCreateAuditLog).toHaveBeenCalledTimes(1);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('方案课程不存在（P2025）应返回 404', async () => {
+      mockPrisma.plan_courses.delete.mockRejectedValue({ code: 'P2025' });
+
+      const req = mockReq({}, { id: '999' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await deletePlanCourse(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: '方案课程不存在',
+      });
+    });
+  });
+
+  // ════════════════════════════════════════════
+  // assignTextbookToSemester
+  // ════════════════════════════════════════════
+  describe('assignTextbookToSemester', () => {
+    it('正常流程：应先删除旧关联再创建新关联', async () => {
+      mockPrisma.textbooks.findUnique.mockResolvedValue({
+        id: 10,
+        title: '高等数学',
+        is_active: true,
+      });
+      mockTx.plan_textbooks.create.mockResolvedValue({
+        id: 50,
+        semester_id: 5,
+        textbook_id: 10,
+        textbooks: { id: 10, title: '高等数学' },
+      });
+
+      const req = mockReq({ textbook_id: 10 }, { id: '5' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await assignTextbookToSemester(req, res, next);
+
+      // 替换语义：先 deleteMany 再 create
+      expect(mockTx.plan_textbooks.deleteMany).toHaveBeenCalledWith({
+        where: { semester_id: 5 },
+      });
+      expect(mockTx.plan_textbooks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            semester_id: 5,
+            textbook_id: 10,
+            is_required: true,
+          }),
+        })
+      );
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: true, message: '关联成功' })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('缺 textbook_id 应返回 400', async () => {
+      const req = mockReq({}, { id: '5' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await assignTextbookToSemester(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: '教材为必填项',
+      });
+      expect(mockPrisma.textbooks.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('教材不存在应返回 400', async () => {
+      mockPrisma.textbooks.findUnique.mockResolvedValue(null);
+
+      const req = mockReq({ textbook_id: 999 }, { id: '5' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await assignTextbookToSemester(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: '教材不存在',
+      });
+    });
+
+    it('教材已停用应返回 400', async () => {
+      mockPrisma.textbooks.findUnique.mockResolvedValue({
+        id: 10,
+        title: '旧版教材',
+        is_active: false,
+      });
+
+      const req = mockReq({ textbook_id: 10 }, { id: '5' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await assignTextbookToSemester(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: '教材"旧版教材"已停用，无法关联',
+      });
+      expect(mockTx.plan_textbooks.create).not.toHaveBeenCalled();
+    });
+
+    it('is_required=false 应正确传递', async () => {
+      mockPrisma.textbooks.findUnique.mockResolvedValue({
+        id: 10,
+        title: '参考书',
+        is_active: true,
+      });
+      mockTx.plan_textbooks.create.mockResolvedValue({});
+
+      const req = mockReq({ textbook_id: 10, is_required: false }, { id: '5' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await assignTextbookToSemester(req, res, next);
+
+      expect(mockTx.plan_textbooks.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ is_required: false }),
+        })
+      );
+    });
+  });
+
+  // ════════════════════════════════════════════
+  // batchUpdateSemesterWeeks（H-3 修复：批量更新学期周数）
+  // ════════════════════════════════════════════
+  describe('batchUpdateSemesterWeeks', () => {
+    it('正常流程：应在单事务中更新所有学期记录', async () => {
+      const req = mockReq({ ids: [1, 2, 3], weeks_count: 16 });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateSemesterWeeks(req, res, next);
+
+      // $transaction 应收到 3 个 update promise
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+      const txArg = mockPrisma.$transaction.mock.calls[0][0];
+      expect(Array.isArray(txArg)).toBe(true);
+      expect(txArg).toHaveLength(3);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: { updated: 3 },
+          message: '批量更新成功',
+        })
+      );
+      expect(mockCreateAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          result: 'success',
+          message: '批量更新学期周数：3条记录',
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('ids 为空数组应返回 400', async () => {
+      const req = mockReq({ ids: [], weeks_count: 16 });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateSemesterWeeks(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'ids 必须为非空数组',
+      });
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('ids 不是数组应返回 400', async () => {
+      const req = mockReq({ ids: 'not-array', weeks_count: 16 });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateSemesterWeeks(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('weeks_count 为 0 应返回 400', async () => {
+      const req = mockReq({ ids: [1], weeks_count: 0 });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateSemesterWeeks(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'weeks_count 必须在 1-52 之间',
+      });
+    });
+
+    it('weeks_count 为 null 应返回 400', async () => {
+      const req = mockReq({ ids: [1], weeks_count: null });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateSemesterWeeks(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('weeks_count 超过 52 应返回 400', async () => {
+      const req = mockReq({ ids: [1], weeks_count: 53 });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateSemesterWeeks(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  // ════════════════════════════════════════════
+  // batchUpdateCourseSortOrder（H-7 修复：批量更新课程排序）
+  // ════════════════════════════════════════════
+  describe('batchUpdateCourseSortOrder', () => {
+    it('正常流程：应在单事务中更新所有排序', async () => {
+      const items = [
+        { id: 1, sort_order: 0 },
+        { id: 2, sort_order: 1 },
+        { id: 3, sort_order: 2 },
+      ];
+      const req = mockReq({ items });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateCourseSortOrder(req, res, next);
+
+      // $transaction 应收到 3 个 update promise
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+      const txArg = mockPrisma.$transaction.mock.calls[0][0];
+      expect(Array.isArray(txArg)).toBe(true);
+      expect(txArg).toHaveLength(3);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: { updated: 3 },
+          message: '排序更新成功',
+        })
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('items 为空数组应返回 400', async () => {
+      const req = mockReq({ items: [] });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateCourseSortOrder(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'items 必须为非空数组',
+      });
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('items 不是数组应返回 400', async () => {
+      const req = mockReq({ items: null });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateCourseSortOrder(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('单条排序也应成功', async () => {
+      const req = mockReq({ items: [{ id: 5, sort_order: 0 }] });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateCourseSortOrder(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: { updated: 1 },
+        })
+      );
     });
   });
 });

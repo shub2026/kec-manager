@@ -2,6 +2,9 @@ import { prisma } from '../lib/prisma.js';
 
 /**
  * 构建"班级必须能关联到培养方案"的 Prisma 过滤条件
+ * M-6 说明：此 filter 仅为"粗筛"——收集所有方案涉及的专业 ID 和层次 ID 构建 OR 条件。
+ * 精确匹配由下游 findBestMatchPlan 完成（逐班逐方案比对）。
+ * 数据量较大时此 OR 条件在 SQLite 中性能较差，但通常班级/方案数量有限，暂可接受。
  * @returns {Promise<object>} Prisma where 条件片段（{ OR: [...] }）
  */
 export async function buildClassWithPlanFilter() {
@@ -42,7 +45,8 @@ export async function buildClassWithPlanFilter() {
  */
 export function isClassMatchPlan(cls, plan) {
   // 1. 自定义方案优先匹配
-  if (cls.custom_plan_id && cls.custom_plan_id === plan.id) return true;
+  // L-3 修复：使用 != null 替代 truthy 检查，避免 custom_plan_id=0 被跳过
+  if (cls.custom_plan_id != null && cls.custom_plan_id === plan.id) return true;
 
   // 未设置自定义方案的班级才走通用匹配
   if (!cls.custom_plan_id) {

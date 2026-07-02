@@ -83,7 +83,12 @@ export function useCrudList(api, options = {}) {
   async function handleSave() {
     // 如果有 formRef，先 validate
     if (formRef?.value) {
-      await formRef.value.validate();
+      // H-1 修复：捕获 validate() 失败，避免 unhandled rejection
+      try {
+        await formRef.value.validate();
+      } catch {
+        return;
+      }
     }
     saving.value = true;
     try {

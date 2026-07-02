@@ -472,11 +472,11 @@ export async function updateSemester(req, res, next) {
 export async function listPlanSemesters(req, res, next) {
   try {
     const { id } = req.params;
+    // H-5 修复：移除 distinct，由 JS 层完整聚合取最大 weeks_count
+    // 原 distinct: ['semester'] 在不同课程 weeks_count 不同时可能漏掉较大值
     const semesters = await prisma.plan_course_semesters.findMany({
       where: { plan_courses: { plan_id: Number(id) } },
       select: { semester: true, weeks_count: true },
-      distinct: ['semester'],
-      orderBy: { semester: 'asc' },
     });
 
     const map = {};
@@ -623,6 +623,75 @@ export async function deletePlanTextbook(req, res, next) {
       message: '删除培养方案教材失败',
       details: { error: e.message },
     });
+    next(e);
+  }
+}
+
+/**
+ * H-3 修复：批量更新学期周数（单事务）
+ * PATCH /api/plans/semesters/batch-weeks
+ * Body: { ids: [1,2,3,...], weeks_count: 18 }
+ */
+export async function batchUpdateSemesterWeeks(req, res, next) {
+  try {
+    const { ids, weeks_count } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return fail(res, 'ids 必须为非空数组', 400);
+    }
+    if (weeks_count == null || weeks_count < 1 || weeks_count > 52) {
+      return fail(res, 'weeks_count 必须在 1-52 之间', 400);
+    }
+
+    const numericIds = ids.map(Number);
+
+    await prisma.$transaction(
+      numericIds.map((id) =>
+        prisma.plan_course_semesters.update({
+          where: { id },
+          data: { weeks_count: Number(weeks_count) },
+        })
+      )
+    );
+
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'update',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'success',
+      message: `批量更新学期周数：${numericIds.length}条记录`,
+      details: { count: numericIds.length, weeks_count: Number(weeks_count) },
+    });
+
+    success(res, { updated: numericIds.length }, '批量更新成功');
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
+ * H-7 修复：批量更新课程排序（单事务）
+ * PATCH /api/plans/courses/batch-sort
+ * Body: { items: [{id: 1, sort_order: 0}, {id: 2, sort_order: 1}, ...] }
+ */
+export async function batchUpdateCourseSortOrder(req, res, next) {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return fail(res, 'items 必须为非空数组', 400);
+    }
+
+    await prisma.$transaction(
+      items.map((item) =>
+        prisma.plan_courses.update({
+          where: { id: Number(item.id) },
+          data: { sort_order: Number(item.sort_order) },
+        })
+      )
+    );
+
+    success(res, { updated: items.length }, '排序更新成功');
+  } catch (e) {
     next(e);
   }
 }

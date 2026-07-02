@@ -103,6 +103,21 @@ export const updateSemester = (id, data) => request.put(`/plans/semesters/${id}`
  */
 export const getPlanSemesters = (id) => request.get(`/plans/${id}/semesters`);
 
+/**
+ * H-3 修复：批量更新学期周数（单事务）
+ * @param {number[]} ids - 学期记录 ID 数组
+ * @param {number} weeksCount - 统一周数
+ */
+export const batchUpdateSemesterWeeks = (ids, weeksCount) =>
+  request.patch('/plans/semesters/batch-weeks', { ids, weeks_count: weeksCount });
+
+/**
+ * H-7 修复：批量更新课程排序（单事务）
+ * @param {Array<{id: number, sort_order: number}>} items
+ */
+export const batchUpdateCourseSortOrder = (items) =>
+  request.patch('/plans/courses/batch-sort', { items });
+
 // 教材关联（关联到学期）
 
 /**

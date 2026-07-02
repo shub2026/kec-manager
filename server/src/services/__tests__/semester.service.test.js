@@ -131,13 +131,48 @@ describe('formatSemesterLabel', () => {
 describe('calcClassSemester', () => {
   describe('有效计算', () => {
     it.each([
-      ['入学2024 学制3 学期2025-2026-1', { enrollment_year: 2024, duration_years: 3 }, '2025-2026-1', { grade: 2, currentSemesterNum: 3 }],
-      ['入学2024 学制3 学期2025-2026-2', { enrollment_year: 2024, duration_years: 3 }, '2025-2026-2', { grade: 2, currentSemesterNum: 4 }],
-      ['入学2025 学制3 学期2025-2026-1', { enrollment_year: 2025, duration_years: 3 }, '2025-2026-1', { grade: 1, currentSemesterNum: 1 }],
-      ['入学2023 学制3 学期2025-2026-1（最后一学年）', { enrollment_year: 2023, duration_years: 3 }, '2025-2026-1', { grade: 3, currentSemesterNum: 5 }],
-      ['入学2025 学制2 学期2025-2026-2', { enrollment_year: 2025, duration_years: 2 }, '2025-2026-2', { grade: 1, currentSemesterNum: 2 }],
-      ['入学2024 学制5 学期2025-2026-1（5年制大专）', { enrollment_year: 2024, duration_years: 5 }, '2025-2026-1', { grade: 2, currentSemesterNum: 3 }],
-      ['入学2021 学制5 学期2025-2026-2（最后一学期）', { enrollment_year: 2021, duration_years: 5 }, '2025-2026-2', { grade: 5, currentSemesterNum: 10 }],
+      [
+        '入学2024 学制3 学期2025-2026-1',
+        { enrollment_year: 2024, duration_years: 3 },
+        '2025-2026-1',
+        { grade: 2, currentSemesterNum: 3 },
+      ],
+      [
+        '入学2024 学制3 学期2025-2026-2',
+        { enrollment_year: 2024, duration_years: 3 },
+        '2025-2026-2',
+        { grade: 2, currentSemesterNum: 4 },
+      ],
+      [
+        '入学2025 学制3 学期2025-2026-1',
+        { enrollment_year: 2025, duration_years: 3 },
+        '2025-2026-1',
+        { grade: 1, currentSemesterNum: 1 },
+      ],
+      [
+        '入学2023 学制3 学期2025-2026-1（最后一学年）',
+        { enrollment_year: 2023, duration_years: 3 },
+        '2025-2026-1',
+        { grade: 3, currentSemesterNum: 5 },
+      ],
+      [
+        '入学2025 学制2 学期2025-2026-2',
+        { enrollment_year: 2025, duration_years: 2 },
+        '2025-2026-2',
+        { grade: 1, currentSemesterNum: 2 },
+      ],
+      [
+        '入学2024 学制5 学期2025-2026-1（5年制大专）',
+        { enrollment_year: 2024, duration_years: 5 },
+        '2025-2026-1',
+        { grade: 2, currentSemesterNum: 3 },
+      ],
+      [
+        '入学2021 学制5 学期2025-2026-2（最后一学期）',
+        { enrollment_year: 2021, duration_years: 5 },
+        '2025-2026-2',
+        { grade: 5, currentSemesterNum: 10 },
+      ],
     ])('%s', (_label, cls, semStr, expected) => {
       const sem = parseSemester(semStr);
       expect(calcClassSemester(cls, sem)).toEqual(expected);
@@ -146,8 +181,16 @@ describe('calcClassSemester', () => {
 
   describe('越界与守卫返回 null', () => {
     it.each([
-      ['入学2022 学制3 学期2025-2026-1（grade=4 越界）', { enrollment_year: 2022, duration_years: 3 }, '2025-2026-1'],
-      ['入学2020 学制5 学期2025-2026-1（已毕业）', { enrollment_year: 2020, duration_years: 5 }, '2025-2026-1'],
+      [
+        '入学2022 学制3 学期2025-2026-1（grade=4 越界）',
+        { enrollment_year: 2022, duration_years: 3 },
+        '2025-2026-1',
+      ],
+      [
+        '入学2020 学制5 学期2025-2026-1（已毕业）',
+        { enrollment_year: 2020, duration_years: 5 },
+        '2025-2026-1',
+      ],
     ])('%s 应返回 null', (_label, cls, semStr) => {
       expect(calcClassSemester(cls, parseSemester(semStr))).toBeNull();
     });
@@ -162,14 +205,15 @@ describe('calcClassSemester', () => {
 
     it('duration_years=0 应返回 null', () => {
       expect(
-        calcClassSemester({ enrollment_year: 2024, duration_years: 0 }, parseSemester('2025-2026-1')),
+        calcClassSemester(
+          { enrollment_year: 2024, duration_years: 0 },
+          parseSemester('2025-2026-1')
+        )
       ).toBeNull();
     });
 
     it('duration_years 缺失应返回 null', () => {
-      expect(
-        calcClassSemester({ enrollment_year: 2024 }, parseSemester('2025-2026-1')),
-      ).toBeNull();
+      expect(calcClassSemester({ enrollment_year: 2024 }, parseSemester('2025-2026-1'))).toBeNull();
     });
   });
 });

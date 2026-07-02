@@ -9,7 +9,7 @@ KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量�
 - **培养计划管理** - 按专业或培养层次制定培养方案，可视化课程矩阵编辑各学期课时分布
 - **班级管理** - 班级信息维护，基于学期动态计算年级和状态（在读/毕业/离校）
 - **教师管理** - 教师档案、任课关联、上课学院和培养层次配置
-- **自动排课** - 四轮匹配算法，支持学院偏好、培养层次偏好、教材匹配和容量约束
+- **自动排课** - 五阶段匹配+置换回溯算法，支持学院偏好、培养层次偏好、教材匹配和容量约束
 - **教材管理** - 教材信息维护，与培养计划学期课时关联
 - **数据导入导出** - Excel 批量导入班级/课程/教材/教师，支持模板下载和多维度数据导出
 - **统一查询** - 开课查询、教材查询、方案查询，支持多维度筛选与联动
@@ -59,7 +59,7 @@ npm run db:migrate
 npm run db:generate
 cd server && npm run db:seed && cd ..
 
-# 启动开发服务（前端 5173 + 后端 3002）
+# 启动开发服务（前端 5173 + 后端 3000）
 npm run dev
 ```
 
@@ -144,7 +144,7 @@ bash deploy_ssh.sh root@your-server.com
 |------|------|--------|
 | `NODE_ENV` | 运行环境 | `production` |
 | `DATABASE_URL` | 数据库连接串 | `file:./data/kec.db` |
-| `PORT` | 后端端口 | `3002` |
+| `PORT` | 后端端口 | `3000` |
 | `JWT_SECRET` | JWT 签名密钥（64位 hex） | 必填 |
 | `JWT_REFRESH_SECRET` | 刷新令牌密钥（64位 hex） | 自动派生（基于 JWT_SECRET） |
 | `JWT_DOWNLOAD_SECRET` | 下载令牌密钥（64位 hex） | 自动派生（基于 JWT_SECRET） |
@@ -177,6 +177,7 @@ kec-manager/
 │   ├── .prettierrc             # Prettier 配置
 │   ├── eslint.config.js        # ESLint 配置
 │   ├── nginx.conf              # Nginx 配置
+│   ├── Dockerfile              # 前端 Docker 构建文件
 │   └── vite.config.js          # Vite 构建配置
 ├── server/                     # 后端（Express + Prisma）
 │   ├── src/
@@ -220,6 +221,7 @@ kec-manager/
 | `teaching_assignments` | 排课记录（教师-班级-课程-学期） |
 | `system_settings` | 系统配置 |
 | `audit_logs` | 审计日志 |
+| `token_blacklist` | JWT 令牌黑名单（支持令牌撤销） |
 
 ---
 

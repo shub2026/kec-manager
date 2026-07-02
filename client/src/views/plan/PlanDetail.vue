@@ -105,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { getPlanById, addPlanCourse, deletePlanCourse } from '../../api/plan';
@@ -114,7 +114,8 @@ import { getTextbooks } from '../../api/textbook';
 import CourseMatrix from '../../components/CourseMatrix.vue';
 
 const route = useRoute();
-const planId = Number(route.params.id);
+// M-3 修复：使用 computed 使 planId 响应式，支持路由参数变化时自动更新
+const planId = computed(() => Number(route.params.id));
 const courseMatrixRef = ref(null);
 const plan = ref(null);
 const allCourses = ref([]);
@@ -138,7 +139,7 @@ const semesterForm = ref({
 
 async function loadPlan() {
   // #20修复：直接获取单个培养方案，而非获取全部再查找
-  const res = await getPlanById(planId);
+  const res = await getPlanById(planId.value);
   plan.value = res.data;
 }
 
@@ -167,7 +168,7 @@ async function saveSemester() {
       weeklyHours: semesterForm.value.weeklyHours,
       weeksPerSemester: semesterForm.value.weeksPerSemester || 18,
     };
-    await addPlanCourse(planId, courseData);
+    await addPlanCourse(planId.value, courseData);
     ElMessage.success('添加成功');
     showSemesterDialog.value = false;
     semesterForm.value = {

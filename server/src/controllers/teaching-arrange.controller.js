@@ -240,9 +240,11 @@ export async function assignTeacher(req, res, next) {
         _sum: { weekly_hours: true },
       });
       const totalHours = totalWorkload[0]?._sum?.weekly_hours || 0;
-      const standardLimit = 20; // 可后续从系统设置读取
-      if (totalHours > standardLimit) {
-        workloadWarning = `该教师当前学期周课时已达 ${totalHours}，超过建议上限 ${standardLimit}`;
+      // H-4 修复：从 DEFAULT_HOUR_SETTINGS 读取人员类别对应的 max 课时，替代硬编码 20
+      const personnelType = assignment.teacher?.personnel_type || 'full_time';
+      const hourLimit = DEFAULT_HOUR_SETTINGS[personnelType]?.max || 20;
+      if (totalHours > hourLimit) {
+        workloadWarning = `该教师当前学期周课时已达 ${totalHours}，超过建议上限 ${hourLimit}`;
       }
     } catch (_e) {
       // 工作量查询失败不阻塞主流程
@@ -741,6 +743,8 @@ export async function runBatchAutoArrange(req, res, next) {
       preview ? '批量预览完成（未写入）' : `批量排课完成：安排${result.summary.totalAssigned}个班级`
     );
   } catch (e) {
+    // H-2 修复：补 .catch(() => {})，与其他端点（assignTeacher/deleteAssignment/runAutoArrange）保持一致
+    // 避免审计日志写入失败时覆盖原始排课错误信息
     await createAuditLog({
       action: 'update',
       module: 'teachingArrange',
@@ -749,7 +753,7 @@ export async function runBatchAutoArrange(req, res, next) {
       details: { semester: req.body.semester, mode: req.body.mode, error: e.message },
       result: 'failed',
       message: `批量排课失败：${e.message}`,
-    });
+    }).catch(() => {});
     next(e);
   }
 }

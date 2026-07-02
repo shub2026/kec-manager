@@ -693,9 +693,10 @@ function handleTrainingLevelFilterChange() {
   filterTextbook.value = '';
 }
 
-onMounted(() => {
-  loadSemester();
-  loadCourses();
+// H-6 修复：串行加载，确保学期数据就绪后再加载课程列表，避免竞态导致空表格
+onMounted(async () => {
+  await loadSemester();
+  await loadCourses();
 });
 </script>
 

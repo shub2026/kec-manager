@@ -462,7 +462,9 @@ export async function toggleTeacherStatus(req, res, next) {
     success(
       res,
       { id: teacherId, status, cascadedDeletedAssignments: deletedCount },
-      deletedCount > 0 ? `${statusLabel}成功，已清理${deletedCount}条历史排课` : `${statusLabel}成功`,
+      deletedCount > 0
+        ? `${statusLabel}成功，已清理${deletedCount}条历史排课`
+        : `${statusLabel}成功`
     );
   } catch (e) {
     next(e);

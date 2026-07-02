@@ -7,8 +7,7 @@ import { getCurrentSemesterInfo } from './settings.service.js';
  * @returns {Promise<Object>} Prisma where 条件
  */
 export async function buildClassFilter(query) {
-  const { name, major_id, college_id, status, training_level_id, plan_id, enrollment_year } =
-    query;
+  const { name, major_id, college_id, status, training_level_id, plan_id, enrollment_year } = query;
 
   const where = {};
   if (name) where.name = { contains: name };

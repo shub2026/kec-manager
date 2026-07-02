@@ -57,6 +57,8 @@ import {
   setSemesterTextbook,
   removeSemesterTextbook,
   getPlanSemesters,
+  batchUpdateSemesterWeeks,
+  batchUpdateCourseSortOrder,
 } from '../api/plan';
 
 const props = defineProps({
@@ -198,7 +200,7 @@ async function saveEdit() {
   }
 }
 
-// 应用全局周数 — 批量更新所有学期记录
+// 应用全局周数 — 批量更新所有学期记录（H-3 修复：使用单事务批量接口）
 async function applyGlobalWeeks() {
   const weeks = globalWeeks.value;
 
@@ -210,20 +212,11 @@ async function applyGlobalWeeks() {
     });
   });
 
-  // 并行发送所有更新请求
   if (semesterIds.length > 0) {
     try {
-      const results = await Promise.allSettled(
-        semesterIds.map((id) => updateSemester(id, { weeks_count: weeks }))
-      );
-      const failed = results.filter((r) => r.status === 'rejected').length;
-      // 重新加载数据以反映最新状态
+      await batchUpdateSemesterWeeks(semesterIds, weeks);
       await loadData();
-      if (failed > 0) {
-        ElMessage.warning(`已应用周数，但 ${failed} 个学期更新失败`);
-      } else {
-        ElMessage.success('已应用周数');
-      }
+      ElMessage.success('已应用周数');
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error('批量更新学期周数失败', e);
@@ -284,7 +277,7 @@ function isLastInGroup(course, group) {
   return group.courses[group.courses.length - 1]?.id === course.id;
 }
 
-// 通用排序交换：按目标顺序逐个更新 sort_order，避免 SQLite 并发写锁和重复值问题
+// 通用排序交换：使用批量接口在单事务中更新所有排序（H-7 修复）
 // 严重-1 修复：排序走轻量 PATCH 端点，不触发学期记录重建，避免教材关联丢失
 async function swapSortOrder(group, indexA, indexB) {
   // 先交换位置
@@ -294,12 +287,10 @@ async function swapSortOrder(group, indexA, indexB) {
   courses[indexB] = tmp;
 
   // 按新顺序重新分配 sort_order（基于索引，保证唯一递增）
-  const updates = courses.map((c, i) => ({ id: c.id, sortOrder: i }));
+  const items = courses.map((c, i) => ({ id: c.id, sort_order: i }));
 
-  // 串行逐个更新，避免 SQLite 文件锁冲突
-  for (const { id, sortOrder } of updates) {
-    await updatePlanCourseSortOrder(id, sortOrder);
-  }
+  // H-7 修复：批量更新，单事务保证原子性
+  await batchUpdateCourseSortOrder(items);
 }
 
 // 上移

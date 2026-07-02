@@ -8,7 +8,8 @@ services:
       context: ./server
       dockerfile: Dockerfile
     container_name: ${CONTAINER_PREFIX:-kec}-server
-    restart: always
+    # M-9 修复：限制重启次数，避免迁移失败导致容器无限重启
+    restart: on-failure:5
     ports:
       - "${SERVER_PORT:-3000}:3000"
     environment:

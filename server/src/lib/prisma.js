@@ -34,10 +34,16 @@ if (process.env.NODE_ENV === 'test' && process.env.DATABASE_URL) {
 
 export const prisma = new PrismaClient(prismaOptions);
 
-// 应用 SQLite 优化 pragma（异步执行，不阻塞启动）
-applySqlitePragmas(prisma).catch((e) => {
-  log.warn('SQLite PRAGMA 应用失败（切换 MySQL 后可忽略）', { error: e.message });
-});
+// C-1 修复：导出 applySqlitePragmas，供 server.js 在 listen 前显式 await
+export { applySqlitePragmas };
+
+// 非 server.js 入口（如测试、脚本）仍保留 fire-and-forget 调用
+// server.js 入口通过 await applySqlitePragmas() 确保 PRAGMA 先于 listen 生效
+if (process.env.NODE_ENV !== 'production') {
+  applySqlitePragmas(prisma).catch((e) => {
+    log.warn('SQLite PRAGMA 应用失败（切换 MySQL 后可忽略）', { error: e.message });
+  });
+}
 
 // 开发环境下监听错误和警告事件
 if (isDevelopment) {

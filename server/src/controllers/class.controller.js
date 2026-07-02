@@ -435,7 +435,10 @@ export async function deleteClass(req, res, next) {
         select: { semester: true },
         distinct: ['semester'],
       });
-      const semesterList = semesters.map((s) => s.semester).filter(Boolean).join('、');
+      const semesterList = semesters
+        .map((s) => s.semester)
+        .filter(Boolean)
+        .join('、');
       return fail(
         res,
         `该班级存在 ${assignmentCount} 条排课记录${

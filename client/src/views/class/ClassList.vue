@@ -489,16 +489,48 @@ function handleBatchDelete() {
 async function confirmBatchDelete() {
   batchDeleteConfirmVisible.value = false;
   batchDeleting.value = true;
+
+  const targets = selectedClasses.value.map((cls) => ({ id: cls.id, name: cls.name }));
+  const succeeded = [];
+  const failed = [];
+
   try {
-    await Promise.all(selectedClasses.value.map((cls) => deleteClass(cls.id)));
-    ElMessage.success('批量删除成功');
-    selectedClasses.value = [];
-    load();
-  } catch (error) {
-    ElMessage.error('批量删除失败');
-  } finally {
-    batchDeleting.value = false;
+    // 串行逐个删除，避免 SQLite 文件锁并行写冲突
+    for (const { id, name } of targets) {
+      try {
+        await deleteClass(id, { silent: true });
+        succeeded.push(name);
+      } catch (err) {
+        const reason = err?.response?.data?.message || err?.message || '未知错误';
+        failed.push({ name, reason });
+      }
+    }
+  } catch (e) {
+    if (import.meta.env.DEV) console.error('[BatchDelete] 意外错误:', e);
   }
+
+  // 结果提示——放在 try 外面，保证一定执行
+  if (succeeded.length > 0 && failed.length === 0) {
+    ElMessage.success(`已成功删除 ${succeeded.length} 个班级`);
+  } else if (succeeded.length === 0 && failed.length > 0) {
+    const assignCount = failed.filter((f) => f.reason.includes('排课记录')).length;
+    if (assignCount === failed.length) {
+      ElMessage.warning(`${assignCount} 个班级存在排课记录，无法删除`);
+    } else {
+      ElMessage.error(`删除失败：${failed[0].reason}`);
+    }
+  } else if (succeeded.length > 0 && failed.length > 0) {
+    const assignCount = failed.filter((f) => f.reason.includes('排课记录')).length;
+    const otherCount = failed.length - assignCount;
+    let msg = `成功删除 ${succeeded.length} 个`;
+    if (assignCount > 0) msg += `，${assignCount} 个存在排课记录无法删除`;
+    if (otherCount > 0) msg += `，${otherCount} 个删除失败`;
+    ElMessage.warning(msg);
+  }
+
+  selectedClasses.value = [];
+  batchDeleting.value = false;
+  load();
 }
 
 function openBatchSetDialog(type) {

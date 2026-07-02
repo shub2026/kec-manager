@@ -250,9 +250,7 @@ function diagnoseFailure(cls, teacherConstraints, mode) {
   if (TEXTBOOK_COHESION.ENABLED && diagMaxTb > 0 && cls.textbookIds?.length > 0) {
     const textbookFullTeachers = allTeachers.filter((t) => {
       if (!t.assignedTextbookIds) return false;
-      const newTbCount = cls.textbookIds.filter(
-        (tid) => !t.assignedTextbookIds.has(tid)
-      ).length;
+      const newTbCount = cls.textbookIds.filter((tid) => !t.assignedTextbookIds.has(tid)).length;
       return t.assignedTextbookIds.size + newTbCount > diagMaxTb;
     });
     if (textbookFullTeachers.length === allTeachers.length) {
@@ -534,10 +532,11 @@ function trySwapOne(
     if (classInfoMap) {
       const uInfo = classInfoMap.get(u.classId);
       if (uInfo) {
-        if (t.schedulingCollegeIds.length > 0 && !t.schedulingCollegeIds.includes(uInfo.collegeId))
+        // L-1 修复：添加可选链守卫，防止 trySwapOne 外部调用传入不完整 teacher 对象时 TypeError
+        if (t.schedulingCollegeIds?.length > 0 && !t.schedulingCollegeIds.includes(uInfo.collegeId))
           continue;
         if (
-          t.schedulingLevelIds.length > 0 &&
+          t.schedulingLevelIds?.length > 0 &&
           uInfo.trainingLevelId &&
           !t.schedulingLevelIds.includes(uInfo.trainingLevelId)
         )

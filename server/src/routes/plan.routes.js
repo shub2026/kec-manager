@@ -30,6 +30,8 @@ import {
   assignTextbookToSemester,
   removeSemesterTextbooks,
   deletePlanTextbook,
+  batchUpdateSemesterWeeks,
+  batchUpdateCourseSortOrder,
 } from '../controllers/plan/plan-matrix.controller.js';
 
 const router = Router();
@@ -98,6 +100,14 @@ router.patch(
   updatePlanCourseSortOrder
 );
 
+// H-7 修复：批量更新课程排序（单事务，admin/super_admin）
+router.patch(
+  '/courses/batch-sort',
+  roleMiddleware('admin', 'super_admin'),
+  sanitizeBody,
+  batchUpdateCourseSortOrder
+);
+
 // DELETE /api/plans/courses/:id - 删除方案课程（admin/super_admin）
 router.delete(
   '/courses/:id',
@@ -107,6 +117,14 @@ router.delete(
 );
 
 // ==================== 学期管理 ====================
+
+// H-3 修复：批量更新学期周数（单事务，admin/super_admin）
+router.patch(
+  '/semesters/batch-weeks',
+  roleMiddleware('admin', 'super_admin'),
+  sanitizeBody,
+  batchUpdateSemesterWeeks
+);
 
 // GET /api/plans/:id/semesters - 获取方案学期列表（所有登录用户）
 router.get('/:id/semesters', listPlanSemesters);

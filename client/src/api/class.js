@@ -32,6 +32,8 @@ export const updateClass = (id, data) => request.put(`/classes/${id}`, data);
 /**
  * 删除班级
  * @param {number} id
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗（批量删除场景）
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
-export const deleteClass = (id) => request.delete(`/classes/${id}`);
+export const deleteClass = (id, { silent } = {}) =>
+  request.delete(`/classes/${id}`, { silentError: silent });

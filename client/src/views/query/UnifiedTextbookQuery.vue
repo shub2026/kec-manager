@@ -69,7 +69,12 @@
 
         <!-- 详情内容区：用 hasDetail 控制，加载期间保持旧数据在 DOM 中不卸载 -->
         <div v-else-if="hasDetail" class="detail-content">
-          <el-descriptions :column="descColumn" border :label-width="'90px'" class="textbook-descriptions">
+          <el-descriptions
+            :column="descColumn"
+            border
+            :label-width="'90px'"
+            class="textbook-descriptions"
+          >
             <el-descriptions-item label="书名">
               <div class="description-content">{{ detail?.textbook?.title || '-' }}</div>
             </el-descriptions-item>

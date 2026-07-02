@@ -52,8 +52,13 @@ export async function listPlans(req, res, next) {
         customPlanMap.set(cls.id, plans.find((p) => p.id === cls.custom_plan_id) || null);
       }
     }
-    // 候选方案列表（排除纯自定义方案，用于专业/层次匹配）
-    const candidatePlans = plans.filter((p) => p.major_id || p.training_level_id);
+    // 候选方案列表：包含有专业/层次的方案 + 被 custom_plan_id 引用的方案
+    const referencedCustomPlanIds = new Set(
+      allClasses.filter((c) => c.custom_plan_id).map((c) => c.custom_plan_id)
+    );
+    const candidatePlans = plans.filter(
+      (p) => p.major_id || p.training_level_id || referencedCustomPlanIds.has(p.id)
+    );
 
     for (const cls of allClasses) {
       // classCount：最佳匹配（用于"使用班级"列展示）

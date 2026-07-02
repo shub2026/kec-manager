@@ -29,7 +29,9 @@ export async function querySemester(req, res, next) {
       }
     }
 
-    const { majorId, collegeId, trainingLevelId, enrollmentYear, grade, page, pageSize } =
+    // 注意：naming 中间件已将 req.query 中的 camelCase 转为 snake_case
+    // 因此这里必须用 snake_case 变量名解构
+    const { major_id, college_id, training_level_id, enrollment_year, grade, page, page_size } =
       req.query;
     // 安全解析数字参数，非数字时回退到默认值，避免 NaN 致 500
     const safeInt = (v, def = undefined) => {
@@ -39,7 +41,7 @@ export async function querySemester(req, res, next) {
     };
     const pageNum = safeInt(page, 1) || 1;
     // H-5修复：分页上限保护，防止 pageSize 过大导致 OOM
-    const requestedPageSize = safeInt(pageSize, 50) || 50;
+    const requestedPageSize = safeInt(page_size, 50) || 50;
     const pageSizeNum = Math.min(Math.max(requestedPageSize, 1), 100);
 
     // 构建"能关联到培养方案"的过滤条件
@@ -53,10 +55,10 @@ export async function querySemester(req, res, next) {
 
     // 添加额外的筛选条件（仅当值为有效整数时）
     const extraConditions = {};
-    const majorIdNum = safeInt(majorId);
-    const collegeIdNum = safeInt(collegeId);
-    const trainingLevelIdNum = safeInt(trainingLevelId);
-    const enrollmentYearNum = safeInt(enrollmentYear);
+    const majorIdNum = safeInt(major_id);
+    const collegeIdNum = safeInt(college_id);
+    const trainingLevelIdNum = safeInt(training_level_id);
+    const enrollmentYearNum = safeInt(enrollment_year);
     if (majorIdNum != null) extraConditions.major_id = majorIdNum;
     if (collegeIdNum != null) extraConditions.college_id = collegeIdNum;
     if (trainingLevelIdNum != null) extraConditions.training_level_id = trainingLevelIdNum;
@@ -197,6 +199,7 @@ export async function querySemester(req, res, next) {
     // 第二步：预加载相关培养方案
     const majorPlanIds = new Set();
     const levelPlanIds = new Set();
+    const customPlanIds = new Set();
     const classPlanMap = new Map();
 
     for (const cls of classes) {
@@ -204,36 +207,48 @@ export async function querySemester(req, res, next) {
       if (!calc) continue;
       if (cls.custom_plan_id) {
         classPlanMap.set(cls.id, cls.training_plans);
-      } else {
-        if (cls.major_id) majorPlanIds.add(cls.major_id);
-        if (cls.training_level_id) levelPlanIds.add(cls.training_level_id);
+        customPlanIds.add(cls.custom_plan_id);
       }
+      // 始终收集 major/level（即使有 custom_plan_id 也收集，用于兜底匹配）
+      if (cls.major_id) majorPlanIds.add(cls.major_id);
+      if (cls.training_level_id) levelPlanIds.add(cls.training_level_id);
     }
 
-    const matchingPlans = await prisma.training_plans.findMany({
-      where: {
-        OR: [
-          { major_id: { in: [...majorPlanIds] } },
-          { training_level_id: { in: [...levelPlanIds] } },
-        ],
-      },
-      include: {
-        plan_courses: {
+    // 构建匹配方案的 OR 条件
+    const planOrConditions = [];
+    if (majorPlanIds.size > 0) {
+      planOrConditions.push({ major_id: { in: [...majorPlanIds] } });
+    }
+    if (levelPlanIds.size > 0) {
+      planOrConditions.push({ training_level_id: { in: [...levelPlanIds] } });
+    }
+    // 修复：将 custom_plan_id 引用的方案也纳入匹配列表，
+    // 避免自定义方案因无 major_id/training_level_id 匹配而缺失
+    if (customPlanIds.size > 0) {
+      planOrConditions.push({ id: { in: [...customPlanIds] } });
+    }
+
+    const matchingPlans = planOrConditions.length > 0
+      ? await prisma.training_plans.findMany({
+          where: { OR: planOrConditions },
           include: {
-            courses: { select: { id: true, name: true, type: true } },
-            plan_course_semesters: {
+            plan_courses: {
               include: {
-                plan_textbooks: {
+                courses: { select: { id: true, name: true, type: true } },
+                plan_course_semesters: {
                   include: {
-                    textbooks: { select: { id: true, title: true, isbn: true, publisher: true } },
+                    plan_textbooks: {
+                      include: {
+                        textbooks: { select: { id: true, title: true, isbn: true, publisher: true } },
+                      },
+                    },
                   },
                 },
               },
             },
           },
-        },
-      },
-    });
+        })
+      : [];
 
     const results = [];
     let skippedNoCourses = 0;

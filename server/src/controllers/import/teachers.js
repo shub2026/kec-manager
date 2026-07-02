@@ -367,9 +367,7 @@ export async function importTeachers(req, res, next) {
         // 1c 修复：事务内重新校验同名教师，避免预加载与事务执行之间的竞态
         const recheckNames = [
           ...new Set(
-            teacherOps
-              .map((op) => (op.type === 'create' ? op.data.name : op.name))
-              .filter(Boolean)
+            teacherOps.map((op) => (op.type === 'create' ? op.data.name : op.name)).filter(Boolean)
           ),
         ];
         const freshTeachersByName = new Map();

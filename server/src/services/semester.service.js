@@ -38,7 +38,11 @@ export function parseSemester(semesterStr) {
   const semesterIndex = Number(parts[2]);
 
   // 严格校验：必须是整数（拒绝 1.5 / 1abc / NaN）
-  if (!Number.isInteger(startYear) || !Number.isInteger(endYear) || !Number.isInteger(semesterIndex)) {
+  if (
+    !Number.isInteger(startYear) ||
+    !Number.isInteger(endYear) ||
+    !Number.isInteger(semesterIndex)
+  ) {
     return null;
   }
   if (semesterIndex < 1 || semesterIndex > 2) return null;

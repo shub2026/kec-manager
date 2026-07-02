@@ -152,6 +152,36 @@ describe('findBestMatchPlan', () => {
     });
   });
 
+  describe('自定义方案与班级专业/层次不同（特殊方案场景）', () => {
+    // 模拟：班级专业=133（烹饪），但自定义方案专业=149（艺术设计）
+    const specialPlans = [
+      { id: 11, major_id: 149, training_level_id: null }, // 艺术设计（与班级专业不同）
+      { id: 9, major_id: null, training_level_id: 35 }, // 大专层次方案
+    ];
+
+    it('班级有 custom_plan_id 指向专业不同的方案时，应通过 classPlanMap 正确匹配', () => {
+      const cls = { id: 823, custom_plan_id: 11, major_id: 133, training_level_id: 33 };
+      const classPlanMap = new Map([[823, specialPlans[0]]]); // 方案 11
+      const result = findBestMatchPlan(cls, specialPlans, classPlanMap);
+      expect(result).not.toBeNull();
+      expect(result.id).toBe(11);
+    });
+
+    it('班级有 custom_plan_id 但 matchingPlans 中不含该方案时，应回退查找并找到', () => {
+      const cls = { id: 823, custom_plan_id: 11, major_id: 133, training_level_id: 33 };
+      // matchingPlans 包含方案 11（修复后通过 customPlanIds 纳入）
+      const result = findBestMatchPlan(cls, specialPlans);
+      expect(result).not.toBeNull();
+      expect(result.id).toBe(11);
+    });
+
+    it('班级有 custom_plan_id 且 matchingPlans 为空时，应返回 null', () => {
+      const cls = { id: 823, custom_plan_id: 11, major_id: 133, training_level_id: 33 };
+      const result = findBestMatchPlan(cls, []);
+      expect(result).toBeNull();
+    });
+  });
+
   describe('null 值边界', () => {
     it('班级 major_id 和 training_level_id 都为 null 时应返回 null', () => {
       const cls = { custom_plan_id: null, major_id: null, training_level_id: null };

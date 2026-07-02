@@ -27,7 +27,9 @@ export function isCollegeEligible(t, cls) {
 
 export function isLevelEligible(t, cls) {
   if (!t.schedulingLevelIds || t.schedulingLevelIds.length === 0) return true;
-  return cls.trainingLevelId && t.schedulingLevelIds.includes(cls.trainingLevelId);
+  // C-3 修复：教师有层次约束但班级无层次 → 不匹配（与 isTeacherEligible 语义对齐）
+  if (!cls.trainingLevelId) return false;
+  return t.schedulingLevelIds.includes(cls.trainingLevelId);
 }
 
 /**
