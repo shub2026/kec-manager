@@ -202,9 +202,12 @@ export async function assignTeacher(req, res, next) {
         }
       }
 
-      // P1-2-派生修复：bestPlan 为 null 且周课时仍为 0 时，返回 fail 而非写 0
-      if (!bestPlan && createWeeklyHours === 0) {
-        return fail(res, '该班级的培养方案未包含此课程，无法推导周课时', 400);
+      // P1-2-派生修复 + 0课时过滤：无论 bestPlan 是否存在，周课时为 0 均拒绝创建
+      if (createWeeklyHours <= 0) {
+        const reason = !bestPlan
+          ? '该班级的培养方案未包含此课程，无法推导周课时'
+          : '该课程在本学期周课时为 0（本学期暂不开课），无需安排教师';
+        return fail(res, reason, 400);
       }
     }
 
@@ -481,6 +484,7 @@ export async function getStatistics(req, res, next) {
       where: {
         semester,
         teacher: { status: 'active' },
+        weekly_hours: { gt: 0 }, // 排除历史遗留的 0 课时安排
       },
       _sum: { weekly_hours: true },
       _count: { id: true },
@@ -501,7 +505,7 @@ export async function getStatistics(req, res, next) {
 
     // 获取每个教师的安排明细
     const allAssignments = await prisma.teaching_assignments.findMany({
-      where: { semester, teacher_id: { in: teacherIds } },
+      where: { semester, teacher_id: { in: teacherIds }, weekly_hours: { gt: 0 } },
       include: {
         class: {
           select: {

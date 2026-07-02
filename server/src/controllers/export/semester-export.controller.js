@@ -129,9 +129,16 @@ async function buildSemesterExportData(semesterInfo, filters) {
     const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
     if (!plan) continue;
 
-    const planCourses = plan.plan_courses.filter(
+    const allPlanCourses = plan.plan_courses.filter(
       (pc) => pc.start_semester <= currentSemesterNum && pc.end_semester >= currentSemesterNum
     );
+
+    // 过滤掉周课时为 0 的课程（本学期暂不开课）
+    const planCourses = allPlanCourses.filter((pc) => {
+      const semRecord = pc.plan_course_semesters?.find((s) => s.semester === currentSemesterNum);
+      const wh = semRecord?.weekly_hours ?? pc.weekly_hours;
+      return wh > 0;
+    });
 
     // 计算班级级别的聚合数据（开课数、周课时合计）
     const courseCount = planCourses.length;
@@ -156,15 +163,7 @@ async function buildSemesterExportData(semesterInfo, filters) {
     };
 
     if (planCourses.length === 0) {
-      rows.push({
-        ...baseRow,
-        课程: '-',
-        课程类型: '-',
-        周课时: '-',
-        学期总课时: '-',
-        使用教材: '-',
-        书号: '-',
-      });
+      continue; // 本学期无有效课程的班级不出现在导出中
     } else {
       for (const pc of planCourses) {
         const semRecord = pc.plan_course_semesters?.find((s) => s.semester === currentSemesterNum);

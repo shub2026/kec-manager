@@ -273,39 +273,49 @@ export async function querySemester(req, res, next) {
           pc.start_semester <= calc.currentSemesterNum && pc.end_semester >= calc.currentSemesterNum
       );
 
-      // 如果当前学期没有课程，跳过该班级（不显示在读但无课的班级）
-      if (planCourses.length === 0) {
+      // 构造课程列表，同时过滤周课时为 0 的课程（本学期暂不开课）
+      const courses = planCourses
+        .filter((pc) => {
+          const semRecord = pc.plan_course_semesters?.find(
+            (s) => s.semester === calc.currentSemesterNum
+          );
+          const weeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours;
+          return weeklyHours > 0;
+        })
+        .map((pc) => {
+          const semRecord = pc.plan_course_semesters?.find(
+            (s) => s.semester === calc.currentSemesterNum
+          );
+          return {
+            course_id: pc.courses.id,
+            courseName: pc.courses.name,
+            courseType: pc.courses.type,
+            weekly_hours: semRecord?.weekly_hours ?? pc.weekly_hours,
+            weeks_per_semester: semRecord?.weeks_count ?? pc.weeks_per_semester,
+            totalHoursThisSemester:
+              (semRecord?.weekly_hours ?? pc.weekly_hours) *
+              (semRecord?.weeks_count ?? pc.weeks_per_semester),
+            textbooks: (semRecord?.plan_textbooks || []).map((pt) => ({
+              id: pt.textbooks.id,
+              title: pt.textbooks.title,
+              isbn: pt.textbooks.isbn,
+              publisher: pt.textbooks.publisher,
+              isRequired: pt.is_required,
+            })),
+          };
+        });
+
+      // 如果过滤后无有效课程，跳过该班级（覆盖方案无课程和全部 0 课时两种场景）
+      if (courses.length === 0) {
         skippedNoCourses++;
-        log.debug('方案无当前学期课程', {
+        log.debug('方案无当前学期有效课程', {
           className: cls.name,
           planName: plan.name,
           currentSemester: calc.currentSemesterNum,
+          totalPlanCourses: planCourses.length,
         });
         continue;
       }
-
-      const courses = planCourses.map((pc) => {
-        const semRecord = pc.plan_course_semesters?.find(
-          (s) => s.semester === calc.currentSemesterNum
-        );
-        return {
-          course_id: pc.courses.id,
-          courseName: pc.courses.name,
-          courseType: pc.courses.type,
-          weekly_hours: semRecord?.weekly_hours ?? pc.weekly_hours,
-          weeks_per_semester: semRecord?.weeks_count ?? pc.weeks_per_semester,
-          totalHoursThisSemester:
-            (semRecord?.weekly_hours ?? pc.weekly_hours) *
-            (semRecord?.weeks_count ?? pc.weeks_per_semester),
-          textbooks: (semRecord?.plan_textbooks || []).map((pt) => ({
-            id: pt.textbooks.id,
-            title: pt.textbooks.title,
-            isbn: pt.textbooks.isbn,
-            publisher: pt.textbooks.publisher,
-            isRequired: pt.is_required,
-          })),
-        };
-      });
 
       results.push({
         classId: cls.id,

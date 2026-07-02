@@ -123,6 +123,8 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
     if (!semRecord) continue;
 
     const weeklyHours = semRecord.weekly_hours ?? pc.weekly_hours;
+    // 过滤周课时为 0 的课程（本学期暂不开课）
+    if (weeklyHours <= 0) continue;
     const weeksCount = semRecord.weeks_count ?? pc.weeks_per_semester;
     const textbooks = semRecord.plan_textbooks.map((pt) => pt.textbooks);
 
