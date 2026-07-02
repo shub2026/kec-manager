@@ -318,7 +318,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElNotification } from 'element-plus';
+// 按需导入项目中 service 函数（ElNotification）的 CSS 不会自动注入，需手动导入样式
+// 否则通知 DOM 渲染但不可见（无背景/定位/动画）
+import 'element-plus/es/components/notification/style/css';
 import {
   getTextbooks,
   createTextbook,
@@ -529,14 +532,27 @@ function cancelDelete() {
 async function confirmDelete() {
   if (!pendingDeleteId) return;
   deleting.value = true;
+  const targetName = pendingDeleteRow.value?.title || '该教材';
   try {
-    await deleteTextbook(pendingDeleteId);
-    ElMessage.success('删除成功');
+    // silent:true 抑制拦截器 ElMessage，由本函数统一用 ElNotification 展示原因与结果
+    await deleteTextbook(pendingDeleteId, { silent: true });
+    ElNotification({
+      title: '删除成功',
+      message: `已删除教材：${targetName}`,
+      type: 'success',
+      duration: 4000,
+    });
     await silentReload();
     deleteConfirmVisible.value = false;
-  } catch {
+  } catch (err) {
+    const reason = err?.response?.data?.message || err?.message || '未知错误';
+    ElNotification({
+      title: '删除失败',
+      message: `${targetName}：${reason}`,
+      type: 'error',
+      duration: 6000,
+    });
     deleteConfirmVisible.value = false;
-    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
   } finally {
     pendingDeleteId = null;
     pendingDeleteRow.value = null;
@@ -651,35 +667,50 @@ async function confirmBatchDelete() {
 }
 
 async function doBatchDelete() {
-  const ids = selectedTextbooks.value.map((t) => t.id);
-  const titles = selectedTextbooks.value.map((t) => t.title);
-
-  const results = await Promise.allSettled(ids.map((id) => deleteTextbook(id, { silent: true })));
+  const targets = selectedTextbooks.value.map((t) => ({ id: t.id, title: t.title }));
 
   const succeeded = [];
   const failed = [];
-  results.forEach((r, i) => {
-    if (r.status === 'fulfilled') {
-      succeeded.push(titles[i]);
-    } else {
+
+  // 串行逐个删除，避免 SQLite 文件锁并行写冲突（与班级管理页批量删除一致）
+  for (const { id, title } of targets) {
+    try {
+      await deleteTextbook(id, { silent: true });
+      succeeded.push(title);
+    } catch (err) {
       // axios 错误：后端真实 message 在 error.response.data.message；
       // error.message 只是 "Request failed with status code 400" 这样的默认消息
-      const reason = r.reason?.response?.data?.message || r.reason?.message || '未知错误';
-      failed.push({ title: titles[i], reason });
+      const reason = err?.response?.data?.message || err?.message || '未知错误';
+      failed.push({ title, reason });
     }
-  });
+  }
 
   if (failed.length === 0) {
-    ElMessage.success(`已成功删除 ${succeeded.length} 个教材`);
+    ElNotification({
+      title: '批量删除完成',
+      message: `已成功删除 ${succeeded.length} 个教材`,
+      type: 'success',
+      duration: 4000,
+    });
   } else if (succeeded.length === 0) {
     // 全部失败
     const refCount = failed.filter((f) => f.reason.includes('培养方案')).length;
     if (refCount === failed.length) {
       // 全部因被培养方案引用
-      ElMessage.warning(`${refCount} 个教材已被培养方案引用，无法删除`);
+      ElNotification({
+        title: '批量删除失败',
+        message: `${refCount} 个教材已被培养方案引用，无法删除`,
+        type: 'warning',
+        duration: 6000,
+      });
     } else {
       // 其他原因导致的全失败，给出具体原因
-      ElMessage.error(`删除失败：${failed[0].reason}`);
+      ElNotification({
+        title: '批量删除失败',
+        message: `删除失败：${failed[0].reason}`,
+        type: 'error',
+        duration: 6000,
+      });
     }
   } else {
     // 部分成功部分失败
@@ -688,7 +719,12 @@ async function doBatchDelete() {
     let msg = `成功删除 ${succeeded.length} 个`;
     if (refCount > 0) msg += `，${refCount} 个被培养方案引用无法删除`;
     if (otherCount > 0) msg += `，${otherCount} 个删除失败`;
-    ElMessage({ message: msg, type: 'warning', duration: 8000, showClose: true });
+    ElNotification({
+      title: '批量删除部分成功',
+      message: msg,
+      type: 'warning',
+      duration: 6000,
+    });
   }
 
   selectedTextbooks.value = [];

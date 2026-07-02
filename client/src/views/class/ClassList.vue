@@ -163,7 +163,10 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElNotification } from 'element-plus';
+// 按需导入项目中 service 函数（ElNotification）的 CSS 不会自动注入，需手动导入样式
+// 否则通知 DOM 渲染但不可见（无背景/定位/动画）
+import 'element-plus/es/components/notification/style/css';
 import { getClasses, createClass, updateClass, deleteClass } from '../../api/class';
 import { getMajors } from '../../api/major';
 import { getPlans } from '../../api/plan';
@@ -463,14 +466,28 @@ function handleDelete(id) {
 async function confirmDelete() {
   if (!pendingDeleteId) return;
   deleting.value = true;
+  const target = list.value.find((c) => c.id === pendingDeleteId);
+  const targetName = target?.name || '该班级';
   try {
-    await deleteClass(pendingDeleteId);
-    ElMessage.success('删除成功');
+    // silent:true 抑制拦截器 ElMessage，由本函数统一用 ElNotification 展示原因与结果
+    await deleteClass(pendingDeleteId, { silent: true });
+    ElNotification({
+      title: '删除成功',
+      message: `已删除班级：${targetName}`,
+      type: 'success',
+      duration: 4000,
+    });
     load();
     deleteConfirmVisible.value = false;
-  } catch {
+  } catch (err) {
+    const reason = err?.response?.data?.message || err?.message || '未知错误';
+    ElNotification({
+      title: '删除失败',
+      message: `${targetName}：${reason}`,
+      type: 'error',
+      duration: 6000,
+    });
     deleteConfirmVisible.value = false;
-    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
   } finally {
     pendingDeleteId = null;
     deleting.value = false;
@@ -510,14 +527,34 @@ async function confirmBatchDelete() {
   }
 
   // 结果提示——放在 try 外面，保证一定执行
-  if (succeeded.length > 0 && failed.length === 0) {
-    ElMessage.success(`已成功删除 ${succeeded.length} 个班级`);
+  // deleteClass 已传 silent:true，拦截器不会弹错误 ElMessage；closeAll 兜底防止极端情况残留
+  ElMessage.closeAll();
+
+  if (succeeded.length === 0 && failed.length === 0) {
+    ElNotification({ title: '批量删除', message: '未选择任何班级', type: 'info', duration: 3000 });
+  } else if (succeeded.length > 0 && failed.length === 0) {
+    ElNotification({
+      title: '批量删除完成',
+      message: `已成功删除 ${succeeded.length} 个班级`,
+      type: 'success',
+      duration: 4000,
+    });
   } else if (succeeded.length === 0 && failed.length > 0) {
     const assignCount = failed.filter((f) => f.reason.includes('排课记录')).length;
     if (assignCount === failed.length) {
-      ElMessage.warning(`${assignCount} 个班级存在排课记录，无法删除`);
+      ElNotification({
+        title: '批量删除失败',
+        message: `${assignCount} 个班级存在排课记录，无法删除`,
+        type: 'warning',
+        duration: 6000,
+      });
     } else {
-      ElMessage.error(`删除失败：${failed[0].reason}`);
+      ElNotification({
+        title: '批量删除失败',
+        message: `删除失败：${failed[0].reason}`,
+        type: 'error',
+        duration: 6000,
+      });
     }
   } else if (succeeded.length > 0 && failed.length > 0) {
     const assignCount = failed.filter((f) => f.reason.includes('排课记录')).length;
@@ -525,7 +562,12 @@ async function confirmBatchDelete() {
     let msg = `成功删除 ${succeeded.length} 个`;
     if (assignCount > 0) msg += `，${assignCount} 个存在排课记录无法删除`;
     if (otherCount > 0) msg += `，${otherCount} 个删除失败`;
-    ElMessage.warning(msg);
+    ElNotification({
+      title: '批量删除部分成功',
+      message: msg,
+      type: 'warning',
+      duration: 6000,
+    });
   }
 
   selectedClasses.value = [];
