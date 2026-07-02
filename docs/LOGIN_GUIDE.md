@@ -13,12 +13,13 @@
 ### 访问地址
 
 - **前端**: http://localhost:5173 (Vite 开发服务器)
-- **后端API**: http://localhost:3002
+- **后端API**: http://localhost:3000（默认端口，可通过环境变量 PORT 修改）
 
 ### 注意事项
 
 1. ⚠️ **生产环境首次登录后请立即修改密码**
-2. 如果忘记密码,可以执行以下命令重置数据库:
+2. 如果修改了后端端口（通过环境变量 `PORT`），需同步修改 `client/vite.config.js` 中 dev server 的 `proxy.target`，否则前端请求将无法转发到后端。
+3. 如果忘记密码,可以执行以下命令重置数据库:
    ```bash
    cd server
    powershell -Command "$env:FORCE_RESET='true'; node prisma/seed.js"

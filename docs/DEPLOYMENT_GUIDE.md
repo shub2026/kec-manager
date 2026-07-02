@@ -14,8 +14,8 @@
 | CPU | 1 核 |
 | 内存 | 2 GB |
 | 磁盘 | 10 GB |
-| Node.js | 18.x 或 20.x |
-| npm | 8.x+ |
+| Node.js | >=20.0.0 |
+| npm | >=10.0.0 |
 | Git | 任意版本 |
 | SQLite | 3.x（系统自带） |
 | Nginx | 1.18+（反向代理） |
@@ -81,18 +81,19 @@ bash deploy.sh
 rm -rf /tmp/kec-manager
 ```
 
-部署脚本会自动执行以下 9 个步骤：
+部署脚本会自动执行以下 10 个步骤：
 
 ```
-[1/9] 检查前置条件（Git、Node.js 版本）
-[2/9] 创建部署目录
-[3/9] 克隆代码到 /opt/1panel/www/sites/kec/index/kec-manager
-[4/9] 安装前后端依赖
-[5/9] 生成环境变量（JWT 密钥等）
-[6/9] 数据库迁移 + 生成 Prisma Client + 初始化管理员账号
-[7/9] 初始化系统设置（学期、系统标识）
-[8/9] 构建前端
-[9/9] 启动服务并验证
+[1/10] 检查前置条件（Git、Node.js 版本）
+[2/10] 创建部署目录
+[3/10] 克隆代码到 /opt/1panel/www/sites/kec/index/kec-manager
+[4/10] 安装前后端依赖
+[5/10] 停止现有服务（PM2 delete + pkill 残留 node 进程 + sleep 2 等待端口释放）
+[6/10] 配置环境变量（JWT 密钥等）
+[7/10] 初始化数据库（迁移 + 生成 Prisma Client + 初始化管理员账号）
+[8/10] 初始化系统设置（学期、系统标识）
+[9/10] 构建前端
+[10/10] 启动服务并验证
 ```
 
 ### 4. 配置 CORS 域名
@@ -344,18 +345,6 @@ vim /opt/1panel/www/sites/kec/index/kec-manager/server/.env
 pm2 restart kec-server
 ```
 
-### 运行诊断工具
-
-```bash
-cd /opt/1panel/www/sites/kec/index/kec-manager/server
-
-# 完整诊断
-npm run diagnose
-
-# 快速检查
-bash scripts/quick-check.sh
-```
-
 ---
 
 ## 五、项目目录结构
@@ -376,10 +365,10 @@ bash scripts/quick-check.sh
 │   │   ├── services/       # 业务逻辑
 │   │   ├── middleware/     # 中间件
 │   │   └── app.js          # Express 入口
-│   ├── scripts/            # 运维脚本
-│   │   ├── diagnose.js     # 诊断工具
-│   │   ├── init-settings.js # 初始化设置
-│   │   └── fix-database.sh  # 数据库修复
+│   ├── scripts/                      # 运维脚本
+│   │   ├── init-settings.js          # 初始化设置
+│   │   ├── reset-database.js         # 重置数据库
+│   │   └── update-admin-password.js  # 修改管理员密码
 │   ├── .env                # 环境变量（不提交到 Git）
 │   └── package.json
 ├── docs/                    # 项目文档
@@ -421,9 +410,51 @@ pm2 stop kec-server           # 停止服务
 # 数据库
 npm run db:seed               # 重新初始化管理员
 npm run init:settings         # 初始化系统设置
-npm run diagnose              # 运行诊断
 
 # 更新
 cd /opt/.../kec-manager
 git pull && bash deploy.sh    # 拉取更新并部署
+```
+
+---
+
+## 八、Docker 部署（备选方案）
+
+除上述基于 PM2 + Nginx 的部署方式外，项目还提供 Docker Compose 一键部署方案，适合偏好容器化运维或使用 1Panel 面板的场景。
+
+### 快速开始
+
+```bash
+# 复制 Docker 环境变量模板并填写
+cp .env.docker .env
+vim .env   # 必填：JWT_SECRET、DEFAULT_SEMESTER、CORS_ORIGINS 等
+
+# 启动容器（前端 + 后端）
+docker compose up -d
+
+# 查看状态
+docker compose ps
+docker compose logs -f
+```
+
+### 说明
+
+- Docker 部署的完整流程（镜像构建、容器编排、端口映射、数据卷挂载、1Panel 面板集成等）详见 [`docs/1panel-docker-deploy.md`](./1panel-docker-deploy.md)。
+- 环境变量含义参考本文「六、环境变量说明」一节，`CONTAINER_PREFIX`、`NETWORK_NAME` 仅在 Docker 部署中使用。
+- 数据库文件通过数据卷持久化，升级时无需重建容器即可保留数据。
+
+### Docker 容器健康检查
+
+容器内 `server/Dockerfile` 配置了 `HEALTHCHECK`，使用 `wget -q -O /dev/null` 实际请求健康接口（**不要使用 `--spider`**）。`--spider` 发送 HEAD 请求，部分路由实现会误判为不存在导致健康检查误报失败：
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD wget -q -O /dev/null --tries=1 --timeout=5 http://localhost:3000/api/health || exit 1
+```
+
+宿主机上排查容器健康状态：
+
+```bash
+docker inspect --format='{{.State.Health.Status}}' <容器名>
+docker logs <容器名>
 ```

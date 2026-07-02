@@ -1,130 +1,128 @@
-# 教学安排排课逻辑详解
+# KEC 教学安排排课逻辑说明
 
-本文档详细描述 KEC 课程管理平台的自动排课算法、匹配规则、容量约束和业务逻辑。
+本文档描述 KEC 课程管理平台自动排课算法的代码结构、算法流程、评分机制、约束条件、诊断机制与配置参数，与当前项目实际代码完全一致。
 
 ---
 
-## 一、核心概念
+## 一、代码结构
 
-### 1.1 排课目标
+排课逻辑已从单文件重构为 `server/src/services/arrange/` 目录下的模块化结构。原入口文件 `server/src/services/teaching-arrange.service.js` 现为 4 行的 re-export 包装文件，仅做转发：
+
+```javascript
+export { parseSemester, getClassesWithCourse, getTeachersForCourse } from './arrange/queries.js';
+export { validateHourSettings } from './arrange/validate.js';
+export { autoArrange } from './arrange/auto-arrange.js';
+export { batchAutoArrange } from './arrange/batch.js';
+```
+
+### 1.1 模块职责
+
+| 文件 | 职责 | 主要导出/函数 |
+|------|------|--------------|
+| `arrange/queries.js` | 数据查询与匹配函数 | `getClassesWithCourse`、`getTeachersForCourse`、`isTextbookMatch`、`isCollegeEligible`、`isLevelEligible`、`parseSemester` |
+| `arrange/validate.js` | 课时设置校验 | `validateHourSettings` |
+| `arrange/auto-arrange.js` | 排课主算法 | `autoArrange`（导出）、`calcMatchScore`、`isTeacherEligible`、`buildTeacherConstraints`、`trySwapOne`、`trySwapUnassigned`、`calcAllMatchRates`、`buildResult`、`diagnoseFailure`、`selectBestTeacher`（后几个为内部函数，同时通过测试专用导出暴露） |
+| `arrange/batch.js` | 批量排课 | `batchAutoArrange`、`batchLocks` |
+| `teaching-arrange.service.js` | 入口转发 | 仅 re-export，无业务逻辑 |
+
+### 1.2 并发锁
+
+| 锁 | 范围 | 用途 |
+|----|------|------|
+| `arrangeLocks` | `courseId:semesterStr` | 防止同一课程在同一学期被并发排课 |
+| `batchLocks` | `semesterStr` | 防止批量排课与单课程排课并发；批量进行中，同 semester 的单课程 `autoArrange` 直接拒绝（批量内部调用通过 `options.skipBatchLockCheck=true` 绕过） |
+
+> 上述锁均为进程内存级别，仅适用于单进程部署（如 PM2 fork 模式）。多实例部署需改用 Redis 分布式锁或数据库行级锁。
+
+---
+
+## 二、核心概念
+
+### 2.1 排课目标
 
 为指定课程在指定学期内，将教师分配到所有需要该课程的班级，同时满足：
 - 教师的学院偏好和层次偏好
-- 教材匹配度
+- 教材匹配度与教材内聚度
 - 教师课时容量约束
+- 教材数量硬上限
 - 保护手动排课记录不被覆盖
 
-### 1.2 关键实体关系
-
-```
-班级 (classes)
-  ├─ 关联培养方案 (training_plans)
-  │   └─ 包含课程 (plan_courses)
-  │       └─ 学期课时分布 (plan_course_semesters)
-  │           └─ 教材关联 (plan_textbooks)
-  └─ 需要排课的课程
-
-教师 (teachers)
-  ├─ 可教课程 (teacher_courses)
-  ├─ 上课学院偏好 (teacher_scheduling_colleges)
-  ├─ 培养层次偏好 (teacher_training_levels)
-  └─ 教材匹配度（从实际排课或培养方案推导）
-```
-
-### 1.3 学期格式
+### 2.2 学期格式
 
 学期使用 `"YYYY-YYYY-N"` 格式，例如 `"2025-2026-1"` 表示 2025-2026 学年第一学期。
 
-**学期序号计算**：
+学期序号计算由 `semester.service.js` 的 `calcClassSemester` 完成：
 ```
 年级 = 学年起始年 - 入学年份 + 1
 当前学期序号 = (年级 - 1) × 2 + 学期索引
 ```
 
-示例：2023 年入学的班级，在 2025-2026 学年第一学期：
-- 年级 = 2025 - 2023 + 1 = 3（大三）
-- 学期序号 = (3 - 1) × 2 + 1 = 5（第 5 学期）
-
 ---
 
-## 二、班级筛选逻辑
+## 三、班级筛选逻辑
 
-### 2.1 班级纳入条件
+### 3.1 班级纳入条件（`getClassesWithCourse`）
 
 一个班级被纳入某课程的排课候选，必须同时满足：
+- 未离校、学制内（由 `getActiveClassFilter` 统一生成查询条件）
+- 该班级关联的培养方案中包含目标课程
+- 该课程在当前学期有课时安排（`plan_course_semesters` 记录）
 
-| 条件 | 说明 |
-|------|------|
-| 未离校 | `is_left_school = false` |
-| 学制内 | 年级 ≥ 1 且 ≤ `duration_years` |
-| 培养方案匹配 | 该班级关联的培养方案中包含目标课程 |
-| 学期匹配 | 该课程在当前学期有课时安排（`plan_course_semesters` 记录） |
+### 3.2 培养方案匹配优先级
 
-### 2.2 培养方案匹配优先级
-
-班级与培养方案的匹配遵循三级优先级（从高到低）：
+使用 `findBestMatchPlan`（来自 `plan.service.js`）选定唯一最佳方案，三级优先级：
 
 | 优先级 | 条件 | 说明 |
 |:------:|------|------|
 | 1 | `class.custom_plan_id === plan.id` | 班级绑定了自定义培养方案 |
-| 2 | `class.major_id === plan.major_id` | 按专业匹配（无自定义方案时） |
+| 2 | `class.major_id === plan.major_id` | 按专业匹配 |
 | 3 | `class.training_level_id === plan.training_level_id` | 按培养层次匹配（兜底） |
 
-如果三个优先级均不匹配，该班级被排除。
+### 3.3 班级字段
 
-**实现函数**（`server/src/services/plan.service.js`）：
-
-| 函数 | 用途 | 行为差异 |
-|------|------|----------|
-| `findBestMatchPlan(cls, plans)` | 从候选列表中返回最佳匹配方案 | 严格优先级：custom > major > level，扫描全部候选 |
-| `isClassMatchPlan(cls, plan)` | 判断单个方案是否匹配该班级 | 互斥匹配：custom 设置时仅检查 custom，否则 major OR level |
-
-> **C1 修复说明**：修复前班级列表、导出、手动排课等入口使用 `isClassMatchPlan` + 取首个匹配，导致与自动排课的 `findBestMatchPlan` 行为不一致。修复后所有入口统一使用 `findBestMatchPlan`，保证跨模块行为一致。
-
-### 2.3 去重机制
-
-使用 `Set` 记录已添加的班级 ID，防止同一班级因匹配多个培养方案而重复出现。
+每条候选班级携带：`classId`、`className`、`collegeId`、`majorId`、`trainingLevelId`、`grade`、`weeklyHours`、`weeksCount`、`totalHours`、`textbooks`（数组）等。
 
 ---
 
-## 三、教师筛选逻辑
+## 四、教师筛选逻辑
 
-### 3.1 教师纳入条件
+### 4.1 教师纳入条件（`getTeachersForCourse`）
 
 | 条件 | 说明 |
 |------|------|
 | 状态活跃 | `status = 'active'` |
 | 课程关联 | 通过 `teacher_courses` 关联表与目标课程关联 |
 
-### 3.2 教师属性
+### 4.2 教师字段
 
-每位候选教师携带以下属性用于匹配和容量计算：
-
-| 属性 | 来源 | 用途 |
+| 字段 | 来源 | 用途 |
 |------|------|------|
-| `personnelType` | `teachers.personnel_type` | 确定课时容量档次 |
-| `defaultWeeklyHours` | `teachers.default_weekly_hours` | 本课程周课时上限（可选） |
-| `schedulingCollegeIds` | `teacher_scheduling_colleges` | 学院偏好匹配 |
-| `schedulingLevelIds` | `teacher_training_levels` | 层次偏好匹配 |
-| `textbookIds` | 实际排课或培养方案推导 | 教材匹配 |
+| `personnelType` | `teachers.personnel_type` | 确定课时容量档次（full_time / part_time / external） |
+| `defaultWeeklyHours` | `teachers.default_weekly_hours` | **教师总周课时上限**（跨所有课程），可选 |
+| `schedulingCollegeIds` | `teacher_scheduling_colleges` | 学院意向 |
+| `schedulingLevelIds` | `teacher_scheduling_levels` | 层次意向 |
+| `textbookIds` / `inherentTextbookIds` | 实际排课或培养方案推导 | 固有教材快照 |
 | `totalWeeklyHours` | 本学期所有排课课时总和 | 整体工作量 |
-| `courseHours` | 本课程本学期已排课时 | 本课程课时上限检查 |
+| `courseHours` | 本课程本学期已排课时 | 本课程课时统计 |
+| `assignedTextbookIds` | 初始化为空 `Set` | 运行时累加的教材集合 |
+| `assignedCollegeIds` | 初始化为空 `Set` | 运行时累加的学院集合 |
 
-### 3.3 教材 ID 推导
+### 4.3 教材 ID 推导
 
 **两级推导策略**：
 
-1. **实际排课推导（优先）**：对于已有排课记录的教师，追溯每个排课班级的培养方案，提取 `plan_textbooks` 中的教材 ID。反映真实教材使用情况。
-
-2. **培养方案推导（兜底）**：对于无排课记录的教师，取所有关联培养方案中该课程的教材 ID 并集。这是一个保守的超集。
+1. **实际排课推导（优先）**：跨课程查询教师在该学期的全部排课记录，追溯每个班级的最佳匹配培养方案，提取 `plan_textbooks` 中的教材 ID。
+2. **培养方案推导（兜底）**：对无排课记录的教师，根据 `TEXTBOOK_COHESION.FALLBACK_EMPTY` 决定：
+   - `FALLBACK_EMPTY = true`（当前默认）：教材为空集合（收紧策略，避免 `isTextbookMatch` 对新教师全通过）
+   - `FALLBACK_EMPTY = false`：取所有关联培养方案中该课程教材 ID 的并集（保守超集）
 
 ---
 
-## 四、课时容量约束
+## 五、约束条件
 
-### 4.1 默认课时设置
+### 5.1 默认课时设置（`DEFAULT_HOUR_SETTINGS`）
 
-| 人员类型 | 标准课时 | 最大课时 |
+| 人员类型 | 标准课时 (standard) | 最大课时 (max) |
 |---------|:--------:|:--------:|
 | 专职 (`full_time`) | 16 | 20 |
 | 兼职 (`part_time`) | 12 | 16 |
@@ -134,154 +132,196 @@
 - 全局默认：`system_settings` 键 `teaching_hour_settings`
 - 按课程自定义：键 `teaching_hour_settings_{course_id}`
 
-### 4.2 排课模式
+### 5.2 排课模式
 
 | 模式 | 使用上限 | 行为 |
 |------|---------|------|
 | 标准模式 (`standard`) | `standard` 值 | 保守，教师总课时不超过标准值 |
 | 全量模式 (`full`) | `max` 值 | 宽松，允许教师课时达到最大值 |
 
-### 4.3 容量计算公式
+### 5.3 容量计算（`buildTeacherConstraints`）
 
+```javascript
+autoHoursForCourse = autoHoursMap.get(t.id) || 0          // 本课程即将被删除的自动排课课时
+extraHours = extraTeacherHours?.get(t.id) || 0            // 批量预览时前序课程的虚拟分配课时
+effectiveTotal = t.totalWeeklyHours - autoHoursForCourse + extraHours   // 全学期总课时（含所有课程）
+
+// defaultWeeklyHours 语义：教师总周课时上限（跨所有课程），不是"本课程硬上限"
+teacherHourCap = t.defaultWeeklyHours != null
+  ? Math.max(0, t.defaultWeeklyHours - effectiveTotal)
+  : null
+
+standardCap = teacherHourCap != null
+  ? Math.min(teacherHourCap, Math.max(0, setting.standard - effectiveTotal))
+  : Math.max(0, setting.standard - effectiveTotal)
+
+fullCap = teacherHourCap != null
+  ? Math.min(teacherHourCap, Math.max(0, setting.max - effectiveTotal))
+  : Math.max(0, setting.max - effectiveTotal)
 ```
-有效已排课时 = 总周课时 - 本课程自动排课课时（即将被替换）
 
-标准剩余容量 = max(0, 标准课时 - 有效已排课时)
-全量剩余容量 = max(0, 最大课时 - 有效已排课时)
-```
+**关键点**：
+- `effectiveTotal` 包含全学期所有课程的总课时，不只是本课程
+- 本课程的自动排课课时被减去，因为这些记录将被删除并重新分配
+- 手动排课和其他课程的排课保持不变并计入容量
+- `defaultWeeklyHours` 是教师**总周课时上限**，会同时收紧 `standardCap` 与 `fullCap`
 
-**关键点**：本课程的自动排课课时被减去，因为这些记录将被删除并重新分配。手动排课和其他课程的排课保持不变并计入容量。
+### 5.4 资格检查（`isTeacherEligible`）
 
-### 4.4 资格检查
-
-教师被分配一个班级前，必须通过两项硬约束：
+教师被分配一个班级前，必须通过以下硬约束：
 
 | 约束 | 公式 |
 |------|------|
-| 容量约束 | `已分配课时 + 班级周课时 ≤ 剩余容量` |
-| 本课程上限（可选） | 若设置了 `defaultWeeklyHours`：`本课程已排课时 + 已分配课时 + 班级周课时 ≤ defaultWeeklyHours` |
+| 容量约束 | `t.assignedHours + cls.weeklyHours ≤ (standardCap 或 fullCap)` |
+| 学院意向 | 教师有 `schedulingCollegeIds` 时，必须包含 `cls.collegeId` |
+| 层次意向 | 教师有 `schedulingLevelIds` 时，`cls.trainingLevelId` 必须在其中 |
+| 教材硬上限 | `t.assignedTextbookIds.size + 新增教材数 ≤ MAX_TEXTBOOKS_PER_TEACHER` |
 
-### 4.5 负荷率计算
+### 5.5 课时设置校验（`validateHourSettings`）
 
-用于同一层级内的教师排序（负荷率越低越优先）：
+对 `full_time` / `part_time` / `external` 三种类型逐项校验：
+- 必须存在 `standard` 与 `max`
+- 均为有效数字
+- `standard ≥ 1`
+- `1 ≤ max ≤ 40`
+- `standard ≤ max`
 
-```
-负荷率 = (有效已排课时 + 已分配课时) / max(1, 剩余容量 + 有效已排课时)
-```
+任一项不满足即抛错。
 
 ---
 
-## 五、匹配评分机制
+## 六、算法流程（v2，5 阶段）
 
-### 5.1 评分规则
+### 6.1 前置处理
 
-评分采用累加制，用于同一层级内的次要排序：
+1. 加载教师候选池（`getTeachersForCourse`）
+2. 加载班级候选池（`getClassesWithCourse`）
+3. 加载本课程本学期的手动排课记录，提取 `manualClassIds`
+4. 从候选池中排除手动排课的班级（但手动排课的教材和课时仍计入教师上下文）
+5. 校验周课时合法性：`weeklyHours ≤ 0` 的班级直接进入未分配列表（原因：`课时配置异常（周课时为0或负数）`），不参与排课
+6. 构建 `teacherConstraints`（含 `effectiveTotal`、`standardCap`、`fullCap`、`teacherHourCap`）
+7. 追踪手动排课的教材与学院到教师的 `assignedTextbookIds` / `assignedCollegeIds`
+8. 容量可行性预检：若 `总班级课时 > 总教师容量`，添加警告（非错误）
+9. **按教材对班级分组**（`textbookGroups`）：同教材组内按学院排序；每组维护可变可用班级池 `groupAvailable`
 
-| 条件 | 分值 | 始终生效 |
-|------|:----:|:--------:|
-| 教师的上课学院包含班级的学院 | +1 | 是 |
-| 教师的培养层次包含班级的层次 | +1 | 是 |
-| 教师的教材 ID 与班级的教材 ID 有交集 | +3 | 是 |
+### 6.2 五阶段定义
 
-**最高分**：5 分
+| 阶段 | 处理对象 | 筛选条件 | 说明 |
+|:----:|---------|---------|------|
+| **阶段 1** | 有指定意向的教师 | `schedulingCollegeIds` 或 `schedulingLevelIds` 非空；本轮已分配教材的教师必须包含当前教材组的教材；0 本教师可拿任意教材 | 严格按意向分配，拿第一本教材 |
+| **阶段 2** | 无指定意向的教师 | 无意向约束；本轮已分配教材的教师必须包含当前教材组的教材；0 本教师可拿任意教材 | 按课时容量拿第一本教材 |
+| **阶段 3** | 所有教师 | 已持有此教材组的教师 | 追加同教材班级（不增加教材数） |
+| **阶段 4** | 所有教师 | 未持有此教材组、有剩余容量、且新增后不超 `MAX_TEXTBOOKS_PER_TEACHER` | 拿第二本教材 |
+| **阶段 5** | 兜底 | 剩余班级用 `assignRound` 放宽约束处理 | 综合评分分配 |
 
-### 5.2 匹配函数
+### 6.3 阶段内通用逻辑
+
+- 按教材组遍历 `groupAvailable`
+- 筛选符合条件的教师，按剩余容量降序排序（`maxCapFn(b) - b.assignedHours - (maxCapFn(a) - a.assignedHours)`）
+- 教师通过 `takeClassesForTeacher` 从可用班级中拿取，直到课时满或无匹配班级
+- `takeClassesForTeacher` 内部按"教师已分配的学院优先 → 学院 ID → 班级 ID"排序班级
+- 教材上限追踪：假设拿取后的教材集合不能超过 `MAX_TEXTBOOKS_PER_TEACHER`
+- 拿取后调用 `recordAssignment` 更新 `assignedHours`、`assignedCollegeIds`、`assignedTextbookIds`、`textbookIds`，并写入 `assignments`
+
+### 6.4 意向匹配（`isPrefMatch`）
+
+- 有学院意向的教师，只能拿匹配学院的班级
+- 有层次意向的教师，只能拿匹配层次的班级
+- 阶段 1、3、4 使用严格意向检查；阶段 2 关闭严格检查（教师本身无意向）
+
+### 6.5 兜底分配（`assignRound`，阶段 5）
+
+- 按候选教师数量升序排序班级（少候选优先），同分时按教材签名排序
+- 对每个班级，筛选 `isTeacherEligible` 通过的教师，且教材硬上限检查：已达上限的教师只能接已持有教材的班级
+- 用 `calcMatchScore` 评分 + `loadRate` 负载均衡，调用 `selectBestTeacher` 选最优教师
+- 无候选则归入 `unassigned`
+
+### 6.6 置换回溯（`trySwapUnassigned`）
+
+阶段 5 后对未分配班级尝试置换：
+
+- **单轮置换**（不递归），复杂度 O(U × T × A)
+- 对未分配班级 U：遍历所有教师 T（含已满的），找 T 当前某班级 V 能被其他教师 T'' 接管，且 T 腾出容量后能容纳 U
+- 置换前校验：
+  - T 对 U 的学院/层次资格
+  - T'' 对 V 的学院/层次资格
+  - T 置换后教材数 ≤ `MAX_TEXTBOOKS_PER_TEACHER`（先移除 V 独有教材，再加 U 新增教材）
+  - T'' 接管 V 后教材数 ≤ `MAX_TEXTBOOKS_PER_TEACHER`
+- `weeklyHours ≤ 0` 的班级不参与置换
+
+### 6.7 教材亲和级联
+
+教师被分配一个班级后，其 `assignedTextbookIds` 和 `textbookIds` 会扩展包含该班级的教材 ID，形成级联的教材亲和效应——后续阶段评分时同教材教师会获得更高分。
+
+### 6.8 持久化（非预览模式）
+
+采用**全量替换**策略，在单个数据库事务中完成：
+
+1. **删除**本课程本学期的所有自动排课记录（`is_auto = true`）
+2. **重新聚合**各教师当前学期实际总课时（已扣除本课程旧自动安排）
+3. **容量二次校验**：超载的分配降级跳过，归入 `unassigned`，原因：`并发排课导致教师容量已满，已跳过`
+4. **教材上限二次校验**：违规的不写入 DB
+5. **批量插入**通过校验的分配记录
+
+---
+
+## 七、评分机制
+
+### 7.1 `calcMatchScore` 加权评分
+
+| 评分项 | 权重/分值 | 来源 | 触发条件 |
+|--------|:----:|------|------|
+| 学院意向匹配 | +`COLLEGE_WEIGHT`（5） | constants | 教师上课学院包含班级学院 |
+| 学院内聚奖励 | +3 | 硬编码 | 教师已接过该学院班级（`assignedCollegeIds`） |
+| 层次意向匹配 | +`LEVEL_WEIGHT`（5） | constants | 教师培养层次包含班级层次 |
+| 已分配教材匹配 | +`ASSIGNED_WEIGHT`（10） | constants | 本轮已分配的教材与班级教材有交集 |
+| 固有教材匹配 | +`INHERENT_WEIGHT`（4） | constants | 教师固有教材与班级教材有交集（`isTextbookMatch`） |
+| 新增教材惩罚 | -`PENALTY_PER_NEW` × N（10 × N） | constants | 接此班需新增 N 本教材 |
+| 0 本教材奖励 | +`ZERO_TEXTBOOK_BONUS`（30） | constants | 教师尚未持有任何教材 |
+| 同教材追加奖励 | +10 | **硬编码** | 教师已持有 1 本教材且此班级教材无新增 |
+| 新增教材硬淘汰 | score - 10000 | **硬编码** | 教师已达 `MAX_TEXTBOOKS_PER_TEACHER` 且需新增教材，或 1 本教师接新教材 |
+
+> 注：`TEXTBOOK_COUNT_PENALTY_1_NEW` 与 `TEXTBOOK_COUNT_BONUS_1_SAME` 虽在 constants 中定义，但 `calcMatchScore` 实际未使用——同教材奖励与新增教材惩罚均为硬编码值（+10 与 -10000）。
+
+### 7.2 `isTextbookMatch` 行为（`queries.js`）
 
 ```javascript
-// 学院匹配
-isCollegeMatch(teacher, class) {
-  return teacher.schedulingCollegeIds?.includes(class.collegeId)
-}
-
-// 层次匹配
-isLevelMatch(teacher, class) {
-  return teacher.schedulingLevelIds?.includes(class.trainingLevelId)
-}
-
-// 教材匹配（双方均非空且有交集）
-isTextbookMatch(teacher, class) {
-  if (!teacher.textbookIds?.length || !class.textbookIds?.length) return false
-  return teacher.textbookIds.some(id => class.textbookIds.includes(id))
+export function isTextbookMatch(teacher, cls) {
+  const inherentIds = teacher.inherentTextbookIds ?? teacher.textbookIds;
+  if (!cls.textbookIds?.length) return false;       // 班级无教材，不匹配
+  if (!inherentIds?.length) return true;            // 教师无固有教材约束，能教任何教材
+  return inherentIds.some((tid) => cls.textbookIds.includes(tid));
 }
 ```
 
----
+**关键语义**：
+- 始终使用教师**固有教材快照**（`inherentTextbookIds`），不受本次分配累加污染
+- 教师无固有教材约束时，对任何有教材的班级都返回 `true`（能教任何教材）
+- 班级无教材时返回 `false`
 
-## 六、教师选择算法
+### 7.3 教师选择（`selectBestTeacher`）
 
-### 6.1 分层选择机制
+```javascript
+const sorted = [...candidates].sort((a, b) => {
+  // 1. 分数差异 ≥ SCORE_THRESHOLD（1），按分数降序
+  if (Math.abs(b.score - a.score) >= WORKLOAD_BALANCE.SCORE_THRESHOLD) {
+    return b.score - a.score;
+  }
+  // 2. 负载率差异 > LOAD_RATE_THRESHOLD（0.2），按负载率升序（低负载优先）
+  if (Math.abs(a.loadRate - b.loadRate) > WORKLOAD_BALANCE.LOAD_RATE_THRESHOLD) {
+    return a.loadRate - b.loadRate;
+  }
+  // 3. 综合排序：分数降序 > 负载率升序
+  return b.score - a.score || a.loadRate - b.loadRate;
+});
+return sorted[0];
+```
 
-系统采用严格的层级优先选择，按以下顺序检查候选层级，从最高非空层级中选择教师。同一层级内按 `(评分 DESC, 负荷率 ASC)` 排序。
+### 7.4 负载率计算
 
-| 层级 | 条件 | 说明 |
-|:----:|------|------|
-| 1 | 学院匹配 **且** 教材匹配 | 最佳匹配 |
-| 2 | 学院匹配（任意教材） | 学院偏好教师 |
-| 3 | 教材匹配（任意学院） | 教材偏好教师 |
-| 4 | 层次匹配 **且** 教材匹配 | 层次 + 教材组合 |
-| 5 | 层次匹配（任意教材） | 层次偏好教师 |
-| 6 | 仅教材匹配 | 与层级 3 类似（兜底） |
-| 7 | 无偏好匹配 | 纯评分 + 负荷兜底 |
-
-**设计原则**：有学院偏好的教师**始终**优先于无学院偏好的教师，无论负荷率如何。这防止了偏好配置教师的容量被低负荷无偏好教师挤占。
-
----
-
-## 七、五阶段排课策略
-
-自动排课算法分为五个顺序执行的阶段，辅以置换回溯机制提升分配率。
-
-### 7.1 前置处理
-
-排课前按教材对班级分组（`textbookGroups`），同教材组内按学院排序。每组维护一个可用班级池（`groupAvailable`），各阶段从中取班级。
-
-### 7.2 阶段定义
-
-| 阶段 | 处理对象 | 说明 |
-|:----:|---------|------|
-| **阶段 1** | 有指定意向的教师 | 严格按学院/层次意向分配，拿第一本教材的班级 |
-| **阶段 2** | 无指定意向的教师 | 按课时容量拿第一本教材的班级 |
-| **阶段 3** | 所有教师 | 追加同教材班级（不增加教材种类数） |
-| **阶段 4** | 所有教师 | 拿第二本教材（如仍有容量） |
-| **阶段 5** | 兜底分配 | 放宽约束，用 `assignRound` 处理剩余班级 |
-
-### 7.3 阶段内逻辑
-
-每个阶段按教材组遍历，筛选符合条件的教师（已有 0 本或已持有此教材），按剩余容量降序排序。教师通过 `takeClassesForTeacher` 从可用班级中拿取，直到课时满或无匹配班级。
-
-**有指定意向的教师**（阶段 1）：`schedulingCollegeIds` 或 `schedulingLevelIds` 非空，只能拿匹配的学院/层次班级。
-
-**无指定意向的教师**（阶段 2）：无学院/层次约束，可拿任何班级。
-
-### 7.4 加权评分选择
-
-当多个候选教师可选时，使用 `calcMatchScore` 加权评分 + `loadRate` 负载均衡：
-
-| 评分项 | 权重 | 说明 |
-|--------|:----:|------|
-| 学院意向匹配 | +`COLLEGE_WEIGHT` | 教师上课学院包含班级学院 |
-| 学院内聚奖励 | +3 | 教师已接过该学院班级 |
-| 层次意向匹配 | +`LEVEL_WEIGHT` | 教师培养层次包含班级层次 |
-| 已分配教材匹配 | +`ASSIGNED_WEIGHT` | 本轮已分配的教材与班级教材有交集 |
-| 固有教材匹配 | +`INHERENT_WEIGHT` | 教师固有教材与班级教材有交集 |
-| 新增教材惩罚 | -`PENALTY_PER_NEW` × N | 接此班需新增 N 本教材 |
-| 0 本教材奖励 | +100 | 尚未持有教材的教师 |
-| 同教材追加奖励 | +10 | 1 本教材教师接同类教材班级 |
-| 硬上限惩罚 | -10000 | 已达教材上限且需新增教材（直接淘汰） |
-
-选择逻辑：分数差异 ≥ 阈值时按分数降序，否则按负载率升序，最后综合排序。
-
-### 7.5 置换回溯
-
-阶段 5 后对未分配班级尝试置换：若教师 T 已满，但其某班级 V 能被教师 T'' 接管，且 T 腾出容量后能接纳未分配班级 U，则执行置换。单轮置换（不递归），教材上限检查确保不违反 MAX_TEXTBOOKS 约束。
-
-### 7.6 级联教材亲和效应
-
-教师被分配一个班级后，其 `assignedTextbookIds` 和 `textbookIds` 会扩展包含该班级的教材 ID，形成级联的教材亲和效应。
-
-### 7.7 未分配班级
-
-经过五阶段排课和置换回溯后仍未分配的班级进入 `unassigned` 列表，系统会诊断未分配原因（见第 11 节）。
+```
+loadRate = (effectiveTotal + assignedHours) / max(1, maxCap + effectiveTotal)
+```
 
 ---
 
@@ -291,12 +331,13 @@ isTextbookMatch(teacher, class) {
 
 **手动排课记录神圣不可侵犯**——自动排课永远不会覆盖手动排课。
 
-### 8.2 自动排课的保护机制
+### 8.2 保护机制
 
 1. 加载本课程本学期所有手动排课记录（`is_auto = false`）
 2. 提取手动排课的班级 ID 集合
 3. 从自动排课候选池中**排除**这些班级
-4. 手动排课的课时仍计入教师容量（通过 `totalWeeklyHours` 和 `courseHours`）
+4. 手动排课的课时仍计入教师容量（通过 `totalWeeklyHours`）
+5. 手动排课的教材与学院仍计入教师的 `assignedTextbookIds` / `assignedCollegeIds`（影响评分与教材上限）
 
 ### 8.3 手动排课操作
 
@@ -311,29 +352,42 @@ isTextbookMatch(teacher, class) {
 
 ---
 
-## 九、数据持久化
+## 九、批量排课（`batchAutoArrange`）
 
-### 9.1 写入策略
+### 9.1 范围
 
-自动排课采用**全量替换**策略：
+所有在培养方案中出现过的课程（即有 `plan_courses` 记录且至少有一条 `plan_course_semesters` 记录的课程）。
 
-1. **删除**本课程本学期的所有自动排课记录（`is_auto = true`）
-2. **批量插入**新的自动排课记录
+### 9.2 课程排序
 
-所有操作在**单个数据库事务**中完成，确保原子性。
+按"供需比"降序排序，优先处理"可选教师少、需求大"的课程：
 
-### 9.2 排课记录结构
-
-```javascript
-{
-  teacher_id: Number,      // 教师 ID
-  class_id: Number,        // 班级 ID
-  course_id: Number,       // 课程 ID
-  semester: String,        // 学期（如 "2025-2026-1"）
-  weekly_hours: Number,    // 周课时
-  is_auto: true            // 标记为自动排课
-}
 ```
+supplyCapacity = teacherCount × defaultStandard
+supplyDemandRatio = demand / supplyCapacity   (teacherCount=0 时为 MAX_SAFE_INTEGER)
+```
+
+### 9.3 执行模型
+
+**顺序执行，非并行**。课程逐个处理，每门课程的排课结果会影响后续课程的教师容量（通过 `totalWeeklyHours`）。
+
+### 9.4 超时保护
+
+- `BATCH_TIMEOUT_MS = 5 * 60 * 1000`（5 分钟）
+- 每门课程排课前检查是否超时
+- 超时后停止处理剩余课程，标记 `timeoutReached: true`，未处理课程计入 `skippedCourses`
+
+### 9.5 错误隔离
+
+单门课程的排课失败不会中断批量流程。错误被捕获并记录在结果中（`error` 字段），继续处理剩余课程。
+
+### 9.6 预览模式跨课程累计
+
+预览模式下：
+- `virtualTeacherHours`：累计每位教师在前序课程中的虚拟分配课时，传入 `extraTeacherHours` 参数
+- `globalTextbookMap`：累计每位教师在前序课程中的教材集合，传入 `globalTextbookMap` 参数，用于初始化 `assignedTextbookIds`
+
+非预览模式下，跨课程数据从 DB 实际读取（`getTeachersForCourse` 已查询全部课程的排课记录）。
 
 ---
 
@@ -342,143 +396,172 @@ isTextbookMatch(teacher, class) {
 ### 10.1 行为
 
 当请求参数 `preview = true` 时：
-- 算法完整执行（所有计算、匹配、评分）
+- 算法完整执行（所有计算、匹配、评分、置换）
 - **跳过数据库事务**——不删除、不插入
 - 返回结果包含 `preview: true`
 - **不创建审计日志**
+- 附带 `classTextbookMap`，供批量排课跨课程累计教材
 
-### 10.2 用途
+### 10.2 统计信息
 
-管理员可以在正式排课前预览排课结果，查看哪些班级会被分配给哪些教师，哪些班级可能无法分配。
-
----
-
-## 十一、批量排课
-
-### 11.1 范围
-
-所有在培养方案中出现过的课程（即有 `plan_courses` 记录且至少有一条 `plan_course_semesters` 记录的课程）。
-
-### 11.2 执行模型
-
-**顺序执行，非并行**。课程逐个处理，每门课程的排课结果会影响后续课程的教师容量（通过 `totalWeeklyHours`）。
-
-**处理顺序的影响**：先处理的课程优先选择教师，可能导致后续课程的教师容量紧张。
-
-### 11.3 错误隔离
-
-单门课程的排课失败不会中断批量流程。错误被捕获并记录在结果中，继续处理剩余课程。
-
-### 11.4 批量预览
-
-当 `preview = true` 时，所有课程都不写入数据库，但顺序依赖仍然存在于计算中（每门课程的虚拟分配影响后续课程的容量计算）。
+预览模式下结果包含 `statistics` 字段：
+- `teacherWorkload`：每位教师的总课时、新增课时、容量、负载率、班级数
+- `collegeMatchRate` / `textbookMatchRate` / `levelMatchRate`：匹配率
+- `textbookCohesionRate`：教材内聚度（每位教师 `1 - (教材数 - 1) / 班级数`，clamp [0,1]，取平均）
+- `avgTextbookPerTeacher`：教师平均教材数
+- `scatteredTeacherCount`：教材数 ≥ `SCATTERED_THRESHOLD`（3）的教师数
+- `involvedTeacherCount`：涉及的教师数
 
 ---
 
-## 十二、容量可行性预检
+## 十一、诊断机制
 
-### 12.1 预检逻辑
+### 11.1 诊断函数（`diagnoseFailure`）
 
-排课开始前，系统检查总需求与总容量：
+对每个未分配的班级，按顺序检查并返回首个匹配的原因：
 
-```
-总班级课时 = sum(所有待排课班级的 weeklyHours)
-总教师容量 = sum(每位教师的剩余容量)
-```
+| 诊断原因 | 触发条件 |
+|---------|---------|
+| `没有可教此课程的教师` | 该课程无关联教师（`allTeachers.length === 0`） |
+| `所有候选教师课时容量已满` | 所有教师的 `assignedHours + cls.weeklyHours > cap`（standardCap 或 fullCap） |
+| `所有候选教师总周课时已达上限` | 所有教师触及 `defaultWeeklyHours` 总周课时上限（用 `effectiveTotal + assignedHours + cls.weeklyHours > defaultWeeklyHours` 判定） |
+| `所有候选教师教材上限已满` | 所有教师已达 `MAX_TEXTBOOKS_PER_TEACHER` 且无法接纳新教材 |
+| `有资格的教师课时容量已满` | 通过意向筛选的教师，其容量全部已满 |
+| `无匹配的教师（学院/层次偏好筛选后无候选）` | 上述均不满足时的兜底诊断 |
 
-### 12.2 警告机制
+诊断同时返回 `details`，包含前 5 位教师的具体数据（姓名、已排课时、上限等）。
 
-如果 `总班级课时 > 总教师容量`，系统添加警告（非错误，算法仍会执行）：
+### 11.2 其他未分配原因
 
-```
-"班级总课时(X)超过教师总容量(Y)，部分班级可能无法分配"
-```
+| 原因 | 触发场景 |
+|------|---------|
+| `课时配置异常（周课时为0或负数）` | `weeklyHours` 为 0 或负数，前置处理阶段直接归入未分配 |
+| `并发排课导致教师容量已满，已跳过` | 事务内二次校验超载，降级跳过 |
+
+### 11.3 提前退出消息
+
+| 消息 | 条件 |
+|------|------|
+| `该课程没有可用教师` | `getTeachersForCourse` 返回空数组 |
+| `当前学期没有开设该课程的班级` | `getClassesWithCourse` 返回空数组 |
+| `学期 {semesterStr} 批量排课进行中，请稍后再试` | 单课程排课遇到 `batchLocks` |
+| `该课程正在排课中，请稍后重试` | 单课程排课遇到 `arrangeLocks` |
 
 ---
 
-## 十三、失败诊断
+## 十二、结果结构
 
-对于每个未分配的班级，系统诊断原因：
-
-| 诊断信息 | 条件 |
-|---------|------|
-| "没有可教此课程的教师" | 该课程无关联教师 |
-| "所有候选教师课时容量已满" | 所有教师的容量已耗尽 |
-| "所有候选教师本课程课时已达上限" | 所有教师触及 `defaultWeeklyHours` 本课程上限 |
-| "无匹配的教师（学院/层次偏好筛选后无候选）" | 有容量但无教师通过资格筛选 |
-
----
-
-## 十四、结果结构
-
-每次自动排课调用返回：
+### 12.1 单课程排课结果（`buildResult`）
 
 ```javascript
 {
   assigned: [...],           // 排课记录数组
   unassigned: [{             // 未分配班级数组
-    classId,                 // 班级 ID
-    className,               // 班级名称
-    weeklyHours,             // 周课时
-    reason                   // 诊断原因
+    classId,
+    className,
+    weeklyHours,
+    reason,                  // 诊断原因
+    details                  // 诊断详情（教师列表或统计）
   }],
-  totalClasses: Number,      // 需排课的班级总数（不含手动）
-  manualCount: Number,       // 已有手动排课的班级数
-  autoCount: Number,         // 本次自动排课的班级数
-  unassignedCount: Number,   // 未分配班级数
-  preview: Boolean,          // 是否为预览模式
-  warnings: String[],        // 容量警告
-  message?: String           // 错误/提前退出消息
+  totalClasses,              // 需排课的班级总数（不含手动）
+  manualCount,               // 已有手动排课的班级数
+  autoCount,                 // 本次自动排课的班级数
+  unassignedCount,           // 未分配班级数
+  preview,                   // 是否为预览模式
+  warnings,                  // 容量警告数组
+  statistics?,               // 预览模式下的统计信息
+  classTextbookMap?,         // 预览模式下的班级教材映射（供批量累计）
+  message?                   // 错误/提前退出消息
+}
+```
+
+### 12.2 排课记录结构
+
+```javascript
+{
+  teacher_id: Number,
+  teacher_name: String,
+  class_id: Number,
+  class_name: String,
+  course_id: Number,
+  semester: String,          // 如 "2025-2026-1"
+  weekly_hours: Number,
+  is_auto: true
+}
+```
+
+### 12.3 批量排课结果
+
+```javascript
+{
+  semester,
+  mode,
+  preview,
+  courseResults: [...],       // 每门课程的单课程结果
+  summary: {
+    totalCourses,
+    successCount,
+    errorCount,
+    totalAssigned,
+    totalUnassigned,
+    totalWarnings,
+    timeoutReached,
+    skippedCourses?
+  }
 }
 ```
 
 ---
 
-## 十五、已知限制
+## 十三、配置参数（`constants/index.js`）
 
-### 15.1 贪心算法无回溯
+### 13.1 课时与模式
 
-一旦教师被分配给某班级，不会被撤回以寻求全局更优解。结果是局部最优，非全局最优。
+| 常量 | 值 | 说明 |
+|------|:--:|------|
+| `DEFAULT_HOUR_SETTINGS.full_time` | `{standard: 16, max: 20}` | 专职默认课时 |
+| `DEFAULT_HOUR_SETTINGS.part_time` | `{standard: 12, max: 16}` | 兼职默认课时 |
+| `DEFAULT_HOUR_SETTINGS.external` | `{standard: 12, max: 16}` | 外聘默认课时 |
+| `ARRANGE_MODE.STANDARD` | `'standard'` | 标准模式 |
+| `ARRANGE_MODE.FULL` | `'full'` | 全量模式 |
 
-### 15.2 轮次结构固定
+### 13.2 工作量平衡（`WORKLOAD_BALANCE`）
 
-四轮排课结构是固定的，无法动态调整。如果偏好班级超过容量，溢出仍会进入后续轮次。
+| 常量 | 值 | 说明 |
+|------|:--:|------|
+| `SCORE_THRESHOLD` | 1 | 分数差异阈值，超过则按分数排序 |
+| `LOAD_RATE_THRESHOLD` | 0.2 | 负载率差异阈值，超过则按负载率排序 |
 
-### 15.3 跨课程公平性缺失
+### 13.3 教材内聚优化（`TEXTBOOK_COHESION`）
 
-每门课程独立排课。在批量排课中，先处理的课程可能占用大量教师容量，导致后续课程的教师选择受限。
+| 常量 | 值 | 说明 |
+|------|:--:|------|
+| `ENABLED` | `true` | 总开关 |
+| `COLLEGE_WEIGHT` | 5 | 学院匹配权重 |
+| `LEVEL_WEIGHT` | 5 | 层次匹配权重 |
+| `ASSIGNED_WEIGHT` | 10 | 本轮已分配教材权重 |
+| `INHERENT_WEIGHT` | 4 | 固有教材权重 |
+| `PENALTY_PER_NEW` | 10 | 新增教材每本扣分 |
+| `ZERO_TEXTBOOK_BONUS` | 30 | 0 本教材教师加分 |
+| `TEXTBOOK_COUNT_PENALTY_1_NEW` | 200 | 1 本教师接新课极重惩罚（**当前未使用**，硬编码 -10000 替代） |
+| `TEXTBOOK_COUNT_BONUS_1_SAME` | 8 | 1 本教师接同类加分（**当前未使用**，硬编码 +10 替代） |
+| `TEXTBOOK_COUNT_PENALTY_2` | 20 | 已有 2 本教材扣分（仅 `MAX_TEXTBOOKS_PER_TEACHER ≥ 3` 时生效） |
+| `TEXTBOOK_COUNT_PENALTY_3PLUS` | 150 | 已有 3+ 本教材惩戒（仅 `MAX_TEXTBOOKS_PER_TEACHER ≥ 4` 时生效） |
+| `MAX_TEXTBOOKS_PER_TEACHER` | 2 | 教师同时教教材硬上限（0=不限制） |
+| `COHESION_PHASE_ENABLED` | `true` | 是否启用 phase2.5 内聚优先阶段（预留） |
+| `PHASE0_ENABLED` | `false` | 关闭旧 Phase 0，改用教材分组优先 |
+| `FALLBACK_EMPTY` | `true` | 无排课记录教师教材为空集合 |
+| `SCATTERED_THRESHOLD` | 3 | 教师教材数 ≥ 此值视为"分散" |
 
-### 15.4 `defaultWeeklyHours` 语义歧义
+### 13.4 批量排课
 
-字段名"默认周课时"具有误导性，实际作用是本课程的**硬上限**。UI 中已重命名为"特定周课时"。
+| 常量 | 值 | 说明 |
+|------|:--:|------|
+| `BATCH_TIMEOUT_MS` | `5 * 60 * 1000`（5 分钟） | 批量排课超时上限 |
 
 ---
 
-## 十六、最佳实践建议
-
-### 16.1 排课前准备
-
-1. **配置教师偏好**：为教师设置上课学院和培养层次偏好，提高匹配准确度
-2. **关联教师课程**：确保教师与可教课程正确关联
-3. **维护教材信息**：完善培养方案中的教材关联，提升教材匹配度
-4. **检查课时设置**：根据人员类型调整标准/最大课时
-
-### 16.2 排课策略
-
-1. **先预览后执行**：使用预览模式查看排课结果，确认无误后再正式排课
-2. **手动优先**：对于特殊需求的班级，先手动排课，再运行自动排课
-3. **单课程优先**：对于重要课程，单独排课而非批量排课，确保教师容量充足
-4. **定期重置**：每学期初重置自动排课记录，重新分配
-
-### 16.3 排课后检查
-
-1. **查看未分配班级**：检查诊断原因，手动补充排课
-2. **检查教师负荷**：通过统计页面查看教师工作量分布
-3. **调整课时设置**：根据实际情况调整标准/最大课时配置
-
----
-
-## 十七、API 接口
+## 十四、API 接口
 
 | 方法 | 路径 | 说明 | 权限 |
 |------|------|------|------|
@@ -495,7 +578,7 @@ isTextbookMatch(teacher, class) {
 
 ---
 
-## 十八、排课流程图
+## 十五、排课流程图
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -506,6 +589,8 @@ isTextbookMatch(teacher, class) {
         ┌────────────────────────┐
         │  加载班级和教师候选池    │
         │  排除手动排课的班级      │
+        │  追踪手动排课教材/学院   │
+        │  过滤无效课时班级        │
         │  按教材分组排序          │
         └────────────┬───────────┘
                      │
@@ -515,39 +600,82 @@ isTextbookMatch(teacher, class) {
         │  (需求 > 容量则警告)    │
         └────────────┬───────────┘
                      │
+                     ▼
+        ┌────────────────────────┐
+        │   构建教师约束           │
+        │  effectiveTotal/        │
+        │  standardCap/fullCap/   │
+        │  teacherHourCap         │
+        └────────────┬───────────┘
+                     │
     ┌────────────────┼────────────────────┐
     │                │                    │
     ▼                ▼                    ▼
 ┌────────┐    ┌────────────┐    ┌──────────────┐
 │ 阶段 1  │    │  阶段 2     │    │  阶段 3       │
-│ 有偏好   │───▶│  无偏好     │───▶│  同教材追加   │
-│ 教师首选 │    │  教师首选   │    │              │
+│ 有意向   │───▶│  无意向     │───▶│  同教材追加   │
+│ 教师首选 │    │  教师首选   │    │  (不增教材)   │
 └────────┘    └────────────┘    └──────┬───────┘
                                        │
-                    ┌──────────────────┼──────────────┐
-                    │                  │              │
-                    ▼                  ▼              ▼
-            ┌────────────┐   ┌────────────┐  ┌────────────┐
-            │  阶段 4     │   │  阶段 5     │  │  置换回溯   │
-            │  第二本教材  │──▶│  兜底分配   │─▶│  提升分配率 │
-            │            │   │            │  │            │
-            └────────────┘   └────────────┘  └─────┬──────┘
-                                                    │
-                                                    ▼
-                                    ┌───────────────────────────┐
-                                    │    诊断未分配班级原因       │
-                                    │    生成排课结果             │
-                                    └──────────────┬────────────┘
-                                                   │
-                                          ┌────────┴────────┐
-                                          │                 │
-                                          ▼                 ▼
-                                   ┌────────────┐   ┌────────────┐
-                                   │ 预览模式    │   │ 正式模式    │
-                                   │ (不写入)    │   │ (事务写入)  │
-                                   └────────────┘   └────────────┘
+                                       ▼
+                              ┌────────────┐
+                              │  阶段 4     │
+                              │  第二本教材  │
+                              └──────┬─────┘
+                                     │
+                                     ▼
+                              ┌────────────┐
+                              │  阶段 5     │
+                              │  兜底分配   │
+                              │ (assignRound)│
+                              └──────┬─────┘
+                                     │
+                                     ▼
+                              ┌────────────┐
+                              │  置换回溯   │
+                              │  提升分配率 │
+                              └──────┬─────┘
+                                     │
+                                     ▼
+                    ┌───────────────────────────┐
+                    │    诊断未分配班级原因       │
+                    │    生成排课结果             │
+                    └──────────────┬────────────┘
+                                   │
+                          ┌────────┴────────┐
+                          │                 │
+                          ▼                 ▼
+                   ┌────────────┐   ┌────────────┐
+                   │ 预览模式    │   │ 正式模式    │
+                   │ (不写入)    │   │ (事务写入)  │
+                   │ + 统计信息  │   │ + 容量二次校验│
+                   └────────────┘   └────────────┘
 ```
 
 ---
 
-*文档版本：v2.11.0 | 最后更新：2026-06-23*
+## 十六、已知限制
+
+### 16.1 贪心算法无回溯
+
+一旦教师被分配给某班级，不会被撤回以寻求全局更优解（置换回溯仅单轮，不递归）。结果是局部最优，非全局最优。
+
+### 16.2 跨课程公平性缺失
+
+每门课程独立排课。在批量排课中，先处理的课程可能占用大量教师容量，导致后续课程的教师选择受限。批量排课通过"供需比降序"排序缓解此问题，但无法完全消除。
+
+### 16.3 教材数量分级奖惩部分未启用
+
+`TEXTBOOK_COUNT_PENALTY_2` 与 `TEXTBOOK_COUNT_PENALTY_3PLUS` 仅在 `MAX_TEXTBOOKS_PER_TEACHER ≥ 3` 时生效。当前默认值为 2，这两个分支不可达，教材数量控制主要通过硬编码的 `-10000` 惩罚与 `isTeacherEligible` 的硬上限检查实现。
+
+### 16.4 `defaultWeeklyHours` 语义
+
+字段名"默认周课时"具有误导性，实际作用是**教师总周课时上限**（跨所有课程，含手动排课与其他课程）。UI 中已重命名为"特定周课时"。
+
+### 16.5 并发锁为进程级别
+
+`arrangeLocks` 与 `batchLocks` 均为进程内存级别，仅适用于单进程部署。多实例部署需改用分布式锁。
+
+---
+
+*文档与 `server/src/services/arrange/` 目录代码同步 | 最后更新：2026-07-02*

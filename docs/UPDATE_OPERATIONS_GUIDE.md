@@ -1,8 +1,8 @@
 # KEC 课程管理平台 - 更新操作指南
 
-**文档版本**: v1.0  
-**最后更新**: 2026-06-14  
-**适用版本**: v1.0.5+
+**文档版本**: v2.17.1  
+**最后更新**: 2026-07-02  
+**适用版本**: v2.x+
 
 ---
 
@@ -13,6 +13,7 @@
 - [方式一：SSH远程部署（推荐）](#方式一ssh远程部署推荐)
 - [方式二：服务器本地部署](#方式二服务器本地部署)
 - [方式三：手动更新](#方式三手动更新)
+- [方式四：Docker 部署（容器化）](#方式四docker-部署容器化)
 - [数据库备份与恢复](#数据库备份与恢复)
 - [常见问题排查](#常见问题排查)
 - [回滚操作](#回滚操作)
@@ -26,7 +27,7 @@
 
 ```bash
 # SSH远程一键更新（推荐）
-bash <(curl -s https://raw.githubusercontent.com/shub2026/kec-manager/main/deploy_ssh.sh) \
+bash <(curl -s https://gitee.com/shub77/kec-manager/raw/main/deploy_ssh.sh) \
   root@your-server-ip
 ```
 
@@ -42,9 +43,10 @@ bash deploy_ssh.sh root@your-server-ip
 
 | 方式 | 适用场景 | 复杂度 | 风险 | 推荐度 |
 |------|---------|--------|------|--------|
-| **SSH远程部署** | 日常更新 | ⭐ 简单 | 低 | ⭐⭐⭐⭐⭐ |
-| **服务器本地部署** | 首次部署 | ⭐⭐ 中等 | 低 | ⭐⭐⭐⭐ |
+| **SSH远程部署** | 日常更新 | ⭐ 简单 | 低 | ⭐⭐⭐⭐ |
+| **服务器本地部署** | 首次部署 | ⭐⭐ 中等 | 低 | ⭐⭐⭐⭐⭐ |
 | **手动更新** | 故障排查 | ⭐⭐⭐ 复杂 | 中 | ⭐⭐⭐ |
+| **Docker 部署** | 容器化环境 | ⭐⭐ 中等 | 低 | ⭐⭐⭐⭐ |
 
 ---
 
@@ -78,21 +80,31 @@ ssh -p 22 root@your-server-ip
 
 ```bash
 # 方法A：直接执行（不保存文件）
-curl -O https://raw.githubusercontent.com/shub2026/kec-manager/main/deploy_ssh.sh
+curl -O https://gitee.com/shub77/kec-manager/raw/main/deploy_ssh.sh
 
 # 方法B：保存到本地
-wget https://raw.githubusercontent.com/shub2026/kec-manager/main/deploy_ssh.sh
+wget https://gitee.com/shub77/kec-manager/raw/main/deploy_ssh.sh
 chmod +x deploy_ssh.sh
 ```
+
+> 📌 **代码仓库地址**：`https://gitee.com/shub77/kec-manager.git`（已从 GitHub 迁移至 Gitee，所有 raw 链接均使用 Gitee）
 
 #### 步骤2：选择部署模式
 
 **模式A：完整部署（推荐用于版本升级）**
 
 ```bash
-# 适用于v1.0.4 → v1.0.5这样的版本更新
+# 适用于v2.16 → v2.17这样的版本更新
 bash deploy_ssh.sh root@your-server-ip
 ```
+
+> ⚠️ **重要提示（deploy_ssh.sh 与 deploy.sh 的迁移时序差异）**
+>
+> `deploy_ssh.sh` 为旧版远程脚本，其执行顺序为 **"先迁移后停服务"**：在旧 PM2 进程仍持有 SQLite 连接时执行 `prisma migrate deploy`，高并发下可能触发 `SQLITE_BUSY: database is locked` 错误。
+>
+> `deploy.sh`（服务器本地部署）的顺序为 **"先停服务后迁移"**：先 `pm2 delete` 释放连接，再执行迁移，安全性更高。
+>
+> **生产环境推荐使用 `deploy.sh`**；仅在不便登录服务器时使用 `deploy_ssh.sh`，并在低峰期执行。
 
 执行流程：
 ```
@@ -327,6 +339,56 @@ pm2 logs kec-server --lines 50
 
 ---
 
+## 方式四：Docker 部署（容器化）
+
+### 适用场景
+
+- 1Panel / 容器化环境
+- 需要环境隔离、便于回滚
+- 不希望直接在宿主机安装 Node.js / PM2
+
+### 关键设计说明
+
+| 要点 | 说明 |
+|------|------|
+| **named volume** | `docker-compose.yml` 中使用 `kec-data` / `kec-uploads` 命名卷（由 Docker 管理），而非 bind mount。原因是容器内 `appuser` 为非 root 用户，bind mount 的 `./data` 默认属主为 root，会导致 SQLite 无法写入。命名卷由 Docker 按容器用户初始化权限，可正常写入。 |
+| **appuser** | `server/Dockerfile` 以非 root 用户 `appuser` 运行进程，符合容器安全最佳实践。 |
+| **WAL 模式** | Prisma 连接 SQLite 时启用 `journal_mode = WAL`（见 `server/src/lib/prisma.js` / `schema.prisma`），提升并发读写性能，降低 `database is locked` 概率。备份时建议同时复制 `-wal` 和 `-shm` 文件，或先执行 `PRAGMA wal_checkpoint(FULL)`。 |
+| **数据库路径** | 容器内为 `/app/data/kec.db`，对应命名卷 `kec-data`。宿主机数据位于 `docker volume inspect kec-data` 返回的 `Mountpoint`。 |
+
+### 使用步骤
+
+```bash
+# 1. 进入项目目录
+cd /opt/1panel/www/sites/kec/index/kec-manager
+
+# 2. 拉取最新代码
+git pull
+
+# 3. 配置环境变量（首次需复制并修改 .env.docker）
+cp .env.docker .env  # 仅首次
+
+# 4. 重新构建并启动
+docker compose up -d --build
+
+# 5. 查看状态
+docker compose ps
+docker compose logs -f server --tail 50
+
+# 6. 健康检查
+curl http://localhost:3000/api/health
+```
+
+### 数据库备份（Docker 环境）
+
+```bash
+# 直接从命名卷备份
+docker run --rm -v kec-data:/data -v $(pwd)/backups:/backup alpine \
+  sh -c "cp /data/kec.db /backup/kec_backup_$(date +%Y%m%d_%H%M%S).db"
+```
+
+---
+
 ## 💾 数据库备份与恢复
 
 ### 自动备份（deploy_ssh.sh）
@@ -381,15 +443,17 @@ pm2 restart kec-server
 
 **设置定时备份（crontab）：**
 
+> ⚠️ 项目仓库 `scripts/` 目录下**并不存在** `backup.sh` 和 `full-backup.sh`。请使用下方的内联命令直接备份，或自行编写脚本后放入服务器任意目录。
+
 ```bash
 # 编辑crontab
 crontab -e
 
-# 添加每日备份任务（每天凌晨2点）
-0 2 * * * /opt/1panel/www/sites/kec/index/kec-manager/scripts/backup.sh
+# 添加每日备份任务（每天凌晨2点，直接复制数据库文件）
+0 2 * * * cp /opt/1panel/www/sites/kec/index/kec-manager/server/data/kec.db /opt/1panel/www/sites/kec/index/kec-manager/backups/kec_backup_$(date +\%Y\%m\%d).db
 
-# 添加每周备份任务（每周日凌晨3点）
-0 3 * * 0 /opt/1panel/www/sites/kec/index/kec-manager/scripts/full-backup.sh
+# 添加每周完整备份任务（每周日凌晨3点，导出 SQL 并压缩）
+0 3 * * 0 sqlite3 /opt/1panel/www/sites/kec/index/kec-manager/server/data/kec.db ".dump" | gzip > /opt/1panel/www/sites/kec/index/kec-manager/backups/kec_full_$(date +\%Y\%m\%d).sql.gz
 ```
 
 ---
@@ -529,7 +593,7 @@ df -h
 用户频繁需要重新登录
 
 **原因：**
-v1.0.4将JWT过期时间从24h改为15m
+早期版本将JWT过期时间从24h改为15m
 
 **解决方案：**
 
@@ -583,7 +647,7 @@ pm2 delete kec-server
 # 2. 恢复到指定版本
 cd /opt/1panel/www/sites/kec/index/kec-manager
 git log --oneline  # 找到要回滚的commit hash
-git reset --hard b4c6a33  # 例如回滚到v1.0.4
+git reset --hard 9f3e2a1  # 例如回滚到v2.16.0
 
 # 3. 恢复依赖
 cd server
@@ -711,20 +775,37 @@ chmod +x scripts/update.sh
 ```markdown
 ## 更新记录
 
-### 2026-06-14 v1.0.5
-- 更新内容：Controller层重构
+### 2026-07-02 v2.17.1
+- 更新内容：架构审计修复（13 项，含 H1-H4 高危、C1-C2 关键）
 - 执行人：张三
 - 更新时间：02:30-03:00
 - 结果：成功
 - 备注：用户无感知，性能提升明显
 
-### 2026-06-13 v1.0.4
-- 更新内容：安全修复（JWT、helmet）
+### 2026-06-28 v2.15.0
+- 更新内容：学期计算 / 方案匹配一致性修复
 - 执行人：李四
 - 更新时间：23:00-23:30
 - 结果：成功
-- 备注：JWT过期时间改为15m
+- 备注：含 H2 学期年份连续性校验
 ```
+
+### 6. 环境变量参考
+
+部署/更新时需关注以下环境变量（详见 `server/.env.example` 与 `.env.docker`）：
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `JWT_SECRET` / `JWT_REFRESH_SECRET` / `JWT_DOWNLOAD_SECRET` | — | JWT 各类密钥，**生产必须设置** |
+| `JWT_EXPIRES_IN` | `15m` | Access Token 过期时间，不建议超过 1h |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh Token 过期时间 |
+| `BCRYPT_ROUNDS` | `10`（.env.example）/ `12`（Docker） | 密码哈希轮数，值越大越安全但越慢，建议 10–12 |
+| `DEFAULT_SEMESTER` | `2025-2026-2` | 默认学期，用于未指定学期参数的查询，格式 `起始年-结束年-序号` |
+| `CORS_ORIGINS` | — | 允许跨域的前端地址，多个用逗号分隔 |
+| `DATABASE_URL` | `file:./data/kec.db` | SQLite 数据库文件路径（Docker 内为 `file:/app/data/kec.db`） |
+| `LOG_LEVEL` | `info` | 日志级别（`debug`/`info`/`warn`/`error`） |
+
+> 📌 升级到 v2.x 后请确认 `BCRYPT_ROUNDS` 与 `DEFAULT_SEMESTER` 已在 `.env` 中显式配置，否则将使用代码内默认值。
 
 ---
 
@@ -769,7 +850,7 @@ curl http://localhost:3000/api/health
 1. 立即回滚到上一版本
 2. 恢复数据库备份
 3. 查看详细日志排查问题
-4. 提交Issue到GitHub
+4. 提交Issue到Gitee（https://gitee.com/shub77/kec-manager/issues）
 
 ---
 

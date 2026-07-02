@@ -1,294 +1,248 @@
-# 排课算法优化文档
+# KEC 排课算法优化说明
 
-> 文件：`server/src/services/teaching-arrange.service.js`
-> 日期：2026-06-20
-> 版本：v2.6.1
-
----
-
-## 一、问题背景
-
-### 1.1 现象
-
-语文课程使用标准模式排课时，教师"薛庆玲"在教师信息中指定了任课学院为"职教"，但自动排课后没有被优先分配到职教类班级。数学、英语科目排课正常。
-
-### 1.2 根因分析
-
-对排课核心代码进行深度审查后，发现 **3 个根本性问题**：
-
-| 编号 | 问题 | 影响 |
-|------|------|------|
-| P1 | `isTeacherEligible` 只检查容量，不检查学院/层次偏好 | 有偏好的教师在兜底阶段可被分配到非匹配班级 |
-| P2 | `calcMatchScore` 教材匹配是固定 +3 分，不区分"已教"和"新教" | 教师可能同时教 5 种教材，无内聚机制 |
-| P3 | 4 阶段排课流程中阶段间无"偏好隔离" | 无偏好教师可抢走有偏好教师的匹配班级 |
+> 主代码：`server/src/services/arrange/auto-arrange.js`
+> 配置：`server/src/constants/index.js`（`TEXTBOOK_COHESION`）
+> 版本：v2.17.1（重写）
 
 ---
 
-## 二、原算法缺陷详解
+## 一、背景
 
-### 2.1 原流程（4 阶段）
+排课服务原集中在一个文件 `teaching-arrange.service.js` 中，逻辑臃肿、难以维护。v2 已将其重构为 `server/src/services/arrange/` 目录，按职责拆分为四个模块：
 
-```
-阶段1: 学院匹配     → 有学院偏好的教师参与
-阶段2: 层次匹配     → 有层次偏好的教师参与
-阶段3: 教材匹配     → 所有教师可参与
-阶段4: 兜底         → 任何教师可参与
-```
+| 文件 | 职责 |
+|------|------|
+| `auto-arrange.js` | 主排课算法、评分、置换回溯 |
+| `queries.js` | 教师 / 班级 / 教材等数据库查询，含 `isTextbookMatch`、`isCollegeEligible`、`isLevelEligible` |
+| `validate.js` | 课时设置合法性校验 `validateHourSettings` |
+| `batch.js` | 批量排课入口，复用 `autoArrange` |
 
-### 2.2 缺陷 1：`isTeacherEligible` 无偏好约束
-
-```javascript
-// 原代码 — 只检查容量
-function isTeacherEligible(t, cls, mode) {
-  const cap = mode === 'standard' ? t.standardCap : t.fullCap;
-  if (t.assignedHours + cls.weeklyHours > cap) return false;
-  if (t.defaultWeeklyHours != null) {
-    return t.courseExistingHours + t.assignedHours + cls.weeklyHours <= t.defaultWeeklyHours;
-  }
-  return true;  // ← 不检查学院/层次偏好！
-}
-```
-
-**后果**：薛庆玲（学院=职教）在阶段 3/4 中可以被分配到非职教班级。
-
-### 2.3 缺陷 2：教材匹配无内聚
-
-```javascript
-// 原代码 — 教材匹配固定 +3 分
-function calcMatchScore(teacher, classInfo) {
-  let score = 0;
-  if (isCollegeEligible(teacher, classInfo)) score += 1;  // 学院 +1
-  if (isLevelEligible(teacher, classInfo)) score += 1;    // 层次 +1
-  if (isTextbookMatch(teacher, classInfo)) score += 3;    // 教材 +3（不区分已教/新教）
-  return score;
-}
-```
-
-**后果**：教师教完教材 A 后，对教材 B 的班级和教材 A 的班级得分相同（都是 +3），无法形成"尽量只教一种教材"的内聚。
-
-### 2.4 缺陷 3：阶段间无隔离
-
-阶段 3（教材匹配）和阶段 4（兜底）中，无偏好教师可以参与并抢走本应属于有偏好教师的匹配班级。有偏好的教师也可以在阶段 3/4 中被分配到非匹配班级。
-
-### 2.5 薛庆玲案例失败路径
-
-```
-1. 阶段1运行 → 薛庆玲(学院=职教) 候选职教班级
-2. 其他教师(学院=职教 + 教材匹配) 得分4 > 薛庆玲(学院=职教) 得分1
-3. 薛庆玲容量未满，但职教班级已被其他教师分完
-4. 阶段3/4 → 薛庆玲被分配到非职教班级（漏洞！）
-5. 结果：薛庆玲没有被优先分配到职教班级
-```
+本文聚焦 `auto-arrange.js` 中的 v2 排课算法（5 阶段流程），不包含已废弃的 4 阶段 / 6 阶段历史版本。
 
 ---
 
-## 三、优化方案
+## 二、核心数据结构
 
-### 3.1 改动 1：`isTeacherEligible` 增加严格偏好检查
+### 2.1 教师约束对象（`buildTeacherConstraints` 输出）
 
-```javascript
-function isTeacherEligible(t, cls, mode) {
-  // 容量检查（保留原有逻辑）
-  const cap = mode === 'standard' ? t.standardCap : t.fullCap;
-  if (t.assignedHours + cls.weeklyHours > cap) return false;
-  if (t.defaultWeeklyHours != null) {
-    if (t.courseExistingHours + t.assignedHours + cls.weeklyHours > t.defaultWeeklyHours) return false;
-  }
-  // 新增：严格偏好约束
-  // 教师指定了任课学院 → 班级学院必须匹配
-  if (t.schedulingCollegeIds && t.schedulingCollegeIds.length > 0 &&
-      !t.schedulingCollegeIds.includes(cls.collegeId)) {
-    return false;
-  }
-  // 教师指定了培养层次 → 班级层次必须匹配
-  if (t.schedulingLevelIds && t.schedulingLevelIds.length > 0 &&
-      cls.trainingLevelId &&
-      !t.schedulingLevelIds.includes(cls.trainingLevelId)) {
-    return false;
-  }
-  return true;
-}
-```
-
-**效果**：薛庆玲（学院=职教）永远不会被分配到非职教班级，无论在哪个阶段。
-
-### 3.2 改动 2：新增 `assignedTextbookIds` 跟踪本轮已分配教材
-
-在 `buildTeacherConstraints` 中新增两个字段：
+在原始教师数据上扩展以下字段：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `inherentTextbookIds` | `number[]` | 教师固有教材快照（排课前已确定） |
-| `assignedTextbookIds` | `Set<number>` | 本轮排课中已分配的教材（动态更新） |
+| `standardHours` / `maxHours` | `number` | 来自 `hourSettings` 的标准 / 满载课时 |
+| `effectiveTotal` | `number` | 已排总周课时（扣除本课程已自动排部分 + 批量前序虚拟课时） |
+| `courseExistingHours` | `number` | 本课程已排周课时 |
+| `standardCap` / `fullCap` | `number` | 当前可继续分配的标准 / 满载容量上限（已扣除 `effectiveTotal`，并受 `defaultWeeklyHours` 天花板约束） |
+| `teacherHourCap` | `number \| null` | 教师特定周课时上限（`defaultWeeklyHours - effectiveTotal`） |
+| `assignedHours` | `number` | 本轮已分配周课时（初始为 0，分配时累加） |
+| `inherentTextbookIds` | `number[]` | 排课前固有的教材快照，运行时累加不污染匹配判断 |
+| `assignedTextbookIds` | `Set<number>` | 本轮（含手动排课）已分配教材集合，动态更新 |
+| `assignedCollegeIds` | `Set<number>` | 本轮已分配学院集合，用于学院内聚奖励 |
+| `textbookIds` | `number[]` | 教材列表（动态累加，含固有 + 本轮新增） |
 
-在 `assignRound` 中每次分配后更新：
+### 2.2 班级对象
 
-```javascript
-for (const tid of cls.textbookIds || []) {
-  if (!selected.textbookIds.includes(tid)) {
-    selected.textbookIds.push(tid);
-  }
-  selected.assignedTextbookIds.add(tid);  // 新增：跟踪本轮已分配教材
-}
-```
-
-### 3.3 改动 3：`calcMatchScore` 加入教材内聚权重
-
-```javascript
-function calcMatchScore(teacher, classInfo) {
-  let score = 0;
-
-  // 学院偏好匹配 +5
-  if (teacher.schedulingCollegeIds?.length > 0 &&
-      teacher.schedulingCollegeIds.includes(classInfo.collegeId)) {
-    score += 5;
-  }
-
-  // 层次偏好匹配 +5
-  if (teacher.schedulingLevelIds?.length > 0 &&
-      classInfo.trainingLevelId &&
-      teacher.schedulingLevelIds.includes(classInfo.trainingLevelId)) {
-    score += 5;
-  }
-
-  // 本轮已分配教材 +6（教材内聚，最高权重）
-  if (classInfo.textbookIds?.length > 0 && teacher.assignedTextbookIds) {
-    const hasAssigned = classInfo.textbookIds.some(tid => teacher.assignedTextbookIds.has(tid));
-    if (hasAssigned) score += 6;
-  }
-
-  // 固有教材匹配 +3
-  if (isTextbookMatch(teacher, classInfo)) {
-    score += 3;
-  }
-
-  return score;
-}
-```
-
-**权重设计原理**：
-
-| 维度 | 权重 | 说明 |
-|------|------|------|
-| 学院匹配 | +5 | 核心优先级，但不是唯一因素 |
-| 层次匹配 | +5 | 核心优先级，与学院同级 |
-| 本轮已分配教材 | +6 | 最高权重，保证教材内聚 |
-| 固有教材匹配 | +3 | 辅助匹配，排课前已有数据 |
-
-> 教材内聚(+6) > 学院匹配(+5) > 固有教材(+3)
-> 这样设计是因为：在学院匹配的前提下（由 `isTeacherEligible` 保证），
-> 教材内聚是决定"同一教师教同一种教材"的关键因素。
-
-### 3.4 改动 4：6 阶段排课流程（替换 4 阶段）
-
-```
-阶段1: 有偏好教师 + 学院/层次匹配 + 固有教材匹配
-阶段2: 有偏好教师 + 学院/层次匹配 + 本轮已分配教材
-阶段3: 有偏好教师 + 学院/层次匹配（任意教材）
-阶段4: 无偏好教师 + 固有/本轮教材匹配
-阶段5: 无偏好教师 + 任意教材（评分强倾斜教材内聚）
-阶段6: 兜底（所有教师，但 isTeacherEligible 仍拦截偏好）
-```
-
-**核心设计**：
-
-- **阶段 1-3**：只有有偏好教师参与（严格匹配），确保有偏好的教师优先吃满匹配班级
-- **阶段 4-5**：只有无偏好教师参与，教材内聚优先
-- **阶段 6**：兜底，但 `isTeacherEligible` 保证有偏好教师不会被分配到非匹配班级
-
-**阶段间不交叉**：有偏好教师和无偏好教师在各自的阶段组内运行，互不干扰。
+`getClassesWithCourse` 返回的班级上挂载 `textbookIds: number[]`（由 `textbooks` 映射而来），供评分与分组使用。
 
 ---
 
-## 四、薛庆玲案例 — 修复后路径
+## 三、评分机制（`calcMatchScore`）
 
-```
-1. 阶段1 → 薛庆玲(学院=职教) + 固有教材匹配 → 得分 5+3=8，优先分配
-2. 阶段2 → 薛庆玲本轮已教教材X → 得分 5+6=11，教材内聚延续
-3. 阶段3 → 薛庆玲容量未满，继续吃职教班级（任意教材）→ 得分 5
-4. 阶段4-5 → 薛庆玲不参与（她有偏好，严格约束）
-5. 阶段6 → isTeacherEligible 拦截，薛庆玲不会被分配到非职教班级
+### 3.1 权重配置
 
-结果：薛庆玲被优先分配到职教班级，教材尽量内聚
-```
+权重全部来自 `constants/index.js` 中的 `TEXTBOOK_COHESION`，不再硬编码在算法文件中：
+
+| 维度 | 常量 | 实际值 | 说明 |
+|------|------|--------|------|
+| 学院匹配 | `COLLEGE_WEIGHT` | **+5** | 教师意向学院命中班级学院 |
+| 层次匹配 | `LEVEL_WEIGHT` | **+5** | 教师意向层次命中班级层次 |
+| 本轮已分配教材 | `ASSIGNED_WEIGHT` | **+10** | 班级教材命中教师本轮已分配集合（最高权重，保证内聚） |
+| 固有教材匹配 | `INHERENT_WEIGHT` | **+4** | 排课前教师已绑定教材 |
+| 同学院内聚奖励 | （硬编码） | **+3** | 教师本轮已接过该学院班级，再接同学院班级 |
+| 新增教材惩罚 | `PENALTY_PER_NEW` | **-10/本** | 接此班需新增 N 本教材时扣分 |
+| 0 本教材奖励 | `ZERO_TEXTBOOK_BONUS` | **+30** | 教师当前 0 本教材时给加分，鼓励"先开一本" |
+
+### 3.2 教材数量分级奖惩（二轮优化）
+
+`TEXTBOOK_COHESION.ENABLED = true` 时启用，配合 `MAX_TEXTBOOKS_PER_TEACHER = 2`：
+
+| 教师已有教材数 | 班级是否新增教材 | 结果 |
+|----------------|------------------|------|
+| 0 本 | 任意 | `score += 30`（ZERO_TEXTBOOK_BONUS） |
+| 1 本 | 不新增（同教材） | `score += 10` |
+| 1 本 | 新增 | `return score - 10000`（实质禁止） |
+| ≥ `MAX_TEXTBOOKS_PER_TEACHER`（即 ≥2） | 新增 | `return score - 10000`（实质禁止） |
+| ≥2（不可达分支，仅当调高 `MAX_TEXTBOOKS_PER_TEACHER` 时生效） | — | `score -= TEXTBOOK_COUNT_PENALTY_2`（20） |
+| ≥3（不可达分支） | — | `score -= TEXTBOOK_COUNT_PENALTY_3PLUS`（150） |
+
+> 注：当前 `MAX_TEXTBOOKS_PER_TEACHER = 2`，所以 `tbCount >= 2` 与 `tbCount >= maxTb` 等价，已在上方的"实质禁止"分支捕获；`tbCount >= 3` 与 `tbCount >= 2` 分支不可达。若将 `MAX_TEXTBOOKS_PER_TEACHER` 调高至 3+，分级惩罚分支才会生效。
+
+### 3.3 评分优先级（综合排序）
+
+`selectBestTeacher` 对候选教师按以下规则排序：
+
+1. 分数差异 ≥ `WORKLOAD_BALANCE.SCORE_THRESHOLD`（=1）→ 高分优先
+2. 负载率差异 > `WORKLOAD_BALANCE.LOAD_RATE_THRESHOLD`（=0.2）→ 低负载优先
+3. 综合排序：分数降序 → 负载率升序
 
 ---
 
-## 五、代码变更清单
+## 四、v2 排课算法（5 阶段）
 
-| 文件 | 函数 | 变更类型 | 说明 |
-|------|------|---------|------|
-| `teaching-arrange.service.js` | `isTeacherEligible` | 修改 | 增加学院/层次严格偏好检查 |
-| `teaching-arrange.service.js` | `buildTeacherConstraints` | 修改 | 新增 `inherentTextbookIds`、`assignedTextbookIds` |
-| `teaching-arrange.service.js` | `calcMatchScore` | 重写 | 学院+5、层次+5、本轮教材+6、固有教材+3 |
-| `teaching-arrange.service.js` | `assignRound` | 修改 | 分配后更新 `assignedTextbookIds` |
-| `teaching-arrange.service.js` | 排课主流程 | 重写 | 4 阶段 → 6 阶段，偏好隔离 |
-| `teaching-arrange.service.js` | `trySwapOne` | 修改 | 置换时更新 `assignedTextbookIds` |
+`autoArrange` 主入口在加载教师 / 班级 / 手动排课数据后，先按教材签名对班级分组（`textbookGroups`），并预累计手动排课教师的教材与学院（`assignedTextbookIds`、`assignedCollegeIds`），随后按以下 5 个阶段顺序执行。
+
+### 4.1 阶段总览
+
+```
+阶段1: 有指定意向的教师拿第一本教材（按教材组遍历）
+阶段2: 无指定意向的教师拿第一本教材（按教材组遍历）
+阶段3: 所有教师追加同教材班级（不增加教材数）
+阶段4: 所有教师拿第二本教材
+阶段5: 兜底（assignRound 放宽约束）
+```
+
+### 4.2 各阶段详解
+
+#### 阶段 1 — 有指定意向的教师拿第一本教材
+
+- 候选教师：`schedulingCollegeIds` 或 `schedulingLevelIds` 非空
+- 遍历每个教材组：
+  - 0 本教材的教师可拿当前组（开始第一本）
+  - 已有教材的教师，仅当已有教材与当前组有交集时可继续拿（保证"先拿完第一本"）
+- 教师按剩余容量降序选择
+- 班级严格走意向匹配（`isPrefMatch`）：意向学院 / 层次必须命中
+- 通过 `takeClassesForTeacher` 在容量与教材硬上限内连续拿班
+
+#### 阶段 2 — 无指定意向的教师拿第一本教材
+
+- 候选教师：无意向的教师集合
+- 同样按教材组遍历，规则与阶段 1 一致（0 本可拿 / 已有教材需有交集）
+- 不同点：`takeClassesForTeacher` 第三参数 `strictPrefCheck = false`，不强制意向匹配
+
+#### 阶段 3 — 所有教师追加同教材班级（不增加教材数）
+
+- 候选教师：已持有当前教材组教材的所有教师（有意向 + 无意向）
+- 目的：在容量允许下，让已开此教材的教师尽量把同教材班级吃完
+- 仍走意向匹配（`strictPrefCheck = true`）
+
+#### 阶段 4 — 所有教师拿第二本教材
+
+- 候选教师：当前未持有此教材组教材、且仍有剩余容量、且新增教材后不超 `MAX_TEXTBOOKS_PER_TEACHER`
+- 跳过阶段 3 已处理过的教师
+- 教师按剩余容量降序选择，意向匹配仍生效
+
+#### 阶段 5 — 兜底（assignRound 放宽约束）
+
+- 把各教材组的剩余班级汇总为 `allRemaining`
+- 调用 `assignRound(allRemaining)`：
+  - 按可教教师数升序排序班级（少候选的先排）
+  - 候选过滤仍走 `isTeacherEligible`（含容量、意向、教材硬上限）
+  - 每个候选打 `calcMatchScore` 并通过 `selectBestTeacher` 选最优
+- 兜底仍未分配的班级归入 `unassigned`
+
+### 4.3 阶段后：置换回溯
+
+调用 `trySwapUnassigned` → `trySwapOne`：
+
+- 对每个未分配班级 U，遍历所有教师 T（含已满）
+- 在 T 的已分配班级 V 中找一个能被其他教师 T'' 接管的
+- 校验 T 对 U、T'' 对 V 的学院 / 层次资格，以及双方置换后教材数不超 `MAX_TEXTBOOKS_PER_TEACHER`
+- 满足条件即执行置换：T 减 V 加 U、T'' 加 V、同步更新 `assignedTextbookIds` / `assignedCollegeIds` / `assignments`
+- 单轮置换，不递归；复杂度约 `O(U × T × A)`
 
 ---
 
-## 六、排课规则总结
+## 五、关键约束函数
 
-### 6.1 有偏好教师（设置了任课学院或培养层次）
+### 5.1 `isTeacherEligible(t, cls, mode)`
 
-1. **严格约束**：只能被分配到匹配学院/层次的班级（`isTeacherEligible` 保证）
-2. **优先级**：在阶段 1-3 优先参与排课
-3. **教材内聚**：同教材班级优先分配给同一教师（`calcMatchScore` 中本轮教材 +6）
-4. **前提条件**：优先保证安排到的班级使用同一教材
+资格硬过滤，所有阶段及兜底均依赖：
 
-### 6.2 无偏好教师（未设置任课学院和培养层次）
+1. 容量检查：`t.assignedHours + cls.weeklyHours ≤ cap`（标准模式 `standardCap`，满载模式 `fullCap`）
+2. 学院意向：教师指定了 `schedulingCollegeIds` 时，班级学院必须命中
+3. 层次意向：教师指定了 `schedulingLevelIds` 时，班级层次必须命中
+4. 教材硬上限：教师已有教材数 + 接此班新增教材数 > `MAX_TEXTBOOKS_PER_TEACHER` 时拒绝
 
-1. **无学院/层次约束**：可被分配到任何班级
-2. **优先级**：在阶段 4-5 参与排课（有偏好教师之后）
-3. **教材内聚**：同一教材安排完了还没达到课时容量，才安排第二教材
-4. **核心原则**：在安排中尽可能只分配同一教材班级
+### 5.2 `isPrefMatch(teacher, cls)`
 
-### 6.3 容量约束（所有教师）
+阶段 1 / 3 / 4 内的意向匹配（与 `isTeacherEligible` 中的意向部分一致，用于在分配前筛选可拿班级）。
 
-| 模式 | 约束 |
+### 5.3 `takeClassesForTeacher(teacher, availableClasses, strictPrefCheck)`
+
+教师从可用班级中按以下规则连续拿班，直到剩余容量用尽：
+
+- 按学院排序：教师已分配的学院优先，再按 `collegeId` 升序
+- 容量约束：累加课时不超过剩余容量
+- 意向约束（`strictPrefCheck = true` 时）：每班走 `isPrefMatch`
+- 教材硬上限：维护"假设拿取后"的教材投影集合，新增教材后超 `MAX_TEXTBOOKS_PER_TEACHER` 则跳过
+
+### 5.4 `recordAssignment(teacher, cls)`
+
+落地一条分配：
+
+- 累加 `assignedHours`
+- 把班级学院加入 `assignedCollegeIds`
+- 把班级教材加入 `textbookIds`（去重）和 `assignedTextbookIds`
+- 写入 `assignments` 数组
+
+---
+
+## 六、容量约束总结
+
+| 模式 | 上限 |
 |------|------|
 | 标准模式 | `assignedHours + cls.weeklyHours ≤ standardCap` |
 | 满载模式 | `assignedHours + cls.weeklyHours ≤ fullCap` |
-| 课程上限 | `courseExistingHours + assignedHours + cls.weeklyHours ≤ defaultWeeklyHours` |
+| 教师特定上限 | `effectiveTotal + assignedHours + cls.weeklyHours ≤ defaultWeeklyHours`（由 `teacherHourCap` 体现） |
+| 教材数量 | `assignedTextbookIds.size + 新增教材数 ≤ MAX_TEXTBOOKS_PER_TEACHER`（=2） |
+
+> 手动排课的教材和学院在算法开始前已累计到教师对象上，但课时通过 `effectiveTotal` 计入，避免重复计算。
 
 ---
 
-## 七、测试验证
+## 七、关键函数索引（`auto-arrange.js`）
 
-### 7.1 验证步骤
-
-1. 启动开发环境
-2. 进入"教学安排"页面
-3. 选择"语文"课程，使用"标准模式"排课
-4. 检查薛庆玲是否被优先分配到职教类班级
-5. 检查无偏好教师是否尽量只教同一教材
-
-### 7.2 预期结果
-
-- 薛庆玲的所有分配班级学院均为"职教"
-- 薛庆玲的教材尽量内聚（同一教材优先）
-- 无偏好教师的教材分配呈现内聚趋势
-- 不再出现 500 错误
-
----
-
-## 八、附录
-
-### 8.1 相关文件
-
-- 排课服务：`server/src/services/teaching-arrange.service.js`
-- 排课控制器：`server/src/controllers/teaching-arrange.controller.js`
-- 前端页面：`client/src/views/TeachingArrange.vue`
-- 前端API：`client/src/api/teachingArrange.js`
-
-### 8.2 关键函数索引
+行号会随代码演进变化，下表为近似值（约）：
 
 | 函数 | 行号(约) | 说明 |
 |------|---------|------|
-| `isTeacherEligible` | ~796 | 教师资格检查（含严格偏好） |
-| `buildTeacherConstraints` | ~814 | 构建教师约束对象 |
-| `calcMatchScore` | ~373 | 匹配评分计算（含教材内聚） |
-| `autoArrange` | ~408 | 排课主入口 |
-| `selectBestTeacher` | ~490 | 最佳教师选择 |
-| `assignRound` | ~515 | 单阶段分配 |
-| `trySwapOne` | ~722 | 置换取回溯 |
+| `calcMatchScore` | ~35 | 教师-班级匹配评分（含教材内聚与分级奖惩） |
+| `isTeacherEligible` | ~130 | 教师资格硬过滤（容量 + 意向 + 教材上限） |
+| `buildTeacherConstraints` | ~159 | 构建教师约束对象（含 `inherentTextbookIds`） |
+| `selectBestTeacher` | ~306 | 候选教师综合排序（分数 + 负载率） |
+| `trySwapOne` | ~510 | 单次置换回溯（含教材上限与意向校验） |
+| `autoArrange` | ~664 | 排课主入口（5 阶段流程 + 兜底 + 置换） |
+
+`autoArrange` 内部还定义了几个闭包辅助函数：`isPrefMatch`、`recordAssignment`、`takeClassesForTeacher`、`assignRound`。
+
+---
+
+## 八、并发与事务
+
+- **课程级锁** `arrangeLocks`：同一 `courseId:semester` 不允许并发排课
+- **批量锁** `batchLocks`：批量排课进行中，对同 `semester` 的单课程 `autoArrange` 调用直接拒绝（批量内部用 `options.skipBatchLockCheck=true` 绕过）
+- **事务**：非预览模式下，删除旧自动安排 + 写入新安排统一在 `prisma.$transaction` 内执行；事务内对每位教师做容量二次校验（避免并发排课导致超载），超载的分配降级跳过并归入 `unassigned`；教材上限同样在事务内二次校验
+
+> 注：上述锁为进程内存级别，仅适用于单进程部署（如 PM2 fork 模式）。多实例部署需改用 Redis 分布式锁或数据库行级锁。
+
+---
+
+## 九、预览模式统计
+
+预览模式（`options.preview = true`）下不写库，`buildResult` 会附带：
+
+- `teacherWorkload`：每位教师的总课时、新分配课时、容量、负载率、班级数
+- `collegeMatchRate` / `textbookMatchRate` / `levelMatchRate`：匹配率
+- `textbookCohesionRate`：教材内聚度（每位教师 `1 - (教材数-1)/班级数`，clamp 到 [0,1] 后取平均）
+- `avgTextbookPerTeacher`：教师平均教材数
+- `scatteredTeacherCount`：教材数 ≥ `SCATTERED_THRESHOLD`（=3）的"分散"教师数
+- `classTextbookMap`：班级 → 教材映射，供批量排课跨课程累计教材
+
+---
+
+## 十、更新日志
+
+| 版本 | 日期 | 说明 |
+|------|------|------|
+| v2.17.1 | 2026-07-02 | 重写本文档，对齐 v2 算法实际代码：5 阶段流程、`arrange/` 目录拆分、`TEXTBOOK_COHESION` 真实权重（ASSIGNED_WEIGHT=10、INHERENT_WEIGHT=4、ZERO_TEXTBOOK_BONUS=30）、教材数量分级奖惩、置换回溯、事务二次校验 |
+| v2.6.1 | 2026-06-20 | 旧版文档（4 阶段 → 6 阶段，权重 +6/+3/+100），已废弃 |

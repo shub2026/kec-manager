@@ -170,12 +170,14 @@ export const getUsers = async () => {
 
 #### 2.6 待办（Prisma schema 迁移）— 暂缓 ⏸️
 
-Prisma schema 全表加 `@map` 注解的工作量评估：
+> 说明：当前 `server/prisma/schema.prisma` 中已应用表级 `@@map` 映射（如 `@@map("teachers")`、`@@map("teacher_courses")` 等共 5 处），用于将 model 名映射到数据库表名。下文"暂缓"指的是**字段级 `@map` 映射**（用于将 camelCase 字段名映射到 snake_case 数据库列名），该部分尚未应用。
+
+Prisma schema 字段级 `@map` 注解的工作量评估：
 - **影响范围**：45 个文件，约 1501 处 snake_case 字段访问
 - **关联复杂度**：16 个 model 互相关联，一次改动会级联影响所有 controller/service
 - **风险等级**：极高（无自动化测试覆盖，无法在改动后验证正确性）
 
-**决定**：暂缓第三阶段迁移。当前中间件转换机制已足够（body + query 均已处理），命名不一致问题已在第一/二阶段止血。第三阶段待测试覆盖完善后再启动。
+**决定**：暂缓第三阶段迁移（字段级 `@map`）。当前中间件转换机制已足够（body + query 均已处理），命名不一致问题已在第一/二阶段止血。第三阶段待测试覆盖完善后再启动。
 
 **启动第三阶段的前置条件**：
 1. 为后端核心模块（auth/user/class/plan/teaching-arrange）补齐集成测试

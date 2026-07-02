@@ -47,9 +47,10 @@ currentSemesterNum = (grade - 1) * 2 + semesterIndex
 ## 代码位置
 
 ### 后端计算
-- **文件**: `server/src/routes/query.routes.js`
+- **文件**: `server/src/services/semester.service.js`（第 86-95 行）
 - **函数**: `calcClassSemester(cls, semesterInfo)`
 - **用途**: 开课查询、教材查询、数据导出
+- **说明**: 所有学期逻辑（`calcClassSemester` / `parseSemester` / `formatSemesterLabel`）的真正实现均收敛于此文件；`server/src/routes/query.routes.js` 中无任何对 `calcClassSemester` 或 `parseSemester` 的引用
 
 ### 前端计算
 - **文件**: `client/src/views/class/components/ClassTable.vue`
@@ -64,17 +65,19 @@ currentSemesterNum = (grade - 1) * 2 + semesterIndex
   ```
 
 ### 格式化显示
-- **后端**: `server/src/services/settings.service.js` - `formatSemesterLabel()`
+- **后端**: `server/src/services/semester.service.js` - `formatSemesterLabel()`（第 68-72 行）
 - **前端**: `client/src/stores/settings.js` - `formatSemesterLabel()`
 - **输出**: `2026年春季(第2学期)`
+- **说明**: `server/src/services/settings.service.js` 仅 re-export，真正实现位于 `semester.service.js`
 
 ## 学期格式校验规则
 
 后端 `parseSemester` / `parseSemesterString` 函数对学期字符串执行严格校验，不合法格式返回 `null`。
 
 ```javascript
-// server/src/services/arrange/queries.js — parseSemester
-// server/src/services/settings.service.js — parseSemesterString
+// server/src/services/semester.service.js — parseSemester（真正实现，第 28-59 行）
+// server/src/services/arrange/queries.js — 仅 re-export parseSemester
+// server/src/services/settings.service.js — 仅保留 @deprecated 的 parseSemesterString 兼容包装
 ```
 
 **校验规则**:

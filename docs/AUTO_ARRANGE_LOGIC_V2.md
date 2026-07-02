@@ -2,7 +2,11 @@
 
 > 更新日期：2026-06-20  
 > 版本：v2.0  
-> 文件：`server/src/services/teaching-arrange.service.js`
+> 代码已重构到 `server/src/services/arrange/` 目录，主要文件：
+> - `auto-arrange.js`（主算法）
+> - `queries.js`（查询）
+> - `validate.js`（校验）
+> - `batch.js`（批量）
 
 ---
 
@@ -414,11 +418,15 @@ export const TEXTBOOK_COHESION = {
   INHERENT_WEIGHT: 4,           // 固有教材权重
   PENALTY_PER_NEW: 10,          // 新增教材每本扣分
   ZERO_TEXTBOOK_BONUS: 30,      // 0本教师加分
-  TEXTBOOK_COUNT_PENALTY_1_NEW: 200, // 1本教师接新课极重惩罚
-  TEXTBOOK_COUNT_BONUS_1_SAME: 8,   // 1本教师接同类加分
-  TEXTBOOK_COUNT_PENALTY_2: 20, // 已有2本教材扣分
-  TEXTBOOK_COUNT_PENALTY_3PLUS: 150, // 已有3+本教材惩戒
+  TEXTBOOK_COUNT_PENALTY_1_NEW: 200, // 未使用：代码用硬编码 `return score - 10000`
+  TEXTBOOK_COUNT_BONUS_1_SAME: 8,    // 未使用：代码用硬编码 `score += 10`
+  TEXTBOOK_COUNT_PENALTY_2: 20,      // 不可达：MAX_TEXTBOOKS_PER_TEACHER=2 时已被上方分支捕获
+  TEXTBOOK_COUNT_PENALTY_3PLUS: 150, // 不可达：同上，已被上方分支捕获
   MAX_TEXTBOOKS_PER_TEACHER: 2, // 硬上限：教师最多同时教几本教材
+  COHESION_PHASE_ENABLED: true, // 未使用：phase2.5 在 v2 算法中未实现
+  PHASE0_ENABLED: false,        // 未使用：auto-arrange.js 中无任何引用
+  FALLBACK_EMPTY: true,         // 兜底推导：无排课记录教师教材为空集合（queries.js）
+  SCATTERED_THRESHOLD: 3,       // 统计阈值：教师教材数 ≥ 此值视为"分散"（auto-arrange.js）
 };
 ```
 
@@ -426,8 +434,18 @@ export const TEXTBOOK_COHESION = {
 - `ASSIGNED_WEIGHT` 从 8 提高到 10：增强本轮已用教材的吸引力
 - `PENALTY_PER_NEW` 从 8 提高到 10：增强新增教材的惩罚
 - `ZERO_TEXTBOOK_BONUS` 从 25 提高到 30：鼓励0本教师优先拿取
-- `TEXTBOOK_COUNT_PENALTY_1_NEW` 从 150 提高到 200：更强力阻止1本教师接新课
-- `TEXTBOOK_COUNT_PENALTY_3PLUS` 从 99 提高到 150：实质禁止3本以上教材
+
+**未使用 / 不可达参数说明**：
+- `TEXTBOOK_COUNT_PENALTY_1_NEW`（200）：**未使用**。`auto-arrange.js` 中对"1本教师接新课"实际使用硬编码 `return score - 10000`，未读取此常量。
+- `TEXTBOOK_COUNT_BONUS_1_SAME`（8）：**未使用**。`auto-arrange.js` 中对"1本教师接同类教材"实际使用硬编码 `score += 10`，未读取此常量。
+- `TEXTBOOK_COUNT_PENALTY_2`（20）：**不可达**。当 `MAX_TEXTBOOKS_PER_TEACHER=2` 时，`tbCount >= maxTb`（即 `>=2`）已被上方分支捕获，下方 `tbCount >= 2` 分支永不执行。
+- `TEXTBOOK_COUNT_PENALTY_3PLUS`（150）：**不可达**。同上，`tbCount >= 3` 分支永不执行。
+- `COHESION_PHASE_ENABLED`（true）：**未使用**。phase2.5 内聚优先阶段在 v2 算法中未实现，`auto-arrange.js` 中无任何引用。
+- `PHASE0_ENABLED`（false）：**未使用**。`auto-arrange.js` 中无任何引用，旧 Phase 0 已由教材分组优先策略取代。
+
+**实际生效但需补充说明的配置**：
+- `FALLBACK_EMPTY`（true）：兜底推导开关。`queries.js` 中读取，`true` 表示无排课记录教师的 `inherentTextbookIds` 为空集合（避免 `isTextbookMatch` 对新教师全通过）；`false` 表示保留全量并集兜底。
+- `SCATTERED_THRESHOLD`（3）：统计阈值。`auto-arrange.js` 中读取，教师教材数 ≥ 此值时计入"分散教师数"（`scatteredCount`），用于排课结果的内聚度统计。
 
 ### 4.2 课时容量配置
 

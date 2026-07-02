@@ -50,9 +50,19 @@ npm run lint
 - 尾随逗号(es5)
 
 ### ESLint配置 (eslint.config.js)
-- 前端: Vue 3推荐规则 + Prettier集成
-- 后端: ESLint推荐规则
-- 已配置浏览器/Node.js全局变量
+- 前端: Vue 3推荐规则 + Prettier集成（通过 `@vue/eslint-config-prettier`）
+- 后端: ESLint推荐规则（`js.configs.recommended`，未集成 Prettier）
+- 前端配置浏览器全局变量（`console`、`window`、`document`、`localStorage`、`setTimeout` 等）
+- 后端配置 Node.js 全局变量（`console`、`process`、`__dirname`、`__filename` 等）
+
+### 已关闭/降级的 ESLint 规则
+- 前端 (`client/eslint.config.js`):
+  - `vue/multi-word-component-names`: `'off'`
+  - `vue/no-v-html`: `'off'`
+  - `no-unused-vars`: `'warn'`
+- 后端 (`server/eslint.config.js`):
+  - `no-unused-vars`: `'warn'`
+  - `no-console`: `'off'`
 
 ## IDE集成建议
 
