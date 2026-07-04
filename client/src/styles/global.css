@@ -31,7 +31,7 @@
 }
 
 .el-button--primary:hover {
-  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.28);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.28);
 }
 
 /* 表格行 hover:更柔和的强调色 */

@@ -312,7 +312,7 @@ onMounted(() => {
 .login-btn:hover,
 .login-btn:focus {
   background: var(--brand-primary-hover);
-  box-shadow: 0 6px 16px rgba(67, 97, 238, 0.32);
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.32);
 }
 
 .login-btn:active {

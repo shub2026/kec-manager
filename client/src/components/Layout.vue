@@ -187,7 +187,7 @@ const sidebarBg = getComputedStyle(document.documentElement).getPropertyValue('-
 const sidebarText =
   getComputedStyle(document.documentElement).getPropertyValue('--sidebar-text').trim() || '#bfcbd9';
 const sidebarActive =
-  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-active').trim() || '#4361ee';
+  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-active').trim() || '#409eff';
 
 // keep-alive 缓存的列表页组件名（需与各列表组件 defineOptions({ name }) 一致）
 const cachedViews = [

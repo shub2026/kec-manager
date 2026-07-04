@@ -5,12 +5,12 @@
    ================================================================ */
 
 :root {
-  /* —— 主色板:从 ElementPlus 默认蓝升级为更沉静的靛蓝 —— */
-  --brand-primary: #4361ee;
-  --brand-primary-hover: #3b55d1; /* 主色 hover 阶（深 12%） */
-  --brand-primary-active: #344cba; /* 主色 active 阶（深 22%） */
-  --brand-primary-soft: #eef2ff; /* 主色极浅背景（tag/hover 底） */
-  --brand-primary-lighter: #d6dcfb; /* 主色浅阶，用于渐变过渡 */
+  /* —— 主色板:采用 ElementPlus 原生蓝 #409eff —— */
+  --brand-primary: #409eff;
+  --brand-primary-hover: #388be0; /* 主色 hover 阶（深 12%） */
+  --brand-primary-active: #337ecc; /* 主色 active 阶（深 20%） */
+  --brand-primary-soft: #ecf5ff; /* 主色极浅背景（tag/hover 底） */
+  --brand-primary-lighter: #d5eaff; /* 主色浅阶，用于渐变过渡 */
   --brand-success: #10b981;
   --brand-success-soft: #ecfdf5;
   --brand-warning: #f59e0b;
@@ -86,12 +86,11 @@
   --el-box-shadow: var(--shadow-md);
   --el-box-shadow-light: var(--shadow-sm);
 
-  /* —— ElementPlus 主色阶（light/dark），确保按钮 hover/active/disabled 跟随主色
-         不补这组变量，EP 会 fallback 到默认 #409eff 计算衍生色，导致双主色 —— */
-  --el-color-primary-light-3: #7b90f3;
-  --el-color-primary-light-5: #a1b0f6;
-  --el-color-primary-light-7: #c7d0fa;
-  --el-color-primary-light-8: #d9dffc;
-  --el-color-primary-light-9: #eceffd;
+  /* —— ElementPlus 主色阶（light/dark），与 #409eff 原生衍生色一致 —— */
+  --el-color-primary-light-3: #79bbff;
+  --el-color-primary-light-5: #a0ceff;
+  --el-color-primary-light-7: #c6e2ff;
+  --el-color-primary-light-8: #d9ecff;
+  --el-color-primary-light-9: #ecf5ff;
   --el-color-primary-dark-2: var(--brand-primary-active);
 }
