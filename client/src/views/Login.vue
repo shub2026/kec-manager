@@ -243,14 +243,16 @@ onMounted(() => {
 
 .card-accent {
   height: 4px;
+  /* 渐变：平台蓝 → 青蓝过渡 → Logo 绿，呼应品牌标识 */
   background: linear-gradient(
     90deg,
-    var(--brand-primary) 0%,
-    var(--brand-primary-hover) 35%,
-    var(--el-color-primary-light-3) 70%,
-    var(--el-color-primary-light-5) 100%
+    #409eff 0%,
+    #2aa3cb 30%,
+    #20a4b5 50%,
+    #10a890 70%,
+    #00ab6b 100%
   );
-  box-shadow: 0 0 12px rgba(64, 158, 255, 0.4);
+  box-shadow: 0 0 12px rgba(32, 164, 181, 0.4);
 }
 
 .card-header {
