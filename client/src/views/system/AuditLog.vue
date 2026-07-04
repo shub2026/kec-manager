@@ -392,12 +392,12 @@ onMounted(() => {
 
 <style scoped>
 .time-text {
-  color: #606266;
+  color: var(--text-regular);
   font-size: 13px;
 }
 
 .ip-text {
-  color: #909399;
+  color: var(--text-secondary);
   font-size: 13px;
   font-family: monospace;
 }
@@ -405,7 +405,7 @@ onMounted(() => {
 .details-content {
   background-color: var(--el-fill-color-light);
   padding: 16px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   max-height: 400px;
   overflow: auto;
   white-space: pre-wrap;
@@ -425,12 +425,12 @@ onMounted(() => {
   word-break: break-all;
   font-family: monospace;
   font-size: 12px;
-  color: #606266;
+  color: var(--text-regular);
 }
 
 .confirm-text {
   margin: 16px 0 0;
-  color: #606266;
+  color: var(--text-regular);
   font-size: 14px;
   line-height: 1.6;
 }

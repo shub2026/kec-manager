@@ -119,13 +119,13 @@
             <!-- 所有管理员都可以创建管理员和访客 -->
             <el-option label="管理员" value="admin">
               <span>管理员</span>
-              <span style="color: #999; font-size: 12px; margin-left: 10px"
+              <span style="color: var(--text-secondary); font-size: 12px; margin-left: 10px"
                 >基础数据和培养方案维护</span
               >
             </el-option>
             <el-option label="访客" value="viewer">
               <span>访客</span>
-              <span style="color: #999; font-size: 12px; margin-left: 10px">仅查询权限</span>
+              <span style="color: var(--text-secondary); font-size: 12px; margin-left: 10px">仅查询权限</span>
             </el-option>
           </el-select>
         </el-form-item>
@@ -142,7 +142,7 @@
             >可以维护基础数据（专业、学院、课程等）和培养方案，但不能配置系统设置和重置系统
           </p>
           <p><strong>访客：</strong>只能访问查询页面，适合需要查看数据但不需要修改的用户</p>
-          <p style="margin-top: 8px; color: #f56c6c">
+          <p style="margin-top: 8px; color: var(--brand-danger)">
             <strong>注意：</strong>超级管理员是系统唯一角色，不能通过此界面创建。
           </p>
         </el-alert>
@@ -162,10 +162,10 @@
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"
+        <el-icon :size="24" color="var(--brand-warning)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: #606266">{{ statusConfirmMessage }}</p>
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ statusConfirmMessage }}</p>
       </div>
       <template #footer>
         <el-button @click="statusConfirmVisible = false">取消</el-button>
@@ -183,10 +183,10 @@
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: #606266">{{ deleteConfirmMessage }}</p>
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ deleteConfirmMessage }}</p>
       </div>
       <template #footer>
         <el-button @click="deleteConfirmVisible = false">取消</el-button>

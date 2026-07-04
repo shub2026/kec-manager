@@ -94,12 +94,12 @@
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <div style="flex: 1; line-height: 1.6; color: #606266">
+        <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
           <p style="margin: 0">确定要删除此专业吗？此操作不可撤销。</p>
-          <p v-if="deleteWarning" style="margin: 8px 0 0; color: #f56c6c; font-size: 13px">
+          <p v-if="deleteWarning" style="margin: 8px 0 0; color: var(--brand-danger); font-size: 13px">
             <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
           </p>
         </div>

@@ -2,6 +2,7 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 // ElementPlus 通过 vite.config.js 的 unplugin-vue-components 按需引入，不在此处全量导入
 // locale 中文配置在 App.vue 中通过 <el-config-provider> 提供
+import './styles/theme.css';
 import './styles/global.css';
 import {
   ArrowDown,

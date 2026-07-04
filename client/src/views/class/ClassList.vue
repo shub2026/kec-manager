@@ -106,10 +106,10 @@
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: #606266">
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
           确定要删除此班级吗？此操作不可撤销。
         </p>
       </div>
@@ -127,10 +127,10 @@
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: #606266">{{ batchDeleteConfirmMessage }}</p>
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ batchDeleteConfirmMessage }}</p>
       </div>
       <template #footer>
         <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
@@ -148,10 +148,10 @@
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"
+        <el-icon :size="24" color="var(--brand-warning)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: #606266">{{ leftSchoolConfirmMessage }}</p>
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ leftSchoolConfirmMessage }}</p>
       </div>
       <template #footer>
         <el-button @click="cancelLeftSchoolConfirm">取消</el-button>
@@ -761,13 +761,13 @@ onMounted(() => {
 .progress-text {
   font-size: 16px;
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .progress-detail {
   font-size: 14px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .progress-tip {
@@ -777,8 +777,8 @@ onMounted(() => {
   gap: 8px;
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #ebeef5;
-  color: #409eff;
+  border-top: 1px solid var(--border-light);
+  color: var(--brand-primary);
   font-size: 14px;
 }
 </style>

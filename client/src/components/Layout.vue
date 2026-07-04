@@ -104,15 +104,14 @@
           <span class="header-title">{{ currentTitle }}</span>
         </div>
         <div class="layout-header-right">
-          <el-tag v-if="semesterLabel" type="info">{{ semesterLabel }}</el-tag>
+          <el-tag v-if="semesterLabel" size="small" type="info">{{ semesterLabel }}</el-tag>
           <el-dropdown aria-haspopup="true" @command="handleCommand">
             <span class="user-info" aria-label="用户菜单">
               <el-icon><User /></el-icon>
-              {{ authStore.realName || authStore.username }}
+              <span class="user-name">{{ authStore.realName || authStore.username }}</span>
               <el-tag
                 size="small"
                 :type="authStore.isAdmin ? 'success' : 'info'"
-                style="margin-left: 5px"
               >
                 {{ authStore.isAdmin ? '管理员' : '访客' }}
               </el-tag>
@@ -368,14 +367,40 @@ function handlePasswordChangeSuccess() {
   font-size: 20px;
 }
 
+/* 用户菜单触发器:图标 / 用户名 / 角色标签 同行垂直居中 */
+.user-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  outline: none;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.user-info:hover {
+  background: var(--bg-subtle);
+}
+
+.user-info:focus-visible {
+  background: var(--brand-primary-soft);
+}
+
+.user-name {
+  font-size: 14px;
+  color: var(--text-regular);
+  line-height: 1;
+}
+
 .header-title {
   font-size: 16px;
   font-weight: 500;
 }
 
 .layout-main {
-  background: #f5f7fa;
-  padding: 16px 20px;
+  background: var(--bg-page);
+  padding: var(--space-5) var(--space-6);
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;

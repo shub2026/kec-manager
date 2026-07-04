@@ -43,7 +43,7 @@
             @click="navigateTo('/majors')"
             @keyup.enter="navigateTo('/majors')"
           >
-            <div class="stat-icon" style="background-color: #ecf5ff; color: #409eff">
+            <div class="stat-icon" style="background-color: var(--brand-primary-soft); color: var(--brand-primary)">
               <el-icon :size="24"><OfficeBuilding /></el-icon>
             </div>
             <div class="stat-info">
@@ -62,7 +62,7 @@
             @click="navigateTo('/courses')"
             @keyup.enter="navigateTo('/courses')"
           >
-            <div class="stat-icon" style="background-color: #f0f9eb; color: #67c23a">
+            <div class="stat-icon" style="background-color: var(--brand-success-soft); color: var(--brand-success)">
               <el-icon :size="24"><Reading /></el-icon>
             </div>
             <div class="stat-info">
@@ -81,7 +81,7 @@
             @click="navigateTo('/classes')"
             @keyup.enter="navigateTo('/classes')"
           >
-            <div class="stat-icon" style="background-color: #fdf6ec; color: #e6a23c">
+            <div class="stat-icon" style="background-color: var(--brand-warning-soft); color: var(--brand-warning)">
               <el-icon :size="24"><Histogram /></el-icon>
             </div>
             <div class="stat-info">
@@ -100,7 +100,7 @@
             @click="navigateTo('/textbooks')"
             @keyup.enter="navigateTo('/textbooks')"
           >
-            <div class="stat-icon" style="background-color: #fef0f0; color: #f56c6c">
+            <div class="stat-icon" style="background-color: var(--brand-danger-soft); color: var(--brand-danger)">
               <el-icon :size="24"><Notebook /></el-icon>
             </div>
             <div class="stat-info">
@@ -119,7 +119,7 @@
             @click="navigateTo('/plans')"
             @keyup.enter="navigateTo('/plans')"
           >
-            <div class="stat-icon" style="background-color: #f4f4f5; color: #909399">
+            <div class="stat-icon" style="background-color: var(--bg-subtle); color: var(--text-secondary)">
               <el-icon :size="24"><Files /></el-icon>
             </div>
             <div class="stat-info">
@@ -132,7 +132,7 @@
         <!-- 在读学生 -->
         <el-col :xs="12" :sm="8" :md="6">
           <div class="stat-item">
-            <div class="stat-icon" style="background-color: #ecf5ff; color: #409eff">
+            <div class="stat-icon" style="background-color: var(--brand-primary-soft); color: var(--brand-primary)">
               <el-icon :size="24"><User /></el-icon>
             </div>
             <div class="stat-info">
@@ -151,7 +151,7 @@
             @click="navigateTo('/teaching/arrange')"
             @keyup.enter="navigateTo('/teaching/arrange')"
           >
-            <div class="stat-icon" style="background-color: #fdf6ec; color: #e6a23c">
+            <div class="stat-icon" style="background-color: var(--brand-warning-soft); color: var(--brand-warning)">
               <el-icon :size="24"><UserFilled /></el-icon>
             </div>
             <div class="stat-info">
@@ -170,7 +170,7 @@
             @click="navigateTo('/teaching/arrange')"
             @keyup.enter="navigateTo('/teaching/arrange')"
           >
-            <div class="stat-icon" style="background-color: #f0f9eb; color: #67c23a">
+            <div class="stat-icon" style="background-color: var(--brand-success-soft); color: var(--brand-success)">
               <el-icon :size="24"><Clock /></el-icon>
             </div>
             <div class="stat-info">
@@ -202,7 +202,7 @@
         <el-row :gutter="20">
           <el-col :xs="24" :sm="12" :md="8">
             <div class="feature-item">
-              <el-icon color="#409EFF"><School /></el-icon>
+              <el-icon color="var(--brand-primary)"><School /></el-icon>
               <div>
                 <div class="feature-title">基础数据管理</div>
                 <div class="feature-desc">学院、专业、培养层次、班级</div>
@@ -211,7 +211,7 @@
           </el-col>
           <el-col :xs="24" :sm="12" :md="8">
             <div class="feature-item">
-              <el-icon color="#67C23A"><Reading /></el-icon>
+              <el-icon color="var(--brand-success)"><Reading /></el-icon>
               <div>
                 <div class="feature-title">课程与教材管理</div>
                 <div class="feature-desc">课程目录、教材信息、批量导入</div>
@@ -220,7 +220,7 @@
           </el-col>
           <el-col :xs="24" :sm="12" :md="8">
             <div class="feature-item">
-              <el-icon color="#E6A23C"><Files /></el-icon>
+              <el-icon color="var(--brand-warning)"><Files /></el-icon>
               <div>
                 <div class="feature-title">培养方案管理</div>
                 <div class="feature-desc">课程矩阵、课时分配、教材关联</div>
@@ -229,7 +229,7 @@
           </el-col>
           <el-col :xs="24" :sm="12" :md="8">
             <div class="feature-item">
-              <el-icon color="#F56C6C"><UserFilled /></el-icon>
+              <el-icon color="var(--brand-danger)"><UserFilled /></el-icon>
               <div>
                 <div class="feature-title">教师与智能排课</div>
                 <div class="feature-desc">教师档案、排课偏好、自动分配</div>
@@ -238,7 +238,7 @@
           </el-col>
           <el-col :xs="24" :sm="12" :md="8">
             <div class="feature-item">
-              <el-icon color="#909399"><Search /></el-icon>
+              <el-icon color="var(--text-secondary)"><Search /></el-icon>
               <div>
                 <div class="feature-title">查询与统计分析</div>
                 <div class="feature-desc">开课查询、教材查询、课时统计</div>
@@ -380,10 +380,10 @@ onMounted(async () => {
 
 /* 欢迎区域 */
 .welcome-section {
-  background: #fff;
+  background: var(--bg-card);
   padding: 16px 24px;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -396,13 +396,13 @@ onMounted(async () => {
   margin: 0 0 4px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .welcome-subtitle {
   margin: 0;
   font-size: 14px;
-  color: #606266;
+  color: var(--text-regular);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -416,7 +416,7 @@ onMounted(async () => {
 /* 卡片通用样式 */
 .stats-card,
 .info-card {
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .card-header {
@@ -428,7 +428,7 @@ onMounted(async () => {
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -440,25 +440,25 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #fafbfc;
-  border-radius: 4px;
-  border: 1px solid #f0f0f0;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
   cursor: pointer;
   transition: all 0.2s;
   margin-bottom: 12px;
 }
 
 .stat-item:hover {
-  background: #fff;
-  border-color: #dcdfe6;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  background: var(--bg-card);
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-icon {
   flex-shrink: 0;
   width: 40px;
   height: 40px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -472,21 +472,21 @@ onMounted(async () => {
 .stat-value {
   font-size: 22px;
   font-weight: 700;
-  color: #303133;
+  color: var(--text-primary);
   line-height: 1.2;
   margin-bottom: 2px;
 }
 
 .stat-label {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 /* 平台信息 */
 .platform-info {
   font-size: 14px;
-  color: #606266;
+  color: var(--text-regular);
   line-height: 1.6;
 }
 
@@ -495,21 +495,21 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: #fafbfc;
-  border-radius: 4px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
   margin-bottom: 8px;
 }
 
 .feature-title {
   font-size: 13px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 2px;
 }
 
 .feature-desc {
   font-size: 11px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .tech-stack {
@@ -525,16 +525,16 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 8px;
   font-size: 13px;
-  color: #b0b3b8;
+  color: var(--text-secondary);
 }
 
 .footer-info a {
-  color: #909399;
+  color: var(--text-secondary);
   text-decoration: none;
 }
 
 .footer-info a:hover {
-  color: #409eff;
+  color: var(--brand-primary);
 }
 
 /* 响应式 */

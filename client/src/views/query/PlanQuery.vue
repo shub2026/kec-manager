@@ -161,15 +161,15 @@ onMounted(() => {
   width: max-content;
   min-width: 100%;
   font-size: 13px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-light);
   border-top: none;
 }
 
 .matrix-total-final td {
-  background: #e6e6e6;
-  border-top: 3px solid #909399;
+  background: var(--border-light);
+  border-top: 3px solid var(--text-secondary);
   font-weight: 600;
-  border: 1px solid #c0c4cc;
+  border: 1px solid var(--text-placeholder);
   padding: 4px 6px;
   text-align: center;
 }
@@ -177,18 +177,18 @@ onMounted(() => {
 .matrix-total-final-label {
   padding: 8px 12px;
   font-weight: 700;
-  color: #303133;
+  color: var(--text-primary);
   text-align: left;
   position: sticky;
   left: 0;
   z-index: 1;
-  background: #e6e6e6;
+  background: var(--border-light);
   min-width: 160px;
 }
 
 .matrix-total-final-cell {
   font-weight: 700;
-  color: #303133;
+  color: var(--text-primary);
   font-size: 14px;
   min-width: 80px;
 }

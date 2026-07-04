@@ -177,7 +177,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fa;
+  background: var(--bg-page);
   padding: 40px 20px;
 }
 
@@ -232,19 +232,18 @@ onMounted(() => {
 /* ==================== 卡片 ==================== */
 .login-card {
   width: 100%;
-  background: #fff;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
   padding: 0 36px 32px;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.04),
-    0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
 }
 
 .card-accent {
   height: 3px;
-  background: linear-gradient(90deg, #409eff 0%, #5dade2 50%, #67c23a 100%);
+  background: linear-gradient(90deg, var(--brand-primary) 0%, #5dade2 50%, var(--brand-success) 100%);
 }
 
 .card-header {
@@ -276,24 +275,24 @@ onMounted(() => {
 }
 
 .login-form :deep(.el-input__wrapper) {
-  border-radius: 8px;
-  box-shadow: 0 0 0 1px #e5e6eb inset;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px var(--border-light) inset;
   padding: 4px 12px;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow var(--dur-base) var(--ease-out);
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px #c9cdd4 inset;
+  box-shadow: 0 0 0 1px var(--border-base) inset;
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1.5px #409eff inset;
+  box-shadow: 0 0 0 1.5px var(--brand-primary) inset;
 }
 
 .login-btn {
   width: 100%;
   height: 46px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 6px;
@@ -301,16 +300,19 @@ onMounted(() => {
   margin-top: 6px;
   background: #409eff;
   border: none;
-  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--dur-base) var(--ease-out);
 }
 
 .login-btn:hover,
 .login-btn:focus {
   background: #3a8ee6;
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.32);
 }
 
 .login-btn:active {
   background: #337ecc;
+  transform: scale(0.98);
 }
 
 /* ==================== 账号提示 ==================== */

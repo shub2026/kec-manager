@@ -179,19 +179,20 @@ function handleSemesterChange(value) {
 }
 
 .dot-blue {
-  background-color: #409eff;
+  background-color: var(--brand-primary);
 }
 
 .card-title-text {
   font-weight: 600;
   font-size: 16px;
+  color: var(--text-primary);
 }
 
 .semester-body {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
-  padding: 20px 0;
+  gap: var(--space-6);
+  padding: var(--space-5) 0 var(--space-2);
   align-items: flex-start;
 }
 
@@ -203,7 +204,7 @@ function handleSemesterChange(value) {
 }
 
 .config-item {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-5);
 }
 
 .config-item:last-child {
@@ -211,14 +212,14 @@ function handleSemesterChange(value) {
 }
 
 .organization-item {
-  margin-top: 8px;
+  margin-top: 0;
 }
 
 .field-label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   font-weight: 500;
-  color: #606266;
+  color: var(--text-regular);
 }
 
 .semester-select {
@@ -230,9 +231,9 @@ function handleSemesterChange(value) {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   font-size: 13px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .organization-input {
@@ -248,15 +249,17 @@ function handleSemesterChange(value) {
   height: auto;
   position: relative;
   padding: 28px 24px;
-  background: #fafafa;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
   text-align: center;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
 }
 
 .semester-preview:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .preview-badge {
@@ -264,9 +267,9 @@ function handleSemesterChange(value) {
   top: -12px;
   right: 24px;
   padding: 4px 12px;
-  background: #409eff;
-  color: white;
-  border-radius: 12px;
+  background: var(--brand-primary);
+  color: #fff;
+  border-radius: var(--radius-lg);
   font-size: 12px;
   font-weight: 500;
 }
@@ -274,8 +277,8 @@ function handleSemesterChange(value) {
 .preview-year {
   font-size: 22px;
   font-weight: 700;
-  color: #303133;
-  margin-bottom: 16px;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
 }
 
 .preview-detail {
@@ -289,17 +292,17 @@ function handleSemesterChange(value) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #dcdfe6;
-  color: #606266;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-light);
+  color: var(--text-regular);
   font-size: 14px;
   font-weight: 500;
 }
 
 .preview-footer.saved {
-  color: #67c23a;
+  color: var(--brand-success);
 }
 
 .semester-preview.empty {
@@ -310,15 +313,15 @@ function handleSemesterChange(value) {
   min-height: 200px;
   height: auto;
   padding: 32px 24px;
-  background: #fafafa;
-  border-radius: 4px;
-  color: #909399;
-  border: 1px dashed #dcdfe6;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-base);
 }
 
 .semester-preview.empty :deep(.el-icon) {
-  color: #c0c4cc;
-  margin-bottom: 12px;
+  color: var(--text-placeholder);
+  margin-bottom: var(--space-3);
 }
 
 .semester-preview.empty p {
@@ -329,8 +332,8 @@ function handleSemesterChange(value) {
 .semester-actions {
   display: flex;
   justify-content: flex-start;
-  padding-top: 20px;
-  border-top: 1px solid #ebeef5;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-light);
 }
 
 .semester-option {

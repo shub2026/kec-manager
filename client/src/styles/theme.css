@@ -1,0 +1,76 @@
+/* ================================================================
+   KEC 管理平台 — 设计令牌层
+   统一管理颜色 / 间距 / 圆角 / 阴影 / 动效 / 字体层级
+   通过覆盖 ElementPlus 的 --el-* 变量,实现一处改全局生效
+   ================================================================ */
+
+:root {
+  /* —— 主色板:从 ElementPlus 默认蓝升级为更沉静的靛蓝 —— */
+  --brand-primary: #4361ee;
+  --brand-primary-soft: #eef2ff;
+  --brand-success: #10b981;
+  --brand-success-soft: #ecfdf5;
+  --brand-warning: #f59e0b;
+  --brand-warning-soft: #fffbeb;
+  --brand-danger: #ef4444;
+  --brand-danger-soft: #fef2f2;
+
+  /* —— 中性色阶(替换散落的 #303133 / #606266 / #909399) —— */
+  --text-primary: #1e293b;
+  --text-regular: #475569;
+  --text-secondary: #94a3b8;
+  --text-placeholder: #cbd5e1;
+
+  /* —— 背景与边框 —— */
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --border-light: #e2e8f0;
+  --border-base: #cbd5e1;
+
+  /* —— 间距基数 8px,统一节奏 —— */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* —— 圆角:从 4px → 6/10/16 三档 —— */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* —— 阴影:三层体系 —— */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.12);
+
+  /* —— 动效曲线:cubic-bezier 让过渡更有弹性 —— */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 150ms;
+  --dur-base: 240ms;
+  --dur-slow: 360ms;
+
+  /* —— 字体层级 —— */
+  --font-display: 600 22px/1.3 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-title: 600 16px/1.4 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-body: 400 14px/1.6 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-caption: 400 12px/1.5 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  /* —— 覆盖 ElementPlus 主题变量,影响所有 el-* 组件 —— */
+  --el-color-primary: var(--brand-primary);
+  --el-color-success: var(--brand-success);
+  --el-color-warning: var(--brand-warning);
+  --el-color-danger: var(--brand-danger);
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-regular);
+  --el-text-color-secondary: var(--text-secondary);
+  --el-border-color: var(--border-light);
+  --el-border-radius-base: var(--radius-sm);
+  --el-box-shadow: var(--shadow-md);
+  --el-box-shadow-light: var(--shadow-sm);
+}

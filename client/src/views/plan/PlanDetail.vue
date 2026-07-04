@@ -86,12 +86,12 @@
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <div style="flex: 1; line-height: 1.6; color: #606266">
+        <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
           <p style="margin: 0">{{ deleteCourseConfirmMessage }}</p>
-          <p style="margin: 8px 0 0; color: #909399; font-size: 13px">此操作不可撤销。</p>
+          <p style="margin: 8px 0 0; color: var(--text-secondary); font-size: 13px">此操作不可撤销。</p>
         </div>
       </div>
       <template #footer>

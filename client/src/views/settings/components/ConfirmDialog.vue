@@ -190,18 +190,18 @@ function handleConfirm() {
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background: #fef0f0;
-  border-left: 4px solid #f56c6c;
-  border-radius: 4px;
+  background: var(--brand-danger-soft);
+  border-left: 4px solid var(--brand-danger);
+  border-radius: var(--radius-sm);
   margin-bottom: 20px;
-  color: #f56c6c;
+  color: var(--brand-danger);
   font-weight: 500;
 }
 
 .confirm-description p {
   margin: 0 0 15px 0;
   font-size: 14px;
-  color: #606266;
+  color: var(--text-regular);
   line-height: 1.6;
 }
 
@@ -213,13 +213,13 @@ function handleConfirm() {
   display: block;
   margin-bottom: 10px;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .confirm-text {
   margin: 20px 0;
   font-size: 14px;
-  color: #606266;
+  color: var(--text-regular);
   line-height: 1.6;
 }
 
@@ -231,6 +231,6 @@ function handleConfirm() {
   display: block;
   margin-bottom: 8px;
   font-size: 13px;
-  color: #606266;
+  color: var(--text-regular);
 }
 </style>
