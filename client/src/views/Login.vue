@@ -286,7 +286,7 @@ onMounted(() => {
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1.5px var(--brand-primary) inset;
+  box-shadow: 0 0 0 1.5px #409eff inset;
 }
 
 .login-btn {
