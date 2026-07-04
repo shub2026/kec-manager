@@ -242,13 +242,15 @@ onMounted(() => {
 }
 
 .card-accent {
-  height: 3px;
+  height: 4px;
   background: linear-gradient(
     90deg,
     var(--brand-primary) 0%,
-    var(--brand-primary-lighter) 50%,
-    var(--brand-success) 100%
+    var(--brand-primary-hover) 35%,
+    var(--el-color-primary-light-3) 70%,
+    var(--el-color-primary-light-5) 100%
   );
+  box-shadow: 0 0 12px rgba(64, 158, 255, 0.4);
 }
 
 .card-header {
