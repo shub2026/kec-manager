@@ -144,11 +144,11 @@ defineExpose({ open });
   overflow-x: hidden;
 }
 .text-warning {
-  color: #e6a23c;
+  color: var(--brand-warning);
   font-weight: bold;
 }
 .text-placeholder {
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   font-size: 12px;
 }
 .tag-item {

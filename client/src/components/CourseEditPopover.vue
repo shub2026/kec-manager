@@ -158,10 +158,10 @@ defineEmits([
 .popover-title {
   font-weight: 600;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .popover-actions {
@@ -170,12 +170,12 @@ defineEmits([
   gap: 8px;
   margin-top: 12px;
   padding-top: 8px;
-  border-top: 1px solid #e4e7ed;
+  border-top: 1px solid var(--border-light);
 }
 
 .textbook-disabled-tip {
   font-size: 12px;
-  color: #f56c6c;
+  color: var(--brand-danger);
   margin-top: 4px;
 }
 

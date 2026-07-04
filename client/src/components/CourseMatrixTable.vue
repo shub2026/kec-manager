@@ -222,7 +222,7 @@ function calcSemesterSubtotal(group, semester) {
 .matrix-scroll {
   flex: 1;
   overflow: auto;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-light);
   border-radius: 4px;
 }
 
@@ -240,12 +240,12 @@ function calcSemesterSubtotal(group, semester) {
 }
 
 .matrix-table th {
-  background: #f5f7fa;
-  border: 1px solid #e4e7ed;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
   padding: 8px 6px;
   text-align: center;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
@@ -261,14 +261,14 @@ function calcSemesterSubtotal(group, semester) {
 
 .matrix-total-header {
   min-width: 70px;
-  background: #ecf5ff !important;
-  color: #409eff !important;
+  background: var(--brand-primary-soft) !important;
+  color: var(--brand-primary) !important;
 }
 
 .matrix-action-header {
   min-width: 140px;
   text-align: center;
-  background: #f5f7fa !important;
+  background: var(--bg-subtle) !important;
 }
 
 /* 固定列 */
@@ -276,12 +276,12 @@ function calcSemesterSubtotal(group, semester) {
   position: sticky;
   left: 0;
   z-index: 1;
-  background: #fff;
+  background: var(--bg-card);
 }
 
 .matrix-course-name {
   padding: 8px 12px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -306,17 +306,17 @@ function calcSemesterSubtotal(group, semester) {
   padding: 6px 16px !important;
   font-weight: 600;
   font-size: 14px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-light);
 }
 
 .matrix-group-cell.public {
-  background: #f0f9eb;
-  color: #67c23a;
+  background: var(--brand-success-soft);
+  color: var(--brand-success);
 }
 
 .matrix-group-cell.professional {
-  background: #fdf6ec;
-  color: #e6a23c;
+  background: var(--brand-warning-soft);
+  color: var(--brand-warning);
 }
 
 .group-label {
@@ -326,12 +326,12 @@ function calcSemesterSubtotal(group, semester) {
 .group-count {
   font-weight: 400;
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 /* 单元格 */
 .matrix-cell {
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-light);
   padding: 4px 6px;
   text-align: center;
   cursor: pointer;
@@ -341,39 +341,40 @@ function calcSemesterSubtotal(group, semester) {
 }
 
 .matrix-cell:hover {
-  box-shadow: inset 0 0 0 2px #409eff;
+  box-shadow: inset 0 0 0 2px var(--brand-primary);
 }
 
 .cell-out-of-range {
-  background: #fafafa;
+  background: var(--bg-subtle);
   cursor: default;
 }
 
 .cell-zero {
-  background: #fff;
+  background: var(--bg-card);
 }
 
+/* 课时热力：基于主色由浅到深 */
 .cell-low {
-  background: #ecf5ff;
+  background: var(--el-color-primary-light-9);
 }
 
 .cell-mid {
-  background: #d9ecff;
+  background: var(--el-color-primary-light-7);
 }
 
 .cell-high {
-  background: #b3d8ff;
+  background: var(--el-color-primary-light-5);
 }
 
 .cell-hours {
   font-weight: 600;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .cell-textbook {
   font-size: 11px;
-  color: #909399;
+  color: var(--text-secondary);
   margin-top: 2px;
   max-width: 80px;
   overflow: hidden;
@@ -383,7 +384,7 @@ function calcSemesterSubtotal(group, semester) {
 
 /* 禁用教材样式 */
 .textbook-disabled {
-  color: #c0c4cc !important;
+  color: var(--text-placeholder) !important;
   text-decoration: line-through;
   display: flex;
   align-items: center;
@@ -391,14 +392,14 @@ function calcSemesterSubtotal(group, semester) {
 }
 
 .warning-icon {
-  color: #e6a23c;
+  color: var(--brand-warning);
   font-size: 12px;
   flex-shrink: 0;
 }
 
 /* 总课时列 */
 .matrix-total-cell {
-  background: #ecf5ff !important;
+  background: var(--brand-primary-soft) !important;
   font-size: 14px;
 }
 
@@ -425,21 +426,21 @@ function calcSemesterSubtotal(group, semester) {
 
 /* 小计行 */
 .matrix-subtotal-row td {
-  background: #f5f7fa;
-  border-top: 2px solid #c0c4cc;
+  background: var(--bg-subtle);
+  border-top: 2px solid var(--border-base);
 }
 
 .matrix-subtotal-label {
   padding: 6px 12px;
   font-weight: 600;
-  color: #606266;
+  color: var(--text-regular);
   text-align: left;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-light);
 }
 
 .matrix-subtotal-cell {
   font-weight: 500;
-  color: #606266;
+  color: var(--text-regular);
   cursor: default !important;
 }
 
@@ -447,7 +448,7 @@ function calcSemesterSubtotal(group, semester) {
 .matrix-footer {
   margin-top: 16px;
   padding: 12px 16px;
-  background: #f5f7fa;
+  background: var(--bg-subtle);
   border-radius: 4px;
   display: flex;
   justify-content: space-between;
@@ -465,12 +466,12 @@ function calcSemesterSubtotal(group, semester) {
 .footer-label {
   font-weight: 600;
   font-size: 13px;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .footer-hint {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .footer-summary {

@@ -385,13 +385,13 @@ onMounted(async () => {
 .course-detail h4 {
   margin: 8px 0 4px;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary);
 }
 .tag-item {
   margin: 2px;
 }
 .text-muted {
-  color: #999;
+  color: var(--text-secondary);
 }
 .hours-value {
   font-weight: bold;

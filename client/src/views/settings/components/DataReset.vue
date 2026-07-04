@@ -114,7 +114,7 @@ defineEmits(['reset']);
 }
 
 .dot-red {
-  background-color: #f56c6c;
+  background-color: var(--brand-danger);
 }
 
 .card-title-text {
@@ -123,7 +123,7 @@ defineEmits(['reset']);
 }
 
 .danger-text {
-  color: #f56c6c;
+  color: var(--brand-danger);
 }
 
 /* 顶部警告横幅 - 紧凑 */
@@ -132,16 +132,16 @@ defineEmits(['reset']);
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  background: #fef0f0;
-  border-left: 4px solid #f56c6c;
+  background: var(--brand-danger-soft);
+  border-left: 4px solid var(--brand-danger);
   border-radius: 4px;
   margin-bottom: 16px;
   font-size: 13px;
-  color: #606266;
+  color: var(--text-regular);
 }
 
 .danger-banner .el-icon {
-  color: #f56c6c;
+  color: var(--brand-danger);
   flex-shrink: 0;
 }
 
@@ -159,8 +159,8 @@ defineEmits(['reset']);
   display: flex;
   flex-direction: column;
   padding: 24px;
-  background: #fafafa;
-  border: 1px solid #ebeef5;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   transition:
     box-shadow 0.2s ease,
@@ -172,8 +172,8 @@ defineEmits(['reset']);
 }
 
 .reset-card.warning {
-  background: #fdf6ec;
-  border-color: #e6a23c;
+  background: var(--brand-warning-soft);
+  border-color: var(--brand-warning);
 }
 
 /* 卡片头部：图标 + 标题 + 标签 */
@@ -191,20 +191,20 @@ defineEmits(['reset']);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: var(--bg-card);
   border-radius: 10px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 .reset-card-icon.warning-icon {
-  color: #e6a23c;
+  color: var(--brand-warning);
 }
 
 .reset-card-header h4 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   flex: 1;
 }
 
@@ -218,7 +218,7 @@ defineEmits(['reset']);
   margin: 0 0 12px 0;
   font-size: 14px;
   line-height: 1.6;
-  color: #606266;
+  color: var(--text-regular);
 }
 
 .reset-card-scene {
@@ -229,13 +229,13 @@ defineEmits(['reset']);
   background: rgba(255, 255, 255, 0.6);
   border-radius: 4px;
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .reset-card.warning .reset-card-scene {
   background: rgba(255, 255, 255, 0.5);
-  color: #b88230;
+  color: var(--brand-warning);
 }
 
 .reset-card-scene .el-icon {
@@ -248,11 +248,11 @@ defineEmits(['reset']);
   display: flex;
   justify-content: flex-start;
   padding-top: 16px;
-  border-top: 1px solid #ebeef5;
+  border-top: 1px solid var(--border-light);
 }
 
 .reset-card.warning .reset-card-footer {
-  border-top-color: #f5dab1;
+  border-top-color: var(--brand-warning);
 }
 
 /* 响应式：小屏单列时卡片间距 */

@@ -181,9 +181,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #ecf5ff;
+  background: var(--brand-primary-soft);
   border-radius: 8px;
-  color: #409eff;
+  color: var(--brand-primary);
 }
 
 .header-info {
@@ -194,13 +194,13 @@ onMounted(() => {
   margin: 0 0 6px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .page-desc {
   margin: 0;
   font-size: 14px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
 /* 响应式 */

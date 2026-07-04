@@ -66,10 +66,10 @@
               <el-option v-for="v in textbookOptions" :key="v" :label="v" :value="v" />
             </el-select>
             <el-checkbox v-model="previewMode" style="margin-left: 8px">预览模式</el-checkbox>
-            <el-button type="success" :loading="arranging" @click="handleAutoArrange('full')">
+            <el-button type="danger" :loading="arranging" @click="handleAutoArrange('full')">
               <el-icon><MagicStick /></el-icon> 全量模式
             </el-button>
-            <el-button type="warning" :loading="arranging" @click="handleAutoArrange('standard')">
+            <el-button type="primary" :loading="arranging" @click="handleAutoArrange('standard')">
               <el-icon><SetUp /></el-icon> 标准模式
             </el-button>
             <el-dropdown
@@ -208,12 +208,12 @@
     <!-- 重置排课确认弹窗 -->
     <el-dialog v-model="resetConfirmVisible" title="确认重置" width="min(420px, 90vw)" align-center>
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px">
+        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px">
           <WarningFilled />
         </el-icon>
-        <div style="flex: 1; line-height: 1.6; color: #606266">
+        <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
           <p style="margin: 0">确定要重置当前课程的所有自动排课安排吗？此操作不可撤销。</p>
-          <p style="margin: 8px 0 0; color: #f56c6c; font-size: 13px">
+          <p style="margin: 8px 0 0; color: var(--brand-danger); font-size: 13px">
             将清除该课程在本学期的所有自动分配记录，手动安排不受影响。
           </p>
         </div>
@@ -724,14 +724,14 @@ onMounted(async () => {
   align-items: center;
 }
 .text-placeholder {
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   font-size: 12px;
 }
 .tag-item {
   margin: 2px;
 }
 :deep(.unassigned-row) {
-  background-color: #fff5f5 !important;
+  background-color: var(--brand-danger-soft) !important;
 }
 .adaptive-table :deep(.el-table__header th .cell) {
   white-space: nowrap;

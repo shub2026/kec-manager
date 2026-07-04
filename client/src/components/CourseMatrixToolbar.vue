@@ -32,7 +32,7 @@ defineEmits(['add-course']);
 }
 
 .total-courses-label {
-  color: #909399;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 </style>

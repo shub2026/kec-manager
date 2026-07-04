@@ -94,7 +94,7 @@
         <el-table-column prop="name" label="姓名" min-width="100">
           <template #default="{ row }">
             <span
-              :style="row.status === 'disabled' ? 'color: #999; text-decoration: line-through' : ''"
+              :style="row.status === 'disabled' ? 'color: var(--text-secondary); text-decoration: line-through' : ''"
               >{{ row.name }}</span
             >
           </template>
@@ -327,10 +327,10 @@
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#F56C6C" style="flex-shrink: 0; margin-top: 2px"
+        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: #606266">
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
           确定要删除此教师吗？此操作不可撤销。
         </p>
       </div>
@@ -348,10 +348,10 @@
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="#E6A23C" style="flex-shrink: 0; margin-top: 2px"
+        <el-icon :size="24" color="var(--brand-warning)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: #606266">{{ confirmMessage }}</p>
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ confirmMessage }}</p>
       </div>
       <template #footer>
         <el-button @click="cancelImport">取消</el-button>

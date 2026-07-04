@@ -247,7 +247,7 @@
           </el-col>
           <el-col :xs="24" :sm="12" :md="8">
             <div class="feature-item">
-              <el-icon color="#8B5CF6"><Setting /></el-icon>
+              <el-icon color="var(--text-regular)"><Setting /></el-icon>
               <div>
                 <div class="feature-title">系统管理</div>
                 <div class="feature-desc">用户管理、角色权限、审计日志</div>
@@ -292,7 +292,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const settingsStore = useSettingsStore();
 
-const version = __APP_VERSION__;
+const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
 const loading = ref(false);
 
 const userName = computed(() => authStore.userInfo?.realName || '用户');

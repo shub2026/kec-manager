@@ -78,7 +78,7 @@
 
     <!-- 全部完成 -->
     <div v-if="!result.unassigned?.length && !result.warnings?.length" class="arrange-all-done">
-      <el-icon :size="24" color="#67C23A"><CircleCheckFilled /></el-icon>
+      <el-icon :size="24" color="var(--brand-success)"><CircleCheckFilled /></el-icon>
       <span>所有班级均已安排</span>
     </div>
 
@@ -124,44 +124,44 @@ const cohesionRateClass = computed(() => {
   margin-bottom: 16px;
 }
 .arrange-stat-card {
-  background: #f5f7fa;
+  background: var(--bg-subtle);
   border-radius: 8px;
   padding: 10px 6px;
   text-align: center;
   border: 1px solid transparent;
 }
 .arrange-stat-card.is-warning {
-  background: #fdf6ec;
-  border-color: #faecd8;
+  background: var(--brand-warning-soft);
+  border-color: var(--brand-warning);
 }
 .arrange-stat-num {
   font-size: 22px;
   font-weight: 700;
-  color: #303133;
+  color: var(--text-primary);
   line-height: 1.2;
 }
 .arrange-stat-num.text-success {
-  color: #67c23a;
+  color: var(--brand-success);
 }
 .arrange-stat-num.text-warning {
-  color: #e6a23c;
+  color: var(--brand-warning);
 }
 .arrange-stat-label {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 .arrange-cohesion {
   margin: 12px 0;
   padding: 12px 14px;
-  background: #f5f7fa;
+  background: var(--bg-subtle);
   border-radius: 8px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--brand-primary);
 }
 .cohesion-title {
   font-size: 13px;
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 .cohesion-metrics {
@@ -177,50 +177,50 @@ const cohesionRateClass = computed(() => {
 .cohesion-num {
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   line-height: 1.2;
 }
 .cohesion-num.text-success {
-  color: #67c23a;
+  color: var(--brand-success);
 }
 .cohesion-num.text-warning {
-  color: #e6a23c;
+  color: var(--brand-warning);
 }
 .cohesion-num.text-danger {
-  color: #f56c6c;
+  color: var(--brand-danger);
 }
 .cohesion-label {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   margin-top: 2px;
 }
 .cohesion-hint {
   font-size: 11px;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   margin-top: 4px;
 }
 .arrange-warnings {
   margin-bottom: 12px;
 }
 .arrange-warning-item {
-  color: #e6a23c;
+  color: var(--brand-warning);
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  background: #fdf6ec;
+  background: var(--brand-warning-soft);
   border-radius: 4px;
   margin-bottom: 6px;
   font-size: 13px;
 }
 .arrange-unassigned {
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   padding: 10px 14px;
 }
 .arrange-unassigned .arrange-section-title {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   font-weight: 600;
   margin-bottom: 8px;
 }
@@ -229,23 +229,23 @@ const cohesionRateClass = computed(() => {
   align-items: center;
   gap: 10px;
   padding: 5px 0;
-  border-bottom: 1px solid #f5f7fa;
+  border-bottom: 1px solid var(--bg-subtle);
 }
 .arrange-unassigned-item:last-child {
   border-bottom: none;
 }
 .unassigned-class-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
 }
 .unassigned-hours {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .unassigned-reason {
   font-size: 12px;
-  color: #e6a23c;
+  color: var(--brand-warning);
   margin-left: auto;
 }
 .arrange-all-done {
@@ -254,7 +254,7 @@ const cohesionRateClass = computed(() => {
   justify-content: center;
   gap: 8px;
   padding: 16px;
-  color: #67c23a;
+  color: var(--brand-success);
   font-size: 14px;
   font-weight: 500;
 }

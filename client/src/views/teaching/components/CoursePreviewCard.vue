@@ -83,7 +83,7 @@ function courseTypeLabel(type) {
 .course-name {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 .preview-stats {
   display: flex;
@@ -100,23 +100,23 @@ function courseTypeLabel(type) {
 }
 .stat-label {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 .stat-value {
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 .stat-value small {
   font-size: 12px;
   font-weight: normal;
-  color: #909399;
+  color: var(--text-secondary);
   margin-left: 2px;
 }
 .text-success {
-  color: #67c23a;
+  color: var(--brand-success);
 }
 .text-danger {
-  color: #f56c6c;
+  color: var(--brand-danger);
 }
 </style>

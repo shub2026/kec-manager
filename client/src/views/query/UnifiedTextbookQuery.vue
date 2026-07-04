@@ -355,7 +355,7 @@ onMounted(async () => {
   min-width: 90px !important;
   flex-shrink: 0;
   font-weight: 500;
-  color: #606266;
+  color: var(--text-regular);
   white-space: nowrap;
 }
 

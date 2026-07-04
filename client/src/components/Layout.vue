@@ -8,9 +8,9 @@
       <el-menu
         :default-active="activeMenu"
         :collapse="isCollapse"
-        background-color="#304156"
-        text-color="#bfcbd9"
-        active-text-color="#409eff"
+        :background-color="sidebarBg"
+        :text-color="sidebarText"
+        :active-text-color="sidebarActive"
         router
       >
         <!-- 管理员菜单 -->
@@ -151,13 +151,13 @@
     align-center
   >
     <div style="padding: 8px 0">
-      <p style="font-size: 14px; color: #303133; margin: 0 0 12px">
-        <el-icon style="vertical-align: middle; color: #e6a23c; margin-right: 6px"
+      <p style="font-size: 14px; color: var(--text-primary); margin: 0 0 12px">
+        <el-icon style="vertical-align: middle; color: var(--brand-warning); margin-right: 6px"
           ><SwitchButton
         /></el-icon>
         当前用户：<strong>{{ authStore.realName || authStore.username }}</strong>
       </p>
-      <p style="font-size: 13px; color: #909399; margin: 0">退出后需重新登录才能使用系统功能。</p>
+      <p style="font-size: 13px; color: var(--text-secondary); margin: 0">退出后需重新登录才能使用系统功能。</p>
     </div>
     <template #footer>
       <el-button @click="logoutDialogVisible = false">取消</el-button>
@@ -180,7 +180,14 @@ const settingsStore = useSettingsStore();
 const authStore = useAuthStore();
 const userCollapsed = ref(false); // 用户手动折叠标记
 const windowNarrow = ref(false); // 窗口窄屏标记
-const version = __APP_VERSION__;
+const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
+
+// 侧边栏配色绑定（el-menu 属性不支持 CSS 变量，通过 JS 读取令牌）
+const sidebarBg = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-bg').trim() || '#304156';
+const sidebarText =
+  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-text').trim() || '#bfcbd9';
+const sidebarActive =
+  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-active').trim() || '#4361ee';
 
 // keep-alive 缓存的列表页组件名（需与各列表组件 defineOptions({ name }) 一致）
 const cachedViews = [
@@ -264,7 +271,7 @@ function handlePasswordChangeSuccess() {
 
 .layout-aside {
   transition: width 0.3s ease;
-  background: #304156;
+  background: var(--sidebar-bg);
   overflow: hidden;
   flex-shrink: 0;
   height: 100vh;
@@ -283,10 +290,10 @@ function handlePasswordChangeSuccess() {
   color: #fff;
   font-size: 16px;
   font-weight: bold;
-  border-bottom: 1px solid #3d4c5c;
+  border-bottom: 1px solid var(--sidebar-border);
   flex-shrink: 0;
   overflow: hidden;
-  background: #304156;
+  background: var(--sidebar-bg);
   z-index: 10;
 }
 
@@ -305,16 +312,16 @@ function handlePasswordChangeSuccess() {
 }
 
 .layout-aside :deep(.el-menu)::-webkit-scrollbar-track {
-  background: #2b3a4a;
+  background: var(--sidebar-bg-deep);
 }
 
 .layout-aside :deep(.el-menu)::-webkit-scrollbar-thumb {
-  background: #4a5f7a;
+  background: var(--sidebar-scrollbar);
   border-radius: 3px;
 }
 
 .layout-aside :deep(.el-menu)::-webkit-scrollbar-thumb:hover {
-  background: #5a7a9a;
+  background: var(--sidebar-scrollbar-hover);
 }
 
 .logo-icon {
@@ -344,8 +351,8 @@ function handlePasswordChangeSuccess() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e6e6e6;
-  background: #fff;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-card);
   flex-shrink: 0;
   height: 60px;
 }
@@ -411,10 +418,10 @@ function handlePasswordChangeSuccess() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #909399;
+  color: var(--text-secondary);
   font-size: 12px;
-  background: #fff;
-  border-top: 1px solid #e6e6e6;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 

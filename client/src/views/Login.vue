@@ -101,7 +101,7 @@ const loading = ref(false);
 const organizationName = ref('欢迎回来');
 const showTestAccounts = import.meta.env.DEV;
 const devAccountHint = import.meta.env.VITE_DEV_ACCOUNT_HINT || '';
-const appVersion = ref(__APP_VERSION__);
+const appVersion = ref(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev');
 
 const loginForm = reactive({
   username: '',
@@ -217,7 +217,7 @@ onMounted(() => {
   margin: 0;
   font-size: 28px;
   font-weight: 700;
-  color: #1d2129;
+  color: var(--text-primary);
   letter-spacing: 4px;
   line-height: 1.3;
 }
@@ -225,7 +225,7 @@ onMounted(() => {
 .brand-tagline {
   margin: 0;
   font-size: 15px;
-  color: #86909c;
+  color: var(--text-secondary);
   letter-spacing: 3px;
 }
 
@@ -243,7 +243,12 @@ onMounted(() => {
 
 .card-accent {
   height: 3px;
-  background: linear-gradient(90deg, var(--brand-primary) 0%, #5dade2 50%, var(--brand-success) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--brand-primary) 0%,
+    var(--brand-primary-lighter) 50%,
+    var(--brand-success) 100%
+  );
 }
 
 .card-header {
@@ -258,7 +263,7 @@ onMounted(() => {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #1d2129;
+  color: var(--text-primary);
   text-align: center;
 }
 
@@ -270,7 +275,7 @@ onMounted(() => {
 .login-form :deep(.el-form-item__label) {
   font-size: 13px;
   font-weight: 500;
-  color: #4e5969;
+  color: var(--text-regular);
   padding-bottom: 6px;
 }
 
@@ -286,7 +291,7 @@ onMounted(() => {
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1.5px #409eff inset;
+  box-shadow: 0 0 0 1.5px var(--brand-primary) inset;
 }
 
 .login-btn {
@@ -298,7 +303,7 @@ onMounted(() => {
   letter-spacing: 6px;
   text-indent: 6px;
   margin-top: 6px;
-  background: #409eff;
+  background: var(--brand-primary);
   border: none;
   box-shadow: var(--shadow-sm);
   transition: all var(--dur-base) var(--ease-out);
@@ -306,18 +311,18 @@ onMounted(() => {
 
 .login-btn:hover,
 .login-btn:focus {
-  background: #3a8ee6;
-  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.32);
+  background: var(--brand-primary-hover);
+  box-shadow: 0 6px 16px rgba(67, 97, 238, 0.32);
 }
 
 .login-btn:active {
-  background: #337ecc;
+  background: var(--brand-primary-active);
   transform: scale(0.98);
 }
 
 /* ==================== 账号提示 ==================== */
 .account-hint {
-  border-top: 1px solid #f2f3f5;
+  border-top: 1px solid var(--border-light);
   padding-top: 12px;
 }
 
@@ -327,7 +332,7 @@ onMounted(() => {
 
 .account-hint :deep(.el-collapse-item__header) {
   font-size: 12px;
-  color: #86909c;
+  color: var(--text-secondary);
   border: none;
   height: 28px;
   line-height: 28px;
@@ -353,22 +358,22 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #4e5969;
+  color: var(--text-regular);
 }
 
 .hint-row code {
-  background: #f2f3f5;
+  background: var(--bg-subtle);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 11px;
-  color: #1d2129;
+  color: var(--text-primary);
 }
 
 /* ==================== 底部 ==================== */
 .page-footer {
   margin-top: 32px;
   text-align: center;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   font-size: 12px;
 }
 

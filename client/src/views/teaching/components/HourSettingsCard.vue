@@ -17,7 +17,7 @@
           >
             <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id">
               <span>{{ c.name }}</span>
-              <span style="color: #999; font-size: 12px; margin-left: 8px">{{ c.code }}</span>
+              <span style="color: var(--text-secondary); font-size: 12px; margin-left: 8px">{{ c.code }}</span>
             </el-option>
           </el-select>
         </div>
@@ -168,7 +168,7 @@ defineExpose({ hourSettings });
 .hour-settings-title {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 .hour-setting-item {
@@ -176,13 +176,13 @@ defineExpose({ hourSettings });
   align-items: center;
   gap: 8px;
   padding: 4px 10px;
-  background: #f5f7fa;
+  background: var(--bg-subtle);
   border-radius: 4px;
 }
 .type-label {
   font-weight: bold;
   font-size: 13px;
-  color: #303133;
+  color: var(--text-primary);
 }
 .setting-field {
   display: flex;
@@ -191,6 +191,6 @@ defineExpose({ hourSettings });
 }
 .field-label {
   font-size: 12px;
-  color: #606266;
+  color: var(--text-regular);
 }
 </style>
