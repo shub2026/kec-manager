@@ -119,12 +119,13 @@ async function handleSubmit() {
     const result = await authStore.changePassword(form.oldPassword, form.newPassword);
 
     if (result.success) {
-      ElMessage.success(result.message);
       handleClose();
       emit('success');
 
-      await authStore.logout();
-      ElMessage.success('密码已修改，请重新登录');
+      ElMessage.success('密码修改成功，2秒后将自动退出，请使用新密码重新登录');
+      setTimeout(() => {
+        authStore.logout();
+      }, 2000);
     } else {
       ElMessage.error(result.message);
     }

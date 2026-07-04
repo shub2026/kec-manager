@@ -35,15 +35,17 @@ export async function getDashboardStats(req, res, next) {
         // 在读班级筛选条件
         getActiveClassFilter(semesterInfo),
         // 本学期授课课程（去重，P1-4：仅统计在职教师的排课）
+        // B-13修复：过滤 0 课时记录，避免虚增课程数和教师数
         prisma.teaching_assignments.findMany({
-          where: { semester, teacher: { status: 'active' } },
+          where: { semester, weekly_hours: { gt: 0 }, teacher: { status: 'active' } },
           select: { course_id: true },
           distinct: ['course_id'],
         }),
         // 本学期教师+课时聚合（P1-4：仅统计在职教师，避免禁用教师历史排课污染）
+        // B-13修复：过滤 0 课时记录
         prisma.teaching_assignments.groupBy({
           by: ['teacher_id'],
-          where: { semester, teacher: { status: 'active' } },
+          where: { semester, weekly_hours: { gt: 0 }, teacher: { status: 'active' } },
           _sum: { weekly_hours: true },
         }),
       ]);

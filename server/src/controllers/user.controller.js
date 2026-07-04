@@ -264,8 +264,8 @@ export async function deleteUser(req, res, next) {
 
     await prisma.users.delete({ where: { id: parseInt(id) } });
 
-    // M-2: 删除用户时清除认证缓存
-    invalidateUserStatusCache(parseInt(id));
+    // S-09修复：删除用户后立即清除缓存，使该用户的token在下次请求时失效
+    invalidateUserStatusCache(user.id);
 
     await createAuditLog({
       action: 'delete',

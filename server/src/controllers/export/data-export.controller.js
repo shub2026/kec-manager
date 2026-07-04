@@ -381,6 +381,8 @@ export async function exportTextbookUsage(req, res, next) {
       }
     }
 
+    // B-15 注意：以下合计计算依赖执行顺序——必须在 rows.push(合计行) 之前完成，
+    // 否则 rows.length 会包含合计行自身，totalStudents 也会重复累加
     const totalStudents = rows.reduce((sum, r) => sum + (Number(r['学生人数']) || 0), 0);
     rows.push({
       教材名称: '合计',

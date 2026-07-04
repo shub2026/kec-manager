@@ -110,8 +110,8 @@ export const validateChangePassword = [
   body('new_password')
     .isLength({ min: 8, max: 128 })
     .withMessage('新密码长度必须在8-128位之间')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/)
-    .withMessage('密码必须包含大小写字母、数字和特殊字符（仅允许 @$!%*?&）'),
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,128}$/)
+    .withMessage('密码须包含大写字母、小写字母、数字和特殊字符，长度8-128位'),
   handleValidationErrors,
 ];
 

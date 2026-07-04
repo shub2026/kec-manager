@@ -67,6 +67,7 @@
       title="清空操作日志"
       width="min(500px, 90vw)"
       :close-on-click-modal="false"
+      destroy-on-close
     >
       <el-alert title="此操作不可恢复！" type="error" :closable="false" show-icon />
       <p class="confirm-text">确定要清空所有操作日志吗？此操作将永久删除所有日志记录。</p>
@@ -84,6 +85,7 @@
       title="确认保存"
       width="min(450px, 90vw)"
       :close-on-click-modal="false"
+      destroy-on-close
     >
       <p class="confirm-text">确定要保存当前配置吗？这将更新学期设置和系统标识。</p>
       <template #footer>

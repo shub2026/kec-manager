@@ -203,6 +203,8 @@ export async function resetSystem(req, res, next) {
       await tx.system_settings.deleteMany();
 
       // 3. 先清空审计日志，再在事务内重新写入本次重置记录，确保破坏性操作留痕
+      // S-10修复：删除前记录快照数量
+      const auditLogCount = await tx.audit_logs.count();
       await tx.audit_logs.deleteMany();
       await tx.audit_logs.create({
         data: {
@@ -210,9 +212,9 @@ export async function resetSystem(req, res, next) {
           module: 'system',
           operator_id: req.user?.id || null,
           ip: req.ip || null,
-          details: JSON.stringify({ type: 'system_reset', reason }),
+          details: JSON.stringify({ type: 'system_reset', reason, archived_audit_count: auditLogCount }),
           result: 'success',
-          message: '执行系统重置' + (reason ? `，原因：${reason}` : ''),
+          message: '执行系统重置' + (reason ? `，原因：${reason}` : '') + `（归档记录：删除前共${auditLogCount}条审计日志）`,
         },
       });
       await tx.token_blacklist.deleteMany();
@@ -235,6 +237,8 @@ export async function resetSystem(req, res, next) {
 export async function resetAuditLogs(req, res, next) {
   try {
     await prisma.$transaction(async (tx) => {
+      // S-10修复：删除前记录快照数量，确保操作可追溯
+      const logCount = await tx.audit_logs.count();
       await tx.audit_logs.deleteMany();
       // 清空后立即写入本次清空操作记录，确保可追溯
       await tx.audit_logs.create({
@@ -243,9 +247,9 @@ export async function resetAuditLogs(req, res, next) {
           module: 'system',
           operator_id: req.user?.id || null,
           ip: req.ip || null,
-          details: JSON.stringify({ type: 'reset_audit_logs' }),
+          details: JSON.stringify({ type: 'reset_audit_logs', archived_count: logCount, operator: req.user?.id, reason: req.body.reason || null }),
           result: 'success',
-          message: '清空操作日志',
+          message: `清空操作日志（归档记录：删除前共${logCount}条）`,
         },
       });
     });

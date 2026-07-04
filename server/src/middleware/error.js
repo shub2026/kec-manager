@@ -34,6 +34,9 @@ function getSafeMessage(err) {
 
 export function errorHandler(err, req, res, next) {
   const isProduction = process.env.NODE_ENV === 'production';
+  // S-06修复：详细信息仅对本地请求开放，不再仅依赖 NODE_ENV
+  const isLocalRequest = req.ip === '::1' || req.ip === '127.0.0.1' || req.ip === '::ffff:127.0.0.1';
+  const showDetails = !isProduction && isLocalRequest;
 
   // Prisma 记录不存在错误
   if (err.code === 'P2025') {
@@ -46,7 +49,7 @@ export function errorHandler(err, req, res, next) {
     log.warn('[P2002 唯一约束冲突]', { target });
     return res.status(409).json({
       success: false,
-      message: isProduction ? '该记录已存在，请修改后重试' : `唯一约束冲突: ${target}`,
+      message: showDetails ? `唯一约束冲突: ${target}` : '该记录已存在，请修改后重试',
     });
   }
 
@@ -55,8 +58,8 @@ export function errorHandler(err, req, res, next) {
     log.error(`[AppError] ${err.message}`, { statusCode: err.statusCode, code: err.code });
     return res.status(err.statusCode).json({
       success: false,
-      message: isProduction ? (err.isOperational ? err.message : getSafeMessage(err)) : err.message,
-      code: isProduction ? undefined : err.code,
+      message: showDetails ? err.message : (err.isOperational ? err.message : getSafeMessage(err)),
+      code: showDetails ? err.code : undefined,
     });
   }
 
@@ -64,10 +67,8 @@ export function errorHandler(err, req, res, next) {
   log.error('[Unhandled Error]', { message: err.message, stack: err.stack });
   const status = err.statusCode || err.status || 500;
 
-  // M1修复：始终返回安全消息，不向客户端泄露堆栈信息
-  // 开发调试时通过服务器日志查看错误详情
   res.status(status).json({
     success: false,
-    message: isProduction ? getSafeMessage(err) : err.message || '服务器内部错误',
+    message: showDetails ? (err.message || '服务器内部错误') : getSafeMessage(err),
   });
 }

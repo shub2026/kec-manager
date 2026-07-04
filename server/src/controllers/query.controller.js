@@ -75,7 +75,15 @@ export async function querySemester(req, res, next) {
     const classWhere =
       Object.keys(extraConditions).length > 0 ? { AND: [baseWhere, extraConditions] } : baseWhere;
 
-    const totalClassesCount = await prisma.classes.count({ where: classWhere });
+    // B-01修复：仅统计在本学期有排课记录的班级数，使 totalWithCourses 不受分页影响
+    const totalClassesCount = await prisma.classes.count({
+      where: {
+        ...classWhere,
+        teaching_assignments: {
+          some: { semester: semesterInfo.raw },
+        },
+      },
+    });
 
     // 查询全量班级以提取可用的入学年份、年级和关联关系（用于前端筛选器下拉）
     const allMatchingClasses = await prisma.classes.findMany({
@@ -341,7 +349,7 @@ export async function querySemester(req, res, next) {
       },
       totalClasses: results.length,
       total: totalClassesCount,
-      totalWithCourses: totalClassesCount - skippedNoCourses, // H4 修复：排除无课班级后的实际总数
+      totalWithCourses: totalClassesCount, // B-01修复：totalClassesCount 已只统计有排课记录的班级
       page: pageNum,
       pageSize: pageSizeNum,
       enrollmentYears: availableEnrollmentYears,
@@ -406,7 +414,8 @@ export async function queryTextbookUsage(req, res, next) {
     ]);
 
     const classResults = [];
-    const addedClassIds = new Set();
+    // B-14修复：使用复合去重键 (classId, courseId)，允许同一班级在不同课程中出现
+    const addedClassCourseIds = new Set();
 
     for (const pt of planTextbooks) {
       const sem = pt.plan_course_semesters;
@@ -419,7 +428,8 @@ export async function queryTextbookUsage(req, res, next) {
 
       for (const cls of allClasses) {
         if (cls.enrollment_year !== enrollmentYear) continue;
-        if (addedClassIds.has(cls.id)) continue;
+        const compositeKey = `${cls.id}_${pc.course_id}`;
+        if (addedClassCourseIds.has(compositeKey)) continue;
 
         // 使用统一的方案匹配逻辑（三级互斥，null-safe）
         if (!isClassMatchPlan(cls, plan)) continue;
@@ -427,7 +437,7 @@ export async function queryTextbookUsage(req, res, next) {
         const calc = calcClassSemester(cls, semesterInfo);
         if (!calc || calc.currentSemesterNum !== sem.semester) continue;
 
-        addedClassIds.add(cls.id);
+        addedClassCourseIds.add(compositeKey);
 
         classResults.push({
           classId: cls.id,

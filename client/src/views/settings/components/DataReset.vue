@@ -99,6 +99,8 @@ defineEmits(['reset']);
 <style scoped>
 .danger-card {
   margin-top: 20px;
+  border-color: var(--el-color-danger-light-5);
+  border-width: 2px;
 }
 
 .card-title-row {
@@ -174,6 +176,7 @@ defineEmits(['reset']);
 .reset-card.warning {
   background: var(--brand-warning-soft);
   border-color: var(--brand-warning);
+  border-width: 2px;
 }
 
 /* 卡片头部：图标 + 标题 + 标签 */

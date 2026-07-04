@@ -12,6 +12,10 @@ import { log } from '../utils/logger.js';
 const blacklistNegativeCache = new Map();
 const BLACKLIST_NEGATIVE_TTL = 10 * 1000;
 
+// S-03修复：内存级黑名单正缓存，作为DB故障时的二级防护
+const blacklistMemoryCache = new Map(); // jti -> expiresAt (ms timestamp)
+const MEMORY_CACHE_MAX_SIZE = 10000;
+
 // 定时清理过期黑名单记录（每小时一次）
 setInterval(
   () => {
@@ -20,6 +24,11 @@ setInterval(
     const now = Date.now();
     for (const [key, value] of blacklistNegativeCache) {
       if (value.expireAt <= now) blacklistNegativeCache.delete(key);
+    }
+    // S-03: 清理内存正缓存中的过期条目
+    const memNow = Date.now();
+    for (const [k, exp] of blacklistMemoryCache) {
+      if (exp <= memNow) blacklistMemoryCache.delete(k);
     }
   },
   60 * 60 * 1000
@@ -138,6 +147,16 @@ export class AuthService {
       });
       // 从负缓存中移除（如果存在），确保下次检查命中DB
       blacklistNegativeCache.delete(jti);
+      // S-03: 同时写入内存缓存
+      const expiresMs = new Date(expiresAt).getTime();
+      blacklistMemoryCache.set(jti, expiresMs);
+      // 内存缓存容量保护：超过上限时清理过期条目
+      if (blacklistMemoryCache.size > MEMORY_CACHE_MAX_SIZE) {
+        const now = Date.now();
+        for (const [k, exp] of blacklistMemoryCache) {
+          if (exp <= now) blacklistMemoryCache.delete(k);
+        }
+      }
     } catch (error) {
       // 黑名单写入失败不应阻断主流程，但需记录日志
       console.error('Token黑名单写入失败:', error.message);
@@ -147,17 +166,29 @@ export class AuthService {
   static async isBlacklisted(jti) {
     if (!jti) return false;
     const now = Date.now();
+    // S-03: 先查内存正缓存
+    const memExpires = blacklistMemoryCache.get(jti);
+    if (memExpires && memExpires > now) return true;
+    if (memExpires && memExpires <= now) blacklistMemoryCache.delete(jti);
     // 检查负缓存：已知非黑名单的jti在TTL内直接返回false
     const cached = blacklistNegativeCache.get(jti);
     if (cached && cached.expireAt > now) return false;
     try {
       const entry = await prisma.token_blacklist.findUnique({ where: { jti } });
-      if (entry) return true;
+      if (entry) {
+        // 同时写入内存正缓存
+        blacklistMemoryCache.set(jti, new Date(entry.expires_at).getTime());
+        return true;
+      }
       // 记录负缓存，10s内不再查库
       blacklistNegativeCache.set(jti, { expireAt: now + BLACKLIST_NEGATIVE_TTL });
       return false;
     } catch {
-      // DB异常时安全降级：允许通过（避免误杀所有请求）
+      // DB异常时依赖内存缓存降级
+      const memExp = blacklistMemoryCache.get(jti);
+      if (memExp && memExp > now) return true;
+      // 内存缓存也未命中，安全降级允许通过
+      log.warn('Token黑名单DB查询失败，降级为内存缓存模式', { jti });
       return false;
     }
   }

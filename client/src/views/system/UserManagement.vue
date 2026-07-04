@@ -25,7 +25,7 @@
       <!-- 用户列表 -->
       <el-table v-loading="loading" :data="users" stripe row-key="id">
         <template #empty>
-          <el-empty description="暂无用户数据" />
+          <el-empty description="暂无数据" />
         </template>
         <el-table-column type="index" label="序号" min-width="60" align="center" />
         <el-table-column prop="username" label="用户名" min-width="120" />

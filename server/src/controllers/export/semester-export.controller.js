@@ -95,6 +95,9 @@ async function buildSemesterExportData(semesterInfo, filters) {
     }
   }
 
+  // B-16 设计说明：matchingPlans 的 OR 条件未包含 customPlanIds，
+  // 因为自定义方案已通过班级 include（training_plans）加载到 classPlanMap 中，
+  // findBestMatchPlan 会优先从 classPlanMap 查找自定义方案，无需重复查询。
   const matchingPlans = await prisma.training_plans.findMany({
     where: {
       OR: [

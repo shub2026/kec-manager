@@ -197,6 +197,8 @@ export async function updatePlanCourse(req, res, next) {
           });
         }
         // 保留区间内已存在的学期记录及其 plan_textbooks（不动）
+        // B-08 设计说明：周课时同步采用启发式策略——仅更新仍等于旧默认值的学期记录，
+        // 用户对特定学期做过的单独调整（weekly_hours 已不等于旧默认值）会被保留。
         // 范围变更时，同步区间内保留的学期记录的 weekly_hours（仅更新仍等于旧默认值的记录）
         if (newWeeklyHours !== currentPc.weekly_hours) {
           const retainedSemesters = [...existingSemesterSet].filter((s) => newSemesterSet.has(s));
@@ -499,10 +501,10 @@ export async function listPlanSemesters(req, res, next) {
 }
 
 /**
- * 关联教材到学期
- *
- * 替换语义：每次调用都会先删除该学期的所有已有教材关联，再创建新关联。
- * 如果需要追加教材，请使用单独的 create 接口而非此接口。
+ * 替换学期教材关联（REPLACE语义，非追加）
+ * 注意：此操作会先删除该学期的所有现有教材关联，再创建新关联。
+ * 如需追加模式，请使用独立的追加接口。
+ * B-05修复：明确文档化替换语义
  */
 export async function assignTextbookToSemester(req, res, next) {
   try {

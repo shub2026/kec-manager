@@ -45,6 +45,19 @@ const PLACEHOLDER_SECRETS = new Set([
   'secret',
 ]);
 
+function checkSecretEntropy(name, value) {
+  if (value === undefined) return;
+  const uniqueChars = new Set(value).size;
+  const entropy = value.length * Math.log2(uniqueChars || 1);
+  if (entropy < 128) {
+    if (isProduction) {
+      throw new Error(`${name} 熵值不足(${Math.round(entropy)}bits)，请使用随机生成的密钥: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`);
+    } else {
+      log.warn(`安全警告: ${name} 熵值不足(${Math.round(entropy)}bits)，建议使用随机生成的高强度密钥`);
+    }
+  }
+}
+
 function validateSecretStrength(name, value) {
   if (value === undefined) return; // 未显式配置的密钥走派生逻辑，跳过
   if (value.length < 32 || PLACEHOLDER_SECRETS.has(value)) {
@@ -59,6 +72,10 @@ function validateSecretStrength(name, value) {
 validateSecretStrength('JWT_SECRET', jwtSecret);
 validateSecretStrength('JWT_REFRESH_SECRET', jwtRefreshSecret);
 validateSecretStrength('JWT_DOWNLOAD_SECRET', jwtDownloadSecret);
+
+checkSecretEntropy('JWT_SECRET', jwtSecret);
+checkSecretEntropy('JWT_REFRESH_SECRET', jwtRefreshSecret);
+checkSecretEntropy('JWT_DOWNLOAD_SECRET', jwtDownloadSecret);
 
 /**
  * 使用 HKDF 从主密钥派生子密钥，替代简单字符串拼接

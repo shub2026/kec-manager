@@ -127,9 +127,11 @@
       </el-header>
       <el-main class="layout-main">
         <router-view v-slot="{ Component }">
-          <keep-alive :include="cachedViews">
-            <component :is="Component" />
-          </keep-alive>
+          <transition name="fade-slide" mode="out-in">
+            <keep-alive :include="cachedViews">
+              <component :is="Component" :key="$route.fullPath" />
+            </keep-alive>
+          </transition>
         </router-view>
       </el-main>
       <el-footer class="layout-footer" height="32px">
@@ -277,6 +279,7 @@ function handlePasswordChangeSuccess() {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
 }
 
 .layout-logo {

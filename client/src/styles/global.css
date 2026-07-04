@@ -40,6 +40,15 @@
   transition: background var(--dur-fast) var(--ease-out);
 }
 
+/* F-12: 表格单元格 — 垂直居中 + 紧凑行高 */
+.el-table .cell {
+  display: flex;
+  align-items: center;
+  line-height: 1.5;
+  min-height: 32px;
+  padding: 4px 10px;
+}
+
 /* 全局聚焦环:键盘可见性 */
 *:focus-visible {
   outline: 2px solid var(--brand-primary);
@@ -48,7 +57,8 @@
 }
 
 /* 路由切换淡入:配合 keep-alive 使用 */
-.fade-slide-enter-active {
+.fade-slide-enter-active,
+.fade-slide-leave-active {
   transition: opacity var(--dur-base) var(--ease-out),
     transform var(--dur-base) var(--ease-out);
 }
@@ -56,6 +66,11 @@
 .fade-slide-enter-from {
   opacity: 0;
   transform: translateY(8px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 
 /* ================================================================
@@ -170,6 +185,9 @@
   border-radius: var(--radius-sm);
   flex-wrap: wrap;
   margin-top: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .selected-count {
@@ -185,6 +203,8 @@
 
 /* ----- 展开行内容 ----- */
 .expand-content {
+  flex: 1;
+  min-width: 0;
   padding: 12px 24px;
 }
 
@@ -249,6 +269,11 @@
   margin-bottom: 16px;
 }
 
+/* F-02: 常用flex布局工具类 */
+.flex-center { display: flex; align-items: center; }
+.flex-center-gap { display: flex; align-items: center; gap: 8px; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+
 /* ================================================================
    响应式适配
    断点：1440（桌面）→ 1200（小桌面）→ 992（平板）→ 768（窄屏）→ 480（手机）
@@ -276,6 +301,14 @@
 
 /* 平板（≤992px）：筛选器进一步收缩 */
 @media (max-width: 992px) {
+  .page-toolbar,
+  .filter-bar {
+    gap: 8px;
+  }
+  .page-toolbar .el-form-item,
+  .filter-bar .el-form-item {
+    margin-bottom: 8px;
+  }
   .page-toolbar .filter-2xl {
     width: 160px;
   }

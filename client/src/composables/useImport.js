@@ -172,6 +172,11 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
   const importConfirmVisible = ref(false);
   const importing = ref(false);
 
+  // F-13: AbortController for import cancellation
+  // TODO: Wire this into a "Cancel" button in the upload progress UI
+  // when the backend supports streaming upload cancellation.
+  let abortController = null;
+
   const uploadHeaders = computed(() => {
     const authStore = useAuthStore();
     return authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {};
@@ -198,24 +203,32 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
   async function confirmImport() {
     importConfirmVisible.value = false;
     importing.value = true;
+    abortController = new AbortController();
     try {
       const formData = new FormData();
       formData.append('file', pendingFile.value);
       const response = await request.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        signal: abortController.signal,
       });
       onImportSuccess(response);
     } catch (err) {
+      if (abortController.signal.aborted) return; // User cancelled
       onImportError(err);
     } finally {
       pendingFile.value = null;
       importing.value = false;
+      abortController = null;
     }
   }
 
   function cancelImport() {
     importConfirmVisible.value = false;
     pendingFile.value = null;
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+    }
   }
 
   /**

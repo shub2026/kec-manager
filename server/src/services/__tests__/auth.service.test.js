@@ -211,21 +211,21 @@ describe('AuthService Token Blacklist', () => {
     expect(mockTokenBlacklist.findUnique).not.toHaveBeenCalled();
   });
 
-  it('addToBlacklist 后应清除对应负缓存', async () => {
+  it('addToBlacklist 后应清除对应负缓存并写入内存缓存', async () => {
     // 先检查一个jti，建立负缓存
     mockTokenBlacklist.findUnique.mockResolvedValue(null);
     await AuthService.isBlacklisted('jti-to-blacklist');
     expect(mockTokenBlacklist.findUnique).toHaveBeenCalledTimes(1);
 
-    // 将该jti加入黑名单
+    // 将该jti加入黑名单（S-03: 同时写入内存正缓存）
     mockTokenBlacklist.upsert.mockResolvedValue({});
     await AuthService.addToBlacklist('jti-to-blacklist', Date.now() + 60000);
 
-    // 再次检查，应重新查库并命中黑名单
-    mockTokenBlacklist.findUnique.mockResolvedValue({ jti: 'jti-to-blacklist' });
+    // 再次检查，应从内存正缓存直接返回true（不再查库）
     const result = await AuthService.isBlacklisted('jti-to-blacklist');
     expect(result).toBe(true);
-    expect(mockTokenBlacklist.findUnique).toHaveBeenCalledTimes(2);
+    // S-03: findUnique仍为1次，因为内存缓存命中跳过了DB查询
+    expect(mockTokenBlacklist.findUnique).toHaveBeenCalledTimes(1);
   });
 
   it('cleanExpiredBlacklist 应删除过期记录', async () => {

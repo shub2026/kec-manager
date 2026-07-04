@@ -78,10 +78,10 @@
       </div>
 
       <!-- 空状态 -->
-      <el-empty v-if="!loading && !statsData" description="暂无课时统计数据" />
+      <el-empty v-if="!loading && !statsData" description="暂无数据" />
       <el-empty
         v-else-if="!loading && statsData && filteredTeachers.length === 0"
-        description="没有符合条件的教师"
+        description="暂无数据"
       />
 
       <!-- 教师课时统计表 -->

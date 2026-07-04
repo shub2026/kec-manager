@@ -6,6 +6,7 @@
       :title="form.id ? '编辑班级' : '新增班级'"
       width="min(800px, 92vw)"
       :fullscreen="isMobile"
+      destroy-on-close
       @close="$emit('close')"
     >
       <el-form ref="formRef" :model="localForm" :rules="rules" label-width="100px">
@@ -125,6 +126,7 @@
       v-model="batchVisible"
       :title="batchDialogTitle"
       width="min(500px, 90vw)"
+      destroy-on-close
       @close="$emit('batch-close')"
     >
       <el-form label-width="120px">

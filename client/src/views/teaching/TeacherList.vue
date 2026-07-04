@@ -86,9 +86,7 @@
 
       <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
         <template #empty>
-          <el-empty
-            :description="list.length === 0 ? '暂无数据，请点击新增' : '未匹配到筛选条件'"
-          />
+          <el-empty description="暂无数据" />
         </template>
         <el-table-column type="index" label="序号" min-width="60" align="center" />
         <el-table-column prop="name" label="姓名" min-width="100">

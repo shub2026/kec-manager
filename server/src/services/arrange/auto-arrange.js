@@ -89,9 +89,10 @@ function calcMatchScore(teacher, classInfo) {
   }
 
   // 二轮优化：教材数量分级奖惩，根治 +6 雪球效应
-  if (TEXTBOOK_COHESION.ENABLED) {
+  // B-04修复：增加 maxTb > 0 守卫，MAX_TEXTBOOKS=0 时不执行惩罚逻辑
+  const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER || 2;
+  if (TEXTBOOK_COHESION.ENABLED && maxTb > 0) {
     const tbCount = teacher.assignedTextbookIds?.size ?? 0;
-    const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER || 2;
 
     if (tbCount >= maxTb) {
       if (classInfo.textbookIds && classInfo.textbookIds.length > 0) {
@@ -144,6 +145,10 @@ function isTeacherEligible(t, cls, mode) {
     cls.trainingLevelId &&
     !t.schedulingLevelIds.includes(cls.trainingLevelId)
   ) {
+    return false;
+  }
+  // B-03修复：与isLevelEligible保持一致，班级无trainingLevelId时不允许有层次约束的教师
+  if (!cls.trainingLevelId && t.schedulingLevelIds && t.schedulingLevelIds.length > 0) {
     return false;
   }
   // 二轮优化：教材硬上限检查

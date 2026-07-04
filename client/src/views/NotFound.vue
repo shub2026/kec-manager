@@ -1,16 +1,28 @@
 <template>
   <div class="not-found">
-    <el-result icon="warning" title="页面不存在" sub-title="您访问的页面不存在">
-      <template #extra>
-        <el-button type="primary" @click="goHome">返回首页</el-button>
-      </template>
-    </el-result>
+    <div class="not-found-content">
+      <div class="not-found-icon">
+        <el-icon :size="80" color="var(--text-placeholder)"><Warning /></el-icon>
+      </div>
+      <h1 class="not-found-code">404</h1>
+      <h2 class="not-found-title">页面不存在</h2>
+      <p class="not-found-desc">抱歉，您访问的页面不存在或已被移除。</p>
+      <div class="not-found-actions">
+        <el-button type="primary" size="large" @click="goHome">
+          <el-icon><HomeFilled /></el-icon> 返回首页
+        </el-button>
+        <el-button size="large" @click="$router.back()">
+          <el-icon><ArrowLeft /></el-icon> 返回上一页
+        </el-button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { Warning, HomeFilled, ArrowLeft } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -30,5 +42,37 @@ function goHome() {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  background: var(--bg-page);
+}
+.not-found-content {
+  text-align: center;
+  padding: 48px 32px;
+}
+.not-found-icon {
+  margin-bottom: 16px;
+}
+.not-found-code {
+  font-size: 72px;
+  font-weight: 800;
+  color: var(--text-placeholder);
+  margin: 0;
+  line-height: 1;
+  letter-spacing: 4px;
+}
+.not-found-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 16px 0 8px;
+}
+.not-found-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 32px;
+}
+.not-found-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
 }
 </style>

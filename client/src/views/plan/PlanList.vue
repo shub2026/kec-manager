@@ -25,11 +25,7 @@
       </div>
       <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
         <template #empty>
-          <el-empty
-            :description="
-              list.length === 0 ? '暂无培养方案，请点击右上角新增' : '未匹配到筛选条件，请重置筛选'
-            "
-          />
+          <el-empty description="暂无数据" />
         </template>
         <el-table-column type="index" label="序号" width="55" />
         <el-table-column prop="name" label="方案名称" min-width="200" />

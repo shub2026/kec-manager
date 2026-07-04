@@ -23,6 +23,7 @@ import { authMiddleware, roleMiddleware } from './middleware/auth.middleware.js'
 import { errorHandler } from './middleware/error.js';
 import { convertResponseNaming, convertRequestNaming } from './middleware/naming.middleware.js';
 import { sanitizeBody, sanitizeQuery } from './middleware/xss.js';
+import { validateCsrf } from './middleware/csrf.js';
 import { log } from './utils/logger.js'; // L1修复：使用winston logger
 import rateLimit from 'express-rate-limit';
 
@@ -88,7 +89,9 @@ app.use(
 );
 app.use(express.json({ limit: '10mb' }));
 app.use((req, res, next) => {
-  log.info(`${req.method} ${req.path}`, { ip: req.ip });
+  // S-07修复：日志中脱敏下载令牌
+  const logQuery = req.query.download_token ? { ...req.query, download_token: '[REDACTED]' } : req.query;
+  log.info(`${req.method} ${req.path}`, { ip: req.ip, query: Object.keys(logQuery).length > 0 ? logQuery : undefined });
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
 });
@@ -110,6 +113,9 @@ app.use(convertResponseNaming); // 响应：snake_case → camelCase
 // H-4修复：全局应用 body XSS 清洗（密码类字段在中间件内自动跳过）
 app.use(sanitizeBody);
 app.use(sanitizeQuery); // 查询参数 XSS 过滤
+
+// S-04修复：CSRF Token 验证（在所有安全中间件之后，路由之前）
+app.use(validateCsrf);
 
 // 公开路由（无需认证）
 app.use('/api/auth', authRoutes);

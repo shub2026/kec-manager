@@ -18,6 +18,8 @@ function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
+    // B-11 说明：暑期边界取 8 月而非 9 月，因为秋季学期通常 8 月底已开始准备，
+    // 此处为降级逻辑（无学期配置时），与服务端其他实现（useSemesters.js）保持一致
     startYear = currentMonth >= 8 ? currentYear : currentYear - 1;
   }
 
@@ -129,6 +131,9 @@ export async function listClasses(req, res, next) {
     });
 
     // H-10: 合并 7 次班级查询为单次查询，从结果集推导所有关联映射
+    // B-12 设计说明：关联映射（学院-专业、学院-层次等）从全量班级构建，而非当前筛选结果。
+    // 这是有意为之——级联筛选下拉框的选项应保持稳定，不随当前页面/筛选条件变化，
+    // 否则用户每切换一次筛选条件，下拉选项就会变动，体验极差。
     const allClassesForMappings = await prisma.classes.findMany({
       select: {
         college_id: true,

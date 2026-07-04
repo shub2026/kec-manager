@@ -51,11 +51,7 @@
         @selection-change="handleSelectionChange"
       >
         <template #empty>
-          <el-empty
-            :description="
-              list.length === 0 ? '暂无教材数据，请点击右上角新增' : '未匹配到筛选条件，请重置筛选'
-            "
-          />
+          <el-empty description="暂无数据" />
         </template>
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
@@ -316,7 +312,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElNotification } from 'element-plus';
 // 按需导入项目中 service 函数（ElNotification）的 CSS 不会自动注入，需手动导入样式
@@ -333,6 +329,7 @@ import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
 import { useSortable } from '../../composables/useSortable';
 import { useResponsive } from '../../composables/useResponsive';
+import { useDebounceFn } from '../../composables/useDebounce';
 
 const list = ref([]);
 
@@ -362,17 +359,11 @@ const filterCategory = ref('');
 const filterPublisher = ref('');
 
 // 防抖：文本输入200ms后再触发筛选，减少每次按键的computed重算
-let _filterTimer = null;
+const updateDebouncedFilter = useDebounceFn((val) => {
+  debouncedFilterTitle.value = val;
+}, 200);
 watch(filterTitle, (val) => {
-  clearTimeout(_filterTimer);
-  _filterTimer = setTimeout(() => {
-    debouncedFilterTitle.value = val;
-  }, 200);
-});
-
-// 卸载时清理防抖定时器，避免内存泄漏
-onUnmounted(() => {
-  if (_filterTimer) clearTimeout(_filterTimer);
+  updateDebouncedFilter(val);
 });
 
 // 表单引用与校验规则

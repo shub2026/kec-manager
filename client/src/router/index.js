@@ -164,7 +164,7 @@ router.beforeEach(async (to, from, next) => {
     const authStore = useAuthStore();
 
     // 设置页面标题
-    document.title = to.meta.title ? `${to.meta.title} - KEC课程管理平台` : 'KEC课程管理平台';
+    document.title = to.meta.title ? `${to.meta.title} · KEC课程管理平台` : 'KEC课程管理平台';
 
     // 如果访问登录页且已登录，跳转到首页
     if (to.path === '/login') {

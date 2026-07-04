@@ -13,11 +13,11 @@
       size="small"
       @current-change="onTeacherSelect"
     >
-      <el-table-column prop="name" label="姓名" min-width="45" />
-      <el-table-column label="人员类别" min-width="65" align="center">
+      <el-table-column prop="name" label="姓名" width="70" />
+      <el-table-column label="人员类别" width="76" align="center">
         <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
       </el-table-column>
-      <el-table-column label="当前总课时" min-width="72" align="center">
+      <el-table-column label="当前总课时" width="82" align="center">
         <template #default="{ row }">
           <span
             :class="{
@@ -32,17 +32,20 @@
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="班级数" min-width="48" align="center">
+      <el-table-column label="班级数" width="56" align="center">
         <template #default="{ row }">{{ row.totalClassCount }}</template>
       </el-table-column>
-      <el-table-column label="学科" min-width="70">
+      <el-table-column label="特定周课时" width="82" align="center">
+        <template #default="{ row }">{{ row.defaultWeeklyHours ?? '-' }}</template>
+      </el-table-column>
+      <el-table-column label="学科" min-width="3">
         <template #default="{ row }">
           <el-tag v-for="c in row.courseList" :key="c.id" size="small" class="tag-item">{{
             c.name
           }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="任课学院" min-width="120">
+      <el-table-column label="任课学院" min-width="4">
         <template #default="{ row }">
           <el-tag
             v-for="c in row.collegeList"
@@ -54,7 +57,7 @@
           >
         </template>
       </el-table-column>
-      <el-table-column label="任课层次" min-width="120">
+      <el-table-column label="任课层次" min-width="3">
         <template #default="{ row }">
           <el-tag
             v-for="l in row.trainingLevelList"
@@ -66,7 +69,7 @@
           >
         </template>
       </el-table-column>
-      <el-table-column label="已用教材" min-width="220">
+      <el-table-column label="已用教材" min-width="5">
         <template #default="{ row }">
           <template v-if="uniqueTextbooks(row.assignedTextbooks).length">
             <el-tag
@@ -80,9 +83,6 @@
           </template>
           <span v-else class="text-placeholder">-</span>
         </template>
-      </el-table-column>
-      <el-table-column label="特定周课时" min-width="90" align="center">
-        <template #default="{ row }">{{ row.defaultWeeklyHours ?? '-' }}</template>
       </el-table-column>
     </el-table>
     <template #footer>
@@ -136,7 +136,11 @@ function open(row) {
   visible.value = true;
 }
 
-defineExpose({ open });
+function close() {
+  visible.value = false;
+}
+
+defineExpose({ open, close });
 </script>
 
 <style scoped>

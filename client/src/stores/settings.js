@@ -44,6 +44,7 @@ export const useSettingsStore = defineStore('settings', () => {
         if (
           Number.isFinite(startYear) &&
           Number.isFinite(endYear) &&
+          endYear === startYear + 1 &&
           (semesterIndex === 1 || semesterIndex === 2)
         ) {
           semesterLabel.value = formatSemesterLabel(startYear, endYear, semesterIndex);

@@ -26,7 +26,16 @@ export default [
         FormData: 'readonly',
         atob: 'readonly',
         __APP_VERSION__: 'readonly',
-        ElMessage: 'readonly'
+        ElMessage: 'readonly',
+        getComputedStyle: 'readonly',
+        AbortController: 'readonly',
+        AbortSignal: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        fetch: 'readonly',
+        navigator: 'readonly',
+        location: 'readonly',
+        history: 'readonly'
       }
     },
     rules: {

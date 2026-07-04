@@ -13,7 +13,7 @@
       </template>
       <el-table v-loading="loading" :data="list" stripe row-key="id">
         <template #empty>
-          <el-empty description="暂无专业数据，请点击右上角新增" />
+          <el-empty description="暂无数据" />
         </template>
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="专业名称" min-width="150" />

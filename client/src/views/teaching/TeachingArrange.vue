@@ -158,8 +158,15 @@
                 >
                   {{ row.assignment.teacherName }}
                 </el-tag>
+                <span class="replace-hint">
+                  <el-icon :size="12"><EditPen /></el-icon>
+                  更换
+                </span>
               </template>
-              <span v-else class="text-placeholder">点击安排</span>
+              <template v-else>
+                <el-icon :size="14" style="margin-right: 4px; opacity: 0.5"><Plus /></el-icon>
+                <span class="text-placeholder">点击安排</span>
+              </template>
             </div>
           </template>
         </el-table-column>
@@ -485,6 +492,7 @@ async function onTeacherConfirm({ classId, teacherId, weeklyHours }) {
       teacherId,
       weeklyHours,
     });
+    teacherDialogRef.value?.close();
     ElMessage.success('安排成功');
     await loadData();
   } catch (e) {
@@ -526,6 +534,7 @@ async function doAutoArrange() {
   arrangeConfirmVisible.value = false;
 
   arranging.value = true;
+  const loadingMsg = ElMessage.info({ message: '正在自动排课，请耐心等待...', duration: 0 });
   try {
     const res = await runAutoArrange({
       courseId: selectedCourseId.value,
@@ -549,6 +558,7 @@ async function doAutoArrange() {
     }
   } finally {
     arranging.value = false;
+    loadingMsg?.close?.();
   }
 }
 
@@ -600,6 +610,7 @@ async function doBatchAutoArrange() {
   batchConfirmVisible.value = false;
 
   batchArranging.value = true;
+  const loadingMsg = ElMessage.info({ message: '正在批量排课，请耐心等待...', duration: 0 });
   try {
     const res = await runBatchAutoArrange({
       semester: currentSemesterLabel.value,
@@ -620,6 +631,7 @@ async function doBatchAutoArrange() {
     }
   } finally {
     batchArranging.value = false;
+    loadingMsg?.close?.();
   }
 }
 
@@ -722,6 +734,30 @@ onMounted(async () => {
   min-height: 32px;
   display: flex;
   align-items: center;
+  gap: 6px;
+  /* flex:1 撑满父级 .cell（flex容器），负边距消除父级 padding 点击死区 */
+  flex: 1;
+  margin: -4px -10px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+.teacher-cell:hover {
+  background-color: var(--el-color-primary-light-9, #ecf5ff);
+}
+.teacher-cell.no-teacher:hover .text-placeholder {
+  color: var(--el-color-primary);
+}
+.replace-hint {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  white-space: nowrap;
+}
+.teacher-cell.has-teacher:hover .replace-hint {
+  display: inline-flex;
 }
 .text-placeholder {
   color: var(--text-placeholder);

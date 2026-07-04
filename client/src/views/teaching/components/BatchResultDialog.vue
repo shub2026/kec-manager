@@ -103,7 +103,7 @@
       </div>
       <el-empty
         v-if="filteredBatchResults.length === 0"
-        description="没有匹配的课程"
+        description="暂无数据"
         :image-size="60"
       />
     </div>

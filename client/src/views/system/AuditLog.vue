@@ -71,7 +71,7 @@
         :default-sort="{ prop: 'createdAt', order: 'descending' }"
       >
         <template #empty>
-          <el-empty description="暂无操作日志" />
+          <el-empty description="暂无数据" />
         </template>
         <el-table-column label="时间" min-width="165" prop="createdAt" sortable>
           <template #default="{ row }">
