@@ -13,7 +13,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # 项目部署目录
-PROJECT_DIR="/opt/1panel/www/sites/kec/index/kec-manager"
+PROJECT_DIR="/opt/www/sites/kec/index/kec-manager"
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}KEC 课程管理平台 - 生产环境部署脚本${NC}"
@@ -79,7 +79,7 @@ echo ""
 echo -e "${GREEN}[2/10] 创建部署目录...${NC}"
 execute "mkdir -p ${PROJECT_DIR}/server/data"
 execute "mkdir -p ${PROJECT_DIR}/client"
-execute "mkdir -p /opt/1panel/www/sites/kec/index/log/kec-manager"
+execute "mkdir -p /opt/www/sites/kec/index/log/kec-manager"
 echo "✓ 目录创建完成"
 
 echo ""
