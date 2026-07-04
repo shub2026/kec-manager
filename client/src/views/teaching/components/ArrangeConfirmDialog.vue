@@ -18,9 +18,11 @@
           <strong>{{ data.courseName }}</strong>
         </p>
         <p style="font-size: 14px; color: var(--text-regular); margin: 0 0 8px">
-          排课模式：<el-tag :type="data.mode === '全量模式' ? 'warning' : 'primary'" size="small">{{
-            data.mode
-          }}</el-tag>
+          排课模式：<el-tag
+            :type="data.mode === '全量模式' ? 'warning' : 'success'"
+            size="small"
+            >{{ data.mode }}</el-tag
+          >
         </p>
         <p style="font-size: 13px; color: var(--text-secondary); margin: 0">{{ data.message }}</p>
       </template>
@@ -34,9 +36,11 @@
           将对<strong>当前学期所有课程</strong>进行批量排课
         </p>
         <p style="font-size: 14px; color: var(--text-regular); margin: 0 0 8px">
-          排课模式：<el-tag :type="data.mode === '全量模式' ? 'warning' : 'primary'" size="small">{{
-            data.mode
-          }}</el-tag>
+          排课模式：<el-tag
+            :type="data.mode === '全量模式' ? 'warning' : 'success'"
+            size="small"
+            >{{ data.mode }}</el-tag
+          >
         </p>
         <p style="font-size: 13px; color: var(--text-secondary); margin: 0">{{ data.message }}</p>
       </template>

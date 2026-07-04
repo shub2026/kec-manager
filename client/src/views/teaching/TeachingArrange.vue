@@ -66,10 +66,10 @@
               <el-option v-for="v in textbookOptions" :key="v" :label="v" :value="v" />
             </el-select>
             <el-checkbox v-model="previewMode" style="margin-left: 8px">预览模式</el-checkbox>
-            <el-button type="danger" :loading="arranging" @click="handleAutoArrange('full')">
+            <el-button type="warning" :loading="arranging" @click="handleAutoArrange('full')">
               <el-icon><MagicStick /></el-icon> 全量模式
             </el-button>
-            <el-button type="primary" :loading="arranging" @click="handleAutoArrange('standard')">
+            <el-button type="success" :loading="arranging" @click="handleAutoArrange('standard')">
               <el-icon><SetUp /></el-icon> 标准模式
             </el-button>
             <el-dropdown
