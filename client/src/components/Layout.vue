@@ -145,13 +145,13 @@
   <el-dialog
     v-model="logoutDialogVisible"
     title="退出登录"
-    width="400px"
+    width="min(400px, 90vw)"
     :close-on-click-modal="false"
     destroy-on-close
     align-center
   >
-    <div style="padding: 8px 0">
-      <p style="font-size: 14px; color: var(--text-primary); margin: 0 0 12px">
+    <div style="padding: 4px 0">
+      <p style="font-size: 14px; color: var(--text-primary); margin: 0 0 8px">
         <el-icon style="vertical-align: middle; color: var(--brand-warning); margin-right: 6px"
           ><SwitchButton
         /></el-icon>
