@@ -256,7 +256,9 @@
         <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ batchDeleteConfirmMessage }}</p>
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
+          {{ batchDeleteConfirmMessage }}
+        </p>
       </div>
       <template #footer>
         <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
@@ -279,7 +281,10 @@
         /></el-icon>
         <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
           <p style="margin: 0">确定要删除此教材吗？此操作不可撤销。</p>
-          <p v-if="deleteWarning" style="margin: 8px 0 0; color: var(--brand-danger); font-size: 13px">
+          <p
+            v-if="deleteWarning"
+            style="margin: 8px 0 0; color: var(--brand-danger); font-size: 13px"
+          >
             <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
           </p>
         </div>

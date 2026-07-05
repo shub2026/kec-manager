@@ -179,9 +179,7 @@ describe('getClassesWithCourse - 0 课时过滤', () => {
   });
 
   it('weekly_hours 为负数的班级应被过滤', async () => {
-    const pc = makePlanCourse(1, [
-      makeSemRecord(CURRENT_SEM_NUM, -1),
-    ]);
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, -1)]);
     const cls = makeClass(10, '25级1班');
     setupMocks([pc], [cls]);
 
@@ -206,14 +204,8 @@ describe('getClassesWithCourse - 0 课时过滤', () => {
   });
 
   it('3 个班级中 1 个 0 课时，应只返回 2 个', async () => {
-    const pc = makePlanCourse(1, [
-      makeSemRecord(CURRENT_SEM_NUM, 4),
-    ]);
-    const classes = [
-      makeClass(10, '25级1班'),
-      makeClass(11, '25级2班'),
-      makeClass(12, '25级3班'),
-    ];
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const classes = [makeClass(10, '25级1班'), makeClass(11, '25级2班'), makeClass(12, '25级3班')];
     setupMocks([pc], classes);
 
     // 让第 2 个班级返回 0 课时
@@ -242,13 +234,8 @@ describe('getClassesWithCourse - 0 课时过滤', () => {
   });
 
   it('所有班级都是 0 课时，应返回空数组', async () => {
-    const pc = makePlanCourse(1, [
-      makeSemRecord(CURRENT_SEM_NUM, 0),
-    ]);
-    const classes = [
-      makeClass(10, '25级1班'),
-      makeClass(11, '25级2班'),
-    ];
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 0)]);
+    const classes = [makeClass(10, '25级1班'), makeClass(11, '25级2班')];
     setupMocks([pc], classes);
 
     const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);

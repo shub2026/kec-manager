@@ -109,10 +109,7 @@
             <span class="user-info" aria-label="用户菜单">
               <el-icon><User /></el-icon>
               <span class="user-name">{{ authStore.realName || authStore.username }}</span>
-              <el-tag
-                size="small"
-                :type="authStore.isAdmin ? 'success' : 'info'"
-              >
+              <el-tag size="small" :type="authStore.isAdmin ? 'success' : 'info'">
                 {{ authStore.isAdmin ? '管理员' : '访客' }}
               </el-tag>
             </span>
@@ -159,7 +156,9 @@
         /></el-icon>
         当前用户：<strong>{{ authStore.realName || authStore.username }}</strong>
       </p>
-      <p style="font-size: 13px; color: var(--text-secondary); margin: 0">退出后需重新登录才能使用系统功能。</p>
+      <p style="font-size: 13px; color: var(--text-secondary); margin: 0">
+        退出后需重新登录才能使用系统功能。
+      </p>
     </div>
     <template #footer>
       <el-button @click="logoutDialogVisible = false">取消</el-button>
@@ -185,11 +184,13 @@ const windowNarrow = ref(false); // 窗口窄屏标记
 const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
 
 // 侧边栏配色绑定（el-menu 属性不支持 CSS 变量，通过 JS 读取令牌）
-const sidebarBg = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-bg').trim() || '#304156';
+const sidebarBg =
+  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-bg').trim() || '#304156';
 const sidebarText =
   getComputedStyle(document.documentElement).getPropertyValue('--sidebar-text').trim() || '#bfcbd9';
 const sidebarActive =
-  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-active').trim() || '#409eff';
+  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-active').trim() ||
+  '#409eff';
 
 // keep-alive 缓存的列表页组件名（需与各列表组件 defineOptions({ name }) 一致）
 const cachedViews = [

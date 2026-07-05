@@ -20,9 +20,7 @@ const mockTx = {
 
 const mockPrisma = {
   // 支持两种调用模式：回调函数（fn(mockTx)）和 promise 数组（Promise.all）
-  $transaction: vi.fn((arg) =>
-    typeof arg === 'function' ? arg(mockTx) : Promise.all(arg)
-  ),
+  $transaction: vi.fn((arg) => (typeof arg === 'function' ? arg(mockTx) : Promise.all(arg))),
   plan_courses: {
     create: vi.fn(),
     findUnique: vi.fn(),
@@ -519,9 +517,7 @@ describe('plan-matrix.controller', () => {
 
       await listPlanSemesters(req, res, next);
 
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: true, data: [] })
-      );
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: [] }));
     });
 
     it('单一学期单一 weeks_count 应原样返回', async () => {

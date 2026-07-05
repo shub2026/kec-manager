@@ -125,7 +125,9 @@
             </el-option>
             <el-option label="访客" value="viewer">
               <span>访客</span>
-              <span style="color: var(--text-secondary); font-size: 12px; margin-left: 10px">仅查询权限</span>
+              <span style="color: var(--text-secondary); font-size: 12px; margin-left: 10px"
+                >仅查询权限</span
+              >
             </el-option>
           </el-select>
         </el-form-item>
@@ -165,7 +167,9 @@
         <el-icon :size="24" color="var(--brand-warning)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ statusConfirmMessage }}</p>
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
+          {{ statusConfirmMessage }}
+        </p>
       </div>
       <template #footer>
         <el-button @click="statusConfirmVisible = false">取消</el-button>
@@ -186,7 +190,9 @@
         <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ deleteConfirmMessage }}</p>
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
+          {{ deleteConfirmMessage }}
+        </p>
       </div>
       <template #footer>
         <el-button @click="deleteConfirmVisible = false">取消</el-button>

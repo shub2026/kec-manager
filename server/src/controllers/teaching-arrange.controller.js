@@ -589,6 +589,8 @@ export async function getStatistics(req, res, next) {
         group.classes.push({
           classId: a.class.id,
           className: a.class.name,
+          collegeName: a.class.colleges?.name || null,
+          trainingLevelName: globalLevelMap.get(a.class.training_level_id)?.name || null,
           weeklyHours: a.weekly_hours,
           isAuto: a.is_auto,
         });

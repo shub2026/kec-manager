@@ -91,7 +91,9 @@
         /></el-icon>
         <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
           <p style="margin: 0">{{ deleteCourseConfirmMessage }}</p>
-          <p style="margin: 8px 0 0; color: var(--text-secondary); font-size: 13px">此操作不可撤销。</p>
+          <p style="margin: 8px 0 0; color: var(--text-secondary); font-size: 13px">
+            此操作不可撤销。
+          </p>
         </div>
       </div>
       <template #footer>

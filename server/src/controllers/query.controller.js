@@ -236,27 +236,30 @@ export async function querySemester(req, res, next) {
       planOrConditions.push({ id: { in: [...customPlanIds] } });
     }
 
-    const matchingPlans = planOrConditions.length > 0
-      ? await prisma.training_plans.findMany({
-          where: { OR: planOrConditions },
-          include: {
-            plan_courses: {
-              include: {
-                courses: { select: { id: true, name: true, type: true } },
-                plan_course_semesters: {
-                  include: {
-                    plan_textbooks: {
-                      include: {
-                        textbooks: { select: { id: true, title: true, isbn: true, publisher: true } },
+    const matchingPlans =
+      planOrConditions.length > 0
+        ? await prisma.training_plans.findMany({
+            where: { OR: planOrConditions },
+            include: {
+              plan_courses: {
+                include: {
+                  courses: { select: { id: true, name: true, type: true } },
+                  plan_course_semesters: {
+                    include: {
+                      plan_textbooks: {
+                        include: {
+                          textbooks: {
+                            select: { id: true, title: true, isbn: true, publisher: true },
+                          },
+                        },
                       },
                     },
                   },
                 },
               },
             },
-          },
-        })
-      : [];
+          })
+        : [];
 
     const results = [];
     let skippedNoCourses = 0;

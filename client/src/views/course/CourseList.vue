@@ -130,7 +130,10 @@
         /></el-icon>
         <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
           <p style="margin: 0">确定要删除此课程吗？此操作不可撤销。</p>
-          <p v-if="deleteWarning" style="margin: 8px 0 0; color: var(--brand-danger); font-size: 13px">
+          <p
+            v-if="deleteWarning"
+            style="margin: 8px 0 0; color: var(--brand-danger); font-size: 13px"
+          >
             <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
           </p>
         </div>

@@ -93,9 +93,7 @@ const SEMESTER_INFO = {
 };
 
 const ACTIVE_FILTER = {
-  OR: [
-    { duration_years: 3, is_left_school: false, enrollment_year: { gte: 2023, lte: 2025 } },
-  ],
+  OR: [{ duration_years: 3, is_left_school: false, enrollment_year: { gte: 2023, lte: 2025 } }],
 };
 
 const PLAN_FILTER = {
@@ -360,9 +358,7 @@ describe('querySemester — 筛选器单元测试', () => {
       // 控制器应能正确读取 college_id（snake_case）
       const where = mockPrisma.classes.findMany.mock.calls[0][0].where;
       expect(where.AND[1]).toHaveProperty('college_id', 35);
-      expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: true })
-      );
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 
     it('前端发 pageSize=25 经中间件转换后，req.query 中是 page_size=25', async () => {

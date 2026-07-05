@@ -52,10 +52,7 @@ describe('buildClassFilter', () => {
       label: '2026年春季(第2学期)',
     });
     // 默认学制列表（3年和4年）
-    mockPrisma.classes.findMany.mockResolvedValue([
-      { duration_years: 3 },
-      { duration_years: 4 },
-    ]);
+    mockPrisma.classes.findMany.mockResolvedValue([{ duration_years: 3 }, { duration_years: 4 }]);
   });
 
   // ════════════════════════════════════════════

@@ -2,7 +2,7 @@
 
 KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量级教学管理系统，涵盖培养计划、班级管理、教师排课、教材协调和数据导入导出等核心功能。采用前后端分离架构，基于 PM2 + Nginx 部署。
 
-**版本**：v2.17.2 | **数据库**：SQLite（WAL 模式）
+**版本**：v2.19.1 | **数据库**：SQLite（WAL 模式）
 
 ---
 
@@ -27,7 +27,7 @@ KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量�
 | 前端 | Vue 3.5 + Element Plus 2.14 + Pinia 3 + Vite 5 |
 | 后端 | Express 5.1 + Prisma 6.19 + Winston 3.19 |
 | 数据库 | SQLite（WAL 模式） |
-| 认证 | JWT 双令牌（Access 15min + Refresh 7天）+ bcrypt 12轮 |
+| 认证 | JWT 双令牌（Access 15min + Refresh 7天）+ CSRF 双重提交 + bcrypt 12轮 |
 | 测试 | Vitest + Supertest |
 | 部署 | PM2 + Nginx |
 
@@ -199,7 +199,7 @@ kec-manager/
 │   │   ├── constants/          # 常量定义（排课算法参数等）
 │   │   ├── controllers/        # 请求处理（19 个控制器）
 │   │   ├── lib/                # 库封装（Prisma 客户端等）
-│   │   ├── middleware/         # 中间件（认证/XSS/校验/分页/命名转换）
+│   │   ├── middleware/         # 中间件（认证/CSRF/XSS/校验/分页/命名转换）
 │   │   ├── routes/             # 路由定义（17 个路由模块）
 │   │   ├── services/           # 业务逻辑层
 │   │   │   ├── arrange/        # 排课算法（auto-arrange/batch/queries/validate）
@@ -221,7 +221,7 @@ kec-manager/
 ├── deploy.sh                   # 部署脚本（支持本地/远程）
 ├── deploy_ssh.sh               # SSH 远程部署脚本
 ├── CHANGELOG.md                # 变更日志
-└── package.json                # 根配置（版本 2.17.2）
+└── package.json                # 根配置（版本 2.19.1）
 ```
 
 ---

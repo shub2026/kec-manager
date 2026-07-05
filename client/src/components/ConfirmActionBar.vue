@@ -3,7 +3,12 @@
     <span class="confirm-text">{{ message }}</span>
     <div class="confirm-buttons">
       <el-button size="small" @click="$emit('cancel')">取消</el-button>
-      <el-button size="small" :type="danger ? 'danger' : 'primary'" :loading="loading" @click="$emit('confirm')">
+      <el-button
+        size="small"
+        :type="danger ? 'danger' : 'primary'"
+        :loading="loading"
+        @click="$emit('confirm')"
+      >
         {{ confirmText }}
       </el-button>
     </div>
@@ -16,8 +21,8 @@ defineProps({
   confirmText: { type: String, default: '确认' },
   danger: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
-})
-defineEmits(['confirm', 'cancel'])
+});
+defineEmits(['confirm', 'cancel']);
 </script>
 
 <style scoped>

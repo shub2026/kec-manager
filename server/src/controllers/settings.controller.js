@@ -212,9 +212,16 @@ export async function resetSystem(req, res, next) {
           module: 'system',
           operator_id: req.user?.id || null,
           ip: req.ip || null,
-          details: JSON.stringify({ type: 'system_reset', reason, archived_audit_count: auditLogCount }),
+          details: JSON.stringify({
+            type: 'system_reset',
+            reason,
+            archived_audit_count: auditLogCount,
+          }),
           result: 'success',
-          message: '执行系统重置' + (reason ? `，原因：${reason}` : '') + `（归档记录：删除前共${auditLogCount}条审计日志）`,
+          message:
+            '执行系统重置' +
+            (reason ? `，原因：${reason}` : '') +
+            `（归档记录：删除前共${auditLogCount}条审计日志）`,
         },
       });
       await tx.token_blacklist.deleteMany();
@@ -247,7 +254,12 @@ export async function resetAuditLogs(req, res, next) {
           module: 'system',
           operator_id: req.user?.id || null,
           ip: req.ip || null,
-          details: JSON.stringify({ type: 'reset_audit_logs', archived_count: logCount, operator: req.user?.id, reason: req.body.reason || null }),
+          details: JSON.stringify({
+            type: 'reset_audit_logs',
+            archived_count: logCount,
+            operator: req.user?.id,
+            reason: req.body.reason || null,
+          }),
           result: 'success',
           message: `清空操作日志（归档记录：删除前共${logCount}条）`,
         },

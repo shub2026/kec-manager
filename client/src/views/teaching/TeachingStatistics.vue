@@ -102,10 +102,26 @@
                     :data="detail.classes"
                     size="small"
                     border
-                    style="margin: 8px 0"
+                    style="margin: 4px 0"
                     row-key="className"
                   >
                     <el-table-column prop="className" label="班级" min-width="150" />
+                    <el-table-column label="学院" min-width="100">
+                      <template #default="{ row: cls }">
+                        <el-tag v-if="cls.collegeName" size="small" type="info">{{
+                          cls.collegeName
+                        }}</el-tag>
+                        <span v-else class="text-muted">-</span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="层次" min-width="80">
+                      <template #default="{ row: cls }">
+                        <el-tag v-if="cls.trainingLevelName" size="small" type="warning">{{
+                          cls.trainingLevelName
+                        }}</el-tag>
+                        <span v-else class="text-muted">-</span>
+                      </template>
+                    </el-table-column>
                     <el-table-column
                       prop="weeklyHours"
                       label="周课时"
@@ -380,11 +396,19 @@ onMounted(async () => {
   margin-bottom: 8px;
 }
 .expand-content {
-  padding: 12px 24px;
+  padding: 8px 16px;
+}
+.expand-content :deep(.el-table .cell) {
+  min-height: 26px;
+  padding: 2px 8px;
+}
+.expand-content :deep(.el-table th .cell) {
+  min-height: 28px;
+  padding: 2px 8px;
 }
 .course-detail h4 {
-  margin: 8px 0 4px;
-  font-size: 14px;
+  margin: 6px 0 2px;
+  font-size: 13px;
   color: var(--text-primary);
 }
 .tag-item {

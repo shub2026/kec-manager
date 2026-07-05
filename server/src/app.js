@@ -90,8 +90,13 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use((req, res, next) => {
   // S-07修复：日志中脱敏下载令牌
-  const logQuery = req.query.download_token ? { ...req.query, download_token: '[REDACTED]' } : req.query;
-  log.info(`${req.method} ${req.path}`, { ip: req.ip, query: Object.keys(logQuery).length > 0 ? logQuery : undefined });
+  const logQuery = req.query.download_token
+    ? { ...req.query, download_token: '[REDACTED]' }
+    : req.query;
+  log.info(`${req.method} ${req.path}`, {
+    ip: req.ip,
+    query: Object.keys(logQuery).length > 0 ? logQuery : undefined,
+  });
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
 });

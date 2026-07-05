@@ -18,7 +18,7 @@ export function validateCsrf(req, res, next) {
   // 解析cookie（不依赖cookie-parser，手动解析）
   const cookies = {};
   if (req.headers.cookie) {
-    req.headers.cookie.split(';').forEach(cookie => {
+    req.headers.cookie.split(';').forEach((cookie) => {
       const [name, ...rest] = cookie.trim().split('=');
       if (name) cookies[name] = decodeURIComponent(rest.join('='));
     });

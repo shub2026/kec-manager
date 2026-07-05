@@ -101,11 +101,7 @@
           </div>
         </div>
       </div>
-      <el-empty
-        v-if="filteredBatchResults.length === 0"
-        description="暂无数据"
-        :image-size="60"
-      />
+      <el-empty v-if="filteredBatchResults.length === 0" description="暂无数据" :image-size="60" />
     </div>
 
     <template #footer>

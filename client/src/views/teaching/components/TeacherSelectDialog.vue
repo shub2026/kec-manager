@@ -13,11 +13,11 @@
       size="small"
       @current-change="onTeacherSelect"
     >
-      <el-table-column prop="name" label="姓名" width="70" />
-      <el-table-column label="人员类别" width="76" align="center">
+      <el-table-column prop="name" label="姓名" width="80" />
+      <el-table-column label="人员类别" width="88" align="center">
         <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
       </el-table-column>
-      <el-table-column label="当前总课时" width="82" align="center">
+      <el-table-column label="当前总课时" width="92" align="center">
         <template #default="{ row }">
           <span
             :class="{
@@ -32,10 +32,10 @@
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="班级数" width="56" align="center">
+      <el-table-column label="班级数" width="68" align="center">
         <template #default="{ row }">{{ row.totalClassCount }}</template>
       </el-table-column>
-      <el-table-column label="特定周课时" width="82" align="center">
+      <el-table-column label="特定周课时" width="92" align="center">
         <template #default="{ row }">{{ row.defaultWeeklyHours ?? '-' }}</template>
       </el-table-column>
       <el-table-column label="学科" min-width="3">

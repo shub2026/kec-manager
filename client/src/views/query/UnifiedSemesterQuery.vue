@@ -111,7 +111,7 @@
           <el-table-column type="expand">
             <template #default="{ row }">
               <div class="expand-content">
-                <el-table :data="row.courses" size="small" border row-key="courseName">
+                <el-table :data="row.courses" size="small" border row-key="courseName" style="margin: 4px 0">
                   <el-table-column
                     prop="courseName"
                     label="课程"
@@ -491,5 +491,21 @@ onMounted(async () => {
 /* 表头单元格防换行 */
 :deep(.el-table__header th .cell) {
   white-space: nowrap;
+}
+/* 展开行内嵌表格紧凑化 */
+.expand-content {
+  padding: 8px 16px;
+}
+.expand-content :deep(.el-table .cell) {
+  min-height: 26px;
+  padding: 2px 8px;
+}
+.expand-content :deep(.el-table th .cell) {
+  min-height: 28px;
+  padding: 2px 8px;
+}
+.expand-content .no-textbook {
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 </style>

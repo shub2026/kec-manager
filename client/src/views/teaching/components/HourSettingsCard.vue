@@ -17,7 +17,9 @@
           >
             <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id">
               <span>{{ c.name }}</span>
-              <span style="color: var(--text-secondary); font-size: 12px; margin-left: 8px">{{ c.code }}</span>
+              <span style="color: var(--text-secondary); font-size: 12px; margin-left: 8px">{{
+                c.code
+              }}</span>
             </el-option>
           </el-select>
         </div>

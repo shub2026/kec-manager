@@ -35,7 +35,8 @@ function getSafeMessage(err) {
 export function errorHandler(err, req, res, next) {
   const isProduction = process.env.NODE_ENV === 'production';
   // S-06修复：详细信息仅对本地请求开放，不再仅依赖 NODE_ENV
-  const isLocalRequest = req.ip === '::1' || req.ip === '127.0.0.1' || req.ip === '::ffff:127.0.0.1';
+  const isLocalRequest =
+    req.ip === '::1' || req.ip === '127.0.0.1' || req.ip === '::ffff:127.0.0.1';
   const showDetails = !isProduction && isLocalRequest;
 
   // Prisma 记录不存在错误
@@ -58,7 +59,7 @@ export function errorHandler(err, req, res, next) {
     log.error(`[AppError] ${err.message}`, { statusCode: err.statusCode, code: err.code });
     return res.status(err.statusCode).json({
       success: false,
-      message: showDetails ? err.message : (err.isOperational ? err.message : getSafeMessage(err)),
+      message: showDetails ? err.message : err.isOperational ? err.message : getSafeMessage(err),
       code: showDetails ? err.code : undefined,
     });
   }
@@ -69,6 +70,6 @@ export function errorHandler(err, req, res, next) {
 
   res.status(status).json({
     success: false,
-    message: showDetails ? (err.message || '服务器内部错误') : getSafeMessage(err),
+    message: showDetails ? err.message || '服务器内部错误' : getSafeMessage(err),
   });
 }

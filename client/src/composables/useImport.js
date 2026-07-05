@@ -129,7 +129,10 @@ export function showImportResultCard({
   closeBtn2.style.cssText =
     'padding:4px 12px;font-size:13px;border:1px solid var(--border-base);background:var(--bg-card);color:var(--text-regular);border-radius:4px;cursor:pointer;';
   closeBtn2.addEventListener('mouseenter', () => (closeBtn2.style.borderColor = c.primary));
-  closeBtn2.addEventListener('mouseleave', () => (closeBtn2.style.borderColor = 'var(--border-base)'));
+  closeBtn2.addEventListener(
+    'mouseleave',
+    () => (closeBtn2.style.borderColor = 'var(--border-base)')
+  );
   footer.appendChild(closeBtn2);
   card.appendChild(footer);
 

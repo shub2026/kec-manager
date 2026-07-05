@@ -43,7 +43,10 @@
             @click="navigateTo('/majors')"
             @keyup.enter="navigateTo('/majors')"
           >
-            <div class="stat-icon" style="background-color: var(--brand-primary-soft); color: var(--brand-primary)">
+            <div
+              class="stat-icon"
+              style="background-color: var(--brand-primary-soft); color: var(--brand-primary)"
+            >
               <el-icon :size="24"><OfficeBuilding /></el-icon>
             </div>
             <div class="stat-info">
@@ -62,7 +65,10 @@
             @click="navigateTo('/courses')"
             @keyup.enter="navigateTo('/courses')"
           >
-            <div class="stat-icon" style="background-color: var(--brand-success-soft); color: var(--brand-success)">
+            <div
+              class="stat-icon"
+              style="background-color: var(--brand-success-soft); color: var(--brand-success)"
+            >
               <el-icon :size="24"><Reading /></el-icon>
             </div>
             <div class="stat-info">
@@ -81,7 +87,10 @@
             @click="navigateTo('/classes')"
             @keyup.enter="navigateTo('/classes')"
           >
-            <div class="stat-icon" style="background-color: var(--brand-warning-soft); color: var(--brand-warning)">
+            <div
+              class="stat-icon"
+              style="background-color: var(--brand-warning-soft); color: var(--brand-warning)"
+            >
               <el-icon :size="24"><Histogram /></el-icon>
             </div>
             <div class="stat-info">
@@ -100,7 +109,10 @@
             @click="navigateTo('/textbooks')"
             @keyup.enter="navigateTo('/textbooks')"
           >
-            <div class="stat-icon" style="background-color: var(--brand-danger-soft); color: var(--brand-danger)">
+            <div
+              class="stat-icon"
+              style="background-color: var(--brand-danger-soft); color: var(--brand-danger)"
+            >
               <el-icon :size="24"><Notebook /></el-icon>
             </div>
             <div class="stat-info">
@@ -119,7 +131,10 @@
             @click="navigateTo('/plans')"
             @keyup.enter="navigateTo('/plans')"
           >
-            <div class="stat-icon" style="background-color: var(--bg-subtle); color: var(--text-secondary)">
+            <div
+              class="stat-icon"
+              style="background-color: var(--bg-subtle); color: var(--text-secondary)"
+            >
               <el-icon :size="24"><Files /></el-icon>
             </div>
             <div class="stat-info">
@@ -132,7 +147,10 @@
         <!-- 在读学生 -->
         <el-col :xs="12" :sm="8" :md="6">
           <div class="stat-item">
-            <div class="stat-icon" style="background-color: var(--brand-primary-soft); color: var(--brand-primary)">
+            <div
+              class="stat-icon"
+              style="background-color: var(--brand-primary-soft); color: var(--brand-primary)"
+            >
               <el-icon :size="24"><User /></el-icon>
             </div>
             <div class="stat-info">
@@ -151,7 +169,10 @@
             @click="navigateTo('/teaching/arrange')"
             @keyup.enter="navigateTo('/teaching/arrange')"
           >
-            <div class="stat-icon" style="background-color: var(--brand-warning-soft); color: var(--brand-warning)">
+            <div
+              class="stat-icon"
+              style="background-color: var(--brand-warning-soft); color: var(--brand-warning)"
+            >
               <el-icon :size="24"><UserFilled /></el-icon>
             </div>
             <div class="stat-info">
@@ -170,7 +191,10 @@
             @click="navigateTo('/teaching/arrange')"
             @keyup.enter="navigateTo('/teaching/arrange')"
           >
-            <div class="stat-icon" style="background-color: var(--brand-success-soft); color: var(--brand-success)">
+            <div
+              class="stat-icon"
+              style="background-color: var(--brand-success-soft); color: var(--brand-success)"
+            >
               <el-icon :size="24"><Clock /></el-icon>
             </div>
             <div class="stat-info">

@@ -253,7 +253,8 @@ function handleSemesterChange(value) {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   text-align: center;
-  transition: box-shadow var(--dur-base) var(--ease-out),
+  transition:
+    box-shadow var(--dur-base) var(--ease-out),
     transform var(--dur-base) var(--ease-out);
 }
 

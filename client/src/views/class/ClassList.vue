@@ -130,7 +130,9 @@
         <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ batchDeleteConfirmMessage }}</p>
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
+          {{ batchDeleteConfirmMessage }}
+        </p>
       </div>
       <template #footer>
         <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
@@ -151,7 +153,9 @@
         <el-icon :size="24" color="var(--brand-warning)" style="flex-shrink: 0; margin-top: 2px"
           ><WarningFilled
         /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ leftSchoolConfirmMessage }}</p>
+        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
+          {{ leftSchoolConfirmMessage }}
+        </p>
       </div>
       <template #footer>
         <el-button @click="cancelLeftSchoolConfirm">取消</el-button>

@@ -92,7 +92,11 @@
         <el-table-column prop="name" label="姓名" min-width="100">
           <template #default="{ row }">
             <span
-              :style="row.status === 'disabled' ? 'color: var(--text-secondary); text-decoration: line-through' : ''"
+              :style="
+                row.status === 'disabled'
+                  ? 'color: var(--text-secondary); text-decoration: line-through'
+                  : ''
+              "
               >{{ row.name }}</span
             >
           </template>

@@ -51,9 +51,13 @@ function checkSecretEntropy(name, value) {
   const entropy = value.length * Math.log2(uniqueChars || 1);
   if (entropy < 128) {
     if (isProduction) {
-      throw new Error(`${name} 熵值不足(${Math.round(entropy)}bits)，请使用随机生成的密钥: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`);
+      throw new Error(
+        `${name} 熵值不足(${Math.round(entropy)}bits)，请使用随机生成的密钥: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
+      );
     } else {
-      log.warn(`安全警告: ${name} 熵值不足(${Math.round(entropy)}bits)，建议使用随机生成的高强度密钥`);
+      log.warn(
+        `安全警告: ${name} 熵值不足(${Math.round(entropy)}bits)，建议使用随机生成的高强度密钥`
+      );
     }
   }
 }
