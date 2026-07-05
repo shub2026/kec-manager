@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.20.1] - 2026-07-05
+
+### 缺陷修复
+
+- **CSRF Token 初始化**：新增 `GET /api/auth/csrf-token` 端点，客户端登录前获取 XSRF-TOKEN Cookie，解决首次 POST 被 CSRF 拦截的问题
+
 ## [2.20.0] - 2026-07-05
 
 ### 安全加固

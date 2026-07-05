@@ -56,7 +56,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(username, password) {
     try {
-      const { login: apiLogin } = await getAuthApi();
+      const { login: apiLogin, fetchCsrfToken } = await getAuthApi();
+      // 先获取 CSRF Token（设置 XSRF-TOKEN cookie），再发起登录请求
+      await fetchCsrfToken();
       const response = await apiLogin({
         username,
         password,

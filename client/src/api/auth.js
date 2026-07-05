@@ -2,6 +2,12 @@ import request from '../utils/request';
 import './types';
 
 /**
+ * 获取 CSRF Token（设置 XSRF-TOKEN cookie）
+ * @returns {Promise<import('./types').ApiResponse<{csrfToken: string}>>}
+ */
+export const fetchCsrfToken = () => request.get('/auth/csrf-token');
+
+/**
  * 用户登录
  * @param {Object} data
  * @param {string} data.username

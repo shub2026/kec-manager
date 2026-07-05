@@ -118,6 +118,18 @@ const logoutLimiter = rateLimit({
   message: { success: false, message: '登出请求过于频繁，请稍后再试' },
 });
 
+// 获取 CSRF Token（登录页加载时调用，设置 XSRF-TOKEN cookie）
+router.get('/csrf-token', (req, res) => {
+  const csrfToken = crypto.randomBytes(32).toString('hex');
+  res.cookie('XSRF-TOKEN', csrfToken, {
+    secure: isSecure,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
+  success(res, { csrfToken });
+});
+
 router.post('/login', loginLimiter, usernameLimiter, validateLogin, async (req, res, next) => {
   try {
     const { username, password } = req.body;
