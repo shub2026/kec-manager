@@ -43,15 +43,15 @@ export async function exportCourses(req, res, next) {
 
     const rows = courses.map((course) => ({
       课程名称: course.name,
-      编码: course.code || '-',
-      类型: course.type === 'public' ? '公共基础课' : '专业课',
+      课程编码: course.code || '-',
+      课程类型: course.type === 'public' ? '公共基础课' : '专业课',
       描述: course.description || '-',
     }));
 
     const headers = [
       { label: '课程名称', key: '课程名称', width: 30 },
-      { label: '编码', key: '编码', width: 20 },
-      { label: '类型', key: '类型', width: 15 },
+      { label: '课程编码', key: '课程编码', width: 20 },
+      { label: '课程类型', key: '课程类型', width: 15 },
       { label: '描述', key: '描述', width: 40 },
     ];
 
@@ -467,29 +467,29 @@ export async function exportTeachers(req, res, next) {
     const statusMap = { active: '启用', disabled: '禁用' };
 
     const rows = teachers.map((t) => ({
-      姓名: t.name,
+      教师姓名: t.name,
       性别: genderMap[t.gender] || '-',
       出生年月: t.birth_date ? String(t.birth_date).substring(0, 7) : '-',
       教师资格类型: t.qualification_type || '-',
       归属学院: t.affiliated_college?.name || '-',
       人员类别: personnelMap[t.personnel_type] || t.personnel_type,
       学科: t.courses.map((tc) => tc.course.name).join('、') || '-',
-      意向学院: t.scheduling_colleges.map((sc) => sc.college.name).join('、') || '-',
-      意向层次: t.scheduling_levels.map((sl) => sl.training_level.name).join('、') || '-',
+      任课学院: t.scheduling_colleges.map((sc) => sc.college.name).join('、') || '-',
+      任课层次: t.scheduling_levels.map((sl) => sl.training_level.name).join('、') || '-',
       自定义课时: t.default_weekly_hours != null ? t.default_weekly_hours : '-',
       状态: statusMap[t.status] || '启用',
     }));
 
     const headers = [
-      { label: '姓名', key: '姓名', width: 15 },
+      { label: '教师姓名', key: '教师姓名', width: 15 },
       { label: '性别', key: '性别', width: 8 },
       { label: '出生年月', key: '出生年月', width: 12 },
       { label: '教师资格类型', key: '教师资格类型', width: 15 },
       { label: '归属学院', key: '归属学院', width: 15 },
       { label: '人员类别', key: '人员类别', width: 12 },
       { label: '学科', key: '学科', width: 30 },
-      { label: '意向学院', key: '意向学院', width: 30 },
-      { label: '意向层次', key: '意向层次', width: 20 },
+      { label: '任课学院', key: '任课学院', width: 30 },
+      { label: '任课层次', key: '任课层次', width: 20 },
       { label: '自定义课时', key: '自定义课时', width: 12 },
       { label: '状态', key: '状态', width: 8 },
     ];

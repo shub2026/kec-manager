@@ -123,7 +123,7 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         const { refreshAccessToken: apiRefresh } = await getAuthApi();
         const response = await apiRefresh({
-          refresh_token: refreshToken.value,
+          refreshToken: refreshToken.value,
         });
 
         const { token: newToken, refreshToken: newRefreshToken } = response.data;

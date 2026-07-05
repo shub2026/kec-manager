@@ -11,7 +11,7 @@ import { fail } from '../utils/response.js';
 export function validatePagination(maxPageSize = 100) {
   const paginationRules = [
     query('page').optional().isInt({ min: 1 }).withMessage('页码必须为正整数'),
-    query('pageSize')
+    query('page_size')
       .optional()
       .isInt({ min: 1, max: maxPageSize })
       .withMessage(`每页数量必须在1-${maxPageSize}之间`),

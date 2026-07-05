@@ -109,7 +109,7 @@ export const getPlanSemesters = (id) => request.get(`/plans/${id}/semesters`);
  * @param {number} weeksCount - 统一周数
  */
 export const batchUpdateSemesterWeeks = (ids, weeksCount) =>
-  request.patch('/plans/semesters/batch-weeks', { ids, weeks_count: weeksCount });
+  request.patch('/plans/semesters/batch-weeks', { ids, weeksCount });
 
 /**
  * H-7 修复：批量更新课程排序（单事务）
@@ -138,12 +138,6 @@ export const removeSemesterTextbook = (semesterId) =>
   request.delete(`/plans/semesters/${semesterId}/textbooks`);
 
 // 兼容旧 API
-
-/**
- * @deprecated 使用 setSemesterTextbook 代替
- */
-export const addPlanTextbook = (courseId, data) =>
-  request.post(`/plans/courses/${courseId}/textbooks`, data);
 
 /**
  * @deprecated 使用 removeSemesterTextbook 代替

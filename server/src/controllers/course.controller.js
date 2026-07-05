@@ -72,6 +72,7 @@ export async function createCourse(req, res, next) {
       result: 'failed',
       message: `创建课程失败：${e.message}`,
     });
+    if (e.code === 'P2002') return fail(res, '该课程名称已存在', 409);
     next(e);
   }
 }
@@ -112,6 +113,7 @@ export async function updateCourse(req, res, next) {
         message: `更新课程失败：${e.message}`,
       });
       if (e.code === 'P2025') return fail(res, '课程不存在', 404);
+      if (e.code === 'P2002') return fail(res, '该课程名称已存在', 409);
       throw e;
     }
   } catch (e) {

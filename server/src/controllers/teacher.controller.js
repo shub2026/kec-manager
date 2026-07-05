@@ -352,6 +352,10 @@ export async function batchUpdateDefaultHours(req, res, next) {
         ? Number(default_weekly_hours)
         : null;
 
+    if (hours !== null && (isNaN(hours) || hours < 0 || hours > 200)) {
+      return fail(res, '自定义课时必须在 0~200 之间');
+    }
+
     await prisma.teachers.updateMany({
       where: { id: { in: teacher_ids.map(Number) } },
       data: { default_weekly_hours: hours },

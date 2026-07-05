@@ -11,13 +11,6 @@ import './types';
 export const getUsers = (params) => request.get('/users', { params });
 
 /**
- * 获取单个用户
- * @param {number} id
- * @returns {Promise<import('./types').ApiResponse<import('./types').User>>}
- */
-export const getUserById = (id) => request.get(`/users/${id}`);
-
-/**
  * 创建用户
  * @param {import('./types').UserInput} data
  * @returns {Promise<import('./types').ApiResponse<import('./types').User>>}
@@ -38,15 +31,6 @@ export const updateUser = (id, data) => request.put(`/users/${id}`, data);
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
 export const deleteUser = (id) => request.delete(`/users/${id}`);
-
-/**
- * 重置用户密码
- * @param {number} id
- * @param {Object} data
- * @param {string} data.newPassword - 至少 8 位
- * @returns {Promise<import('./types').ApiResponse<void>>}
- */
-export const resetUserPassword = (id, data) => request.put(`/users/${id}/password`, data);
 
 /**
  * 切换用户激活/禁用状态

@@ -70,7 +70,9 @@ export function snakeToCamel(obj) {
 
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
-    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    const camelKey = key.startsWith('_')
+      ? key
+      : key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
     if (Array.isArray(value)) {
       result[camelKey] = snakeToCamel(value);
     } else if (typeof value === 'object' && value !== null && !(value instanceof Date)) {

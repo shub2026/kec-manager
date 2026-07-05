@@ -83,6 +83,7 @@ export async function createTextbook(req, res, next) {
       result: 'failed',
       message: `创建教材失败：${e.message}`,
     });
+    if (e.code === 'P2002') return fail(res, '该书名的教材已存在', 409);
     next(e);
   }
 }
@@ -145,6 +146,7 @@ export async function updateTextbook(req, res, next) {
         message: `更新教材失败：${e.message}`,
       });
       if (e.code === 'P2025') return fail(res, '教材不存在', 404);
+      if (e.code === 'P2002') return fail(res, '该书名的教材已存在', 409);
       throw e;
     }
   } catch (e) {

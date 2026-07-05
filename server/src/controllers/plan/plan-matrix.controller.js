@@ -360,6 +360,10 @@ export async function upsertSemester(req, res, next) {
     if (!semester || weekly_hours === undefined || weekly_hours === null) {
       return fail(res, '学期和周课时为必填项');
     }
+    const whNum = Number(weekly_hours);
+    if (isNaN(whNum) || whNum < 0 || whNum > 100) {
+      return fail(res, '周课时必须在 0~100 之间');
+    }
 
     const planCourse = await prisma.plan_courses.findFirst({
       where: {
