@@ -62,4 +62,5 @@ export function deleteCookie(name) {
 export function clearAuthCookies() {
   deleteCookie('token');
   deleteCookie('refreshToken');
+  deleteCookie('XSRF-TOKEN');
 }

@@ -170,6 +170,7 @@ MAX_FILE_SIZE=10
 EOF
 
     copy_file /tmp/kec-env "${PROJECT_DIR}/server/.env"
+    rm -f /tmp/kec-env
     execute "chmod 600 ${PROJECT_DIR}/server/.env"
     echo "✓ 环境变量配置完成"
     echo -e "${YELLOW}⚠  重要：请编辑 ${PROJECT_DIR}/server/.env 修改 CORS_ORIGINS 为你的实际域名${NC}"

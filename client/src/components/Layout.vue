@@ -138,7 +138,7 @@
   </el-container>
 
   <!-- 修改密码对话框 -->
-  <ChangePasswordDialog v-model="passwordDialogVisible" @success="handlePasswordChangeSuccess" />
+  <ChangePasswordDialog v-model="passwordDialogVisible" :forced="authStore.mustChangePassword" @success="handlePasswordChangeSuccess" />
 
   <!-- 退出登录确认弹窗 -->
   <el-dialog
@@ -239,6 +239,11 @@ onMounted(async () => {
   if (warning) {
     ElMessage.warning(warning);
     sessionStorage.removeItem('permissionWarning');
+  }
+
+  // 首次登录强制修改密码
+  if (authStore.mustChangePassword) {
+    passwordDialogVisible.value = true;
   }
 });
 

@@ -1,5 +1,21 @@
 <template>
-  <el-dialog v-model="dialogVisible" title="修改密码" width="min(500px, 90vw)" @close="handleClose">
+  <el-dialog
+    v-model="dialogVisible"
+    title="修改密码"
+    width="min(500px, 90vw)"
+    :close-on-click-modal="!forced"
+    :close-on-press-escape="!forced"
+    :show-close="!forced"
+    @close="handleClose"
+  >
+    <el-alert
+      v-if="forced"
+      title="首次登录必须修改默认密码"
+      type="warning"
+      :closable="false"
+      show-icon
+      style="margin-bottom: 16px"
+    />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
       <el-form-item label="原密码" prop="oldPassword">
         <el-input
@@ -27,7 +43,7 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="handleClose">取消</el-button>
+      <el-button v-if="!forced" @click="handleClose">取消</el-button>
       <el-button type="primary" :loading="loading" @click="handleSubmit">确定</el-button>
     </template>
   </el-dialog>
@@ -42,6 +58,10 @@ const props = defineProps({
   modelValue: {
     type: Boolean,
     required: true,
+  },
+  forced: {
+    type: Boolean,
+    default: false,
   },
 });
 

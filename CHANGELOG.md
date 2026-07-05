@@ -5,6 +5,31 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.20.0] - 2026-07-05
+
+### 安全加固
+
+- **CSRF 防护修复**：修复 Cookie 名称不匹配导致 CSRF 验证被绕过的问题，统一为 `XSRF-TOKEN`；后端登录时通过 `Set-Cookie` 设置 CSRF Cookie，移除 bypass 分支
+- **HttpOnly Cookie**：JWT 令牌改为后端 `Set-Cookie` 设置 HttpOnly + Secure + SameSite=Strict Cookie，防止 XSS 窃取；兼容原有 Authorization Header 模式
+- **令牌刷新增强**：Refresh 端点支持从 HttpOnly Cookie 读取 refresh token，刷新后自动更新 Cookie
+- **登出增强**：登出时清除所有认证 Cookie（token、refreshToken、XSRF-TOKEN）
+- **密码修改增强**：修改密码后清除所有认证 Cookie，强制重新登录
+- **日志规范化**：`auth.service.js` 中 `console.error` 替换为 Winston `log.error`
+
+### 部署优化
+
+- **临时文件清理**：`deploy.sh` 复制 `.env` 后删除 `/tmp/kec-env`
+- **PM2 生态配置**：新增 `ecosystem.config.cjs`，含日志轮转、自动重启、内存限制等生产配置
+- **Vite 代理修复**：开发代理目标从 3002 改为 3000，与服务端默认端口一致
+
+### 首次登录安全
+
+- **强制改密**：新增 `must_change_password` 字段，种子用户首次登录强制修改默认密码
+
+### 文档更新
+
+- **版本号对齐**：README 版本号更新为 v2.19.3，与 package.json 一致
+
 ## [2.19.1] - 2026-07-05
 
 ### 代码质量与体验优化

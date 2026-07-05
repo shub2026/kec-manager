@@ -36,7 +36,8 @@ async function ensureSuperAdmin() {
       role: 'super_admin',
       real_name: '系统管理员',
       email: 'admin@example.com',
-      is_active: true
+      is_active: true,
+      must_change_password: true,
     }
   });
 

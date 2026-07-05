@@ -45,8 +45,19 @@ export async function authMiddleware(req, res, next) {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.substring(7);
   }
+  // 备选：从 HttpOnly Cookie 获取（后端 Set-Cookie 设置，JS 不可读）
+  if (!token && req.headers.cookie) {
+    const cookies = {};
+    req.headers.cookie.split(';').forEach((c) => {
+      const [name, ...rest] = c.trim().split('=');
+      if (name) cookies[name] = decodeURIComponent(rest.join('='));
+    });
+    if (cookies['token']) {
+      token = cookies['token'];
+    }
+  }
   // 备选：从查询参数获取短期下载令牌（用于 window.open 等场景，有效期60秒）
-  else if (req.query.download_token) {
+  if (!token && req.query.download_token) {
     const decoded = AuthService.verifyDownloadToken(req.query.download_token);
     if (decoded) {
       // S-12 修复：下载令牌也需校验用户状态，防止被禁用用户在令牌有效期内绕过

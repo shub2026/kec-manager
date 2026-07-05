@@ -65,7 +65,7 @@ export async function createUser(req, res, next) {
     const hashedPassword = await bcrypt.hash(password, authConfig.bcryptRounds);
 
     const user = await prisma.users.create({
-      data: { username, password: hashedPassword, real_name, email, role },
+      data: { username, password: hashedPassword, real_name, email, role, must_change_password: true },
       select: {
         id: true,
         username: true,

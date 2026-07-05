@@ -104,6 +104,7 @@ export class AuthService {
         role: user.role,
         real_name: user.real_name,
         email: user.email,
+        must_change_password: user.must_change_password,
       },
       token,
       refreshToken,
@@ -159,7 +160,7 @@ export class AuthService {
       }
     } catch (error) {
       // 黑名单写入失败不应阻断主流程，但需记录日志
-      console.error('Token黑名单写入失败:', error.message);
+      log.error('Token黑名单写入失败', { error: error.message });
     }
   }
 
@@ -281,7 +282,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(newPassword, authConfig.bcryptRounds); // M9修复：使用配置的迭代次数
     await prisma.users.update({
       where: { id: userId },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, must_change_password: false },
     });
 
     // H3修复：密码修改后立即清除用户状态缓存，使后续请求重新查库验证

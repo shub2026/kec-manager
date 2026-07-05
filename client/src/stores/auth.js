@@ -50,6 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAdmin = computed(() => ['admin', 'super_admin'].includes(userInfo.value?.role));
   const isSuperAdmin = computed(() => userInfo.value?.role === 'super_admin');
   const isViewer = computed(() => userInfo.value?.role === 'viewer');
+  const mustChangePassword = computed(() => userInfo.value?.mustChangePassword === true);
   const username = computed(() => userInfo.value?.username || '');
   const realName = computed(() => userInfo.value?.realName || '');
 
@@ -231,6 +232,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     isSuperAdmin,
     isViewer,
+    mustChangePassword,
     username,
     realName,
     isTokenExpired,

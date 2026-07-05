@@ -5,7 +5,7 @@
  * - 安全方法（GET/HEAD/OPTIONS）跳过验证
  * - POST 请求：header+cookie token 匹配 → 通过
  * - POST 请求：token 不匹配 → 403
- * - POST 请求：无任何 token → 向后兼容，跳过
+ * - POST 请求：无任何 token → 403（服务端登录时已设置 XSRF-TOKEN cookie）
  * - POST 请求：仅有 header token 无 cookie → 403
  * - POST 请求：仅有 cookie token 无 header → 403
  */
@@ -97,20 +97,22 @@ describe('validateCsrf — CSRF 验证中间件', () => {
   });
 
   // ──────────────────────────────────────────────
-  // POST 请求：无 token → 向后兼容，跳过
+  // POST 请求：无 token → 403（服务端登录时已设置 cookie）
   // ──────────────────────────────────────────────
-  it('POST 无任何 token 时应跳过验证（向后兼容）', () => {
+  it('POST 无任何 token 时应返回 403', () => {
     const req = makeReq({
       method: 'POST',
-      headers: {}, // 无 x-csrf-token，无 cookie
+      headers: {},
     });
     const res = makeRes();
     const next = vi.fn();
 
     validateCsrf(req, res, next);
 
-    expect(next).toHaveBeenCalled();
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('CSRF');
+    expect(next).not.toHaveBeenCalled();
   });
 
   // ──────────────────────────────────────────────
@@ -122,7 +124,7 @@ describe('validateCsrf — CSRF 验证中间件', () => {
       method: 'POST',
       headers: {
         'x-csrf-token': token,
-        cookie: `csrf_token=${token}`,
+        cookie: `XSRF-TOKEN=${token}`,
       },
     });
     const res = makeRes();
@@ -142,7 +144,7 @@ describe('validateCsrf — CSRF 验证中间件', () => {
       method: 'POST',
       headers: {
         'x-csrf-token': 'header-value',
-        cookie: 'csrf_token=cookie-value',
+        cookie: 'XSRF-TOKEN=cookie-value',
       },
     });
     const res = makeRes();
@@ -164,7 +166,6 @@ describe('validateCsrf — CSRF 验证中间件', () => {
       method: 'POST',
       headers: {
         'x-csrf-token': 'some-token',
-        // 无 cookie
       },
     });
     const res = makeRes();
@@ -184,8 +185,7 @@ describe('validateCsrf — CSRF 验证中间件', () => {
     const req = makeReq({
       method: 'POST',
       headers: {
-        cookie: 'csrf_token=some-token',
-        // 无 x-csrf-token
+        cookie: 'XSRF-TOKEN=some-token',
       },
     });
     const res = makeRes();
@@ -199,15 +199,15 @@ describe('validateCsrf — CSRF 验证中间件', () => {
   });
 
   // ──────────────────────────────────────────────
-  // Cookie 解析：多个 cookie 时正确提取 csrf_token
+  // Cookie 解析：多个 cookie 时正确提取 XSRF-TOKEN
   // ──────────────────────────────────────────────
-  it('多个 cookie 中应正确提取 csrf_token 并验证通过', () => {
+  it('多个 cookie 中应正确提取 XSRF-TOKEN 并验证通过', () => {
     const token = 'my-csrf-token';
     const req = makeReq({
       method: 'POST',
       headers: {
         'x-csrf-token': token,
-        cookie: `session=abc; csrf_token=${token}; other=xyz`,
+        cookie: `session=abc; XSRF-TOKEN=${token}; other=xyz`,
       },
     });
     const res = makeRes();
@@ -226,7 +226,7 @@ describe('validateCsrf — CSRF 验证中间件', () => {
       method: 'PUT',
       headers: {
         'x-csrf-token': 'token-a',
-        cookie: 'csrf_token=token-b',
+        cookie: 'XSRF-TOKEN=token-b',
       },
     });
     const res = makeRes();
@@ -238,7 +238,7 @@ describe('validateCsrf — CSRF 验证中间件', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('DELETE 请求无 token 时应跳过验证（向后兼容）', () => {
+  it('DELETE 请求无 token 时应返回 403', () => {
     const req = makeReq({
       method: 'DELETE',
       headers: {},
@@ -248,6 +248,7 @@ describe('validateCsrf — CSRF 验证中间件', () => {
 
     validateCsrf(req, res, next);
 
-    expect(next).toHaveBeenCalled();
+    expect(res.statusCode).toBe(403);
+    expect(next).not.toHaveBeenCalled();
   });
 });

@@ -84,6 +84,11 @@ function makeToken(user = TEST_USER) {
   });
 }
 
+const CSRF_TOKEN = 'test-csrf-token-for-integration';
+function withCsrf(req) {
+  return req.set('Cookie', `XSRF-TOKEN=${CSRF_TOKEN}`).set('X-CSRF-Token', CSRF_TOKEN);
+}
+
 // ════════════════════════════════════════════════
 // 健康检查
 // ════════════════════════════════════════════════
@@ -112,8 +117,8 @@ describe('POST /api/auth/login', () => {
       email: 'admin@test.com',
     });
 
-    const res = await request(app)
-      .post('/api/auth/login')
+    const res = await withCsrf(request(app)
+      .post('/api/auth/login'))
       .send({ username: 'admin', password: 'Admin@123456' });
 
     expect(res.status).toBe(200);
@@ -126,8 +131,8 @@ describe('POST /api/auth/login', () => {
   it('用户不存在应返回认证错误', async () => {
     mockPrismaUsers.findUnique.mockResolvedValue(null);
 
-    const res = await request(app)
-      .post('/api/auth/login')
+    const res = await withCsrf(request(app)
+      .post('/api/auth/login'))
       .send({ username: 'nouser', password: 'Admin@123456' });
 
     expect(res.status).toBe(401);
@@ -145,8 +150,8 @@ describe('POST /api/auth/login', () => {
       role: 'super_admin',
     });
 
-    const res = await request(app)
-      .post('/api/auth/login')
+    const res = await withCsrf(request(app)
+      .post('/api/auth/login'))
       .send({ username: 'admin', password: 'wrongpass123' });
 
     expect(res.status).toBe(401);
@@ -163,8 +168,8 @@ describe('POST /api/auth/login', () => {
       role: 'super_admin',
     });
 
-    const res = await request(app)
-      .post('/api/auth/login')
+    const res = await withCsrf(request(app)
+      .post('/api/auth/login'))
       .send({ username: 'admin', password: 'Admin@123456' });
 
     expect(res.status).toBe(401);
@@ -172,8 +177,8 @@ describe('POST /api/auth/login', () => {
   });
 
   it('密码过短应返回 422 验证错误', async () => {
-    const res = await request(app)
-      .post('/api/auth/login')
+    const res = await withCsrf(request(app)
+      .post('/api/auth/login'))
       .send({ username: 'admin', password: '123' });
 
     expect(res.status).toBe(422);
@@ -182,13 +187,13 @@ describe('POST /api/auth/login', () => {
   });
 
   it('用户名缺失应返回 422 验证错误', async () => {
-    const res = await request(app).post('/api/auth/login').send({ password: '12345678' });
+    const res = await withCsrf(request(app).post('/api/auth/login')).send({ password: '12345678' });
 
     expect(res.status).toBe(422);
   });
 
   it('空 body 应返回 422 验证错误', async () => {
-    const res = await request(app).post('/api/auth/login').send({});
+    const res = await withCsrf(request(app).post('/api/auth/login')).send({});
 
     expect(res.status).toBe(422);
   });
@@ -206,7 +211,7 @@ describe('POST /api/auth/refresh', () => {
     );
     mockPrismaUsers.findUnique.mockResolvedValue(TEST_USER);
 
-    const res = await request(app).post('/api/auth/refresh').send({ refresh_token: refreshToken });
+    const res = await withCsrf(request(app).post('/api/auth/refresh')).send({ refresh_token: refreshToken });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -215,8 +220,8 @@ describe('POST /api/auth/refresh', () => {
   });
 
   it('无效 refreshToken 应返回 401', async () => {
-    const res = await request(app)
-      .post('/api/auth/refresh')
+    const res = await withCsrf(request(app)
+      .post('/api/auth/refresh'))
       .send({ refresh_token: 'invalid-token' });
 
     expect(res.status).toBe(401);
@@ -224,7 +229,7 @@ describe('POST /api/auth/refresh', () => {
   });
 
   it('缺失 refresh_token 应返回验证错误', async () => {
-    const res = await request(app).post('/api/auth/refresh').send({});
+    const res = await withCsrf(request(app).post('/api/auth/refresh')).send({});
 
     expect(res.status).toBe(422);
     expect(res.body.success).toBe(false);
@@ -274,7 +279,7 @@ describe('GET /api/auth/me', () => {
 // ════════════════════════════════════════════════
 describe('PUT /api/auth/password', () => {
   it('无 token 应返回 401', async () => {
-    const res = await request(app).put('/api/auth/password').send({
+    const res = await withCsrf(request(app).put('/api/auth/password')).send({
       old_password: 'OldPass1!',
       new_password: 'NewPass1!',
     });
@@ -284,8 +289,8 @@ describe('PUT /api/auth/password', () => {
 
   it('新密码不符合正则应返回 422', async () => {
     const token = makeToken();
-    const res = await request(app)
-      .put('/api/auth/password')
+    const res = await withCsrf(request(app)
+      .put('/api/auth/password'))
       .set('Authorization', `Bearer ${token}`)
       .send({
         old_password: 'OldPass1!',
@@ -307,8 +312,8 @@ describe('PUT /api/auth/password', () => {
     });
 
     const token = makeToken();
-    const res = await request(app)
-      .put('/api/auth/password')
+    const res = await withCsrf(request(app)
+      .put('/api/auth/password'))
       .set('Authorization', `Bearer ${token}`)
       .send({
         old_password: 'WrongPass1!',
@@ -331,8 +336,8 @@ describe('PUT /api/auth/password', () => {
     mockPrismaUsers.update.mockResolvedValue({});
 
     const token = makeToken();
-    const res = await request(app)
-      .put('/api/auth/password')
+    const res = await withCsrf(request(app)
+      .put('/api/auth/password'))
       .set('Authorization', `Bearer ${token}`)
       .send({
         old_password: 'OldPass1!',
@@ -357,7 +362,7 @@ describe('PUT /api/auth/password', () => {
 describe('POST /api/auth/logout', () => {
   it('应返回 200 登出成功', async () => {
     const token = makeToken();
-    const res = await request(app).post('/api/auth/logout').set('Authorization', `Bearer ${token}`);
+    const res = await withCsrf(request(app).post('/api/auth/logout')).set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -365,7 +370,7 @@ describe('POST /api/auth/logout', () => {
   });
 
   it('无 token 也应返回 200（logout 不强制认证）', async () => {
-    const res = await request(app).post('/api/auth/logout');
+    const res = await withCsrf(request(app).post('/api/auth/logout'));
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);

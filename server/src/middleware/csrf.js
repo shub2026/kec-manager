@@ -1,9 +1,10 @@
 import { log } from '../utils/logger.js';
 
 /**
- * S-04修复：CSRF Token 验证中间件
- * 前端已在请求拦截器中发送 X-CSRF-Token 头（从cookie读取）
- * 此中间件验证该token与服务端cookie中存储的csrf_token一致（Double Submit Cookie模式）
+ * CSRF Token 验证中间件（Double Submit Cookie 模式）
+ * 后端登录时通过 Set-Cookie 设置 XSRF-TOKEN（非 HttpOnly，JS 可读），
+ * 前端请求拦截器从该 Cookie 读取并设置 X-CSRF-Token 请求头，
+ * 此中间件验证请求头与 Cookie 中的 token 一致。
  */
 export function validateCsrf(req, res, next) {
   // 安全方法不需要CSRF验证
@@ -14,8 +15,7 @@ export function validateCsrf(req, res, next) {
   // 从请求头获取CSRF token
   const headerToken = req.headers['x-csrf-token'];
 
-  // 从cookie获取CSRF token
-  // 解析cookie（不依赖cookie-parser，手动解析）
+  // 从cookie获取CSRF token（解析cookie，不依赖cookie-parser）
   const cookies = {};
   if (req.headers.cookie) {
     req.headers.cookie.split(';').forEach((cookie) => {
@@ -23,13 +23,7 @@ export function validateCsrf(req, res, next) {
       if (name) cookies[name] = decodeURIComponent(rest.join('='));
     });
   }
-  const cookieToken = cookies['csrf_token'];
-
-  // 如果前端还没有设置csrf_token cookie（首次登录等场景），跳过验证
-  // 这确保了向下兼容
-  if (!cookieToken && !headerToken) {
-    return next();
-  }
+  const cookieToken = cookies['XSRF-TOKEN'];
 
   // Double Submit: 头中的token必须与cookie中的token一致
   if (!headerToken || !cookieToken || headerToken !== cookieToken) {

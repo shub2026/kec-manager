@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { AuthService } from '../services/auth.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
@@ -12,6 +13,55 @@ import { sanitizeBody } from '../middleware/xss.js'; // H7修复：XSS防护中�
 import { validateChangePassword, validateLogin } from '../middleware/validation.js';
 
 const router = express.Router();
+
+const isSecure = process.env.NODE_ENV === 'production';
+
+function setAuthCookies(res, { token, refreshToken, csrfToken }) {
+  if (token) {
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+      path: '/',
+    });
+  }
+  if (refreshToken) {
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+  }
+  if (csrfToken) {
+    res.cookie('XSRF-TOKEN', csrfToken, {
+      secure: isSecure,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+  }
+}
+
+function clearAuthCookies(res) {
+  const opts = { httpOnly: true, secure: isSecure, sameSite: 'strict', path: '/' };
+  res.clearCookie('token', opts);
+  res.clearCookie('refreshToken', opts);
+  res.clearCookie('XSRF-TOKEN', { secure: isSecure, sameSite: 'strict', path: '/' });
+}
+
+function parseCookies(req) {
+  const cookies = {};
+  if (req.headers.cookie) {
+    req.headers.cookie.split(';').forEach((c) => {
+      const [name, ...rest] = c.trim().split('=');
+      if (name) cookies[name] = decodeURIComponent(rest.join('='));
+    });
+  }
+  return cookies;
+}
 
 // 速率限制配置
 const loginLimiter = rateLimit({
@@ -77,7 +127,15 @@ router.post('/login', loginLimiter, usernameLimiter, validateLogin, async (req, 
     }
 
     const result = await AuthService.login(username, password, req.ip);
-    success(res, result, '登录成功');
+
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+    setAuthCookies(res, {
+      token: result.token,
+      refreshToken: result.refreshToken,
+      csrfToken,
+    });
+
+    success(res, { ...result, csrfToken }, '登录成功');
   } catch (error) {
     next(error);
   }
@@ -85,7 +143,8 @@ router.post('/login', loginLimiter, usernameLimiter, validateLogin, async (req, 
 
 router.post('/refresh', refreshLimiter, async (req, res, next) => {
   try {
-    const { refresh_token } = req.body;
+    const cookies = parseCookies(req);
+    const refresh_token = req.body.refresh_token || cookies['refreshToken'];
 
     if (!refresh_token) {
       throw new ValidationError('请提供Refresh Token');
@@ -103,7 +162,14 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
       // 旧token已过期或无效，无需黑名单
     }
 
-    success(res, result);
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+    setAuthCookies(res, {
+      token: result.token,
+      refreshToken: result.refreshToken,
+      csrfToken,
+    });
+
+    success(res, { ...result, csrfToken });
   } catch (error) {
     next(error);
   }
@@ -111,7 +177,9 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
 
 router.post('/logout', logoutLimiter, async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.substring(7);
+    const cookies = parseCookies(req);
+    const headerToken = req.headers.authorization?.substring(7);
+    const token = headerToken || cookies['token'] || null;
     const decoded = token ? AuthService.verifyToken(token) : null;
 
     if (decoded) {
@@ -131,6 +199,7 @@ router.post('/logout', logoutLimiter, async (req, res, next) => {
       });
     }
 
+    clearAuthCookies(res);
     success(res, null, '登出成功');
   } catch (error) {
     next(error);
@@ -147,6 +216,7 @@ router.get('/me', authMiddleware, async (req, res, next) => {
         role: true,
         real_name: true,
         email: true,
+        must_change_password: true,
         last_login_at: true,
         created_at: true,
       },
@@ -200,7 +270,9 @@ router.put(
       await AuthService.changePassword(req.user.id, old_password, new_password, req.ip);
 
       // H2修复：密码修改后将当前Token加入黑名单
-      const token = req.headers.authorization?.substring(7);
+      const cookies = parseCookies(req);
+      const headerToken = req.headers.authorization?.substring(7);
+      const token = headerToken || cookies['token'] || null;
       if (token) {
         const decoded = AuthService.verifyToken(token);
         if (decoded?.jti) {
@@ -208,7 +280,8 @@ router.put(
         }
       }
 
-      success(res, null, '密码修改成功');
+      clearAuthCookies(res);
+      success(res, null, '密码修改成功，请重新登录');
     } catch (error) {
       next(error);
     }

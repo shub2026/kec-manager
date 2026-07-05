@@ -218,17 +218,18 @@ model training_plans {
 }
 
 model users {
-  id            Int          @id @default(autoincrement())
-  username      String       @unique
-  password      String
-  role          String       @default("viewer")
-  real_name     String?
-  email         String?
-  is_active     Boolean      @default(true)
-  last_login_at DateTime?
-  created_at    DateTime     @default(now())
-  updated_at    DateTime     @updatedAt
-  audit_logs    audit_logs[]
+  id                   Int          @id @default(autoincrement())
+  username             String       @unique
+  password             String
+  role                 String       @default("viewer")
+  real_name            String?
+  email                String?
+  is_active            Boolean      @default(true)
+  must_change_password Boolean      @default(false)
+  last_login_at        DateTime?
+  created_at           DateTime     @default(now())
+  updated_at           DateTime     @updatedAt
+  audit_logs           audit_logs[]
 
   @@index([role])
 }
