@@ -8,7 +8,7 @@ import { cleanupFile, sanitizeInput, verifyExcelMagicNumber } from '../import-sh
 
 /**
  * POST /api/import/teachers - 批量导入教师
- * 支持列：教师姓名、性别、出生年月、人员类别、状态、教师资格类型、特定周课时、学科、任课学院、任课层次、归属学院
+ * 支持列：教师姓名、性别、出生年月、人员类别、状态、教师资格类型、自定义课时、学科、任课学院、任课层次、归属学院
  * 所有操作包裹在事务中，失败时自动回滚
  */
 export async function importTeachers(req, res, next) {
@@ -108,7 +108,7 @@ export async function importTeachers(req, res, next) {
     const birthDate = sanitizedRow['出生年月'];
     const personnelTypeRaw = sanitizedRow['人员类别'];
     const qualificationType = sanitizedRow['教师资格类型'] || null;
-    const defaultWeeklyHours = sanitizedRow['特定周课时'];
+    const defaultWeeklyHours = sanitizedRow['自定义课时'];
     const courseNamesStr = sanitizedRow['学科'] || '';
     const collegeNamesStr = sanitizedRow['任课学院'] || '';
     const levelNamesStr = sanitizedRow['任课层次'] || '';
@@ -161,7 +161,7 @@ export async function importTeachers(req, res, next) {
       }
     }
 
-    // 解析特定周课时
+    // 解析自定义课时
     let defHours = null;
     if (
       defaultWeeklyHours !== null &&

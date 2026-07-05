@@ -479,7 +479,7 @@ export const validateTeacherCreate = [
   body('default_weekly_hours')
     .optional({ nullable: true })
     .isFloat({ min: 0, max: 40 })
-    .withMessage('特定周课时必须在0-40之间'),
+    .withMessage('自定义课时必须在0-40之间'),
   handleValidationErrors,
 ];
 
@@ -512,7 +512,7 @@ export const validateTeacherUpdate = [
   body('default_weekly_hours')
     .optional({ nullable: true })
     .isFloat({ min: 0, max: 40 })
-    .withMessage('特定周课时必须在0-40之间'),
+    .withMessage('自定义课时必须在0-40之间'),
   handleValidationErrors,
 ];
 
@@ -584,6 +584,6 @@ export const validateBatchUpdateHours = [
   body('default_weekly_hours')
     .optional({ nullable: true })
     .isFloat({ min: 0, max: 40 })
-    .withMessage('特定周课时必须在0-40之间'),
+    .withMessage('自定义课时必须在0-40之间'),
   handleValidationErrors,
 ];

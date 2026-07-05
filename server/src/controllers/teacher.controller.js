@@ -340,7 +340,7 @@ export async function deleteTeacher(req, res, next) {
 }
 
 /**
- * 批量修改特定周课时
+ * 批量修改自定义课时
  */
 export async function batchUpdateDefaultHours(req, res, next) {
   try {
@@ -364,11 +364,11 @@ export async function batchUpdateDefaultHours(req, res, next) {
       ip: req.ip,
       details: { teacher_ids, default_weekly_hours: hours },
       result: 'success',
-      message: `批量修改${teacher_ids.length}名教师的特定周课时为${hours ?? '空'}`,
+      message: `批量修改${teacher_ids.length}名教师的自定义课时为${hours ?? '空'}`,
     });
 
     invalidateSortOrderCache('teachers');
-    success(res, null, `已修改${teacher_ids.length}名教师的特定周课时`);
+    success(res, null, `已修改${teacher_ids.length}名教师的自定义课时`);
   } catch (e) {
     next(e);
   }

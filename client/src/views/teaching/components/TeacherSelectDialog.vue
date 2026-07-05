@@ -35,7 +35,7 @@
       <el-table-column label="班级数" width="68" align="center">
         <template #default="{ row }">{{ row.totalClassCount }}</template>
       </el-table-column>
-      <el-table-column label="特定周课时" width="92" align="center">
+      <el-table-column label="自定义课时" width="92" align="center">
         <template #default="{ row }">{{ row.defaultWeeklyHours ?? '-' }}</template>
       </el-table-column>
       <el-table-column label="学科" min-width="3">

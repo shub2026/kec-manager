@@ -101,7 +101,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12" :xs="24" :sm="12">
-            <el-form-item label="特殊培养方案">
+            <el-form-item label="自定义方案">
               <el-select
                 v-model="localForm.customPlanId"
                 clearable

@@ -30,7 +30,7 @@ router.post(
   createTeacher
 );
 
-// 批量修改特定周课时（必须在 /:id 之前注册）
+// 批量修改自定义课时（必须在 /:id 之前注册）
 router.put(
   '/batch/default-hours',
   roleMiddleware('admin', 'super_admin'),

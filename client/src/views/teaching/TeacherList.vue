@@ -161,7 +161,7 @@
             <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="特定周课时" min-width="100" align="center">
+        <el-table-column label="自定义课时" min-width="100" align="center">
           <template #default="{ row }">
             <span>{{ row.defaultWeeklyHours != null ? row.defaultWeeklyHours : '-' }}</span>
           </template>
@@ -302,7 +302,7 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="特定周课时">
+        <el-form-item label="自定义课时">
           <el-input-number
             v-model="form.defaultWeeklyHours"
             :min="0"
@@ -312,7 +312,6 @@
             controls-position="right"
             style="width: 200px"
           />
-          <span class="form-hint">不填则使用课时要求的标准周课时</span>
         </el-form-item>
       </el-form>
       <template #footer>

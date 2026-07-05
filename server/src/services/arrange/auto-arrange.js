@@ -180,7 +180,7 @@ function buildTeacherConstraints(
     const effectiveTotal = t.totalWeeklyHours - autoHoursForCourse + extraHours;
     const courseExistingHours = t.courseHours - autoHoursForCourse;
 
-    // 教师特定周课时上限：覆盖系统课时设置，标准/最大模式均以此为天花板
+    // 教师自定义课时上限：覆盖系统课时设置，标准/最大模式均以此为天花板
     const teacherHourCap =
       t.defaultWeeklyHours != null ? Math.max(0, t.defaultWeeklyHours - effectiveTotal) : null;
 

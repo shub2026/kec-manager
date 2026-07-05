@@ -476,7 +476,7 @@ export async function exportTeachers(req, res, next) {
       学科: t.courses.map((tc) => tc.course.name).join('、') || '-',
       意向学院: t.scheduling_colleges.map((sc) => sc.college.name).join('、') || '-',
       意向层次: t.scheduling_levels.map((sl) => sl.training_level.name).join('、') || '-',
-      特定周课时: t.default_weekly_hours != null ? t.default_weekly_hours : '-',
+      自定义课时: t.default_weekly_hours != null ? t.default_weekly_hours : '-',
       状态: statusMap[t.status] || '启用',
     }));
 
@@ -490,7 +490,7 @@ export async function exportTeachers(req, res, next) {
       { label: '学科', key: '学科', width: 30 },
       { label: '意向学院', key: '意向学院', width: 30 },
       { label: '意向层次', key: '意向层次', width: 20 },
-      { label: '特定周课时', key: '特定周课时', width: 12 },
+      { label: '自定义课时', key: '自定义课时', width: 12 },
       { label: '状态', key: '状态', width: 8 },
     ];
 

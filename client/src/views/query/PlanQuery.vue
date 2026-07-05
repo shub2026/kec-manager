@@ -151,6 +151,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.page-toolbar {
+  justify-content: flex-start;
+}
+
 .matrix-container {
   margin-top: 20px;
 }

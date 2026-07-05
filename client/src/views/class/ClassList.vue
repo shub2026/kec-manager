@@ -438,7 +438,7 @@ async function handleSave() {
         form.value.studentCount !== null && form.value.studentCount !== undefined
           ? Number(form.value.studentCount)
           : undefined,
-      customPlanId: form.value.customPlanId || undefined,
+      customPlanId: form.value.customPlanId ?? null,
       isLeftSchool: form.value.isLeftSchool,
     };
 

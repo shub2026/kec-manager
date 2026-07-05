@@ -14,13 +14,6 @@
       <span><strong>以下操作永久删除数据且不可恢复</strong>，请提前备份。</span>
     </div>
 
-    <!-- 说明区：精简文案，分类清空已移除，引导用户使用基础数据页精细删除 -->
-    <el-alert type="info" :closable="false" show-icon class="design-change-tip">
-      <template #title>
-        如需删除单条基础数据（学院/专业/层次/课程/教材/教师/班级/培养方案），请前往对应「基础数据管理」页面，每条删除均带级联保护。
-      </template>
-    </el-alert>
-
     <!-- 操作卡片：响应式栅格，≥992px 并排，<992px 堆叠 -->
     <el-row :gutter="20" class="reset-row">
       <!-- 系统重置 -->
@@ -145,10 +138,6 @@ defineEmits(['reset']);
 .danger-banner .el-icon {
   color: var(--brand-danger);
   flex-shrink: 0;
-}
-
-.design-change-tip {
-  margin-bottom: 20px;
 }
 
 /* 响应式栅格：让 el-col 等高，内部卡片撑满 */
