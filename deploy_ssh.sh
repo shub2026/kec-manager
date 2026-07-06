@@ -246,14 +246,28 @@ install_dependencies() {
 database_migration() {
     echo -e "${GREEN}[4/10] 数据库迁移...${NC}"
 
+    # P0修复：迁移前自动备份生产库，防止迁移异常导致数据丢失
+    # 仅在数据库文件已存在（非首次部署）且未显式跳过时执行
+    if [ "$SKIP_BACKUP" != "true" ]; then
+        if execute "test -f ${PROJECT_DIR}/server/data/kec.db" false; then
+            backup_database
+        fi
+    fi
+
     # 执行Prisma迁移
     echo "执行 Prisma 迁移..."
     if execute "cd ${PROJECT_DIR}/server && npx prisma migrate deploy" false; then
         echo "✓ 数据库迁移成功"
     else
-        echo -e "${YELLOW}⚠  迁移失败，尝试重置数据库...${NC}"
-        execute "cd ${PROJECT_DIR}/server && npx prisma migrate reset --force" false
-        echo "✓ 数据库重置完成"
+        # P0修复：迁移失败一律停止并保留现场，交由人工介入
+        # 严禁自动 migrate reset / db push --force-reset —— 会清空生产数据
+        echo -e "${RED}✗ Prisma 迁移失败，已停止部署以保护生产数据${NC}"
+        echo -e "${YELLOW}    排查步骤：${NC}"
+        echo -e "${YELLOW}    1. 检查迁移状态：cd ${PROJECT_DIR}/server && npx prisma migrate status${NC}"
+        echo -e "${YELLOW}    2. 查看迁移错误：cd ${PROJECT_DIR}/server && npx prisma migrate deploy${NC}"
+        echo -e "${YELLOW}    3. 已存在的历史备份位于：${PROJECT_DIR}/backups/${NC}"
+        echo -e "${YELLOW}    人工确认无误后再重新执行部署脚本${NC}"
+        exit 1
     fi
 
     # 生成Prisma Client
