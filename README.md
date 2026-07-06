@@ -24,7 +24,7 @@ KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量�
 
 | 层级 | 技术 |
 |------|------|
-| 前端 | Vue 3.5 + Element Plus 2.14 + Pinia 3 + Vite 5 |
+| 前端 | Vue 3.5 + Element Plus 2.14 + Pinia 3 + Vite 6 |
 | 后端 | Express 5.1 + Prisma 6.19 + Winston 3.19 |
 | 数据库 | SQLite（WAL 模式） |
 | 认证 | JWT 双令牌（Access 15min + Refresh 7天）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt 12轮 |
@@ -189,7 +189,7 @@ kec-manager/
 │   │   ├── stores/             # Pinia 状态管理
 │   │   ├── styles/             # 全局样式
 │   │   ├── utils/              # 工具函数（request、download、cache 等）
-│   │   ├── views/              # 页面组件（15 个页面模块）
+│   │   ├── views/              # 页面组件（14 个页面模块）
 │   │   └── main.js             # 应用入口
 │   ├── eslint.config.js        # ESLint 配置
 │   └── vite.config.js          # Vite 构建配置
@@ -217,7 +217,7 @@ kec-manager/
 │   └── vitest.config.js        # 测试配置
 ├── scripts/                    # 项目级脚本
 │   └── version.js              # 版本管理脚本
-├── docs/                       # 项目文档（6 个文档）
+├── docs/                       # 项目文档（7 个文档）
 ├── deploy.sh                   # 部署脚本（支持本地/远程）
 ├── deploy_ssh.sh               # SSH 远程部署脚本
 ├── CHANGELOG.md                # 变更日志

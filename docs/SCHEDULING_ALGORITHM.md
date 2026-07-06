@@ -83,7 +83,7 @@ v2 算法严格遵循以下设计原则：
 | `effectiveTotal` | `number` | 已排总周课时（扣除本课程已自动排部分 + 批量前序虚拟课时） |
 | `courseExistingHours` | `number` | 本课程已排周课时 |
 | `standardCap` / `fullCap` | `number` | 当前可继续分配的标准 / 满载容量上限（已扣除 `effectiveTotal`，并受 `defaultWeeklyHours` 天花板约束） |
-| `teacherHourCap` | `number \| null` | 教师特定周课时上限（`defaultWeeklyHours - effectiveTotal`） |
+| `teacherHourCap` | `number \| null` | 教师自定义课时上限（`defaultWeeklyHours - effectiveTotal`） |
 | `assignedHours` | `number` | 本轮已分配周课时（初始为 0，分配时累加） |
 | `inherentTextbookIds` | `number[]` | 排课前固有的教材快照，运行时累加不污染匹配判断 |
 | `assignedTextbookIds` | `Set<number>` | 本轮（含手动排课）已分配教材集合，动态更新 |
@@ -815,7 +815,7 @@ export const TEXTBOOK_COHESION = {
 
 ### 18.4 `defaultWeeklyHours` 语义
 
-字段名"默认周课时"具有误导性，实际作用是**教师总周课时上限**（跨所有课程，含手动排课与其他课程）。UI 中已重命名为"特定周课时"。
+字段名"默认周课时"具有误导性，实际作用是**教师总周课时上限**（跨所有课程，含手动排课与其他课程）。UI 中已重命名为"自定义课时"。
 
 ### 18.5 并发锁为进程级别
 

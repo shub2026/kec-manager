@@ -4,6 +4,13 @@
 > 审查范围：`server/src`（后端全部）、`client/src`（前端路由与 API 层）  
 > 审查版本：v2.17.2
 
+> **状态更新（v2.20.2，2026-07-06）**：
+> - **VULN-1**（Token 非 HttpOnly）：✅ 已部分修复 — 后端登录/刷新/登出已设置 HttpOnly Cookie 作为安全兜底，前端仍保留 `document.cookie` 写入作为兼容层
+> - **VULN-2**（XSS 清洗未全覆盖）：✅ 已修复 — `sanitizeBody` 和 `sanitizeQuery` 均已在 `app.js` 中全局注册
+> - **VULN-3**（缺少 CSRF 防护）：✅ 已修复 — 实现了 Double Submit Cookie 模式，新增 `csrf.js` 中间件，登录时设置 `XSRF-TOKEN` Cookie，前端自动携带
+> - **VULN-4**（系统重置无密码确认）：❌ 未修复 — `validateReset` 仍仅要求 `confirm: 'DELETE'`，未增加密码二次确认
+> - **VULN-5 ~ VULN-9、BIZ-1 ~ BIZ-4**：已在后续版本中陆续处理或确认无需修改
+
 ---
 
 ## 一、高危安全漏洞
