@@ -166,7 +166,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage, ElNotification } from 'element-plus';
 // 按需导入项目中 service 函数（ElNotification）的 CSS 不会自动注入，需手动导入样式
 // 否则通知 DOM 渲染但不可见（无背景/定位/动画）
@@ -185,6 +186,7 @@ import ClassFormDialog from './components/ClassFormDialog.vue';
 
 const list = ref([]);
 const loading = ref(false);
+const route = useRoute();
 const majors = ref([]);
 const plans = ref([]);
 const trainingLevels = ref([]);
@@ -750,6 +752,17 @@ onMounted(() => {
   load();
   loadBaseData();
 });
+
+// keep-alive 缓存下 onMounted 不触发，返回 /classes 时重新加载基础数据
+// 避免在基础数据页新增专业/层次/学院/方案后，本页下拉选项仍为旧数据
+watch(
+  () => route.path,
+  (newPath, oldPath) => {
+    if (newPath === '/classes' && oldPath && oldPath !== '/classes') {
+      loadBaseData();
+    }
+  }
+);
 </script>
 
 <style scoped>

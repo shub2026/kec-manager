@@ -14,8 +14,8 @@ async function getAuthApi() {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref(getCookie('token') || '');
-  const refreshToken = ref(getCookie('refreshToken') || '');
+  const token = ref(getCookie('auth_token') || '');
+  const refreshToken = ref(getCookie('auth_refreshToken') || '');
 
   function isTokenExpired(tokenStr) {
     if (!tokenStr) return true;
@@ -71,10 +71,12 @@ export const useAuthStore = defineStore('auth', () => {
       userInfo.value = user;
 
       // Cookie过期时间与JWT有效期保持一致
-      setCookie('token', newToken, 7); // Access Token Cookie保留7天，JWT过期由isTokenExpired检测
-      setCookie('refreshToken', newRefreshToken, 7); // Refresh Token 7天，与JWT有效期一致
+      setCookie('auth_token', newToken, 7); // Access Token Cookie保留7天，JWT过期由isTokenExpired检测
+      setCookie('auth_refreshToken', newRefreshToken, 7); // Refresh Token 7天，与JWT有效期一致
       // userInfo仍然存储在localStorage（非敏感数据）
       localStorage.setItem('userInfo', JSON.stringify(user));
+      // 登录标志：F5刷新时若JS cookie不可读（HttpOnly同名冲突），initAuth可据此回退到后端cookie认证
+      localStorage.setItem('loggedIn', 'true');
 
       router.push('/');
 
@@ -132,12 +134,12 @@ export const useAuthStore = defineStore('auth', () => {
         const { token: newToken, refreshToken: newRefreshToken } = response.data;
 
         token.value = newToken;
-        setCookie('token', newToken, 7);
+        setCookie('auth_token', newToken, 7);
 
         // 若后端返回了新的 refreshToken，同步更新，避免长期登录后 refreshToken 过期失效
         if (newRefreshToken) {
           refreshToken.value = newRefreshToken;
-          setCookie('refreshToken', newRefreshToken, 7);
+          setCookie('auth_refreshToken', newRefreshToken, 7);
         }
 
         return true;
@@ -199,8 +201,12 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 清除Cookie
     clearAuthCookies();
-    // 清除localStorage中的用户信息
+    // 清除旧版cookie名（修复前遗留的HttpOnly cookie由后端logout清除，此处清理JS可写的同名残留）
+    deleteCookie('token');
+    deleteCookie('refreshToken');
+    // 清除localStorage中的用户信息和登录标志
     localStorage.removeItem('userInfo');
+    localStorage.removeItem('loggedIn');
     // 清除API响应缓存，防止公共机器上残留前一位用户的查询数据
     clearAllCache();
   }
@@ -213,6 +219,22 @@ export const useAuthStore = defineStore('auth', () => {
         const refreshed = await refreshAccessToken();
         if (refreshed) {
           await fetchUserInfo();
+        }
+      } else if (localStorage.getItem('loggedIn') === 'true') {
+        // JS cookie 可能因后端 HttpOnly 同名 cookie 冲突而不可读，
+        // 但浏览器发送请求时会自动携带后端设置的 HttpOnly cookie，
+        // 尝试通过后端认证接口恢复会话
+        if (import.meta.env.DEV) {
+          console.info('[Auth] JS cookie不可读，尝试通过后端HttpOnly cookie恢复认证');
+        }
+        try {
+          const ok = await fetchUserInfo();
+          if (!ok) {
+            // fetchUserInfo 内部已尝试 refreshAccessToken，仍然失败
+            clearAuth();
+          }
+        } catch {
+          clearAuth();
         }
       } else if (token.value || refreshToken.value) {
         clearAuth();

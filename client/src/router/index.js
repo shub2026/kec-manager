@@ -179,7 +179,9 @@ router.beforeEach(async (to, from, next) => {
     // 检查是否需要认证
     if (to.meta.requiresAuth !== false) {
       // 未登录，跳转到登录页
-      if (!authStore.isLoggedIn) {
+      // isLoggedIn 检查 token/refreshToken cookie；userInfo 检查兜底：
+      // initAuth 可能通过后端 HttpOnly cookie 恢复了用户信息但 JS cookie 不可读
+      if (!authStore.isLoggedIn && !authStore.userInfo) {
         next({
           path: '/login',
           query: { redirect: to.fullPath },
@@ -188,7 +190,8 @@ router.beforeEach(async (to, from, next) => {
       }
 
       // 如果 access token 过期或为空但 refresh token 有效，先刷新 token
-      if (!authStore.token || authStore.isTokenExpired(authStore.token)) {
+      // 例外：initAuth 已通过 HttpOnly cookie 恢复了 userInfo，无需再刷新（后端会自动携带 HttpOnly cookie 认证）
+      if ((!authStore.token || authStore.isTokenExpired(authStore.token)) && !authStore.userInfo) {
         if (authStore.refreshToken && !authStore.isTokenExpired(authStore.refreshToken)) {
           const refreshed = await authStore.refreshAccessToken();
           if (!refreshed) {

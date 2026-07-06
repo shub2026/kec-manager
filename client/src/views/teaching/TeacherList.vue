@@ -364,6 +364,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import {
@@ -384,6 +385,7 @@ import { useResponsive } from '../../composables/useResponsive';
 
 const list = ref([]);
 const loading = ref(false);
+const route = useRoute();
 const dialogVisible = ref(false);
 const saving = ref(false);
 const allCourses = ref([]);
@@ -696,6 +698,17 @@ onMounted(() => {
   load();
   loadOptions();
 });
+
+// keep-alive 缓存下 onMounted 不触发，返回 /teaching/teachers 时重新加载基础数据
+// 避免在基础数据页新增课程/学院/层次后，本页下拉选项仍为旧数据
+watch(
+  () => route.path,
+  (newPath, oldPath) => {
+    if (newPath === '/teaching/teachers' && oldPath && oldPath !== '/teaching/teachers') {
+      loadOptions();
+    }
+  }
+);
 </script>
 
 <style scoped>

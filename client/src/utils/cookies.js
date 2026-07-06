@@ -60,7 +60,7 @@ export function deleteCookie(name) {
  * 清除所有认证相关的Cookie
  */
 export function clearAuthCookies() {
-  deleteCookie('token');
-  deleteCookie('refreshToken');
+  deleteCookie('auth_token');
+  deleteCookie('auth_refreshToken');
   deleteCookie('XSRF-TOKEN');
 }

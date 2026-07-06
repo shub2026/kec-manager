@@ -443,6 +443,9 @@ watch(
   (newPath, oldPath) => {
     // 跳过首次（oldPath 为 undefined）和同路由变化
     if (newPath === '/plans' && oldPath && oldPath !== '/plans') {
+      // keep-alive 缓存下 onMounted 不触发，返回时需重新加载元数据
+      // 避免在基础数据页新增专业/层次/学院后，本页下拉选项仍为旧数据
+      loadMeta();
       if (consumeRefreshFlag()) {
         silentReload();
       }
