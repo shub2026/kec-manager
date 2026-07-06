@@ -34,7 +34,17 @@ execute() {
     if [ -z "$SERVER" ]; then
         bash -c "$1"
     else
-        ssh "$SERVER" "$1"
+        # 使用 -tt 强制分配 TTY，确保输出实时显示，避免长时间命令看似卡住
+        ssh -tt "$SERVER" "$1"
+    fi
+}
+
+# 函数：在本地或远程执行命令（不分配 TTY，用于不需要实时输出的场景）
+execute_silent() {
+    if [ -z "$SERVER" ]; then
+        bash -c "$1" 2>/dev/null
+    else
+        ssh "$SERVER" "$1" 2>/dev/null
     fi
 }
 
@@ -114,6 +124,14 @@ echo "✓ 代码准备完成"
 
 echo ""
 echo -e "${GREEN}[4/10] 安装依赖...${NC}"
+# 配置国内 npm 镜像（加速依赖下载，特别是 esbuild/rollup 平台二进制）
+# 同时配置 esbuild 二进制下载源为国内镜像
+NPM_REGISTRY="https://registry.npmmirror.com"
+ESBUILD_MIRROR="https://registry.npmmirror.com/-/binary/esbuild/"
+execute "npm config set registry ${NPM_REGISTRY} 2>/dev/null || true"
+# esbuild install script 通过 npm_config_..._binary_host 环境变量识别镜像
+# 写入 .npmrc 确保 install script 也能从镜像下载平台二进制
+execute "echo 'registry=${NPM_REGISTRY}' > ~/.npmrc && echo 'esbuild_binary_host=${ESBUILD_MIRROR}' >> ~/.npmrc"
 # 智能跳过：仅在 dependencies/devDependencies 变化或首次部署时安装
 # 版本号递增(2.20.2 → 2.20.3)不会触发重新安装
 # 常规更新（仅业务代码变化）跳过此步，从 ~60s 降到 ~0s
@@ -128,11 +146,12 @@ if [ "$NEEDS_INSTALL" = "true" ]; then
         echo "首次部署，安装依赖..."
     fi
     # npm ci 基于 lockfile 严格安装，比 npm install 更快且可靠
+    # --no-fund --no-audit 跳过资助提示和安全审计，加速安装
     # server: 需要全部依赖（含 devDependencies 中的 prisma CLI 用于迁移）
-    execute "cd ${PROJECT_DIR}/server && npm ci"
+    execute "cd ${PROJECT_DIR}/server && npm ci --no-fund --no-audit"
     # client: 构建前端需要 devDependencies 中的 vite/esbuild 等
-    # 使用 --cache /tmp/npm-cache 避免 npm 缓存中损坏的 esbuild 平台二进制
-    execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
+    # 使用 --cache /tmp/npm-cache 避免重复下载
+    execute "cd ${PROJECT_DIR}/client && npm ci --no-fund --no-audit --cache /tmp/npm-cache"
     echo "✓ 依赖安装完成"
 else
     # 兜底：验证 node_modules 完整性（防止被误删或被历史 npm prune 破坏）
@@ -140,12 +159,12 @@ else
     # 导致 esbuild（devDependency）被删，前端构建失败
     if ! execute "test -d ${PROJECT_DIR}/server/node_modules && test -d ${PROJECT_DIR}/client/node_modules"; then
         echo -e "${YELLOW}⚠  node_modules 缺失，执行完整安装...${NC}"
-        execute "cd ${PROJECT_DIR}/server && npm ci"
-        execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
+        execute "cd ${PROJECT_DIR}/server && npm ci --no-fund --no-audit"
+        execute "cd ${PROJECT_DIR}/client && npm ci --no-fund --no-audit --cache /tmp/npm-cache"
     elif ! execute "test -f ${PROJECT_DIR}/client/node_modules/.bin/esbuild"; then
         # 关键依赖缺失（通常是历史 prune 遗留），需要重装
         echo -e "${YELLOW}⚠  检测到关键依赖缺失（esbuild），执行完整安装...${NC}"
-        execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
+        execute "cd ${PROJECT_DIR}/client && npm ci --no-fund --no-audit --cache /tmp/npm-cache"
     else
         echo "✓ 依赖未变化，跳过安装"
     fi
@@ -283,7 +302,7 @@ echo -e "${GREEN}[9/10] 构建前端...${NC}"
 # 如果构建失败，自动重装依赖后重试一次
 if ! execute "cd ${PROJECT_DIR}/client && npm run build"; then
     echo -e "${YELLOW}⚠  构建失败，可能是依赖损坏，尝试重装后重试...${NC}"
-    execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
+    execute "cd ${PROJECT_DIR}/client && npm ci --no-fund --no-audit --cache /tmp/npm-cache"
     if ! execute "cd ${PROJECT_DIR}/client && npm run build"; then
         echo -e "${RED}✗ 前端构建失败${NC}"
         echo -e "${YELLOW}  可能原因：${NC}"
