@@ -273,10 +273,14 @@ echo "✓ 系统设置初始化完成"
 
 echo ""
 echo -e "${GREEN}[9/10] 构建前端...${NC}"
-# 验证 esbuild 平台二进制是否可用（Vite 依赖 esbuild，二进制缺失会导致构建崩溃）
-if ! execute "cd ${PROJECT_DIR}/client && node -e \"require('esbuild').version\"" 2>/dev/null; then
+# 验证 esbuild 平台二进制是否真正可执行（Vite 依赖 esbuild，二进制缺失/损坏会导致构建崩溃）
+# 仅 require('esbuild').version 不够：JS 包装层可能返回版本号但二进制缺失
+# 必须实际调用一次 transform 才能确认二进制可用
+if ! execute "cd ${PROJECT_DIR}/client && node -e \"require('esbuild').transform('const x=1', {minify:true}).then(r=>process.exit(0)).catch(e=>{console.error(e.message);process.exit(1)})\"" 2>/dev/null; then
     echo -e "${YELLOW}⚠  esbuild 二进制异常，尝试重新安装...${NC}"
-    execute "cd ${PROJECT_DIR}/client && rm -rf node_modules/esbuild node_modules/@esbuild && npm install esbuild --cache /tmp/npm-cache"
+    # 用 npm ci 重新安装全部依赖（基于 lockfile，版本严格一致）
+    # 比 npm install esbuild 更可靠：会触发 install script 下载正确平台的二进制
+    execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
 fi
 execute "cd ${PROJECT_DIR}/client && npm run build"
 echo "✓ 前端构建完成"
