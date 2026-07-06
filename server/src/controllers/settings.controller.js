@@ -10,6 +10,7 @@ import { parseSemesterString, invalidateSemesterCache } from '../services/settin
 const DEFAULT_SETTINGS = {
   current_semester: { value: DEFAULT_SEMESTER, description: '当前学期' },
   organization_name: { value: '欢迎回来', description: '系统标识' },
+  tabu_search_enabled: { value: 'false', description: '排课禁忌搜索优化' },
 };
 
 /**

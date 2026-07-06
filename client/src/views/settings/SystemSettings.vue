@@ -22,6 +22,9 @@
       @save="handleSave"
     />
 
+    <!-- 排课优化设置 -->
+    <SchedulingConfig />
+
     <!-- 数据重置组件 -->
     <DataReset :resetting="resetting" @reset="showResetDialog" />
 
@@ -48,6 +51,7 @@ import { ElMessage } from 'element-plus';
 import { useSettingsStore } from '../../stores/settings';
 import { resetAuditLogs, resetSettings } from '../../api/settings';
 import SemesterConfig from './components/SemesterConfig.vue';
+import SchedulingConfig from './components/SchedulingConfig.vue';
 import DataReset from './components/DataReset.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 
