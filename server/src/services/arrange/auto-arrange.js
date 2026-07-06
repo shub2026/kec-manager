@@ -3,6 +3,7 @@ import {
   DEFAULT_HOUR_SETTINGS,
   WORKLOAD_BALANCE,
   TEXTBOOK_COHESION,
+  TABU_SEARCH,
 } from '../../constants/index.js';
 import logger from '../../utils/logger.js';
 import { validateHourSettings } from './validate.js';
@@ -13,6 +14,7 @@ import {
   isCollegeEligible,
   isLevelEligible,
 } from './queries.js';
+import { tabuOptimize } from './tabu-search.js';
 
 // C-2: 并发锁，防止同一课程被并发排课
 // S-09 注意：此锁为进程内存级别，仅适用于单进程部署（如 PM2 fork 模式）。
@@ -1295,6 +1297,49 @@ export async function autoArrange(
       classTextbookMap,
       classInfoMap
     );
+
+    // === 阶段5：禁忌搜索优化层（可选） ===
+    // 在贪心+置换回溯之后，通过迭代邻域搜索进一步优化排课质量
+    // 开关：常量 TABU_SEARCH.ENABLED 为静态默认值（false）；
+    //       也可通过 system_settings 表 key='tabu_search_enabled' 动态开启
+    let tabuEnabled = TABU_SEARCH.ENABLED;
+    if (!tabuEnabled) {
+      try {
+        const tsSetting = await prisma.system_settings.findUnique({
+          where: { key: 'tabu_search_enabled' },
+        });
+        if (tsSetting && tsSetting.value === 'true') tabuEnabled = true;
+      } catch (_) {
+        // DB 查询失败不影响主流程，保持默认关闭
+      }
+    }
+    if (tabuEnabled) {
+      try {
+        const tsClassMap = new Map(validClassesToAssign.map((c) => [c.classId, c]));
+        const tsResult = tabuOptimize(
+          assignments,
+          unassigned,
+          teacherConstraints,
+          mode,
+          tsClassMap,
+          courseId,
+          semesterStr
+        );
+        if (tsResult.improved) {
+          logger.info(
+            `[禁忌搜索] 优化成功: 评分 ${tsResult.scoreBefore}→${tsResult.scoreAfter} ` +
+              `(+${tsResult.delta}), 未分配 ${tsResult.unassignedBefore}→${tsResult.unassignedAfter}, ` +
+              `迭代 ${tsResult.iterations}次, 耗时 ${tsResult.elapsed}ms`
+          );
+        } else {
+          logger.info(
+            `[禁忌搜索] 未找到更优解, 迭代 ${tsResult.iterations}次, 耗时 ${tsResult.elapsed}ms`
+          );
+        }
+      } catch (tsErr) {
+        logger.warn(`[禁忌搜索] 优化异常，已跳过: ${tsErr.message}`);
+      }
+    }
 
     // === 诊断日志：最终教材分布 ===
     if (TEXTBOOK_COHESION.ENABLED) {

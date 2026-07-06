@@ -115,6 +115,18 @@ export const TEXTBOOK_COHESION = {
   SCATTERED_THRESHOLD: 3, // 教师教材数 ≥ 此值视为"分散"
 };
 
+// 禁忌搜索优化配置（2026-07-06 新增）
+// 在五阶段贪心构造初始解后，用禁忌搜索迭代优化
+// 关闭时（ENABLED=false）行为与纯贪心完全一致
+export const TABU_SEARCH = {
+  ENABLED: false, // 总开关：是否启用禁忌搜索优化层
+  MAX_ITERATIONS: 500, // 单课程最大迭代次数
+  TABU_TENURE: 10, // 禁忌期限（轮数）
+  NO_IMPROVEMENT_LIMIT: 80, // 连续无改进轮数，达到后提前终止
+  SINGLE_COURSE_TIMEOUT_MS: 15000, // 单课程超时上限（毫秒）
+  UNASSIGNED_PENALTY: 500, // 每个未分配班级的惩罚分值
+};
+
 // 审计操作
 export const AUDIT_ACTIONS = {
   LOGIN: 'login',
