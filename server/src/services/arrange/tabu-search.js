@@ -12,7 +12,7 @@
  */
 
 import { TEXTBOOK_COHESION, TABU_SEARCH } from '../../constants/index.js';
-import { calcMatchScore, isTeacherEligible } from './auto-arrange.js';
+import { calcMatchScore } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
 
 // ── 教材引用计数管理 ──
@@ -47,11 +47,13 @@ function buildTeacherStates(teacherConstraints, assignments, classMap) {
     const assignedTextbookIds = new Set(t.assignedTextbookIds || []);
     const assignedCollegeIds = new Set(t.assignedCollegeIds || []);
 
-    // 从当前分配重建教材引用计数
+    // 从当前分配重建教材引用计数和课时总量
+    let assignedHours = 0;
     for (const a of assignments) {
       if (a.teacher_id === t.id) {
         const cls = classMap.get(a.class_id);
         if (cls) {
+          assignedHours += cls.weeklyHours || 0;
           for (const tid of cls.textbookIds || []) {
             addTextbookRef(refCountMap, assignedTextbookIds, tid);
           }
@@ -60,7 +62,7 @@ function buildTeacherStates(teacherConstraints, assignments, classMap) {
     }
 
     states.set(t.id, {
-      assignedHours: t.assignedHours,
+      assignedHours,
       refCountMap,
       assignedTextbookIds,
       assignedCollegeIds,
@@ -73,7 +75,7 @@ function buildTeacherStates(teacherConstraints, assignments, classMap) {
 
 function addToTeacher(teacherId, classId, cls, teacherStates) {
   const state = teacherStates.get(teacherId);
-  state.assignedHours += cls.weeklyHours;
+  state.assignedHours += cls.weeklyHours || 0;
   state.assignedCollegeIds.add(cls.collegeId);
   for (const tid of cls.textbookIds || []) {
     addTextbookRef(state.refCountMap, state.assignedTextbookIds, tid);
@@ -82,16 +84,12 @@ function addToTeacher(teacherId, classId, cls, teacherStates) {
 
 function removeFromTeacher(teacherId, classId, cls, teacherStates) {
   const state = teacherStates.get(teacherId);
-  state.assignedHours -= cls.weeklyHours;
+  state.assignedHours -= cls.weeklyHours || 0;
   for (const tid of cls.textbookIds || []) {
     removeTextbookRef(state.refCountMap, state.assignedTextbookIds, tid);
   }
-  // 学院集合：需要检查是否还有其他班级属于同一学院
-  if (cls.collegeId != null) {
-    let hasOtherCollege = false;
-    // 遍历引用计数对应的分配记录来检查——但因为我们有完整的 assignment map，
-    // 这里简化处理：不删除学院（保守策略），因为删除学院不影响可行性，只影响评分
-  }
+  // 学院集合保守策略：不删除（只增不减），避免遍历所有剩余分配的高昂开销
+  // 影响仅为评分微偏（学院内聚加分略高），不影响硬约束正确性
 }
 
 // ── 模拟教师状态计算评分 ──
@@ -183,7 +181,8 @@ function findBestMove(
   tabuList,
   iter,
   tenure,
-  bestScore
+  bestScore,
+  currentScore
 ) {
   let bestMove = null;
   let bestDelta = -Infinity;
@@ -191,7 +190,7 @@ function findBestMove(
   // --- Insert：未分配班级 → 某教师 ---
   for (const classId of unassignedSet) {
     const cls = classMap.get(classId);
-    if (!cls || cls.weeklyHours <= 0) continue;
+    if (!cls || !cls.weeklyHours || cls.weeklyHours <= 0) continue;
 
     for (const t of teacherConstraints) {
       const state = teacherStates.get(t.id);
@@ -204,12 +203,7 @@ function findBestMove(
       if (delta <= bestDelta) continue;
 
       const tabu = isTabu(tabuList, classId, t.id, iter);
-      if (tabu) {
-        // Aspiration: 如果此移动能让总分超过历史最优，忽略禁忌
-        // 此处用启发式估计：当前总分 + delta > bestScore
-        // 简化处理：delta 足够大时才允许突破
-        continue;
-      }
+      if (tabu && currentScore + delta <= bestScore) continue;
 
       bestDelta = delta;
       bestMove = {
@@ -225,7 +219,7 @@ function findBestMove(
   // --- Shift：教师A的班级 → 教师B ---
   for (const [classId, fromTeacherId] of assignments) {
     const cls = classMap.get(classId);
-    if (!cls || cls.weeklyHours <= 0) continue;
+    if (!cls || !cls.weeklyHours || cls.weeklyHours <= 0) continue;
     const fromTeacher = teacherMap.get(fromTeacherId);
     const fromState = teacherStates.get(fromTeacherId);
     if (!fromTeacher || !fromState) continue;
@@ -244,8 +238,9 @@ function findBestMove(
 
       if (delta <= bestDelta) continue;
 
-      if (isTabu(tabuList, classId, fromTeacherId, iter)) continue;
-      if (isTabu(tabuList, classId, t.id, iter)) continue;
+      const tabuFrom = isTabu(tabuList, classId, fromTeacherId, iter);
+      const tabuTo = isTabu(tabuList, classId, t.id, iter);
+      if ((tabuFrom || tabuTo) && currentScore + delta <= bestScore) continue;
 
       bestDelta = delta;
       bestMove = {
@@ -266,13 +261,13 @@ function findBestMove(
   for (let i = 0; i < maxSwapChecks; i++) {
     const [classIdA, teacherIdA] = assignmentEntries[i];
     const clsA = classMap.get(classIdA);
-    if (!clsA || clsA.weeklyHours <= 0) continue;
+    if (!clsA || !clsA.weeklyHours || clsA.weeklyHours <= 0) continue;
 
     for (let j = i + 1; j < Math.min(assignmentEntries.length, i + maxSwapChecks); j++) {
       const [classIdB, teacherIdB] = assignmentEntries[j];
       if (teacherIdA === teacherIdB) continue;
       const clsB = classMap.get(classIdB);
-      if (!clsB || clsB.weeklyHours <= 0) continue;
+      if (!clsB || !clsB.weeklyHours || clsB.weeklyHours <= 0) continue;
 
       const tA = teacherMap.get(teacherIdA);
       const tB = teacherMap.get(teacherIdB);
@@ -283,8 +278,8 @@ function findBestMove(
       // 容量检查：交换后双方容量变化 = 对方班级课时 - 己方班级课时
       const capA = mode === 'standard' ? tA.standardCap : tA.fullCap;
       const capB = mode === 'standard' ? tB.standardCap : tB.fullCap;
-      const deltaHoursA = clsB.weeklyHours - clsA.weeklyHours;
-      const deltaHoursB = clsA.weeklyHours - clsB.weeklyHours;
+      const deltaHoursA = (clsB.weeklyHours || 0) - (clsA.weeklyHours || 0);
+      const deltaHoursB = (clsA.weeklyHours || 0) - (clsB.weeklyHours || 0);
       if (stateA.assignedHours + deltaHoursA > capA) continue;
       if (stateB.assignedHours + deltaHoursB > capB) continue;
 
@@ -315,10 +310,8 @@ function findBestMove(
       if (!clsA.trainingLevelId && tB.schedulingLevelIds?.length > 0) continue;
 
       // 教材上限检查（简化：假设交换后教材数变化不超过上限）
-      // 精确检查需要先模拟移除再加回，开销较大，此处用启发式放宽
       const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
       if (TEXTBOOK_COHESION.ENABLED && maxTb > 0) {
-        // tA 移除 clsA 教材、加 clsB 教材
         const aNewTbs = (clsB.textbookIds || []).filter((tid) => !stateA.assignedTextbookIds.has(tid));
         const aOldTbs = (clsA.textbookIds || []).filter(
           (tid) => (stateA.refCountMap.get(tid) || 0) <= 1
@@ -340,6 +333,10 @@ function findBestMove(
       const scoreAOld = calcMatchScore(proxyAOld, clsA);
       const scoreBOld = calcMatchScore(proxyBOld, clsB);
 
+      // 保存学院集合快照（防止模拟评估污染状态）
+      const savedCollegeA = new Set(stateA.assignedCollegeIds);
+      const savedCollegeB = new Set(stateB.assignedCollegeIds);
+
       // 模拟交换后评分（临时修改状态）
       removeFromTeacher(teacherIdA, classIdA, clsA, teacherStates);
       addToTeacher(teacherIdA, classIdB, clsB, teacherStates);
@@ -351,18 +348,22 @@ function findBestMove(
       const scoreANew = calcMatchScore(proxyANew, clsB);
       const scoreBNew = calcMatchScore(proxyBNew, clsA);
 
-      // 还原状态
+      // 还原状态（含学院集合恢复，防止只增不减的累积污染）
       removeFromTeacher(teacherIdA, classIdB, clsB, teacherStates);
       addToTeacher(teacherIdA, classIdA, clsA, teacherStates);
       removeFromTeacher(teacherIdB, classIdA, clsA, teacherStates);
       addToTeacher(teacherIdB, classIdB, clsB, teacherStates);
+      stateA.assignedCollegeIds = savedCollegeA;
+      stateB.assignedCollegeIds = savedCollegeB;
 
       const delta = scoreANew + scoreBNew - scoreAOld - scoreBOld;
 
       if (delta <= bestDelta) continue;
 
-      if (isTabu(tabuList, classIdA, teacherIdA, iter)) continue;
-      if (isTabu(tabuList, classIdB, teacherIdB, iter)) continue;
+      // 禁忌检查：检查交换后的新配对（防止回弹），而非旧配对
+      const tabuA = isTabu(tabuList, classIdA, teacherIdB, iter);
+      const tabuB = isTabu(tabuList, classIdB, teacherIdA, iter);
+      if ((tabuA || tabuB) && currentScore + delta <= bestScore) continue;
 
       bestDelta = delta;
       bestMove = {
@@ -410,8 +411,9 @@ function applyMove(move, assignments, unassignedSet, teacherStates, classMap, ta
       addToTeacher(move.teacherIdA, move.classIdB, clsB, teacherStates);
       removeFromTeacher(move.teacherIdB, move.classIdB, clsB, teacherStates);
       addToTeacher(move.teacherIdB, move.classIdA, clsA, teacherStates);
-      setTabu(tabuList, move.classIdA, move.teacherIdA, iter, tenure);
-      setTabu(tabuList, move.classIdB, move.teacherIdB, iter, tenure);
+      // 禁忌新配对，防止立即回弹
+      setTabu(tabuList, move.classIdA, move.teacherIdB, iter, tenure);
+      setTabu(tabuList, move.classIdB, move.teacherIdA, iter, tenure);
       break;
     }
   }
@@ -496,6 +498,19 @@ export function tabuOptimize(
   // 构建教师运行时状态
   const teacherStates = buildTeacherStates(teacherConstraints, assignments, fullClassMap);
 
+  // 记录每位教师在本课程中的初始教材集合（用于 writeback 时计算增量）
+  const initialCourseTbs = new Map();
+  for (const t of teacherConstraints) {
+    const tbs = new Set();
+    for (const a of assignments) {
+      if (a.teacher_id === t.id) {
+        const cls = fullClassMap.get(a.class_id);
+        if (cls) for (const tid of cls.textbookIds || []) tbs.add(tid);
+      }
+    }
+    initialCourseTbs.set(t.id, tbs);
+  }
+
   // 计算初始目标函数值
   const scoreBefore = computeObjective(
     assignmentMap,
@@ -539,7 +554,8 @@ export function tabuOptimize(
       tabuList,
       iter,
       tenure,
-      bestScore
+      bestScore,
+      currentScore
     );
 
     if (!move) {
@@ -623,16 +639,35 @@ export function tabuOptimize(
     }
   }
 
-  // 同步教师约束对象的状态（assignedHours、assignedTextbookIds、assignedCollegeIds）
+  // 同步教师约束对象的状态（增量写回，保护跨课程数据）
   for (const t of teacherConstraints) {
     const state = teacherStates.get(t.id);
-    if (state) {
-      t.assignedHours = state.assignedHours;
-      t.assignedTextbookIds = state.assignedTextbookIds;
-      // assignedCollegeIds 只增不减（保守策略）
-      for (const cid of state.assignedCollegeIds) {
-        t.assignedCollegeIds.add(cid);
+    if (!state) continue;
+
+    // 课时：直接用搜索后的值（buildTeacherStates 已从本课程分配重建）
+    t.assignedHours = state.assignedHours;
+
+    // 教材：计算本课程维度的增量，应用到全局集合
+    const initialTbs = initialCourseTbs.get(t.id) || new Set();
+    const finalTbs = new Set();
+    for (const [cid, tid] of assignmentMap) {
+      if (tid === t.id) {
+        const cls = fullClassMap.get(cid);
+        if (cls) for (const tb of cls.textbookIds || []) finalTbs.add(tb);
       }
+    }
+    // 新增的教材 → 加入全局集合
+    for (const tb of finalTbs) {
+      if (!initialTbs.has(tb)) t.assignedTextbookIds.add(tb);
+    }
+    // 移除的教材 → 从全局集合删除
+    for (const tb of initialTbs) {
+      if (!finalTbs.has(tb)) t.assignedTextbookIds.delete(tb);
+    }
+
+    // 学院：只增不减（保守策略）
+    for (const cid of state.assignedCollegeIds) {
+      t.assignedCollegeIds.add(cid);
     }
   }
 
