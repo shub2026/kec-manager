@@ -135,10 +135,16 @@ if [ "$NEEDS_INSTALL" = "true" ]; then
     execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
     echo "✓ 依赖安装完成"
 else
-    # 兜底：验证 node_modules 存在（防止被误删）
+    # 兜底：验证 node_modules 完整性（防止被误删或被历史 npm prune 破坏）
+    # 旧版部署脚本曾用 npm prune --production 删除 devDependencies，
+    # 导致 esbuild（devDependency）被删，前端构建失败
     if ! execute "test -d ${PROJECT_DIR}/server/node_modules && test -d ${PROJECT_DIR}/client/node_modules"; then
         echo -e "${YELLOW}⚠  node_modules 缺失，执行完整安装...${NC}"
         execute "cd ${PROJECT_DIR}/server && npm ci"
+        execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
+    elif ! execute "test -f ${PROJECT_DIR}/client/node_modules/.bin/esbuild"; then
+        # 关键依赖缺失（通常是历史 prune 遗留），需要重装
+        echo -e "${YELLOW}⚠  检测到关键依赖缺失（esbuild），执行完整安装...${NC}"
         execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
     else
         echo "✓ 依赖未变化，跳过安装"
@@ -273,29 +279,24 @@ echo "✓ 系统设置初始化完成"
 
 echo ""
 echo -e "${GREEN}[9/10] 构建前端...${NC}"
-# 验证 esbuild 二进制是否可用（Vite 依赖 esbuild，二进制缺失/损坏会导致构建崩溃）
-# 直接调用 CLI 二进制验证，避免 node -e 通过 SSH 执行时的多层引号转义问题
-if execute "cd ${PROJECT_DIR}/client && ./node_modules/.bin/esbuild --version" 2>/dev/null; then
-    echo "✓ esbuild 二进制可用"
-else
-    echo -e "${YELLOW}⚠  esbuild 二进制异常，尝试重新安装...${NC}"
+# 直接构建，不预检测 esbuild（预检测命令通过 SSH 执行时容易因引号/路径问题误判）
+# 如果构建失败，自动重装依赖后重试一次
+if ! execute "cd ${PROJECT_DIR}/client && npm run build"; then
+    echo -e "${YELLOW}⚠  构建失败，可能是依赖损坏，尝试重装后重试...${NC}"
     execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
-    # 重装后再次验证
-    if ! execute "cd ${PROJECT_DIR}/client && ./node_modules/.bin/esbuild --version" 2>/dev/null; then
-        echo -e "${RED}✗ esbuild 二进制重装后仍不可用${NC}"
+    if ! execute "cd ${PROJECT_DIR}/client && npm run build"; then
+        echo -e "${RED}✗ 前端构建失败${NC}"
         echo -e "${YELLOW}  可能原因：${NC}"
         echo -e "${YELLOW}  1. 服务器 glibc 版本过低（esbuild 需要 glibc 2.28+）${NC}"
-        echo -e "${YELLOW}  2. 服务器架构与 @esbuild/linux-x64 不匹配${NC}"
-        echo -e "${YELLOW}  3. node_modules 损坏${NC}"
+        echo -e "${YELLOW}  2. 内存不足（构建需要约 1GB 可用内存）${NC}"
+        echo -e "${YELLOW}  3. Node.js 版本不兼容${NC}"
         echo -e "${YELLOW}  诊断信息：${NC}"
-        execute "cd ${PROJECT_DIR}/client && ls -la node_modules/@esbuild/ 2>&1 || echo '  @esbuild 目录不存在'"
-        echo -e "${YELLOW}  Node 平台: ${NC}"
-        execute "node -p \"process.arch + '-' + process.platform + ' (glibc ' + process.versions.glibc + ')'\""
+        execute "node -v && npm -v"
+        execute "uname -a"
+        execute "free -h 2>/dev/null || echo '无法获取内存信息'"
         exit 1
     fi
-    echo "✓ esbuild 重装成功"
 fi
-execute "cd ${PROJECT_DIR}/client && npm run build"
 echo "✓ 前端构建完成"
 # 不再执行 npm prune --production：保留 devDependencies 以便下次部署直接构建
 # 下次更新若 package*.json 未变化，可跳过 npm ci，从 ~60s 降到 ~0s
