@@ -84,25 +84,66 @@ echo "✓ 目录创建完成"
 
 echo ""
 echo -e "${GREEN}[3/10] 克隆/更新代码...${NC}"
+NEEDS_INSTALL=false
 if execute "test -d ${PROJECT_DIR}/.git"; then
     echo "更新现有代码..."
+    # 记录更新前的 commit，用于 [4/10] 检测依赖是否变化
+    PREV_COMMIT=$(execute "cd ${PROJECT_DIR} && git rev-parse HEAD 2>/dev/null || echo ''")
     # 强制丢弃本地修改（package-lock.json 等由 npm install 产生，应以远程为准）
     execute "cd ${PROJECT_DIR} && git fetch origin && git reset --hard origin/main"
+    # 检测 dependencies/devDependencies 是否变化（忽略 version 字段变化）
+    # 版本号递增会改动 package.json 但不影响依赖，不应触发重新安装
+    if [ -n "$PREV_COMMIT" ]; then
+        # git diff 输出 +/- 开头的变更行，过滤掉文件头(++)、version 行、空行
+        # 若过滤后仍有内容，说明依赖相关字段变化
+        DEPS_DIFF=$(execute "cd ${PROJECT_DIR} && git diff ${PREV_COMMIT} HEAD -- server/package.json client/package.json | grep -E '^[+-][^+-]' | grep -vE '\"version\"|^$' || echo ''")
+        if [ -n "$DEPS_DIFF" ]; then
+            NEEDS_INSTALL=true
+        fi
+    else
+        # 无法获取前一次 commit（如浅克隆），保守地触发安装
+        NEEDS_INSTALL=true
+    fi
 else
     echo "首次克隆代码..."
     execute "mkdir -p $(dirname ${PROJECT_DIR})"
     execute "git clone https://gitee.com/shub77/kec-manager.git ${PROJECT_DIR}"
+    NEEDS_INSTALL=true
 fi
 echo "✓ 代码准备完成"
 
 echo ""
 echo -e "${GREEN}[4/10] 安装依赖...${NC}"
-# server: 需要安装全部依赖（含 devDependencies 中的 prisma CLI），构建阶段用完再清理
-execute "cd ${PROJECT_DIR}/server && npm install"
-# client: 构建前端需要 devDependencies 中的 vite/esbuild 等
-# 使用 --cache /tmp/npm-cache 避免 npm 缓存中损坏的 esbuild 平台二进制
-execute "cd ${PROJECT_DIR}/client && npm install --cache /tmp/npm-cache"
-echo "✓ 依赖安装完成"
+# 智能跳过：仅在 dependencies/devDependencies 变化或首次部署时安装
+# 版本号递增(2.20.2 → 2.20.3)不会触发重新安装
+# 常规更新（仅业务代码变化）跳过此步，从 ~60s 降到 ~0s
+if [ "$NEEDS_INSTALL" = "true" ]; then
+    if [ -n "$PREV_COMMIT" ]; then
+        echo "检测到依赖变化，重新安装..."
+        if [ -n "$DEPS_DIFF" ]; then
+            echo -e "${YELLOW}    变更内容:${NC}"
+            echo "$DEPS_DIFF" | head -5 | sed 's/^/    /'
+        fi
+    else
+        echo "首次部署，安装依赖..."
+    fi
+    # npm ci 基于 lockfile 严格安装，比 npm install 更快且可靠
+    # server: 需要全部依赖（含 devDependencies 中的 prisma CLI 用于迁移）
+    execute "cd ${PROJECT_DIR}/server && npm ci"
+    # client: 构建前端需要 devDependencies 中的 vite/esbuild 等
+    # 使用 --cache /tmp/npm-cache 避免 npm 缓存中损坏的 esbuild 平台二进制
+    execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
+    echo "✓ 依赖安装完成"
+else
+    # 兜底：验证 node_modules 存在（防止被误删）
+    if ! execute "test -d ${PROJECT_DIR}/server/node_modules && test -d ${PROJECT_DIR}/client/node_modules"; then
+        echo -e "${YELLOW}⚠  node_modules 缺失，执行完整安装...${NC}"
+        execute "cd ${PROJECT_DIR}/server && npm ci"
+        execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
+    else
+        echo "✓ 依赖未变化，跳过安装"
+    fi
+fi
 
 echo ""
 echo -e "${GREEN}[5/10] 停止现有服务...${NC}"
@@ -160,7 +201,7 @@ JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
 # CORS 配置（请修改为你的实际域名）
-CORS_ORIGINS=https://kec.sntip.cn,http://localhost:3000
+CORS_ORIGINS=https://kec.sntip.cn
 
 # 日志级别
 LOG_LEVEL=info
@@ -184,6 +225,7 @@ execute "cd ${PROJECT_DIR}/server/data && rm -f kec.db-wal kec.db-shm 2>/dev/nul
 
 echo "执行 Prisma 迁移..."
 # migrate deploy 安全应用已有迁移，不会清空数据
+# migrate deploy 会自动运行 prisma generate，无需重复执行
 # 此时服务已停，无并发连接，不会触发 "database is locked"
 if ! execute "cd ${PROJECT_DIR}/server && npx prisma migrate deploy"; then
     echo -e "${RED}✗ Prisma 迁移失败，请手动检查迁移状态${NC}"
@@ -192,11 +234,10 @@ if ! execute "cd ${PROJECT_DIR}/server && npx prisma migrate deploy"; then
     # 迁移失败不继续启动，避免脏数据状态
     exit 1
 fi
-echo "✓ Prisma 迁移成功"
+echo "✓ Prisma 迁移成功（含 Client 自动生成）"
 
-echo "生成 Prisma Client..."
-execute "cd ${PROJECT_DIR}/server && npx prisma generate"
 echo "初始化种子数据..."
+# seed.js 已做幂等保护：admin 已存在则跳过，生产环境跳过 DEV_SEEDS
 execute "cd ${PROJECT_DIR}/server && npm run db:seed"
 
 # 验证迁移状态：查询 _prisma_migrations 表中是否有未完成的迁移
@@ -221,7 +262,8 @@ if [ "$TABLE_COUNT" = "1" ] && [ "$USER_COUNT" -ge "1" ] 2>/dev/null; then
     echo "✓ 数据库初始化完成（${USER_COUNT} 个用户已创建）"
 else
     echo -e "${YELLOW}⚠️  数据库验证未通过，尝试补充初始化...${NC}"
-    execute "cd ${PROJECT_DIR}/server && sqlite3 data/kec.db < prisma/manual_create_settings.sql 2>/dev/null || true"
+    # 路径与上方验证一致，使用绝对路径避免 cwd 不对导致找不到 SQL 文件
+    execute "sqlite3 ${PROJECT_DIR}/server/data/kec.db < ${PROJECT_DIR}/server/prisma/manual_create_settings.sql 2>/dev/null || true"
 fi
 
 echo ""
@@ -238,11 +280,9 @@ if ! execute "cd ${PROJECT_DIR}/client && node -e \"require('esbuild').version\"
 fi
 execute "cd ${PROJECT_DIR}/client && npm run build"
 echo "✓ 前端构建完成"
-# 前端构建完成后清理 client 的 devDependencies，减少生产环境体积
-execute "cd ${PROJECT_DIR}/client && npm prune --production 2>/dev/null || true"
-# server 的 devDependencies（prisma CLI）在迁移阶段已用完，清理
-execute "cd ${PROJECT_DIR}/server && npm prune --production 2>/dev/null || true"
-echo "✓ 清理开发依赖完成"
+# 不再执行 npm prune --production：保留 devDependencies 以便下次部署直接构建
+# 下次更新若 package*.json 未变化，可跳过 npm ci，从 ~60s 降到 ~0s
+# 代价：磁盘多占约 200MB，换来显著的部署加速
 
 echo ""
 echo -e "${GREEN}[10/10] 启动服务...${NC}"
@@ -265,6 +305,10 @@ echo ""
 echo "等待服务启动..."
 sleep 5
 
+# 从 .env 读取 PORT（与服务器实际监听端口一致，避免硬编码 3000）
+APP_PORT=$(execute "grep -E '^PORT=' ${PROJECT_DIR}/server/.env 2>/dev/null | cut -d= -f2 | tr -d '[:space:]' || echo '3000'")
+if [ -z "$APP_PORT" ]; then APP_PORT="3000"; fi
+
 # 验证部署结果
 echo ""
 echo -e "${GREEN}========================================${NC}"
@@ -272,7 +316,7 @@ echo -e "${GREEN}部署验证...${NC}"
 echo -e "${GREEN}========================================${NC}"
 
 # 测试健康检查
-HEALTH=$(execute "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/health 2>/dev/null || echo '000'")
+HEALTH=$(execute "curl -s -o /dev/null -w '%{http_code}' http://localhost:${APP_PORT}/api/health 2>/dev/null || echo '000'")
 if [ "$HEALTH" = "200" ]; then
     echo -e "✓ 健康检查通过 (HTTP ${HEALTH})"
 else
@@ -281,7 +325,7 @@ else
 fi
 
 # 测试 settings 接口
-SETTINGS=$(execute "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/settings 2>/dev/null || echo '000'")
+SETTINGS=$(execute "curl -s -o /dev/null -w '%{http_code}' http://localhost:${APP_PORT}/api/settings 2>/dev/null || echo '000'")
 if [ "$SETTINGS" = "200" ]; then
     echo -e "✓ Settings 接口正常 (HTTP ${SETTINGS})"
 else
@@ -301,7 +345,7 @@ echo "  pm2 logs kec-server"
 echo ""
 echo -e "${YELLOW}后续步骤：${NC}"
 echo "1. 编辑 ${PROJECT_DIR}/server/.env 修改 CORS_ORIGINS"
-echo "2. 配置 Nginx（参考 docs/PRODUCTION_DEPLOYMENT.md）"
+echo "2. 配置 Nginx 反向代理（将 443 转发到 localhost:${APP_PORT}）"
 echo "3. 设置 HTTPS 证书（推荐 Let's Encrypt）"
 echo "4. 配置备份脚本"
 echo "5. 测试访问：https://kec.sntip.cn"
