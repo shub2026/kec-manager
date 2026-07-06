@@ -273,14 +273,27 @@ echo "✓ 系统设置初始化完成"
 
 echo ""
 echo -e "${GREEN}[9/10] 构建前端...${NC}"
-# 验证 esbuild 平台二进制是否真正可执行（Vite 依赖 esbuild，二进制缺失/损坏会导致构建崩溃）
-# 仅 require('esbuild').version 不够：JS 包装层可能返回版本号但二进制缺失
-# 必须实际调用一次 transform 才能确认二进制可用
-if ! execute "cd ${PROJECT_DIR}/client && node -e \"require('esbuild').transform('const x=1', {minify:true}).then(r=>process.exit(0)).catch(e=>{console.error(e.message);process.exit(1)})\"" 2>/dev/null; then
+# 验证 esbuild 二进制是否可用（Vite 依赖 esbuild，二进制缺失/损坏会导致构建崩溃）
+# 直接调用 CLI 二进制验证，避免 node -e 通过 SSH 执行时的多层引号转义问题
+if execute "cd ${PROJECT_DIR}/client && ./node_modules/.bin/esbuild --version" 2>/dev/null; then
+    echo "✓ esbuild 二进制可用"
+else
     echo -e "${YELLOW}⚠  esbuild 二进制异常，尝试重新安装...${NC}"
-    # 用 npm ci 重新安装全部依赖（基于 lockfile，版本严格一致）
-    # 比 npm install esbuild 更可靠：会触发 install script 下载正确平台的二进制
     execute "cd ${PROJECT_DIR}/client && npm ci --cache /tmp/npm-cache"
+    # 重装后再次验证
+    if ! execute "cd ${PROJECT_DIR}/client && ./node_modules/.bin/esbuild --version" 2>/dev/null; then
+        echo -e "${RED}✗ esbuild 二进制重装后仍不可用${NC}"
+        echo -e "${YELLOW}  可能原因：${NC}"
+        echo -e "${YELLOW}  1. 服务器 glibc 版本过低（esbuild 需要 glibc 2.28+）${NC}"
+        echo -e "${YELLOW}  2. 服务器架构与 @esbuild/linux-x64 不匹配${NC}"
+        echo -e "${YELLOW}  3. node_modules 损坏${NC}"
+        echo -e "${YELLOW}  诊断信息：${NC}"
+        execute "cd ${PROJECT_DIR}/client && ls -la node_modules/@esbuild/ 2>&1 || echo '  @esbuild 目录不存在'"
+        echo -e "${YELLOW}  Node 平台: ${NC}"
+        execute "node -p \"process.arch + '-' + process.platform + ' (glibc ' + process.versions.glibc + ')'\""
+        exit 1
+    fi
+    echo "✓ esbuild 重装成功"
 fi
 execute "cd ${PROJECT_DIR}/client && npm run build"
 echo "✓ 前端构建完成"
