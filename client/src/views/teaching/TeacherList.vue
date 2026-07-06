@@ -324,7 +324,7 @@
     <el-dialog
       v-model="deleteConfirmVisible"
       title="确认删除"
-      width="min(380px, 90vw)"
+      width="min(450px, 90vw)"
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">
@@ -345,7 +345,7 @@
     <el-dialog
       v-model="importConfirmVisible"
       title="导入确认"
-      width="min(420px, 90vw)"
+      width="min(450px, 90vw)"
       align-center
     >
       <div style="display: flex; gap: 12px; align-items: flex-start">

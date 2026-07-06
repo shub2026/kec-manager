@@ -213,7 +213,7 @@
     />
 
     <!-- 重置排课确认弹窗 -->
-    <el-dialog v-model="resetConfirmVisible" title="确认重置" width="min(420px, 90vw)" align-center>
+    <el-dialog v-model="resetConfirmVisible" title="确认重置" width="min(520px, 90vw)" align-center>
       <div style="display: flex; gap: 12px; align-items: flex-start">
         <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px">
           <WarningFilled />
