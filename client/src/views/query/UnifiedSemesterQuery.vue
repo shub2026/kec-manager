@@ -111,7 +111,13 @@
           <el-table-column type="expand">
             <template #default="{ row }">
               <div class="expand-content">
-                <el-table :data="row.courses" size="small" border row-key="courseName" style="margin: 4px 0">
+                <el-table
+                  :data="row.courses"
+                  size="small"
+                  border
+                  row-key="courseName"
+                  style="margin: 4px 0"
+                >
                   <el-table-column
                     prop="courseName"
                     label="课程"

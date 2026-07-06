@@ -5,6 +5,25 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.21.0] - 2026-07-06
+
+### 新增功能
+
+- **禁忌搜索排课优化**：在五阶段贪心+置换回溯基础上，新增可选禁忌搜索优化层（Insert/Shift/Swap 三邻域），通过系统设置页面动态开关控制，默认关闭
+- **排课设置 UI**：系统设置页新增"排课禁忌搜索优化"开关组件（`SchedulingConfig.vue`）
+- **排课算法文档**：新增 `SCHEDULING_ALGORITHM_ITERATION.md` 迭代分析文档
+
+### 改进
+
+- **排课算法核心审查**：修复禁忌搜索 4 个关键 bug（Swap 学院集合累积污染、Swap 禁忌检查回弹、教材 writeback 全量替换、aspiration criterion 缺失），补充 NaN 防护和 dead import 清理
+- **全局弹窗宽度优化**：统一调整 10 个确认弹窗的 `min-width` 为 450px，确保多行提示文本合理显示
+
+### 测试
+
+- 新增 `tabu-search.test.js`，11 个测试用例覆盖 Insert/Shift/Swap 邻域、约束检查、教材引用计数等核心场景
+
+---
+
 ## [2.20.2] - 2026-07-06
 
 ### 文档

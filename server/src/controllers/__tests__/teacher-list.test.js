@@ -142,9 +142,7 @@ describe('listTeachers — PII 脱敏', () => {
 
   // ── birth_date 本身为 null，admin 也应返回 null ──
   it('birth_date 为 null 时，admin 角色也应返回 null', async () => {
-    mockPrisma.teachers.findMany.mockResolvedValue([
-      makeTeacher({ birth_date: null }),
-    ]);
+    mockPrisma.teachers.findMany.mockResolvedValue([makeTeacher({ birth_date: null })]);
 
     const req = mockReq('admin');
     const res = mockRes();

@@ -68,9 +68,8 @@ vi.mock('../../middleware/auth.middleware.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { createUser, updateUser, updateUserStatus, deleteUser } = await import(
-  '../user.controller.js'
-);
+const { createUser, updateUser, updateUserStatus, deleteUser } =
+  await import('../user.controller.js');
 const { createAuditLog } = await import('../../services/audit.service.js');
 const { invalidateUserStatusCache } = await import('../../middleware/auth.middleware.js');
 const bcrypt = (await import('bcryptjs')).default;
@@ -78,7 +77,12 @@ const bcrypt = (await import('bcryptjs')).default;
 // ──────────────────────────────────────────────
 // 工具函数
 // ──────────────────────────────────────────────
-function mockReq({ params = {}, body = {}, user = { id: 1, role: 'super_admin' }, query = {} } = {}) {
+function mockReq({
+  params = {},
+  body = {},
+  user = { id: 1, role: 'super_admin' },
+  query = {},
+} = {}) {
   return { params, body, user, query, ip: '127.0.0.1' };
 }
 
@@ -135,9 +139,7 @@ describe('createUser', () => {
     await createUser(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
   it('super_admin 创建 super_admin → 成功', async () => {
@@ -151,9 +153,7 @@ describe('createUser', () => {
     await createUser(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
   // ── admin 权限限制 ──────────────────────────
@@ -168,9 +168,7 @@ describe('createUser', () => {
     await createUser(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
   it('admin 创建 admin → 403 forbidden (权限提升)', async () => {
@@ -410,9 +408,7 @@ describe('updateUser', () => {
     await updateUser(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     // super_admin 可以改 role
     const updateCall = mockPrisma.users.update.mock.calls[0][0];
     expect(updateCall.data.role).toBe('admin');
@@ -430,9 +426,7 @@ describe('updateUser', () => {
     await updateUser(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
   it('admin 更新 admin → 403 forbidden', async () => {
@@ -654,9 +648,7 @@ describe('updateUserStatus', () => {
     await updateUserStatus(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
   it('admin 禁用 admin → 403 forbidden', async () => {
@@ -820,9 +812,7 @@ describe('deleteUser', () => {
     await deleteUser(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
   it('admin 删除 admin → 403 forbidden', async () => {

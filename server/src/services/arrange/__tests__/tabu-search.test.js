@@ -55,7 +55,8 @@ vi.mock('../auto-arrange.js', () => ({
     // 学院匹配
     if (teacher.assignedCollegeIds?.has?.(cls.collegeId)) score += 5;
     // 层次匹配
-    if (cls.trainingLevelId && teacher.schedulingLevelIds?.includes?.(cls.trainingLevelId)) score += 5;
+    if (cls.trainingLevelId && teacher.schedulingLevelIds?.includes?.(cls.trainingLevelId))
+      score += 5;
     // 教材匹配（已有教材 → 内聚加分）
     const tbIds = cls.textbookIds || [];
     for (const tid of tbIds) {
@@ -170,7 +171,10 @@ describe('tabuOptimize — Insert 移动', () => {
     // cls1 已分配，cls2 未分配
     const assignments = [makeAssignment(t1, cls1)];
     const unassigned = [{ classId: 101, className: 'C2', weeklyHours: 4, reason: 'test' }];
-    const classMap = new Map([[100, cls1], [101, cls2]]);
+    const classMap = new Map([
+      [100, cls1],
+      [101, cls2],
+    ]);
 
     const result = tabuOptimize(assignments, unassigned, [t1], 'full', classMap, 1, '2025-2026-2');
 
@@ -194,7 +198,10 @@ describe('tabuOptimize — Insert 移动', () => {
 
     const assignments = [makeAssignment(t1, cls1)];
     const unassigned = [{ classId: 101, className: 'C2', weeklyHours: 4, reason: 'test' }];
-    const classMap = new Map([[100, cls1], [101, cls2]]);
+    const classMap = new Map([
+      [100, cls1],
+      [101, cls2],
+    ]);
 
     const result = tabuOptimize(assignments, unassigned, [t1], 'full', classMap, 1, '2025-2026-2');
 
@@ -253,7 +260,10 @@ describe('tabuOptimize — 硬约束', () => {
 
     const assignments = [makeAssignment(t1, cls1)];
     const unassigned = [{ classId: 101, className: 'C2', weeklyHours: 6, reason: 'test' }];
-    const classMap = new Map([[100, cls1], [101, cls2]]);
+    const classMap = new Map([
+      [100, cls1],
+      [101, cls2],
+    ]);
 
     tabuOptimize(assignments, unassigned, [t1], 'full', classMap, 1, '2025-2026-2');
 
@@ -338,7 +348,10 @@ describe('tabuOptimize — 教师约束同步', () => {
 
     const assignments = [makeAssignment(t1, cls1)];
     const unassigned = [{ classId: 101, className: 'C2', weeklyHours: 4, reason: 'test' }];
-    const classMap = new Map([[100, cls1], [101, cls2]]);
+    const classMap = new Map([
+      [100, cls1],
+      [101, cls2],
+    ]);
 
     tabuOptimize(assignments, unassigned, [t1], 'full', classMap, 1, '2025-2026-2');
 
@@ -374,9 +387,20 @@ describe('tabuOptimize — 多教师场景', () => {
 
     const assignments = [makeAssignment(t1, cls1)];
     const unassigned = [{ classId: 101, className: 'C2', weeklyHours: 4, reason: 'test' }];
-    const classMap = new Map([[100, cls1], [101, cls2]]);
+    const classMap = new Map([
+      [100, cls1],
+      [101, cls2],
+    ]);
 
-    const result = tabuOptimize(assignments, unassigned, [t1, t2], 'full', classMap, 1, '2025-2026-2');
+    const result = tabuOptimize(
+      assignments,
+      unassigned,
+      [t1, t2],
+      'full',
+      classMap,
+      1,
+      '2025-2026-2'
+    );
 
     // cls2 应该分配给 t1（教材+学院双重匹配，评分更高）
     if (result.unassignedAfter === 0) {

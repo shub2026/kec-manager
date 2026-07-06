@@ -125,10 +125,7 @@ const BASE_TEACHER = {
 const TEACHER_WITH_ASSOCIATIONS = {
   ...BASE_TEACHER,
   affiliated_college: { id: 10, name: '教育学院' },
-  courses: [
-    { course: { id: 1, name: '心理学' } },
-    { course: { id: 2, name: '教育学' } },
-  ],
+  courses: [{ course: { id: 1, name: '心理学' } }, { course: { id: 2, name: '教育学' } }],
   scheduling_colleges: [{ college: { id: 10, name: '教育学院' } }],
   scheduling_levels: [{ training_level: { id: 2, name: '本科' } }],
   _count: { assignments: 3 },
@@ -173,11 +170,14 @@ describe('updateTeacher', () => {
     });
 
     it('更新多个基本字段（name, gender, personnel_type）', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        name: '王五',
-        gender: '女',
-        personnel_type: 'part_time',
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          name: '王五',
+          gender: '女',
+          personnel_type: 'part_time',
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -239,9 +239,12 @@ describe('updateTeacher', () => {
         { course_id: 3 },
       ]);
 
-      const req = mockReq({ id: TEACHER_ID }, {
-        course_ids: [1], // 移除 2、3
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          course_ids: [1], // 移除 2、3
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -260,9 +263,12 @@ describe('updateTeacher', () => {
     it('course_ids 变更时应重建 teacher_courses 关联', async () => {
       mockTx.teacher_courses.findMany.mockResolvedValue([{ course_id: 1 }]);
 
-      const req = mockReq({ id: TEACHER_ID }, {
-        course_ids: [2, 3],
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          course_ids: [2, 3],
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -284,9 +290,12 @@ describe('updateTeacher', () => {
     it('course_ids 为空数组时应清空所有关联且不创建新关联', async () => {
       mockTx.teacher_courses.findMany.mockResolvedValue([{ course_id: 1 }, { course_id: 2 }]);
 
-      const req = mockReq({ id: TEACHER_ID }, {
-        course_ids: [],
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          course_ids: [],
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -311,9 +320,12 @@ describe('updateTeacher', () => {
       // 已存在 course_id = 1
       mockTx.teacher_courses.findMany.mockResolvedValue([{ course_id: 1 }]);
 
-      const req = mockReq({ id: TEACHER_ID }, {
-        course_ids: [1, 2, 3], // 新增 2、3，保留 1
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          course_ids: [1, 2, 3], // 新增 2、3，保留 1
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -329,9 +341,12 @@ describe('updateTeacher', () => {
   // ──────────────────────────────────────────────
   describe('college_ids 变更', () => {
     it('应清空并重建 teacher_scheduling_colleges 关联', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        college_ids: [10, 20],
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          college_ids: [10, 20],
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -349,9 +364,12 @@ describe('updateTeacher', () => {
     });
 
     it('college_ids 为空数组时应清空且不创建', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        college_ids: [],
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          college_ids: [],
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -369,9 +387,12 @@ describe('updateTeacher', () => {
   // ──────────────────────────────────────────────
   describe('training_level_ids 变更', () => {
     it('应清空并重建 teacher_training_levels 关联', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        training_level_ids: [2, 3],
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          training_level_ids: [2, 3],
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -389,9 +410,12 @@ describe('updateTeacher', () => {
     });
 
     it('training_level_ids 为空数组时应清空且不创建', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        training_level_ids: [],
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          training_level_ids: [],
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -409,9 +433,12 @@ describe('updateTeacher', () => {
   // ──────────────────────────────────────────────
   describe('affiliated_college_id 处理', () => {
     it('传入 null → data.affiliated_college_id = null', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        affiliated_college_id: null,
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          affiliated_college_id: null,
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -422,9 +449,12 @@ describe('updateTeacher', () => {
     });
 
     it('传入空字符串 "" → data.affiliated_college_id = null', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        affiliated_college_id: '',
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          affiliated_college_id: '',
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -435,9 +465,12 @@ describe('updateTeacher', () => {
     });
 
     it('传入有效数字 10 → data.affiliated_college_id = 10', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        affiliated_college_id: 10,
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          affiliated_college_id: 10,
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -448,9 +481,12 @@ describe('updateTeacher', () => {
     });
 
     it('传入字符串 "10" → data.affiliated_college_id = 10 (Number)', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        affiliated_college_id: '10',
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          affiliated_college_id: '10',
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -477,9 +513,12 @@ describe('updateTeacher', () => {
   // ──────────────────────────────────────────────
   describe('default_weekly_hours 处理', () => {
     it('传入空字符串 "" → data.default_weekly_hours = null', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        default_weekly_hours: '',
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          default_weekly_hours: '',
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -490,9 +529,12 @@ describe('updateTeacher', () => {
     });
 
     it('传入 null → data.default_weekly_hours = null', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        default_weekly_hours: null,
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          default_weekly_hours: null,
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -503,9 +545,12 @@ describe('updateTeacher', () => {
     });
 
     it('传入 undefined → data.default_weekly_hours = null', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        default_weekly_hours: undefined,
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          default_weekly_hours: undefined,
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -516,9 +561,12 @@ describe('updateTeacher', () => {
     });
 
     it('传入有效数字 12 → data.default_weekly_hours = 12', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        default_weekly_hours: 12,
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          default_weekly_hours: 12,
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -529,9 +577,12 @@ describe('updateTeacher', () => {
     });
 
     it('传入字符串 "12" → data.default_weekly_hours = 12 (Number)', async () => {
-      const req = mockReq({ id: TEACHER_ID }, {
-        default_weekly_hours: '12',
-      });
+      const req = mockReq(
+        { id: TEACHER_ID },
+        {
+          default_weekly_hours: '12',
+        }
+      );
       const res = mockRes();
       const next = vi.fn();
 
@@ -677,8 +728,26 @@ describe('toggleTeacherStatus', () => {
   describe('active → disabled 切换', () => {
     it('应删除该教师所有 teaching_assignments', async () => {
       const mockAssignments = [
-        { id: 1, semester: '2025-2026-1', class_id: 10, course_id: 1, weekly_hours: 4, is_auto: false, class: { id: 10, name: '2024级1班' }, course: { id: 1, name: '心理学' } },
-        { id: 2, semester: '2025-2026-2', class_id: 11, course_id: 2, weekly_hours: 2, is_auto: true, class: { id: 11, name: '2024级2班' }, course: { id: 2, name: '教育学' } },
+        {
+          id: 1,
+          semester: '2025-2026-1',
+          class_id: 10,
+          course_id: 1,
+          weekly_hours: 4,
+          is_auto: false,
+          class: { id: 10, name: '2024级1班' },
+          course: { id: 1, name: '心理学' },
+        },
+        {
+          id: 2,
+          semester: '2025-2026-2',
+          class_id: 11,
+          course_id: 2,
+          weekly_hours: 2,
+          is_auto: true,
+          class: { id: 11, name: '2024级2班' },
+          course: { id: 2, name: '教育学' },
+        },
       ];
       mockTx.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
       mockTx.teaching_assignments.deleteMany.mockResolvedValue({ count: 2 });
@@ -697,7 +766,16 @@ describe('toggleTeacherStatus', () => {
 
     it('级联删除后应在响应中返回 cascadedDeletedAssignments', async () => {
       mockTx.teaching_assignments.findMany.mockResolvedValue([
-        { id: 1, semester: '2025-2026-1', class_id: 10, course_id: 1, weekly_hours: 4, is_auto: false, class: { id: 10, name: '班1' }, course: { id: 1, name: '课1' } },
+        {
+          id: 1,
+          semester: '2025-2026-1',
+          class_id: 10,
+          course_id: 1,
+          weekly_hours: 4,
+          is_auto: false,
+          class: { id: 10, name: '班1' },
+          course: { id: 1, name: '课1' },
+        },
       ]);
       mockTx.teaching_assignments.deleteMany.mockResolvedValue({ count: 1 });
 
@@ -714,7 +792,16 @@ describe('toggleTeacherStatus', () => {
 
     it('审计日志应记录级联删除数量和详情', async () => {
       const mockAssignments = [
-        { id: 5, semester: '2025-2026-1', class_id: 10, course_id: 1, weekly_hours: 4, is_auto: false, class: { id: 10, name: '2024级1班' }, course: { id: 1, name: '心理学' } },
+        {
+          id: 5,
+          semester: '2025-2026-1',
+          class_id: 10,
+          course_id: 1,
+          weekly_hours: 4,
+          is_auto: false,
+          class: { id: 10, name: '2024级1班' },
+          course: { id: 1, name: '心理学' },
+        },
       ];
       mockTx.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
       mockTx.teaching_assignments.deleteMany.mockResolvedValue({ count: 1 });
@@ -884,7 +971,16 @@ describe('toggleTeacherStatus', () => {
   describe('审计日志', () => {
     it('禁用成功且有级联删除时审计日志 message 应包含级联删除数', async () => {
       mockTx.teaching_assignments.findMany.mockResolvedValue([
-        { id: 1, semester: '2025-2026-1', class_id: 10, course_id: 1, weekly_hours: 4, is_auto: false, class: { id: 10, name: '班1' }, course: { id: 1, name: '课1' } },
+        {
+          id: 1,
+          semester: '2025-2026-1',
+          class_id: 10,
+          course_id: 1,
+          weekly_hours: 4,
+          is_auto: false,
+          class: { id: 10, name: '班1' },
+          course: { id: 1, name: '课1' },
+        },
       ]);
       mockTx.teaching_assignments.deleteMany.mockResolvedValue({ count: 1 });
 

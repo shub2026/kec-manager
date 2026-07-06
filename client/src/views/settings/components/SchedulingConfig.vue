@@ -40,7 +40,13 @@
     </div>
 
     <div class="scheduling-actions">
-      <el-button type="primary" size="large" :loading="saving" :disabled="!dirty" @click="handleSave">
+      <el-button
+        type="primary"
+        size="large"
+        :loading="saving"
+        :disabled="!dirty"
+        @click="handleSave"
+      >
         <el-icon><Check /></el-icon>
         保存设置
       </el-button>

@@ -138,7 +138,11 @@
   </el-container>
 
   <!-- 修改密码对话框 -->
-  <ChangePasswordDialog v-model="passwordDialogVisible" :forced="authStore.mustChangePassword" @success="handlePasswordChangeSuccess" />
+  <ChangePasswordDialog
+    v-model="passwordDialogVisible"
+    :forced="authStore.mustChangePassword"
+    @success="handlePasswordChangeSuccess"
+  />
 
   <!-- 退出登录确认弹窗 -->
   <el-dialog

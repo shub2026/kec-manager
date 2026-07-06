@@ -176,9 +176,7 @@ describe('deletePlan — 删除培养方案', () => {
       where: { id: 1 },
     });
 
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
   // ──────────────────────────────────────────────

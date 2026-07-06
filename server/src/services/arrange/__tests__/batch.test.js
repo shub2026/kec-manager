@@ -85,9 +85,7 @@ function setupDemands(demands) {
   );
 }
 function setupPlanMapping(mappings) {
-  planCoursesFindMany.mockResolvedValue(
-    mappings.map(([id, cid]) => ({ id, course_id: cid }))
-  );
+  planCoursesFindMany.mockResolvedValue(mappings.map(([id, cid]) => ({ id, course_id: cid })));
 }
 function makeResult(overrides = {}) {
   return {
@@ -119,7 +117,9 @@ describe('batchAutoArrange', () => {
     });
 
     it('validateHourSettings 抛异常时应阻止后续', async () => {
-      validateFn.mockImplementation(() => { throw new Error('课时设置无效'); });
+      validateFn.mockImplementation(() => {
+        throw new Error('课时设置无效');
+      });
       await expect(
         batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {})
       ).rejects.toThrow('课时设置无效');
@@ -131,7 +131,9 @@ describe('batchAutoArrange', () => {
     it('同学期第二次调用应被拒绝', async () => {
       let resolveFirst;
       autoArrangeFn.mockReturnValue(
-        new Promise((r) => { resolveFirst = () => r(makeResult()); })
+        new Promise((r) => {
+          resolveFirst = () => r(makeResult());
+        })
       );
       setupCourses([{ id: 1, name: 'C1', code: 'C01' }]);
       setupTeacherCounts([[1, 2]]);
@@ -176,7 +178,9 @@ describe('batchAutoArrange', () => {
 
     it('异常时也释放锁', async () => {
       coursesFindMany.mockRejectedValue(new Error('DB'));
-      try { await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {}); } catch {}
+      try {
+        await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      } catch {}
       expect(batchLocksSet.has('2025-2026-1')).toBe(false);
     });
   });
@@ -196,9 +200,18 @@ describe('batchAutoArrange', () => {
         { id: 1, name: '多教师', code: 'A' },
         { id: 2, name: '少教师', code: 'B' },
       ]);
-      setupTeacherCounts([[1, 5], [2, 1]]);
-      setupPlanMapping([[10, 1], [20, 2]]);
-      setupDemands([[10, 20], [20, 20]]);
+      setupTeacherCounts([
+        [1, 5],
+        [2, 1],
+      ]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
+      setupDemands([
+        [10, 20],
+        [20, 20],
+      ]);
       autoArrangeFn.mockResolvedValue(makeResult());
 
       await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
@@ -212,8 +225,14 @@ describe('batchAutoArrange', () => {
         { id: 2, name: '无教师', code: 'B' },
       ]);
       setupTeacherCounts([[1, 3]]);
-      setupPlanMapping([[10, 1], [20, 2]]);
-      setupDemands([[10, 10], [20, 10]]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
+      setupDemands([
+        [10, 10],
+        [20, 10],
+      ]);
       autoArrangeFn.mockResolvedValue(makeResult());
 
       await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
@@ -226,7 +245,10 @@ describe('batchAutoArrange', () => {
         { id: 2, name: '有教师', code: 'B' },
       ]);
       setupTeacherCounts([[2, 1]]); // 课程2有1个教师，课程1无记录=0
-      setupPlanMapping([[10, 1], [20, 2]]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
       setupDemands([[20, 16]]); // 只有课程2有需求
       autoArrangeFn.mockResolvedValue(makeResult());
 
@@ -243,9 +265,18 @@ describe('batchAutoArrange', () => {
         { id: 1, name: 'C1', code: 'A' },
         { id: 2, name: 'C2', code: 'B' },
       ]);
-      setupTeacherCounts([[1, 2], [2, 2]]);
-      setupPlanMapping([[10, 1], [20, 2]]);
-      setupDemands([[10, 8], [20, 8]]);
+      setupTeacherCounts([
+        [1, 2],
+        [2, 2],
+      ]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
+      setupDemands([
+        [10, 8],
+        [20, 8],
+      ]);
       autoArrangeFn
         .mockResolvedValueOnce(makeResult({ autoCount: 5, unassignedCount: 1, warnings: ['W1'] }))
         .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 2 }));
@@ -290,9 +321,18 @@ describe('batchAutoArrange', () => {
         { id: 1, name: 'C1', code: 'A' },
         { id: 2, name: 'C2', code: 'B' },
       ]);
-      setupTeacherCounts([[1, 2], [2, 2]]);
-      setupPlanMapping([[10, 1], [20, 2]]);
-      setupDemands([[10, 8], [20, 8]]);
+      setupTeacherCounts([
+        [1, 2],
+        [2, 2],
+      ]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
+      setupDemands([
+        [10, 8],
+        [20, 8],
+      ]);
       autoArrangeFn
         .mockRejectedValueOnce(new Error('崩溃'))
         .mockResolvedValueOnce(makeResult({ autoCount: 4 }));
@@ -313,7 +353,13 @@ describe('batchAutoArrange', () => {
       setupDemands([[10, 8]]);
       autoArrangeFn.mockResolvedValue(makeResult());
 
-      const r = await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {}, { preview: true });
+      const r = await batchAutoArrange(
+        '2025-2026-1',
+        'standard',
+        VALID_HOUR_SETTINGS,
+        {},
+        { preview: true }
+      );
       expect(r.preview).toBe(true);
     });
 
@@ -322,17 +368,28 @@ describe('batchAutoArrange', () => {
         { id: 1, name: 'C1', code: 'A' },
         { id: 2, name: 'C2', code: 'B' },
       ]);
-      setupTeacherCounts([[1, 2], [2, 2]]);
-      setupPlanMapping([[10, 1], [20, 2]]);
-      setupDemands([[10, 8], [20, 8]]);
+      setupTeacherCounts([
+        [1, 2],
+        [2, 2],
+      ]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
+      setupDemands([
+        [10, 8],
+        [20, 8],
+      ]);
 
       // Capture the extraTeacherHours state during the second call
       let capturedHours;
       autoArrangeFn
-        .mockImplementationOnce(async () => makeResult({
-          assigned: [{ teacher_id: 'T1', weekly_hours: 4, class_id: 100 }],
-          autoCount: 1,
-        }))
+        .mockImplementationOnce(async () =>
+          makeResult({
+            assigned: [{ teacher_id: 'T1', weekly_hours: 4, class_id: 100 }],
+            autoCount: 1,
+          })
+        )
         .mockImplementationOnce(async (courseId, sem, mode, hs, cond, opts) => {
           capturedHours = opts.extraTeacherHours?.get('T1');
           return makeResult({
@@ -353,11 +410,13 @@ describe('batchAutoArrange', () => {
       setupDemands([[10, 8]]);
       const tbMap = new Map();
       tbMap.set(100, ['TB1']);
-      autoArrangeFn.mockResolvedValue(makeResult({
-        assigned: [{ teacher_id: 'T1', weekly_hours: 4, class_id: 100 }],
-        autoCount: 1,
-        classTextbookMap: tbMap,
-      }));
+      autoArrangeFn.mockResolvedValue(
+        makeResult({
+          assigned: [{ teacher_id: 'T1', weekly_hours: 4, class_id: 100 }],
+          autoCount: 1,
+          classTextbookMap: tbMap,
+        })
+      );
 
       await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {}, { preview: true });
       expect(autoArrangeFn.mock.calls[0][5].globalTextbookMap).toBeDefined();
@@ -382,9 +441,21 @@ describe('batchAutoArrange', () => {
         { id: 2, name: 'C2', code: 'B' },
         { id: 3, name: 'C3', code: 'C' },
       ]);
-      setupTeacherCounts([[1, 2], [2, 2], [3, 2]]);
-      setupPlanMapping([[10, 1], [20, 2], [30, 3]]);
-      setupDemands([[10, 8], [20, 8], [30, 8]]);
+      setupTeacherCounts([
+        [1, 2],
+        [2, 2],
+        [3, 2],
+      ]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+        [30, 3],
+      ]);
+      setupDemands([
+        [10, 8],
+        [20, 8],
+        [30, 8],
+      ]);
 
       let cnt = 0;
       const t0 = Date.now();

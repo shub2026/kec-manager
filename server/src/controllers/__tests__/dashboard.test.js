@@ -159,10 +159,7 @@ describe('getDashboardStats', () => {
   });
 
   it('student_count 为 null 时按 0 计算', async () => {
-    mockPrisma.classes.findMany.mockResolvedValue([
-      { student_count: null },
-      { student_count: 25 },
-    ]);
+    mockPrisma.classes.findMany.mockResolvedValue([{ student_count: null }, { student_count: 25 }]);
 
     const req = mockReq({ semester: '2025-2026-2' });
     const res = mockRes();

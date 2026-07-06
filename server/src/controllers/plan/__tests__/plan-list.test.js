@@ -403,10 +403,7 @@ describe('updatePlan — 更新培养方案', () => {
     mockPrisma.training_plans.findUnique.mockResolvedValue(oldPlan);
     mockPrisma.training_plans.update.mockResolvedValue(updatedPlan);
 
-    const req = mockReq(
-      { name: '更新后方案', major_id: 1, college_id: 2 },
-      { id: '1' }
-    );
+    const req = mockReq({ name: '更新后方案', major_id: 1, college_id: 2 }, { id: '1' });
     const res = mockRes();
     await updatePlan(req, res, vi.fn());
 
@@ -469,10 +466,7 @@ describe('updatePlan — 更新培养方案', () => {
     mockPrisma.training_plans.findUnique.mockResolvedValue({ id: 1, college_id: 1, colleges: {} });
     mockPrisma.training_plans.update.mockRejectedValue(err);
 
-    const req = mockReq(
-      { name: 'test', major_id: 1 },
-      { id: '999' }
-    );
+    const req = mockReq({ name: 'test', major_id: 1 }, { id: '999' });
     const res = mockRes();
     await updatePlan(req, res, vi.fn());
 

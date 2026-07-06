@@ -135,8 +135,18 @@ describe('getCourseClasses — 课时汇总', () => {
     mockGetClassesWithCourse.mockResolvedValue(classes);
 
     mockPrisma.teaching_assignments.findMany.mockResolvedValue([
-      { class_id: 1, teacher_id: 10, is_auto: true, teacher: { id: 10, name: '王老师', personnel_type: 'full_time' } },
-      { class_id: 2, teacher_id: 11, is_auto: false, teacher: { id: 11, name: '李老师', personnel_type: 'part_time' } },
+      {
+        class_id: 1,
+        teacher_id: 10,
+        is_auto: true,
+        teacher: { id: 10, name: '王老师', personnel_type: 'full_time' },
+      },
+      {
+        class_id: 2,
+        teacher_id: 11,
+        is_auto: false,
+        teacher: { id: 11, name: '李老师', personnel_type: 'part_time' },
+      },
     ]);
 
     const req = mockReq({ course_id: '1', semester: '2025-2026-2' });

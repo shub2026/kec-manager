@@ -76,9 +76,9 @@ function mockRes() {
 
 function courseRow(overrides = {}) {
   return {
-    '课程名称': '高等数学',
-    '课程编码': 'MATH101',
-    '课程类型': '专业课',
+    课程名称: '高等数学',
+    课程编码: 'MATH101',
+    课程类型: '专业课',
     ...overrides,
   };
 }
@@ -122,7 +122,7 @@ describe('importCourses', () => {
     // 已存在课程，type = 'professional'
     mockTx.courses.findFirst.mockResolvedValue({ id: 10, name: '高等数学', type: 'professional' });
     // Excel 行中无课程类型列（sanitizeInput 返回 null）
-    readWorkbook.mockResolvedValue([courseRow({ '课程类型': undefined })]);
+    readWorkbook.mockResolvedValue([courseRow({ 课程类型: undefined })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -144,7 +144,7 @@ describe('importCourses', () => {
   // ── 3. S-08: Excel 显式指定类型 → 覆盖已有类型 ──
   it('Excel 显式指定课程类型时，已有课程的 type 应被覆盖', async () => {
     mockTx.courses.findFirst.mockResolvedValue({ id: 10, name: '高等数学', type: 'professional' });
-    readWorkbook.mockResolvedValue([courseRow({ '课程类型': '公共课' })]);
+    readWorkbook.mockResolvedValue([courseRow({ 课程类型: '公共课' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -181,7 +181,7 @@ describe('importCourses', () => {
 
   // ── 缺少课程名称 → 行错误 ───────────────
   it('缺少课程名称应返回行错误', async () => {
-    readWorkbook.mockResolvedValue([courseRow({ '课程名称': '' })]);
+    readWorkbook.mockResolvedValue([courseRow({ 课程名称: '' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -193,9 +193,7 @@ describe('importCourses', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           imported: 0,
-          errors: expect.arrayContaining([
-            expect.stringContaining('缺少课程名称'),
-          ]),
+          errors: expect.arrayContaining([expect.stringContaining('缺少课程名称')]),
         }),
       })
     );
@@ -249,7 +247,7 @@ describe('importCourses', () => {
 
   // ── 课程类型映射：专业课 ─────────────────
   it('课程类型"专业课"应映射为 professional', async () => {
-    readWorkbook.mockResolvedValue([courseRow({ '课程类型': '专业课' })]);
+    readWorkbook.mockResolvedValue([courseRow({ 课程类型: '专业课' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -262,7 +260,7 @@ describe('importCourses', () => {
 
   // ── 课程类型映射：其他值 → public ────────
   it('非专业课类型应映射为 public', async () => {
-    readWorkbook.mockResolvedValue([courseRow({ '课程类型': '通识课' })]);
+    readWorkbook.mockResolvedValue([courseRow({ 课程类型: '通识课' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();

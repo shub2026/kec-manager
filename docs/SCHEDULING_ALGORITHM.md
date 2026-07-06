@@ -2,7 +2,7 @@
 
 > 主代码：`server/src/services/arrange/auto-arrange.js`
 > 配置：`server/src/constants/index.js`（`TEXTBOOK_COHESION`）
-> 版本：v2.20.2
+> 版本：v2.21.0
 > 分析对象：`server/src/services/arrange/` 目录（`auto-arrange.js`、`queries.js`、`batch.js`、`validate.js`）
 
 ---
@@ -16,6 +16,7 @@
 | `arrange/queries.js` | 数据查询与匹配函数 | `getClassesWithCourse`、`getTeachersForCourse`、`isTextbookMatch`、`isCollegeEligible`、`isLevelEligible`、`parseSemester` |
 | `arrange/validate.js` | 课时设置校验 | `validateHourSettings` |
 | `arrange/auto-arrange.js` | 排课主算法、评分、置换回溯、结果构建、统计 | **导出**：`autoArrange`、`batchLocks`、`calcMatchScore`、`isTeacherEligible`、`calcAllMatchRates`、`diagnoseFailure`、`selectBestTeacher`、`trySwapOne`；**内部函数**：`buildTeacherConstraints`、`trySwapUnassigned`、`buildResult` |
+| `arrange/tabu-search.js` | 禁忌搜索优化层（可选） | `tabuOptimize`（Insert/Shift/Swap 邻域、禁忌表、aspiration criterion） |
 | `arrange/batch.js` | 批量排课 | `batchAutoArrange`（从 auto-arrange.js 导入 `batchLocks`） |
 | `teaching-arrange.service.js` | 入口转发 | 仅 re-export，无业务逻辑 |
 
@@ -930,21 +931,82 @@ logger.debug('[阶段1] 有指定意向的教师拿第一本教材');
 
 ---
 
-## 二十二、未来优化方向
+## 二十二、禁忌搜索优化层（v2.21.0 新增）
 
-### 22.1 智能回溯
+### 22.1 概述
 
-当前算法是贪心算法，无回溯机制。未来可以考虑：
-1. **局部回溯**：当某班级无法分配时，尝试调整已分配的教师
-2. **全局优化**：使用遗传算法或模拟退火等优化算法
+v2.21.0 新增了可选的禁忌搜索优化层，作为五阶段贪心算法的后续优化。贪心算法快速生成初始解，禁忌搜索在此基础上通过邻域搜索迭代优化，提升排课质量。
 
-### 22.2 跨课程均衡
+默认关闭，可通过系统设置页面动态启用（`system_settings` 表 key=`tabu_search_enabled`），也可通过常量 `TABU_SEARCH.ENABLED` 静态开启。
+
+### 22.2 算法流程
+
+```
+五阶段贪心（构造初始解）
+       ↓
+置换回溯 trySwapUnassigned（尝试补救未分配班级）
+       ↓
+禁忌搜索 tabuOptimize（迭代优化，可选）
+       ↓
+输出最终结果
+```
+
+### 22.3 邻域移动算子
+
+| 移动类型 | 操作 | 说明 |
+|---------|------|------|
+| Insert | 将未分配班级分配给某教师 | 减少未分配惩罚 |
+| Shift | 将某教师的班级移给另一教师 | 释放源教师容量，改善目标教师匹配 |
+| Swap | 两个教师交换各自的一个班级 | 双向改善，需检查双方约束 |
+
+每次移动后检查硬约束（容量上限、教材上限 `MAX_TEXTBOOKS_PER_TEACHER`、学院/层次意向），不可行的移动直接跳过。
+
+### 22.4 核心机制
+
+- **禁忌表**：记录最近 N 轮被移动的 `(classId, teacherId)` 对，防止局部震荡。默认 tenure=10
+- **Aspiration Criterion**：被禁忌的移动如果能产生优于历史最优的解，则忽略禁忌
+- **教材引用计数**：`refCountMap` 跟踪教材被引用次数，Swap 移动正确维护引用计数
+- **学院集合维护**：Swap 评估时保存/恢复学院集合，防止累积污染
+- **教材 writeback 增量保护**：搜索结束后仅写回增量变化，不替换整个 `assignedTextbookIds`
+
+### 22.5 配置参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `ENABLED` | `false` | 静态开关，优先级高于系统设置 |
+| `MAX_ITERATIONS` | `500` | 最大迭代次数 |
+| `TABU_TENURE` | `10` | 禁忌期限（轮数） |
+| `NO_IMPROVEMENT_LIMIT` | `80` | 连续无改进轮数上限 |
+| `SINGLE_COURSE_TIMEOUT_MS` | `15000` | 单课程优化超时（毫秒） |
+| `UNASSIGNED_PENALTY` | `500` | 未分配班级惩罚分 |
+
+配置位于 `server/src/constants/index.js` 的 `TABU_SEARCH` 对象。
+
+### 22.6 错误处理
+
+禁忌搜索异常不会影响排课结果。所有禁忌搜索逻辑被 `try/catch` 包裹，异常时自动跳过，返回贪心初始解。日志中会记录异常信息。
+
+### 22.7 前端管理
+
+在系统设置页面新增了"排课禁忌搜索优化"开关（`SchedulingConfig.vue` 组件），使用 `el-switch` 控件，独立保存，支持脏状态跟踪。
+
+---
+
+## 二十三、未来优化方向
+
+### 23.1 更高级的全局优化
+
+v2.21.0 已实现禁忌搜索作为局部搜索优化层。未来可以考虑：
+1. **模拟退火**：以一定概率接受劣解，避免陷入局部最优
+2. **遗传算法**：适合多目标优化，但实现复杂、调参多
+
+### 23.2 跨课程均衡
 
 当前算法是单课程独立排课。未来可以考虑：
 1. **教师工作量均衡**：跨课程考虑教师的总工作量
 2. **教材分布均衡**：避免某教师在同一学期教过多不同教材的课程
 
-### 22.3 用户偏好学习
+### 23.3 用户偏好学习
 
 通过学习历史排课数据，自动调整：
 1. **教师偏好**：自动学习教师的实际授课偏好
@@ -952,7 +1014,7 @@ logger.debug('[阶段1] 有指定意向的教师拿第一本教材');
 
 ---
 
-## 二十三、关键代码位置索引
+## 二十四、关键代码位置索引
 
 | 功能 | 文件 | 行号(约) |
 |------|------|---------|
@@ -979,9 +1041,16 @@ logger.debug('[阶段1] 有指定意向的教师拿第一本教材');
 | v2 阶段 5（兜底 assignRound） | `arrange/auto-arrange.js` | ~1254-1265 |
 | 排课主入口 `autoArrange` | `arrange/auto-arrange.js` | ~664 |
 | 事务内二次校验 | `arrange/auto-arrange.js` | ~1356-1404 |
+| **禁忌搜索主入口 `tabuOptimize`** | **`arrange/tabu-search.js`** | **~1-30** |
+| **Insert 邻域移动** | **`arrange/tabu-search.js`** | **~200-280** |
+| **Shift 邻域移动** | **`arrange/tabu-search.js`** | **~280-380** |
+| **Swap 邻域移动** | **`arrange/tabu-search.js`** | **~380-520** |
+| **教材引用计数 `refCountMap`** | **`arrange/tabu-search.js`** | **~80-120** |
+| **Aspiration Criterion** | **`arrange/tabu-search.js`** | **各邻域内** |
+| **TABU_SEARCH 配置** | **`constants/index.js`** | **~115-125** |
 | 批量排课 `batchAutoArrange` | `arrange/batch.js` | 14-182 |
 | 配置 `TEXTBOOK_COHESION` | `constants/index.js` | 92-114 |
 
 ---
 
-*文档版本：v2.20.2 | 最后更新：2026-07-06*
+*文档版本：v2.21.0 | 最后更新：2026-07-06*

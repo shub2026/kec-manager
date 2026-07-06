@@ -72,7 +72,8 @@ vi.mock('../../../utils/excel.js', () => ({
   workbookToBuffer: mocks.workbookToBuffer,
 }));
 
-const { exportSemesterSchedule, exportSemesterSchedulePost } = await import('../semester-export.controller.js');
+const { exportSemesterSchedule, exportSemesterSchedulePost } =
+  await import('../semester-export.controller.js');
 
 // ──────────────────────────────────────────────
 // Helpers
@@ -146,9 +147,7 @@ function makePlanCourse(overrides = {}) {
         semester: 1,
         weekly_hours: 4,
         weeks_count: 16,
-        plan_textbooks: [
-          { textbooks: { title: '高数上册', isbn: '978-001' } },
-        ],
+        plan_textbooks: [{ textbooks: { title: '高数上册', isbn: '978-001' } }],
       },
     ],
     ...overrides,
@@ -397,7 +396,11 @@ describe('exportSemesterSchedule (GET)', () => {
 
       // findBestMatchPlan 只应为 grade=2 的班级调用
       expect(mocks.findBestMatchPlan).toHaveBeenCalledTimes(1);
-      expect(mocks.findBestMatchPlan).toHaveBeenCalledWith(cls2, expect.any(Array), expect.any(Map));
+      expect(mocks.findBestMatchPlan).toHaveBeenCalledWith(
+        cls2,
+        expect.any(Array),
+        expect.any(Map)
+      );
     });
   });
 
@@ -545,9 +548,7 @@ describe('exportSemesterSchedulePost (POST)', () => {
     await exportSemesterSchedulePost(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: false })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
   });
 
   it('无 semester 时应使用全局当前学期', async () => {

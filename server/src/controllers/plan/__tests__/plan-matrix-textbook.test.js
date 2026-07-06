@@ -187,9 +187,7 @@ describe('assignTextbookToSemester — REPLACE 语义', () => {
     await assignTextbookToSemester(req, res, next);
 
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'P2003' }));
-    expect(res.json).not.toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).not.toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 
   // ── 成功后写审计日志 ──
@@ -222,7 +220,13 @@ describe('assignTextbookToSemester — REPLACE 语义', () => {
 
   // ── 成功后返回关联数据 ──
   it('成功后返回包含 textbooks 的关联数据', async () => {
-    const textbookInfo = { id: 10, title: '线性代数', isbn: '123', publisher: '高教社', is_active: true };
+    const textbookInfo = {
+      id: 10,
+      title: '线性代数',
+      isbn: '123',
+      publisher: '高教社',
+      is_active: true,
+    };
     mockPrisma.textbooks.findUnique.mockResolvedValue({
       id: 10,
       title: '线性代数',
@@ -311,8 +315,6 @@ describe('assignTextbookToSemester — REPLACE 语义', () => {
     });
     // Only one new association created
     expect(mockTx.plan_textbooks.create).toHaveBeenCalledTimes(1);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 });

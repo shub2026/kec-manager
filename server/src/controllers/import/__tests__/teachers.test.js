@@ -114,17 +114,17 @@ function mockRes() {
 
 function teacherRow(overrides = {}) {
   return {
-    '教师姓名': '张三',
-    '性别': '男',
-    '出生年月': '1990-01',
-    '人员类别': '专职',
-    '教师资格类型': '高校教师资格',
-    '自定义课时': '12',
-    '学科': '高等数学',
-    '任课学院': '理学院',
-    '任课层次': '本科',
-    '归属学院': '理学院',
-    '状态': '启用',
+    教师姓名: '张三',
+    性别: '男',
+    出生年月: '1990-01',
+    人员类别: '专职',
+    教师资格类型: '高校教师资格',
+    自定义课时: '12',
+    学科: '高等数学',
+    任课学院: '理学院',
+    任课层次: '本科',
+    归属学院: '理学院',
+    状态: '启用',
     ...overrides,
   };
 }
@@ -183,7 +183,7 @@ describe('importTeachers', () => {
 
   // ── 2. 出生日期解析：YYYY-MM-DD ────────────
   it('出生日期 YYYY-MM-DD 应截取为 YYYY-MM', async () => {
-    readWorkbook.mockResolvedValue([teacherRow({ '出生年月': '1990-06-15' })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 出生年月: '1990-06-15' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -196,7 +196,7 @@ describe('importTeachers', () => {
 
   // ── 2b. 出生日期解析：YYYY-MM ─────────────
   it('出生日期 YYYY-MM 应原样保留', async () => {
-    readWorkbook.mockResolvedValue([teacherRow({ '出生年月': '1985-12' })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 出生年月: '1985-12' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -209,7 +209,7 @@ describe('importTeachers', () => {
 
   // ── 2c. 出生日期解析：YYYYMM ──────────────
   it('出生日期 YYYYMM 纯数字格式应转为 YYYY-MM', async () => {
-    readWorkbook.mockResolvedValue([teacherRow({ '出生年月': '199203' })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 出生年月: '199203' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -223,7 +223,7 @@ describe('importTeachers', () => {
   // ── 3. 出生日期：Excel 序列号 ──────────────
   it('Excel 日期序列号应正确转为 YYYY-MM', async () => {
     // 32874 = 1990-01-01 (Excel epoch = 1899-12-30)
-    readWorkbook.mockResolvedValue([teacherRow({ '出生年月': 32874 })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 出生年月: 32874 })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -236,7 +236,7 @@ describe('importTeachers', () => {
 
   // ── 4. 中文性别映射 ──────────────────────
   it('性别"女"应映射为 female', async () => {
-    readWorkbook.mockResolvedValue([teacherRow({ '性别': '女' })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 性别: '女' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -249,7 +249,7 @@ describe('importTeachers', () => {
 
   // ── 5. 中文状态映射 ──────────────────────
   it('状态"禁用"应映射为 disabled', async () => {
-    readWorkbook.mockResolvedValue([teacherRow({ '状态': '禁用' })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 状态: '禁用' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -262,7 +262,7 @@ describe('importTeachers', () => {
 
   // ── 6. 逗号分隔多值字段 ──────────────────
   it('逗号分隔的学科应创建多个课程关联', async () => {
-    readWorkbook.mockResolvedValue([teacherRow({ '学科': '高等数学,线性代数' })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 学科: '高等数学,线性代数' })]);
     // 事务内 create 返回不同 ID
     let courseId = 500;
     mockTx.courses.create.mockImplementation(async ({ data }) => ({ id: courseId++ }));
@@ -283,7 +283,7 @@ describe('importTeachers', () => {
     mockPrisma.teachers.findMany.mockResolvedValue([{ id: 10, name: '张三' }]);
     mockTx.teachers.findMany.mockResolvedValue([{ id: 10, name: '张三' }]);
     // 任课学院列为空
-    readWorkbook.mockResolvedValue([teacherRow({ '任课学院': '', '任课层次': '' })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 任课学院: '', 任课层次: '' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -349,7 +349,7 @@ describe('importTeachers', () => {
 
   // ── 缺少教师姓名 → 行错误 ───────────────
   it('缺少教师姓名应返回行错误', async () => {
-    readWorkbook.mockResolvedValue([teacherRow({ '教师姓名': '' })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 教师姓名: '' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -361,9 +361,7 @@ describe('importTeachers', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           imported: 0,
-          errors: expect.arrayContaining([
-            expect.stringContaining('缺少教师姓名'),
-          ]),
+          errors: expect.arrayContaining([expect.stringContaining('缺少教师姓名')]),
         }),
       })
     );
@@ -371,7 +369,7 @@ describe('importTeachers', () => {
 
   // ── 人员类别映射 ─────────────────────────
   it('人员类别"兼职"应映射为 part_time', async () => {
-    readWorkbook.mockResolvedValue([teacherRow({ '人员类别': '兼职' })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 人员类别: '兼职' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -386,7 +384,7 @@ describe('importTeachers', () => {
   it('已有教师更新时，学科列有内容应重建课程关联', async () => {
     mockPrisma.teachers.findMany.mockResolvedValue([{ id: 10, name: '张三' }]);
     mockTx.teachers.findMany.mockResolvedValue([{ id: 10, name: '张三' }]);
-    readWorkbook.mockResolvedValue([teacherRow({ '学科': '高等数学' })]);
+    readWorkbook.mockResolvedValue([teacherRow({ 学科: '高等数学' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();

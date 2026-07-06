@@ -103,14 +103,14 @@ function mockRes() {
 
 function validRow(overrides = {}) {
   return {
-    '班级名称': '2024级计科1班',
-    '入学年份': '2024',
+    班级名称: '2024级计科1班',
+    入学年份: '2024',
     '学制(年)': '4',
-    '专业类别': '计算机科学',
-    '二级学院': '信息学院',
-    '培养层次': '本科',
-    '班级人数': '40',
-    '状态': '在读',
+    专业类别: '计算机科学',
+    二级学院: '信息学院',
+    培养层次: '本科',
+    班级人数: '40',
+    状态: '在读',
     ...overrides,
   };
 }
@@ -164,7 +164,7 @@ describe('importClasses', () => {
 
   // ── 2. 无效 enrollment_year → 行级错误 ──────
   it('入学年份超出范围（1999）应返回行错误', async () => {
-    readWorkbook.mockResolvedValue([validRow({ '入学年份': '1999' })]);
+    readWorkbook.mockResolvedValue([validRow({ 入学年份: '1999' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -177,9 +177,7 @@ describe('importClasses', () => {
         success: true,
         data: expect.objectContaining({
           imported: 0,
-          errors: expect.arrayContaining([
-            expect.stringContaining('入学年份必须在2000-2100之间'),
-          ]),
+          errors: expect.arrayContaining([expect.stringContaining('入学年份必须在2000-2100之间')]),
         }),
       })
     );
@@ -199,9 +197,7 @@ describe('importClasses', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           imported: 0,
-          errors: expect.arrayContaining([
-            expect.stringContaining('学制必须在1-10年之间'),
-          ]),
+          errors: expect.arrayContaining([expect.stringContaining('学制必须在1-10年之间')]),
         }),
       })
     );
@@ -209,7 +205,7 @@ describe('importClasses', () => {
 
   // ── 4. 无效 student_count → 行级错误 ──────
   it('班级人数为负数应返回行错误', async () => {
-    readWorkbook.mockResolvedValue([validRow({ '班级人数': '-5' })]);
+    readWorkbook.mockResolvedValue([validRow({ 班级人数: '-5' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -221,9 +217,7 @@ describe('importClasses', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           imported: 0,
-          errors: expect.arrayContaining([
-            expect.stringContaining('班级人数必须在0-999之间'),
-          ]),
+          errors: expect.arrayContaining([expect.stringContaining('班级人数必须在0-999之间')]),
         }),
       })
     );
@@ -248,9 +242,7 @@ describe('importClasses', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          errors: expect.arrayContaining([
-            expect.stringContaining('存在2个同名班级'),
-          ]),
+          errors: expect.arrayContaining([expect.stringContaining('存在2个同名班级')]),
         }),
       })
     );
@@ -258,7 +250,7 @@ describe('importClasses', () => {
 
   // ── 6. 自动创建缺失的培养层次 ─────────────
   it('未知培养层次应在事务内自动创建', async () => {
-    readWorkbook.mockResolvedValue([validRow({ '培养层次': '新层次' })]);
+    readWorkbook.mockResolvedValue([validRow({ 培养层次: '新层次' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -282,7 +274,7 @@ describe('importClasses', () => {
 
   // ── 7. 自动创建缺失的专业 ────────────────
   it('未知专业应在事务内自动创建', async () => {
-    readWorkbook.mockResolvedValue([validRow({ '专业类别': '新专业' })]);
+    readWorkbook.mockResolvedValue([validRow({ 专业类别: '新专业' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -306,7 +298,7 @@ describe('importClasses', () => {
 
   // ── 8. 自动创建缺失的学院 ────────────────
   it('未知学院应在事务内自动创建', async () => {
-    readWorkbook.mockResolvedValue([validRow({ '二级学院': '新学院' })]);
+    readWorkbook.mockResolvedValue([validRow({ 二级学院: '新学院' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();
@@ -350,9 +342,7 @@ describe('importClasses', () => {
   // ── 10. Upsert 模式（覆盖已有班级）───────
   it('已有同名班级应执行更新而非新建', async () => {
     // 事务内 findMany 返回 1 个同名班级
-    mockTx.classes.findMany.mockResolvedValue([
-      { id: 5, name: '2024级计科1班' },
-    ]);
+    mockTx.classes.findMany.mockResolvedValue([{ id: 5, name: '2024级计科1班' }]);
     readWorkbook.mockResolvedValue([validRow()]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
@@ -421,7 +411,7 @@ describe('importClasses', () => {
 
   // ── 状态映射：已毕业 ────────────────────
   it('状态"已毕业"应映射为 graduated', async () => {
-    readWorkbook.mockResolvedValue([validRow({ '状态': '已毕业' })]);
+    readWorkbook.mockResolvedValue([validRow({ 状态: '已毕业' })]);
     const req = mockReq({ path: '/tmp/test.xlsx' });
     const res = mockRes();
     const next = vi.fn();

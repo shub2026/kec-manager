@@ -284,15 +284,9 @@ function findBestMove(
       if (stateB.assignedHours + deltaHoursB > capB) continue;
 
       // 意向检查：tA 能否教 clsB，tB 能否教 clsA
-      if (
-        tA.schedulingCollegeIds?.length > 0 &&
-        !tA.schedulingCollegeIds.includes(clsB.collegeId)
-      )
+      if (tA.schedulingCollegeIds?.length > 0 && !tA.schedulingCollegeIds.includes(clsB.collegeId))
         continue;
-      if (
-        tB.schedulingCollegeIds?.length > 0 &&
-        !tB.schedulingCollegeIds.includes(clsA.collegeId)
-      )
+      if (tB.schedulingCollegeIds?.length > 0 && !tB.schedulingCollegeIds.includes(clsA.collegeId))
         continue;
       if (
         tA.schedulingLevelIds?.length > 0 &&
@@ -312,14 +306,18 @@ function findBestMove(
       // 教材上限检查（简化：假设交换后教材数变化不超过上限）
       const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
       if (TEXTBOOK_COHESION.ENABLED && maxTb > 0) {
-        const aNewTbs = (clsB.textbookIds || []).filter((tid) => !stateA.assignedTextbookIds.has(tid));
+        const aNewTbs = (clsB.textbookIds || []).filter(
+          (tid) => !stateA.assignedTextbookIds.has(tid)
+        );
         const aOldTbs = (clsA.textbookIds || []).filter(
           (tid) => (stateA.refCountMap.get(tid) || 0) <= 1
         );
         const projectedASize = stateA.assignedTextbookIds.size - aOldTbs.length + aNewTbs.length;
         if (projectedASize > maxTb) continue;
 
-        const bNewTbs = (clsA.textbookIds || []).filter((tid) => !stateB.assignedTextbookIds.has(tid));
+        const bNewTbs = (clsA.textbookIds || []).filter(
+          (tid) => !stateB.assignedTextbookIds.has(tid)
+        );
         const bOldTbs = (clsB.textbookIds || []).filter(
           (tid) => (stateB.refCountMap.get(tid) || 0) <= 1
         );
@@ -382,7 +380,16 @@ function findBestMove(
 
 // ── 应用移动 ──
 
-function applyMove(move, assignments, unassignedSet, teacherStates, classMap, tabuList, iter, tenure) {
+function applyMove(
+  move,
+  assignments,
+  unassignedSet,
+  teacherStates,
+  classMap,
+  tabuList,
+  iter,
+  tenure
+) {
   switch (move.type) {
     case 'insert': {
       const cls = classMap.get(move.classId);
@@ -421,7 +428,15 @@ function applyMove(move, assignments, unassignedSet, teacherStates, classMap, ta
 
 // ── 目标函数 ──
 
-function computeObjective(assignments, unassignedSet, teacherConstraints, teacherStates, classMap, teacherMap, mode) {
+function computeObjective(
+  assignments,
+  unassignedSet,
+  teacherConstraints,
+  teacherStates,
+  classMap,
+  teacherMap,
+  mode
+) {
   let score = 0;
   for (const [classId, teacherId] of assignments) {
     const cls = classMap.get(classId);
@@ -564,7 +579,16 @@ export function tabuOptimize(
     }
 
     // 应用移动
-    applyMove(move, assignmentMap, unassignedSet, teacherStates, fullClassMap, tabuList, iter, tenure);
+    applyMove(
+      move,
+      assignmentMap,
+      unassignedSet,
+      teacherStates,
+      fullClassMap,
+      tabuList,
+      iter,
+      tenure
+    );
     currentScore += move.delta;
 
     // 更新历史最优

@@ -141,19 +141,19 @@ describe('sanitizeFormulaInjection', () => {
     expect(sanitizeFormulaInjection('')).toBeNull();
   });
 
-  it('=CMD 应加 \' 前缀', () => {
+  it("=CMD 应加 ' 前缀", () => {
     expect(sanitizeFormulaInjection('=CMD')).toBe("'=CMD");
   });
 
-  it('+CMD 应加 \' 前缀', () => {
+  it("+CMD 应加 ' 前缀", () => {
     expect(sanitizeFormulaInjection('+CMD')).toBe("'+CMD");
   });
 
-  it('-CMD 应加 \' 前缀', () => {
+  it("-CMD 应加 ' 前缀", () => {
     expect(sanitizeFormulaInjection('-CMD')).toBe("'-CMD");
   });
 
-  it('@CMD 应加 \' 前缀', () => {
+  it("@CMD 应加 ' 前缀", () => {
     expect(sanitizeFormulaInjection('@CMD')).toBe("'@CMD");
   });
 
