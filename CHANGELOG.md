@@ -5,6 +5,16 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.20.2] - 2026-07-06
+
+### 文档
+
+- 同步 vitepress-tip 文档与 kec-manager 项目（变更日志补齐 2.19.0~2.20.1、部署文档补充 ecosystem 配置与端口说明、概述补充 CSRF/HttpOnly 与测试体系）
+- 统一 README、DEPLOYMENT、SCHEDULING_ALGORITHM 等文档版本号标注为 v2.20.2
+- 修正部署/概述文档端口说明（开发 3002、生产 3000）与 CHANGELOG 2.20.0 代理端口的错误记述
+
+---
+
 ## [2.20.1] - 2026-07-05
 
 ### 缺陷修复
@@ -26,7 +36,7 @@
 
 - **临时文件清理**：`deploy.sh` 复制 `.env` 后删除 `/tmp/kec-env`
 - **PM2 生态配置**：新增 `ecosystem.config.cjs`，含日志轮转、自动重启、内存限制等生产配置
-- **Vite 代理修复**：开发代理目标从 3002 改为 3000，与服务端默认端口一致
+- **Vite 代理配置**：开发代理目标为 `http://localhost:3002`（与开发环境 `server/.env` 的 `PORT` 保持一致）；生产环境由 `deploy.sh` 生成 `PORT=3000`，Nginx 反向代理转发至 3000
 
 ### 首次登录安全
 

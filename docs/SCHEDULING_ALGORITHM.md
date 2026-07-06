@@ -2,7 +2,7 @@
 
 > 主代码：`server/src/services/arrange/auto-arrange.js`
 > 配置：`server/src/constants/index.js`（`TEXTBOOK_COHESION`）
-> 版本：v2.17.1
+> 版本：v2.20.2
 > 分析对象：`server/src/services/arrange/` 目录（`auto-arrange.js`、`queries.js`、`batch.js`、`validate.js`）
 
 ---
@@ -984,4 +984,4 @@ logger.debug('[阶段1] 有指定意向的教师拿第一本教材');
 
 ---
 
-*文档版本：v2.17.1 | 最后更新：2026-07-02*
+*文档版本：v2.20.2 | 最后更新：2026-07-06*

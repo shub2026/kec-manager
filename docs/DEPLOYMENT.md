@@ -1,6 +1,6 @@
 # KEC 课程管理平台 - 部署与运维指南
 
-> **版本**：v2.17.1
+> **版本**：v2.20.2
 > **数据库**：SQLite（启用 WAL 模式）
 > **部署方式**：PM2 + deploy.sh
 > **部署路径**：`/opt/1panel/www/sites/kec/index/kec-manager`
@@ -28,7 +28,9 @@
 |------|------|
 | 80 | Nginx HTTP |
 | 443 | Nginx HTTPS |
-| 3000 | 后端 API（内部，不对外暴露） |
+| 3000 | 后端 API（生产环境，内部不对外暴露） |
+
+> **端口说明**：生产环境后端固定监听 **3000**（由 `deploy.sh` 写入 `.env` 的 `PORT=3000`，Nginx 反向代理转发至 3000）。开发环境后端端口由 `server/.env` 的 `PORT` 决定（默认 3000），但 `vite.config.js` 的代理目标当前为 `http://localhost:3002`，本地开发时请将 `.env` 的 `PORT` 设为 `3002` 或同步修改代理目标，使前后端端口一致。
 
 > **数据库说明**：当前 `schema.prisma` 的 `provider = "sqlite"`，仅支持 SQLite，不推荐 MySQL。
 
@@ -97,6 +99,27 @@ bash deploy.sh root@your-server.com
 curl http://localhost:3000/api/health    # 期望返回 200
 curl http://localhost:3000/api/settings  # 期望返回 200
 ```
+
+---
+
+### PM2 生态配置（ecosystem.config.cjs，可选）
+
+项目根目录提供 `ecosystem.config.cjs`，封装了生产级 PM2 配置：
+
+- **日志轮转**：`error_file` / `out_file` 指向 `./logs/`，`merge_logs` 合并输出
+- **自动重启**：`autorestart: true` + `min_uptime: 10s` + `max_restarts: 10` + 指数退避 `exp_backoff_restart_delay`
+- **内存限制**：`max_memory_restart: '512M'`，超过自动重启防止内存泄漏拖垮服务
+- **单实例**：`instances: 1`（SQLite 不支持多进程写，必须单实例）
+
+使用方式（替代 `pm2 start src/server.js`）：
+
+```bash
+cd server
+pm2 start ecosystem.config.cjs
+pm2 save
+```
+
+> 注意：当前 `deploy.sh` 仍使用 `pm2 start src/server.js --name kec-server` 直接启动，未接入 ecosystem 配置。如需启用，可修改 deploy.sh 的 [10/10] 启动步骤。
 
 ---
 
