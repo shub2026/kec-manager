@@ -8,37 +8,33 @@
     align-center
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <div style="padding: 8px 0">
+    <div class="dialog-body">
       <!-- 单课程确认 -->
       <template v-if="type === 'single'">
-        <p style="font-size: 14px; color: var(--text-primary); margin: 0 0 12px">
-          <el-icon style="vertical-align: middle; color: var(--brand-warning); margin-right: 6px"
-            ><SetUp
-          /></el-icon>
+        <p class="info-title">
+          <el-icon class="info-icon"><SetUp /></el-icon>
           <strong>{{ data.courseName }}</strong>
         </p>
-        <p style="font-size: 14px; color: var(--text-regular); margin: 0 0 8px">
+        <p class="info-row">
           排课模式：<el-tag :type="data.mode === '全量模式' ? 'warning' : 'success'" size="small">{{
             data.mode
           }}</el-tag>
         </p>
-        <p style="font-size: 13px; color: var(--text-secondary); margin: 0">{{ data.message }}</p>
+        <p class="info-detail">{{ data.message }}</p>
       </template>
 
       <!-- 批量确认 -->
       <template v-else>
-        <p style="font-size: 14px; color: var(--text-primary); margin: 0 0 12px">
-          <el-icon style="vertical-align: middle; color: var(--brand-warning); margin-right: 6px"
-            ><MagicStick
-          /></el-icon>
+        <p class="info-title">
+          <el-icon class="info-icon"><MagicStick /></el-icon>
           将对<strong>当前学期所有课程</strong>进行批量排课
         </p>
-        <p style="font-size: 14px; color: var(--text-regular); margin: 0 0 8px">
+        <p class="info-row">
           排课模式：<el-tag :type="data.mode === '全量模式' ? 'warning' : 'success'" size="small">{{
             data.mode
           }}</el-tag>
         </p>
-        <p style="font-size: 13px; color: var(--text-secondary); margin: 0">{{ data.message }}</p>
+        <p class="info-detail">{{ data.message }}</p>
       </template>
     </div>
 
@@ -70,3 +66,33 @@ defineProps({
 
 const emit = defineEmits(['update:modelValue', 'confirm']);
 </script>
+
+<style scoped>
+.dialog-body {
+  padding: 8px 0;
+}
+
+.info-title {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+}
+
+.info-icon {
+  vertical-align: middle;
+  color: var(--brand-warning);
+  margin-right: 6px;
+}
+
+.info-row {
+  font-size: 14px;
+  color: var(--text-regular);
+  margin: 0 0 8px;
+}
+
+.info-detail {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+</style>

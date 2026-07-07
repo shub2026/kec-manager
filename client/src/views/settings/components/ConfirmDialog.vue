@@ -41,7 +41,7 @@
             placeholder="请输入操作原因（至少10个字符）"
             maxlength="500"
             show-word-limit
-            @keyup.enter="handleConfirm"
+            @keyup.ctrl.enter="handleConfirm"
           />
         </div>
       </div>

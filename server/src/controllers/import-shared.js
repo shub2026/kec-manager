@@ -1,5 +1,7 @@
 import multer from 'multer';
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { Buffer } from 'buffer';
 import xss from 'xss';
 
@@ -48,7 +50,7 @@ export async function verifyExcelMagicNumber(filePath) {
 }
 
 export const upload = multer({
-  dest: 'uploads/',
+  dest: path.join(os.tmpdir(), 'kec-uploads'),
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: (req, file, cb) => {
     // 检查文件扩展名
@@ -71,13 +73,14 @@ export function sanitizeInput(value) {
   if (value === null || value === undefined) return null;
   const str = String(value).trim();
   if (!str) return null;
-  return xss(str);
+  // M-7修复：防止 Excel 公式注入（=+-@\t 开头），转义前缀字符
+  const sanitized = /^[=+\-@\t]/.test(str) ? "'" + str : str;
+  return xss(sanitized);
 }
 
 /**
- * @deprecated M-1修复：公式注入防护已统一由导出层 excel.js 的 sanitizeCellFormula 承担。
- * 导入层调用此函数会给 =+-@ 开头字符串加 ' 前缀，永久污染数据库原始数据。
- * 请勿在导入路径使用此函数。
+ * @deprecated M-7修复：公式注入防护已统一由 sanitizeInput 承担（在 XSS 过滤前先转义前缀字符）。
+ * 请勿再使用此函数，直接调用 sanitizeInput 即可。
  */
 export function sanitizeFormulaInjection(value) {
   if (value === null || value === undefined) return null;

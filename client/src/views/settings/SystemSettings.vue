@@ -94,7 +94,14 @@ async function confirmSave() {
   saving.value = true;
   try {
     await settingsStore.save(form.value);
-    savedSemester.value = form.value.currentSemester;
+    // 保存后从 store 重新同步表单，确保 UI 与后端数据一致
+    const s = settingsStore.settings;
+    const semesterValue = s.currentSemester?.value || '';
+    const orgName = s.organizationName?.value || '欢迎回来';
+    form.value.currentSemester = semesterValue;
+    form.value.organizationName = orgName;
+    selectedSemester.value = semesterValue;
+    savedSemester.value = semesterValue;
     ElMessage.success('学期设置已保存');
     saveConfirmVisible.value = false;
   } catch (e) {

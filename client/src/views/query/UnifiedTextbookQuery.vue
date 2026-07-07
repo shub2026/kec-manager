@@ -46,6 +46,7 @@
             <el-icon><Refresh /></el-icon> 重置
           </el-button>
           <el-button
+            v-if="authStore.isAdmin"
             type="success"
             :disabled="!selectedTextbook || !selectedSemester"
             @click="exportExcel"
@@ -173,7 +174,10 @@ import { getTextbookQuery } from '../../api/query';
 import { exportTextbook } from '../../api/export';
 import { useSemesters, downloadBlob } from '../../composables/useSemesters';
 import { useResponsive } from '../../composables/useResponsive';
+import { useAuthStore } from '@/stores/auth';
 import { getWithCache } from '../../utils/cache';
+
+const authStore = useAuthStore();
 
 const textbooks = ref([]);
 const loadingDetail = ref(false);

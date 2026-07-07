@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { authConfig } from '../src/config/auth.config.js';
 
 const prisma = new PrismaClient();
 
@@ -26,8 +27,8 @@ async function ensureSuperAdmin() {
 
   // 仅在不存在时创建
   console.log('创建超级管理员账号...');
-  const defaultPassword = 'admin@123456';
-  const adminPassword = await bcrypt.hash(defaultPassword, 10);
+  const defaultPassword = process.env.ADMIN_INITIAL_PASSWORD || 'admin@123456';
+  const adminPassword = await bcrypt.hash(defaultPassword, authConfig.bcryptRounds);
 
   const admin = await prisma.users.create({
     data: {
@@ -45,7 +46,7 @@ async function ensureSuperAdmin() {
   console.log('✓ 超级管理员账号已创建');
   console.log('═══════════════════════════════════════════════════');
   console.log(`   用户名: admin`);
-  console.log(`   密码: ${defaultPassword}`);
+  console.log('   密码: 已设置（请通过环境变量 ADMIN_INITIAL_PASSWORD 查看）');
   console.log('═══════════════════════════════════════════════════');
   console.log('⚠️  警告：生产环境首次登录后请立即修改密码！');
   console.log('═══════════════════════════════════════════════════\n');

@@ -98,7 +98,7 @@
     </div>
 
     <div class="semester-actions">
-      <el-button type="primary" size="large" :loading="saving" @click="$emit('save')">
+      <el-button type="primary" size="large" :loading="saving" :disabled="!isDirty" @click="handleSave">
         <el-icon><Check /></el-icon>
         保存设置
       </el-button>
@@ -107,7 +107,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useSemesters } from '../../../composables/useSemesters';
 
 const props = defineProps({
@@ -158,6 +158,47 @@ const isCurrentSemesterSaved = computed(() => {
 
 function handleSemesterChange(value) {
   emit('update:selectedSemester', value);
+}
+
+// L-9: 脏状态追踪 - 避免无变更时重复提交
+const isDirty = ref(false);
+const _lastSavedSnapshot = ref({
+  currentSemester: props.form.currentSemester || '',
+  organizationName: props.form.organizationName || '',
+  selectedSemester: props.selectedSemester || '',
+});
+
+watch(
+  () => [
+    localForm.value.currentSemester,
+    localForm.value.organizationName,
+    props.selectedSemester,
+  ],
+  () => {
+    const s = _lastSavedSnapshot.value;
+    isDirty.value =
+      localForm.value.currentSemester !== s.currentSemester ||
+      localForm.value.organizationName !== s.organizationName ||
+      props.selectedSemester !== s.selectedSemester;
+  }
+);
+
+// 当父组件确认保存后（savedSemester 更新），重置脏状态快照
+watch(
+  () => props.savedSemester,
+  (newVal) => {
+    _lastSavedSnapshot.value = {
+      currentSemester: localForm.value.currentSemester || '',
+      organizationName: localForm.value.organizationName || '',
+      selectedSemester: newVal || '',
+    };
+    isDirty.value = false;
+  }
+);
+
+function handleSave() {
+  if (!isDirty.value) return;
+  emit('save');
 }
 </script>
 

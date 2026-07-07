@@ -204,6 +204,7 @@ model training_plans {
   version           String?
   description       String?
   sort_order        Int              @default(0)
+  status            String           @default("draft") // draft | active | archived
   created_at        DateTime         @default(now())
   updated_at        DateTime         @updatedAt
   classes           classes[]

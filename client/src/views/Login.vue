@@ -242,17 +242,10 @@ onMounted(() => {
 }
 
 .card-accent {
-  height: 4px;
-  /* 渐变：平台蓝 → 青蓝过渡 → Logo 绿，呼应品牌标识 */
-  background: linear-gradient(
-    90deg,
-    #409eff 0%,
-    #2aa3cb 30%,
-    #20a4b5 50%,
-    #10a890 70%,
-    #00ab6b 100%
-  );
-  box-shadow: 0 0 12px rgba(32, 164, 181, 0.4);
+  height: 2.5px;
+  /* 蓝绿渐变点缀：品牌蓝 → 天青 → 翡翠绿，三色平滑过渡 */
+  background: linear-gradient(90deg, #5b8def 0%, #22b8cf 50%, #20c997 100%);
+  box-shadow: 0 1px 6px rgba(34, 184, 207, 0.25);
 }
 
 .card-header {

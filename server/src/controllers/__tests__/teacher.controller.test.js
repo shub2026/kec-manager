@@ -41,6 +41,7 @@ const mockTx = {
 const mockPrisma = {
   teachers: {
     findUnique: vi.fn(),
+    update: vi.fn().mockResolvedValue({}),
     updateMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
   $transaction: vi.fn(async (fn) => fn(mockTx)),
@@ -704,6 +705,7 @@ describe('updateTeacher', () => {
 
 // ════════════════════════════════════════════════
 // toggleTeacherStatus 测试
+// M-2修复后：禁用教师不再级联删除排课，直接 prisma.teachers.update
 // ════════════════════════════════════════════════
 describe('toggleTeacherStatus', () => {
   beforeEach(() => {
@@ -715,43 +717,14 @@ describe('toggleTeacherStatus', () => {
       name: '张三',
       status: 'active',
     });
-    // 默认：事务内 teachers.update 成功
-    mockTx.teachers.update.mockResolvedValue({ ...BASE_TEACHER });
-    // 默认：无教学安排
-    mockTx.teaching_assignments.findMany.mockResolvedValue([]);
-    mockTx.teaching_assignments.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrisma.teachers.update.mockResolvedValue({ ...BASE_TEACHER, status: 'disabled' });
   });
 
   // ──────────────────────────────────────────────
-  // 1. active → disabled（级联删除）
+  // 1. active → disabled（不再级联删除）
   // ──────────────────────────────────────────────
   describe('active → disabled 切换', () => {
-    it('应删除该教师所有 teaching_assignments', async () => {
-      const mockAssignments = [
-        {
-          id: 1,
-          semester: '2025-2026-1',
-          class_id: 10,
-          course_id: 1,
-          weekly_hours: 4,
-          is_auto: false,
-          class: { id: 10, name: '2024级1班' },
-          course: { id: 1, name: '心理学' },
-        },
-        {
-          id: 2,
-          semester: '2025-2026-2',
-          class_id: 11,
-          course_id: 2,
-          weekly_hours: 2,
-          is_auto: true,
-          class: { id: 11, name: '2024级2班' },
-          course: { id: 2, name: '教育学' },
-        },
-      ];
-      mockTx.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
-      mockTx.teaching_assignments.deleteMany.mockResolvedValue({ count: 2 });
-
+    it('应更新教师状态为 disabled 且不删除 teaching_assignments', async () => {
       const req = mockReq({ id: TEACHER_ID }, { status: 'disabled' });
       const res = mockRes();
       const next = vi.fn();
@@ -759,26 +732,17 @@ describe('toggleTeacherStatus', () => {
       await toggleTeacherStatus(req, res, next);
 
       expect(next).not.toHaveBeenCalled();
-      expect(mockTx.teaching_assignments.deleteMany).toHaveBeenCalledWith({
-        where: { teacher_id: TEACHER_ID },
+      // M-2：直接调用 prisma.teachers.update，不使用 $transaction
+      expect(mockPrisma.teachers.update).toHaveBeenCalledWith({
+        where: { id: TEACHER_ID },
+        data: { status: 'disabled' },
       });
+      // M-2：不再级联删除排课
+      expect(mockTx.teaching_assignments.deleteMany).not.toHaveBeenCalled();
+      expect(mockTx.teaching_assignments.findMany).not.toHaveBeenCalled();
     });
 
-    it('级联删除后应在响应中返回 cascadedDeletedAssignments', async () => {
-      mockTx.teaching_assignments.findMany.mockResolvedValue([
-        {
-          id: 1,
-          semester: '2025-2026-1',
-          class_id: 10,
-          course_id: 1,
-          weekly_hours: 4,
-          is_auto: false,
-          class: { id: 10, name: '班1' },
-          course: { id: 1, name: '课1' },
-        },
-      ]);
-      mockTx.teaching_assignments.deleteMany.mockResolvedValue({ count: 1 });
-
+    it('响应中不应包含 cascadedDeletedAssignments', async () => {
       const req = mockReq({ id: TEACHER_ID }, { status: 'disabled' });
       const res = mockRes();
       const next = vi.fn();
@@ -786,26 +750,13 @@ describe('toggleTeacherStatus', () => {
       await toggleTeacherStatus(req, res, next);
 
       const responseCall = res.json.mock.calls[0][0];
-      expect(responseCall.data).toHaveProperty('cascadedDeletedAssignments', 1);
-      expect(responseCall.message).toContain('已清理1条历史排课');
+      expect(responseCall.data).toHaveProperty('id', TEACHER_ID);
+      expect(responseCall.data).toHaveProperty('status', 'disabled');
+      expect(responseCall.data).not.toHaveProperty('cascadedDeletedAssignments');
+      expect(responseCall.message).toBe('禁用成功');
     });
 
-    it('审计日志应记录级联删除数量和详情', async () => {
-      const mockAssignments = [
-        {
-          id: 5,
-          semester: '2025-2026-1',
-          class_id: 10,
-          course_id: 1,
-          weekly_hours: 4,
-          is_auto: false,
-          class: { id: 10, name: '2024级1班' },
-          course: { id: 1, name: '心理学' },
-        },
-      ];
-      mockTx.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
-      mockTx.teaching_assignments.deleteMany.mockResolvedValue({ count: 1 });
-
+    it('审计日志不应包含级联删除详情', async () => {
       const req = mockReq({ id: TEACHER_ID }, { status: 'disabled' });
       const res = mockRes();
       const next = vi.fn();
@@ -818,14 +769,10 @@ describe('toggleTeacherStatus', () => {
           module: 'teacher',
           result: 'success',
           details: expect.objectContaining({
-            cascadedDeletedAssignments: 1,
-            deletedAssignmentDetails: expect.arrayContaining([
-              expect.objectContaining({
-                id: 5,
-                class_name: '2024级1班',
-                course_name: '心理学',
-              }),
-            ]),
+            id: TEACHER_ID,
+            name: '张三',
+            status: 'disabled',
+            willDisable: true,
           }),
         })
       );
@@ -833,10 +780,10 @@ describe('toggleTeacherStatus', () => {
   });
 
   // ──────────────────────────────────────────────
-  // 2. disabled → active（不级联删除）
+  // 2. disabled → active（启用）
   // ──────────────────────────────────────────────
   describe('disabled → active 切换', () => {
-    it('不应删除 teaching_assignments', async () => {
+    it('应更新教师状态为 active 且不触碰排课', async () => {
       mockPrisma.teachers.findUnique.mockResolvedValue({
         id: TEACHER_ID,
         name: '张三',
@@ -850,11 +797,14 @@ describe('toggleTeacherStatus', () => {
       await toggleTeacherStatus(req, res, next);
 
       expect(next).not.toHaveBeenCalled();
+      expect(mockPrisma.teachers.update).toHaveBeenCalledWith({
+        where: { id: TEACHER_ID },
+        data: { status: 'active' },
+      });
       expect(mockTx.teaching_assignments.deleteMany).not.toHaveBeenCalled();
-      expect(mockTx.teaching_assignments.findMany).not.toHaveBeenCalled();
     });
 
-    it('响应中 cascadedDeletedAssignments 应为 0', async () => {
+    it('响应 message 应为"启用成功"', async () => {
       mockPrisma.teachers.findUnique.mockResolvedValue({
         id: TEACHER_ID,
         name: '张三',
@@ -868,16 +818,15 @@ describe('toggleTeacherStatus', () => {
       await toggleTeacherStatus(req, res, next);
 
       const responseCall = res.json.mock.calls[0][0];
-      expect(responseCall.data.cascadedDeletedAssignments).toBe(0);
       expect(responseCall.message).toBe('启用成功');
     });
   });
 
   // ──────────────────────────────────────────────
-  // 3. disabled → disabled（无状态变化，不级联）
+  // 3. disabled → disabled（无状态变化）
   // ──────────────────────────────────────────────
   describe('disabled → disabled（状态不变）', () => {
-    it('不应删除 teaching_assignments', async () => {
+    it('应正常更新但不触发 willDisable', async () => {
       mockPrisma.teachers.findUnique.mockResolvedValue({
         id: TEACHER_ID,
         name: '张三',
@@ -890,32 +839,17 @@ describe('toggleTeacherStatus', () => {
 
       await toggleTeacherStatus(req, res, next);
 
-      expect(mockTx.teaching_assignments.deleteMany).not.toHaveBeenCalled();
+      expect(mockPrisma.teachers.update).toHaveBeenCalled();
+      expect(createAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          details: expect.objectContaining({ willDisable: false }),
+        })
+      );
     });
   });
 
   // ──────────────────────────────────────────────
-  // 4. willCascade 守卫
-  // ──────────────────────────────────────────────
-  describe('willCascade 守卫', () => {
-    it('级联删除必须在事务内发生', async () => {
-      mockTx.teaching_assignments.findMany.mockResolvedValue([]);
-
-      const req = mockReq({ id: TEACHER_ID }, { status: 'disabled' });
-      const res = mockRes();
-      const next = vi.fn();
-
-      await toggleTeacherStatus(req, res, next);
-
-      // 验证 $transaction 被调用，且内部 fn 收到了 tx 对象
-      expect(mockPrisma.$transaction).toHaveBeenCalledOnce();
-      // 级联删除使用的是 tx.teaching_assignments，而非 prisma.teaching_assignments
-      expect(mockTx.teaching_assignments.deleteMany).toHaveBeenCalled();
-    });
-  });
-
-  // ──────────────────────────────────────────────
-  // 5. 错误处理
+  // 4. 错误处理
   // ──────────────────────────────────────────────
   describe('错误处理', () => {
     it('无效状态值应返回 fail 响应', async () => {
@@ -952,7 +886,7 @@ describe('toggleTeacherStatus', () => {
       );
     });
 
-    it('教师不存在时不应进入事务', async () => {
+    it('教师不存在时不应调用 update', async () => {
       mockPrisma.teachers.findUnique.mockResolvedValue(null);
 
       const req = mockReq({ id: TEACHER_ID }, { status: 'disabled' });
@@ -961,29 +895,15 @@ describe('toggleTeacherStatus', () => {
 
       await toggleTeacherStatus(req, res, next);
 
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(mockPrisma.teachers.update).not.toHaveBeenCalled();
     });
   });
 
   // ──────────────────────────────────────────────
-  // 6. 审计日志（无级联删除场景）
+  // 5. 审计日志
   // ──────────────────────────────────────────────
   describe('审计日志', () => {
-    it('禁用成功且有级联删除时审计日志 message 应包含级联删除数', async () => {
-      mockTx.teaching_assignments.findMany.mockResolvedValue([
-        {
-          id: 1,
-          semester: '2025-2026-1',
-          class_id: 10,
-          course_id: 1,
-          weekly_hours: 4,
-          is_auto: false,
-          class: { id: 10, name: '班1' },
-          course: { id: 1, name: '课1' },
-        },
-      ]);
-      mockTx.teaching_assignments.deleteMany.mockResolvedValue({ count: 1 });
-
+    it('禁用成功时审计日志 message 应包含"禁用教师"', async () => {
       const req = mockReq({ id: TEACHER_ID }, { status: 'disabled' });
       const res = mockRes();
       const next = vi.fn();
@@ -992,12 +912,12 @@ describe('toggleTeacherStatus', () => {
 
       expect(createAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: expect.stringContaining('级联删除1条排课记录'),
+          message: '禁用教师：张三',
         })
       );
     });
 
-    it('启用成功时审计日志 message 不应包含级联删除', async () => {
+    it('启用成功时审计日志 message 应包含"启用教师"', async () => {
       mockPrisma.teachers.findUnique.mockResolvedValue({
         id: TEACHER_ID,
         name: '张三',

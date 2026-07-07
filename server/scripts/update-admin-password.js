@@ -8,7 +8,7 @@ async function updateAdminPassword() {
   console.log('=== 更新管理员密码 ===\n');
 
   try {
-    const newPassword = 'admin@123456';
+    const newPassword = process.env.ADMIN_INITIAL_PASSWORD || 'admin@123456';
 
     // 查找 admin 用户
     const admin = await prisma.users.findUnique({
@@ -35,7 +35,7 @@ async function updateAdminPassword() {
     console.log('✓ 密码更新成功!\n');
     console.log('=== 新的登录信息 ===');
     console.log(`用户名: admin`);
-    console.log(`密码: ${newPassword}`);
+    console.log('密码: 已通过环境变量设置（ADMIN_INITIAL_PASSWORD）');
     console.log(`角色: ${admin.role}\n`);
   } catch (error) {
     console.error('❌ 密码更新失败:', error.message);

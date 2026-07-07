@@ -56,23 +56,6 @@
   border-radius: var(--radius-sm);
 }
 
-/* 路由切换淡入:配合 keep-alive 使用 */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: opacity var(--dur-base) var(--ease-out),
-    transform var(--dur-base) var(--ease-out);
-}
-
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateY(8px);
-}
-
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
 /* ================================================================
    KEC 管理平台 — 全局共享样式
    ================================================================ */

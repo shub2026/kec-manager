@@ -157,3 +157,9 @@ export const AUDIT_RESULTS = {
   SUCCESS: 'success',
   FAILED: 'failed',
 };
+
+// 教师状态常量
+export const TEACHER_STATUS = {
+  ACTIVE: 'active',
+  DISABLED: 'disabled',
+};

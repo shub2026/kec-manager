@@ -28,7 +28,7 @@ export async function listUsers(req, res, next) {
         last_login_at: true,
         created_at: true,
       },
-      take: Math.min(req.query.limit ? Number(req.query.limit) : 1000, 1000),
+      take: Math.min(req.query.limit ? Number(req.query.limit) : 20, 100),
       orderBy: { created_at: 'desc' },
     });
 

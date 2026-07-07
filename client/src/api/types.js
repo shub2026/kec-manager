@@ -300,7 +300,7 @@
  * @property {{value: string}} [organizationName] - 如 { value: '某某学院' }
  */
 /** @typedef {Object} SystemSettingsInput @property {string} [currentSemester] @property {string} [organizationName] } */
-/** @typedef {Object} ResetInput @property {string} [confirmText] @property {string} [reason] } */
+/** @typedef {Object} ResetInput @property {string} [confirm] @property {string} [reason] } */
 
 /**
  * 学期查询参数

@@ -47,7 +47,7 @@ app.use(
       includeSubDomains: true,
       preload: true,
     },
-    crossOriginEmbedderPolicy: false, // 允许跨域嵌入资源
+    crossOriginEmbedderPolicy: true, // L-1: 启用 COEP，要求跨域资源使用 CORS/CORP 正确声明，防止跨域信息泄露
   })
 );
 
@@ -69,8 +69,11 @@ const isDev = process.env.NODE_ENV !== 'production';
 app.use(
   cors({
     origin: function (origin, callback) {
-      // 允许无 origin 的请求（如移动应用、Postman）
-      if (!origin) return callback(null, true);
+      // H-5修复：仅开发环境允许无 origin 请求，生产环境拒绝缺失 Origin 的请求
+      if (!origin) {
+        if (isDev) return callback(null, true);
+        return callback(new Error('Missing Origin header'));
+      }
 
       // 开发环境：允许所有 localhost 端口
       if (isDev && origin.startsWith('http://localhost:')) {

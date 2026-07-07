@@ -200,6 +200,19 @@ router.post('/logout', logoutLimiter, async (req, res, next) => {
         await AuthService.addToBlacklist(decoded.jti, (decoded.exp || 0) * 1000);
       }
 
+      // C-3修复：将Refresh Token也加入黑名单，防止登出后仍可刷新获取新Token
+      const refreshTokenValue = cookies['refreshToken'];
+      if (refreshTokenValue) {
+        try {
+          const refreshDecoded = jwt.verify(refreshTokenValue, authConfig.jwtRefreshSecret);
+          if (refreshDecoded.jti) {
+            await AuthService.addToBlacklist(refreshDecoded.jti, (refreshDecoded.exp || 0) * 1000);
+          }
+        } catch {
+          // Refresh Token已过期或无效，无需处理
+        }
+      }
+
       await createAuditLog({
         action: 'logout',
         module: 'auth',

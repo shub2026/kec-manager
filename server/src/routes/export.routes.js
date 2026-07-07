@@ -34,27 +34,27 @@ router.use(exportLimiter);
 
 // ==================== 模板下载 ====================
 
-// GET /api/export/template/:type - 下载导入模板
-router.get('/template/:type', downloadTemplate);
+// GET /api/export/template/:type - 下载导入模板（M-12修复：限制为admin+）
+router.get('/template/:type', roleMiddleware('admin', 'super_admin'), downloadTemplate);
 
 // ==================== 开课情况导出 ====================
 
-// GET /api/export/semester - 导出当前学期开课情况（保留向后兼容）
-router.get('/semester', exportSemesterSchedule);
+// GET /api/export/semester - 导出当前学期开课情况（M-12修复：限制为admin+）
+router.get('/semester', roleMiddleware('admin', 'super_admin'), exportSemesterSchedule);
 
-// POST /api/export/semester - 导出开课情况（POST避免token暴露在URL中）
-router.post('/semester', exportSemesterSchedulePost);
+// POST /api/export/semester - 导出开课情况（M-12修复：限制为admin+）
+router.post('/semester', roleMiddleware('admin', 'super_admin'), exportSemesterSchedulePost);
 
 // ==================== 基础数据导出 ====================
 
-// GET /api/export/courses - 导出课程数据
-router.get('/courses', exportCourses);
+// GET /api/export/courses - 导出课程数据（M-12修复：限制为admin+）
+router.get('/courses', roleMiddleware('admin', 'super_admin'), exportCourses);
 
-// GET /api/export/textbooks - 导出教材数据
-router.get('/textbooks', exportTextbooks);
+// GET /api/export/textbooks - 导出教材数据（M-12修复：限制为admin+）
+router.get('/textbooks', roleMiddleware('admin', 'super_admin'), exportTextbooks);
 
-// GET /api/export/classes - 导出班级数据
-router.get('/classes', exportClasses);
+// GET /api/export/classes - 导出班级数据（M-12修复：限制为admin+）
+router.get('/classes', roleMiddleware('admin', 'super_admin'), exportClasses);
 
 // GET /api/export/teachers - 导出教师数据（含PII，需admin权限）
 router.get('/teachers', roleMiddleware('admin', 'super_admin'), exportTeachers);
@@ -69,7 +69,7 @@ router.get('/teaching-arrange', roleMiddleware('admin', 'super_admin'), exportTe
 
 // ==================== 教材使用导出 ====================
 
-// GET /api/export/textbook/:id - 导出教材使用情况
-router.get('/textbook/:id', validateIdParam, exportTextbookUsage);
+// GET /api/export/textbook/:id - 导出教材使用情况（M-12修复：限制为admin+）
+router.get('/textbook/:id', validateIdParam, roleMiddleware('admin', 'super_admin'), exportTextbookUsage);
 
 export default router;

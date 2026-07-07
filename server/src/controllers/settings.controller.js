@@ -19,17 +19,41 @@ const DEFAULT_SETTINGS = {
  * 会查询数据库验证用户是否仍处于激活状态，避免被禁用的用户通过有效 JWT 绕过检查
  */
 async function tryGetAuthUser(req) {
+  let token = null;
+
+  // 优先从 Authorization 头获取
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.substring(7);
-  const decoded = AuthService.verifyToken(token);
-  if (!decoded) return null;
-  const user = await prisma.users.findUnique({
-    where: { id: decoded.id },
-    select: { id: true, role: true, is_active: true },
-  });
-  if (!user || !user.is_active) return null;
-  return { ...decoded, role: user.role };
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  }
+
+  // H-3 修复后前端不再持有内存 Token，改为从 HttpOnly Cookie 获取（与 authMiddleware 对齐）
+  // 也在 header token 无效时作为回退
+  let cookieToken = null;
+  if (req.headers.cookie) {
+    const cookies = {};
+    req.headers.cookie.split(';').forEach((c) => {
+      const [name, ...rest] = c.trim().split('=');
+      if (name) cookies[name] = decodeURIComponent(rest.join('='));
+    });
+    cookieToken = cookies['token'] || null;
+  }
+
+  // 尝试 header token → 失败则回退 cookie token
+  const candidates = [token, cookieToken].filter(Boolean);
+  for (const candidate of candidates) {
+    const decoded = AuthService.verifyToken(candidate);
+    if (!decoded) continue;
+    const user = await prisma.users.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, role: true, is_active: true },
+    });
+    if (user && user.is_active) {
+      return { ...decoded, role: user.role };
+    }
+  }
+
+  return null;
 }
 
 export async function getSettings(req, res, next) {
@@ -63,9 +87,10 @@ export async function getSettings(req, res, next) {
     for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
       defaultMap[key] = { value: def.value, description: def.description, isDefault: true };
     }
-    // M-6: 不再在 catch 中重复调用 tryGetAuthUser，直接使用默认值降级
-    // 未认证请求也返回完整默认设置，前端按权限展示
-    return success(res, defaultMap, '使用默认设置');
+    // M-9修复：降级路径也仅返回公开字段，避免泄露系统内部配置
+    const publicDefault = {};
+    if (defaultMap.organization_name) publicDefault.organization_name = defaultMap.organization_name;
+    return success(res, publicDefault, '使用默认设置');
   }
 }
 

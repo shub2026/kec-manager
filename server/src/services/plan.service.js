@@ -73,13 +73,20 @@ export function isClassMatchPlan(cls, plan) {
  * @returns {object|null} 最佳匹配的方案，无则返回null
  */
 export function findBestMatchPlan(cls, matchingPlans, classPlanMap = null) {
+  // M-3修复：按 created_at 降序排序，确保多个匹配方案时取最新创建者为确定性结果
+  const sortedPlans = [...matchingPlans].sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return tb - ta;
+  });
+
   // 1. 自定义方案优先
   if (cls.custom_plan_id) {
     // 优先从传入的 Map 取
     let customPlan = classPlanMap?.get(cls.id);
-    // Map 缺失或未命中时，自动从 matchingPlans 中查找（消除 footgun）
+    // Map 缺失或未命中时，自动从 sortedPlans 中查找（消除 footgun）
     if (!customPlan) {
-      customPlan = matchingPlans.find((p) => p.id === cls.custom_plan_id);
+      customPlan = sortedPlans.find((p) => p.id === cls.custom_plan_id);
     }
     if (customPlan) return customPlan;
   }
@@ -88,7 +95,7 @@ export function findBestMatchPlan(cls, matchingPlans, classPlanMap = null) {
   let majorMatch = null;
   let levelMatch = null;
 
-  for (const plan of matchingPlans) {
+  for (const plan of sortedPlans) {
     if (!cls.custom_plan_id) {
       // 按专业匹配
       if (!majorMatch && plan.major_id && plan.major_id === cls.major_id) {

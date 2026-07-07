@@ -95,7 +95,7 @@
             >
               <el-icon><Refresh /></el-icon> 重置
             </el-button>
-            <el-button type="success" @click="exportExcel">
+            <el-button v-if="authStore.isAdmin" type="success" @click="exportExcel">
               <el-icon><Download /></el-icon> 导出Excel
             </el-button>
           </div>
@@ -216,7 +216,10 @@ import { getColleges } from '../../api/college';
 import { exportSemester } from '../../api/export';
 import { useSemesters, downloadBlob } from '../../composables/useSemesters';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
+import { useAuthStore } from '@/stores/auth';
 import { getWithCache } from '../../utils/cache';
+
+const authStore = useAuthStore();
 
 const data = ref([]);
 const loading = ref(false);

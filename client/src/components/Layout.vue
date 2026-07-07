@@ -124,11 +124,9 @@
       </el-header>
       <el-main class="layout-main">
         <router-view v-slot="{ Component }">
-          <transition name="fade-slide" mode="out-in">
-            <keep-alive :include="cachedViews">
-              <component :is="Component" :key="$route.fullPath" />
-            </keep-alive>
-          </transition>
+          <keep-alive :include="cachedViews">
+            <component :is="Component" :key="$route.path" />
+          </keep-alive>
         </router-view>
       </el-main>
       <el-footer class="layout-footer" height="32px">

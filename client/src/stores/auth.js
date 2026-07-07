@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import router from '@/router';
-import { setCookie, getCookie, deleteCookie, clearAuthCookies } from '@/utils/cookies';
+import { deleteCookie, clearAuthCookies } from '@/utils/cookies';
 import { clearAllCache } from '@/utils/cache';
 
 // 延迟导入 api/auth，避免与 request.js → stores/auth.js → api/auth.js → request.js 形成循环依赖
@@ -14,8 +14,10 @@ async function getAuthApi() {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref(getCookie('auth_token') || '');
-  const refreshToken = ref(getCookie('auth_refreshToken') || '');
+  // H-3: Token 由后端 HttpOnly Cookie 管理，前端不再存储 Token 副本
+  // 内存变量仅用于 isTokenExpired 等客户端逻辑判断，实际认证依赖浏览器自动携带 HttpOnly Cookie
+  const token = ref('');
+  const refreshToken = ref('');
 
   function isTokenExpired(tokenStr) {
     if (!tokenStr) return true;
@@ -70,9 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
       refreshToken.value = newRefreshToken;
       userInfo.value = user;
 
-      // Cookie过期时间与JWT有效期保持一致
-      setCookie('auth_token', newToken, 7); // Access Token Cookie保留7天，JWT过期由isTokenExpired检测
-      setCookie('auth_refreshToken', newRefreshToken, 7); // Refresh Token 7天，与JWT有效期一致
+      // H-3: Token 由后端 HttpOnly Cookie 管理，前端不再通过 JS Cookie 存储 Token
       // userInfo仍然存储在localStorage（非敏感数据）
       localStorage.setItem('userInfo', JSON.stringify(user));
       // 登录标志：F5刷新时若JS cookie不可读（HttpOnly同名冲突），initAuth可据此回退到后端cookie认证
@@ -134,12 +134,12 @@ export const useAuthStore = defineStore('auth', () => {
         const { token: newToken, refreshToken: newRefreshToken } = response.data;
 
         token.value = newToken;
-        setCookie('auth_token', newToken, 7);
+        // H-3: 不再调用 setCookie，Token 由后端 HttpOnly Cookie 管理
 
         // 若后端返回了新的 refreshToken，同步更新，避免长期登录后 refreshToken 过期失效
         if (newRefreshToken) {
           refreshToken.value = newRefreshToken;
-          setCookie('auth_refreshToken', newRefreshToken, 7);
+          // H-3: 不再调用 setCookie，Token 由后端 HttpOnly Cookie 管理
         }
 
         return true;

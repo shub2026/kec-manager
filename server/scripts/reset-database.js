@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
+import { authConfig } from '../src/config/auth.config.js';
 
 const prisma = new PrismaClient();
 
@@ -41,7 +42,8 @@ async function resetDatabase() {
 
     // 3. 创建默认用户
     console.log('创建默认用户...');
-    const hashedPassword = await bcrypt.hash('admin@123456', 10);
+    const initialPassword = process.env.ADMIN_INITIAL_PASSWORD || 'admin@123456';
+    const hashedPassword = await bcrypt.hash(initialPassword, authConfig.bcryptRounds);
 
     try {
       const adminUser = await prisma.users.create({
@@ -54,7 +56,7 @@ async function resetDatabase() {
           is_active: true,
         },
       });
-      console.log(`✓ 超级管理员已创建: ${adminUser.username} (密码: admin@123456)\n`);
+      console.log(`✓ 超级管理员已创建: ${adminUser.username}（密码已通过环境变量设置）\n`);
     } catch (error) {
       if (error.code === 'P2002') {
         console.log('⚠ 管理员用户已存在，跳过创建\n');
@@ -113,7 +115,7 @@ async function resetDatabase() {
     console.log('=== 数据库重置完成! ===\n');
     console.log('登录信息:');
     console.log('  用户名: admin');
-    console.log('  密码: admin@123456');
+    console.log('  密码: 已通过环境变量 ADMIN_INITIAL_PASSWORD 设置');
     console.log('  角色: super_admin\n');
   } catch (error) {
     console.error('❌ 数据库重置失败:', error.message);

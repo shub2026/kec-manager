@@ -2,9 +2,9 @@ import { AuthService } from '../services/auth.service.js';
 import { prisma } from '../lib/prisma.js';
 import { log } from '../utils/logger.js'; // L1修复：使用winston logger
 
-// 用户状态缓存：短期内复用查询结果，避免每个请求都查库（TTL 30s）
+// 用户状态缓存：短期内复用查询结果，避免每个请求都查库（TTL 5s，已从30秒缩短）
 const userStatusCache = new Map();
-const USER_STATUS_TTL = 30 * 1000;
+const USER_STATUS_TTL = 5 * 1000;
 const CACHE_CLEANUP_INTERVAL = 5 * 60 * 1000;
 
 setInterval(() => {

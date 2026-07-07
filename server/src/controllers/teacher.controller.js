@@ -28,7 +28,7 @@ export async function listTeachers(req, res, next) {
         },
         _count: { select: { assignments: true } },
       },
-      take: 1000,
+      take: 100,
       orderBy: { sort_order: 'asc' },
     });
 
@@ -399,47 +399,16 @@ export async function toggleTeacherStatus(req, res, next) {
     });
     if (!existing) return fail(res, '教师不存在', 404);
 
-    const willCascade = status === 'disabled' && existing.status !== 'disabled';
+    // M-2修复：禁用教师时不再级联删除历史排课记录，保留历史数据完整性
+    // 查询端（dashboard/teaching-arrange）已通过 teacher.status='active' 过滤
+    const willDisable = status === 'disabled' && existing.status !== 'disabled';
 
-    // 事务内级联清理：禁用教师时同步删除其历史排课，避免污染课时统计
-    const { deletedCount, deletedDetails } = await prisma.$transaction(async (tx) => {
-      let deletedCount = 0;
-      let deletedDetails = [];
-
-      // 仅在 active -> disabled 切换时清理排课（不限学期，禁用教师不应保留任何排课）
-      if (willCascade) {
-        const assignments = await tx.teaching_assignments.findMany({
-          where: { teacher_id: teacherId },
-          include: {
-            class: { select: { id: true, name: true } },
-            course: { select: { id: true, name: true } },
-          },
-        });
-        deletedDetails = assignments.map((a) => ({
-          id: a.id,
-          semester: a.semester,
-          class_id: a.class_id,
-          class_name: a.class?.name,
-          course_id: a.course_id,
-          course_name: a.course?.name,
-          weekly_hours: a.weekly_hours,
-          is_auto: a.is_auto,
-        }));
-
-        const result = await tx.teaching_assignments.deleteMany({
-          where: { teacher_id: teacherId },
-        });
-        deletedCount = result.count;
-      }
-
-      await tx.teachers.update({
-        where: { id: teacherId },
-        data: { status },
-      });
-
-      return { deletedCount, deletedDetails };
+    await prisma.teachers.update({
+      where: { id: teacherId },
+      data: { status },
     });
 
+    // 审计日志中记录状态变更（不再包含删除的排课详情）
     const teacherName = existing.name;
     const statusLabel = status === 'active' ? '启用' : '禁用';
 
@@ -452,23 +421,17 @@ export async function toggleTeacherStatus(req, res, next) {
         id: teacherId,
         name: teacherName,
         status,
-        cascadedDeletedAssignments: deletedCount,
-        deletedAssignmentDetails: deletedDetails,
+        willDisable,
       },
       result: 'success',
-      message:
-        deletedCount > 0
-          ? `${statusLabel}教师：${teacherName}，级联删除${deletedCount}条排课记录`
-          : `${statusLabel}教师：${teacherName}`,
+      message: `${statusLabel}教师：${teacherName}`,
     });
 
     invalidateSortOrderCache('teachers');
     success(
       res,
-      { id: teacherId, status, cascadedDeletedAssignments: deletedCount },
-      deletedCount > 0
-        ? `${statusLabel}成功，已清理${deletedCount}条历史排课`
-        : `${statusLabel}成功`
+      { id: teacherId, status },
+      `${statusLabel}成功`
     );
   } catch (e) {
     next(e);

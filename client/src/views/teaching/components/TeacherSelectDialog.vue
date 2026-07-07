@@ -3,11 +3,26 @@
     v-model="visible"
     title="选择任课教师"
     width="80%"
+    :style="{ maxWidth: '1200px' }"
     destroy-on-close
     class="teacher-dialog"
   >
+    <!-- M-10：搜索过滤栏 -->
+    <div class="filter-bar">
+      <el-input
+        v-model="searchKey"
+        placeholder="搜索教师姓名"
+        clearable
+        size="small"
+        :prefix-icon="Search"
+        class="search-input"
+      />
+      <span class="filter-count">共 {{ filteredList.length }} 位教师</span>
+    </div>
+
     <el-table
-      :data="teacherList"
+      :data="pagedList"
+      row-key="id"
       stripe
       highlight-current-row
       size="small"
@@ -85,6 +100,19 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- M-10：分页组件 -->
+    <div class="pagination-bar" v-if="filteredList.length > pageSize">
+      <el-pagination
+        v-model:current-page="currentPage"
+        :page-size="pageSize"
+        :total="filteredList.length"
+        layout="prev, pager, next"
+        small
+        background
+      />
+    </div>
+
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
       <el-button type="primary" :disabled="!selectedTeacher" @click="handleConfirm">确定</el-button>
@@ -93,10 +121,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { Search } from '@element-plus/icons-vue';
 import { personnelLabel } from '../../../utils/personnel';
 
-defineProps({
+const props = defineProps({
   teacherList: { type: Array, default: () => [] },
   hourSettings: { type: Object, default: () => ({}) },
 });
@@ -106,6 +135,29 @@ const emit = defineEmits(['confirm']);
 const visible = ref(false);
 const currentClass = ref(null);
 const selectedTeacher = ref(null);
+
+// M-10：搜索与分页状态
+const searchKey = ref('');
+const currentPage = ref(1);
+const pageSize = 15;
+
+// M-10：按姓名过滤
+const filteredList = computed(() => {
+  const key = searchKey.value.trim().toLowerCase();
+  if (!key) return props.teacherList;
+  return props.teacherList.filter((t) => t.name?.toLowerCase().includes(key));
+});
+
+// M-10：分页切片
+const pagedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return filteredList.value.slice(start, start + pageSize);
+});
+
+// M-10：搜索词变化时重置到第一页
+watch(searchKey, () => {
+  currentPage.value = 1;
+});
 
 function uniqueTextbooks(textbooks) {
   if (!textbooks) return [];
@@ -133,6 +185,8 @@ function handleConfirm() {
 function open(row) {
   currentClass.value = row;
   selectedTeacher.value = null;
+  searchKey.value = '';
+  currentPage.value = 1;
   visible.value = true;
 }
 
@@ -146,6 +200,25 @@ defineExpose({ open, close });
 <style scoped>
 :deep(.teacher-dialog) .el-dialog__body {
   overflow-x: hidden;
+}
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.search-input {
+  width: 220px;
+}
+.filter-count {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.pagination-bar {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
 }
 .text-warning {
   color: var(--brand-warning);

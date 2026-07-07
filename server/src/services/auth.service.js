@@ -123,6 +123,11 @@ export class AuthService {
       throw new AuthenticationError('无效的Token类型');
     }
 
+    // C-3修复：检查 Refresh Token 是否已被加入黑名单（登出/轮换后）
+    if (decoded.jti && (await this.isBlacklisted(decoded.jti))) {
+      throw new AuthenticationError('Refresh Token已失效，请重新登录');
+    }
+
     const user = await prisma.users.findUnique({
       where: { id: decoded.id },
     });
@@ -287,6 +292,9 @@ export class AuthService {
 
     // H3修复：密码修改后立即清除用户状态缓存，使后续请求重新查库验证
     invalidateUserStatusCache(userId);
+
+    // C-3补充：密码修改成功后，调用方（auth.routes.js /password）会将当前 access token 加入黑名单
+    // 此处仅清除用户状态缓存，确保角色/状态变更立即生效
 
     await createAuditLog({
       action: 'update',

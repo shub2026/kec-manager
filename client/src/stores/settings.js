@@ -62,7 +62,12 @@ export const useSettingsStore = defineStore('settings', () => {
     if (!force && _lastLoadTime > 0 && Date.now() - _lastLoadTime < CACHE_TTL) {
       return;
     }
-    // 已有进行中的请求，复用 pending Promise
+    // 强制刷新时清除 pending 状态，确保发起全新请求（修复：保存后立即刷新可能复用过期 pending Promise）
+    if (force) {
+      _pendingPromise = null;
+      _lastLoadTime = 0;
+    }
+    // 已有进行中的请求，复用 pending Promise（仅非强制刷新时生效）
     if (_pendingPromise) {
       return _pendingPromise;
     }

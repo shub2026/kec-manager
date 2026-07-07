@@ -32,7 +32,7 @@ export const deleteTeacher = (id) => request.delete(`/teachers/${id}`);
 /**
  * 批量更新教师默认课时
  * @param {Object} data
- * @param {number[]} data.ids
+ * @param {number[]} data.teacherIds
  * @param {number} data.defaultWeeklyHours
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
@@ -41,7 +41,7 @@ export const batchUpdateDefaultHours = (data) => request.put('/teachers/batch/de
 /**
  * 切换教师状态
  * @param {number} id
- * @param {string} status - 'active' | 'inactive'
+ * @param {string} status - 'active' | 'disabled'
  * @returns {Promise<import('./types').ApiResponse<import('./types').Teacher>>}
  */
 export const toggleTeacherStatus = (id, status) =>

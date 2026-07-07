@@ -217,7 +217,9 @@ export const validateUser = [
   body('password')
     .optional()
     .isLength({ min: 8, max: 128 })
-    .withMessage('密码长度必须在8-128位之间'),
+    .withMessage('密码长度必须在8-128位之间')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,128}$/)
+    .withMessage('密码须包含大写字母、小写字母、数字和特殊字符，长度8-128位'),
   body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
   body('role')
     .optional()
@@ -303,6 +305,7 @@ export const validatePlan = [
     .isInt({ min: 1 })
     .withMessage('培养层次ID必须为正整数'),
   body('version').optional().trim().isLength({ max: 50 }).withMessage('版本号不超过50个字符'),
+  body('status').optional().isIn(['draft', 'active', 'archived']).withMessage('方案状态必须是draft、active或archived'),
   handleValidationErrors,
 ];
 
@@ -451,6 +454,7 @@ export const validatePlanCreate = [
     .isInt({ min: 1 })
     .withMessage('培养层次ID必须为正整数'),
   body('version').optional().trim().isLength({ max: 50 }).withMessage('版本号不超过50个字符'),
+  body('status').optional().isIn(['draft', 'active', 'archived']).withMessage('方案状态必须是draft、active或archived'),
   handleValidationErrors,
 ];
 
