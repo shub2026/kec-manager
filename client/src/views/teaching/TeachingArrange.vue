@@ -207,6 +207,7 @@
       :cumulative-assigned="progressCumulativeAssigned"
       :cumulative-unassigned="progressCumulativeUnassigned"
       :message="progressMessage"
+      :tabu-enabled="tabuSearchEnabled"
       @close="handleProgressClose"
     />
 
@@ -450,6 +451,11 @@ function tableRowClassName({ row }) {
 
 // --- 学期与课程 ---
 const settingsStore = useSettingsStore();
+
+// 禁忌搜索开关状态（来自系统设置），用于排课进度弹窗直观提示是否启用
+const tabuSearchEnabled = computed(
+  () => settingsStore.settings?.tabuSearchEnabled?.value === 'true'
+);
 
 async function loadSemester() {
   try {

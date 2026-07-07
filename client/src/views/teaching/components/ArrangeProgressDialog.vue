@@ -23,6 +23,15 @@
         <el-tag v-if="modeLabel" :type="modeLabel === '全量模式' ? 'warning' : 'success'" size="small">
           {{ modeLabel }}
         </el-tag>
+        <el-tag
+          class="tabu-tag"
+          :type="tabuEnabled ? 'success' : 'info'"
+          size="small"
+          effect="plain"
+        >
+          <el-icon class="tabu-icon"><MagicStick /></el-icon>
+          {{ tabuEnabled ? '禁忌搜索已启用' : '禁忌搜索未启用' }}
+        </el-tag>
       </div>
 
       <!-- 进度条 -->
@@ -95,7 +104,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { Loading, CircleCheckFilled, CircleClose, Select } from '@element-plus/icons-vue';
+import { Loading, CircleCheckFilled, CircleClose, Select, MagicStick } from '@element-plus/icons-vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -111,6 +120,8 @@ const props = defineProps({
   cumulativeAssigned: { type: Number, default: 0 },
   cumulativeUnassigned: { type: Number, default: 0 },
   message: { type: String, default: '' },
+  // 禁忌搜索开关状态（来自系统设置），用于弹窗直观提示是否启用
+  tabuEnabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue', 'close']);
@@ -167,6 +178,15 @@ const progressStatus = computed(() => {
   font-weight: 500;
   color: var(--text-primary);
   flex: 1;
+}
+
+.tabu-tag {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tabu-icon {
+  margin-right: 3px;
 }
 
 /* 单课程阶段列表 */
