@@ -78,8 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
       // 登录标志：F5刷新时若JS cookie不可读（HttpOnly同名冲突），initAuth可据此回退到后端cookie认证
       localStorage.setItem('loggedIn', 'true');
 
-      router.push('/');
-
+      // 登录成功：不在这里跳转，由 Login.vue 根据返回值处理导航（含 redirect 参数支持）
       return { success: true, message: '登录成功' };
     } catch (error) {
       let message = '登录失败';

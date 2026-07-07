@@ -142,8 +142,10 @@ async function handleLogin() {
     } else {
       ElMessage.error(result.message);
     }
-  } catch {
-    // 拦截器已弹窗，避免重复提示
+  } catch (error) {
+    // 兜底：确保登录失败时一定有提示（拦截器对 /auth/login 的 401 不弹窗）
+    const msg = error?.response?.data?.message || error?.message || '登录失败，请稍后重试';
+    ElMessage.error(msg);
   } finally {
     loading.value = false;
   }

@@ -1,6 +1,12 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 // ElementPlus 通过 vite.config.js 的 unplugin-vue-components 按需引入，不在此处全量导入
+// 但程序化调用的 API（ElMessage/ElNotification/ElLoading/ElMessageBox）不在模板中，
+// unplugin 无法自动加载其 CSS，需显式导入
+import 'element-plus/es/components/message/style/css';
+import 'element-plus/es/components/notification/style/css';
+import 'element-plus/es/components/loading/style/css';
+import 'element-plus/es/components/message-box/style/css';
 // locale 中文配置在 App.vue 中通过 <el-config-provider> 提供
 import './styles/theme.css';
 import './styles/global.css';

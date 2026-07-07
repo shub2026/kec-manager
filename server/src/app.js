@@ -69,11 +69,10 @@ const isDev = process.env.NODE_ENV !== 'production';
 app.use(
   cors({
     origin: function (origin, callback) {
-      // H-5修复：仅开发环境允许无 origin 请求，生产环境拒绝缺失 Origin 的请求
-      if (!origin) {
-        if (isDev) return callback(null, true);
-        return callback(new Error('Missing Origin header'));
-      }
+      // H-5修复：开发环境允许无 origin 请求
+      // 生产环境也放行无 origin 请求（来自 curl、健康检查、监控、移动端等非浏览器客户端）
+      // CORS 是浏览器安全机制，非浏览器请求不受其约束，服务端无需拒绝
+      if (!origin) return callback(null, true);
 
       // 开发环境：允许所有 localhost 端口
       if (isDev && origin.startsWith('http://localhost:')) {
