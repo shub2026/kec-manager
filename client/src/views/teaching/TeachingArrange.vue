@@ -194,6 +194,22 @@
     <!-- 批量排课结果弹窗 -->
     <BatchResultDialog v-model="batchResultVisible" :result="batchResult" />
 
+    <!-- 排课进度弹窗 -->
+    <ArrangeProgressDialog
+      v-model="progressVisible"
+      :type="progressType"
+      :mode-label="progressModeLabel"
+      :finished="progressFinished"
+      :current-phase="progressCurrentPhase"
+      :processed="progressProcessed"
+      :total="progressTotal"
+      :current-course-name="progressCurrentCourseName"
+      :cumulative-assigned="progressCumulativeAssigned"
+      :cumulative-unassigned="progressCumulativeUnassigned"
+      :message="progressMessage"
+      @close="handleProgressClose"
+    />
+
     <!-- 自动排课确认弹窗（单课程） -->
     <ArrangeConfirmDialog
       v-model="arrangeConfirmVisible"
@@ -247,8 +263,8 @@ import {
   getCourseTeachers,
   assignTeacher,
   deleteAssignment,
-  runAutoArrange,
-  runBatchAutoArrange,
+  runAutoArrangeWithProgress,
+  runBatchAutoArrangeWithProgress,
   resetAutoAssignments,
 } from '../../api/teachingArrange';
 
@@ -264,6 +280,9 @@ const ArrangeResultDialog = defineAsyncComponent(
 const BatchResultDialog = defineAsyncComponent(() => import('./components/BatchResultDialog.vue'));
 const ArrangeConfirmDialog = defineAsyncComponent(
   () => import('./components/ArrangeConfirmDialog.vue')
+);
+const ArrangeProgressDialog = defineAsyncComponent(
+  () => import('./components/ArrangeProgressDialog.vue')
 );
 
 // 学期相关
@@ -370,6 +389,30 @@ const filteredClassList = computed(() => {
 const arranging = ref(false);
 const batchArranging = ref(false);
 const exporting = ref(false);
+
+// 排课进度弹窗
+const progressVisible = ref(false);
+const progressType = ref('single'); // 'single' | 'batch'
+const progressModeLabel = ref('');
+const progressFinished = ref(false);
+const progressCurrentPhase = ref(0);
+const progressProcessed = ref(0);
+const progressTotal = ref(0);
+const progressCurrentCourseName = ref('');
+const progressCumulativeAssigned = ref(0);
+const progressCumulativeUnassigned = ref(0);
+const progressMessage = ref('');
+
+function resetProgress() {
+  progressFinished.value = false;
+  progressCurrentPhase.value = 0;
+  progressProcessed.value = 0;
+  progressTotal.value = 0;
+  progressCurrentCourseName.value = '';
+  progressCumulativeAssigned.value = 0;
+  progressCumulativeUnassigned.value = 0;
+  progressMessage.value = '';
+}
 
 // 教师选择弹窗
 const teacherDialogRef = ref(null);
@@ -534,31 +577,61 @@ async function doAutoArrange() {
   arrangeConfirmVisible.value = false;
 
   arranging.value = true;
-  const loadingMsg = ElMessage.info({ message: '正在自动排课，请耐心等待...', duration: 0 });
+  // 初始化进度弹窗
+  resetProgress();
+  progressType.value = 'single';
+  progressModeLabel.value = arrangeConfirmData.value.mode;
+  progressVisible.value = true;
+
   try {
-    const res = await runAutoArrange({
-      courseId: selectedCourseId.value,
-      semester: currentSemesterLabel.value,
-      mode,
-      hourSettings: hourSettingsRef.value,
-      preview: previewMode.value,
-    });
-    const data = res.data || {};
+    const result = await runAutoArrangeWithProgress(
+      {
+        courseId: selectedCourseId.value,
+        semester: currentSemesterLabel.value,
+        mode,
+        hourSettings: hourSettingsRef.value,
+        preview: previewMode.value,
+      },
+      (progress) => {
+        // 单课程进度：更新当前阶段
+        if (progress.phase) {
+          progressCurrentPhase.value = progress.phase;
+        }
+      }
+    );
+    const data = result.data || {};
+    progressFinished.value = true;
+    progressMessage.value = result.message;
+
     arrangeResult.value = data;
     arrangeResultMode.value = arrangeConfirmData.value.mode;
-    arrangeResultVisible.value = true;
 
     if (!previewMode.value) {
       await loadData();
     }
+    // 进度弹窗保持显示完成状态，用户点击"关闭"后展示结果弹窗
   } catch (e) {
+    progressVisible.value = false;
     ElMessage.error('自动排课失败');
     if (import.meta.env.DEV) {
       console.error('自动排课失败:', e);
     }
   } finally {
     arranging.value = false;
-    loadingMsg?.close?.();
+  }
+}
+
+function handleProgressClose() {
+  progressVisible.value = false;
+  // 排课完成后，根据类型展示对应的结果弹窗
+  if (progressType.value === 'batch') {
+    if (batchResult.value && Object.keys(batchResult.value).length > 0) {
+      batchResultVisible.value = true;
+    }
+  } else {
+    if (arrangeResult.value && Object.keys(arrangeResult.value).length > 0) {
+      arrangeResultVisible.value = true;
+    }
   }
 }
 
@@ -569,19 +642,37 @@ async function handleExecutePreview() {
   const mode = arrangeResultMode.value === '全量模式' ? 'full' : 'standard';
 
   arranging.value = true;
+  // 初始化进度弹窗
+  resetProgress();
+  progressType.value = 'single';
+  progressModeLabel.value = arrangeResultMode.value;
+  progressVisible.value = true;
+
   try {
-    await runAutoArrange({
-      courseId: selectedCourseId.value,
-      semester: currentSemesterLabel.value,
-      mode,
-      hourSettings: hourSettingsRef.value,
-      preview: false,
-    });
+    await runAutoArrangeWithProgress(
+      {
+        courseId: selectedCourseId.value,
+        semester: currentSemesterLabel.value,
+        mode,
+        hourSettings: hourSettingsRef.value,
+        preview: false,
+      },
+      (progress) => {
+        if (progress.phase) {
+          progressCurrentPhase.value = progress.phase;
+        }
+      }
+    );
 
     await loadData();
-    ElMessage.success('排课已执行');
+    progressFinished.value = true;
+    progressMessage.value = '排课已执行，可关闭此弹窗';
     arrangeResultVisible.value = false;
+    // handleExecutePreview 场景：执行排课后不需要再弹出结果弹窗
+    // 清空 arrangeResult 避免 handleProgressClose 重复展示
+    arrangeResult.value = {};
   } catch (e) {
+    progressVisible.value = false;
     ElMessage.error('执行排课失败');
     if (import.meta.env.DEV) {
       console.error('执行排课失败:', e);
@@ -610,28 +701,45 @@ async function doBatchAutoArrange() {
   batchConfirmVisible.value = false;
 
   batchArranging.value = true;
-  const loadingMsg = ElMessage.info({ message: '正在批量排课，请耐心等待...', duration: 0 });
+  // 初始化进度弹窗
+  resetProgress();
+  progressType.value = 'batch';
+  progressModeLabel.value = batchConfirmData.value.mode;
+  progressVisible.value = true;
+
   try {
-    const res = await runBatchAutoArrange({
-      semester: currentSemesterLabel.value,
-      mode,
-      hourSettings: hourSettingsRef.value,
-    });
-    const data = res.data || {};
-    const s = data.summary || {};
+    const result = await runBatchAutoArrangeWithProgress(
+      {
+        semester: currentSemesterLabel.value,
+        mode,
+        hourSettings: hourSettingsRef.value,
+      },
+      (progress) => {
+        // 批量进度：更新已处理课程数和当前课程名
+        if (progress.processed != null) {
+          progressProcessed.value = progress.processed;
+          progressTotal.value = progress.total;
+          progressCurrentCourseName.value = progress.currentCourseName || '';
+          progressCumulativeAssigned.value = progress.cumulativeAssigned || 0;
+          progressCumulativeUnassigned.value = progress.cumulativeUnassigned || 0;
+        }
+      }
+    );
+    const data = result.data || {};
+    progressFinished.value = true;
+    progressMessage.value = result.message;
 
     batchResult.value = data;
-    batchResultVisible.value = true;
-
     await loadData();
+    // 进度弹窗保持显示完成状态，用户点击"关闭"后展示结果弹窗
   } catch (e) {
+    progressVisible.value = false;
     ElMessage.error('批量排课失败');
     if (import.meta.env.DEV) {
       console.error('批量排课失败:', e);
     }
   } finally {
     batchArranging.value = false;
-    loadingMsg?.close?.();
   }
 }
 

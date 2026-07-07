@@ -1,5 +1,104 @@
 import request from '../utils/request';
+import { useAuthStore } from '@/stores/auth';
+import { getCookie } from '@/utils/cookies';
 import './types';
+
+/**
+ * SSE（Server-Sent Events）流式调用封装
+ * 用于排课等长耗时操作，通过 fetch + ReadableStream 读取后端推送的进度事件
+ *
+ * 事件类型：
+ *   - progress: 排课进度（每完成一门课程或一个阶段推送）
+ *   - complete: 排课完成，携带最终结果
+ *   - error: 排课失败，携带错误信息
+ *
+ * @param {string} url - API 端点
+ * @param {object} body - 请求体
+ * @param {(progress: object) => void} onProgress - 进度回调
+ * @param {{timeout?: number}} [options] - 超时等配置
+ * @returns {Promise<{success: boolean, data: object, message: string}>} 最终结果
+ */
+async function fetchArrangeSSE(url, body, onProgress, options = {}) {
+  const authStore = useAuthStore();
+  const csrfToken = getCookie('XSRF-TOKEN');
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'text/event-stream',
+  };
+  if (authStore.token) headers.Authorization = `Bearer ${authStore.token}`;
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
+  // SSE 流式响应不设 HTTP 超时（后端 batch.js 自带 5 分钟业务超时）
+  // 但设置一个兜底超时避免无限等待
+  const controller = new AbortController();
+  const timeoutMs = options.timeout || 7 * 60 * 1000; // 7 分钟，略大于后端上限
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response;
+  try {
+    response = await fetch(`/api${url}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      credentials: 'include',
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    let msg = `HTTP ${response.status}`;
+    try {
+      const errBody = await response.json();
+      msg = errBody.message || msg;
+    } catch (_) {
+      /* 非 JSON 响应忽略 */
+    }
+    throw new Error(msg);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let finalResult = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // SSE 事件以空行分隔
+    const events = buffer.split('\n\n');
+    buffer = events.pop(); // 保留最后可能不完整的片段
+
+    for (const eventStr of events) {
+      if (!eventStr.trim()) continue;
+      const lines = eventStr.split('\n');
+      let eventType = 'message';
+      let eventData = '';
+      for (const line of lines) {
+        if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+        else if (line.startsWith('data: ')) eventData = line.slice(6);
+      }
+      if (!eventData) continue;
+
+      const parsed = JSON.parse(eventData);
+      if (eventType === 'progress') {
+        onProgress?.(parsed);
+      } else if (eventType === 'complete') {
+        finalResult = parsed;
+      } else if (eventType === 'error') {
+        throw new Error(parsed.message || '排课失败');
+      }
+    }
+  }
+
+  if (!finalResult) {
+    throw new Error('排课响应异常：未收到完成事件');
+  }
+  return finalResult;
+}
 
 /**
  * 教学安排 - 班级课程数据
@@ -31,18 +130,42 @@ export const deleteAssignment = (id) => request.delete(`/teaching-arrange/assign
 
 /**
  * 自动排课（单课程）
+ * P0 修复：排课可能耗时较长（禁忌搜索+置换回溯），单独设置 6 分钟超时
+ * 略大于后端批量排课 5 分钟上限，避免前端超时但后端仍在写入
  * @param {import('./types').AutoArrangeInput} data
  * @returns {Promise<import('./types').ApiResponse<Object>>}
  */
-export const runAutoArrange = (data) => request.post('/teaching-arrange/auto-arrange', data);
+export const runAutoArrange = (data) =>
+  request.post('/teaching-arrange/auto-arrange', data, { timeout: 6 * 60 * 1000 });
 
 /**
  * 批量自动排课（所有课程）
+ * P0 修复：同上，单独设置 6 分钟超时
  * @param {import('./types').BatchAutoArrangeInput} data
  * @returns {Promise<import('./types').ApiResponse<Object>>}
  */
 export const runBatchAutoArrange = (data) =>
-  request.post('/teaching-arrange/batch-auto-arrange', data);
+  request.post('/teaching-arrange/batch-auto-arrange', data, { timeout: 6 * 60 * 1000 });
+
+/**
+ * 自动排课（单课程）- SSE 流式版本
+ * 通过 fetch + ReadableStream 读取后端推送的五阶段进度事件
+ * @param {import('./types').AutoArrangeInput} data
+ * @param {(progress: {phase: number, phaseName: string, total: number}) => void} onProgress
+ * @returns {Promise<{success: boolean, data: object, message: string}>}
+ */
+export const runAutoArrangeWithProgress = (data, onProgress) =>
+  fetchArrangeSSE('/teaching-arrange/auto-arrange', data, onProgress);
+
+/**
+ * 批量自动排课 - SSE 流式版本
+ * 通过 fetch + ReadableStream 读取后端推送的每门课程进度事件
+ * @param {import('./types').BatchAutoArrangeInput} data
+ * @param {(progress: {processed: number, total: number, currentCourseName: string, cumulativeAssigned: number, cumulativeUnassigned: number}) => void} onProgress
+ * @returns {Promise<{success: boolean, data: object, message: string}>}
+ */
+export const runBatchAutoArrangeWithProgress = (data, onProgress) =>
+  fetchArrangeSSE('/teaching-arrange/batch-auto-arrange', data, onProgress);
 
 /**
  * 重置自动安排（清除指定学期的自动安排）

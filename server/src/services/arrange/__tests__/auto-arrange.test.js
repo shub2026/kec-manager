@@ -214,7 +214,7 @@ describe('calcMatchScore', () => {
       expect(score0).toBeGreaterThan(score2);
     });
 
-    it('教师已有 MAX 本教材且接新班需新教材时，分数应极低（< -9000）', () => {
+    it('教师已有 MAX 本教材且接新班需新教材时，分数应极低（< -TEXTBOOK_COUNT_PENALTY_1_NEW）', () => {
       const t = baseTeacher();
       t.assignedTextbookIds = new Set([300, 301]); // MAX=2
       t.inherentTextbookIds = [300, 301];
@@ -222,7 +222,9 @@ describe('calcMatchScore', () => {
       c.textbookIds = [302]; // 需要新教材 → 超上限
 
       const score = calcMatchScore(t, c);
-      expect(score).toBeLessThan(-9000); // base - 10000
+      // P1-4 修复：惩罚值已配置化，mock 中 TEXTBOOK_COUNT_PENALTY_1_NEW=200
+      // base 分约为 -10（PENALTY_PER_NEW × 1），减去 200 后约 -210
+      expect(score).toBeLessThan(-200); // base - TEXTBOOK_COUNT_PENALTY_1_NEW
     });
   });
 

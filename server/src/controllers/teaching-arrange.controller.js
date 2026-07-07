@@ -13,6 +13,7 @@ import {
   validateHourSettings,
 } from '../services/teaching-arrange.service.js';
 import { calcClassSemester } from '../services/semester.service.js';
+import { initSSE, sendSSEEvent, isSSERequest } from '../utils/sse.js';
 
 /**
  * 安全解析 JSON 字符串，失败时返回 fallback 并记录告警
@@ -353,6 +354,7 @@ export async function deleteAssignment(req, res, next) {
  * POST /auto-arrange - 自动排课
  */
 export async function runAutoArrange(req, res, next) {
+  const useSSE = isSSERequest(req);
   try {
     const courseId = req.body.course_id;
     const semester = req.body.semester;
@@ -393,6 +395,59 @@ export async function runAutoArrange(req, res, next) {
       return fail(res, '排课条件功能暂未实现，请联系管理员');
     }
 
+    // SSE 模式：初始化流式响应，通过 onProgress 回调推送五阶段进度
+    if (useSSE) {
+      initSSE(res);
+      // 客户端断开连接时清理（避免继续写已关闭的流）
+      const onClose = () => {
+        res.writableEnded || res.end();
+      };
+      req.on('close', onClose);
+
+      try {
+        const result = await autoArrange(courseId, semester, mode, finalHourSettings, conditions, {
+          preview: !!preview,
+          onProgress: (progress) => {
+            sendSSEEvent(res, 'progress', progress);
+          },
+        });
+
+        if (!preview) {
+          await createAuditLog({
+            action: 'update',
+            module: 'teachingArrange',
+            userId: req.user?.id,
+            ip: req.ip,
+            details: {
+              course_id: courseId,
+              semester,
+              mode,
+              autoCount: result.autoCount,
+              unassignedCount: result.unassignedCount,
+            },
+            result: 'success',
+            message: `自动排课(${mode === 'full' ? '全量' : '标准'})：安排${result.autoCount}个班级，${result.unassignedCount}个未安排`,
+          });
+        }
+
+        sendSSEEvent(res, 'complete', {
+          success: true,
+          data: result,
+          message: preview
+            ? '预览完成（未写入）'
+            : `自动排课完成：安排${result.autoCount}个班级`,
+        });
+        res.end();
+      } catch (e) {
+        sendSSEEvent(res, 'error', { message: e.message });
+        res.end();
+      } finally {
+        req.off('close', onClose);
+      }
+      return;
+    }
+
+    // 非 SSE 模式：保持原有 JSON 响应
     const result = await autoArrange(courseId, semester, mode, finalHourSettings, conditions, {
       preview: !!preview,
     });
@@ -690,6 +745,7 @@ export async function saveHourSettings(req, res, next) {
  * POST /batch-auto-arrange - 批量自动排课（所有课程）
  */
 export async function runBatchAutoArrange(req, res, next) {
+  const useSSE = isSSERequest(req);
   try {
     // 兼容驼峰和下划线命名
     const semester = req.body.semester;
@@ -722,6 +778,57 @@ export async function runBatchAutoArrange(req, res, next) {
       return fail(res, '排课条件功能暂未实现，请联系管理员');
     }
 
+    // SSE 模式：初始化流式响应，通过 onProgress 回调推送每门课程进度
+    if (useSSE) {
+      initSSE(res);
+      const onClose = () => {
+        res.writableEnded || res.end();
+      };
+      req.on('close', onClose);
+
+      try {
+        const result = await batchAutoArrange(semester, mode, finalHourSettings, conditions, {
+          preview: !!preview,
+          onProgress: (progress) => {
+            sendSSEEvent(res, 'progress', progress);
+          },
+        });
+
+        if (!preview) {
+          await createAuditLog({
+            action: 'update',
+            module: 'teachingArrange',
+            userId: req.user?.id,
+            ip: req.ip,
+            details: {
+              semester,
+              mode,
+              totalAssigned: result.summary.totalAssigned,
+              totalUnassigned: result.summary.totalUnassigned,
+            },
+            result: 'success',
+            message: `批量排课(${mode === 'full' ? '全量' : '标准'})：${result.summary.totalCourses}门课程，安排${result.summary.totalAssigned}个班级`,
+          });
+        }
+
+        sendSSEEvent(res, 'complete', {
+          success: true,
+          data: result,
+          message: preview
+            ? '批量预览完成（未写入）'
+            : `批量排课完成：安排${result.summary.totalAssigned}个班级`,
+        });
+        res.end();
+      } catch (e) {
+        sendSSEEvent(res, 'error', { message: e.message });
+        res.end();
+      } finally {
+        req.off('close', onClose);
+      }
+      return;
+    }
+
+    // 非 SSE 模式：保持原有 JSON 响应
     const result = await batchAutoArrange(semester, mode, finalHourSettings, conditions, {
       preview: !!preview,
     });

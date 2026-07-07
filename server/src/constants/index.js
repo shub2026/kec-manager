@@ -100,9 +100,10 @@ export const TEXTBOOK_COHESION = {
   INHERENT_WEIGHT: 4, // 固有教材权重
   PENALTY_PER_NEW: 10, // 新增教材每本扣分（提高）
   // 教材数量分级奖惩（2026-06-20 十二轮：强化内聚）
+  // P1-4 修复：对齐配置项与实现，移除 calcMatchScore 中的硬编码
   ZERO_TEXTBOOK_BONUS: 30, // 0本教师加分（提高）
-  TEXTBOOK_COUNT_PENALTY_1_NEW: 200, // 1本教师接新课极重惩罚（大幅提高）
-  TEXTBOOK_COUNT_BONUS_1_SAME: 8, // 1本教师接同类加分（给同教材奖励）
+  TEXTBOOK_COUNT_PENALTY_1_NEW: 10000, // 1本教师接新课极重惩罚（实质淘汰，原硬编码 -10000）
+  TEXTBOOK_COUNT_BONUS_1_SAME: 10, // 1本教师接同类加分（原硬编码 +10）
   TEXTBOOK_COUNT_PENALTY_2: 20, // 已有2本教材扣分（提高）
   TEXTBOOK_COUNT_PENALTY_3PLUS: 150, // 已有3+本教材惩戒（实质禁止）
   MAX_TEXTBOOKS_PER_TEACHER: 2, // 硬上限：教师最多同时教几本教材（0=不限制）
@@ -125,6 +126,19 @@ export const TABU_SEARCH = {
   NO_IMPROVEMENT_LIMIT: 80, // 连续无改进轮数，达到后提前终止
   SINGLE_COURSE_TIMEOUT_MS: 15000, // 单课程超时上限（毫秒）
   UNASSIGNED_PENALTY: 500, // 每个未分配班级的惩罚分值
+};
+
+// P0-1 修复：置换回溯递归深度限制
+// 支持链式调整（A→B→C），maxDepth=3 平衡搜索能力与性能
+export const SWAP_CONFIG = {
+  MAX_DEPTH: 3, // 最大递归深度
+  MAX_UNASSIGNED: 30, // 未分配数超过此值时跳过递归（性能保护）
+};
+
+// P0-2 修复：批量排课容量预留
+// 避免先处理课程耗尽教师容量，预留比例给后续课程
+export const BATCH_CONFIG = {
+  RESERVE_RATIO: 0.85, // 每门课程最多使用教师剩余容量的 85%，预留 15% 给后续课程
 };
 
 // 审计操作

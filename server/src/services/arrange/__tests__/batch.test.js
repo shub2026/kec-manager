@@ -35,6 +35,8 @@ vi.mock('../../../constants/index.js', () => ({
     part_time: { standard: 12, max: 16 },
     external: { standard: 12, max: 16 },
   },
+  // P0-2: batch.js 现在导入 BATCH_CONFIG，需在 mock 中补充
+  BATCH_CONFIG: { RESERVE_RATIO: 0.85 },
 }));
 
 vi.mock('../../../utils/logger.js', () => ({

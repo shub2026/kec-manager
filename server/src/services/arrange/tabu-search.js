@@ -254,16 +254,24 @@ function findBestMove(
   }
 
   // --- Swap：教师A班级 ↔ 教师B班级 ---
-  // 采样策略：只检查前 N 个分配对，避免 O(A²) 爆炸
+  // P1-7 修复：采样策略改为随机采样，避免顺序前 N 导致的采样偏差
+  // 原实现只检查 assignmentEntries 前 50 项及其后 50 项，排在末尾的分配
+  // 永远不会被考虑为 Swap 候选，导致邻域搜索严重偏向头部分配
+  // 随机采样允许重复索引（不显著影响最优解搜索质量），保证全量分配
+  // 都有概率被采中，邻域覆盖更均匀
   const assignmentEntries = [...assignments.entries()];
-  const maxSwapChecks = Math.min(assignmentEntries.length, 50);
+  const totalAssignments = assignmentEntries.length;
+  const maxSwapChecks = Math.min(totalAssignments, 50);
 
-  for (let i = 0; i < maxSwapChecks; i++) {
+  for (let a = 0; a < maxSwapChecks; a++) {
+    const i = Math.floor(Math.random() * totalAssignments);
     const [classIdA, teacherIdA] = assignmentEntries[i];
     const clsA = classMap.get(classIdA);
     if (!clsA || !clsA.weeklyHours || clsA.weeklyHours <= 0) continue;
 
-    for (let j = i + 1; j < Math.min(assignmentEntries.length, i + maxSwapChecks); j++) {
+    for (let b = 0; b < maxSwapChecks; b++) {
+      const j = Math.floor(Math.random() * totalAssignments);
+      if (i === j) continue;
       const [classIdB, teacherIdB] = assignmentEntries[j];
       if (teacherIdA === teacherIdB) continue;
       const clsB = classMap.get(classIdB);

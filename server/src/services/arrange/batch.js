@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma.js';
-import { DEFAULT_HOUR_SETTINGS } from '../../constants/index.js';
+import { DEFAULT_HOUR_SETTINGS, BATCH_CONFIG } from '../../constants/index.js';
 import { validateHourSettings } from './validate.js';
 import { autoArrange, batchLocks } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
@@ -18,6 +18,7 @@ export async function batchAutoArrange(
   scheduleConditions,
   options = {}
 ) {
+  const onProgress = options.onProgress;
   validateHourSettings(hourSettings);
 
   // M-12 / P1-12: 并发保护——按学期锁定整个学期，扩大锁范围避免单课程排课插入
@@ -30,6 +31,7 @@ export async function batchAutoArrange(
 
   // M-13: 超时保护
   const startTime = Date.now();
+  logger.info(`[批量排课] 开始 semester=${semesterStr} mode=${mode} preview=${!!options.preview}`);
 
   try {
     const courses = await prisma.courses.findMany({
@@ -100,7 +102,8 @@ export async function batchAutoArrange(
     // S-13 修复：预览模式下跨课程累计教材负载
     const globalTextbookMap = options.preview ? new Map() : null;
 
-    for (const { courseId, courseName } of coursePriorities) {
+    for (let idx = 0; idx < coursePriorities.length; idx++) {
+      const { courseId, courseName } = coursePriorities[idx];
       // M-13: 超时检查——每门课程排课前检查是否已超过时限
       if (Date.now() - startTime > BATCH_TIMEOUT_MS) {
         logger.warn(
@@ -110,6 +113,7 @@ export async function batchAutoArrange(
         break;
       }
 
+      const courseStart = Date.now();
       try {
         const result = await autoArrange(
           courseId,
@@ -123,6 +127,8 @@ export async function batchAutoArrange(
             globalTextbookMap,
             // P1-12 修复：批量内部调用绕过 batchLocks 检查，由 batch.js 持有学期锁
             skipBatchLockCheck: true,
+            // P0-2 修复：批量排课容量预留，避免先处理课程耗尽教师容量
+            capacityReserveRatio: BATCH_CONFIG.RESERVE_RATIO,
           }
         );
         if (options.preview && virtualTeacherHours) {
@@ -146,6 +152,9 @@ export async function batchAutoArrange(
         totalAssigned += result.autoCount;
         totalUnassigned += result.unassignedCount;
         if (result.warnings?.length) totalWarnings += result.warnings.length;
+        logger.info(
+          `[批量排课] 课程 ${courseId}(${courseName}) 完成，耗时 ${Date.now() - courseStart}ms，安排 ${result.autoCount} 个班级`
+        );
       } catch (e) {
         results.push({
           courseId,
@@ -154,10 +163,34 @@ export async function batchAutoArrange(
           autoCount: 0,
           unassignedCount: 0,
         });
+        logger.error(
+          `[批量排课] 课程 ${courseId}(${courseName}) 失败，耗时 ${Date.now() - courseStart}ms：${e.message}`
+        );
+      }
+
+      // 进度回调：每完成一门课程推送一次
+      if (onProgress) {
+        try {
+          onProgress({
+            processed: idx + 1,
+            total: coursePriorities.length,
+            currentCourseId: courseId,
+            currentCourseName: courseName,
+            currentResult: results[results.length - 1],
+            cumulativeAssigned: totalAssigned,
+            cumulativeUnassigned: totalUnassigned,
+          });
+        } catch (_) {
+          /* 回调失败不影响主流程 */
+        }
       }
     }
 
     const skippedCount = courses.length - results.length;
+    const totalElapsed = Date.now() - startTime;
+    logger.info(
+      `[批量排课] 完成 semester=${semesterStr}，共 ${results.length}/${courses.length} 门课程，安排 ${totalAssigned} 个班级，总耗时 ${totalElapsed}ms`
+    );
 
     return {
       semester: semesterStr,
