@@ -25,7 +25,7 @@
       </div>
       <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
         <template #empty>
-          <el-empty description="暂无数据" />
+          <EmptyState type="plan" description="暂无培养方案" />
         </template>
         <el-table-column type="index" label="序号" width="55" />
         <el-table-column prop="name" label="方案名称" min-width="200" />
@@ -211,6 +211,7 @@ import { getMajors } from '../../api/major';
 import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
 import { useSortable } from '../../composables/useSortable';
+import EmptyState from '../../components/EmptyState.vue';
 
 const route = useRoute();
 const list = ref([]);

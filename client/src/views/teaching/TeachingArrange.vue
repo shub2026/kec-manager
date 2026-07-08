@@ -1,5 +1,6 @@
 <template>
   <div class="teaching-arrange">
+    <PageHeader title="教学安排" subtitle="智能排课" description="为课程自动分配教师课时，支持排课偏好和学院/层次匹配" />
     <!-- 设置区 -->
     <HourSettingsCard
       ref="settingsCardRef"
@@ -271,6 +272,7 @@ import {
 
 import HourSettingsCard from './components/HourSettingsCard.vue';
 import CoursePreviewCard from './components/CoursePreviewCard.vue';
+import PageHeader from '../../components/PageHeader.vue';
 
 const TeacherSelectDialog = defineAsyncComponent(
   () => import('./components/TeacherSelectDialog.vue')

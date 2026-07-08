@@ -76,3 +76,110 @@ export async function getDashboardStats(req, res, next) {
     next(e);
   }
 }
+
+/**
+ * GET /api/dashboard/insights?semester=YYYY-YYYY-N
+ * 返回首页洞察数据：排课完成度 + 异常提醒 + 课时分布
+ */
+export async function getDashboardInsights(req, res, next) {
+  try {
+    const { semester } = req.query;
+    if (!semester) return fail(res, '请选择学期');
+
+    const [totalCourses, assignedCourses, allAssignments, colleges] = await Promise.all([
+      // 总课程数
+      prisma.courses.count(),
+      // 已排课课程（去重）
+      prisma.teaching_assignments.findMany({
+        where: { semester, weekly_hours: { gt: 0 }, teacher: { status: 'active' } },
+        select: { course_id: true },
+        distinct: ['course_id'],
+      }),
+      // 本学期所有排课记录（含教师和班级关联）
+      prisma.teaching_assignments.findMany({
+        where: { semester, weekly_hours: { gt: 0 }, teacher: { status: 'active' } },
+        select: {
+          weekly_hours: true,
+          course_id: true,
+          teacher: {
+            select: {
+              id: true,
+              name: true,
+              default_weekly_hours: true,
+              affiliated_college: { select: { id: true, name: true } },
+            },
+          },
+          class: {
+            select: {
+              college_id: true,
+              colleges: { select: { id: true, name: true } },
+            },
+          },
+          course: { select: { id: true, name: true, type: true } },
+        },
+      }),
+      // 所有学院（用于分布图标签）
+      prisma.colleges.findMany({ select: { id: true, name: true } }),
+    ]);
+
+    // —— 排课完成度 ——
+    const assignedIds = new Set(assignedCourses.map((c) => c.course_id));
+    const completion = {
+      totalCourses,
+      assignedCourses: assignedIds.size,
+      rate: totalCourses > 0 ? Math.round((assignedIds.size / totalCourses) * 100) : 0,
+    };
+
+    // —— 异常提醒 ——
+    // 1) 未排课课程：总课程中未被排课的
+    const allCourses = await prisma.courses.findMany({ select: { id: true, name: true } });
+    const unassignedCourses = allCourses
+      .filter((c) => !assignedIds.has(c.id))
+      .slice(0, 10);
+
+    // 2) 课时超限教师：总周课时 > default_weekly_hours
+    const teacherHours = {};
+    for (const a of allAssignments) {
+      const tid = a.teacher.id;
+      if (!teacherHours[tid]) {
+        teacherHours[tid] = {
+          id: tid,
+          name: a.teacher.name,
+          limit: a.teacher.default_weekly_hours || 0,
+          hours: 0,
+        };
+      }
+      teacherHours[tid].hours += a.weekly_hours;
+    }
+    const overloadedTeachers = Object.values(teacherHours)
+      .filter((t) => t.limit > 0 && t.hours > t.limit)
+      .sort((a, b) => b.hours - a.hours)
+      .slice(0, 10);
+
+    const alerts = {
+      unassignedCourses,
+      overloadedTeachers,
+    };
+
+    // —— 课时分布（按任课班级所属学院汇总） ——
+    const collegeHours = {};
+    for (const c of colleges) {
+      collegeHours[c.name] = 0;
+    }
+    for (const a of allAssignments) {
+      const collegeName = a.class?.colleges?.name;
+      if (collegeName && collegeHours[collegeName] !== undefined) {
+        collegeHours[collegeName] += a.weekly_hours;
+      }
+    }
+    // 过滤掉 0 课时的学院，转为数组
+    const distribution = Object.entries(collegeHours)
+      .filter(([, hours]) => hours > 0)
+      .map(([name, hours]) => ({ name, hours: Math.round(hours * 10) / 10 }))
+      .sort((a, b) => b.hours - a.hours);
+
+    success(res, { semester, completion, alerts, distribution });
+  } catch (e) {
+    next(e);
+  }
+}

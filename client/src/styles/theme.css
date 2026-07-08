@@ -5,12 +5,12 @@
    ================================================================ */
 
 :root {
-  /* —— 主色板:采用 ElementPlus 原生蓝 #409eff —— */
-  --brand-primary: #409eff;
-  --brand-primary-hover: #388be0; /* 主色 hover 阶（深 12%） */
-  --brand-primary-active: #337ecc; /* 主色 active 阶（深 20%） */
-  --brand-primary-soft: #ecf5ff; /* 主色极浅背景（tag/hover 底） */
-  --brand-primary-lighter: #d5eaff; /* 主色浅阶，用于渐变过渡 */
+  /* —— 主色板:天蓝色 #0EA5E9,摆脱 ElementPlus 默认蓝的"模板感" —— */
+  --brand-primary: #0EA5E9;
+  --brand-primary-hover: #0284C7; /* 主色 hover 阶（深一级,对应 Sky-600） */
+  --brand-primary-active: #0369A1; /* 主色 active 阶（深两级,对应 Sky-700） */
+  --brand-primary-soft: #E0F2FE; /* 主色极浅背景（tag/hover 底,对应 Sky-50） */
+  --brand-primary-lighter: #BAE6FD; /* 主色浅阶,用于渐变过渡（对应 Sky-200） */
   --brand-success: #10b981;
   --brand-success-soft: #ecfdf5;
   --brand-warning: #f59e0b;
@@ -31,14 +31,14 @@
   --border-light: #e2e8f0;
   --border-base: #cbd5e1;
 
-  /* —— 侧边栏深色系（独立色板，便于将来支持暗色模式） —— */
-  --sidebar-bg: #304156;
-  --sidebar-bg-deep: #2b3a4a;
-  --sidebar-text: #bfcbd9;
-  --sidebar-active: var(--brand-primary);
-  --sidebar-border: #3d4c5c;
-  --sidebar-scrollbar: #4a5f7a;
-  --sidebar-scrollbar-hover: #5a7a9a;
+  /* —— 侧边栏深色系（现代 Slate 渐变色板,独立色板便于将来暗色模式） —— */
+  --sidebar-bg: #1E293B; /* Slate-800,比旧 #304156 更深更现代 */
+  --sidebar-bg-deep: #0F172A; /* Slate-900,用于底部渐变 */
+  --sidebar-text: #94A3B8; /* Slate-400,与深色底对比更柔和 */
+  --sidebar-active: #FFFFFF; /* 纯白活跃文字,搭配左侧色条指示器 */
+  --sidebar-border: #334155; /* Slate-700 */
+  --sidebar-scrollbar: #475569; /* Slate-600 */
+  --sidebar-scrollbar-hover: #64748B; /* Slate-500 */
 
   /* —— 间距基数 8px,统一节奏 —— */
   --space-1: 4px;
@@ -86,11 +86,11 @@
   --el-box-shadow: var(--shadow-md);
   --el-box-shadow-light: var(--shadow-sm);
 
-  /* —— ElementPlus 主色阶（light/dark），与 #409eff 原生衍生色一致 —— */
-  --el-color-primary-light-3: #79bbff;
-  --el-color-primary-light-5: #a0ceff;
-  --el-color-primary-light-7: #c6e2ff;
-  --el-color-primary-light-8: #d9ecff;
-  --el-color-primary-light-9: #ecf5ff;
+  /* —— ElementPlus 主色阶（light/dark），与 #0EA5E9 新主色匹配 —— */
+  --el-color-primary-light-3: #5EBDEE;
+  --el-color-primary-light-5: #87D4F4;
+  --el-color-primary-light-7: #B4E8F9;
+  --el-color-primary-light-8: #CAF1FC;
+  --el-color-primary-light-9: #E0F2FE;
   --el-color-primary-dark-2: var(--brand-primary-active);
 }

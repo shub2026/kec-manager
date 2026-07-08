@@ -8,7 +8,7 @@
       @selection-change="$emit('selection-change', $event)"
     >
       <template #empty>
-        <el-empty description="暂无数据" />
+        <EmptyState type="class" description="暂无班级数据" />
       </template>
       <el-table-column type="selection" width="45" />
       <el-table-column type="index" label="序号" width="60" align="center" />
@@ -124,6 +124,7 @@
 
 <script setup>
 import { Edit, Delete } from '@element-plus/icons-vue';
+import EmptyState from '../../../components/EmptyState.vue';
 
 const props = defineProps({
   classes: {

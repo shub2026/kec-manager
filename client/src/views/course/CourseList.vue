@@ -34,7 +34,7 @@
 
       <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
         <template #empty>
-          <el-empty description="暂无数据" />
+          <EmptyState type="course" description="暂无课程数据" />
         </template>
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="课程名称" min-width="150" />
@@ -173,6 +173,7 @@ import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/
 import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
 import { useSortable } from '../../composables/useSortable';
+import EmptyState from '../../components/EmptyState.vue';
 
 const list = ref([]);
 const filterName = ref('');

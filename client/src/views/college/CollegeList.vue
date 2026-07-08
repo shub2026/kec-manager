@@ -13,7 +13,7 @@
       </template>
       <el-table v-loading="loading" :data="list" stripe row-key="id">
         <template #empty>
-          <el-empty description="暂无数据" />
+          <EmptyState type="college" description="暂无学院数据" />
         </template>
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="学院名称" min-width="150" />
@@ -120,6 +120,7 @@ import { ref } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete, WarningFilled } from '@element-plus/icons-vue';
 import { getColleges, createCollege, updateCollege, deleteCollege } from '../../api/college';
 import { useCrudList } from '../../composables/useCrudList';
+import EmptyState from '../../components/EmptyState.vue';
 
 const formRef = ref(null);
 const rules = {

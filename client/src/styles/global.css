@@ -31,13 +31,20 @@
 }
 
 .el-button--primary:hover {
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.28);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.28);
 }
 
 /* 表格行 hover:更柔和的强调色 */
 .el-table tbody tr:hover > td {
   background: var(--brand-primary-soft) !important;
   transition: background var(--dur-fast) var(--ease-out);
+}
+
+/* 表头增强:品牌浅底 + 粗体,拉开与数据行的层次感 */
+.el-table th.el-table__cell {
+  background: var(--brand-primary-soft) !important;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 /* F-12: 表格单元格 — 垂直居中 + 紧凑行高 */
@@ -427,6 +434,26 @@
   .el-dialog__body {
     padding: 12px 12px !important;
   }
+}
+
+/* ----- 操作列 hover 浮现效果：减少视觉噪音，hover 时才完全显示 ----- */
+.op-buttons .el-button,
+.el-table__body-wrapper .el-table__row td:last-child .el-button {
+  opacity: 0.45;
+  transition: opacity var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.el-table__body-wrapper .el-table__row:hover td:last-child .el-button,
+.el-table__body-wrapper .el-table__row:hover .op-buttons .el-button {
+  opacity: 1;
+}
+
+/* 窄屏下拉菜单始终完全可见，不受 dim 效果影响 */
+.op-dropdown .el-button,
+.op-dropdown .el-dropdown {
+  opacity: 1 !important;
 }
 
 /* ----- 操作列响应式：桌面显示按钮行，窄屏显示下拉菜单 ----- */

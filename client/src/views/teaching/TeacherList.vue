@@ -1,17 +1,13 @@
 <template>
   <div class="teacher-list">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><Avatar /></el-icon> 教师信息</span
-          >
-          <el-button type="primary" @click="openDialog()">
-            <el-icon><Plus /></el-icon> 新增教师
-          </el-button>
-        </div>
+    <PageHeader title="教师信息" subtitle="教学安排" description="管理参与排课的教师信息，包括归属学院、授课课程和排课偏好">
+      <template #extra>
+        <el-button type="primary" @click="openDialog()">
+          <el-icon><Plus /></el-icon> 新增教师
+        </el-button>
       </template>
-
+    </PageHeader>
+    <el-card>
       <div class="page-toolbar">
         <el-input v-model="filterName" placeholder="搜索姓名" clearable class="filter-2xl" />
         <el-select v-model="filterPersonnelType" placeholder="人员类别" clearable class="filter-sm">
@@ -86,7 +82,7 @@
 
       <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
         <template #empty>
-          <el-empty description="暂无数据" />
+          <EmptyState type="teacher" description="暂无教师数据" />
         </template>
         <el-table-column type="index" label="序号" min-width="60" align="center" />
         <el-table-column prop="name" label="姓名" min-width="100">
@@ -382,6 +378,8 @@ import { useImport } from '../../composables/useImport';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useResponsive } from '../../composables/useResponsive';
+import EmptyState from '../../components/EmptyState.vue';
+import PageHeader from '../../components/PageHeader.vue';
 
 const list = ref([]);
 const loading = ref(false);

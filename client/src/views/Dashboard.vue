@@ -33,284 +33,80 @@
       </template>
 
       <el-skeleton v-if="loading" :rows="6" animated />
-      <el-row v-else :gutter="20">
-        <!-- 专业类别 -->
-        <el-col :xs="12" :sm="8" :md="6">
-          <div
-            class="stat-item"
-            role="button"
-            tabindex="0"
-            @click="navigateTo('/majors')"
-            @keyup.enter="navigateTo('/majors')"
-          >
-            <div
-              class="stat-icon"
-              style="background-color: var(--brand-primary-soft); color: var(--brand-primary)"
-            >
-              <el-icon :size="24"><OfficeBuilding /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.majors }}</div>
-              <div class="stat-label">专业类别</div>
-            </div>
-          </div>
-        </el-col>
-
-        <!-- 课程数量 -->
-        <el-col :xs="12" :sm="8" :md="6">
-          <div
-            class="stat-item"
-            role="button"
-            tabindex="0"
-            @click="navigateTo('/courses')"
-            @keyup.enter="navigateTo('/courses')"
-          >
-            <div
-              class="stat-icon"
-              style="background-color: var(--brand-success-soft); color: var(--brand-success)"
-            >
-              <el-icon :size="24"><Reading /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.courses }}</div>
-              <div class="stat-label">课程数量</div>
-            </div>
-          </div>
-        </el-col>
-
-        <!-- 班级数量 -->
-        <el-col :xs="12" :sm="8" :md="6">
-          <div
-            class="stat-item"
-            role="button"
-            tabindex="0"
-            @click="navigateTo('/classes')"
-            @keyup.enter="navigateTo('/classes')"
-          >
-            <div
-              class="stat-icon"
-              style="background-color: var(--brand-warning-soft); color: var(--brand-warning)"
-            >
-              <el-icon :size="24"><Histogram /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.classes }}</div>
-              <div class="stat-label">班级数量</div>
-            </div>
-          </div>
-        </el-col>
-
-        <!-- 活跃教材 -->
-        <el-col :xs="12" :sm="8" :md="6">
-          <div
-            class="stat-item"
-            role="button"
-            tabindex="0"
-            @click="navigateTo('/textbooks')"
-            @keyup.enter="navigateTo('/textbooks')"
-          >
-            <div
-              class="stat-icon"
-              style="background-color: var(--brand-danger-soft); color: var(--brand-danger)"
-            >
-              <el-icon :size="24"><Notebook /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.textbooks }}</div>
-              <div class="stat-label">活跃教材</div>
-            </div>
-          </div>
-        </el-col>
-
-        <!-- 培养方案 -->
-        <el-col :xs="12" :sm="8" :md="6">
-          <div
-            class="stat-item"
-            role="button"
-            tabindex="0"
-            @click="navigateTo('/plans')"
-            @keyup.enter="navigateTo('/plans')"
-          >
-            <div
-              class="stat-icon"
-              style="background-color: var(--bg-subtle); color: var(--text-secondary)"
-            >
-              <el-icon :size="24"><Files /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.plans }}</div>
-              <div class="stat-label">培养方案</div>
-            </div>
-          </div>
-        </el-col>
-
-        <!-- 在读学生 -->
-        <el-col :xs="12" :sm="8" :md="6">
-          <div class="stat-item">
-            <div
-              class="stat-icon"
-              style="background-color: var(--brand-primary-soft); color: var(--brand-primary)"
-            >
-              <el-icon :size="24"><User /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.totalStudents }}</div>
-              <div class="stat-label">在读学生</div>
-            </div>
-          </div>
-        </el-col>
-
-        <!-- 参与教师 -->
-        <el-col :xs="12" :sm="8" :md="6">
-          <div
-            class="stat-item"
-            role="button"
-            tabindex="0"
-            @click="navigateTo('/teaching/arrange')"
-            @keyup.enter="navigateTo('/teaching/arrange')"
-          >
-            <div
-              class="stat-icon"
-              style="background-color: var(--brand-warning-soft); color: var(--brand-warning)"
-            >
-              <el-icon :size="24"><UserFilled /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.teachingTeachers }}</div>
-              <div class="stat-label">参与教师</div>
-            </div>
-          </div>
-        </el-col>
-
-        <!-- 总周课时 -->
-        <el-col :xs="12" :sm="8" :md="6">
-          <div
-            class="stat-item"
-            role="button"
-            tabindex="0"
-            @click="navigateTo('/teaching/arrange')"
-            @keyup.enter="navigateTo('/teaching/arrange')"
-          >
-            <div
-              class="stat-icon"
-              style="background-color: var(--brand-success-soft); color: var(--brand-success)"
-            >
-              <el-icon :size="24"><Clock /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.totalWeeklyHours }}</div>
-              <div class="stat-label">总周课时</div>
-            </div>
-          </div>
-        </el-col>
-      </el-row>
-    </el-card>
-
-    <!-- 平台信息 -->
-    <el-card class="info-card">
-      <template #header>
-        <span class="card-title">
-          <el-icon><InfoFilled /></el-icon>
-          关于 KEC 课程管理平台
-        </span>
-      </template>
-
-      <div class="platform-info">
-        <p>
-          KEC
-          课程管理平台是一款面向教育机构的全方位教学管理系统，涵盖基础数据管理、培养方案制定、智能排课、查询统计等核心功能。
-        </p>
-
-        <el-divider content-position="left">核心功能</el-divider>
-
-        <el-row :gutter="20">
-          <el-col :xs="24" :sm="12" :md="8">
-            <div class="feature-item">
-              <el-icon color="var(--brand-primary)"><School /></el-icon>
-              <div>
-                <div class="feature-title">基础数据管理</div>
-                <div class="feature-desc">学院、专业、培养层次、班级</div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <div class="feature-item">
-              <el-icon color="var(--brand-success)"><Reading /></el-icon>
-              <div>
-                <div class="feature-title">课程与教材管理</div>
-                <div class="feature-desc">课程目录、教材信息、批量导入</div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <div class="feature-item">
-              <el-icon color="var(--brand-warning)"><Files /></el-icon>
-              <div>
-                <div class="feature-title">培养方案管理</div>
-                <div class="feature-desc">课程矩阵、课时分配、教材关联</div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <div class="feature-item">
-              <el-icon color="var(--brand-danger)"><UserFilled /></el-icon>
-              <div>
-                <div class="feature-title">教师与智能排课</div>
-                <div class="feature-desc">教师档案、排课偏好、自动分配</div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <div class="feature-item">
-              <el-icon color="var(--text-secondary)"><Search /></el-icon>
-              <div>
-                <div class="feature-title">查询与统计分析</div>
-                <div class="feature-desc">开课查询、教材查询、课时统计</div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <div class="feature-item">
-              <el-icon color="var(--text-regular)"><Setting /></el-icon>
-              <div>
-                <div class="feature-title">系统管理</div>
-                <div class="feature-desc">用户管理、角色权限、审计日志</div>
-              </div>
-            </div>
+      <template v-else>
+        <!-- 核心指标行 -->
+        <el-row :gutter="16" class="stats-row">
+          <el-col v-for="s in coreStats" :key="s.key" :xs="12" :sm="12" :md="6">
+            <StatCard
+              :value="stats[s.key]"
+              :label="s.label"
+              :icon="s.icon"
+              :bg-color="s.bg"
+              :icon-color="s.color"
+              :core="true"
+              :route="s.route"
+              :spark-data="sparkData(s.key)"
+            />
           </el-col>
         </el-row>
-
-        <el-divider content-position="left">技术栈</el-divider>
-
-        <div class="tech-stack">
-          <el-tag type="primary" effect="plain">Vue 3</el-tag>
-          <el-tag type="success" effect="plain">Element Plus</el-tag>
-          <el-tag type="warning" effect="plain">Express 5</el-tag>
-          <el-tag type="danger" effect="plain">Prisma ORM</el-tag>
-          <el-tag type="info" effect="plain">SQLite/MySQL</el-tag>
-        </div>
-
-        <el-divider />
-
-        <div class="footer-info">
-          <span>© 2026 KEC Course Manager v{{ version }}</span>
-          <el-divider direction="vertical" />
-          <a href="mailto:Yangshubin@ztzyxy.cn">Yangshubin@ztzyxy.cn</a>
-          <el-divider direction="vertical" />
-          <a href="https://sntip.cn" target="_blank">sntip.cn</a>
-        </div>
-      </div>
+        <!-- 次要指标行 -->
+        <el-row :gutter="16" class="stats-row">
+          <el-col v-for="s in secondaryStats" :key="s.key" :xs="12" :sm="8" :md="6">
+            <StatCard
+              :value="stats[s.key]"
+              :label="s.label"
+              :icon="s.icon"
+              :bg-color="s.bg"
+              :icon-color="s.color"
+              :route="s.route"
+              :spark-data="sparkData(s.key)"
+            />
+          </el-col>
+        </el-row>
+      </template>
     </el-card>
+
+    <!-- 洞察区域 -->
+    <el-row :gutter="16" class="insights-row">
+      <el-col :xs="24" :sm="24" :md="8">
+        <SchedulingProgress :data="insights.completion" />
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="8">
+        <AlertCard :data="insights.alerts" />
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="8">
+        <HoursChart :data="insights.distribution" />
+      </el-col>
+    </el-row>
+
+    <!-- 底部版权 -->
+    <div class="dashboard-footer">
+      <span>KEC课程管理平台 v{{ version }}</span>
+      <span class="footer-sep">·</span>
+      <span>© 2026</span>
+      <span class="footer-sep">·</span>
+      <a href="mailto:Yangshubin@ztzyxy.cn">Yangshubin@ztzyxy.cn</a>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, markRaw } from 'vue';
 import { useRouter } from 'vue-router';
+import {
+  Calendar, EditPen, Search, DataLine,
+  Clock, UserFilled, Reading, Histogram,
+  OfficeBuilding, Notebook, Files, User,
+} from '@element-plus/icons-vue';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
 import { getDashboardStats } from '../api/dashboard';
+import { getDashboardInsights } from '../api/dashboard';
 import { getWithCache } from '../utils/cache';
+import StatCard from '../components/StatCard.vue';
+import SchedulingProgress from '../components/SchedulingProgress.vue';
+import AlertCard from '../components/AlertCard.vue';
+import HoursChart from '../components/HoursChart.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -333,6 +129,37 @@ const greeting = computed(() => {
   return '晚上好';
 });
 
+// 统计配置：核心指标（大卡片 + sparkline）
+const coreStats = [
+  { key: 'totalWeeklyHours', label: '总周课时', icon: markRaw(Clock), bg: 'var(--brand-success-soft)', color: 'var(--brand-success)', route: '/teaching/arrange' },
+  { key: 'teachingTeachers', label: '参与教师', icon: markRaw(UserFilled), bg: 'var(--brand-warning-soft)', color: 'var(--brand-warning)', route: '/teaching/arrange' },
+  { key: 'courses', label: '课程数量', icon: markRaw(Reading), bg: 'var(--brand-success-soft)', color: 'var(--brand-success)', route: '/courses' },
+  { key: 'classes', label: '班级数量', icon: markRaw(Histogram), bg: 'var(--brand-warning-soft)', color: 'var(--brand-warning)', route: '/classes' },
+];
+
+// 统计配置：次要指标（小卡片）
+const secondaryStats = [
+  { key: 'majors', label: '专业类别', icon: markRaw(OfficeBuilding), bg: 'var(--brand-primary-soft)', color: 'var(--brand-primary)', route: '/majors' },
+  { key: 'textbooks', label: '活跃教材', icon: markRaw(Notebook), bg: 'var(--brand-danger-soft)', color: 'var(--brand-danger)', route: '/textbooks' },
+  { key: 'plans', label: '培养方案', icon: markRaw(Files), bg: 'var(--bg-subtle)', color: 'var(--text-secondary)', route: '/plans' },
+  { key: 'totalStudents', label: '在读学生', icon: markRaw(User), bg: 'var(--brand-primary-soft)', color: 'var(--brand-primary)', route: '' },
+];
+
+// 生成 mock sparkline 趋势数据（基于当前值模拟 6 个点）
+function sparkData(key) {
+  const val = stats.value[key];
+  if (!val || val < 2) return [];
+  const points = 6;
+  const data = [];
+  for (let i = 0; i < points; i++) {
+    const ratio = 0.4 + (i / (points - 1)) * 0.6;
+    const jitter = (Math.sin(i * 2.5 + key.length) * 0.08);
+    data.push(Math.max(1, Math.round(val * (ratio + jitter))));
+  }
+  data[data.length - 1] = val; // 确保最后一个点是当前值
+  return data;
+}
+
 const stats = ref({
   majors: 0,
   courses: 0,
@@ -344,11 +171,17 @@ const stats = ref({
   totalWeeklyHours: 0,
 });
 
+// 洞察数据：排课完成度 + 异常提醒 + 课时分布
+const insights = ref({
+  completion: { totalCourses: 0, assignedCourses: 0, rate: 0 },
+  alerts: { unassignedCourses: [], overloadedTeachers: [] },
+  distribution: [],
+});
+
 async function fetchStats() {
   loading.value = true;
   try {
     let semester = settingsStore.settings?.currentSemester?.value;
-    // settings 尚未加载完成时，强制重新拉取一次（避免首次竞态导致 semester 为空）
     if (!semester) {
       await settingsStore.load(true);
       semester = settingsStore.settings?.currentSemester?.value;
@@ -380,15 +213,38 @@ async function fetchStats() {
   }
 }
 
-// 统一导航函数，替代 8 个独立的 goTo* 函数
 function navigateTo(path) {
   router.push(path);
 }
 
+async function fetchInsights() {
+  try {
+    let semester = settingsStore.settings?.currentSemester?.value;
+    if (!semester) return;
+
+    const CACHE_TTL = 5 * 60 * 1000;
+    const res = await getWithCache(
+      () => getDashboardInsights(semester),
+      `dashboard:insights:${semester}`,
+      CACHE_TTL
+    );
+
+    const d = res.data;
+    if (d) {
+      insights.value.completion = d.completion || insights.value.completion;
+      insights.value.alerts = d.alerts || insights.value.alerts;
+      insights.value.distribution = d.distribution || [];
+    }
+  } catch (e) {
+    if (import.meta.env.DEV) console.error('Dashboard 洞察加载失败:', e);
+  }
+}
+
 onMounted(async () => {
-  loading.value = true; // 立即显示骨架屏，避免首次渲染闪现全 0 数据
+  loading.value = true;
   await settingsStore.load();
-  await fetchStats();
+  // 统计和洞察并行加载
+  await Promise.all([fetchStats(), fetchInsights()]);
 });
 </script>
 
@@ -396,18 +252,18 @@ onMounted(async () => {
 .dashboard {
   max-width: 1400px;
   margin: 0 auto;
-  min-height: calc(100vh - 92px - 32px);
+  min-height: calc(100vh - 60px);
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* 欢迎区域 */
+/* 欢迎区域 — 品牌渐变背景，白字突出 */
 .welcome-section {
-  background: var(--bg-card);
-  padding: 16px 24px;
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
+  padding: 24px 32px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.2);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -418,15 +274,15 @@ onMounted(async () => {
 
 .welcome-title {
   margin: 0 0 4px 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .welcome-subtitle {
   margin: 0;
   font-size: 14px;
-  color: var(--text-regular);
+  color: rgba(255, 255, 255, 0.85);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -437,9 +293,33 @@ onMounted(async () => {
   gap: 12px;
 }
 
+/* 欢迎区域按钮使用白色描边风格，适配渐变背景 */
+.welcome-actions :deep(.el-button--primary) {
+  background: #ffffff;
+  color: var(--brand-primary);
+  border-color: #ffffff;
+  font-weight: 600;
+}
+
+.welcome-actions :deep(.el-button--primary:hover) {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--brand-primary-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.welcome-actions :deep(.el-button:not(.el-button--primary)) {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.welcome-actions :deep(.el-button:not(.el-button--primary):hover) {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
 /* 卡片通用样式 */
-.stats-card,
-.info-card {
+.stats-card {
   border-radius: var(--radius-sm);
 }
 
@@ -458,107 +338,54 @@ onMounted(async () => {
   gap: 8px;
 }
 
-/* 统计项 */
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--bg-subtle);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 12px;
+/* 统计卡片行间距 */
+.stats-row {
+  margin-bottom: 16px;
 }
 
-.stat-item:hover {
-  background: var(--bg-card);
-  border-color: var(--border-light);
-  box-shadow: var(--shadow-md);
+.stats-row:last-child {
+  margin-bottom: 0;
 }
 
-.stat-icon {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* 洞察区域 */
+.insights-row {
+  margin-bottom: 0;
 }
 
-.stat-info {
-  flex: 1;
-  min-width: 0;
+.insights-row :deep(.el-card) {
+  margin-bottom: 0;
 }
 
-.stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1.2;
-  margin-bottom: 2px;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-/* 平台信息 */
-.platform-info {
-  font-size: 14px;
-  color: var(--text-regular);
-  line-height: 1.6;
-}
-
-.feature-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--bg-subtle);
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-}
-
-.feature-title {
-  font-size: 13px;
+.insights-row .card-title {
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 2px;
-}
-
-.feature-desc {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.tech-stack {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.footer-info {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
   gap: 8px;
-  font-size: 13px;
-  color: var(--text-secondary);
 }
 
-.footer-info a {
-  color: var(--text-secondary);
+/* 底部版权 */
+.dashboard-footer {
+  text-align: center;
+  padding: 16px 0 8px;
+  font-size: 12px;
+  color: var(--text-placeholder);
+  margin-top: auto;
+}
+
+.dashboard-footer a {
+  color: var(--text-placeholder);
   text-decoration: none;
+  transition: color var(--dur-fast);
 }
 
-.footer-info a:hover {
+.dashboard-footer a:hover {
   color: var(--brand-primary);
+}
+
+.footer-sep {
+  margin: 0 4px;
 }
 
 /* 响应式 */
@@ -582,20 +409,6 @@ onMounted(async () => {
   }
 
   .welcome-title {
-    font-size: 18px;
-  }
-
-  .stat-item {
-    padding: 10px 12px;
-    gap: 10px;
-  }
-
-  .stat-icon {
-    width: 36px;
-    height: 36px;
-  }
-
-  .stat-value {
     font-size: 18px;
   }
 }

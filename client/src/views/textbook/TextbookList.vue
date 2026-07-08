@@ -51,7 +51,7 @@
         @selection-change="handleSelectionChange"
       >
         <template #empty>
-          <el-empty description="暂无数据" />
+          <EmptyState type="textbook" description="暂无教材数据" />
         </template>
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
@@ -335,6 +335,7 @@ import { useImport } from '../../composables/useImport';
 import { useSortable } from '../../composables/useSortable';
 import { useResponsive } from '../../composables/useResponsive';
 import { useDebounceFn } from '../../composables/useDebounce';
+import EmptyState from '../../components/EmptyState.vue';
 
 const list = ref([]);
 

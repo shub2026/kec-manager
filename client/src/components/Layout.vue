@@ -124,14 +124,13 @@
       </el-header>
       <el-main class="layout-main">
         <router-view v-slot="{ Component }">
-          <keep-alive :include="cachedViews">
-            <component :is="Component" :key="$route.path" />
-          </keep-alive>
+          <transition name="fade-slide" mode="out-in">
+            <keep-alive :include="cachedViews">
+              <component :is="Component" :key="$route.path" />
+            </keep-alive>
+          </transition>
         </router-view>
       </el-main>
-      <el-footer class="layout-footer" height="32px">
-        <span>KEC课程管理平台 v{{ version }}</span>
-      </el-footer>
     </el-container>
   </el-container>
 
@@ -187,12 +186,12 @@ const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 
 // 侧边栏配色绑定（el-menu 属性不支持 CSS 变量，通过 JS 读取令牌）
 const sidebarBg =
-  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-bg').trim() || '#304156';
+  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-bg').trim() || '#1E293B';
 const sidebarText =
-  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-text').trim() || '#bfcbd9';
+  getComputedStyle(document.documentElement).getPropertyValue('--sidebar-text').trim() || '#94A3B8';
 const sidebarActive =
   getComputedStyle(document.documentElement).getPropertyValue('--sidebar-active').trim() ||
-  '#409eff';
+  '#FFFFFF';
 
 // keep-alive 缓存的列表页组件名（需与各列表组件 defineOptions({ name }) 一致）
 const cachedViews = [
@@ -281,13 +280,11 @@ function handlePasswordChangeSuccess() {
 
 .layout-aside {
   transition: width 0.3s ease;
-  background: var(--sidebar-bg);
   overflow: hidden;
   flex-shrink: 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
 }
 
 .layout-logo {
@@ -333,6 +330,48 @@ function handlePasswordChangeSuccess() {
 
 .layout-aside :deep(.el-menu)::-webkit-scrollbar-thumb:hover {
   background: var(--sidebar-scrollbar-hover);
+}
+
+/* 侧边栏渐变背景 */
+.layout-aside {
+  background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-deep) 100%);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 活跃菜单项左侧色条指示器 */
+.layout-aside :deep(.el-menu-item.is-active::before) {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand-primary);
+  transition: height var(--dur-fast) var(--ease-out);
+}
+
+/* 活跃菜单项添加微弱背景 */
+.layout-aside :deep(.el-menu-item.is-active) {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.layout-logo {
+  height: 60px;
+  min-height: 60px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  border-bottom: 1px solid var(--sidebar-border);
+  flex-shrink: 0;
+  overflow: hidden;
+  background: transparent;
+  z-index: 10;
 }
 
 .logo-icon {
@@ -425,17 +464,6 @@ function handlePasswordChangeSuccess() {
   min-height: 0;
 }
 
-.layout-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  font-size: 12px;
-  background: var(--bg-card);
-  border-top: 1px solid var(--border-light);
-  flex-shrink: 0;
-}
-
 /* 窄屏头部紧凑排列 */
 @media (max-width: 768px) {
   .layout-header {
@@ -458,5 +486,21 @@ function handlePasswordChangeSuccess() {
   .layout-main {
     padding: 12px 12px;
   }
+}
+
+/* 页面切换 fade-slide 过渡动画 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateX(12px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-12px);
 }
 </style>

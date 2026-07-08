@@ -1,62 +1,7 @@
 <template>
   <div class="teaching-statistics">
+    <PageHeader title="课时统计" subtitle="教学安排" description="查看本学期各教师的课时分配情况和教学统计" />
     <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><DataAnalysis /></el-icon> 课时统计</span
-          >
-          <div class="card-header-actions">
-            <el-tag type="info">{{ semester }}</el-tag>
-            <el-input v-model="filterName" placeholder="姓名" clearable style="width: 120px" />
-            <el-select v-model="filterType" placeholder="类别" clearable style="width: 100px">
-              <el-option label="专职" value="full_time" />
-              <el-option label="兼职" value="part_time" />
-              <el-option label="外聘" value="external" />
-            </el-select>
-            <el-select
-              v-model="filterSubject"
-              placeholder="科目"
-              clearable
-              filterable
-              style="width: 140px"
-            >
-              <el-option v-for="v in subjectOptions" :key="v" :label="v" :value="v" />
-            </el-select>
-            <el-select
-              v-model="filterAffiliatedCollege"
-              placeholder="归属学院"
-              clearable
-              filterable
-              style="width: 130px"
-            >
-              <el-option v-for="v in affiliatedCollegeOptions" :key="v" :label="v" :value="v" />
-            </el-select>
-            <el-select
-              v-model="filterLevel"
-              placeholder="任课层次"
-              clearable
-              filterable
-              style="width: 110px"
-            >
-              <el-option v-for="v in levelOptions" :key="v" :label="v" :value="v" />
-            </el-select>
-            <el-select
-              v-model="filterCollege"
-              placeholder="任课学院"
-              clearable
-              filterable
-              style="width: 120px"
-            >
-              <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
-            </el-select>
-            <el-button :loading="exporting" :disabled="!statsData" @click="handleExport"
-              >数据导出</el-button
-            >
-          </div>
-        </div>
-      </template>
-
       <!-- 汇总统计 -->
       <div v-if="statsData" class="summary-section">
         <el-row :gutter="20">
@@ -75,6 +20,30 @@
           </el-col>
         </el-row>
         <el-divider />
+      </div>
+
+      <!-- 筛选器 -->
+      <div class="page-toolbar">
+        <el-tag type="info">{{ semester }}</el-tag>
+        <el-input v-model="filterName" placeholder="姓名" clearable style="width: 120px" />
+        <el-select v-model="filterType" placeholder="类别" clearable style="width: 100px">
+          <el-option label="专职" value="full_time" />
+          <el-option label="兼职" value="part_time" />
+          <el-option label="外聘" value="external" />
+        </el-select>
+        <el-select v-model="filterSubject" placeholder="科目" clearable filterable style="width: 140px">
+          <el-option v-for="v in subjectOptions" :key="v" :label="v" :value="v" />
+        </el-select>
+        <el-select v-model="filterAffiliatedCollege" placeholder="归属学院" clearable filterable style="width: 130px">
+          <el-option v-for="v in affiliatedCollegeOptions" :key="v" :label="v" :value="v" />
+        </el-select>
+        <el-select v-model="filterLevel" placeholder="任课层次" clearable filterable style="width: 110px">
+          <el-option v-for="v in levelOptions" :key="v" :label="v" :value="v" />
+        </el-select>
+        <el-select v-model="filterCollege" placeholder="任课学院" clearable filterable style="width: 120px">
+          <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
+        </el-select>
+        <el-button :loading="exporting" :disabled="!statsData" @click="handleExport">数据导出</el-button>
       </div>
 
       <!-- 空状态 -->
@@ -215,6 +184,7 @@ import { getSettings } from '../../api/settings';
 import { exportStatistics } from '../../api/export';
 import { downloadBlob } from '../../utils/download';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
+import PageHeader from '../../components/PageHeader.vue';
 
 const semester = ref('');
 const statsData = ref(null);
