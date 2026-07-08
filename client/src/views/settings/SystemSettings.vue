@@ -1,17 +1,10 @@
 <template>
   <div class="settings-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-icon">
-          <el-icon :size="28"><Setting /></el-icon>
-        </div>
-        <div class="header-info">
-          <h2 class="page-title">系统设置</h2>
-          <p class="page-desc">配置学期、管理系统数据、查看操作日志</p>
-        </div>
-      </div>
-    </div>
+    <PageHeader
+      title="系统设置"
+      subtitle="系统管理"
+      description="配置学期、管理系统数据、查看操作日志"
+    />
 
     <!-- 学期配置组件 -->
     <SemesterConfig
@@ -50,6 +43,7 @@ import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useSettingsStore } from '../../stores/settings';
 import { resetAuditLogs, resetSettings } from '../../api/settings';
+import PageHeader from '../../components/PageHeader.vue';
 import SemesterConfig from './components/SemesterConfig.vue';
 import SchedulingConfig from './components/SchedulingConfig.vue';
 import DataReset from './components/DataReset.vue';
@@ -170,67 +164,10 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* 页面头部 */
-.page-header {
-  background: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  padding: 24px 28px;
-  margin-bottom: 20px;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.header-icon {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--brand-primary-soft);
-  border-radius: 8px;
-  color: var(--brand-primary);
-}
-
-.header-info {
-  flex: 1;
-}
-
-.page-title {
-  margin: 0 0 6px 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.page-desc {
-  margin: 0;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
 /* 响应式 */
 @media (max-width: 768px) {
   .settings-page {
     padding: 12px;
-  }
-
-  .page-header {
-    padding: 16px 20px;
-  }
-
-  .header-icon {
-    width: 40px;
-    height: 40px;
-  }
-
-  .page-title {
-    font-size: 18px;
   }
 }
 </style>

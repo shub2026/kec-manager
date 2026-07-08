@@ -3,7 +3,7 @@
     <PageHeader
       title="培养层次"
       subtitle="基础数据"
-      description="管理培养层次信息，如本科、硕士、博士等"
+      description="管理培养层次信息，如高职、中职、技工等"
     >
       <template #extra>
         <el-button type="primary" @click="openDialog()">
