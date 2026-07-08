@@ -3,78 +3,57 @@
     <template #header>
       <div class="card-title-row">
         <span class="card-dot dot-red"></span>
-        <span class="card-title-text danger-text">数据管理</span>
+        <span class="card-title-text">数据管理</span>
         <el-tag size="small" type="danger" effect="plain">危险操作</el-tag>
       </div>
     </template>
 
-    <!-- 顶部警告横幅（紧凑） -->
-    <div class="danger-banner">
-      <el-icon :size="18"><WarningFilled /></el-icon>
-      <span><strong>以下操作永久删除数据且不可恢复</strong>，请提前备份。</span>
+    <!-- 顶部提示 -->
+    <div class="danger-hint">
+      <el-icon :size="16"><WarningFilled /></el-icon>
+      <span>以下操作永久删除数据且不可恢复，请提前备份。</span>
     </div>
 
-    <!-- 操作卡片：响应式栅格，≥992px 并排，<992px 堆叠 -->
-    <el-row :gutter="20" class="reset-row">
+    <!-- 操作列表 -->
+    <div class="reset-list">
       <!-- 系统重置 -->
-      <el-col :xs="24" :sm="24" :md="12" :lg="12">
-        <div class="reset-card warning">
-          <div class="reset-card-header">
-            <div class="reset-card-icon warning-icon">
-              <el-icon :size="24"><WarningFilled /></el-icon>
-            </div>
+      <div class="reset-item">
+        <div class="reset-item-info">
+          <div class="reset-item-header">
             <h4>系统重置</h4>
-            <el-tag size="small" type="warning" effect="dark">恢复初始状态</el-tag>
+            <el-tag size="small" type="warning" effect="plain">恢复初始状态</el-tag>
           </div>
-          <div class="reset-card-body">
-            <p>
-              清空所有业务数据（教师、班级、培养方案、课程、教材、专业、学院、培养层次、系统设置、操作日志），仅保留用户账号。
-            </p>
-            <div class="reset-card-scene">
-              <el-icon><InfoFilled /></el-icon>
-              <span>适用：更换测试环境、重新导入数据、系统初始化调试</span>
-            </div>
-          </div>
-          <div class="reset-card-footer">
-            <el-button type="danger" :loading="resetting" @click="$emit('reset', 'settings')">
-              <el-icon><Delete /></el-icon>
-              系统重置
-            </el-button>
-          </div>
+          <p class="reset-item-desc">
+            清空所有业务数据（教师、班级、培养方案、课程、教材、专业、学院、培养层次、系统设置、操作日志），仅保留用户账号。
+          </p>
         </div>
-      </el-col>
+        <div class="reset-item-action">
+          <el-button type="danger" size="small" :loading="resetting" @click="$emit('reset', 'settings')">
+            <el-icon><Delete /></el-icon>
+            系统重置
+          </el-button>
+        </div>
+      </div>
 
       <!-- 清空操作日志 -->
-      <el-col :xs="24" :sm="24" :md="12" :lg="12">
-        <div class="reset-card">
-          <div class="reset-card-header">
-            <div class="reset-card-icon">
-              <el-icon :size="24"><Delete /></el-icon>
-            </div>
+      <div class="reset-item">
+        <div class="reset-item-info">
+          <div class="reset-item-header">
             <h4>清空操作日志</h4>
             <el-tag size="small" type="info" effect="plain">不影响业务数据</el-tag>
           </div>
-          <div class="reset-card-body">
-            <p>删除所有审计日志记录。此操作不可恢复，但不会影响任何业务数据。</p>
-            <div class="reset-card-scene">
-              <el-icon><InfoFilled /></el-icon>
-              <span>适用：日志归档后清理、释放存储空间</span>
-            </div>
-          </div>
-          <div class="reset-card-footer">
-            <el-button
-              type="danger"
-              plain
-              :loading="resetting"
-              @click="$emit('reset', 'audit-logs')"
-            >
-              <el-icon><Delete /></el-icon>
-              清空日志
-            </el-button>
-          </div>
+          <p class="reset-item-desc">
+            删除所有审计日志记录。此操作不可恢复，但不会影响任何业务数据。
+          </p>
         </div>
-      </el-col>
-    </el-row>
+        <div class="reset-item-action">
+          <el-button type="danger" plain size="small" :loading="resetting" @click="$emit('reset', 'audit-logs')">
+            <el-icon><Delete /></el-icon>
+            清空日志
+          </el-button>
+        </div>
+      </div>
+    </div>
   </el-card>
 </template>
 
@@ -91,9 +70,7 @@ defineEmits(['reset']);
 
 <style scoped>
 .danger-card {
-  margin-top: 20px;
-  border-color: var(--el-color-danger-light-5);
-  border-width: 2px;
+  margin-bottom: 20px;
 }
 
 .card-title-row {
@@ -115,142 +92,91 @@ defineEmits(['reset']);
 .card-title-text {
   font-weight: 600;
   font-size: 16px;
+  color: var(--text-primary);
 }
 
-.danger-text {
-  color: var(--brand-danger);
-}
-
-/* 顶部警告横幅 - 紧凑 */
-.danger-banner {
+/* 顶部提示 - 轻量内联风格 */
+.danger-hint {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: 8px;
+  padding: 10px 14px;
   background: var(--brand-danger-soft);
-  border-left: 4px solid var(--brand-danger);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   margin-bottom: 16px;
   font-size: 13px;
   color: var(--text-regular);
 }
 
-.danger-banner .el-icon {
+.danger-hint .el-icon {
   color: var(--brand-danger);
   flex-shrink: 0;
 }
 
-/* 响应式栅格：让 el-col 等高，内部卡片撑满 */
-.reset-row :deep(.el-col) {
-  display: flex;
-}
-
-.reset-card {
-  flex: 1;
+/* 操作列表 */
+.reset-list {
   display: flex;
   flex-direction: column;
-  padding: 24px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+  gap: 0;
 }
 
-.reset-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+.reset-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-light);
 }
 
-.reset-card.warning {
-  background: var(--brand-warning-soft);
-  border-color: var(--brand-warning);
-  border-width: 2px;
+.reset-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
-/* 卡片头部：图标 + 标题 + 标签 */
-.reset-card-header {
+.reset-item:first-child {
+  padding-top: 0;
+}
+
+.reset-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.reset-item-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 6px;
 }
 
-.reset-card-icon {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-card);
-  border-radius: 10px;
-  color: var(--text-secondary);
-}
-
-.reset-card-icon.warning-icon {
-  color: var(--brand-warning);
-}
-
-.reset-card-header h4 {
+.reset-item-header h4 {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  flex: 1;
 }
 
-/* 卡片主体：描述 + 适用场景 */
-.reset-card-body {
-  flex: 1;
-  margin-bottom: 20px;
-}
-
-.reset-card-body p {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--text-regular);
-}
-
-.reset-card-scene {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 4px;
-  font-size: 12px;
+.reset-item-desc {
+  margin: 0;
+  font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
 }
 
-.reset-card.warning .reset-card-scene {
-  background: rgba(255, 255, 255, 0.5);
-  color: var(--brand-warning);
-}
-
-.reset-card-scene .el-icon {
+.reset-item-action {
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
-/* 卡片底部：按钮区，顶部分隔线 */
-.reset-card-footer {
-  display: flex;
-  justify-content: flex-start;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-light);
-}
+@media (max-width: 768px) {
+  .reset-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 
-.reset-card.warning .reset-card-footer {
-  border-top-color: var(--brand-warning);
-}
-
-/* 响应式：小屏单列时卡片间距 */
-@media (max-width: 991px) {
-  .reset-row :deep(.el-col) + .el-col {
-    margin-top: 16px;
+  .reset-item-action {
+    align-self: flex-end;
   }
 }
 </style>
