@@ -38,9 +38,8 @@ export const DEFAULT_SEMESTER = process.env.DEFAULT_SEMESTER || '2025-2026-2';
 export const PASSWORD_POLICY = {
   MIN_LENGTH: 8,
   MAX_LENGTH: 128,
-  // S-05修复：放宽特殊字符限制，接受所有ASCII可打印特殊字符
-  REGEX: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,128}$/,
-  DESCRIPTION: '密码须包含大写字母、小写字母、数字和特殊字符，长度8-128位',
+  MIN_TYPES: 2,
+  DESCRIPTION: '密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符），长度8-128位',
 };
 
 // 审计模块

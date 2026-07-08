@@ -110,8 +110,17 @@ export const validateChangePassword = [
   body('new_password')
     .isLength({ min: 8, max: 128 })
     .withMessage('新密码长度必须在8-128位之间')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,128}$/)
-    .withMessage('密码须包含大写字母、小写字母、数字和特殊字符，长度8-128位'),
+    .custom((value) => {
+      let types = 0;
+      if (/[a-z]/.test(value)) types++;
+      if (/[A-Z]/.test(value)) types++;
+      if (/\d/.test(value)) types++;
+      if (/[^a-zA-Z\d]/.test(value)) types++;
+      if (types < 2) {
+        throw new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）');
+      }
+      return true;
+    }),
   handleValidationErrors,
 ];
 
@@ -218,8 +227,18 @@ export const validateUser = [
     .optional()
     .isLength({ min: 8, max: 128 })
     .withMessage('密码长度必须在8-128位之间')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,128}$/)
-    .withMessage('密码须包含大写字母、小写字母、数字和特殊字符，长度8-128位'),
+    .custom((value) => {
+      if (!value) return true;
+      let types = 0;
+      if (/[a-z]/.test(value)) types++;
+      if (/[A-Z]/.test(value)) types++;
+      if (/\d/.test(value)) types++;
+      if (/[^a-zA-Z\d]/.test(value)) types++;
+      if (types < 2) {
+        throw new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）');
+      }
+      return true;
+    }),
   body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
   body('role')
     .optional()

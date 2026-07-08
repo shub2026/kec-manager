@@ -30,7 +30,7 @@
           v-model="form.newPassword"
           type="password"
           show-password
-          placeholder="请输入新密码（至少8位）"
+          placeholder="至少8位，包含两种字符类型（字母/数字/符号）"
         />
       </el-form-item>
       <el-form-item label="确认密码" prop="confirmPassword">
@@ -89,7 +89,23 @@ const rules = {
   oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 8, message: '密码长度至少8位', trigger: 'blur' },
+    { min: 8, max: 128, message: '密码长度必须在8-128位之间', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (!value) return callback();
+        let types = 0;
+        if (/[a-z]/.test(value)) types++;
+        if (/[A-Z]/.test(value)) types++;
+        if (/\d/.test(value)) types++;
+        if (/[^a-zA-Z\d]/.test(value)) types++;
+        if (types < 2) {
+          callback(new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'blur',
+    },
   ],
   confirmPassword: [
     { required: true, message: '请确认新密码', trigger: 'blur' },

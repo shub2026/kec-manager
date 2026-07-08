@@ -186,9 +186,17 @@ export const useAuthStore = defineStore('auth', () => {
       });
       return { success: true, message: '密码修改成功' };
     } catch (error) {
+      // 提取后端校验错误的详细信息
+      const details = error.response?.data?.data?.details;
+      if (Array.isArray(details) && details.length > 0) {
+        return {
+          success: false,
+          message: details.map((d) => d.message).join('；'),
+        };
+      }
       return {
         success: false,
-        message: error.message || '密码修改失败',
+        message: error.response?.data?.message || error.message || '密码修改失败',
       };
     }
   }
