@@ -87,7 +87,7 @@ export function showImportResultCard({
 
     const errHeader = document.createElement('div');
     errHeader.style.cssText =
-      'display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:6px 0;color:var(--brand-danger);font-size:13px;font-weight:500;';
+      'display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:6px 0;color:var(--brand-danger-text);font-size:13px;font-weight:500;';
     errHeader.innerHTML = `<span><span style="margin-right:4px;">✗</span>失败详情（${errorList.length}）<span style="margin-left:4px;color:var(--text-secondary);font-weight:400;font-size:12px;">点击展开</span></span><span style="transition:transform 0.2s;">▼</span>`;
     const arrow = errHeader.querySelector('span:last-child');
 

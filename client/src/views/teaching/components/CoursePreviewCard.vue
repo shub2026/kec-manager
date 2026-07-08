@@ -114,9 +114,9 @@ function courseTypeLabel(type) {
   margin-left: 2px;
 }
 .text-success {
-  color: var(--brand-success);
+  color: var(--brand-success-text);
 }
 .text-danger {
-  color: var(--brand-danger);
+  color: var(--brand-danger-text);
 }
 </style>

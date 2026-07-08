@@ -140,7 +140,7 @@
             >可以维护基础数据（专业、学院、课程等）和培养方案，但不能配置系统设置和重置系统
           </p>
           <p><strong>访客：</strong>只能访问查询页面，适合需要查看数据但不需要修改的用户</p>
-          <p style="margin-top: 8px; color: var(--brand-danger)">
+          <p style="margin-top: 8px; color: var(--brand-danger-text)">
             <strong>注意：</strong>超级管理员是系统唯一角色，不能通过此界面创建。
           </p>
         </el-alert>

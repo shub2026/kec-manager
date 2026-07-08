@@ -346,7 +346,7 @@ function handleSave() {
 }
 
 .preview-footer.saved {
-  color: var(--brand-success);
+  color: var(--brand-success-text);
 }
 
 .semester-preview.empty {

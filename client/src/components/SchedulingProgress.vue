@@ -101,7 +101,7 @@ const progressColor = computed(() => {
 }
 
 .progress-remaining {
-  color: var(--brand-warning);
+  color: var(--brand-warning-text);
   font-weight: 500;
 }
 
@@ -114,7 +114,7 @@ const progressColor = computed(() => {
   background: var(--brand-success-soft);
   border-radius: var(--radius-sm);
   font-size: 13px;
-  color: var(--brand-success);
+  color: var(--brand-success-text);
   font-weight: 500;
 }
 </style>

@@ -55,13 +55,13 @@ function barWidth(hours) {
   return Math.max(2, (hours / maxHours.value) * 100);
 }
 
+// 单色阶柱状图：复用主色透明度序列令牌(--chart-1~5),单色相内分级,既保持品牌统一又区分多系列
 const palette = [
-  'var(--brand-primary)',
-  'var(--brand-success)',
-  'var(--brand-warning)',
-  'var(--brand-danger)',
-  'var(--brand-indigo)',
-  'var(--brand-teal)',
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
 ];
 
 function barColor(item) {

@@ -311,12 +311,12 @@ function calcSemesterSubtotal(group, semester) {
 
 .matrix-group-cell.public {
   background: var(--brand-success-soft);
-  color: var(--brand-success);
+  color: var(--brand-success-text);
 }
 
 .matrix-group-cell.professional {
   background: var(--brand-warning-soft);
-  color: var(--brand-warning);
+  color: var(--brand-warning-text);
 }
 
 .group-label {

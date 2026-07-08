@@ -45,6 +45,9 @@ defineProps({
   align-items: baseline;
   gap: 12px;
   min-width: 0;
+  /* 左侧品牌强调条：与首页 welcome-section 共享同一强调语言,使概览页/列表页系统化统一 */
+  border-left: 3px solid var(--brand-primary);
+  padding-left: 12px;
 }
 
 .page-header-title {

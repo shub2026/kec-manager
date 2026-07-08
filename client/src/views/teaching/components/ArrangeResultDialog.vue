@@ -141,10 +141,10 @@ const cohesionRateClass = computed(() => {
   line-height: 1.2;
 }
 .arrange-stat-num.text-success {
-  color: var(--brand-success);
+  color: var(--brand-success-text);
 }
 .arrange-stat-num.text-warning {
-  color: var(--brand-warning);
+  color: var(--brand-warning-text);
 }
 .arrange-stat-label {
   font-size: 12px;
@@ -181,13 +181,13 @@ const cohesionRateClass = computed(() => {
   line-height: 1.2;
 }
 .cohesion-num.text-success {
-  color: var(--brand-success);
+  color: var(--brand-success-text);
 }
 .cohesion-num.text-warning {
-  color: var(--brand-warning);
+  color: var(--brand-warning-text);
 }
 .cohesion-num.text-danger {
-  color: var(--brand-danger);
+  color: var(--brand-danger-text);
 }
 .cohesion-label {
   font-size: 12px;
@@ -203,7 +203,7 @@ const cohesionRateClass = computed(() => {
   margin-bottom: 12px;
 }
 .arrange-warning-item {
-  color: var(--brand-warning);
+  color: var(--brand-warning-text);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -245,7 +245,7 @@ const cohesionRateClass = computed(() => {
 }
 .unassigned-reason {
   font-size: 12px;
-  color: var(--brand-warning);
+  color: var(--brand-warning-text);
   margin-left: auto;
 }
 .arrange-all-done {
@@ -254,7 +254,7 @@ const cohesionRateClass = computed(() => {
   justify-content: center;
   gap: 8px;
   padding: 16px;
-  color: var(--brand-success);
+  color: var(--brand-success-text);
   font-size: 14px;
   font-weight: 500;
 }

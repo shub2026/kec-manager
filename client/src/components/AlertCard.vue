@@ -175,7 +175,7 @@ const displayedTeachers = computed(() => {
   flex-shrink: 0;
   margin-left: 8px;
   font-weight: 600;
-  color: var(--brand-danger);
+  color: var(--brand-danger-text);
   font-variant-numeric: tabular-nums;
 }
 </style>

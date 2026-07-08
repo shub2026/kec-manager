@@ -5,28 +5,36 @@
    ================================================================ */
 
 :root {
-  /* —— 主色板:品牌蓝 #198CFF —— */
-  --brand-primary: #198CFF;
-  --brand-primary-hover: #61ACFF; /* 主色 hover 阶（浅一级,对应 light-3） */
-  --brand-primary-active: #1470CC; /* 主色 active 阶（深一级,对应 dark-2） */
-  --brand-primary-soft: #E5F4FF; /* 主色极浅背景（tag/hover 底,对应 light-9） */
-  --brand-primary-lighter: #AED4FF; /* 主色浅阶,用于渐变过渡（对应 light-7） */
-  --brand-primary-shadow: rgba(25, 140, 255, 0.32); /* 主色投影,按钮hover/glow用 */
+  /* —— 主色板:品牌蓝 blue-600(深锚点,白字按钮对比度达 WCAG AA) —— */
+  --brand-primary: #2563EB;
+  --brand-primary-hover: #3B82F6; /* 主色 hover 阶(对应 light-3) */
+  --brand-primary-active: #1D4ED8; /* 主色 active 阶(对应 dark-2) */
+  --brand-primary-soft: #EFF6FF; /* 主色极浅背景(对应 light-9) */
+  --brand-primary-lighter: #BFDBFE; /* 主色浅阶,渐变过渡(对应 light-7) */
+  --brand-primary-shadow: rgba(37, 99, 235, 0.32); /* 主色投影,按钮hover/glow用 */
   --brand-success: #34D399;
   --brand-success-soft: #d1fae5;
   --brand-warning: #FBBF24;
   --brand-warning-soft: #fef3c7;
   --brand-danger: #F87171;
   --brand-danger-soft: #fee2e2;
+  /* 语义色"正文"专用深阶:400 档语义色作白底正文时对比度不足(<2:1),需下沉到 600 档达标 */
+  --brand-success-text: #059669; /* 深 emerald,白底正文 */
+  --brand-warning-text: #B45309; /* 深 amber,白底正文 */
+  --brand-danger-text: #DC2626; /* 深 red,白底正文 */
 
   /* —— 分类/数据可视化调色板：与品牌同饱和度的 400 档，避免高饱和冲突 —— */
-  /* 仅用于需要第 5/6 类区分色的场景（统计卡、柱状图、空状态插画） */
+  /* 仅用于需要额外区分色的场景（如空状态插画）；靛蓝为官方认可的"第二色相"，需多样性时唯一备用 */
   --brand-indigo: #818CF8;
   --brand-indigo-soft: #EEF2FF;
   --brand-indigo-lighter: #C7D2FE;
-  --brand-teal: #2DD4BF;
-  --brand-teal-soft: #CCFBF1;
-  --brand-teal-lighter: #99F6E4;
+
+  /* —— 图表单色阶:主色按透明度分级,多系列图表复用,避免引入新色相 —— */
+  --chart-1: var(--brand-primary);
+  --chart-2: rgba(37, 99, 235, 0.72);
+  --chart-3: rgba(37, 99, 235, 0.48);
+  --chart-4: rgba(37, 99, 235, 0.30);
+  --chart-5: rgba(37, 99, 235, 0.16);
 
   /* —— 中性色阶(替换散落的 #303133 / #606266 / #909399) —— */
   --text-primary: #1e293b;
@@ -69,8 +77,8 @@
   --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 10px 24px -4px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 8px 16px -4px rgba(15, 23, 42, 0.06), 0 20px 50px -8px rgba(15, 23, 42, 0.12);
-  --shadow-glow: 0 4px 16px rgba(25, 140, 255, 0.25); /* 主色按钮/核心卡片 hover 光晕 */
-  --shadow-glow-soft: 0 8px 24px rgba(25, 140, 255, 0.10); /* 核心卡片柔和光晕 */
+  --shadow-glow: 0 4px 16px rgba(37, 99, 235, 0.25); /* 主色按钮/核心卡片 hover 光晕 */
+  --shadow-glow-soft: 0 8px 24px rgba(37, 99, 235, 0.10); /* 核心卡片柔和光晕 */
 
   /* —— 动效曲线:cubic-bezier 让过渡更有弹性 —— */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -90,6 +98,7 @@
   --el-color-success: var(--brand-success);
   --el-color-warning: var(--brand-warning);
   --el-color-danger: var(--brand-danger);
+  --el-color-info: #64748B; /* 覆盖 EP 默认灰 #909399,对齐项目 slate 中性阶 */
   --el-text-color-primary: var(--text-primary);
   --el-text-color-regular: var(--text-regular);
   --el-text-color-secondary: var(--text-secondary);
@@ -98,11 +107,11 @@
   --el-box-shadow: var(--shadow-md);
   --el-box-shadow-light: var(--shadow-sm);
 
-  /* —— ElementPlus 主色阶（light/dark），与 #198CFF 新主色匹配 —— */
-  --el-color-primary-light-3: #61ACFF;
-  --el-color-primary-light-5: #8CC6FF;
-  --el-color-primary-light-7: #AED4FF;
-  --el-color-primary-light-8: #C7E4FF;
-  --el-color-primary-light-9: #E5F4FF;
+  /* —— ElementPlus 主色阶（light/dark），与品牌主色匹配 —— */
+  --el-color-primary-light-3: #3B82F6;
+  --el-color-primary-light-5: #60A5FA;
+  --el-color-primary-light-7: #BFDBFE;
+  --el-color-primary-light-8: #DBEAFE;
+  --el-color-primary-light-9: #EFF6FF;
   --el-color-primary-dark-2: var(--brand-primary-active);
 }

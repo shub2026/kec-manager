@@ -221,7 +221,7 @@ defineExpose({ open, close });
   margin-top: 12px;
 }
 .text-warning {
-  color: var(--brand-warning);
+  color: var(--brand-warning-text);
   font-weight: bold;
 }
 .text-placeholder {

@@ -98,7 +98,7 @@
           <p style="margin: 0">确定要删除此专业吗？此操作不可撤销。</p>
           <p
             v-if="deleteWarning"
-            style="margin: 8px 0 0; color: var(--brand-danger); font-size: 13px"
+            style="margin: 8px 0 0; color: var(--brand-danger-text); font-size: 13px"
           >
             <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
           </p>

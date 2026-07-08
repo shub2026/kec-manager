@@ -176,7 +176,7 @@ defineEmits([
 
 .textbook-disabled-tip {
   font-size: 12px;
-  color: var(--brand-danger);
+  color: var(--brand-danger-text);
   margin-top: 4px;
 }
 

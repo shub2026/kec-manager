@@ -195,7 +195,7 @@ function handleConfirm() {
   border-left: 4px solid var(--brand-danger);
   border-radius: var(--radius-sm);
   margin-bottom: 20px;
-  color: var(--brand-danger);
+  color: var(--brand-danger-text);
   font-weight: 500;
 }
 

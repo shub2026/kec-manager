@@ -242,7 +242,7 @@
         </el-icon>
         <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
           <p style="margin: 0">确定要重置当前课程的所有自动排课安排吗？此操作不可撤销。</p>
-          <p style="margin: 8px 0 0; color: var(--brand-danger); font-size: 13px">
+          <p style="margin: 8px 0 0; color: var(--brand-danger-text); font-size: 13px">
             将清除该课程在本学期的所有自动分配记录，手动安排不受影响。
           </p>
         </div>
