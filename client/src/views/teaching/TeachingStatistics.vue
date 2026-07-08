@@ -135,6 +135,12 @@
                         </el-tag>
                       </template>
                     </el-table-column>
+                    <el-table-column label="当前教材" min-width="160">
+                      <template #default="{ row: cls }">
+                        <span v-if="cls.textbookName">{{ cls.textbookName }}</span>
+                        <span v-else class="text-muted">-</span>
+                      </template>
+                    </el-table-column>
                   </el-table>
                 </div>
               </div>

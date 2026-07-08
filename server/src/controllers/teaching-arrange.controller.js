@@ -566,6 +566,10 @@ export async function getStatistics(req, res, next) {
             name: true,
             college_id: true,
             training_level_id: true,
+            custom_plan_id: true,
+            major_id: true,
+            enrollment_year: true,
+            duration_years: true,
             colleges: { select: { id: true, name: true } },
           },
         },
@@ -597,6 +601,101 @@ export async function getStatistics(req, res, next) {
         select: { id: true, name: true },
       });
       globalLevelMap = new Map(allLevels.map((l) => [l.id, l]));
+    }
+
+    // 教材解析：批量查询培养方案教材，避免 N+1
+    const semesterInfo = parseSemester(semester);
+    const uniqueCourseIds = [...new Set(allAssignments.map((a) => a.course_id))];
+
+    // 一次查询：所有相关 plan_courses + 方案 + 学期 + 教材
+    const allPlanCourses = await prisma.plan_courses.findMany({
+      where: { course_id: { in: uniqueCourseIds } },
+      include: {
+        training_plans: { select: { id: true, major_id: true, training_level_id: true } },
+        plan_course_semesters: {
+          include: {
+            plan_textbooks: { select: { textbook_id: true } },
+          },
+        },
+      },
+      orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
+    });
+
+    const planCoursesByCourse = new Map();
+    for (const pc of allPlanCourses) {
+      if (!planCoursesByCourse.has(pc.course_id)) {
+        planCoursesByCourse.set(pc.course_id, []);
+      }
+      planCoursesByCourse.get(pc.course_id).push(pc);
+    }
+
+    // 按 (class_id, course_id) 对匹配教材
+    const classInfoMap = new Map(allAssignments.map((a) => [a.class.id, a.class]));
+    const classCourseTextbookMap = new Map();
+    const allTextbookIds = new Set();
+
+    for (const a of allAssignments) {
+      const key = `${a.class_id}:${a.course_id}`;
+      if (classCourseTextbookMap.has(key)) continue;
+
+      const cls = classInfoMap.get(a.class_id);
+      if (!cls) {
+        classCourseTextbookMap.set(key, []);
+        continue;
+      }
+
+      const pcs = planCoursesByCourse.get(a.course_id) || [];
+      if (!pcs.length) {
+        classCourseTextbookMap.set(key, []);
+        continue;
+      }
+
+      const candidatePlans = pcs.map((pc) => pc.training_plans).filter(Boolean);
+      const bestPlan = findBestMatchPlan(cls, candidatePlans);
+      if (!bestPlan) {
+        classCourseTextbookMap.set(key, []);
+        continue;
+      }
+
+      const semCalc = calcClassSemester(cls, semesterInfo);
+      if (!semCalc) {
+        classCourseTextbookMap.set(key, []);
+        continue;
+      }
+
+      const textbookIds = new Set();
+      for (const pc of pcs) {
+        if (pc.training_plans.id !== bestPlan.id) continue;
+        for (const sem of pc.plan_course_semesters) {
+          if (sem.semester !== semCalc.currentSemesterNum) continue;
+          for (const pt of sem.plan_textbooks) {
+            textbookIds.add(pt.textbook_id);
+          }
+        }
+      }
+
+      const ids = [...textbookIds];
+      ids.forEach((id) => allTextbookIds.add(id));
+      classCourseTextbookMap.set(key, ids);
+    }
+
+    // 批量查教材标题
+    const textbookTitleMap = new Map();
+    if (allTextbookIds.size > 0) {
+      const textbookRows = await prisma.textbooks.findMany({
+        where: { id: { in: [...allTextbookIds] } },
+        select: { id: true, title: true },
+      });
+      for (const t of textbookRows) {
+        textbookTitleMap.set(t.id, t.title);
+      }
+    }
+
+    // 将 textbookId 列表转为可读名称字符串
+    const classCourseTextbookNameMap = new Map();
+    for (const [key, ids] of classCourseTextbookMap) {
+      const names = ids.map((id) => textbookTitleMap.get(id)).filter(Boolean);
+      classCourseTextbookNameMap.set(key, names.join('、'));
     }
 
     const result = stats.map((s) => {
@@ -646,6 +745,8 @@ export async function getStatistics(req, res, next) {
           trainingLevelName: globalLevelMap.get(a.class.training_level_id)?.name || null,
           weeklyHours: a.weekly_hours,
           isAuto: a.is_auto,
+          textbookName:
+            classCourseTextbookNameMap.get(`${a.class_id}:${a.course_id}`) || null,
         });
         group.weeklyHours += a.weekly_hours;
       }
