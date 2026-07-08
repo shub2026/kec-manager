@@ -1,52 +1,139 @@
 {
+
   "name": "kec-manager-server",
-  "version": "1.1.1",
+
+  "version": "1.2.0",
+
   "description": "KEC课程管理平台后端",
+
   "main": "src/server.js",
+
   "type": "module",
+
   "engines": {
-    "node": ">=20.0.0",
-    "npm": ">=10.0.0"
+
+  
+  "node": ">=20.0.0",
+
+  
+  "npm": ">=10.0.0"
+
   },
+
   "scripts": {
-    "dev": "node --watch-path=src src/server.js",
-    "start": "node src/server.js",
-    "diagnose": "node scripts/diagnose.js",
-    "init:settings": "node scripts/init-settings.js",
-    "db:migrate": "npx prisma migrate dev",
-    "db:generate": "npx prisma generate",
-    "db:reset": "node scripts/reset-database.js",
-    "db:seed": "node prisma/seed.js",
-    "db:seed:dev": "DEV_SEEDS=true node prisma/seed.js",
-    "db:seed:reset": "FORCE_RESET=true node prisma/seed.js",
-    "format": "prettier --write \"src/**/*.{js,json}\" \"scripts/**/*.js\"",
-    "lint": "eslint src scripts --ext .js --fix",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+
+  
+  "dev": "node --watch-path=src src/server.js",
+
+  
+  "start": "node src/server.js",
+
+  
+  "diagnose": "node scripts/diagnose.js",
+
+  
+  "init:settings": "node scripts/init-settings.js",
+
+  
+  "db:migrate": "npx prisma migrate dev",
+
+  
+  "db:generate": "npx prisma generate",
+
+  
+  "db:reset": "node scripts/reset-database.js",
+
+  
+  "db:seed": "node prisma/seed.js",
+
+  
+  "db:seed:dev": "DEV_SEEDS=true node prisma/seed.js",
+
+  
+  "db:seed:reset": "FORCE_RESET=true node prisma/seed.js",
+
+  
+  "format": "prettier --write \"src/**/*.{js,json}\" \"scripts/**/*.js\"",
+
+  
+  "lint": "eslint src scripts --ext .js --fix",
+
+  
+  "test": "vitest run",
+
+  
+  "test:watch": "vitest",
+
+  
+  "test:coverage": "vitest run --coverage"
+
   },
+
   "dependencies": {
-    "@prisma/client": "^6.19.3",
-    "bcryptjs": "^3.0.3",
-    "cors": "^2.8.5",
-    "dotenv": "^17.4.2",
-    "exceljs": "^4.4.0",
-    "express": "^5.1.0",
-    "express-rate-limit": "^8.5.2",
-    "express-validator": "^7.3.2",
-    "helmet": "^8.2.0",
-    "jsonwebtoken": "^9.0.3",
-    "multer": "^2.0.1",
-    "winston": "^3.19.0",
-    "xss": "^1.0.15"
+
+  
+  "@prisma/client": "^6.19.3",
+
+  
+  "bcryptjs": "^3.0.3",
+
+  
+  "cors": "^2.8.5",
+
+  
+  "dotenv": "^17.4.2",
+
+  
+  "exceljs": "^4.4.0",
+
+  
+  "express": "^5.1.0",
+
+  
+  "express-rate-limit": "^8.5.2",
+
+  
+  "express-validator": "^7.3.2",
+
+  
+  "helmet": "^8.2.0",
+
+  
+  "jsonwebtoken": "^9.0.3",
+
+  
+  "multer": "^2.0.1",
+
+  
+  "winston": "^3.19.0",
+
+  
+  "xss": "^1.0.15"
+
   },
+
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@vitest/coverage-v8": "^4.1.9",
-    "eslint": "^10.5.0",
-    "prettier": "^3.8.4",
-    "prisma": "^6.19.3",
-    "supertest": "^7.2.2",
-    "vitest": "^4.1.9"
+
+  
+  "@eslint/js": "^10.0.1",
+
+  
+  "@vitest/coverage-v8": "^4.1.9",
+
+  
+  "eslint": "^10.5.0",
+
+  
+  "prettier": "^3.8.4",
+
+  
+  "prisma": "^6.19.3",
+
+  
+  "supertest": "^7.2.2",
+
+  
+  "vitest": "^4.1.9"
+
   }
 }

@@ -353,17 +353,17 @@ function calcSemesterSubtotal(group, semester) {
   background: #fff;
 }
 
-/* 课时热力：Element Plus 默认蓝色系由浅到深 */
+/* 课时热力：品牌蓝 #198CFF 由浅到深 */
 .cell-low {
-  background: #ecf5ff;
+  background: #E5F4FF;
 }
 
 .cell-mid {
-  background: #d9ecff;
+  background: #C7E4FF;
 }
 
 .cell-high {
-  background: #b3d8ff;
+  background: #AED4FF;
 }
 
 .cell-hours {

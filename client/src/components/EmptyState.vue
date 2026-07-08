@@ -433,29 +433,29 @@ defineProps({
 
 .empty-illustration {
   margin-bottom: 16px;
-  --illust-bg: var(--brand-primary-soft, #e0f2fe);
-  --illust-main: var(--brand-primary, #0ea5e9);
-  --illust-dot: var(--brand-primary-lighter, #bae6fd);
+  --illust-bg: var(--brand-primary-soft, #E5F4FF);
+  --illust-main: var(--brand-primary, #198CFF);
+  --illust-dot: var(--brand-primary-lighter, #AED4FF);
 }
 
 /* 不同类型使用不同色调 */
 .empty-class,
 .empty-college,
 .empty-major {
-  --illust-bg: var(--brand-warning-soft, #fffbeb);
-  --illust-main: var(--brand-warning, #f59e0b);
+  --illust-bg: var(--brand-warning-soft, #fef3c7);
+  --illust-main: var(--brand-warning, #FBBF24);
   --illust-dot: #fde68a;
 }
 
 .empty-teacher {
-  --illust-bg: var(--brand-success-soft, #ecfdf5);
-  --illust-main: var(--brand-success, #10b981);
+  --illust-bg: var(--brand-success-soft, #d1fae5);
+  --illust-main: var(--brand-success, #34D399);
   --illust-dot: #a7f3d0;
 }
 
 .empty-textbook {
-  --illust-bg: var(--brand-danger-soft, #fef2f2);
-  --illust-main: var(--brand-danger, #ef4444);
+  --illust-bg: var(--brand-danger-soft, #fee2e2);
+  --illust-main: var(--brand-danger, #F87171);
   --illust-dot: #fecaca;
 }
 

@@ -5,19 +5,19 @@
    ================================================================ */
 
 :root {
-  /* —— 主色板:天蓝色 #0EA5E9,摆脱 ElementPlus 默认蓝的"模板感" —— */
-  --brand-primary: #0EA5E9;
-  --brand-primary-hover: #0284C7; /* 主色 hover 阶（深一级,对应 Sky-600） */
-  --brand-primary-active: #0369A1; /* 主色 active 阶（深两级,对应 Sky-700） */
-  --brand-primary-soft: #E0F2FE; /* 主色极浅背景（tag/hover 底,对应 Sky-50） */
-  --brand-primary-lighter: #BAE6FD; /* 主色浅阶,用于渐变过渡（对应 Sky-200） */
-  --brand-primary-shadow: rgba(14, 165, 233, 0.32); /* 主色投影,按钮hover/glow用 */
-  --brand-success: #10b981;
-  --brand-success-soft: #ecfdf5;
-  --brand-warning: #f59e0b;
-  --brand-warning-soft: #fffbeb;
-  --brand-danger: #ef4444;
-  --brand-danger-soft: #fef2f2;
+  /* —— 主色板:品牌蓝 #198CFF —— */
+  --brand-primary: #198CFF;
+  --brand-primary-hover: #61ACFF; /* 主色 hover 阶（浅一级,对应 light-3） */
+  --brand-primary-active: #1470CC; /* 主色 active 阶（深一级,对应 dark-2） */
+  --brand-primary-soft: #E5F4FF; /* 主色极浅背景（tag/hover 底,对应 light-9） */
+  --brand-primary-lighter: #AED4FF; /* 主色浅阶,用于渐变过渡（对应 light-7） */
+  --brand-primary-shadow: rgba(25, 140, 255, 0.32); /* 主色投影,按钮hover/glow用 */
+  --brand-success: #34D399;
+  --brand-success-soft: #d1fae5;
+  --brand-warning: #FBBF24;
+  --brand-warning-soft: #fef3c7;
+  --brand-danger: #F87171;
+  --brand-danger-soft: #fee2e2;
 
   /* —— 中性色阶(替换散落的 #303133 / #606266 / #909399) —— */
   --text-primary: #1e293b;
@@ -55,11 +55,13 @@
   --radius-md: 10px;
   --radius-lg: 16px;
 
-  /* —— 阴影:三层体系 —— */
+  /* —— 阴影:三层体系 + 有色光晕 —— */
   --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.12);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 10px 24px -4px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 8px 16px -4px rgba(15, 23, 42, 0.06), 0 20px 50px -8px rgba(15, 23, 42, 0.12);
+  --shadow-glow: 0 4px 16px rgba(25, 140, 255, 0.25); /* 主色按钮/核心卡片 hover 光晕 */
+  --shadow-glow-soft: 0 8px 24px rgba(25, 140, 255, 0.10); /* 核心卡片柔和光晕 */
 
   /* —— 动效曲线:cubic-bezier 让过渡更有弹性 —— */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -87,11 +89,11 @@
   --el-box-shadow: var(--shadow-md);
   --el-box-shadow-light: var(--shadow-sm);
 
-  /* —— ElementPlus 主色阶（light/dark），与 #0EA5E9 新主色匹配 —— */
-  --el-color-primary-light-3: #5EBDEE;
-  --el-color-primary-light-5: #87D4F4;
-  --el-color-primary-light-7: #B4E8F9;
-  --el-color-primary-light-8: #CAF1FC;
-  --el-color-primary-light-9: #E0F2FE;
+  /* —— ElementPlus 主色阶（light/dark），与 #198CFF 新主色匹配 —— */
+  --el-color-primary-light-3: #61ACFF;
+  --el-color-primary-light-5: #8CC6FF;
+  --el-color-primary-light-7: #AED4FF;
+  --el-color-primary-light-8: #C7E4FF;
+  --el-color-primary-light-9: #E5F4FF;
   --el-color-primary-dark-2: var(--brand-primary-active);
 }

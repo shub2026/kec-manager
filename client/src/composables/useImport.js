@@ -206,7 +206,7 @@ function showImportProgressOverlay(onCancel) {
   for (let i = 0; i < 3; i++) {
     const dot = document.createElement('span');
     dot.style.cssText =
-      `width:10px;height:10px;border-radius:50%;background:var(--brand-primary, #409eff);` +
+      `width:10px;height:10px;border-radius:50%;background:var(--brand-primary, #198CFF);` +
       `animation:importPulseDot 1.4s infinite ease-in-out both;animation-delay:${i * 0.16}s;`;
     dots.appendChild(dot);
   }

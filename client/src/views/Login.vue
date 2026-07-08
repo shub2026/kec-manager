@@ -183,7 +183,7 @@ onMounted(() => {
   background: var(--bg-page);
   background-image: radial-gradient(
     ellipse 80% 60% at 50% 0%,
-    rgba(14, 165, 233, 0.06) 0%,
+    rgba(25, 140, 255, 0.06) 0%,
     transparent 70%
   );
   padding: 40px 20px;
@@ -334,7 +334,7 @@ onMounted(() => {
 .login-btn:hover,
 .login-btn:focus {
   background: var(--brand-primary-hover);
-  box-shadow: 0 6px 16px var(--brand-primary-shadow);
+  box-shadow: var(--shadow-glow);
 }
 
 .login-btn:active {

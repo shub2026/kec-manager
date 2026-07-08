@@ -30,7 +30,7 @@
 }
 
 .el-button--primary:hover {
-  box-shadow: 0 4px 12px var(--brand-primary-shadow);
+  box-shadow: var(--shadow-glow);
 }
 
 /* 表格行 hover:更柔和的强调色 */

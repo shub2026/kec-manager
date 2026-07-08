@@ -76,8 +76,8 @@ watch(
 .stat-item {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 12px;
+  padding: 12px 14px;
   background: var(--bg-card);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-light);
@@ -99,7 +99,7 @@ watch(
 }
 
 .stat-core:hover {
-  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.12);
+  box-shadow: var(--shadow-glow-soft), var(--shadow-sm);
 }
 
 .stat-item-left {
@@ -107,12 +107,24 @@ watch(
 }
 
 .stat-icon {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 图标容器叠加柔光渐变层 — 通透感 */
+.stat-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%);
+  pointer-events: none;
 }
 
 .stat-item-body {
@@ -133,16 +145,17 @@ watch(
 }
 
 .stat-value {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
   margin-bottom: 2px;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .stat-value-lg {
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .stat-label {
