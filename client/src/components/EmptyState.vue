@@ -460,9 +460,9 @@ defineProps({
 }
 
 .empty-plan {
-  --illust-bg: #ede9fe;
-  --illust-main: #8b5cf6;
-  --illust-dot: #c4b5fd;
+  --illust-bg: var(--brand-indigo-soft, #EEF2FF);
+  --illust-main: var(--brand-indigo, #818CF8);
+  --illust-dot: var(--brand-indigo-lighter, #C7D2FE);
 }
 
 .empty-content {

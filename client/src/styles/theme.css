@@ -19,6 +19,15 @@
   --brand-danger: #F87171;
   --brand-danger-soft: #fee2e2;
 
+  /* —— 分类/数据可视化调色板：与品牌同饱和度的 400 档，避免高饱和冲突 —— */
+  /* 仅用于需要第 5/6 类区分色的场景（统计卡、柱状图、空状态插画） */
+  --brand-indigo: #818CF8;
+  --brand-indigo-soft: #EEF2FF;
+  --brand-indigo-lighter: #C7D2FE;
+  --brand-teal: #2DD4BF;
+  --brand-teal-soft: #CCFBF1;
+  --brand-teal-lighter: #99F6E4;
+
   /* —— 中性色阶(替换散落的 #303133 / #606266 / #909399) —— */
   --text-primary: #1e293b;
   --text-regular: #475569;

@@ -180,7 +180,7 @@ const progressStatus = computed(() => {
 }
 
 .progress-icon.finished {
-  color: var(--brand-success, #67c23a);
+  color: var(--brand-success, #34D399);
 }
 
 .progress-title {
@@ -222,7 +222,7 @@ const progressStatus = computed(() => {
 }
 
 .phase-item.done {
-  color: var(--brand-success, #67c23a);
+  color: var(--brand-success, #34D399);
 }
 
 .phase-icon {
@@ -242,7 +242,7 @@ const progressStatus = computed(() => {
   flex-direction: column;
   align-items: center;
   padding: 12px 8px;
-  background: var(--fill-light, #f5f7fa);
+  background: var(--fill-light, #f1f5f9);
   border-radius: 6px;
 }
 
@@ -259,11 +259,11 @@ const progressStatus = computed(() => {
 }
 
 .stat-value.assigned {
-  color: var(--brand-success, #67c23a);
+  color: var(--brand-success, #34D399);
 }
 
 .stat-value.unassigned {
-  color: var(--brand-warning, #e6a23c);
+  color: var(--brand-warning, #FBBF24);
 }
 
 .current-course {
@@ -273,12 +273,12 @@ const progressStatus = computed(() => {
   font-size: 13px;
   color: var(--text-regular);
   padding: 8px 12px;
-  background: var(--fill-light, #f5f7fa);
+  background: var(--fill-light, #f1f5f9);
   border-radius: 4px;
 }
 
 .current-course.done {
-  color: var(--brand-success, #67c23a);
+  color: var(--brand-success, #34D399);
 }
 
 /* 旋转动画 */

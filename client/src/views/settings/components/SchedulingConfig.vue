@@ -116,7 +116,7 @@ onMounted(() => {
 }
 
 .dot-green {
-  background-color: var(--brand-success, #67c23a);
+  background-color: var(--brand-success, #34D399);
 }
 
 .card-title-text {
@@ -165,7 +165,7 @@ onMounted(() => {
   gap: 6px;
   margin-top: 12px;
   font-size: 13px;
-  color: var(--brand-success, #67c23a);
+  color: var(--brand-success, #34D399);
 }
 
 .enabled-hint.off {
@@ -177,12 +177,12 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding-top: var(--space-4, 16px);
-  border-top: 1px solid var(--border-light, #ebeef5);
+  border-top: 1px solid var(--border-light, #e2e8f0);
 }
 
 .dirty-hint {
   font-size: 13px;
-  color: var(--el-color-warning, #e6a23c);
+  color: var(--el-color-warning, #FBBF24);
 }
 
 @media (max-width: 768px) {

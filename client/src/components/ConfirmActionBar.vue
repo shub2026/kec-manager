@@ -31,12 +31,12 @@ defineEmits(['confirm', 'cancel']);
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--el-color-info-light-9, #f4f4f5);
+  background: var(--bg-subtle, #f1f5f9);
   border-radius: var(--el-border-radius-base, 4px);
   margin-top: 8px;
 }
 .confirm-action-bar.is-danger {
-  background: var(--el-color-danger-light-9, #fef0f0);
+  background: var(--brand-danger-soft, #fee2e2);
 }
 .confirm-text {
   flex: 1;

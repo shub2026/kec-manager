@@ -47,10 +47,9 @@
       </div>
 
       <template #footer>
-        <el-button size="large" @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogVisible = false">取消</el-button>
         <el-button
           type="danger"
-          size="large"
           :loading="resetting"
           :disabled="!canConfirm"
           @click="handleConfirm"

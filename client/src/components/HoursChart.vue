@@ -60,10 +60,8 @@ const palette = [
   'var(--brand-success)',
   'var(--brand-warning)',
   'var(--brand-danger)',
-  '#8B5CF6',
-  '#EC4899',
-  '#06B6D4',
-  '#84CC16',
+  'var(--brand-indigo)',
+  'var(--brand-teal)',
 ];
 
 function barColor(item) {

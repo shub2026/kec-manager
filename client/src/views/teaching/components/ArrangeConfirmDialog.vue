@@ -40,7 +40,7 @@
 
     <template #footer>
       <el-button @click="emit('update:modelValue', false)">取消</el-button>
-      <el-button type="warning" :loading="loading" @click="emit('confirm')">{{
+      <el-button type="primary" :loading="loading" @click="emit('confirm')">{{
         data.confirmText || '确定'
       }}</el-button>
     </template>

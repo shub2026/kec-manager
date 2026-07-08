@@ -63,6 +63,73 @@
 }
 
 /* ================================================================
+   弹窗统一精修（一处改全局生效）
+   目标：头部分隔线 + 标题字重 + 底部上边框右对齐 + 圆角 + 进场动效
+   ================================================================ */
+.el-dialog {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.el-dialog__header {
+  margin-right: 0;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.el-dialog__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.el-dialog__headerbtn {
+  top: 18px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.el-dialog__headerbtn:hover {
+  background: var(--bg-subtle);
+}
+
+.el-dialog__body {
+  padding: 20px;
+  color: var(--text-regular);
+}
+
+.el-dialog__footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border-light);
+  text-align: right;
+}
+
+.el-dialog__footer .el-button + .el-button {
+  margin-left: 12px;
+}
+
+/* 进场：轻量 zoom + fade，沿用品牌缓动曲线 */
+.el-overlay-dialog .el-dialog {
+  animation: kec-dialog-in var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes kec-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ================================================================
    KEC 管理平台 — 全局共享样式
    ================================================================ */
 
