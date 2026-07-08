@@ -344,9 +344,7 @@ describe('getSettings — 获取系统设置', () => {
   // ──────────────────────────────────────────────
   describe('异常降级', () => {
     it('数据库查询异常时应只返回公开默认字段', async () => {
-      mockPrisma.system_settings.findMany.mockRejectedValue(
-        new Error('数据库连接失败')
-      );
+      mockPrisma.system_settings.findMany.mockRejectedValue(new Error('数据库连接失败'));
       const req = reqWithCookie('token', 'valid-token');
       const res = makeRes();
 

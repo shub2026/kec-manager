@@ -50,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { ElMessage } from 'element-plus';
 
@@ -97,17 +97,9 @@ const rules = {
   ],
 };
 
-const dialogVisible = ref(false);
-
-watch(
-  () => props.modelValue,
-  (val) => {
-    dialogVisible.value = val;
-  }
-);
-
-watch(dialogVisible, (val) => {
-  emit('update:modelValue', val);
+const dialogVisible = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val),
 });
 
 function handleClose() {

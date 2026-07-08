@@ -305,7 +305,10 @@ export const validatePlan = [
     .isInt({ min: 1 })
     .withMessage('培养层次ID必须为正整数'),
   body('version').optional().trim().isLength({ max: 50 }).withMessage('版本号不超过50个字符'),
-  body('status').optional().isIn(['draft', 'active', 'archived']).withMessage('方案状态必须是draft、active或archived'),
+  body('status')
+    .optional()
+    .isIn(['draft', 'active', 'archived'])
+    .withMessage('方案状态必须是draft、active或archived'),
   handleValidationErrors,
 ];
 
@@ -454,7 +457,10 @@ export const validatePlanCreate = [
     .isInt({ min: 1 })
     .withMessage('培养层次ID必须为正整数'),
   body('version').optional().trim().isLength({ max: 50 }).withMessage('版本号不超过50个字符'),
-  body('status').optional().isIn(['draft', 'active', 'archived']).withMessage('方案状态必须是draft、active或archived'),
+  body('status')
+    .optional()
+    .isIn(['draft', 'active', 'archived'])
+    .withMessage('方案状态必须是draft、active或archived'),
   handleValidationErrors,
 ];
 

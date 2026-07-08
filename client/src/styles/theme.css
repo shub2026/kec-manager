@@ -11,6 +11,7 @@
   --brand-primary-active: #0369A1; /* 主色 active 阶（深两级,对应 Sky-700） */
   --brand-primary-soft: #E0F2FE; /* 主色极浅背景（tag/hover 底,对应 Sky-50） */
   --brand-primary-lighter: #BAE6FD; /* 主色浅阶,用于渐变过渡（对应 Sky-200） */
+  --brand-primary-shadow: rgba(14, 165, 233, 0.32); /* 主色投影,按钮hover/glow用 */
   --brand-success: #10b981;
   --brand-success-soft: #ecfdf5;
   --brand-warning: #f59e0b;

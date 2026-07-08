@@ -5,6 +5,32 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.1] - 2026-07-08
+
+### 改进
+
+- **全局布局一致性**：PageHeader 组件从 teaching 模块 3 个页面推广至全部 15 个页面（6 个基础数据页、3 个查询页、2 个系统页、ClassList、TextbookList、TeachingStatistics、TeachingArrange），所有页面标题从 el-card #header 剥离为独立的页面级标题
+- **空状态统一**：所有页面级 `el-empty` 替换为品牌化 `EmptyState` 组件（含场景化 SVG 插画），仅子组件内的小空状态保留 el-empty
+- **全局样式优化**：卡片 hover 阴影改为 `.is-hover` 类限定（列表页全宽卡片不再 hover 跳动）、表头背景色从品牌浅蓝改为中性灰 `--bg-subtle`、操作列默认透明度从 0.45 提升到 0.65、新增 `--brand-primary-shadow` CSS 变量令牌、新增 1200px 响应式断点
+- **登录页视觉优化**：按钮投影色改用 CSS 变量、accent 装饰条渐变色改用品牌色、focus ring 加粗至 2px（WCAG 无障碍）、新增 0.5s 入场动画、背景添加极淡径向渐变光晕、表单添加 aria-label
+- **内嵌表格交互优化**：课时统计页和开课查询页的展开行内嵌表格禁用行 hover 高亮，避免与外层表格同时高亮造成视觉干扰
+
+### 代码健壮性
+
+- **keep-alive 缓存页**：ClassList、TeacherList、PlanList 的 `watch(route.path)` 替换为 `onActivated()` 生命周期钩子，语义更精确、性能更好
+- **组件显式命名**：15 个页面组件全部添加 `defineOptions({ name: '...' })`，与 Layout 的 `cachedViews` 列表强绑定，防止文件重命名后缓存静默失效
+- **useDebouncedRef 内存泄漏修复**：`useDebouncedRef` 和 `useDebounceFn` 均增加 `onUnmounted` 自动清理定时器
+- **ChangePasswordDialog**：两个 `watch` 双向同步改为单个 writable `computed`，消除潜在循环触发
+- **导入取消功能**：`useImport.js` 新增全屏进度遮罩层，含"取消导入"按钮，调用 `AbortController` 取消机制
+
+### 文档
+
+- 新增 `UI_ARCHITECTURE_REVIEW_2.md`（第二轮 UI/UX 架构审查报告）
+- `UI_DESIGN_REVIEW.md` 标注各优先项实施状态
+- `README.md` 版本号更新
+
+---
+
 ## [2.21.0] - 2026-07-06
 
 ### 新增功能

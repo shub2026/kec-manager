@@ -1,6 +1,10 @@
 <template>
   <div class="teaching-statistics">
-    <PageHeader title="课时统计" subtitle="教学安排" description="查看本学期各教师的课时分配情况和教学统计" />
+    <PageHeader
+      title="课时统计"
+      subtitle="教学安排"
+      description="查看本学期各教师的课时分配情况和教学统计"
+    />
     <el-card>
       <!-- 汇总统计 -->
       <div v-if="statsData" class="summary-section">
@@ -31,25 +35,52 @@
           <el-option label="兼职" value="part_time" />
           <el-option label="外聘" value="external" />
         </el-select>
-        <el-select v-model="filterSubject" placeholder="科目" clearable filterable style="width: 140px">
+        <el-select
+          v-model="filterSubject"
+          placeholder="科目"
+          clearable
+          filterable
+          style="width: 140px"
+        >
           <el-option v-for="v in subjectOptions" :key="v" :label="v" :value="v" />
         </el-select>
-        <el-select v-model="filterAffiliatedCollege" placeholder="归属学院" clearable filterable style="width: 130px">
+        <el-select
+          v-model="filterAffiliatedCollege"
+          placeholder="归属学院"
+          clearable
+          filterable
+          style="width: 130px"
+        >
           <el-option v-for="v in affiliatedCollegeOptions" :key="v" :label="v" :value="v" />
         </el-select>
-        <el-select v-model="filterLevel" placeholder="任课层次" clearable filterable style="width: 110px">
+        <el-select
+          v-model="filterLevel"
+          placeholder="任课层次"
+          clearable
+          filterable
+          style="width: 110px"
+        >
           <el-option v-for="v in levelOptions" :key="v" :label="v" :value="v" />
         </el-select>
-        <el-select v-model="filterCollege" placeholder="任课学院" clearable filterable style="width: 120px">
+        <el-select
+          v-model="filterCollege"
+          placeholder="任课学院"
+          clearable
+          filterable
+          style="width: 120px"
+        >
           <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
         </el-select>
-        <el-button :loading="exporting" :disabled="!statsData" @click="handleExport">数据导出</el-button>
+        <el-button :loading="exporting" :disabled="!statsData" @click="handleExport"
+          >数据导出</el-button
+        >
       </div>
 
       <!-- 空状态 -->
-      <el-empty v-if="!loading && !statsData" description="暂无数据" />
-      <el-empty
+      <EmptyState v-if="!loading && !statsData" type="generic" description="暂无数据" />
+      <EmptyState
         v-else-if="!loading && statsData && filteredTeachers.length === 0"
+        type="generic"
         description="暂无数据"
       />
 
@@ -185,6 +216,9 @@ import { exportStatistics } from '../../api/export';
 import { downloadBlob } from '../../utils/download';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
 import PageHeader from '../../components/PageHeader.vue';
+import EmptyState from '../../components/EmptyState.vue';
+
+defineOptions({ name: 'TeachingStatistics' });
 
 const semester = ref('');
 const statsData = ref(null);
@@ -375,6 +409,10 @@ onMounted(async () => {
 .expand-content :deep(.el-table th .cell) {
   min-height: 28px;
   padding: 2px 8px;
+}
+/* 内嵌表格禁用行hover高亮，避免与外层表格hover效果叠加造成视觉干扰 */
+.expand-content :deep(.el-table tbody tr:hover > td) {
+  background: inherit !important;
 }
 .course-detail h4 {
   margin: 6px 0 2px;

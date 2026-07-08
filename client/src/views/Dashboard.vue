@@ -94,9 +94,18 @@
 import { ref, computed, onMounted, markRaw } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  Calendar, EditPen, Search, DataLine,
-  Clock, UserFilled, Reading, Histogram,
-  OfficeBuilding, Notebook, Files, User,
+  Calendar,
+  EditPen,
+  Search,
+  DataLine,
+  Clock,
+  UserFilled,
+  Reading,
+  Histogram,
+  OfficeBuilding,
+  Notebook,
+  Files,
+  User,
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
@@ -131,18 +140,74 @@ const greeting = computed(() => {
 
 // 统计配置：核心指标（大卡片 + sparkline）
 const coreStats = [
-  { key: 'totalWeeklyHours', label: '总周课时', icon: markRaw(Clock), bg: 'var(--brand-success-soft)', color: 'var(--brand-success)', route: '/teaching/arrange' },
-  { key: 'teachingTeachers', label: '参与教师', icon: markRaw(UserFilled), bg: 'var(--brand-warning-soft)', color: 'var(--brand-warning)', route: '/teaching/arrange' },
-  { key: 'courses', label: '课程数量', icon: markRaw(Reading), bg: 'var(--brand-success-soft)', color: 'var(--brand-success)', route: '/courses' },
-  { key: 'classes', label: '班级数量', icon: markRaw(Histogram), bg: 'var(--brand-warning-soft)', color: 'var(--brand-warning)', route: '/classes' },
+  {
+    key: 'totalWeeklyHours',
+    label: '总周课时',
+    icon: markRaw(Clock),
+    bg: 'var(--brand-success-soft)',
+    color: 'var(--brand-success)',
+    route: '/teaching/arrange',
+  },
+  {
+    key: 'teachingTeachers',
+    label: '参与教师',
+    icon: markRaw(UserFilled),
+    bg: 'var(--brand-warning-soft)',
+    color: 'var(--brand-warning)',
+    route: '/teaching/arrange',
+  },
+  {
+    key: 'courses',
+    label: '课程数量',
+    icon: markRaw(Reading),
+    bg: 'var(--brand-success-soft)',
+    color: 'var(--brand-success)',
+    route: '/courses',
+  },
+  {
+    key: 'classes',
+    label: '班级数量',
+    icon: markRaw(Histogram),
+    bg: 'var(--brand-warning-soft)',
+    color: 'var(--brand-warning)',
+    route: '/classes',
+  },
 ];
 
 // 统计配置：次要指标（小卡片）
 const secondaryStats = [
-  { key: 'majors', label: '专业类别', icon: markRaw(OfficeBuilding), bg: 'var(--brand-primary-soft)', color: 'var(--brand-primary)', route: '/majors' },
-  { key: 'textbooks', label: '活跃教材', icon: markRaw(Notebook), bg: 'var(--brand-danger-soft)', color: 'var(--brand-danger)', route: '/textbooks' },
-  { key: 'plans', label: '培养方案', icon: markRaw(Files), bg: 'var(--bg-subtle)', color: 'var(--text-secondary)', route: '/plans' },
-  { key: 'totalStudents', label: '在读学生', icon: markRaw(User), bg: 'var(--brand-primary-soft)', color: 'var(--brand-primary)', route: '' },
+  {
+    key: 'majors',
+    label: '专业类别',
+    icon: markRaw(OfficeBuilding),
+    bg: 'var(--brand-primary-soft)',
+    color: 'var(--brand-primary)',
+    route: '/majors',
+  },
+  {
+    key: 'textbooks',
+    label: '活跃教材',
+    icon: markRaw(Notebook),
+    bg: 'var(--brand-danger-soft)',
+    color: 'var(--brand-danger)',
+    route: '/textbooks',
+  },
+  {
+    key: 'plans',
+    label: '培养方案',
+    icon: markRaw(Files),
+    bg: 'var(--bg-subtle)',
+    color: 'var(--text-secondary)',
+    route: '/plans',
+  },
+  {
+    key: 'totalStudents',
+    label: '在读学生',
+    icon: markRaw(User),
+    bg: 'var(--brand-primary-soft)',
+    color: 'var(--brand-primary)',
+    route: '',
+  },
 ];
 
 // 生成 mock sparkline 趋势数据（基于当前值模拟 6 个点）
@@ -153,7 +218,7 @@ function sparkData(key) {
   const data = [];
   for (let i = 0; i < points; i++) {
     const ratio = 0.4 + (i / (points - 1)) * 0.6;
-    const jitter = (Math.sin(i * 2.5 + key.length) * 0.08);
+    const jitter = Math.sin(i * 2.5 + key.length) * 0.08;
     data.push(Math.max(1, Math.round(val * (ratio + jitter))));
   }
   data[data.length - 1] = val; // 确保最后一个点是当前值
@@ -260,7 +325,7 @@ onMounted(async () => {
 
 /* 欢迎区域 — 品牌渐变背景，白字突出 */
 .welcome-section {
-  background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
   padding: 24px 32px;
   border-radius: var(--radius-md);
   box-shadow: 0 4px 16px rgba(14, 165, 233, 0.2);

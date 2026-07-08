@@ -20,7 +20,11 @@
         <span class="progress-title">
           {{ finished ? '排课完成' : type === 'batch' ? '批量排课进行中' : '排课进行中' }}
         </span>
-        <el-tag v-if="modeLabel" :type="modeLabel === '全量模式' ? 'warning' : 'success'" size="small">
+        <el-tag
+          v-if="modeLabel"
+          :type="modeLabel === '全量模式' ? 'warning' : 'success'"
+          size="small"
+        >
           {{ modeLabel }}
         </el-tag>
         <el-tag
@@ -104,7 +108,13 @@
 
 <script setup>
 import { computed } from 'vue';
-import { Loading, CircleCheckFilled, CircleClose, Select, MagicStick } from '@element-plus/icons-vue';
+import {
+  Loading,
+  CircleCheckFilled,
+  CircleClose,
+  Select,
+  MagicStick,
+} from '@element-plus/icons-vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

@@ -1,16 +1,17 @@
 <template>
-  <div>
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><Document /></el-icon> 培养方案管理</span
-          >
-          <el-button type="primary" @click="openDialog()">
-            <el-icon><Plus /></el-icon> 新增方案
-          </el-button>
-        </div>
+  <div class="plan-list">
+    <PageHeader
+      title="培养方案"
+      subtitle="教学管理"
+      description="管理各专业的培养方案，包含课程设置和学期安排"
+    >
+      <template #extra>
+        <el-button type="primary" @click="openDialog()">
+          <el-icon><Plus /></el-icon> 新增方案
+        </el-button>
       </template>
+    </PageHeader>
+    <el-card>
       <div class="page-toolbar">
         <el-select
           v-model="filterCollegeId"
@@ -202,8 +203,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed, onMounted, onActivated } from 'vue';
 import { ArrowUp, ArrowDown, Document, Edit, Delete, WarningFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan';
@@ -212,8 +212,10 @@ import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
 import { useSortable } from '../../composables/useSortable';
 import EmptyState from '../../components/EmptyState.vue';
+import PageHeader from '../../components/PageHeader.vue';
 
-const route = useRoute();
+defineOptions({ name: 'PlanList' });
+
 const list = ref([]);
 const loading = ref(false);
 const majors = ref([]);
@@ -439,20 +441,14 @@ onMounted(async () => {
   load();
 });
 
-watch(
-  () => route.path,
-  (newPath, oldPath) => {
-    // 跳过首次（oldPath 为 undefined）和同路由变化
-    if (newPath === '/plans' && oldPath && oldPath !== '/plans') {
-      // keep-alive 缓存下 onMounted 不触发，返回时需重新加载元数据
-      // 避免在基础数据页新增专业/层次/学院后，本页下拉选项仍为旧数据
-      loadMeta();
-      if (consumeRefreshFlag()) {
-        silentReload();
-      }
-    }
+onActivated(() => {
+  // keep-alive 缓存页被激活时重新加载元数据
+  // 避免在基础数据页新增专业/层次/学院后，本页下拉选项仍为旧数据
+  loadMeta();
+  if (consumeRefreshFlag()) {
+    silentReload();
   }
-);
+});
 </script>
 
 <style scoped>

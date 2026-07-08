@@ -1,14 +1,7 @@
 <template>
-  <div>
+  <div class="unified-textbook-query">
+    <PageHeader title="教材查询" subtitle="查询中心" description="按学期查看各课程教材使用情况" />
     <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><Notebook /></el-icon> 教材查询</span
-          >
-        </div>
-      </template>
-
       <div class="page-toolbar">
         <el-button @click="goToCurrentSemester">
           <el-icon><Calendar /></el-icon> 当前学期
@@ -59,12 +52,14 @@
       <!-- 统一使用一个容器，保持最小高度 -->
       <div v-loading="loadingDetail" class="content-container">
         <!-- 空状态提示 -->
-        <el-empty
+        <EmptyState
           v-if="!selectedSemester"
+          type="textbook"
           description="请先选择要查询的学期，然后选择教材查看详情"
         />
-        <el-empty
+        <EmptyState
           v-else-if="!selectedTextbook && !loadingDetail"
+          type="textbook"
           description="请选择要查询的教材查看详情"
         />
 
@@ -176,6 +171,10 @@ import { useSemesters, downloadBlob } from '../../composables/useSemesters';
 import { useResponsive } from '../../composables/useResponsive';
 import { useAuthStore } from '@/stores/auth';
 import { getWithCache } from '../../utils/cache';
+import PageHeader from '../../components/PageHeader.vue';
+import EmptyState from '../../components/EmptyState.vue';
+
+defineOptions({ name: 'UnifiedTextbookQuery' });
 
 const authStore = useAuthStore();
 

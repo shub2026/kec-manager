@@ -1,14 +1,11 @@
 <template>
-  <div>
+  <div class="plan-query">
+    <PageHeader
+      title="方案查询"
+      subtitle="查询中心"
+      description="按培养方案查看课程矩阵和学期安排"
+    />
     <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><Document /></el-icon> 方案查询</span
-          >
-        </div>
-      </template>
-
       <div class="page-toolbar">
         <el-select
           v-model="selectedPlanId"
@@ -49,8 +46,8 @@
         </table>
       </div>
 
-      <el-empty v-else-if="selectedPlanId" description="该方案暂无课程数据" />
-      <el-empty v-else description="请选择培养方案查看明细" />
+      <EmptyState v-else-if="selectedPlanId" type="plan" description="该方案暂无课程数据" />
+      <EmptyState v-else type="plan" description="请选择培养方案查看明细" />
     </el-card>
   </div>
 </template>
@@ -60,6 +57,10 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getPlans, getPlanCourses } from '../../api/plan';
 import CourseMatrixTable from '../../components/CourseMatrixTable.vue';
+import PageHeader from '../../components/PageHeader.vue';
+import EmptyState from '../../components/EmptyState.vue';
+
+defineOptions({ name: 'PlanQuery' });
 
 // 状态
 const plans = ref([]);

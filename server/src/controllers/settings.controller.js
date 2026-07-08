@@ -89,7 +89,8 @@ export async function getSettings(req, res, next) {
     }
     // M-9修复：降级路径也仅返回公开字段，避免泄露系统内部配置
     const publicDefault = {};
-    if (defaultMap.organization_name) publicDefault.organization_name = defaultMap.organization_name;
+    if (defaultMap.organization_name)
+      publicDefault.organization_name = defaultMap.organization_name;
     return success(res, publicDefault, '使用默认设置');
   }
 }

@@ -1,16 +1,13 @@
 <template>
-  <div>
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><OfficeBuilding /></el-icon> 学院管理</span
-          >
-          <el-button type="primary" @click="openDialog()">
-            <el-icon><Plus /></el-icon> 新增学院
-          </el-button>
-        </div>
+  <div class="college-list">
+    <PageHeader title="学院管理" subtitle="基础数据" description="管理学院的名称、编码和描述信息">
+      <template #extra>
+        <el-button type="primary" @click="openDialog()">
+          <el-icon><Plus /></el-icon> 新增学院
+        </el-button>
       </template>
+    </PageHeader>
+    <el-card>
       <el-table v-loading="loading" :data="list" stripe row-key="id">
         <template #empty>
           <EmptyState type="college" description="暂无学院数据" />
@@ -121,6 +118,9 @@ import { ArrowUp, ArrowDown, Edit, Delete, WarningFilled } from '@element-plus/i
 import { getColleges, createCollege, updateCollege, deleteCollege } from '../../api/college';
 import { useCrudList } from '../../composables/useCrudList';
 import EmptyState from '../../components/EmptyState.vue';
+import PageHeader from '../../components/PageHeader.vue';
+
+defineOptions({ name: 'CollegeList' });
 
 const formRef = ref(null);
 const rules = {

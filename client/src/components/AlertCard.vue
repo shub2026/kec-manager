@@ -62,9 +62,7 @@
             class="alert-item alert-item-danger"
           >
             <span class="alert-item-name">{{ teacher.name }}</span>
-            <span class="alert-item-detail">
-              {{ teacher.hours }}/{{ teacher.limit }} 课时
-            </span>
+            <span class="alert-item-detail"> {{ teacher.hours }}/{{ teacher.limit }} 课时 </span>
           </li>
         </ul>
       </div>

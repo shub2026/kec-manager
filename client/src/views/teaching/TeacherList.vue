@@ -1,6 +1,10 @@
 <template>
   <div class="teacher-list">
-    <PageHeader title="教师信息" subtitle="教学安排" description="管理参与排课的教师信息，包括归属学院、授课课程和排课偏好">
+    <PageHeader
+      title="教师信息"
+      subtitle="教学安排"
+      description="管理参与排课的教师信息，包括归属学院、授课课程和排课偏好"
+    >
       <template #extra>
         <el-button type="primary" @click="openDialog()">
           <el-icon><Plus /></el-icon> 新增教师
@@ -359,8 +363,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted, computed, onActivated } from 'vue';
 import { Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import {
@@ -381,9 +384,10 @@ import { useResponsive } from '../../composables/useResponsive';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
 
+defineOptions({ name: 'TeacherList' });
+
 const list = ref([]);
 const loading = ref(false);
-const route = useRoute();
 const dialogVisible = ref(false);
 const saving = ref(false);
 const allCourses = ref([]);
@@ -697,16 +701,11 @@ onMounted(() => {
   loadOptions();
 });
 
-// keep-alive 缓存下 onMounted 不触发，返回 /teaching/teachers 时重新加载基础数据
+// keep-alive 缓存页被激活时重新加载选项数据
 // 避免在基础数据页新增课程/学院/层次后，本页下拉选项仍为旧数据
-watch(
-  () => route.path,
-  (newPath, oldPath) => {
-    if (newPath === '/teaching/teachers' && oldPath && oldPath !== '/teaching/teachers') {
-      loadOptions();
-    }
-  }
-);
+onActivated(() => {
+  loadOptions();
+});
 </script>
 
 <style scoped>

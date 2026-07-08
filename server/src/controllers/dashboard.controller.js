@@ -133,9 +133,7 @@ export async function getDashboardInsights(req, res, next) {
     // —— 异常提醒 ——
     // 1) 未排课课程：总课程中未被排课的
     const allCourses = await prisma.courses.findMany({ select: { id: true, name: true } });
-    const unassignedCourses = allCourses
-      .filter((c) => !assignedIds.has(c.id))
-      .slice(0, 10);
+    const unassignedCourses = allCourses.filter((c) => !assignedIds.has(c.id)).slice(0, 10);
 
     // 2) 课时超限教师：总周课时 > default_weekly_hours
     const teacherHours = {};

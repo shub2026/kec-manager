@@ -26,6 +26,7 @@
           :rules="rules"
           class="login-form"
           label-position="top"
+          aria-label="用户登录表单"
         >
           <el-form-item label="用户名" prop="username">
             <el-input
@@ -180,6 +181,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   background: var(--bg-page);
+  background-image: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    rgba(14, 165, 233, 0.06) 0%,
+    transparent 70%
+  );
   padding: 40px 20px;
 }
 
@@ -189,6 +195,18 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: login-fade-in 0.5s var(--ease-out) both;
+}
+
+@keyframes login-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ==================== 品牌 ==================== */
@@ -245,9 +263,14 @@ onMounted(() => {
 
 .card-accent {
   height: 2.5px;
-  /* 蓝绿渐变点缀：品牌蓝 → 天青 → 翡翠绿，三色平滑过渡 */
-  background: linear-gradient(90deg, #5b8def 0%, #22b8cf 50%, #20c997 100%);
-  box-shadow: 0 1px 6px rgba(34, 184, 207, 0.25);
+  /* 品牌色渐变点缀：主色 → 浅阶 → 主色，三色平滑过渡 */
+  background: linear-gradient(
+    90deg,
+    var(--brand-primary) 0%,
+    var(--brand-primary-lighter) 50%,
+    var(--brand-primary) 100%
+  );
+  box-shadow: 0 1px 6px var(--brand-primary-shadow);
 }
 
 .card-header {
@@ -290,7 +313,7 @@ onMounted(() => {
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1.5px var(--brand-primary) inset;
+  box-shadow: 0 0 0 2px var(--brand-primary) inset;
 }
 
 .login-btn {
@@ -311,7 +334,7 @@ onMounted(() => {
 .login-btn:hover,
 .login-btn:focus {
   background: var(--brand-primary-hover);
-  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.32);
+  box-shadow: 0 6px 16px var(--brand-primary-shadow);
 }
 
 .login-btn:active {

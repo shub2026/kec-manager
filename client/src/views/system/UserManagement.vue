@@ -1,18 +1,14 @@
 <template>
   <div class="user-management">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><UserFilled /></el-icon> 用户管理</span
-          >
-          <el-button type="primary" @click="showCreateDialog">
-            <el-icon><Plus /></el-icon>
-            创建用户
-          </el-button>
-        </div>
+    <PageHeader title="用户管理" subtitle="系统管理" description="管理系统用户账户和权限设置">
+      <template #extra>
+        <el-button type="primary" @click="showCreateDialog">
+          <el-icon><Plus /></el-icon>
+          创建用户
+        </el-button>
       </template>
-
+    </PageHeader>
+    <el-card>
       <!-- 权限提示 -->
       <el-alert
         v-if="authStore.userInfo?.role === 'admin'"
@@ -25,7 +21,7 @@
       <!-- 用户列表 -->
       <el-table v-loading="loading" :data="users" stripe row-key="id">
         <template #empty>
-          <el-empty description="暂无数据" />
+          <EmptyState type="generic" description="暂无数据" />
         </template>
         <el-table-column type="index" label="序号" min-width="60" align="center" />
         <el-table-column prop="username" label="用户名" min-width="120" />
@@ -216,6 +212,10 @@ import {
   deleteUser as apiDeleteUser,
   toggleUserStatus as apiToggleUserStatus,
 } from '../../api/user';
+import PageHeader from '../../components/PageHeader.vue';
+import EmptyState from '../../components/EmptyState.vue';
+
+defineOptions({ name: 'UserManagement' });
 
 const authStore = useAuthStore();
 

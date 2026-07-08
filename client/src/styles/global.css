@@ -16,8 +16,7 @@
   transition: box-shadow var(--dur-base) var(--ease-out);
 }
 
-.el-card.is-hover:hover,
-.el-card:hover {
+.el-card.is-hover:hover {
   box-shadow: var(--shadow-md);
 }
 
@@ -31,7 +30,7 @@
 }
 
 .el-button--primary:hover {
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.28);
+  box-shadow: 0 4px 12px var(--brand-primary-shadow);
 }
 
 /* 表格行 hover:更柔和的强调色 */
@@ -40,9 +39,9 @@
   transition: background var(--dur-fast) var(--ease-out);
 }
 
-/* 表头增强:品牌浅底 + 粗体,拉开与数据行的层次感 */
+/* 表头增强:中性浅底 + 粗体,拉开与数据行的层次感（不依赖品牌色,换肤不受影响） */
 .el-table th.el-table__cell {
-  background: var(--brand-primary-soft) !important;
+  background: var(--bg-subtle) !important;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -289,6 +288,22 @@
   }
 }
 
+/* 小桌面（≤1200px）：筛选器进一步收缩,card-header 允许换行 */
+@media (max-width: 1200px) {
+  .card-header-actions {
+    gap: 8px;
+  }
+  .page-toolbar .filter-2xl {
+    width: 160px;
+  }
+  .page-toolbar .filter-xl {
+    width: 130px;
+  }
+  .page-toolbar .filter-lg {
+    width: 110px;
+  }
+}
+
 /* 平板（≤992px）：筛选器进一步收缩 */
 @media (max-width: 992px) {
   .page-toolbar,
@@ -439,7 +454,7 @@
 /* ----- 操作列 hover 浮现效果：减少视觉噪音，hover 时才完全显示 ----- */
 .op-buttons .el-button,
 .el-table__body-wrapper .el-table__row td:last-child .el-button {
-  opacity: 0.45;
+  opacity: 0.65;
   transition: opacity var(--dur-fast) var(--ease-out),
               transform var(--dur-fast) var(--ease-out),
               box-shadow var(--dur-fast) var(--ease-out);

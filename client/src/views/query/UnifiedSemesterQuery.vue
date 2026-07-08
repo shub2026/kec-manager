@@ -1,16 +1,17 @@
 <template>
-  <div>
+  <div class="unified-semester-query">
+    <PageHeader
+      title="开课查询"
+      subtitle="查询中心"
+      description="按学期查看各班级开课情况和教师安排"
+    />
     <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><DocumentChecked /></el-icon> 开课查询</span
-          >
-        </div>
-      </template>
-
       <!-- 未选学期时显示空状态 -->
-      <el-empty v-if="!selectedSemester" description="请先选择学期，然后查看开课情况" />
+      <EmptyState
+        v-if="!selectedSemester"
+        type="generic"
+        description="请先选择学期，然后查看开课情况"
+      />
 
       <!-- 已选学期时显示筛选、统计、表格 -->
       <template v-else>
@@ -218,6 +219,10 @@ import { useSemesters, downloadBlob } from '../../composables/useSemesters';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useAuthStore } from '@/stores/auth';
 import { getWithCache } from '../../utils/cache';
+import PageHeader from '../../components/PageHeader.vue';
+import EmptyState from '../../components/EmptyState.vue';
+
+defineOptions({ name: 'UnifiedSemesterQuery' });
 
 const authStore = useAuthStore();
 
@@ -512,6 +517,10 @@ onMounted(async () => {
 .expand-content :deep(.el-table th .cell) {
   min-height: 28px;
   padding: 2px 8px;
+}
+/* 内嵌表格禁用行hover高亮，避免与外层表格hover效果叠加造成视觉干扰 */
+.expand-content :deep(.el-table tbody tr:hover > td) {
+  background: inherit !important;
 }
 .expand-content .no-textbook {
   color: var(--text-secondary);

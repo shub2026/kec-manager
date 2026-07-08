@@ -137,7 +137,8 @@ export async function getPlanById(req, res, next) {
  */
 export async function createPlan(req, res, next) {
   try {
-    const { name, college_id, major_id, training_level_id, version, description, status } = req.body;
+    const { name, college_id, major_id, training_level_id, version, description, status } =
+      req.body;
     if (!name) throw new ValidationError('方案名称为必填项');
 
     if (major_id && training_level_id) {
@@ -210,8 +211,16 @@ export async function createPlan(req, res, next) {
 export async function updatePlan(req, res, next) {
   try {
     const { id } = req.params;
-    const { name, college_id, major_id, training_level_id, version, description, sort_order, status } =
-      req.body;
+    const {
+      name,
+      college_id,
+      major_id,
+      training_level_id,
+      version,
+      description,
+      sort_order,
+      status,
+    } = req.body;
 
     // 排序交换：仅更新 sort_order
     if (sort_order !== undefined && name === undefined) {

@@ -21,7 +21,13 @@ import {
  * @param {Function} options.isInRange - 判断学期是否在范围内
  * @param {Function} options.loadData - 重新加载数据
  */
-export function useCourseMatrixEditing({ getPlanId, rawCourses, globalWeeks, isInRange, loadData }) {
+export function useCourseMatrixEditing({
+  getPlanId,
+  rawCourses,
+  globalWeeks,
+  isInRange,
+  loadData,
+}) {
   // ==================== 编辑状态 ====================
   const popoverVisible = ref(false);
   const saving = ref(false);

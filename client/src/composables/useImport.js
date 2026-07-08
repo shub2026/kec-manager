@@ -163,6 +163,101 @@ export function showImportResultCard({
 }
 
 /**
+ * 导入进度浮层（全屏遮罩 + 居中卡片 + 取消按钮）
+ * 在 confirmImport 开始时显示，完成或取消时隐藏
+ */
+let _progressOverlay = null;
+
+function showImportProgressOverlay(onCancel) {
+  hideImportProgressOverlay(); // 防止重复
+
+  // 注入动画（只添加一次）
+  if (!document.getElementById('import-progress-keyframes')) {
+    const style = document.createElement('style');
+    style.id = 'import-progress-keyframes';
+    style.textContent = `
+      @keyframes importPulseDot {
+        0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+        40% { opacity: 1; transform: scale(1); }
+      }
+      @keyframes importOverlayFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // 全屏遮罩
+  const overlay = document.createElement('div');
+  overlay.style.cssText =
+    'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;' +
+    'background:rgba(0,0,0,0.45);animation:importOverlayFadeIn 0.2s ease;';
+
+  // 居中卡片
+  const card = document.createElement('div');
+  card.style.cssText =
+    'background:var(--bg-card, #fff);border-radius:12px;padding:32px 40px;text-align:center;' +
+    'box-shadow:0 8px 32px rgba(0,0,0,0.18);min-width:260px;';
+
+  // 跳动圆点动画
+  const dots = document.createElement('div');
+  dots.style.cssText = 'display:flex;justify-content:center;gap:6px;margin-bottom:16px;';
+  for (let i = 0; i < 3; i++) {
+    const dot = document.createElement('span');
+    dot.style.cssText =
+      `width:10px;height:10px;border-radius:50%;background:var(--brand-primary, #409eff);` +
+      `animation:importPulseDot 1.4s infinite ease-in-out both;animation-delay:${i * 0.16}s;`;
+    dots.appendChild(dot);
+  }
+  card.appendChild(dots);
+
+  // 提示文字
+  const text = document.createElement('div');
+  text.textContent = '正在导入...';
+  text.style.cssText =
+    'font-size:15px;font-weight:500;color:var(--text-primary, #303133);margin-bottom:20px;';
+  card.appendChild(text);
+
+  // 取消按钮
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = '取消导入';
+  cancelBtn.style.cssText =
+    'padding:8px 24px;font-size:13px;border-radius:6px;cursor:pointer;transition:all 0.2s;' +
+    'border:1px solid var(--border-base, #dcdfe6);background:var(--bg-card, #fff);color:var(--text-regular, #606266);';
+  cancelBtn.addEventListener('mouseenter', () => {
+    cancelBtn.style.borderColor = 'var(--brand-danger, #f56c6c)';
+    cancelBtn.style.color = 'var(--brand-danger, #f56c6c)';
+  });
+  cancelBtn.addEventListener('mouseleave', () => {
+    cancelBtn.style.borderColor = 'var(--border-base, #dcdfe6)';
+    cancelBtn.style.color = 'var(--text-regular, #606266)';
+  });
+  cancelBtn.addEventListener('click', () => {
+    cancelBtn.disabled = true;
+    cancelBtn.textContent = '正在取消...';
+    cancelBtn.style.cursor = 'not-allowed';
+    cancelBtn.style.opacity = '0.6';
+    if (onCancel) onCancel();
+  });
+  card.appendChild(cancelBtn);
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+  _progressOverlay = overlay;
+}
+
+function hideImportProgressOverlay() {
+  if (_progressOverlay) {
+    const el = _progressOverlay;
+    _progressOverlay = null;
+    el.style.transition = 'opacity 0.2s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 200);
+  }
+}
+
+/**
  * 通用导入 Composable
  * 封装 Excel 导入的完整流程：文件校验 → 确认弹窗 → 上传 → 结果反馈
  * @param {string} endpoint - 导入 API 路径（如 '/import/teachers'）
@@ -176,8 +271,6 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
   const importing = ref(false);
 
   // F-13: AbortController for import cancellation
-  // TODO: Wire this into a "Cancel" button in the upload progress UI
-  // when the backend supports streaming upload cancellation.
   let abortController = null;
 
   const uploadHeaders = computed(() => {
@@ -207,6 +300,7 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
     importConfirmVisible.value = false;
     importing.value = true;
     abortController = new AbortController();
+    showImportProgressOverlay(() => cancelImport());
     try {
       const formData = new FormData();
       formData.append('file', pendingFile.value);
@@ -219,6 +313,7 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
       if (abortController.signal.aborted) return; // User cancelled
       onImportError(err);
     } finally {
+      hideImportProgressOverlay();
       pendingFile.value = null;
       importing.value = false;
       abortController = null;
@@ -228,6 +323,7 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
   function cancelImport() {
     importConfirmVisible.value = false;
     pendingFile.value = null;
+    hideImportProgressOverlay();
     if (abortController) {
       abortController.abort();
       abortController = null;

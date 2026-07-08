@@ -566,7 +566,10 @@ function trySwapUnassigned(
 function evictFromTeacher(vAssign, t, assignmentsByTeacher, classTextbookMap) {
   t.assignedHours -= vAssign.weekly_hours;
   const tList = assignmentsByTeacher.get(t.id) || [];
-  assignmentsByTeacher.set(t.id, tList.filter((a) => a !== vAssign));
+  assignmentsByTeacher.set(
+    t.id,
+    tList.filter((a) => a !== vAssign)
+  );
   // 清理 V 独有教材（T 的剩余分配不再使用）
   const vTextbookIds = classTextbookMap.get(vAssign.class_id) || [];
   const remaining = assignmentsByTeacher.get(t.id) || [];
@@ -634,7 +637,14 @@ function checkTextbookAdd(t, clsTextbookIds) {
 }
 
 /** 检查教师 T 移除 V 后添加 cls 是否超出教材上限 */
-function checkTextbookSwap(t, vTextbookIds, clsTextbookIds, tAssignments, vAssign, classTextbookMap) {
+function checkTextbookSwap(
+  t,
+  vTextbookIds,
+  clsTextbookIds,
+  tAssignments,
+  vAssign,
+  classTextbookMap
+) {
   const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
   const vUniqueToT = vTextbookIds.filter((tid) => {
     return !tAssignments.some((a) => {
@@ -679,7 +689,10 @@ function tryPlaceClass(
     if (classInfoMap) {
       const clsInfo = classInfoMap.get(cls.classId);
       if (clsInfo) {
-        if (t.schedulingCollegeIds?.length > 0 && !t.schedulingCollegeIds.includes(clsInfo.collegeId))
+        if (
+          t.schedulingCollegeIds?.length > 0 &&
+          !t.schedulingCollegeIds.includes(clsInfo.collegeId)
+        )
           continue;
         if (
           t.schedulingLevelIds?.length > 0 &&
@@ -696,7 +709,15 @@ function tryPlaceClass(
     // 直接放置（T 有容量）
     if (t.assignedHours + cls.weeklyHours <= cap) {
       if (!useTbLimit || checkTextbookAdd(t, clsTextbookIds)) {
-        placeClassOnTeacher(cls, t, assignments, assignmentsByTeacher, courseId, semesterStr, classTextbookMap);
+        placeClassOnTeacher(
+          cls,
+          t,
+          assignments,
+          assignmentsByTeacher,
+          courseId,
+          semesterStr,
+          classTextbookMap
+        );
         return true;
       }
     }
@@ -713,7 +734,10 @@ function tryPlaceClass(
       if (t.assignedHours - vHours + cls.weeklyHours > cap) continue;
 
       const vTextbookIds = classTextbookMap.get(vAssign.class_id) || [];
-      if (useTbLimit && !checkTextbookSwap(t, vTextbookIds, clsTextbookIds, tAssignments, vAssign, classTextbookMap))
+      if (
+        useTbLimit &&
+        !checkTextbookSwap(t, vTextbookIds, clsTextbookIds, tAssignments, vAssign, classTextbookMap)
+      )
         continue;
 
       // 乐观驱逐 V
@@ -744,7 +768,15 @@ function tryPlaceClass(
         )
       ) {
         // V 找到新家，将 cls 放入 T
-        placeClassOnTeacher(cls, t, assignments, assignmentsByTeacher, courseId, semesterStr, classTextbookMap);
+        placeClassOnTeacher(
+          cls,
+          t,
+          assignments,
+          assignmentsByTeacher,
+          courseId,
+          semesterStr,
+          classTextbookMap
+        );
         visited.delete(key);
         return true;
       }
@@ -926,7 +958,12 @@ export async function autoArrange(
   scheduleConditions,
   options = {}
 ) {
-  const { preview = false, extraTeacherHours = null, globalTextbookMap = null, capacityReserveRatio = 1.0 } = options;
+  const {
+    preview = false,
+    extraTeacherHours = null,
+    globalTextbookMap = null,
+    capacityReserveRatio = 1.0,
+  } = options;
   const onProgress = options.onProgress;
   const _arrangeStart = Date.now();
 
@@ -1337,7 +1374,10 @@ export async function autoArrange(
     // 第一阶段：处理有指定意向的教师（严格按意向分配）
     // ================================================================
     logger.info('[阶段1] 有指定意向的教师拿第一本教材');
-    if (onProgress) try { onProgress({ phase: 1, phaseName: '意向教师分配', total: 5 }); } catch (_) {}
+    if (onProgress)
+      try {
+        onProgress({ phase: 1, phaseName: '意向教师分配', total: 5 });
+      } catch (_) {}
 
     const teachersWithPref = teacherConstraints.filter(
       (t) => t.schedulingCollegeIds?.length > 0 || t.schedulingLevelIds?.length > 0
@@ -1387,7 +1427,10 @@ export async function autoArrange(
     // 第二阶段：处理无指定意向的教师（按课时容量去拿）
     // ================================================================
     logger.info('[阶段2] 无指定意向的教师拿第一本教材');
-    if (onProgress) try { onProgress({ phase: 2, phaseName: '无意向教师分配', total: 5 }); } catch (_) {}
+    if (onProgress)
+      try {
+        onProgress({ phase: 2, phaseName: '无意向教师分配', total: 5 });
+      } catch (_) {}
 
     const teachersWithoutPref = teacherConstraints.filter(
       (t) => !t.schedulingCollegeIds?.length && !t.schedulingLevelIds?.length
@@ -1431,7 +1474,10 @@ export async function autoArrange(
     // 第三阶段：所有教师追加同教材班级（不增加教材数）
     // ================================================================
     logger.info('[阶段3] 所有教师追加同教材班级');
-    if (onProgress) try { onProgress({ phase: 3, phaseName: '追加同教材班级', total: 5 }); } catch (_) {}
+    if (onProgress)
+      try {
+        onProgress({ phase: 3, phaseName: '追加同教材班级', total: 5 });
+      } catch (_) {}
 
     for (const [tbKey, available] of groupAvailable) {
       if (available.length === 0) continue;
@@ -1467,7 +1513,10 @@ export async function autoArrange(
     // 第四阶段：所有教师拿第二本教材（如果还有容量）
     // ================================================================
     logger.info('[阶段4] 所有教师拿第二本教材');
-    if (onProgress) try { onProgress({ phase: 4, phaseName: '第二本教材分配', total: 5 }); } catch (_) {}
+    if (onProgress)
+      try {
+        onProgress({ phase: 4, phaseName: '第二本教材分配', total: 5 });
+      } catch (_) {}
 
     for (const [tbKey, available] of groupAvailable) {
       if (available.length === 0) continue;
@@ -1523,7 +1572,10 @@ export async function autoArrange(
 
     if (allRemaining.length > 0) {
       logger.debug(`[兜底] 剩余 ${allRemaining.length} 个班级，用 assignRound 放宽约束`);
-      if (onProgress) try { onProgress({ phase: 5, phaseName: '兜底放宽约束', total: 5 }); } catch (_) {}
+      if (onProgress)
+        try {
+          onProgress({ phase: 5, phaseName: '兜底放宽约束', total: 5 });
+        } catch (_) {}
       const fallbackRemaining = assignRound(allRemaining);
       unassigned.push(...fallbackRemaining);
       logger.debug(`[兜底] 累计分配 ${assignments.length}，未分配 ${fallbackRemaining.length}`);

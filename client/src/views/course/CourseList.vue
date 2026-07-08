@@ -1,17 +1,17 @@
 <template>
-  <div>
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><Reading /></el-icon> 课程管理</span
-          >
-          <el-button type="primary" @click="openDialog()">
-            <el-icon><Plus /></el-icon> 新增课程
-          </el-button>
-        </div>
+  <div class="course-list">
+    <PageHeader
+      title="课程管理"
+      subtitle="基础数据"
+      description="管理课程信息，包括课程名称、编码和学分设置"
+    >
+      <template #extra>
+        <el-button type="primary" @click="openDialog()">
+          <el-icon><Plus /></el-icon> 新增课程
+        </el-button>
       </template>
-
+    </PageHeader>
+    <el-card>
       <div class="page-toolbar">
         <el-input v-model="filterName" clearable placeholder="搜索课程名称" class="filter-2xl" />
         <div class="action-buttons">
@@ -174,6 +174,9 @@ import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
 import { useSortable } from '../../composables/useSortable';
 import EmptyState from '../../components/EmptyState.vue';
+import PageHeader from '../../components/PageHeader.vue';
+
+defineOptions({ name: 'CourseList' });
 
 const list = ref([]);
 const filterName = ref('');

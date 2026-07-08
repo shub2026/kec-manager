@@ -98,7 +98,13 @@
     </div>
 
     <div class="semester-actions">
-      <el-button type="primary" size="large" :loading="saving" :disabled="!isDirty" @click="handleSave">
+      <el-button
+        type="primary"
+        size="large"
+        :loading="saving"
+        :disabled="!isDirty"
+        @click="handleSave"
+      >
         <el-icon><Check /></el-icon>
         保存设置
       </el-button>
@@ -169,11 +175,7 @@ const _lastSavedSnapshot = ref({
 });
 
 watch(
-  () => [
-    localForm.value.currentSemester,
-    localForm.value.organizationName,
-    props.selectedSemester,
-  ],
+  () => [localForm.value.currentSemester, localForm.value.organizationName, props.selectedSemester],
   () => {
     const s = _lastSavedSnapshot.value;
     isDirty.value =

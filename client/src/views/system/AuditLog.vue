@@ -1,17 +1,13 @@
 <template>
   <div class="audit-log">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><Document /></el-icon> 操作日志</span
-          >
-          <el-button type="danger" size="small" :loading="clearing" @click="showClearDialog">
-            <el-icon><Delete /></el-icon> 清空日志
-          </el-button>
-        </div>
+    <PageHeader title="操作日志" subtitle="系统管理" description="查看系统操作记录和变更历史">
+      <template #extra>
+        <el-button type="danger" size="small" :loading="clearing" @click="showClearDialog">
+          <el-icon><Delete /></el-icon> 清空日志
+        </el-button>
       </template>
-
+    </PageHeader>
+    <el-card>
       <div class="page-toolbar">
         <el-select
           v-model="filterAction"
@@ -71,7 +67,7 @@
         :default-sort="{ prop: 'createdAt', order: 'descending' }"
       >
         <template #empty>
-          <el-empty description="暂无数据" />
+          <EmptyState type="generic" description="暂无数据" />
         </template>
         <el-table-column label="时间" min-width="165" prop="createdAt" sortable>
           <template #default="{ row }">
@@ -170,7 +166,7 @@
     <el-dialog
       v-model="clearDialogVisible"
       title="清空操作日志"
-      width="500px"
+      width="min(500px, 90vw)"
       :close-on-click-modal="false"
     >
       <el-alert title="此操作不可恢复！" type="error" :closable="false" show-icon />
@@ -188,6 +184,10 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getAuditLogs } from '../../api/audit';
 import { resetAuditLogs } from '../../api/settings';
+import PageHeader from '../../components/PageHeader.vue';
+import EmptyState from '../../components/EmptyState.vue';
+
+defineOptions({ name: 'AuditLog' });
 
 const logs = ref([]);
 const loading = ref(false);

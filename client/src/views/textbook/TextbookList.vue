@@ -1,16 +1,17 @@
 <template>
   <div>
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><Notebook /></el-icon> 教材管理</span
-          >
-          <el-button type="primary" @click="openDialog()">
-            <el-icon><Plus /></el-icon> 新增教材
-          </el-button>
-        </div>
+    <PageHeader
+      title="教材管理"
+      subtitle="基础数据"
+      description="管理教材信息，包括书名、出版社和ISBN"
+    >
+      <template #extra>
+        <el-button type="primary" @click="openDialog()">
+          <el-icon><Plus /></el-icon> 新增教材
+        </el-button>
       </template>
+    </PageHeader>
+    <el-card>
       <div class="page-toolbar">
         <el-input v-model="filterTitle" clearable placeholder="按书名筛选" class="filter-2xl" />
         <el-select v-model="filterCategory" placeholder="类别筛选" clearable class="filter-md">
@@ -336,6 +337,9 @@ import { useSortable } from '../../composables/useSortable';
 import { useResponsive } from '../../composables/useResponsive';
 import { useDebounceFn } from '../../composables/useDebounce';
 import EmptyState from '../../components/EmptyState.vue';
+import PageHeader from '../../components/PageHeader.vue';
+
+defineOptions({ name: 'TextbookList' });
 
 const list = ref([]);
 

@@ -491,7 +491,9 @@ function handlePasswordChangeSuccess() {
 /* 页面切换 fade-slide 过渡动画 */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
 }
 
 .fade-slide-enter-from {

@@ -1,17 +1,13 @@
 <template>
   <div>
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><User /></el-icon> 班级管理</span
-          >
-          <el-button type="primary" @click="openDialog()">
-            <el-icon><Plus /></el-icon> 新增班级
-          </el-button>
-        </div>
+    <PageHeader title="班级管理" subtitle="基础数据" description="管理各专业的教学班级信息">
+      <template #extra>
+        <el-button type="primary" @click="openDialog()">
+          <el-icon><Plus /></el-icon> 新增班级
+        </el-button>
       </template>
-
+    </PageHeader>
+    <el-card>
       <!-- 筛选器组件（移至卡片体内） -->
       <ClassFilterBar
         v-model:filters="filters"
@@ -166,8 +162,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted, computed, onActivated } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 // 按需导入项目中 service 函数（ElNotification）的 CSS 不会自动注入，需手动导入样式
 // 否则通知 DOM 渲染但不可见（无背景/定位/动画）
@@ -180,13 +175,15 @@ import { getColleges } from '../../api/college';
 import { useSettingsStore } from '../../stores/settings';
 import { useExport } from '../../composables/useExport';
 import { showImportResultCard } from '../../composables/useImport';
+import PageHeader from '../../components/PageHeader.vue';
 import ClassFilterBar from './components/ClassFilterBar.vue';
 import ClassTable from './components/ClassTable.vue';
 import ClassFormDialog from './components/ClassFormDialog.vue';
 
+defineOptions({ name: 'ClassList' });
+
 const list = ref([]);
 const loading = ref(false);
-const route = useRoute();
 const majors = ref([]);
 const plans = ref([]);
 const trainingLevels = ref([]);
@@ -753,16 +750,14 @@ onMounted(() => {
   loadBaseData();
 });
 
-// keep-alive 缓存下 onMounted 不触发，返回 /classes 时重新加载基础数据
+// keep-alive 缓存页被激活时重新加载选项数据
 // 避免在基础数据页新增专业/层次/学院/方案后，本页下拉选项仍为旧数据
-watch(
-  () => route.path,
-  (newPath, oldPath) => {
-    if (newPath === '/classes' && oldPath && oldPath !== '/classes') {
-      loadBaseData();
-    }
+onActivated(() => {
+  if (sessionStorage.getItem('classListNeedsRefresh') === 'true') {
+    sessionStorage.removeItem('classListNeedsRefresh');
+    loadBaseData();
   }
-);
+});
 </script>
 
 <style scoped>

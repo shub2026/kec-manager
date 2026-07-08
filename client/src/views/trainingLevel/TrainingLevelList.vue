@@ -1,16 +1,17 @@
 <template>
-  <div>
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span
-            ><el-icon><DataAnalysis /></el-icon> 培养层次管理</span
-          >
-          <el-button type="primary" @click="openDialog()">
-            <el-icon><Plus /></el-icon> 新增层次
-          </el-button>
-        </div>
+  <div class="training-level-list">
+    <PageHeader
+      title="培养层次"
+      subtitle="基础数据"
+      description="管理培养层次信息，如本科、硕士、博士等"
+    >
+      <template #extra>
+        <el-button type="primary" @click="openDialog()">
+          <el-icon><Plus /></el-icon> 新增层次
+        </el-button>
       </template>
+    </PageHeader>
+    <el-card>
       <el-table v-loading="loading" :data="list" stripe row-key="id">
         <template #empty>
           <EmptyState type="generic" description="暂无培养层次数据" />
@@ -126,6 +127,9 @@ import {
 } from '../../api/trainingLevel';
 import { useCrudList } from '../../composables/useCrudList';
 import EmptyState from '../../components/EmptyState.vue';
+import PageHeader from '../../components/PageHeader.vue';
+
+defineOptions({ name: 'TrainingLevelList' });
 
 const formRef = ref(null);
 const rules = {

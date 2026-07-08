@@ -28,7 +28,12 @@
           </p>
         </div>
         <div class="reset-item-action">
-          <el-button type="danger" size="small" :loading="resetting" @click="$emit('reset', 'settings')">
+          <el-button
+            type="danger"
+            size="small"
+            :loading="resetting"
+            @click="$emit('reset', 'settings')"
+          >
             <el-icon><Delete /></el-icon>
             系统重置
           </el-button>
@@ -47,7 +52,13 @@
           </p>
         </div>
         <div class="reset-item-action">
-          <el-button type="danger" plain size="small" :loading="resetting" @click="$emit('reset', 'audit-logs')">
+          <el-button
+            type="danger"
+            plain
+            size="small"
+            :loading="resetting"
+            @click="$emit('reset', 'audit-logs')"
+          >
             <el-icon><Delete /></el-icon>
             清空日志
           </el-button>

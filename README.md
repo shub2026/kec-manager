@@ -2,7 +2,7 @@
 
 KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量级教学管理系统，涵盖培养计划、班级管理、教师排课、教材协调和数据导入导出等核心功能。采用前后端分离架构，基于 PM2 + Nginx 部署。
 
-**版本**：v2.20.2 | **数据库**：SQLite（WAL 模式）
+**版本**：v1.1.1 | **数据库**：SQLite（WAL 模式）
 
 ---
 
@@ -217,11 +217,11 @@ kec-manager/
 │   └── vitest.config.js        # 测试配置
 ├── scripts/                    # 项目级脚本
 │   └── version.js              # 版本管理脚本
-├── docs/                       # 项目文档（7 个文档）
+├── docs/                       # 项目文档（9 个文档）
 ├── deploy.sh                   # 部署脚本（支持本地/远程）
 ├── deploy_ssh.sh               # SSH 远程部署脚本
 ├── CHANGELOG.md                # 变更日志
-└── package.json                # 根配置（版本 2.20.2）
+└── package.json                # 根配置（版本 1.1.1）
 ```
 
 ---
@@ -319,6 +319,8 @@ kec-manager/
 - [学期计算说明](docs/semester-calculation.md) - 学期状态计算逻辑
 - [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) - 前后端命名规范与迁移方案
 - [版本管理指南](docs/VERSION_MANAGEMENT.md) - 语义化版本与自动化版本脚本
+- [UI 设计审查](docs/UI_DESIGN_REVIEW.md) - 视觉与交互设计改进建议及实施状态
+- [UI 架构审查（第二轮）](docs/UI_ARCHITECTURE_REVIEW_2.md) - 布局一致性、渲染性能、交互细节审查
 
 ---
 

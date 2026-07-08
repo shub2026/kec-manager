@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 
 /**
  * 创建一个防抖 ref
@@ -16,6 +16,12 @@ export function useDebouncedRef(initialValue, delay = 200) {
       debounced.value = val;
     }, delay);
   });
+
+  // 组件卸载时自动清理定时器，防止内存泄漏
+  onUnmounted(() => {
+    if (timer) clearTimeout(timer);
+  });
+
   // 返回一个可写 ref，写入防抖到 debounced
   return {
     get value() {
@@ -31,7 +37,7 @@ export function useDebouncedRef(initialValue, delay = 200) {
  * 创建防抖函数
  * @param {Function} fn 要防抖的函数
  * @param {number} delay 延迟毫秒
- * @returns {Function} 防抖后的函数（带 .cancel 方法）
+ * @returns {Function} 防抖后的函数（带 .cancel 方法，组件卸载时自动清理）
  */
 export function useDebounceFn(fn, delay = 200) {
   let timer = null;
@@ -42,5 +48,11 @@ export function useDebounceFn(fn, delay = 200) {
   debounced.cancel = () => {
     if (timer) clearTimeout(timer);
   };
+
+  // 组件卸载时自动清理定时器
+  onUnmounted(() => {
+    if (timer) clearTimeout(timer);
+  });
+
   return debounced;
 }

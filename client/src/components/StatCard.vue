@@ -8,10 +8,7 @@
     @keyup.enter="route && $router.push(route)"
   >
     <div class="stat-item-left">
-      <div
-        class="stat-icon"
-        :style="{ backgroundColor: bgColor, color: iconColor }"
-      >
+      <div class="stat-icon" :style="{ backgroundColor: bgColor, color: iconColor }">
         <el-icon :size="core ? 28 : 22"><component :is="icon" /></el-icon>
       </div>
     </div>

@@ -428,11 +428,7 @@ export async function toggleTeacherStatus(req, res, next) {
     });
 
     invalidateSortOrderCache('teachers');
-    success(
-      res,
-      { id: teacherId, status },
-      `${statusLabel}成功`
-    );
+    success(res, { id: teacherId, status }, `${statusLabel}成功`);
   } catch (e) {
     next(e);
   }

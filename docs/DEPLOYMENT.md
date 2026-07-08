@@ -1,6 +1,6 @@
 # KEC 课程管理平台 - 部署与运维指南
 
-> **版本**：v2.20.2
+> **版本**：v1.1.1
 > **数据库**：SQLite（启用 WAL 模式）
 > **部署方式**：PM2 + deploy.sh
 > **部署路径**：`/opt/1panel/www/sites/kec/index/kec-manager`

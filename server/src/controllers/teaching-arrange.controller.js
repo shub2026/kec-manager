@@ -433,9 +433,7 @@ export async function runAutoArrange(req, res, next) {
         sendSSEEvent(res, 'complete', {
           success: true,
           data: result,
-          message: preview
-            ? '预览完成（未写入）'
-            : `自动排课完成：安排${result.autoCount}个班级`,
+          message: preview ? '预览完成（未写入）' : `自动排课完成：安排${result.autoCount}个班级`,
         });
         res.end();
       } catch (e) {

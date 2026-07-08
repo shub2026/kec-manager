@@ -57,14 +57,8 @@ const props = defineProps({
 defineEmits(['add-course', 'delete-course']);
 
 // 数据层：加载、状态、计算
-const {
-  loading,
-  rawCourses,
-  globalWeeks,
-  totalAllHours,
-  isInRange,
-  loadData,
-} = useCourseMatrixData(() => props.planId);
+const { loading, rawCourses, globalWeeks, totalAllHours, isInRange, loadData } =
+  useCourseMatrixData(() => props.planId);
 
 // 编辑层：CRUD、排序、学期设置
 const {

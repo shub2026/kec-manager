@@ -10,7 +10,14 @@
     <!-- 填充区域 -->
     <path :d="areaPath" :fill="`url(#sparkGrad-${uid})`" />
     <!-- 线条 -->
-    <path :d="linePath" fill="none" :stroke="color" :stroke-width="strokeWidth" stroke-linecap="round" stroke-linejoin="round" />
+    <path
+      :d="linePath"
+      fill="none"
+      :stroke="color"
+      :stroke-width="strokeWidth"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
     <!-- 末端圆点 -->
     <circle
       :cx="coords[coords.length - 1].x"
@@ -73,7 +80,9 @@ const areaPath = computed(() => {
   const pts = coords.value;
   if (pts.length < 2) return '';
   const { width, height } = props;
-  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const line = pts
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    .join(' ');
   return `${line} L${pts[pts.length - 1].x.toFixed(1)},${height} L0,${height} Z`;
 });
 </script>

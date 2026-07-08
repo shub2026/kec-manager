@@ -70,6 +70,11 @@ router.get('/teaching-arrange', roleMiddleware('admin', 'super_admin'), exportTe
 // ==================== 教材使用导出 ====================
 
 // GET /api/export/textbook/:id - 导出教材使用情况（M-12修复：限制为admin+）
-router.get('/textbook/:id', validateIdParam, roleMiddleware('admin', 'super_admin'), exportTextbookUsage);
+router.get(
+  '/textbook/:id',
+  validateIdParam,
+  roleMiddleware('admin', 'super_admin'),
+  exportTextbookUsage
+);
 
 export default router;
