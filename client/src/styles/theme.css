@@ -29,6 +29,12 @@
   --brand-indigo-soft: #EEF2FF;
   --brand-indigo-lighter: #C7D2FE;
 
+  /* —— 薄荷绿:低饱和第三色相,与主蓝形成蓝绿冷色互补,用于首页资源/成果维度 —— */
+  /* 与语义 success 同 emerald 色相但更柔和,饱和度更低,高级感而非"成功"功能含义 */
+  --brand-mint: #5EBA9A;
+  --brand-mint-soft: #E6F5F0;
+  --brand-mint-lighter: #BFDFD2;
+
   /* —— 图表单色阶:主色按透明度分级,多系列图表复用,避免引入新色相 —— */
   --chart-1: var(--brand-primary);
   --chart-2: rgba(28, 130, 245, 0.72);

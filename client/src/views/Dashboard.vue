@@ -176,7 +176,7 @@ const coreStats = [
 ];
 
 // 统计配置：次要指标（小卡片）
-// 色彩策略：可点击探索项用靛蓝浅阶(与核心蓝形成同系冷色层次,暗示可交互)；纯展示项用中性灰,图标色提升到 text-regular 增强清晰度
+// 色彩策略：三色相层次 — 靛蓝(可操作业务) / 薄荷绿(资源与成果,蓝绿冷色互补) / 中性灰(纯展示)
 const secondaryStats = [
   {
     key: 'majors',
@@ -198,16 +198,16 @@ const secondaryStats = [
     key: 'plans',
     label: '培养方案',
     icon: markRaw(Files),
-    bg: 'var(--brand-indigo-soft)',
-    color: 'var(--brand-indigo)',
+    bg: 'var(--brand-mint-soft)',
+    color: 'var(--brand-mint)',
     route: '/plans',
   },
   {
     key: 'totalStudents',
     label: '在读学生',
     icon: markRaw(User),
-    bg: 'var(--bg-subtle)',
-    color: 'var(--text-regular)',
+    bg: 'var(--brand-mint-soft)',
+    color: 'var(--brand-mint)',
     route: '',
   },
 ];
