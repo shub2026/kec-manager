@@ -37,3 +37,11 @@ export const updateClass = (id, data) => request.put(`/classes/${id}`, data);
  */
 export const deleteClass = (id, { silent } = {}) =>
   request.delete(`/classes/${id}`, { silentError: silent });
+
+/**
+ * 批量删除班级
+ * @param {number[]} ids - 要删除的班级 ID 列表
+ * @returns {Promise<import('./types').ApiResponse<{total: number, succeeded: Array, failed: Array, deletedCount: number}>>}
+ */
+export const batchDeleteClasses = (ids) =>
+  request.post('/classes/batch-delete', { ids });

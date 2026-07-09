@@ -9,6 +9,7 @@ import {
   createClass,
   updateClass,
   deleteClass,
+  batchDeleteClasses,
 } from '../controllers/class.controller.js';
 
 const router = Router();
@@ -17,6 +18,11 @@ const router = Router();
  * GET /api/classes/stats - 轻量级统计接口
  */
 router.get('/stats', getClassStats);
+
+/**
+ * POST /api/classes/batch-delete - 批量删除班级（须在 /:id 前注册）
+ */
+router.post('/batch-delete', roleMiddleware('admin', 'super_admin'), batchDeleteClasses);
 
 router.get('/', validatePagination(100), listClasses);
 router.post('/', roleMiddleware('admin', 'super_admin'), validateClass, sanitizeBody, createClass);

@@ -484,3 +484,118 @@ export async function deleteClass(req, res, next) {
     next(e);
   }
 }
+
+/**
+ * POST /api/classes/batch-delete — 批量删除班级
+ * Body: { ids: number[] }
+ * 在单个事务中完成所有删除，避免逐个请求触发 429 限流和 SQLite 锁冲突
+ */
+export async function batchDeleteClasses(req, res, next) {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return fail(res, 'ids 不能为空');
+    }
+    if (ids.length > 500) {
+      return fail(res, '单次批量删除最多 500 个班级');
+    }
+
+    const classIds = [...new Set(ids.map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+    if (classIds.length === 0) {
+      return fail(res, 'ids 中没有有效的班级 ID');
+    }
+
+    // 1) 批量查询目标班级名称
+    const classes = await prisma.classes.findMany({
+      where: { id: { in: classIds } },
+      select: { id: true, name: true },
+    });
+    const classMap = new Map(classes.map((c) => [c.id, c]));
+
+    // 2) 批量查询哪些班级有排课记录（阻碍删除）
+    const blockedAssignments = await prisma.teaching_assignments.groupBy({
+      by: ['class_id'],
+      where: { class_id: { in: classIds } },
+      _count: true,
+    });
+    const blockedMap = new Map(
+      blockedAssignments.map((a) => [a.class_id, a._count])
+    );
+
+    // 3) 对 blocked 班级查询涉及学期
+    const blockedIds = [...blockedMap.keys()];
+    let semesterMap = new Map();
+    if (blockedIds.length > 0) {
+      const semesters = await prisma.teaching_assignments.findMany({
+        where: { class_id: { in: blockedIds } },
+        select: { class_id: true, semester: true },
+        distinct: ['class_id', 'semester'],
+      });
+      for (const s of semesters) {
+        if (!s.semester) continue;
+        if (!semesterMap.has(s.class_id)) semesterMap.set(s.class_id, []);
+        semesterMap.get(s.class_id).push(s.semester);
+      }
+    }
+
+    // 4) 可删除的 ID（不在 blocked 列表中且在数据库中存在）
+    const deletableIds = classIds.filter((id) => !blockedMap.has(id) && classMap.has(id));
+
+    // 5) 在单个事务中批量删除
+    let deletedCount = 0;
+    if (deletableIds.length > 0) {
+      deletedCount = await prisma.$transaction(async (tx) => {
+        const result = await tx.classes.deleteMany({
+          where: { id: { in: deletableIds } },
+        });
+        return result.count;
+      });
+      invalidateDurationCache();
+    }
+
+    // 6) 构造逐项结果
+    const succeeded = [];
+    const failed = [];
+
+    for (const id of classIds) {
+      const cls = classMap.get(id);
+      if (!cls) {
+        failed.push({ id, name: `ID:${id}`, reason: '班级不存在' });
+      } else if (blockedMap.has(id)) {
+        const count = blockedMap.get(id);
+        const semList = (semesterMap.get(id) || []).join('、');
+        failed.push({
+          id,
+          name: cls.name,
+          reason: `存在 ${count} 条排课记录${semList ? `（涉及学期：${semList}）` : ''}，请先删除排课后再删除班级`,
+        });
+      } else {
+        succeeded.push({ id, name: cls.name });
+      }
+    }
+
+    // 7) 审计日志
+    await createAuditLog({
+      action: 'batch_delete',
+      module: 'class',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        requested: classIds.length,
+        deleted: deletedCount,
+        blocked: failed.length,
+      },
+      result: deletedCount > 0 ? 'success' : 'failed',
+      message: `批量删除班级：成功 ${deletedCount} 个，失败 ${failed.length} 个`,
+    });
+
+    success(res, {
+      total: classIds.length,
+      succeeded,
+      failed,
+      deletedCount,
+    });
+  } catch (e) {
+    next(e);
+  }
+}

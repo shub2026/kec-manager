@@ -167,7 +167,7 @@ import { ElMessage, ElNotification } from 'element-plus';
 // 按需导入项目中 service 函数（ElNotification）的 CSS 不会自动注入，需手动导入样式
 // 否则通知 DOM 渲染但不可见（无背景/定位/动画）
 import 'element-plus/es/components/notification/style/css';
-import { getClasses, createClass, updateClass, deleteClass } from '../../api/class';
+import { getClasses, createClass, updateClass, deleteClass, batchDeleteClasses } from '../../api/class';
 import { getMajors } from '../../api/major';
 import { getPlans } from '../../api/plan';
 import { getTrainingLevels } from '../../api/trainingLevel';
@@ -511,71 +511,68 @@ async function confirmBatchDelete() {
   batchDeleting.value = true;
 
   const targets = selectedClasses.value.map((cls) => ({ id: cls.id, name: cls.name }));
-  const succeeded = [];
-  const failed = [];
 
   try {
-    // 串行逐个删除，避免 SQLite 文件锁并行写冲突
-    for (const { id, name } of targets) {
-      try {
-        await deleteClass(id, { silent: true });
-        succeeded.push(name);
-      } catch (err) {
-        const reason = err?.response?.data?.message || err?.message || '未知错误';
-        failed.push({ name, reason });
-      }
-    }
-  } catch (e) {
-    if (import.meta.env.DEV) console.error('[BatchDelete] 意外错误:', e);
-  }
+    const ids = targets.map((t) => t.id);
+    const { data } = await batchDeleteClasses(ids);
+    const { succeeded = [], failed = [] } = data || {};
 
-  // 结果提示——放在 try 外面，保证一定执行
-  // deleteClass 已传 silent:true，拦截器不会弹错误 ElMessage；closeAll 兜底防止极端情况残留
-  ElMessage.closeAll();
+    ElMessage.closeAll();
 
-  if (succeeded.length === 0 && failed.length === 0) {
-    ElNotification({ title: '批量删除', message: '未选择任何班级', type: 'info', duration: 3000 });
-  } else if (succeeded.length > 0 && failed.length === 0) {
-    ElNotification({
-      title: '批量删除完成',
-      message: `已成功删除 ${succeeded.length} 个班级`,
-      type: 'success',
-      duration: 4000,
-    });
-  } else if (succeeded.length === 0 && failed.length > 0) {
-    const assignCount = failed.filter((f) => f.reason.includes('排课记录')).length;
-    if (assignCount === failed.length) {
+    if (succeeded.length > 0 && failed.length === 0) {
       ElNotification({
-        title: '批量删除失败',
-        message: `${assignCount} 个班级存在排课记录，无法删除`,
+        title: '批量删除完成',
+        message: `已成功删除 ${succeeded.length} 个班级`,
+        type: 'success',
+        duration: 4000,
+      });
+    } else if (succeeded.length === 0 && failed.length > 0) {
+      const assignCount = failed.filter((f) => f.reason?.includes('排课记录')).length;
+      if (assignCount === failed.length) {
+        ElNotification({
+          title: '批量删除失败',
+          message: `${assignCount} 个班级存在排课记录，无法删除`,
+          type: 'warning',
+          duration: 6000,
+        });
+      } else {
+        ElNotification({
+          title: '批量删除失败',
+          message: `删除失败：${failed[0]?.reason || '未知错误'}`,
+          type: 'error',
+          duration: 6000,
+        });
+      }
+    } else if (succeeded.length > 0 && failed.length > 0) {
+      const assignCount = failed.filter((f) => f.reason?.includes('排课记录')).length;
+      const otherCount = failed.length - assignCount;
+      let msg = `成功删除 ${succeeded.length} 个`;
+      if (assignCount > 0) msg += `，${assignCount} 个存在排课记录无法删除`;
+      if (otherCount > 0) msg += `，${otherCount} 个删除失败`;
+      ElNotification({
+        title: '批量删除部分成功',
+        message: msg,
         type: 'warning',
         duration: 6000,
       });
     } else {
-      ElNotification({
-        title: '批量删除失败',
-        message: `删除失败：${failed[0].reason}`,
-        type: 'error',
-        duration: 6000,
-      });
+      ElNotification({ title: '批量删除', message: '未选择任何班级', type: 'info', duration: 3000 });
     }
-  } else if (succeeded.length > 0 && failed.length > 0) {
-    const assignCount = failed.filter((f) => f.reason.includes('排课记录')).length;
-    const otherCount = failed.length - assignCount;
-    let msg = `成功删除 ${succeeded.length} 个`;
-    if (assignCount > 0) msg += `，${assignCount} 个存在排课记录无法删除`;
-    if (otherCount > 0) msg += `，${otherCount} 个删除失败`;
+  } catch (e) {
+    if (import.meta.env.DEV) console.error('[BatchDelete] 批量删除请求失败:', e);
+    ElMessage.closeAll();
+    const reason = e?.response?.data?.message || e?.message || '未知错误';
     ElNotification({
-      title: '批量删除部分成功',
-      message: msg,
-      type: 'warning',
+      title: '批量删除失败',
+      message: reason,
+      type: 'error',
       duration: 6000,
     });
+  } finally {
+    selectedClasses.value = [];
+    batchDeleting.value = false;
+    load();
   }
-
-  selectedClasses.value = [];
-  batchDeleting.value = false;
-  load();
 }
 
 function openBatchSetDialog(type) {
