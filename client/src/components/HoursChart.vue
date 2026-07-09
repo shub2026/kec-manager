@@ -96,7 +96,7 @@ function barColor(item) {
 }
 
 .chart-label {
-  width: 80px;
+  width: 72px;
   flex-shrink: 0;
   font-size: 12px;
   color: var(--text-regular);
@@ -136,7 +136,7 @@ function barColor(item) {
 }
 
 .chart-value {
-  width: 40px;
+  width: 36px;
   flex-shrink: 0;
   font-size: 13px;
   font-weight: 600;

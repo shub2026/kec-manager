@@ -68,13 +68,16 @@
 
     <!-- 洞察区域 -->
     <el-row :gutter="16" class="insights-row">
-      <el-col :xs="24" :sm="24" :md="8">
+      <el-col :xs="24" :sm="12" :md="6">
         <SchedulingProgress :data="insights.completion" />
       </el-col>
-      <el-col :xs="24" :sm="12" :md="8">
+      <el-col :xs="24" :sm="12" :md="6">
+        <CourseProgressChart :data="insights.completion" :total-hours="stats.totalWeeklyHours" />
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="6">
         <AlertCard :data="insights.alerts" />
       </el-col>
-      <el-col :xs="24" :sm="12" :md="8">
+      <el-col :xs="24" :sm="12" :md="6">
         <HoursChart :data="insights.distribution" />
       </el-col>
     </el-row>
@@ -116,6 +119,7 @@ import StatCard from '../components/StatCard.vue';
 import SchedulingProgress from '../components/SchedulingProgress.vue';
 import AlertCard from '../components/AlertCard.vue';
 import HoursChart from '../components/HoursChart.vue';
+import CourseProgressChart from '../components/CourseProgressChart.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();

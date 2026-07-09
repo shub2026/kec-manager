@@ -262,15 +262,15 @@ onMounted(() => {
 }
 
 .card-accent {
-  height: 2.5px;
-  /* 品牌色渐变点缀：主色 → 浅阶 → 主色，三色平滑过渡 */
+  height: 3px;
+  /* 流光渐变:主蓝 → 薄荷绿对角色相流动,呼应首页三色体系,比同色对称渐变更有呼吸感 */
   background: linear-gradient(
-    90deg,
+    105deg,
     var(--brand-primary) 0%,
-    var(--brand-primary-lighter) 50%,
-    var(--brand-primary) 100%
+    var(--brand-primary-lighter) 35%,
+    var(--brand-mint) 100%
   );
-  box-shadow: 0 1px 6px var(--brand-primary-shadow);
+  box-shadow: 0 1px 8px var(--brand-primary-shadow);
 }
 
 .card-header {
