@@ -68,16 +68,13 @@
 
     <!-- 洞察区域 -->
     <el-row :gutter="16" class="insights-row">
-      <el-col :xs="24" :sm="12" :md="6">
-        <SchedulingProgress :data="insights.completion" />
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
+      <el-col :xs="24" :sm="12" :md="8">
         <CourseProgressChart :data="insights.completion" :total-hours="stats.totalWeeklyHours" />
       </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
-        <AlertCard :data="insights.alerts" />
+      <el-col :xs="24" :sm="12" :md="8">
+        <CourseStatsCard :data="insights.courseStats" />
       </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
+      <el-col :xs="24" :sm="12" :md="8">
         <HoursChart :data="insights.distribution" />
       </el-col>
     </el-row>
@@ -116,10 +113,9 @@ import { getDashboardStats } from '../api/dashboard';
 import { getDashboardInsights } from '../api/dashboard';
 import { getWithCache } from '../utils/cache';
 import StatCard from '../components/StatCard.vue';
-import SchedulingProgress from '../components/SchedulingProgress.vue';
-import AlertCard from '../components/AlertCard.vue';
 import HoursChart from '../components/HoursChart.vue';
 import CourseProgressChart from '../components/CourseProgressChart.vue';
+import CourseStatsCard from '../components/CourseStatsCard.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -247,6 +243,7 @@ const insights = ref({
   completion: { totalCourses: 0, assignedCourses: 0, rate: 0 },
   alerts: { unassignedCourses: [], overloadedTeachers: [] },
   distribution: [],
+  courseStats: [],
 });
 
 async function fetchStats() {
@@ -305,6 +302,7 @@ async function fetchInsights() {
       insights.value.completion = d.completion || insights.value.completion;
       insights.value.alerts = d.alerts || insights.value.alerts;
       insights.value.distribution = d.distribution || [];
+      insights.value.courseStats = d.courseStats || [];
     }
   } catch (e) {
     if (import.meta.env.DEV) console.error('Dashboard 洞察加载失败:', e);

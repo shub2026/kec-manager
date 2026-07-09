@@ -18,7 +18,7 @@
         <div class="summary-label">已排课占比</div>
       </div>
 
-      <!-- 双段对比条：已排课(薄荷绿) + 剩余(浅灰) -->
+      <!-- 双段对比条：已排课(品牌绿) + 剩余(浅灰) -->
       <div class="dual-bar">
         <div class="dual-bar-track">
           <div class="dual-bar-filled" :style="{ width: rate + '%' }" />
@@ -127,7 +127,7 @@ const remainingHours = computed(() => {
 .summary-percent {
   font-size: 32px;
   font-weight: 700;
-  color: var(--brand-mint);
+  color: var(--brand-success);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
@@ -155,7 +155,7 @@ const remainingHours = computed(() => {
 
 .dual-bar-filled {
   height: 100%;
-  background: linear-gradient(90deg, var(--brand-mint) 0%, var(--brand-mint-lighter) 100%);
+  background: linear-gradient(90deg, var(--brand-success) 0%, #86EFAC 100%);
   border-radius: var(--radius-sm);
   transition: width 0.6s var(--ease-out);
   min-width: 4px;
@@ -189,7 +189,7 @@ const remainingHours = computed(() => {
 }
 
 .dot-filled {
-  background: var(--brand-mint);
+  background: var(--brand-success);
 }
 
 .dot-remaining {
@@ -226,7 +226,7 @@ const remainingHours = computed(() => {
 }
 
 .compare-value-filled {
-  color: var(--brand-mint);
+  color: var(--brand-success);
 }
 
 .compare-value-remaining {
@@ -246,7 +246,7 @@ const remainingHours = computed(() => {
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  background: var(--brand-mint-soft);
+  background: var(--brand-success-soft);
   border-radius: var(--radius-sm);
   font-size: 13px;
   color: var(--brand-success-text);
@@ -254,6 +254,6 @@ const remainingHours = computed(() => {
 }
 
 .complete-hint .el-icon {
-  color: var(--brand-mint);
+  color: var(--brand-success);
 }
 </style>

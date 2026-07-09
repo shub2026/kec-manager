@@ -101,6 +101,7 @@ export async function getDashboardInsights(req, res, next) {
         select: {
           weekly_hours: true,
           course_id: true,
+          class_id: true,
           teacher: {
             select: {
               id: true,
@@ -176,7 +177,34 @@ export async function getDashboardInsights(req, res, next) {
       .map(([name, hours]) => ({ name, hours: Math.round(hours * 10) / 10 }))
       .sort((a, b) => b.hours - a.hours);
 
-    success(res, { semester, completion, alerts, distribution });
+    // —— 课程课时统计（按课程聚合：总课时、班级数、教师数） ——
+    const courseMap = {};
+    for (const a of allAssignments) {
+      const cid = a.course.id;
+      if (!courseMap[cid]) {
+        courseMap[cid] = {
+          id: cid,
+          name: a.course.name,
+          totalHours: 0,
+          classIds: new Set(),
+          teacherIds: new Set(),
+        };
+      }
+      courseMap[cid].totalHours += a.weekly_hours;
+      courseMap[cid].classIds.add(a.class_id);
+      courseMap[cid].teacherIds.add(a.teacher.id);
+    }
+    const courseStats = Object.values(courseMap)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        totalHours: Math.round(c.totalHours * 10) / 10,
+        classCount: c.classIds.size,
+        teacherCount: c.teacherIds.size,
+      }))
+      .sort((a, b) => b.totalHours - a.totalHours);
+
+    success(res, { semester, completion, distribution, courseStats });
   } catch (e) {
     next(e);
   }
