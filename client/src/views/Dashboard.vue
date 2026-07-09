@@ -326,13 +326,18 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-/* 欢迎区域 — 白底卡片 + 左侧品牌色条，克制优雅 */
+/* 欢迎区域 — 白底 + 左侧品牌渐变色条 + 角部柔光,克制而有呼吸感 */
 .welcome-section {
   background: var(--bg-card);
+  background-image: radial-gradient(
+    ellipse 60% 120% at 0% 0%,
+    var(--brand-primary-soft) 0%,
+    transparent 70%
+  );
   border: 1px solid var(--border-light);
   border-left: 3px solid var(--brand-primary);
   border-radius: var(--radius-md);
-  padding: 14px 24px;
+  padding: 16px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -343,10 +348,10 @@ onMounted(async () => {
 
 .welcome-title {
   margin: 0 0 2px 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .welcome-subtitle {
@@ -356,6 +361,11 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* 副标题图标着品牌色,增加细节精致度 */
+.welcome-subtitle .el-icon {
+  color: var(--brand-primary);
 }
 
 .welcome-actions {

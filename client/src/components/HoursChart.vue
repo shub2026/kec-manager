@@ -110,15 +110,29 @@ function barColor(item) {
   flex: 1;
   height: 20px;
   background: var(--bg-subtle);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .chart-bar {
   height: 100%;
-  border-radius: 4px;
-  transition: width 0.6s var(--ease-out);
+  border-radius: var(--radius-sm);
+  transition: width 0.6s var(--ease-out), filter var(--dur-fast) var(--ease-out);
   min-width: 4px;
+}
+
+/* 柱条 hover 高亮,增强数据可读性与交互感 */
+.chart-row:hover .chart-bar {
+  filter: brightness(1.12);
+}
+
+.chart-row {
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+/* hover 当行时,其他行轻微淡化,聚焦当前数据 */
+.chart-container:hover .chart-row:not(:hover) {
+  opacity: 0.55;
 }
 
 .chart-value {

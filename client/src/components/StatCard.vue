@@ -82,8 +82,9 @@ watch(
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-light);
   cursor: pointer;
-  transition: all 0.2s var(--ease-out);
+  transition: all var(--dur-base) var(--ease-out);
   height: 100%;
+  position: relative;
 }
 
 .stat-item:hover {
@@ -92,14 +93,15 @@ watch(
   transform: translateY(-2px);
 }
 
-/* 核心指标卡片 — 更强的阴影和边框 */
+/* 核心指标卡片 — 左侧色条 + 柔光晕,作为页面焦点 */
 .stat-core {
   border-left: 3px solid var(--brand-primary);
   box-shadow: var(--shadow-sm);
 }
 
 .stat-core:hover {
-  box-shadow: var(--shadow-glow-soft), var(--shadow-sm);
+  box-shadow: var(--shadow-glow-soft), var(--shadow-md);
+  border-color: var(--brand-primary-lighter);
 }
 
 .stat-item-left {
@@ -115,15 +117,17 @@ watch(
   justify-content: center;
   position: relative;
   overflow: hidden;
+  /* 微妙内描边,让浅色图标容器在白底卡片上"浮"起来,提升精致度 */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
-/* 图标容器叠加柔光渐变层 — 通透感 */
+/* 图标容器叠加柔光渐变层 — 通透质感 */
 .stat-icon::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 55%);
   pointer-events: none;
 }
 
@@ -148,14 +152,16 @@ watch(
   font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.2;
+  line-height: 1.15;
   margin-bottom: 2px;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
+/* 核心指标数值加大,强化数据冲击力与视觉焦点 */
 .stat-value-lg {
-  font-size: 24px;
+  font-size: 28px;
+  letter-spacing: -0.03em;
 }
 
 .stat-label {
@@ -183,7 +189,7 @@ watch(
     font-size: 18px;
   }
   .stat-value-lg {
-    font-size: 22px;
+    font-size: 24px;
   }
   .stat-spark {
     display: none;
