@@ -206,7 +206,7 @@ function showImportProgressOverlay(onCancel) {
   for (let i = 0; i < 3; i++) {
     const dot = document.createElement('span');
     dot.style.cssText =
-      `width:10px;height:10px;border-radius:50%;background:var(--brand-primary, #198CFF);` +
+      `width:10px;height:10px;border-radius:50%;background:var(--brand-primary, #1C82F5);` +
       `animation:importPulseDot 1.4s infinite ease-in-out both;animation-delay:${i * 0.16}s;`;
     dots.appendChild(dot);
   }
@@ -216,7 +216,7 @@ function showImportProgressOverlay(onCancel) {
   const text = document.createElement('div');
   text.textContent = '正在导入...';
   text.style.cssText =
-    'font-size:15px;font-weight:500;color:var(--text-primary, #303133);margin-bottom:20px;';
+    'font-size:15px;font-weight:500;color:var(--text-primary, #1e293b);margin-bottom:20px;';
   card.appendChild(text);
 
   // 取消按钮
@@ -224,14 +224,14 @@ function showImportProgressOverlay(onCancel) {
   cancelBtn.textContent = '取消导入';
   cancelBtn.style.cssText =
     'padding:8px 24px;font-size:13px;border-radius:6px;cursor:pointer;transition:all 0.2s;' +
-    'border:1px solid var(--border-base, #dcdfe6);background:var(--bg-card, #fff);color:var(--text-regular, #606266);';
+    'border:1px solid var(--border-base, #cbd5e1);background:var(--bg-card, #fff);color:var(--text-regular, #475569);';
   cancelBtn.addEventListener('mouseenter', () => {
-    cancelBtn.style.borderColor = 'var(--brand-danger, #f56c6c)';
-    cancelBtn.style.color = 'var(--brand-danger, #f56c6c)';
+    cancelBtn.style.borderColor = 'var(--brand-danger, #F87171)';
+    cancelBtn.style.color = 'var(--brand-danger, #F87171)';
   });
   cancelBtn.addEventListener('mouseleave', () => {
-    cancelBtn.style.borderColor = 'var(--border-base, #dcdfe6)';
-    cancelBtn.style.color = 'var(--text-regular, #606266)';
+    cancelBtn.style.borderColor = 'var(--border-base, #cbd5e1)';
+    cancelBtn.style.color = 'var(--text-regular, #475569)';
   });
   cancelBtn.addEventListener('click', () => {
     cancelBtn.disabled = true;

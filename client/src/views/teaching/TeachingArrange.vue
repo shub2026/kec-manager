@@ -865,7 +865,7 @@ onMounted(async () => {
   transition: background-color 0.15s ease;
 }
 .teacher-cell:hover {
-  background-color: var(--el-color-primary-light-9, #E5F4FF);
+  background-color: var(--el-color-primary-light-9, #E8F3FE);
 }
 .teacher-cell.no-teacher:hover .text-placeholder {
   color: var(--el-color-primary);

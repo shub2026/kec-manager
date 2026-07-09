@@ -183,7 +183,7 @@ onMounted(() => {
   background: var(--bg-page);
   background-image: radial-gradient(
     ellipse 80% 60% at 50% 0%,
-    rgba(25, 140, 255, 0.06) 0%,
+    rgba(28, 130, 245, 0.06) 0%,
     transparent 70%
   );
   padding: 40px 20px;

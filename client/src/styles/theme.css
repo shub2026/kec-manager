@@ -5,13 +5,13 @@
    ================================================================ */
 
 :root {
-  /* —— 主色板:品牌蓝 blue-600(深锚点,白字按钮对比度达 WCAG AA) —— */
-  --brand-primary: #2563EB;
-  --brand-primary-hover: #3B82F6; /* 主色 hover 阶(对应 light-3) */
-  --brand-primary-active: #1D4ED8; /* 主色 active 阶(对应 dark-2) */
-  --brand-primary-soft: #EFF6FF; /* 主色极浅背景(对应 light-9) */
-  --brand-primary-lighter: #BFDBFE; /* 主色浅阶,渐变过渡(对应 light-7) */
-  --brand-primary-shadow: rgba(37, 99, 235, 0.32); /* 主色投影,按钮hover/glow用 */
+  /* —— 主色板:品牌蓝 #1C82F5(明亮 azure,白字按钮对比度达 WCAG AA) —— */
+  --brand-primary: #1C82F5;
+  --brand-primary-hover: #3D95F7; /* 主色 hover 阶(对应 light-3,下沉饱和度以保持白字对比) */
+  --brand-primary-active: #1668C4; /* 主色 active 阶(对应 dark-2) */
+  --brand-primary-soft: #E8F3FE; /* 主色极浅背景(对应 light-9) */
+  --brand-primary-lighter: #B5D6FC; /* 主色浅阶,渐变过渡(对应 light-7) */
+  --brand-primary-shadow: rgba(28, 130, 245, 0.32); /* 主色投影,按钮hover/glow用 */
   --brand-success: #34D399;
   --brand-success-soft: #d1fae5;
   --brand-warning: #FBBF24;
@@ -31,10 +31,10 @@
 
   /* —— 图表单色阶:主色按透明度分级,多系列图表复用,避免引入新色相 —— */
   --chart-1: var(--brand-primary);
-  --chart-2: rgba(37, 99, 235, 0.72);
-  --chart-3: rgba(37, 99, 235, 0.48);
-  --chart-4: rgba(37, 99, 235, 0.30);
-  --chart-5: rgba(37, 99, 235, 0.16);
+  --chart-2: rgba(28, 130, 245, 0.72);
+  --chart-3: rgba(28, 130, 245, 0.48);
+  --chart-4: rgba(28, 130, 245, 0.30);
+  --chart-5: rgba(28, 130, 245, 0.16);
 
   /* —— 中性色阶(替换散落的 #303133 / #606266 / #909399) —— */
   --text-primary: #1e293b;
@@ -77,8 +77,8 @@
   --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 10px 24px -4px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 8px 16px -4px rgba(15, 23, 42, 0.06), 0 20px 50px -8px rgba(15, 23, 42, 0.12);
-  --shadow-glow: 0 4px 16px rgba(37, 99, 235, 0.25); /* 主色按钮/核心卡片 hover 光晕 */
-  --shadow-glow-soft: 0 8px 24px rgba(37, 99, 235, 0.10); /* 核心卡片柔和光晕 */
+  --shadow-glow: 0 4px 16px rgba(28, 130, 245, 0.25); /* 主色按钮/核心卡片 hover 光晕 */
+  --shadow-glow-soft: 0 8px 24px rgba(28, 130, 245, 0.10); /* 核心卡片柔和光晕 */
 
   /* —— 动效曲线:cubic-bezier 让过渡更有弹性 —— */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -107,11 +107,12 @@
   --el-box-shadow: var(--shadow-md);
   --el-box-shadow-light: var(--shadow-sm);
 
-  /* —— ElementPlus 主色阶（light/dark），与品牌主色匹配 —— */
-  --el-color-primary-light-3: #3B82F6;
-  --el-color-primary-light-5: #60A5FA;
-  --el-color-primary-light-7: #BFDBFE;
-  --el-color-primary-light-8: #DBEAFE;
-  --el-color-primary-light-9: #EFF6FF;
+  /* —— ElementPlus 主色阶（light/dark），与品牌主色 #1C82F5 匹配 —— */
+  /* light-3 下沉饱和度,确保主色按钮 hover 仍保持白字对比度(WCAG AA ≥ 3:1) */
+  --el-color-primary-light-3: var(--brand-primary-hover);
+  --el-color-primary-light-5: #79B7FC;
+  --el-color-primary-light-7: var(--brand-primary-lighter);
+  --el-color-primary-light-8: #CFE4FD;
+  --el-color-primary-light-9: var(--brand-primary-soft);
   --el-color-primary-dark-2: var(--brand-primary-active);
 }

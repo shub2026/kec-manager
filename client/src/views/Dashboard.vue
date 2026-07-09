@@ -139,6 +139,7 @@ const greeting = computed(() => {
 });
 
 // 统计配置：核心指标（大卡片 + sparkline）
+// 色彩策略：主蓝聚焦核心业务(课时/排课)，靛蓝为同系冷色第二色相，区分"人/资源"维度，避免 4 卡完全雷同
 const coreStats = [
   {
     key: 'totalWeeklyHours',
@@ -152,8 +153,8 @@ const coreStats = [
     key: 'teachingTeachers',
     label: '参与教师',
     icon: markRaw(UserFilled),
-    bg: 'var(--brand-primary-soft)',
-    color: 'var(--brand-primary)',
+    bg: 'var(--brand-indigo-soft)',
+    color: 'var(--brand-indigo)',
     route: '/teaching/arrange',
   },
   {
@@ -168,36 +169,37 @@ const coreStats = [
     key: 'classes',
     label: '班级数量',
     icon: markRaw(Histogram),
-    bg: 'var(--brand-primary-soft)',
-    color: 'var(--brand-primary)',
+    bg: 'var(--brand-indigo-soft)',
+    color: 'var(--brand-indigo)',
     route: '/classes',
   },
 ];
 
 // 统计配置：次要指标（小卡片）
+// 色彩策略：可点击探索项用靛蓝浅阶(与核心蓝形成同系冷色层次,暗示可交互)；纯展示项用中性灰,图标色提升到 text-regular 增强清晰度
 const secondaryStats = [
   {
     key: 'majors',
     label: '专业类别',
     icon: markRaw(OfficeBuilding),
-    bg: 'var(--bg-subtle)',
-    color: 'var(--text-secondary)',
+    bg: 'var(--brand-indigo-soft)',
+    color: 'var(--brand-indigo)',
     route: '/majors',
   },
   {
     key: 'textbooks',
     label: '活跃教材',
     icon: markRaw(Notebook),
-    bg: 'var(--bg-subtle)',
-    color: 'var(--text-secondary)',
+    bg: 'var(--brand-indigo-soft)',
+    color: 'var(--brand-indigo)',
     route: '/textbooks',
   },
   {
     key: 'plans',
     label: '培养方案',
     icon: markRaw(Files),
-    bg: 'var(--bg-subtle)',
-    color: 'var(--text-secondary)',
+    bg: 'var(--brand-indigo-soft)',
+    color: 'var(--brand-indigo)',
     route: '/plans',
   },
   {
@@ -205,7 +207,7 @@ const secondaryStats = [
     label: '在读学生',
     icon: markRaw(User),
     bg: 'var(--bg-subtle)',
-    color: 'var(--text-secondary)',
+    color: 'var(--text-regular)',
     route: '',
   },
 ];

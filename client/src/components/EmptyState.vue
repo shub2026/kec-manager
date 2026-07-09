@@ -433,9 +433,9 @@ defineProps({
 
 .empty-illustration {
   margin-bottom: 16px;
-  --illust-bg: var(--brand-primary-soft, #E5F4FF);
-  --illust-main: var(--brand-primary, #198CFF);
-  --illust-dot: var(--brand-primary-lighter, #AED4FF);
+  --illust-bg: var(--brand-primary-soft, #E8F3FE);
+  --illust-main: var(--brand-primary, #1C82F5);
+  --illust-dot: var(--brand-primary-lighter, #B5D6FC);
 }
 
 /* 不同类型使用不同色调 */

@@ -345,25 +345,25 @@ function calcSemesterSubtotal(group, semester) {
 }
 
 .cell-out-of-range {
-  background: #fafafa;
+  background: var(--bg-subtle);
   cursor: default;
 }
 
 .cell-zero {
-  background: #fff;
+  background: var(--bg-card);
 }
 
-/* 课时热力：品牌蓝 #198CFF 由浅到深 */
+/* 课时热力：品牌蓝 #1C82F5 由浅到深（light-9 → light-7 → light-5） */
 .cell-low {
-  background: #E5F4FF;
+  background: var(--brand-primary-soft, #E8F3FE);
 }
 
 .cell-mid {
-  background: #C7E4FF;
+  background: var(--brand-primary-lighter, #B5D6FC);
 }
 
 .cell-high {
-  background: #AED4FF;
+  background: #79B7FC;
 }
 
 .cell-hours {
