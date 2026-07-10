@@ -135,7 +135,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:form', 'save']);
+const emit = defineEmits(['update:form', 'update:selectedSemester', 'save']);
 
 // 本地表单副本
 const localForm = computed({
