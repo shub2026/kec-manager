@@ -91,17 +91,21 @@ export async function listClasses(req, res, next) {
 
       // 计算匹配的培养方案名称
       let matchedPlanName = null;
+      let matchedPlanType = null; // 实际匹配类型：custom / major / level
       let planMatchWarning = null; // 交叉匹配警告
 
       if (cls.custom_plan_id && cls.training_plans) {
         // 有自定义方案
         matchedPlanName = cls.training_plans.name;
+        matchedPlanType = 'custom';
       } else {
         // C1 修复：使用 findBestMatchPlan 选定最佳方案（major > level 优先级，与排课算法一致）
         const bestPlan = findBestMatchPlan(cls, allPlans);
 
         if (bestPlan) {
           matchedPlanName = bestPlan.name;
+          // 根据方案实际字段判断匹配类型，而非根据班级自身字段
+          matchedPlanType = bestPlan.major_id ? 'major' : bestPlan.training_level_id ? 'level' : null;
 
           // 检测是否存在专业和层次同时匹配的情况（交叉匹配）
           const majorMatchedPlans = allPlans.filter(
@@ -126,6 +130,7 @@ export async function listClasses(req, res, next) {
         ...cls,
         status,
         matchedPlanName, // 添加匹配的方案名称
+        matchedPlanType, // 添加实际匹配类型（custom/major/level）
         planMatchWarning, // 添加交叉匹配警告
       };
     });

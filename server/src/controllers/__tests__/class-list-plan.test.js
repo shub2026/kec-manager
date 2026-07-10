@@ -2,12 +2,13 @@
  * class.controller.js — listClasses 培养方案匹配 单元测试
  *
  * 重点覆盖 listClasses 中的方案匹配逻辑：
- * 1. 有 custom_plan_id 的班级 → matchedPlanName 来自 training_plans.name
- * 2. 无 custom_plan_id, 按专业匹配 → matchedPlanName 来自 findBestMatchPlan
- * 3. 无 custom_plan_id, 仅按层次匹配 → matchedPlanName 来自 findBestMatchPlan
- * 4. 无任何匹配方案 → matchedPlanName = null
- * 5. 专业+层次交叉匹配 → planMatchWarning 被设置
+ * 1. 有 custom_plan_id 的班级 → matchedPlanName 来自 training_plans.name, matchedPlanType = 'custom'
+ * 2. 无 custom_plan_id, 按专业匹配 → matchedPlanType = 'major'
+ * 3. 无 custom_plan_id, 仅按层次匹配 → matchedPlanType = 'level'
+ * 4. 无任何匹配方案 → matchedPlanType = null
+ * 5. 专业+层次交叉匹配 → planMatchWarning 被设置, matchedPlanType = 'major'(优先级)
  * 6. 无交叉匹配 → planMatchWarning = null
+ * 7. 班级同时有 major_id + training_level_id，但最佳方案仅按层次匹配 → matchedPlanType = 'level'
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -140,6 +141,7 @@ describe('listClasses — 培养方案匹配逻辑', () => {
 
     const data = res.json.mock.calls[0][0].data;
     expect(data.items[0].matchedPlanName).toBe('2024学前教育方案');
+    expect(data.items[0].matchedPlanType).toBe('custom');
     expect(data.items[0].planMatchWarning).toBeNull();
   });
 
@@ -177,6 +179,7 @@ describe('listClasses — 培养方案匹配逻辑', () => {
 
     const data = res.json.mock.calls[0][0].data;
     expect(data.items[0].matchedPlanName).toBe('学前教育专业方案');
+    expect(data.items[0].matchedPlanType).toBe('major');
   });
 
   // ── 场景 3: 无 custom_plan_id, 仅按层次匹配 ──
@@ -213,6 +216,7 @@ describe('listClasses — 培养方案匹配逻辑', () => {
 
     const data = res.json.mock.calls[0][0].data;
     expect(data.items[0].matchedPlanName).toBe('本科通用方案');
+    expect(data.items[0].matchedPlanType).toBe('level');
   });
 
   // ── 场景 4: 无任何匹配方案 → matchedPlanName = null ──
@@ -247,6 +251,7 @@ describe('listClasses — 培养方案匹配逻辑', () => {
 
     const data = res.json.mock.calls[0][0].data;
     expect(data.items[0].matchedPlanName).toBeNull();
+    expect(data.items[0].matchedPlanType).toBeNull();
     expect(data.items[0].planMatchWarning).toBeNull();
   });
 
@@ -286,6 +291,7 @@ describe('listClasses — 培养方案匹配逻辑', () => {
 
     const data = res.json.mock.calls[0][0].data;
     expect(data.items[0].matchedPlanName).toBe('学前教育方案');
+    expect(data.items[0].matchedPlanType).toBe('major'); // 专业优先级高于层次
     expect(data.items[0].planMatchWarning).toBeTruthy();
     expect(data.items[0].planMatchWarning).toContain('交叉');
   });
@@ -325,8 +331,50 @@ describe('listClasses — 培养方案匹配逻辑', () => {
 
     const data = res.json.mock.calls[0][0].data;
     expect(data.items[0].matchedPlanName).toBe('学前教育方案');
+    expect(data.items[0].matchedPlanType).toBe('major');
     // No level-matched plans → no cross-match warning
     expect(data.items[0].planMatchWarning).toBeNull();
+  });
+
+  // ── 场景 7: 班级同时有 major_id + training_level_id，但最佳方案仅按层次匹配 ──
+  it('班级有 major_id + training_level_id，但最佳方案仅含 training_level_id → matchedPlanType = level', async () => {
+    // 模拟实际 bug 场景：班级 major_id=200(转段) + training_level_id=46(五年制)
+    // 唯一方案"五年制方案"仅含 training_level_id=46
+    const classWithBoth = {
+      id: 100,
+      name: 'WZ23大数据财管1班',
+      enrollment_year: 2023,
+      duration_years: 5,
+      major_id: 200,
+      college_id: 44,
+      training_level_id: 46,
+      is_left_school: false,
+      custom_plan_id: null,
+      status: 'active',
+      majors: { id: 200, name: '转段' },
+      colleges: { id: 44, name: '人文管理学院' },
+      training_levels: { id: 46, name: '五年制' },
+      training_plans: null,
+    };
+
+    const levelOnlyPlan = { id: 6, name: '五年制方案', major_id: null, training_level_id: 46 };
+
+    mockPrisma.classes.findMany.mockImplementation(async (args) => {
+      if (args.include) return [classWithBoth];
+      return [];
+    });
+    mockPrisma.training_plans.findMany.mockResolvedValue([levelOnlyPlan]);
+    // findBestMatchPlan 应返回层次方案（无专业方案匹配 major_id=200）
+    mockFindBestMatchPlan.mockReturnValue(levelOnlyPlan);
+
+    const req = mockReq({});
+    const res = mockRes();
+    await listClasses(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.items[0].matchedPlanName).toBe('五年制方案');
+    // 关键断言：虽然班级有 major_id，但实际匹配的方案是按层次的
+    expect(data.items[0].matchedPlanType).toBe('level');
   });
 
   // ── 场景: buildClassFilter 返回 planNotFound → 返回空列表 ──

@@ -200,37 +200,25 @@ function getStatusText(status) {
   return '已毕业';
 }
 
-// 获取关联类型文本
+// 获取关联类型文本 — 使用后端 matchedPlanType 反映实际匹配方式
 function getRelationTypeText(row) {
-  if (row.customPlanId) {
-    return '自定义';
-  }
-  if (row.majorId) {
-    return '专业';
-  }
-  if (row.trainingLevelId) {
-    return '层次';
-  }
+  if (row.matchedPlanType === 'custom') return '自定义';
+  if (row.matchedPlanType === 'major') return '专业';
+  if (row.matchedPlanType === 'level') return '层次';
   return '未关联';
 }
 
 // 获取关联类型标签样式
 function getRelationTypeTag(row) {
-  if (row.customPlanId) {
-    return 'warning'; // 自定义方案用橙色
-  }
-  if (row.majorId) {
-    return 'success'; // 专业关联用绿色
-  }
-  if (row.trainingLevelId) {
-    return 'primary'; // 层次关联用蓝色
-  }
+  if (row.matchedPlanType === 'custom') return 'warning'; // 自定义方案用橙色
+  if (row.matchedPlanType === 'major') return 'success'; // 专业关联用绿色
+  if (row.matchedPlanType === 'level') return 'primary'; // 层次关联用蓝色
   return 'info'; // 未关联用灰色
 }
 
 function getPlanTagType(row) {
-  if (row.customPlanId) return 'warning'; // 自定义方案用橙色
-  if (row.matchedPlanName) return 'success'; // 已关联方案用绿色
+  if (row.matchedPlanType === 'custom') return 'warning'; // 自定义方案用橙色
+  if (row.matchedPlanType) return 'success'; // 已关联方案用绿色
   return 'info'; // 未关联用灰色
 }
 

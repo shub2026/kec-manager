@@ -13,11 +13,23 @@
  * - 同时传 major_id + training_level_id → 错误
  * - 缺 name → 验证错误
  * - 成功时写审计日志
+ * - college_id 字符串→Number() 转换
+ * - college_id 为 null → 传 null
+ * - status 默认 draft / 显式传值
+ * - 完整字段（college_id+version+description+status）全部传入 Prisma
+ * - major_id 和 training_level_id 都不传 → 验证错误
+ * - Prisma create 抛错 → 记录失败审计日志
  *
  * updatePlan:
  * - 正常更新 → 成功
  * - sort_order-only 更新 → 绕过完整验证
  * - 不存在的方案 → 404
+ * - college_id 字符串→Number() 转换 / null 传递
+ * - status 未传时不包含在 updateData / 显式传值时包含
+ * - 完整字段更新所有字段正确传入
+ * - college_id 变更→审计日志 collegeChange / 未变更→不含
+ * - Prisma update 非 P2025 错误 → 失败审计日志
+ * - sort_order 路径调用 invalidateSortOrderCache
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -377,6 +389,141 @@ describe('createPlan — 创建培养方案', () => {
     );
     expect(invalidateSortOrderCache).toHaveBeenCalledWith('training_plans');
   });
+  it('college_id 字符串 → Number() 转换后传入 Prisma', async () => {
+    mockPrisma.training_plans.create.mockResolvedValue({
+      id: 20, name: '带学院方案', college_id: 5, major_id: 1,
+      training_level_id: null, status: 'draft', sort_order: 6,
+      majors: { id: 1, name: '学前' }, colleges: { id: 5, name: '教育学院' },
+      training_levels: null,
+    });
+
+    const req = mockReq({ name: '带学院方案', major_id: '1', college_id: '5' });
+    const res = mockRes();
+    await createPlan(req, res, vi.fn());
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true })
+    );
+    const createCall = mockPrisma.training_plans.create.mock.calls[0][0];
+    expect(createCall.data.college_id).toBe(5);
+    expect(createCall.data.major_id).toBe(1);
+  });
+
+  it('college_id 为 null/空 → 传 null 给 Prisma', async () => {
+    mockPrisma.training_plans.create.mockResolvedValue({
+      id: 21, name: '无学院方案', college_id: null, major_id: 1,
+      training_level_id: null, status: 'draft', sort_order: 6,
+      majors: null, colleges: null, training_levels: null,
+    });
+
+    const req = mockReq({ name: '无学院方案', major_id: 1, college_id: null });
+    const res = mockRes();
+    await createPlan(req, res, vi.fn());
+
+    const createCall = mockPrisma.training_plans.create.mock.calls[0][0];
+    expect(createCall.data.college_id).toBeNull();
+  });
+
+  it('status 未传 → 默认 draft', async () => {
+    mockPrisma.training_plans.create.mockResolvedValue({
+      id: 22, name: '默认状态', major_id: 1, training_level_id: null,
+      college_id: null, status: 'draft', sort_order: 6,
+      majors: null, colleges: null, training_levels: null,
+    });
+
+    const req = mockReq({ name: '默认状态', major_id: 1 });
+    const res = mockRes();
+    await createPlan(req, res, vi.fn());
+
+    const createCall = mockPrisma.training_plans.create.mock.calls[0][0];
+    expect(createCall.data.status).toBe('draft');
+  });
+
+  it('status 显式传 active → 覆盖默认值', async () => {
+    mockPrisma.training_plans.create.mockResolvedValue({
+      id: 23, name: '激活方案', major_id: 1, training_level_id: null,
+      college_id: null, status: 'active', sort_order: 6,
+      majors: null, colleges: null, training_levels: null,
+    });
+
+    const req = mockReq({ name: '激活方案', major_id: 1, status: 'active' });
+    const res = mockRes();
+    await createPlan(req, res, vi.fn());
+
+    const createCall = mockPrisma.training_plans.create.mock.calls[0][0];
+    expect(createCall.data.status).toBe('active');
+  });
+
+  it('完整字段（college_id + version + description + status）全部传入 Prisma', async () => {
+    mockPrisma.training_plans.create.mockResolvedValue({
+      id: 24, name: '完整方案', college_id: 3, major_id: null,
+      training_level_id: 2, version: 'v2.0', description: '测试描述',
+      status: 'draft', sort_order: 6,
+      majors: null, colleges: { id: 3, name: '理学院' },
+      training_levels: { id: 2, name: '本科' },
+    });
+
+    const req = mockReq({
+      name: '完整方案',
+      college_id: 3,
+      training_level_id: 2,
+      version: 'v2.0',
+      description: '测试描述',
+    });
+    const res = mockRes();
+    await createPlan(req, res, vi.fn());
+
+    const data = mockPrisma.training_plans.create.mock.calls[0][0].data;
+    expect(data).toEqual({
+      name: '完整方案',
+      college_id: 3,
+      major_id: null,
+      training_level_id: 2,
+      version: 'v2.0',
+      description: '测试描述',
+      status: 'draft',
+      sort_order: 6,
+    });
+    // include 应包含三个关联
+    const include = mockPrisma.training_plans.create.mock.calls[0][0].include;
+    expect(include).toEqual({ majors: true, colleges: true, training_levels: true });
+  });
+
+  it('major_id 和 training_level_id 都不传 → 返回验证错误', async () => {
+    const req = mockReq({ name: '缺分类方案' });
+    const res = mockRes();
+    const next = vi.fn();
+    await createPlan(req, res, next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: '请选择专业类别或培养层次',
+      })
+    );
+    expect(mockPrisma.training_plans.create).not.toHaveBeenCalled();
+  });
+
+  it('Prisma create 抛错 → 记录失败审计日志并 next(e)', async () => {
+    const dbError = new Error('Unknown argument `college_id`');
+    mockPrisma.training_plans.create.mockRejectedValue(dbError);
+
+    const req = mockReq({ name: '出错方案', major_id: 1 });
+    const res = mockRes();
+    const next = vi.fn();
+    await createPlan(req, res, next);
+
+    expect(createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'trainingPlan',
+        action: 'create',
+        result: 'failed',
+        details: expect.objectContaining({
+          error: 'Unknown argument `college_id`',
+        }),
+      })
+    );
+    expect(next).toHaveBeenCalledWith(dbError);
+  });
 });
 
 // ════════════════════════════════════════════════
@@ -475,5 +622,197 @@ describe('updatePlan — 更新培养方案', () => {
       success: false,
       message: '方案不存在',
     });
+  });
+
+  it('college_id 字符串 → Number() 转换后传入 Prisma update', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue({
+      id: 1, college_id: 1, colleges: { name: '旧学院' },
+    });
+    mockPrisma.training_plans.update.mockResolvedValue({
+      id: 1, name: '更新', college_id: 7, major_id: 1,
+      training_level_id: null, colleges: { name: '新学院' },
+      majors: { id: 1, name: '学前' }, training_levels: null,
+    });
+
+    const req = mockReq({ name: '更新', major_id: '1', college_id: '7' }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    const updateCall = mockPrisma.training_plans.update.mock.calls[0][0];
+    expect(updateCall.data.college_id).toBe(7);
+  });
+
+  it('college_id 为 null → 传 null 给 Prisma update', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue({
+      id: 1, college_id: 1, colleges: { name: '旧学院' },
+    });
+    mockPrisma.training_plans.update.mockResolvedValue({
+      id: 1, name: '更新', college_id: null, major_id: 1,
+      training_level_id: null, colleges: null,
+      majors: null, training_levels: null,
+    });
+
+    const req = mockReq({ name: '更新', major_id: 1, college_id: null }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    const updateCall = mockPrisma.training_plans.update.mock.calls[0][0];
+    expect(updateCall.data.college_id).toBeNull();
+  });
+
+  it('status 未传 → 不包含在 updateData 中', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue({
+      id: 1, college_id: null, colleges: null,
+    });
+    mockPrisma.training_plans.update.mockResolvedValue({
+      id: 1, name: '更新', college_id: null, major_id: 1,
+      training_level_id: null, status: 'draft',
+      colleges: null, majors: null, training_levels: null,
+    });
+
+    const req = mockReq({ name: '更新', major_id: 1 }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    const updateCall = mockPrisma.training_plans.update.mock.calls[0][0];
+    expect(updateCall.data).not.toHaveProperty('status');
+  });
+
+  it('status 显式传 archived → 包含在 updateData 中', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue({
+      id: 1, college_id: null, colleges: null,
+    });
+    mockPrisma.training_plans.update.mockResolvedValue({
+      id: 1, name: '更新', college_id: null, major_id: 1,
+      training_level_id: null, status: 'archived',
+      colleges: null, majors: null, training_levels: null,
+    });
+
+    const req = mockReq({ name: '更新', major_id: 1, status: 'archived' }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    const updateCall = mockPrisma.training_plans.update.mock.calls[0][0];
+    expect(updateCall.data.status).toBe('archived');
+  });
+
+  it('完整字段更新：所有字段正确传入 Prisma update data', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue({
+      id: 1, college_id: 1, colleges: { name: '旧学院' },
+    });
+    mockPrisma.training_plans.update.mockResolvedValue({
+      id: 1, name: '全字段', college_id: 3, major_id: null,
+      training_level_id: 2, version: 'v3.0', description: '新描述',
+      status: 'active', sort_order: 10,
+      colleges: { name: '新学院' }, majors: null,
+      training_levels: { id: 2, name: '本科' },
+    });
+
+    const req = mockReq({
+      name: '全字段',
+      college_id: 3,
+      training_level_id: 2,
+      version: 'v3.0',
+      description: '新描述',
+      status: 'active',
+      sort_order: 10,
+    }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    const data = mockPrisma.training_plans.update.mock.calls[0][0].data;
+    expect(data.name).toBe('全字段');
+    expect(data.college_id).toBe(3);
+    expect(data.major_id).toBeNull();
+    expect(data.training_level_id).toBe(2);
+    expect(data.version).toBe('v3.0');
+    expect(data.description).toBe('新描述');
+    expect(data.status).toBe('active');
+    expect(data.sort_order).toBe(10);
+  });
+
+  it('college_id 变更 → 审计日志记录 collegeChange', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue({
+      id: 1, college_id: 1, colleges: { name: '旧学院' },
+    });
+    mockPrisma.training_plans.update.mockResolvedValue({
+      id: 1, name: '更新', college_id: 5, major_id: 1,
+      training_level_id: null, colleges: { name: '新学院' },
+      majors: { id: 1, name: '学前' }, training_levels: null,
+    });
+
+    const req = mockReq({ name: '更新', major_id: 1, college_id: 5 }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    expect(createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'update',
+        result: 'success',
+        details: expect.objectContaining({
+          collegeChange: { from: '旧学院', to: '新学院' },
+        }),
+      })
+    );
+  });
+
+  it('college_id 未变更 → 审计日志不含 collegeChange', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue({
+      id: 1, college_id: 1, colleges: { name: '不变学院' },
+    });
+    mockPrisma.training_plans.update.mockResolvedValue({
+      id: 1, name: '更新', college_id: 1, major_id: 1,
+      training_level_id: null, colleges: { name: '不变学院' },
+      majors: { id: 1, name: '学前' }, training_levels: null,
+    });
+
+    const req = mockReq({ name: '更新', major_id: 1, college_id: 1 }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    const auditCall = createAuditLog.mock.calls[0][0];
+    expect(auditCall.details).not.toHaveProperty('collegeChange');
+  });
+
+  it('Prisma update 抛非 P2025 错误 → 记录失败审计日志并 throw', async () => {
+    const dbError = new Error('Unknown argument `college_id`');
+    mockPrisma.training_plans.findUnique.mockResolvedValue({
+      id: 1, college_id: null, colleges: null,
+    });
+    mockPrisma.training_plans.update.mockRejectedValue(dbError);
+
+    const req = mockReq({ name: '出错', major_id: 1 }, { id: '1' });
+    const res = mockRes();
+    const next = vi.fn();
+    await updatePlan(req, res, next);
+
+    expect(createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'trainingPlan',
+        action: 'update',
+        result: 'failed',
+        details: expect.objectContaining({
+          error: 'Unknown argument `college_id`',
+        }),
+      })
+    );
+    expect(next).toHaveBeenCalledWith(dbError);
+  });
+
+  it('sort_order 更新路径也应调用 invalidateSortOrderCache', async () => {
+    mockPrisma.training_plans.update.mockResolvedValue({
+      id: 1, name: '排序更新', sort_order: 5,
+      college_id: null, colleges: null,
+      majors: null, training_levels: null,
+    });
+
+    const req = mockReq({ sort_order: 5 }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    expect(invalidateSortOrderCache).toHaveBeenCalledWith('training_plans');
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true, message: '更新成功' })
+    );
   });
 });
