@@ -75,15 +75,11 @@ export async function querySemester(req, res, next) {
     const classWhere =
       Object.keys(extraConditions).length > 0 ? { AND: [baseWhere, extraConditions] } : baseWhere;
 
-    // B-01修复：仅统计在本学期有排课记录的班级数，使 totalWithCourses 不受分页影响
-    const totalClassesCount = await prisma.classes.count({
-      where: {
-        ...classWhere,
-        teaching_assignments: {
-          some: { semester: semesterInfo.raw },
-        },
-      },
-    });
+    // 修复A：分页总数与 DB 取数基准(classWhere)完全一致，
+    // 保证所有在读+有方案班级均可通过分页到达。
+    // 原实现多加了 teaching_assignments.some 条件，导致 total < 实际班级数，
+    // 多出来的页永远无法被前端请求，部分班级永久不可见。
+    const totalClassesCount = await prisma.classes.count({ where: classWhere });
 
     // 查询全量班级以提取可用的入学年份、年级和关联关系（用于前端筛选器下拉）
     const allMatchingClasses = await prisma.classes.findMany({
@@ -262,7 +258,9 @@ export async function querySemester(req, res, next) {
         : [];
 
     const results = [];
-    let skippedNoCourses = 0;
+    // 修复C：收集无匹配方案的班级（如 custom_plan_id 指向已删除方案），
+    // 暴露给前端提示用户重新关联，避免静默跳过
+    const unmatchedClasses = [];
 
     for (const cls of classes) {
       const calc = calcClassSemester(cls, semesterInfo);
@@ -270,11 +268,21 @@ export async function querySemester(req, res, next) {
 
       const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
       if (!plan) {
-        // 理论上不应该到这里，因为前面已经过滤了
+        // 修复C：保持 findBestMatchPlan 匹配语义不变（有 custom_plan_id 时不回退到 major/level，
+        // 避免自定义方案被删除后误匹配到通用方案），但收集到 unmatchedClasses 暴露给前端，
+        // 避免"静默跳过导致班级不可见"的问题。
         log.warn('班级无匹配方案', {
           className: cls.name,
           major_id: cls.major_id,
           level_id: cls.training_level_id,
+        });
+        unmatchedClasses.push({
+          classId: cls.id,
+          className: cls.name,
+          major_id: cls.major_id,
+          training_level_id: cls.training_level_id,
+          custom_plan_id: cls.custom_plan_id,
+          reason: cls.custom_plan_id ? '自定义方案已失效，请重新关联' : '无匹配培养方案',
         });
         continue;
       }
@@ -316,16 +324,16 @@ export async function querySemester(req, res, next) {
           };
         });
 
-      // 如果过滤后无有效课程，跳过该班级（覆盖方案无课程和全部 0 课时两种场景）
+      // 修复B：本学期无有效课程的班级也展示（courses=[]，开课数显示 0），
+      // 使 results 与 total 口径一致，用户能看到全部在读+有方案班级。
+      // 原实现 continue 跳过，导致"所有班级都关联了方案但只显示部分"的观感。
       if (courses.length === 0) {
-        skippedNoCourses++;
         log.debug('方案无当前学期有效课程', {
           className: cls.name,
           planName: plan.name,
           currentSemester: calc.currentSemesterNum,
           totalPlanCourses: planCourses.length,
         });
-        continue;
       }
 
       results.push({
@@ -352,7 +360,8 @@ export async function querySemester(req, res, next) {
       },
       totalClasses: results.length,
       total: totalClassesCount,
-      totalWithCourses: totalClassesCount, // B-01修复：totalClassesCount 已只统计有排课记录的班级
+      totalWithCourses: totalClassesCount, // 修复A：与分页基准一致，展示全部在读+有方案班级
+      unmatchedClasses, // 修复C：无匹配方案的班级列表，供前端提示用户重新关联
       page: pageNum,
       pageSize: pageSizeNum,
       enrollmentYears: availableEnrollmentYears,

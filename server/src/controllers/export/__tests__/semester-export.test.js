@@ -299,9 +299,11 @@ describe('exportSemesterSchedule (GET)', () => {
 
       await exportSemesterSchedule(req, res, next);
 
-      // 周课时为0的课程被过滤 → 无有效课程 → 班级不出现
+      // 修复B：周课时为0的课程被过滤 → 无有效课程 → 班级输出一行汇总（课程='无'，开课数=0）
       const rows = mocks.createWorkbook.mock.calls[0][1];
-      expect(rows).toHaveLength(0);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].课程).toBe('无');
+      expect(rows[0].开课数).toBe(0);
     });
 
     it('课程不在当前学期范围内应被过滤', async () => {
@@ -326,8 +328,10 @@ describe('exportSemesterSchedule (GET)', () => {
 
       await exportSemesterSchedule(req, res, next);
 
+      // 修复B：课程不在当前学期范围 → 无有效课程 → 班级输出一行汇总（课程='无'）
       const rows = mocks.createWorkbook.mock.calls[0][1];
-      expect(rows).toHaveLength(0);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].课程).toBe('无');
     });
 
     it('无匹配方案的班级不应出现在导出中', async () => {

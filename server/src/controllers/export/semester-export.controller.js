@@ -166,7 +166,17 @@ async function buildSemesterExportData(semesterInfo, filters) {
     };
 
     if (planCourses.length === 0) {
-      continue; // 本学期无有效课程的班级不出现在导出中
+      // 修复B：本学期无有效课程的班级也输出一行（课程明细为空），
+      // 与开课查询口径保持一致，使导出包含全部在读+有方案班级
+      rows.push({
+        ...baseRow,
+        课程: '无',
+        课程类型: '-',
+        周课时: 0,
+        学期总课时: 0,
+        使用教材: '未指定',
+        书号: '-',
+      });
     } else {
       for (const pc of planCourses) {
         const semRecord = pc.plan_course_semesters?.find((s) => s.semester === currentSemesterNum);

@@ -107,6 +107,19 @@
           :closable="false"
           class="alert-info"
         />
+        <el-alert
+          v-if="unmatchedClasses.length > 0"
+          type="warning"
+          :closable="false"
+          class="alert-warning"
+        >
+          <template #title>
+            以下
+            {{ unmatchedClasses.length }}
+            个班级未匹配到培养方案，已排除在开课查询之外，请前往班级管理重新关联：
+            {{ unmatchedClasses.map((c) => c.className).join('、') }}
+          </template>
+        </el-alert>
 
         <el-table v-loading="loading" :data="data" stripe row-key="classId">
           <el-table-column type="expand">
@@ -239,6 +252,8 @@ const filterGrade = ref(null);
 const selectedSemester = ref('');
 const semesterLabel = ref('');
 const totalClasses = ref(0);
+// 修复C：无匹配方案的班级列表（如自定义方案已失效），用于前端提示
+const unmatchedClasses = ref([]);
 
 // 关联关系数据
 const collegeMajorRelation = ref({});
@@ -271,6 +286,7 @@ async function load() {
     data.value = [];
     semesterLabel.value = '';
     totalClasses.value = 0;
+    unmatchedClasses.value = [];
     pagination.value.total = 0;
     return;
   }
@@ -290,11 +306,12 @@ async function load() {
     const res = await getWithCache(
       () => getSemesterQuery(params),
       `semester-query:${JSON.stringify(params)}`,
-      2 * 60 * 1000 // 2 分钟缓存
+      30 * 1000 // 修复D：缩短缓存至30秒，避免后端数据修复后前端长时间展示旧数据
     );
     data.value = res.data?.data || [];
     semesterLabel.value = res.data?.semesterInfo?.label || '';
     totalClasses.value = res.data?.totalClasses || 0;
+    unmatchedClasses.value = res.data?.unmatchedClasses || [];
     pagination.value.total = res.data?.total || 0;
     if (res.data?.enrollmentYears) enrollmentYears.value = res.data.enrollmentYears;
     if (res.data?.grades) grades.value = res.data.grades;
