@@ -358,7 +358,7 @@ export async function querySemester(req, res, next) {
         label: semesterInfo.label,
         ...semesterInfo,
       },
-      totalClasses: results.length,
+      totalClasses: totalClassesCount, // 全部班级数（跨所有页），用于前端"共X个班级"汇总展示
       total: totalClassesCount,
       totalWithCourses: totalClassesCount, // 修复A：与分页基准一致，展示全部在读+有方案班级
       unmatchedClasses, // 修复C：无匹配方案的班级列表，供前端提示用户重新关联
