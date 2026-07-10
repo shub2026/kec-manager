@@ -103,9 +103,9 @@
         </div>
         <el-alert
           :title="`查询学期：${semesterLabel} | 共 ${totalClasses} 个班级`"
-          type="info"
+          type="success"
           :closable="false"
-          class="alert-info"
+          class="alert-success"
         />
         <el-alert
           v-if="unmatchedClasses.length > 0"

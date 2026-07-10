@@ -253,7 +253,8 @@
 }
 
 /* ----- 提示信息 ----- */
-.alert-info {
+.alert-info,
+.alert-success {
   margin-bottom: 16px;
 }
 
