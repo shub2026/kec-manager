@@ -92,9 +92,17 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-            <el-button type="danger" @click="resetConfirmVisible = true">
-              <el-icon><RefreshRight /></el-icon> 重置
-            </el-button>
+            <el-dropdown style="margin-left: 4px" @command="handleResetCommand">
+              <el-button type="danger">
+                <el-icon><RefreshRight /></el-icon> 重置<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="current">重置当前科目</el-dropdown-item>
+                  <el-dropdown-item command="all">重置全部科目</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
       </template>
@@ -241,9 +249,14 @@
           <WarningFilled />
         </el-icon>
         <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
-          <p style="margin: 0">确定要重置当前课程的所有自动排课安排吗？此操作不可撤销。</p>
+          <p v-if="resetScope === 'current'" style="margin: 0">
+            确定要重置「{{ courseInfo?.name || '当前课程' }}」的所有自动排课安排吗？此操作不可撤销。
+          </p>
+          <p v-else style="margin: 0">
+            确定要重置本学期<strong>全部科目</strong>的自动排课安排吗？此操作不可撤销。
+          </p>
           <p style="margin: 8px 0 0; color: var(--brand-danger-text); font-size: 13px">
-            将清除该课程在本学期的所有自动分配记录，手动安排不受影响。
+            将清除{{ resetScope === 'current' ? '该课程' : '所有课程' }}在本学期的所有自动分配记录，手动安排不受影响。
           </p>
         </div>
       </div>
@@ -452,6 +465,7 @@ const arrangeResult = ref({});
 const arrangeResultMode = ref('');
 const resetConfirmVisible = ref(false);
 const resetting = ref(false);
+const resetScope = ref('current');
 
 function tableRowClassName({ row }) {
   return row.assignment ? '' : 'unassigned-row';
@@ -758,13 +772,19 @@ async function doBatchAutoArrange() {
 }
 
 // --- 重置 ---
+function handleResetCommand(command) {
+  resetScope.value = command;
+  resetConfirmVisible.value = true;
+}
+
 async function handleReset() {
   resetting.value = true;
   try {
-    const res = await resetAutoAssignments({
-      courseId: selectedCourseId.value,
-      semester: currentSemesterLabel.value,
-    });
+    const payload = { semester: currentSemesterLabel.value };
+    if (resetScope.value === 'current') {
+      payload.courseId = selectedCourseId.value;
+    }
+    const res = await resetAutoAssignments(payload);
     ElMessage.success(res.message || '已重置');
     resetConfirmVisible.value = false;
     await loadData();

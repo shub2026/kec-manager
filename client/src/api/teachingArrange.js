@@ -170,7 +170,8 @@ export const runBatchAutoArrangeWithProgress = (data, onProgress) =>
 /**
  * 重置自动安排（清除指定学期的自动安排）
  * @param {Object} data
- * @param {string} data.semester
+ * @param {string} data.semester - 学期标识
+ * @param {number} [data.courseId] - 课程ID，不传则重置全部科目
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
 export const resetAutoAssignments = (data) => request.post('/teaching-arrange/reset', data);

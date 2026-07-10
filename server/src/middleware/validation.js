@@ -588,7 +588,10 @@ export const validateBatchAutoArrange = [
  * 教学安排 - 重置自动安排验证规则
  */
 export const validateResetAuto = [
-  body('course_id').isInt({ min: 1 }).withMessage('课程ID必须为正整数'),
+  body('course_id')
+    .optional({ values: 'falsy' })
+    .isInt({ min: 1 })
+    .withMessage('课程ID必须为正整数'),
   body('semester')
     .matches(/^\d{4}-\d{4}-[12]$/)
     .withMessage('学期格式错误，应为YYYY-YYYY-N'),

@@ -493,28 +493,28 @@ export async function runAutoArrange(req, res, next) {
 
 /**
  * POST /reset - 重置自动安排（只删除 is_auto=true 的记录）
+ *   - 传 course_id：重置指定科目的自动安排
+ *   - 不传 course_id：重置当前学期全部科目的自动安排
  */
 export async function resetAutoAssignments(req, res, next) {
   try {
     const { course_id, semester } = req.body;
-    if (!course_id || !semester) return fail(res, '缺少课程或学期参数');
+    if (!semester) return fail(res, '缺少学期参数');
 
-    const result = await prisma.teaching_assignments.deleteMany({
-      where: {
-        course_id: Number(course_id),
-        semester,
-        is_auto: true,
-      },
-    });
+    const where = { semester, is_auto: true };
+    if (course_id) where.course_id = Number(course_id);
 
+    const result = await prisma.teaching_assignments.deleteMany({ where });
+
+    const scope = course_id ? `课程${course_id}` : '全部课程';
     await createAuditLog({
       action: 'delete',
       module: 'teachingArrange',
       userId: req.user?.id,
       ip: req.ip,
-      details: { course_id, semester, deletedCount: result.count },
+      details: { course_id: course_id || null, semester, deletedCount: result.count },
       result: 'success',
-      message: `重置自动安排：删除${result.count}条自动安排记录`,
+      message: `重置自动安排：${scope} 删除${result.count}条自动安排记录`,
     });
 
     success(res, { deletedCount: result.count }, `已重置${result.count}条自动安排`);

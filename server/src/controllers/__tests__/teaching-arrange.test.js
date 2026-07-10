@@ -29,6 +29,7 @@ const mockPrisma = {
   teaching_assignments: {
     upsert: vi.fn(),
     groupBy: vi.fn(),
+    deleteMany: vi.fn(),
   },
   plan_courses: {
     findMany: vi.fn(),
@@ -70,7 +71,7 @@ vi.mock('../../services/semester.service.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { assignTeacher } = await import('../teaching-arrange.controller.js');
+const { assignTeacher, resetAutoAssignments } = await import('../teaching-arrange.controller.js');
 const { createAuditLog } = await import('../../services/audit.service.js');
 const { findBestMatchPlan } = await import('../../services/plan.service.js');
 const { parseSemester } = await import('../../services/teaching-arrange.service.js');
@@ -422,5 +423,185 @@ describe('assignTeacher — 手动安排教师', () => {
         message: '缺少必要参数',
       })
     );
+  });
+});
+
+// ════════════════════════════════════════════════
+// resetAutoAssignments 测试
+// ════════════════════════════════════════════════
+describe('resetAutoAssignments — 重置自动排课', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // ──────────────────────────────────────────────
+  // 1. 重置当前科目（传 course_id）
+  // ──────────────────────────────────────────────
+  it('传入 course_id 应仅重置该科目的自动安排', async () => {
+    mockPrisma.teaching_assignments.deleteMany.mockResolvedValue({ count: 5 });
+
+    const req = mockReq({ course_id: 3, semester: '2025-2026-2' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetAutoAssignments(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(mockPrisma.teaching_assignments.deleteMany).toHaveBeenCalledWith({
+      where: { course_id: 3, semester: '2025-2026-2', is_auto: true },
+    });
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: { deletedCount: 5 },
+        message: '已重置5条自动安排',
+      })
+    );
+  });
+
+  // ──────────────────────────────────────────────
+  // 2. 重置全部科目（不传 course_id）
+  // ──────────────────────────────────────────────
+  it('不传 course_id 应重置当前学期全部科目的自动安排', async () => {
+    mockPrisma.teaching_assignments.deleteMany.mockResolvedValue({ count: 42 });
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetAutoAssignments(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    // where 条件不应包含 course_id
+    expect(mockPrisma.teaching_assignments.deleteMany).toHaveBeenCalledWith({
+      where: { semester: '2025-2026-2', is_auto: true },
+    });
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: { deletedCount: 42 },
+        message: '已重置42条自动安排',
+      })
+    );
+  });
+
+  // ──────────────────────────────────────────────
+  // 3. 无自动安排记录时
+  // ──────────────────────────────────────────────
+  it('无自动安排记录时 deletedCount 应为 0', async () => {
+    mockPrisma.teaching_assignments.deleteMany.mockResolvedValue({ count: 0 });
+
+    const req = mockReq({ course_id: 3, semester: '2025-2026-2' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetAutoAssignments(req, res, next);
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: { deletedCount: 0 },
+        message: '已重置0条自动安排',
+      })
+    );
+  });
+
+  // ──────────────────────────────────────────────
+  // 4. 审计日志记录
+  // ──────────────────────────────────────────────
+  it('重置当前科目时应记录含 course_id 的审计日志', async () => {
+    mockPrisma.teaching_assignments.deleteMany.mockResolvedValue({ count: 3 });
+
+    const req = mockReq({ course_id: 7, semester: '2025-2026-1' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetAutoAssignments(req, res, next);
+
+    expect(createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'delete',
+        module: 'teachingArrange',
+        details: expect.objectContaining({
+          course_id: 7,
+          semester: '2025-2026-1',
+          deletedCount: 3,
+        }),
+        result: 'success',
+        message: expect.stringContaining('课程7'),
+      })
+    );
+  });
+
+  it('重置全部科目时审计日志 course_id 应为 null', async () => {
+    mockPrisma.teaching_assignments.deleteMany.mockResolvedValue({ count: 15 });
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetAutoAssignments(req, res, next);
+
+    expect(createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        details: expect.objectContaining({
+          course_id: null,
+          semester: '2025-2026-2',
+          deletedCount: 15,
+        }),
+        message: expect.stringContaining('全部课程'),
+      })
+    );
+  });
+
+  // ──────────────────────────────────────────────
+  // 5. 缺少学期参数
+  // ──────────────────────────────────────────────
+  it('缺少 semester 参数应返回错误', async () => {
+    const req = mockReq({ course_id: 3 }); // 无 semester
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetAutoAssignments(req, res, next);
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        message: '缺少学期参数',
+      })
+    );
+    expect(mockPrisma.teaching_assignments.deleteMany).not.toHaveBeenCalled();
+  });
+
+  // ──────────────────────────────────────────────
+  // 6. 数据库异常
+  // ──────────────────────────────────────────────
+  it('数据库异常应传递给 next', async () => {
+    mockPrisma.teaching_assignments.deleteMany.mockRejectedValue(new Error('数据库连接失败'));
+
+    const req = mockReq({ course_id: 3, semester: '2025-2026-2' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetAutoAssignments(req, res, next);
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(next.mock.calls[0][0].message).toBe('数据库连接失败');
+  });
+
+  // ──────────────────────────────────────────────
+  // 7. 不影响手动安排（仅删除 is_auto=true）
+  // ──────────────────────────────────────────────
+  it('重置时 where 条件必须包含 is_auto:true，不影响手动安排', async () => {
+    mockPrisma.teaching_assignments.deleteMany.mockResolvedValue({ count: 2 });
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetAutoAssignments(req, res, next);
+
+    const deleteCall = mockPrisma.teaching_assignments.deleteMany.mock.calls[0][0];
+    expect(deleteCall.where.is_auto).toBe(true);
   });
 });
