@@ -7,7 +7,7 @@ import {
 } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
-import { calcClassSemester } from '../../services/semester.service.js';
+import { calcClassSemester, buildConsecutiveTextbookMap } from '../../services/semester.service.js';
 import { findBestMatchPlan, buildClassWithPlanFilter } from '../../services/plan.service.js';
 
 /**
@@ -119,6 +119,32 @@ async function buildSemesterExportData(semesterInfo, filters) {
     },
   });
 
+  // 构建连续使用教材检测集合
+  const textbookRecords = [];
+  const seenPlanIds = new Set();
+  const collectTextbooks = (plans) => {
+    for (const plan of plans) {
+      if (seenPlanIds.has(plan.id)) continue;
+      seenPlanIds.add(plan.id);
+      for (const pc of plan.plan_courses || []) {
+        for (const pcs of pc.plan_course_semesters || []) {
+          for (const pt of pcs.plan_textbooks || []) {
+            textbookRecords.push({
+              plan_course_id: pcs.plan_course_id,
+              textbook_id: pt.textbook_id,
+              semester: pcs.semester,
+            });
+          }
+        }
+      }
+    }
+  };
+  collectTextbooks(matchingPlans);
+  for (const cls of classes) {
+    if (cls.training_plans) collectTextbooks([cls.training_plans]);
+  }
+  const consecutiveMap = await buildConsecutiveTextbookMap(textbookRecords);
+
   // 构建导出行
   const rows = [];
   const grade = filters.grade;
@@ -174,7 +200,7 @@ async function buildSemesterExportData(semesterInfo, filters) {
         课程类型: '-',
         周课时: 0,
         学期总课时: 0,
-        使用教材: '未指定',
+        教材征订: '未指定',
         书号: '-',
       });
     } else {
@@ -184,13 +210,21 @@ async function buildSemesterExportData(semesterInfo, filters) {
         const weeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours;
         const weeksCount = semRecord?.weeks_count ?? pc.weeks_per_semester;
 
+        // 构建教材征订信息：书名(征订状态)
+        const textbookInfo = textbooks.map((pt) => {
+          const isConsecutive =
+            consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(semRecord?.semester) ?? false;
+          const status = isConsecutive ? '选定' : pt.is_required ? '必订' : '选修';
+          return `${pt.textbooks.title}(${status})`;
+        });
+
         rows.push({
           ...baseRow,
           课程: pc.courses.name,
           课程类型: pc.courses.type === 'public' ? '公共基础课' : '专业课',
           周课时: weeklyHours,
           学期总课时: weeklyHours * weeksCount,
-          使用教材: textbooks.map((pt) => pt.textbooks.title).join('、') || '未指定',
+          教材征订: textbookInfo.join('、') || '未指定',
           书号: textbooks.map((pt) => pt.textbooks.isbn || '-').join('、') || '-',
         });
       }
@@ -216,7 +250,7 @@ const EXPORT_HEADERS = [
   { label: '课程类型', key: '课程类型', width: 12 },
   { label: '周课时', key: '周课时', width: 8 },
   { label: '学期总课时', key: '学期总课时', width: 12 },
-  { label: '使用教材', key: '使用教材', width: 30 },
+  { label: '教材征订', key: '教材征订', width: 40 },
   { label: '书号', key: '书号', width: 25 },
 ];
 
