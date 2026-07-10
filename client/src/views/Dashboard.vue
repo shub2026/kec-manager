@@ -10,7 +10,7 @@
         </p>
       </div>
       <div class="welcome-actions">
-        <el-button type="primary" @click="navigateTo('/teaching/arrange')">
+        <el-button v-if="isAdmin" type="primary" @click="navigateTo('/teaching/arrange')">
           <el-icon><EditPen /></el-icon>
           开始排课
         </el-button>
@@ -44,7 +44,7 @@
               :bg-color="s.bg"
               :icon-color="s.color"
               :core="true"
-              :route="s.route"
+              :route="isAdmin ? s.route : ''"
               :spark-data="sparkData(s.key)"
             />
           </el-col>
@@ -58,7 +58,7 @@
               :icon="s.icon"
               :bg-color="s.bg"
               :icon-color="s.color"
-              :route="s.route"
+              :route="isAdmin ? s.route : ''"
               :spark-data="sparkData(s.key)"
             />
           </el-col>
@@ -125,6 +125,7 @@ const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 const loading = ref(false);
 
 const userName = computed(() => authStore.userInfo?.realName || '用户');
+const isAdmin = computed(() => authStore.isAdmin);
 const semesterLabel = computed(() => settingsStore.semesterLabel);
 
 const greeting = computed(() => {

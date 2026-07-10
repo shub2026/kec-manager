@@ -13,12 +13,14 @@
         :active-text-color="sidebarActive"
         router
       >
+        <!-- 首页概览（所有用户可见） -->
+        <el-menu-item index="/dashboard">
+          <el-icon><HomeFilled /></el-icon>
+          <template #title>首页概览</template>
+        </el-menu-item>
+
         <!-- 管理员菜单 -->
         <template v-if="authStore.isAdmin">
-          <el-menu-item index="/dashboard">
-            <el-icon><HomeFilled /></el-icon>
-            <template #title>首页概览</template>
-          </el-menu-item>
           <el-sub-menu index="basic">
             <template #title>
               <el-icon><Grid /></el-icon>

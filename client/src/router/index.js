@@ -17,21 +17,14 @@ const routes = [
   {
     path: '/',
     component: Layout,
-    redirect: (to) => {
-      // 使用Pinia store而不是全局变量
-      const authStore = useAuthStore();
-      if (authStore.userInfo?.role === 'viewer') {
-        return '/query/semester';
-      }
-      return '/dashboard';
-    },
+    redirect: '/dashboard',
     meta: { requiresAuth: true },
     children: [
       {
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('../views/Dashboard.vue'),
-        meta: { title: '首页', requiresAdmin: true },
+        meta: { title: '首页' },
       },
       {
         path: 'majors',
@@ -229,7 +222,7 @@ router.beforeEach(async (to, from, next) => {
       // 检查是否需要超级管理员权限
       if (to.meta.requiresSuperAdmin && authStore.userInfo.role !== 'super_admin') {
         sessionStorage.setItem('permissionWarning', '此功能仅限超级管理员访问');
-        next('/query/semester');
+        next('/dashboard');
         return;
       }
 
@@ -240,7 +233,7 @@ router.beforeEach(async (to, from, next) => {
 
       if (to.meta.requiresAdmin && !hasAdminRole) {
         sessionStorage.setItem('permissionWarning', '您没有权限访问此页面');
-        next('/query/semester');
+        next('/dashboard');
         return;
       }
     }
