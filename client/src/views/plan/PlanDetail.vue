@@ -28,7 +28,7 @@
     />
 
     <!-- 开课学期设置对话框 -->
-    <el-dialog v-model="showSemesterDialog" title="设置开课学期" width="min(450px, 90vw)">
+    <el-dialog v-model="showSemesterDialog" title="设置开课学期" width="min(480px, 90vw)">
       <el-form :model="semesterForm" label-width="100px">
         <el-form-item label="选择课程" required>
           <el-select
@@ -40,28 +40,22 @@
             <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-row :gutter="16">
-          <el-col :span="12" :xs="24" :sm="12">
-            <el-form-item label="起始学期" required>
-              <el-input-number
-                v-model="semesterForm.startSemester"
-                :min="1"
-                :max="12"
-                class="full-width"
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12" :xs="24" :sm="12">
-            <el-form-item label="结束学期" required>
-              <el-input-number
-                v-model="semesterForm.endSemester"
-                :min="1"
-                :max="12"
-                class="full-width"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="起始学期" required>
+          <el-input-number
+            v-model="semesterForm.startSemester"
+            :min="1"
+            :max="12"
+            class="full-width"
+          />
+        </el-form-item>
+        <el-form-item label="结束学期" required>
+          <el-input-number
+            v-model="semesterForm.endSemester"
+            :min="1"
+            :max="12"
+            class="full-width"
+          />
+        </el-form-item>
         <el-form-item label="默认周课时" required>
           <el-input-number
             v-model="semesterForm.weeklyHours"
@@ -238,6 +232,10 @@ onMounted(async () => {
 }
 
 .full-width {
+  width: 100%;
+}
+
+:deep(.el-input-number.full-width) {
   width: 100%;
 }
 </style>

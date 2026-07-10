@@ -68,7 +68,7 @@
   <el-dialog
     :model-value="semesterDialogVisible"
     title="设置开课学期"
-    width="450px"
+    width="480px"
     @update:model-value="$emit('update-semester-dialog-visible', $event)"
   >
     <el-form label-width="100px">
@@ -79,34 +79,28 @@
         show-icon
         style="margin-bottom: 16px"
       />
-      <el-row :gutter="16">
-        <el-col :span="12" :xs="24" :sm="12">
-          <el-form-item label="起始学期" required>
-            <el-input-number
-              :model-value="semesterForm?.startSemester"
-              :min="1"
-              :max="12"
-              class="full-width"
-              @update:model-value="
-                $emit('update-semester-form', { ...semesterForm, startSemester: $event })
-              "
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12" :xs="24" :sm="12">
-          <el-form-item label="结束学期" required>
-            <el-input-number
-              :model-value="semesterForm?.endSemester"
-              :min="1"
-              :max="12"
-              class="full-width"
-              @update:model-value="
-                $emit('update-semester-form', { ...semesterForm, endSemester: $event })
-              "
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <el-form-item label="起始学期" required>
+        <el-input-number
+          :model-value="semesterForm?.startSemester"
+          :min="1"
+          :max="12"
+          class="full-width"
+          @update:model-value="
+            $emit('update-semester-form', { ...semesterForm, startSemester: $event })
+          "
+        />
+      </el-form-item>
+      <el-form-item label="结束学期" required>
+        <el-input-number
+          :model-value="semesterForm?.endSemester"
+          :min="1"
+          :max="12"
+          class="full-width"
+          @update:model-value="
+            $emit('update-semester-form', { ...semesterForm, endSemester: $event })
+          "
+        />
+      </el-form-item>
       <el-alert
         title="提示：修改后将自动创建或删除对应的学期记录"
         type="warning"
@@ -181,6 +175,10 @@ defineEmits([
 }
 
 .full-width {
+  width: 100%;
+}
+
+:deep(.el-input-number.full-width) {
   width: 100%;
 }
 </style>
