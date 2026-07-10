@@ -3,11 +3,14 @@
  *
  * 覆盖场景：
  * - 正确聚合统计数据
+ * - 课程数量和总周课时来自培养方案 plan_courses（开设课程），非 teaching_assignments（已排课）
+ * - 参与教师数仍来自 teaching_assignments（排课记录）
  * - 在职教师过滤 (teacher.status = 'active')
- * - 排除 0 课时排课 (weekly_hours > 0)
  * - totalWeeklyHours 四舍五入
  * - 无学期参数 → 返回错误
  * - 在读班级和学生数计算
+ * - 班级有 major_id 但方案按层次匹配 → 总周课时正确
+ * - 无匹配方案时 courses 和 totalWeeklyHours 为 0
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -16,11 +19,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // ──────────────────────────────────────────────
 const mockPrisma = {
   majors: { count: vi.fn() },
-  training_plans: { count: vi.fn() },
+  training_plans: {
+    count: vi.fn(),
+    findMany: vi.fn(),
+  },
   textbooks: { count: vi.fn() },
   classes: { findMany: vi.fn() },
   teaching_assignments: {
-    findMany: vi.fn(),
     groupBy: vi.fn(),
   },
 };
@@ -36,9 +41,15 @@ vi.mock('../../services/class.service.js', () => ({
   getActiveClassFilter: vi.fn(),
 }));
 
+const mockCalcClassSemester = vi.fn();
 vi.mock('../../services/semester.service.js', () => ({
   getSemesterInfoFromRequest: vi.fn(),
-  calcClassSemester: vi.fn(),
+  calcClassSemester: (...args) => mockCalcClassSemester(...args),
+}));
+
+const mockFindBestMatchPlan = vi.fn();
+vi.mock('../../services/plan.service.js', () => ({
+  findBestMatchPlan: (...args) => mockFindBestMatchPlan(...args),
 }));
 
 vi.mock('../../services/audit.service.js', () => ({
@@ -71,38 +82,73 @@ function mockRes() {
   return res;
 }
 
+// 测试用的方案数据工厂
+function makePlan(id, opts = {}) {
+  return {
+    id,
+    name: opts.name || `方案${id}`,
+    major_id: opts.major_id ?? null,
+    college_id: opts.college_id ?? null,
+    training_level_id: opts.training_level_id ?? null,
+    majors: opts.majors ?? null,
+    colleges: opts.colleges ?? null,
+    training_levels: opts.training_levels ?? null,
+    plan_courses: opts.plan_courses || [],
+  };
+}
+
+function makePlanCourse(courseId, startSem, endSem, weeklyHours, semesterOverrides = []) {
+  return {
+    course_id: courseId,
+    start_semester: startSem,
+    end_semester: endSem,
+    weekly_hours: weeklyHours,
+    courses: { id: courseId },
+    plan_course_semesters: semesterOverrides,
+  };
+}
+
 // ════════════════════════════════════════════════
 // getDashboardStats
 // ════════════════════════════════════════════════
 describe('getDashboardStats', () => {
+  const semesterInfo = {
+    startYear: 2025,
+    endYear: 2026,
+    semesterIndex: 2,
+    raw: '2025-2026-2',
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // 默认 semesterInfo
-    getSemesterInfoFromRequest.mockResolvedValue({
-      startYear: 2025,
-      endYear: 2026,
-      semesterIndex: 2,
-      raw: '2025-2026-2',
-    });
-
-    // 默认 activeFilter
+    getSemesterInfoFromRequest.mockResolvedValue(semesterInfo);
     getActiveClassFilter.mockResolvedValue({ enrollment_year: { gte: 2023 } });
 
-    // 默认 prisma 返回
     mockPrisma.majors.count.mockResolvedValue(10);
     mockPrisma.training_plans.count.mockResolvedValue(25);
     mockPrisma.textbooks.count.mockResolvedValue(50);
+    // 默认在读班级：2个班级，各有 enrollment_year 和 duration_years
     mockPrisma.classes.findMany.mockResolvedValue([
-      { student_count: 40 },
-      { student_count: 35 },
-      { student_count: 45 },
+      { id: 1, student_count: 40, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      { id: 2, student_count: 35, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
     ]);
-    mockPrisma.teaching_assignments.findMany.mockResolvedValue([
-      { course_id: 1 },
-      { course_id: 2 },
-      { course_id: 3 },
+    // 默认方案：一个按层次匹配的方案，含 2 门课程在当前学期（semester 4）
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      makePlan(1, {
+        training_level_id: 2,
+        training_levels: { id: 2, name: '本科' },
+        plan_courses: [
+          makePlanCourse(10, 1, 6, 4, [{ semester: 4, weekly_hours: 4 }]),
+          makePlanCourse(20, 3, 5, 2, [{ semester: 4, weekly_hours: 2 }]),
+        ],
+      }),
     ]);
+    // 默认 calcClassSemester: 2024 入学 + 2025-2026-2 → grade=2, semesterNum=4
+    mockCalcClassSemester.mockReturnValue({ grade: 2, currentSemesterNum: 4 });
+    // 默认 findBestMatchPlan: 返回方案 1
+    mockFindBestMatchPlan.mockImplementation((cls, plans) => plans[0] || null);
+    // 默认教师排课
     mockPrisma.teaching_assignments.groupBy.mockResolvedValue([
       { teacher_id: 1, _sum: { weekly_hours: 12 } },
       { teacher_id: 2, _sum: { weekly_hours: 8 } },
@@ -131,23 +177,44 @@ describe('getDashboardStats', () => {
         data: expect.objectContaining({
           semester: '2025-2026-2',
           majors: 10,
-          courses: 3,
-          classes: 3,
+          classes: 2,
           textbooks: 50,
           plans: 25,
-          totalStudents: 120,
+          totalStudents: 75, // 40 + 35
           teachingTeachers: 2,
-          totalWeeklyHours: 20,
+          // 课程数量来自方案：2门课在当前学期开设（weekly_hours > 0）
+          courses: 2,
+          // 总周课时 = (4 + 2) * 2个班级 = 12
+          totalWeeklyHours: 12,
         }),
       })
     );
   });
 
-  it('在读学生数为各班级 student_count 之和', async () => {
+  it('课程数量和总周课时来自培养方案，而非 teaching_assignments', async () => {
+    // teaching_assignments 有 5 门课（排课记录），但方案只有 2 门课在当前学期
+    mockPrisma.teaching_assignments.groupBy.mockResolvedValue([
+      { teacher_id: 1, _sum: { weekly_hours: 30 } },
+    ]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardStats(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    // 课程数 = 方案中当前学期的课程数（2），不是排课记录的课程数
+    expect(data.courses).toBe(2);
+    // 总周课时 = 方案课时 × 班级数（(4+2)*2=12），不是排课记录的 30
+    expect(data.totalWeeklyHours).toBe(12);
+    // 参与教师仍然来自 teaching_assignments
+    expect(data.teachingTeachers).toBe(1);
+  });
+
+  it('在读学生数是各班级 student_count 之和', async () => {
     mockPrisma.classes.findMany.mockResolvedValue([
-      { student_count: 30 },
-      { student_count: 0 },
-      { student_count: 50 },
+      { id: 1, student_count: 30, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      { id: 2, student_count: 0, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      { id: 3, student_count: 50, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
     ]);
 
     const req = mockReq({ semester: '2025-2026-2' });
@@ -159,7 +226,10 @@ describe('getDashboardStats', () => {
   });
 
   it('student_count 为 null 时按 0 计算', async () => {
-    mockPrisma.classes.findMany.mockResolvedValue([{ student_count: null }, { student_count: 25 }]);
+    mockPrisma.classes.findMany.mockResolvedValue([
+      { id: 1, student_count: null, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      { id: 2, student_count: 25, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+    ]);
 
     const req = mockReq({ semester: '2025-2026-2' });
     const res = mockRes();
@@ -169,22 +239,11 @@ describe('getDashboardStats', () => {
     expect(data.totalStudents).toBe(25);
   });
 
-  it('active teacher 过滤 → 查询条件含 teacher.status=active', async () => {
+  it('教师统计的 where 条件含 semester + weekly_hours>0 + active', async () => {
     const req = mockReq({ semester: '2025-2026-2' });
     const res = mockRes();
     await getDashboardStats(req, res, vi.fn());
 
-    // 验证 teaching_assignments.findMany（课程统计）的 where 条件
-    const courseCallArgs = mockPrisma.teaching_assignments.findMany.mock.calls[0][0];
-    expect(courseCallArgs.where).toEqual(
-      expect.objectContaining({
-        semester: '2025-2026-2',
-        weekly_hours: { gt: 0 },
-        teacher: { status: 'active' },
-      })
-    );
-
-    // 验证 teaching_assignments.groupBy（教师统计）的 where 条件
     const teacherCallArgs = mockPrisma.teaching_assignments.groupBy.mock.calls[0][0];
     expect(teacherCallArgs.where).toEqual(
       expect.objectContaining({
@@ -195,22 +254,17 @@ describe('getDashboardStats', () => {
     );
   });
 
-  it('排除 0 课时排课 → weekly_hours > 0', async () => {
-    const req = mockReq({ semester: '2025-2026-2' });
-    const res = mockRes();
-    await getDashboardStats(req, res, vi.fn());
-
-    const courseCallArgs = mockPrisma.teaching_assignments.findMany.mock.calls[0][0];
-    expect(courseCallArgs.where.weekly_hours).toEqual({ gt: 0 });
-
-    const teacherCallArgs = mockPrisma.teaching_assignments.groupBy.mock.calls[0][0];
-    expect(teacherCallArgs.where.weekly_hours).toEqual({ gt: 0 });
-  });
-
   it('totalWeeklyHours 四舍五入到一位小数', async () => {
-    mockPrisma.teaching_assignments.groupBy.mockResolvedValue([
-      { teacher_id: 1, _sum: { weekly_hours: 7.33 } },
-      { teacher_id: 2, _sum: { weekly_hours: 5.44 } },
+    // 方案含一门课 weekly_hours=3.33
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      makePlan(1, {
+        training_level_id: 2,
+        plan_courses: [makePlanCourse(10, 1, 6, 3.33, [{ semester: 4, weekly_hours: 3.33 }])],
+      }),
+    ]);
+    // 1个班级
+    mockPrisma.classes.findMany.mockResolvedValue([
+      { id: 1, student_count: 40, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
     ]);
 
     const req = mockReq({ semester: '2025-2026-2' });
@@ -218,25 +272,11 @@ describe('getDashboardStats', () => {
     await getDashboardStats(req, res, vi.fn());
 
     const data = res.json.mock.calls[0][0].data;
-    // 7.33 + 5.44 = 12.77, Math.round(12.77 * 10) / 10 = 12.8 (nearest)
-    expect(data.totalWeeklyHours).toBe(12.8);
+    // 3.33 → Math.round(3.33 * 10) / 10 = 3.3
+    expect(data.totalWeeklyHours).toBe(3.3);
   });
 
-  it('无排课时 totalWeeklyHours 为 0', async () => {
-    mockPrisma.teaching_assignments.findMany.mockResolvedValue([]);
-    mockPrisma.teaching_assignments.groupBy.mockResolvedValue([]);
-
-    const req = mockReq({ semester: '2025-2026-2' });
-    const res = mockRes();
-    await getDashboardStats(req, res, vi.fn());
-
-    const data = res.json.mock.calls[0][0].data;
-    expect(data.courses).toBe(0);
-    expect(data.teachingTeachers).toBe(0);
-    expect(data.totalWeeklyHours).toBe(0);
-  });
-
-  it('无在读班级时 classes 和 totalStudents 为 0', async () => {
+  it('无在读班级 → courses 和 totalWeeklyHours 为 0', async () => {
     mockPrisma.classes.findMany.mockResolvedValue([]);
 
     const req = mockReq({ semester: '2025-2026-2' });
@@ -246,6 +286,165 @@ describe('getDashboardStats', () => {
     const data = res.json.mock.calls[0][0].data;
     expect(data.classes).toBe(0);
     expect(data.totalStudents).toBe(0);
+    expect(data.courses).toBe(0);
+    expect(data.totalWeeklyHours).toBe(0);
+  });
+
+  it('班级无匹配方案 → 该班级的课程不计入', async () => {
+    mockFindBestMatchPlan.mockReturnValue(null);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardStats(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.courses).toBe(0);
+    expect(data.totalWeeklyHours).toBe(0);
+  });
+
+  it('班级有 major_id 但方案按层次匹配 → 总周课时按方案实际字段计算', async () => {
+    // 模拟 bug 场景：班级有 major_id=200(转段) + training_level_id=46(五年制)
+    // 方案只有 training_level_id=46，应按层次匹配
+    mockPrisma.classes.findMany.mockResolvedValue([
+      { id: 100, student_count: 45, enrollment_year: 2023, duration_years: 5, major_id: 200, training_level_id: 46, college_id: 44, custom_plan_id: null },
+    ]);
+    mockCalcClassSemester.mockReturnValue({ grade: 3, currentSemesterNum: 5 });
+
+    const levelPlan = makePlan(6, {
+      name: '五年制方案',
+      training_level_id: 46,
+      plan_courses: [
+        makePlanCourse(50, 1, 8, 6, [{ semester: 5, weekly_hours: 6 }]),
+        makePlanCourse(51, 1, 8, 4, [{ semester: 5, weekly_hours: 4 }]),
+      ],
+    });
+    mockPrisma.training_plans.findMany.mockResolvedValue([levelPlan]);
+    mockFindBestMatchPlan.mockReturnValue(levelPlan);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardStats(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.courses).toBe(2); // 2 门课在当前学期开设
+    expect(data.totalWeeklyHours).toBe(10); // 6 + 4
+  });
+
+  it('custom_plan_id 优先于 findBestMatchPlan', async () => {
+    const customPlan = makePlan(99, {
+      name: '自定义方案',
+      plan_courses: [makePlanCourse(70, 3, 6, 3, [{ semester: 4, weekly_hours: 3 }])],
+    });
+    mockPrisma.classes.findMany.mockResolvedValue([
+      { id: 1, student_count: 30, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: 99 },
+    ]);
+    mockPrisma.training_plans.findMany.mockResolvedValue([customPlan]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardStats(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.courses).toBe(1);
+    expect(data.totalWeeklyHours).toBe(3);
+    // findBestMatchPlan 不应被调用
+    expect(mockFindBestMatchPlan).not.toHaveBeenCalled();
+  });
+
+  it('课程不在当前学期范围内 → 不计入', async () => {
+    // 方案的课程 start_semester=5, end_semester=8，当前学期是 4
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      makePlan(1, {
+        training_level_id: 2,
+        plan_courses: [makePlanCourse(10, 5, 8, 4, [{ semester: 5, weekly_hours: 4 }])],
+      }),
+    ]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardStats(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.courses).toBe(0);
+    expect(data.totalWeeklyHours).toBe(0);
+  });
+
+  it('weekly_hours 为 0 的课程不计入', async () => {
+    // 只用 1 个班级，避免累加翻倍
+    mockPrisma.classes.findMany.mockResolvedValue([
+      { id: 1, student_count: 40, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+    ]);
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      makePlan(1, {
+        training_level_id: 2,
+        plan_courses: [
+          makePlanCourse(10, 1, 6, 0, [{ semester: 4, weekly_hours: 0 }]),
+          makePlanCourse(20, 1, 6, 3, [{ semester: 4, weekly_hours: 3 }]),
+        ],
+      }),
+    ]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardStats(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.courses).toBe(1);
+    expect(data.totalWeeklyHours).toBe(3);
+  });
+
+  it('相同 course_id 跨多个班级只计一次课程数，但周课时累加', async () => {
+    // 2个班级匹配同一方案，方案含相同 course_id
+    mockPrisma.classes.findMany.mockResolvedValue([
+      { id: 1, student_count: 40, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      { id: 2, student_count: 35, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+    ]);
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      makePlan(1, {
+        training_level_id: 2,
+        plan_courses: [makePlanCourse(10, 1, 6, 4, [{ semester: 4, weekly_hours: 4 }])],
+      }),
+    ]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardStats(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    // 课程数去重：只有 1 门课
+    expect(data.courses).toBe(1);
+    // 但总周课时累加：4 + 4 = 8（每个班级各 4 课时）
+    expect(data.totalWeeklyHours).toBe(8);
+  });
+
+  it('calcClassSemester 返回 null 的班级跳过计算', async () => {
+    mockPrisma.classes.findMany.mockResolvedValue([
+      { id: 1, student_count: 40, enrollment_year: 2020, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+    ]);
+    // 该班级已毕业，calcClassSemester 返回 null
+    mockCalcClassSemester.mockReturnValue(null);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardStats(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    // 学生数仍然计入（totalStudents 不依赖 calcClassSemester）
+    expect(data.totalStudents).toBe(40);
+    // 但课程和课时为 0
+    expect(data.courses).toBe(0);
+    expect(data.totalWeeklyHours).toBe(0);
+  });
+
+  it('无排课时 teachingTeachers 为 0', async () => {
+    mockPrisma.teaching_assignments.groupBy.mockResolvedValue([]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardStats(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.teachingTeachers).toBe(0);
   });
 
   it('教材统计仅计算活跃教材 (is_active: true)', async () => {

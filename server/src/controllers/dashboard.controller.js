@@ -1,7 +1,8 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { getActiveClassFilter } from '../services/class.service.js';
-import { getSemesterInfoFromRequest } from '../services/semester.service.js';
+import { getSemesterInfoFromRequest, calcClassSemester } from '../services/semester.service.js';
+import { findBestMatchPlan } from '../services/plan.service.js';
 
 /**
  * GET /api/dashboard/stats?semester=YYYY-YYYY-N
@@ -9,13 +10,13 @@ import { getSemesterInfoFromRequest } from '../services/semester.service.js';
  *
  * 统计项：
  * - majors: 专业总数（基础数据）
- * - courses: 本学期授课课程数（来自排课记录）
+ * - courses: 本学期开设课程数（来自培养方案 plan_courses）
  * - classes: 在读班级数（基于学期推算的在读条件）
  * - textbooks: 活跃教材数
  * - plans: 培养方案总数
  * - totalStudents: 在读学生数
- * - teachingTeachers: 本学期参与教师数
- * - totalWeeklyHours: 本学期总周课时
+ * - teachingTeachers: 本学期参与教师数（来自排课记录）
+ * - totalWeeklyHours: 本学期开设课程总周课时（来自培养方案 plan_course_semesters）
  */
 export async function getDashboardStats(req, res, next) {
   try {
@@ -25,8 +26,8 @@ export async function getDashboardStats(req, res, next) {
     // 显式解析查询学期信息，避免 getActiveClassFilter 回退全局学期导致的巧合性正确
     const semesterInfo = await getSemesterInfoFromRequest(req);
 
-    // 并行查询所有统计数据
-    const [majorsCount, plansCount, textbooksCount, activeFilter, courseStats, teacherStats] =
+    // 并行查询基础统计数据 + 在读班级筛选 + 教师排课统计
+    const [majorsCount, plansCount, textbooksCount, activeFilter, teacherStats] =
       await Promise.all([
         // 基础数据计数
         prisma.majors.count(),
@@ -34,15 +35,7 @@ export async function getDashboardStats(req, res, next) {
         prisma.textbooks.count({ where: { is_active: true } }),
         // 在读班级筛选条件
         getActiveClassFilter(semesterInfo),
-        // 本学期授课课程（去重，P1-4：仅统计在职教师的排课）
-        // B-13修复：过滤 0 课时记录，避免虚增课程数和教师数
-        prisma.teaching_assignments.findMany({
-          where: { semester, weekly_hours: { gt: 0 }, teacher: { status: 'active' } },
-          select: { course_id: true },
-          distinct: ['course_id'],
-        }),
-        // 本学期教师+课时聚合（P1-4：仅统计在职教师，避免禁用教师历史排课污染）
-        // B-13修复：过滤 0 课时记录
+        // 本学期教师课时聚合（仅统计在职教师的排课，用于"参与教师"指标）
         prisma.teaching_assignments.groupBy({
           by: ['teacher_id'],
           where: { semester, weekly_hours: { gt: 0 }, teacher: { status: 'active' } },
@@ -50,21 +43,82 @@ export async function getDashboardStats(req, res, next) {
         }),
       ]);
 
-    // 在读班级和学生数
-    const activeClasses = await prisma.classes.findMany({
-      where: activeFilter,
-      select: { student_count: true },
-    });
+    // ── 从培养方案计算本学期开设课程数和总周课时 ──
+    // 与 query.controller.js 的开课查询逻辑一致：
+    // 对每个在读班级，根据其入学年份计算 currentSemesterNum，
+    // 查找对应方案中 start/end_semester 覆盖当前学期、且 weekly_hours > 0 的课程
+    const [activeClasses, allPlans] = await Promise.all([
+      prisma.classes.findMany({
+        where: activeFilter,
+        select: {
+          id: true,
+          student_count: true,
+          enrollment_year: true,
+          duration_years: true,
+          major_id: true,
+          training_level_id: true,
+          college_id: true,
+          custom_plan_id: true,
+        },
+      }),
+      // 加载所有培养方案及其课程结构（用于计算开设课程和周课时）
+      prisma.training_plans.findMany({
+        include: {
+          plan_courses: {
+            include: {
+              plan_course_semesters: true,
+              courses: { select: { id: true } },
+            },
+          },
+          majors: true,
+          colleges: true,
+          training_levels: true,
+        },
+      }),
+    ]);
 
-    const totalStudents = activeClasses.reduce((sum, c) => sum + (c.student_count || 0), 0);
+    const offeredCourseIds = new Set();
+    let totalWeeklyHours = 0;
+    let totalStudents = 0;
 
-    // 教师课时汇总
-    const totalWeeklyHours = teacherStats.reduce((sum, t) => sum + (t._sum.weekly_hours || 0), 0);
+    for (const cls of activeClasses) {
+      totalStudents += cls.student_count || 0;
+
+      const calc = calcClassSemester(cls, semesterInfo);
+      if (!calc) continue;
+
+      // 确定班级关联的方案（与 class.controller.js 一致的匹配逻辑）
+      let plan;
+      if (cls.custom_plan_id) {
+        plan = allPlans.find((p) => p.id === cls.custom_plan_id);
+      }
+      if (!plan) {
+        plan = findBestMatchPlan(cls, allPlans);
+      }
+      if (!plan) continue;
+
+      // 遍历方案课程，筛选本学期开设的课程
+      for (const pc of plan.plan_courses) {
+        if (pc.start_semester > calc.currentSemesterNum || pc.end_semester < calc.currentSemesterNum) {
+          continue;
+        }
+
+        // 周课时：优先取学期覆盖值，回退到方案课程默认值
+        const semRecord = pc.plan_course_semesters.find(
+          (s) => s.semester === calc.currentSemesterNum
+        );
+        const weeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours;
+        if (weeklyHours > 0) {
+          offeredCourseIds.add(pc.course_id);
+          totalWeeklyHours += weeklyHours;
+        }
+      }
+    }
 
     success(res, {
       semester,
       majors: majorsCount,
-      courses: courseStats.length,
+      courses: offeredCourseIds.size,
       classes: activeClasses.length,
       textbooks: textbooksCount,
       plans: plansCount,

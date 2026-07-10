@@ -66,7 +66,7 @@ const props = defineProps({
     type: Object,
     default: () => ({ totalCourses: 0, assignedCourses: 0, rate: 0 }),
   },
-  /** 全局已排课总周课时,用于按比例分摊已排/剩余课时(更精确) */
+  /** 全局本学期开设课程总周课时(来自培养方案),用于按比例分摊已排/剩余课时 */
   totalHours: { type: Number, default: 0 },
 });
 
@@ -79,19 +79,18 @@ const rate = computed(() => {
   return Math.round((assigned.value / total.value) * 100);
 });
 
-// 课时维度：优先用全局 totalHours 按比例分摊；缺失时按门数 * 16 兜底
+// 课时维度：按课程排课比例分摊计划总课时
+// totalHours = 本学期开设课程总周课时（来自培养方案），按 assigned/total 比例拆分
 const AVG_HOURS_PER_COURSE = 16;
 const assignedHours = computed(() => {
-  if (props.totalHours > 0 && assigned.value > 0) {
-    return Math.round(props.totalHours);
+  if (props.totalHours > 0 && total.value > 0) {
+    return Math.round(props.totalHours * (assigned.value / total.value));
   }
   return assigned.value * AVG_HOURS_PER_COURSE;
 });
 const remainingHours = computed(() => {
   if (props.totalHours > 0 && total.value > 0) {
-    // 已排课时为总课时,剩余按未排课程比例估算
-    const avg = props.totalHours / assigned.value;
-    return Math.round(remaining.value * avg);
+    return Math.round(props.totalHours * (remaining.value / total.value));
   }
   return remaining.value * AVG_HOURS_PER_COURSE;
 });
