@@ -273,8 +273,6 @@ database_migration() {
     # 生成Prisma Client
     echo "生成 Prisma Client..."
     execute "cd ${PROJECT_DIR}/server && npx prisma generate" false
-
-    # 初始化种子数据
     echo "初始化种子数据..."
     execute "cd ${PROJECT_DIR}/server && npm run db:seed" false
 

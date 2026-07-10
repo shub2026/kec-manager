@@ -259,7 +259,17 @@ if ! execute "cd ${PROJECT_DIR}/server && npx prisma migrate deploy"; then
     # 迁移失败不继续启动，避免脏数据状态
     exit 1
 fi
-echo "✓ Prisma 迁移成功（含 Client 自动生成）"
+echo "✓ Prisma 迁移成功"
+
+# 关键：始终重新生成 Prisma Client，确保与最新 schema 同步
+# migrate deploy 仅在有新迁移时才自动 generate，若仅代码变更（无新迁移）则不会触发
+echo "生成 Prisma Client..."
+if ! execute "cd ${PROJECT_DIR}/server && npx prisma generate"; then
+    echo -e "${RED}✗ Prisma Client 生成失败${NC}"
+    echo -e "${YELLOW}    常见原因：DLL 文件被占用（确认服务已停止后重试）${NC}"
+    exit 1
+fi
+echo "✓ Prisma Client 生成完成"
 
 echo "初始化种子数据..."
 # seed.js 已做幂等保护：admin 已存在则跳过，生产环境跳过 DEV_SEEDS
