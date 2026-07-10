@@ -46,6 +46,7 @@ vi.mock('../../services/class.service.js', () => ({
 
 vi.mock('../../services/semester.service.js', () => ({
   calcClassSemester: vi.fn(),
+  buildConsecutiveTextbookMap: vi.fn().mockResolvedValue(new Map()),
 }));
 
 vi.mock('../../services/plan.service.js', () => ({

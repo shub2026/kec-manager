@@ -203,3 +203,43 @@ export async function getActiveClassFilter(semesterInfo) {
     })),
   };
 }
+
+/**
+ * 构建连续使用教材的映射表
+ *
+ * 同一课程 (plan_course_id) 在上一个学期 (semester - 1) 已使用相同教材 (textbook_id)，
+ * 则该教材在**当前学期**视为"连续使用"，无需重复征订。
+ *
+ * 返回 Map<`${plan_course_id}_${textbook_id}`, Set<semester>>，
+ * 其中 Set 仅包含"上学期也存在同一教材"的学期号，调用方须按当前学期号精确查询。
+ *
+ * @param {Array<{plan_course_id: number, textbook_id: number, semester: number}>} records
+ * @returns {Promise<Map<string, Set<number>>>}
+ */
+export async function buildConsecutiveTextbookMap(records) {
+  const map = new Map();
+  if (!records.length) return map;
+
+  // 按 (plan_course_id, textbook_id) 聚合所有学期号
+  const semesterMap = new Map();
+  for (const r of records) {
+    const key = `${r.plan_course_id}_${r.textbook_id}`;
+    if (!semesterMap.has(key)) semesterMap.set(key, new Set());
+    semesterMap.get(key).add(r.semester);
+  }
+
+  // 对每组，找出"上学期也存在"的学期号（即连续使用的学期）
+  for (const [key, semesters] of semesterMap) {
+    const consecutiveSemesters = new Set();
+    for (const sem of semesters) {
+      if (sem > 1 && semesters.has(sem - 1)) {
+        consecutiveSemesters.add(sem);
+      }
+    }
+    if (consecutiveSemesters.size > 0) {
+      map.set(key, consecutiveSemesters);
+    }
+  }
+
+  return map;
+}

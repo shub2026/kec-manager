@@ -158,7 +158,9 @@
                     <template #default="{ row: c }">
                       <div v-if="c.textbooks?.length">
                         <div v-for="tb in c.textbooks" :key="tb.id">
-                          {{ tb.title }} <el-tag v-if="tb.isRequired" size="small">必订</el-tag>
+                          {{ tb.title }}
+                          <el-tag v-if="tb.isConsecutive" type="warning" size="small">选定</el-tag>
+                          <el-tag v-else-if="tb.isRequired" size="small">必订</el-tag>
                         </div>
                       </div>
                       <span v-else class="no-textbook">未指定</span>

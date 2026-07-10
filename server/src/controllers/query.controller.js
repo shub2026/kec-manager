@@ -5,7 +5,7 @@ import {
   getSemesterInfoFromRequest,
 } from '../services/settings.service.js';
 import { getActiveClassFilter } from '../services/class.service.js';
-import { calcClassSemester } from '../services/semester.service.js';
+import { calcClassSemester, buildConsecutiveTextbookMap } from '../services/semester.service.js';
 import {
   findBestMatchPlan,
   buildClassWithPlanFilter,
@@ -257,6 +257,32 @@ export async function querySemester(req, res, next) {
           })
         : [];
 
+    // 构建连续使用教材检测集合：从所有已加载方案中提取教材记录
+    const textbookRecords = [];
+    const seenPlanIds = new Set();
+    const collectTextbooks = (plans) => {
+      for (const plan of plans) {
+        if (seenPlanIds.has(plan.id)) continue;
+        seenPlanIds.add(plan.id);
+        for (const pc of plan.plan_courses || []) {
+          for (const pcs of pc.plan_course_semesters || []) {
+            for (const pt of pcs.plan_textbooks || []) {
+              textbookRecords.push({
+                plan_course_id: pcs.plan_course_id,
+                textbook_id: pt.textbook_id,
+                semester: pcs.semester,
+              });
+            }
+          }
+        }
+      }
+    };
+    collectTextbooks(matchingPlans);
+    for (const cls of classes) {
+      if (cls.training_plans) collectTextbooks([cls.training_plans]);
+    }
+    const consecutiveMap = await buildConsecutiveTextbookMap(textbookRecords);
+
     const results = [];
     // 修复C：收集无匹配方案的班级（如 custom_plan_id 指向已删除方案），
     // 暴露给前端提示用户重新关联，避免静默跳过
@@ -320,6 +346,7 @@ export async function querySemester(req, res, next) {
               isbn: pt.textbooks.isbn,
               publisher: pt.textbooks.publisher,
               isRequired: pt.is_required,
+              isConsecutive: consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(semRecord.semester) ?? false,
             })),
           };
         });
@@ -419,11 +446,20 @@ export async function queryTextbookUsage(req, res, next) {
       prisma.classes.findMany({
         where: activeFilter,
         include: {
+          colleges: { select: { name: true } },
           majors: { select: { name: true } },
           training_levels: true,
         },
       }),
     ]);
+
+    const consecutiveMap = await buildConsecutiveTextbookMap(
+      planTextbooks.map((pt) => ({
+        plan_course_id: pt.plan_course_semesters.plan_course_id,
+        textbook_id: pt.textbook_id,
+        semester: pt.plan_course_semesters.semester,
+      }))
+    );
 
     const classResults = [];
     // B-14修复：使用复合去重键 (classId, courseId)，允许同一班级在不同课程中出现
@@ -437,6 +473,7 @@ export async function queryTextbookUsage(req, res, next) {
 
       const gradeForThisSemester = Math.ceil(sem.semester / 2);
       const enrollmentYear = semesterInfo.startYear - gradeForThisSemester + 1;
+      const isConsecutive = consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(sem.semester) ?? false;
 
       for (const cls of allClasses) {
         if (cls.enrollment_year !== enrollmentYear) continue;
@@ -454,6 +491,7 @@ export async function queryTextbookUsage(req, res, next) {
         classResults.push({
           classId: cls.id,
           className: cls.name,
+          collegeName: cls.colleges?.name || null,
           majorName: cls.majors?.name || null,
           trainingLevelName: cls.training_levels?.name || null,
           student_count: cls.student_count,
@@ -461,6 +499,7 @@ export async function queryTextbookUsage(req, res, next) {
           semester: sem.semester,
           courseName: pc.courses.name,
           is_required: pt.is_required,
+          is_consecutive: isConsecutive,
         });
       }
     }

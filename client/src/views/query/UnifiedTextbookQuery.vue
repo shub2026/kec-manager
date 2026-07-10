@@ -107,9 +107,10 @@
           >
             <el-table-column prop="className" label="班级" min-width="260" show-overflow-tooltip />
             <el-table-column
-              prop="courseName"
-              label="对应课程"
-              min-width="180"
+              v-if="!isMobile"
+              prop="collegeName"
+              label="学院"
+              min-width="130"
               show-overflow-tooltip
             />
             <el-table-column
@@ -129,15 +130,28 @@
             <el-table-column v-if="!isMobile" label="年级" min-width="90" align="center">
               <template #default="{ row }">{{ row.grade }}年级</template>
             </el-table-column>
+            <el-table-column
+              prop="courseName"
+              label="对应课程"
+              min-width="180"
+              show-overflow-tooltip
+            />
             <el-table-column prop="studentCount" label="学生人数" min-width="100" align="center" />
             <el-table-column v-if="!isMobile" label="使用学期" min-width="110" align="center">
               <template #default="{ row }">第{{ row.semester }}学期</template>
             </el-table-column>
             <el-table-column label="是否必订" min-width="110" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.isRequired ? 'danger' : 'info'" size="small">{{
-                  row.isRequired ? '必订' : '选修'
-                }}</el-tag>
+                <el-tag
+                  v-if="row.isConsecutive"
+                  type="warning"
+                  size="small"
+                >选定</el-tag>
+                <el-tag
+                  v-else
+                  :type="row.isRequired ? 'danger' : 'info'"
+                  size="small"
+                >{{ row.isRequired ? '必订' : '选修' }}</el-tag>
               </template>
             </el-table-column>
           </el-table>

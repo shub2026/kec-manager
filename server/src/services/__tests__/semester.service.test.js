@@ -33,6 +33,7 @@ const {
   getActiveClassFilter,
   invalidateSemesterCache,
   invalidateDurationCache,
+  buildConsecutiveTextbookMap,
 } = await import('../semester.service.js');
 
 const { prisma } = await import('../../lib/prisma.js');
@@ -327,5 +328,100 @@ describe('getActiveClassFilter', () => {
     expect(prisma.classes.findMany).toHaveBeenCalledTimes(1);
     await getActiveClassFilter(sem);
     expect(prisma.classes.findMany).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ──────────────────────────────────────────────
+// buildConsecutiveTextbookMap
+// ──────────────────────────────────────────────
+describe('buildConsecutiveTextbookMap', () => {
+  it('空数组应返回空 Map', async () => {
+    const result = await buildConsecutiveTextbookMap([]);
+    expect(result.size).toBe(0);
+  });
+
+  it('核心场景：学期1和2都有同一教材 → 仅学期2为连续，学期1不是', async () => {
+    // 大学语文 plan_course_id=30, textbook_id=174, 学期1+2
+    const records = [
+      { plan_course_id: 30, textbook_id: 174, semester: 1 },
+      { plan_course_id: 30, textbook_id: 174, semester: 2 },
+    ];
+    const result = await buildConsecutiveTextbookMap(records);
+
+    const semesters = result.get('30_174');
+    expect(semesters).toBeDefined();
+    expect(semesters.has(1)).toBe(false); // 学期1：第一次开课，不是连续
+    expect(semesters.has(2)).toBe(true);  // 学期2：上学期有同一教材，是连续
+  });
+
+  it('仅一个学期（无连续） → Map 中无该键', async () => {
+    const records = [{ plan_course_id: 18, textbook_id: 100, semester: 3 }];
+    const result = await buildConsecutiveTextbookMap(records);
+
+    expect(result.has('18_100')).toBe(false);
+  });
+
+  it('semester=1（第一学期）不应标记为连续', async () => {
+    const records = [{ plan_course_id: 5, textbook_id: 200, semester: 1 }];
+    const result = await buildConsecutiveTextbookMap(records);
+
+    expect(result.has('5_200')).toBe(false);
+  });
+
+  it('跨三个学期连续使用 → 学期2和3均为连续', async () => {
+    const records = [
+      { plan_course_id: 15, textbook_id: 179, semester: 1 },
+      { plan_course_id: 15, textbook_id: 179, semester: 2 },
+      { plan_course_id: 15, textbook_id: 179, semester: 3 },
+    ];
+    const result = await buildConsecutiveTextbookMap(records);
+
+    const semesters = result.get('15_179');
+    expect(semesters.has(1)).toBe(false);
+    expect(semesters.has(2)).toBe(true);
+    expect(semesters.has(3)).toBe(true);
+  });
+
+  it('非连续学期（有间隔） → 不标记', async () => {
+    // 学期1和3有教材，但学期2没有 → 学期3不是连续
+    const records = [
+      { plan_course_id: 10, textbook_id: 1, semester: 1 },
+      { plan_course_id: 10, textbook_id: 1, semester: 3 },
+    ];
+    const result = await buildConsecutiveTextbookMap(records);
+
+    expect(result.has('10_1')).toBe(false);
+  });
+
+  it('混合场景：多课程多教材，独立判断', async () => {
+    const records = [
+      { plan_course_id: 10, textbook_id: 1, semester: 1 }, // 连续组的学期1
+      { plan_course_id: 10, textbook_id: 1, semester: 2 }, // 连续组的学期2
+      { plan_course_id: 10, textbook_id: 2, semester: 4 }, // 独立，无连续
+      { plan_course_id: 20, textbook_id: 1, semester: 4 }, // 不同课程，无连续
+    ];
+    const result = await buildConsecutiveTextbookMap(records);
+
+    expect(result.get('10_1')?.has(1)).toBe(false);
+    expect(result.get('10_1')?.has(2)).toBe(true);
+    expect(result.has('10_2')).toBe(false);
+    expect(result.has('20_1')).toBe(false);
+  });
+
+  it('不同课程使用同一教材，各自独立判断', async () => {
+    const records = [
+      { plan_course_id: 18, textbook_id: 169, semester: 1 },
+      { plan_course_id: 18, textbook_id: 169, semester: 2 },
+      { plan_course_id: 22, textbook_id: 169, semester: 1 },
+      { plan_course_id: 22, textbook_id: 169, semester: 2 },
+    ];
+    const result = await buildConsecutiveTextbookMap(records);
+
+    // plan_course 18: 学期2连续
+    expect(result.get('18_169')?.has(1)).toBe(false);
+    expect(result.get('18_169')?.has(2)).toBe(true);
+    // plan_course 22: 学期2连续
+    expect(result.get('22_169')?.has(1)).toBe(false);
+    expect(result.get('22_169')?.has(2)).toBe(true);
   });
 });

@@ -7,7 +7,7 @@ import {
 } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
-import { calcClassSemester } from '../../services/semester.service.js';
+import { calcClassSemester, buildConsecutiveTextbookMap } from '../../services/semester.service.js';
 import { isClassMatchPlan, findBestMatchPlan } from '../../services/plan.service.js';
 import { buildClassFilter } from '../../services/class-filter.service.js';
 import { getClassesWithCourse } from '../../services/teaching-arrange.service.js';
@@ -344,12 +344,20 @@ export async function exportTextbookUsage(req, res, next) {
       }),
       batchFindMany(prisma.classes, {
         where: activeFilter,
-        include: { majors: true, training_levels: true },
+        include: { colleges: true, majors: true, training_levels: true },
         orderBy: { id: 'asc' },
       }),
     ]);
 
     if (!textbook) return res.status(404).json({ success: false, message: '教材不存在' });
+
+    const consecutiveMap = await buildConsecutiveTextbookMap(
+      textbook.plan_textbooks.map((pt) => ({
+        plan_course_id: pt.plan_course_semesters.plan_course_id,
+        textbook_id: pt.textbook_id,
+        semester: pt.plan_course_semesters.semester,
+      }))
+    );
 
     const rows = [];
 
@@ -357,6 +365,7 @@ export async function exportTextbookUsage(req, res, next) {
       const sem = pt.plan_course_semesters;
       const pc = sem.plan_courses;
       const plan = pc.training_plans;
+      const isConsecutive = consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(sem.semester) ?? false;
 
       for (const cls of allClasses) {
         // 复用统一 calcClassSemester（含越界检查），替代无边界检查的内联副本
@@ -369,14 +378,15 @@ export async function exportTextbookUsage(req, res, next) {
         rows.push({
           教材名称: textbook.title,
           书号: textbook.isbn || '-',
-          课程: pc.courses.name,
           使用班级: cls.name,
+          学院: cls.colleges?.name || '-',
           专业: cls.majors?.name || '-',
           培养层次: cls.training_levels?.name || '-',
           年级: calc.grade,
+          课程: pc.courses.name,
           学生人数: Number(cls.student_count) || 0,
           使用学期: `第${sem.semester}学期`,
-          是否必订: pt.is_required ? '是' : '否',
+          是否必订: isConsecutive ? '否' : (pt.is_required ? '是' : '否'),
         });
       }
     }
@@ -387,11 +397,12 @@ export async function exportTextbookUsage(req, res, next) {
     rows.push({
       教材名称: '合计',
       书号: '',
-      课程: '',
       使用班级: `${rows.length}个班级`,
+      学院: '',
       专业: '',
       培养层次: '',
       年级: '',
+      课程: '',
       学生人数: totalStudents,
       使用学期: '',
       是否必订: '',
@@ -400,11 +411,12 @@ export async function exportTextbookUsage(req, res, next) {
     const headers = [
       { label: '教材名称', key: '教材名称', width: 30 },
       { label: '书号', key: '书号', width: 25 },
-      { label: '课程', key: '课程', width: 20 },
       { label: '使用班级', key: '使用班级', width: 25 },
+      { label: '学院', key: '学院', width: 15 },
       { label: '专业', key: '专业', width: 15 },
       { label: '培养层次', key: '培养层次', width: 15 },
       { label: '年级', key: '年级', width: 8 },
+      { label: '课程', key: '课程', width: 20 },
       { label: '学生人数', key: '学生人数', width: 10 },
       { label: '使用学期', key: '使用学期', width: 12 },
       { label: '是否必订', key: '是否必订', width: 10 },
