@@ -108,6 +108,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { getCookie } from '@/utils/cookies';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 
 const props = defineProps({
@@ -173,10 +174,14 @@ const props = defineProps({
   },
 });
 
-// 获取认证token用于上传请求
+// 获取认证token和CSRF token用于上传请求（el-upload不走axios拦截器，须手动附加）
 const authStore = useAuthStore();
 const uploadHeaders = computed(() => {
-  return authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {};
+  const headers = {};
+  if (authStore.token) headers.Authorization = `Bearer ${authStore.token}`;
+  const csrfToken = getCookie('XSRF-TOKEN');
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  return headers;
 });
 
 const emit = defineEmits([

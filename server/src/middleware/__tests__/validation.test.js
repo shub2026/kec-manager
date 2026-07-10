@@ -233,23 +233,23 @@ describe('validateChangePassword', () => {
     expect(res._jsonCall).toBeNull();
   });
 
-  it('缺少大写字母应返回 422', async () => {
+  it('仅含小写字母（1种类型）应返回 422', async () => {
     const { res } = await runValidation(validateChangePassword, {
-      body: { old_password: 'oldpass1!', new_password: 'newpass1!' },
+      body: { old_password: 'oldpass1!', new_password: 'newpassword' },
     });
     expect(res.statusCode).toBe(422);
   });
 
-  it('缺少数字应返回 422', async () => {
+  it('仅含大写字母（1种类型）应返回 422', async () => {
     const { res } = await runValidation(validateChangePassword, {
-      body: { old_password: 'OldPass!', new_password: 'NewPass!' },
+      body: { old_password: 'OldPass1!', new_password: 'NEWPASSWORD' },
     });
     expect(res.statusCode).toBe(422);
   });
 
-  it('缺少特殊字符应返回 422', async () => {
+  it('仅含数字（1种类型）应返回 422', async () => {
     const { res } = await runValidation(validateChangePassword, {
-      body: { old_password: 'OldPass1', new_password: 'NewPass1' },
+      body: { old_password: 'OldPass1!', new_password: '12345678' },
     });
     expect(res.statusCode).toBe(422);
   });

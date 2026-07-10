@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import request from '../utils/request';
 import { useAuthStore } from '../stores/auth';
+import { getCookie } from '../utils/cookies';
 
 /**
  * 导入结果通知卡片（右下角浮层）
@@ -275,7 +276,11 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
 
   const uploadHeaders = computed(() => {
     const authStore = useAuthStore();
-    return authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {};
+    const headers = {};
+    if (authStore.token) headers.Authorization = `Bearer ${authStore.token}`;
+    const csrfToken = getCookie('XSRF-TOKEN');
+    if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+    return headers;
   });
 
   async function beforeImport(file) {
