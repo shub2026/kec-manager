@@ -167,7 +167,7 @@ import { ElMessage, ElNotification } from 'element-plus';
 // 按需导入项目中 service 函数（ElNotification）的 CSS 不会自动注入，需手动导入样式
 // 否则通知 DOM 渲染但不可见（无背景/定位/动画）
 import 'element-plus/es/components/notification/style/css';
-import { getClasses, createClass, updateClass, deleteClass, batchDeleteClasses } from '../../api/class';
+import { getClasses, createClass, updateClass, deleteClass, batchDeleteClasses, batchUpdateClasses } from '../../api/class';
 import { getMajors } from '../../api/major';
 import { getPlans } from '../../api/plan';
 import { getTrainingLevels } from '../../api/trainingLevel';
@@ -633,28 +633,35 @@ async function doBatchSet() {
         ElMessage.error('请选择专业');
         return;
       }
-      updates.majorId = batchForm.value.majorId;
+      updates.major_id = batchForm.value.majorId;
     } else if (batchFormType.value === 'college') {
-      updates.collegeId = batchForm.value.collegeId;
+      updates.college_id = batchForm.value.collegeId;
     } else if (batchFormType.value === 'level') {
       if (!batchForm.value.trainingLevelId) {
         ElMessage.error('请选择培养层次');
         return;
       }
-      updates.trainingLevelId = batchForm.value.trainingLevelId;
+      updates.training_level_id = batchForm.value.trainingLevelId;
     } else if (batchFormType.value === 'year') {
-      updates.enrollmentYear = batchForm.value.enrollmentYear;
+      updates.enrollment_year = batchForm.value.enrollmentYear;
     } else if (batchFormType.value === 'duration') {
-      updates.durationYears = batchForm.value.durationYears;
+      updates.duration_years = batchForm.value.durationYears;
     } else if (batchFormType.value === 'leftSchool') {
-      updates.isLeftSchool = batchForm.value.isLeftSchool;
+      updates.is_left_school = batchForm.value.isLeftSchool;
     }
 
-    await Promise.all(
-      selectedClasses.value.map((cls) => updateClass(cls.id, { ...cls, ...updates }))
-    );
+    const ids = selectedClasses.value.map((cls) => cls.id);
+    const { data } = await batchUpdateClasses(ids, updates);
+    const { succeeded = [], failed = [] } = data || {};
 
-    ElMessage.success('批量设置成功');
+    if (failed.length === 0) {
+      ElMessage.success(`批量设置成功，已更新 ${succeeded.length} 个班级`);
+    } else if (succeeded.length === 0) {
+      ElMessage.error(`批量设置失败：${failed[0]?.reason || '未知错误'}`);
+    } else {
+      ElMessage.warning(`批量设置部分成功：成功 ${succeeded.length} 个，失败 ${failed.length} 个`);
+    }
+
     batchDialogVisible.value = false;
     selectedClasses.value = [];
     load();

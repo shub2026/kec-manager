@@ -25,12 +25,14 @@ export function useSemesters(options = {}) {
     return semesters;
   });
 
-  /** 根据当前日期计算当前学期值（本地回退） */
-  function getCurrentSemester() {
+  /** 根据当前日期计算当前学期值（本地回退）
+   * @param {number} [semesterStartMonth=8] - 学期边界月份（秋季学期起始月），默认 8（八月）
+   */
+  function getCurrentSemester(semesterStartMonth = 8) {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
-    if (month >= 8) {
+    if (month >= semesterStartMonth) {
       return `${year}-${year + 1}-1`;
     } else {
       return `${year - 1}-${year}-2`;
@@ -39,17 +41,26 @@ export function useSemesters(options = {}) {
 
   /** 从后端系统设置获取当前学期，失败时回退到本地日期计算 */
   async function fetchCurrentSemester() {
+    let semesterStartMonth = 8;
     try {
       const store = useSettingsStore();
       await store.load();
       const value = store.currentSemesterValue();
+      // B-04: 读取可配置的学期边界月份
+      const monthSetting = store.settings?.semester_start_month?.value;
+      if (monthSetting) {
+        const parsed = Number(monthSetting);
+        if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 12) {
+          semesterStartMonth = parsed;
+        }
+      }
       if (value && /^\d{4}-\d{4}-[12]$/.test(value)) {
         return value;
       }
     } catch (e) {
       if (import.meta.env.DEV) console.warn('获取系统学期失败，使用本地计算:', e);
     }
-    return getCurrentSemester();
+    return getCurrentSemester(semesterStartMonth);
   }
 
   return { availableSemesters, getCurrentSemester, fetchCurrentSemester };

@@ -22,10 +22,12 @@ const mocks = vi.hoisted(() => ({
   // services
   getSemesterInfoFromRequest: vi.fn(),
   getCurrentSemesterInfo: vi.fn(),
+  getSemesterStartMonth: vi.fn().mockResolvedValue(8),
   parseSemesterString: vi.fn(),
   buildClassWithPlanFilter: vi.fn().mockResolvedValue({ OR: [{ major_id: { in: [1] } }] }),
   getActiveClassFilter: vi.fn().mockResolvedValue({ is_left_school: false }),
   calcClassSemester: vi.fn(),
+  buildConsecutiveTextbookMap: vi.fn().mockResolvedValue(new Map()),
   findBestMatchPlan: vi.fn(),
   // excel
   createWorkbook: vi.fn().mockResolvedValue({}),
@@ -47,6 +49,7 @@ vi.mock('../../../lib/prisma.js', () => ({
 vi.mock('../../../services/settings.service.js', () => ({
   getSemesterInfoFromRequest: mocks.getSemesterInfoFromRequest,
   getCurrentSemesterInfo: mocks.getCurrentSemesterInfo,
+  getSemesterStartMonth: mocks.getSemesterStartMonth,
   parseSemesterString: mocks.parseSemesterString,
 }));
 
@@ -60,6 +63,7 @@ vi.mock('../../../services/class.service.js', () => ({
 
 vi.mock('../../../services/semester.service.js', () => ({
   calcClassSemester: mocks.calcClassSemester,
+  buildConsecutiveTextbookMap: mocks.buildConsecutiveTextbookMap,
 }));
 
 vi.mock('../../../services/plan.service.js', () => ({
@@ -271,7 +275,7 @@ describe('exportSemesterSchedule (GET)', () => {
       expect(rows[0]['课程类型']).toBe('公共基础课');
       expect(rows[0]['周课时']).toBe(4);
       expect(rows[0]['学期总课时']).toBe(64);
-      expect(rows[0]['使用教材']).toBe('高数上册');
+      expect(rows[0]['教材征订']).toBe('高数上册(选修)');
       expect(rows[0]['书号']).toBe('978-001');
     });
 
@@ -463,7 +467,7 @@ describe('exportSemesterSchedule (GET)', () => {
       await exportSemesterSchedule(req, res, vi.fn());
 
       const rows = mocks.createWorkbook.mock.calls[0][1];
-      expect(rows[0]['使用教材']).toBe('未指定');
+      expect(rows[0]['教材征订']).toBe('未指定');
       expect(rows[0]['书号']).toBe('-');
     });
 
@@ -493,7 +497,7 @@ describe('exportSemesterSchedule (GET)', () => {
       await exportSemesterSchedule(req, res, vi.fn());
 
       const rows = mocks.createWorkbook.mock.calls[0][1];
-      expect(rows[0]['使用教材']).toBe('教材A、教材B');
+      expect(rows[0]['教材征订']).toBe('教材A(选修)、教材B(选修)');
       expect(rows[0]['书号']).toBe('111、222');
     });
   });

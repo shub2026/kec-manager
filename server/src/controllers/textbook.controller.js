@@ -239,3 +239,205 @@ export async function toggleTextbookStatus(req, res, next) {
     next(e);
   }
 }
+
+/**
+ * POST /api/textbooks/batch-update — 批量更新教材
+ * Body: { ids: number[], updates: object }
+ * 在单个事务中完成所有更新，避免逐条请求触发 429 限流和 SQLite 锁冲突
+ */
+export async function batchUpdateTextbooks(req, res, next) {
+  try {
+    const { ids, updates } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return fail(res, 'ids 不能为空');
+    }
+    if (ids.length > 500) {
+      return fail(res, '单次批量更新最多 500 个教材');
+    }
+    if (!updates || typeof updates !== 'object') {
+      return fail(res, 'updates 不能为空');
+    }
+
+    const textbookIds = [...new Set(ids.map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+    if (textbookIds.length === 0) {
+      return fail(res, 'ids 中没有有效的教材 ID');
+    }
+
+    // 只允许更新安全字段，防止前端传入不允许修改的字段
+    const safeFields = ['status', 'sort_order', 'category', 'publisher', 'author'];
+    const updateData = {};
+    for (const field of safeFields) {
+      if (updates[field] !== undefined) {
+        updateData[field] = updates[field];
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return fail(res, '没有可更新的字段');
+    }
+
+    // 数值字段转换
+    if (updateData.sort_order !== undefined)
+      updateData.sort_order = Number(updateData.sort_order);
+
+    // 批量查询目标教材（用于结果构造）
+    const textbooks = await prisma.textbooks.findMany({
+      where: { id: { in: textbookIds } },
+      select: { id: true, title: true },
+    });
+    const textbookMap = new Map(textbooks.map((t) => [t.id, t]));
+
+    // 在单个事务中执行所有更新
+    const succeeded = [];
+    const failed = [];
+
+    await prisma.$transaction(async (tx) => {
+      for (const id of textbookIds) {
+        try {
+          await tx.textbooks.update({
+            where: { id },
+            data: updateData,
+          });
+          const tb = textbookMap.get(id);
+          succeeded.push({ id, title: tb?.title || `ID:${id}` });
+        } catch (e) {
+          const tb = textbookMap.get(id);
+          failed.push({
+            id,
+            title: tb?.title || `ID:${id}`,
+            reason: e.code === 'P2025' ? '教材不存在' : e.message,
+          });
+        }
+      }
+    });
+
+    // 审计日志
+    await createAuditLog({
+      action: 'batch_update',
+      module: 'textbook',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        requested: textbookIds.length,
+        succeeded: succeeded.length,
+        failed: failed.length,
+        fields: Object.keys(updateData),
+      },
+      result: succeeded.length > 0 ? 'success' : 'failed',
+      message: `批量更新教材：成功 ${succeeded.length} 个，失败 ${failed.length} 个`,
+    });
+
+    invalidateSortOrderCache('textbooks');
+
+    success(res, {
+      total: textbookIds.length,
+      succeeded,
+      failed,
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
+ * POST /api/textbooks/batch-delete — 批量删除教材
+ * Body: { ids: number[] }
+ * 在单个事务中完成所有删除，检查 plan_textbooks 引用，被引用的教材跳过
+ */
+export async function batchDeleteTextbooks(req, res, next) {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return fail(res, 'ids 不能为空');
+    }
+    if (ids.length > 500) {
+      return fail(res, '单次批量删除最多 500 个教材');
+    }
+
+    const textbookIds = [...new Set(ids.map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+    if (textbookIds.length === 0) {
+      return fail(res, 'ids 中没有有效的教材 ID');
+    }
+
+    // 1) 批量查询目标教材名称
+    const textbooks = await prisma.textbooks.findMany({
+      where: { id: { in: textbookIds } },
+      select: { id: true, title: true },
+    });
+    const textbookMap = new Map(textbooks.map((t) => [t.id, t]));
+
+    // 2) 批量查询哪些教材被培养方案引用（阻碍删除）
+    const referencedTextbooks = await prisma.plan_textbooks.groupBy({
+      by: ['textbook_id'],
+      where: { textbook_id: { in: textbookIds } },
+      _count: true,
+    });
+    const referencedMap = new Map(
+      referencedTextbooks.map((r) => [r.textbook_id, r._count])
+    );
+
+    // 3) 可删除的 ID（未被引用且在数据库中存在）
+    const deletableIds = textbookIds.filter(
+      (id) => !referencedMap.has(id) && textbookMap.has(id)
+    );
+
+    // 4) 在单个事务中批量删除
+    let deletedCount = 0;
+    if (deletableIds.length > 0) {
+      deletedCount = await prisma.$transaction(async (tx) => {
+        const result = await tx.textbooks.deleteMany({
+          where: { id: { in: deletableIds } },
+        });
+        return result.count;
+      });
+      invalidateSortOrderCache('textbooks');
+    }
+
+    // 5) 构造逐项结果
+    const succeeded = [];
+    const failed = [];
+    const skippedIds = [];
+
+    for (const id of textbookIds) {
+      const tb = textbookMap.get(id);
+      if (!tb) {
+        failed.push({ id, title: `ID:${id}`, reason: '教材不存在' });
+      } else if (referencedMap.has(id)) {
+        const count = referencedMap.get(id);
+        skippedIds.push(id);
+        failed.push({
+          id,
+          title: tb.title,
+          reason: `已被 ${count} 个培养方案引用，无法删除`,
+        });
+      } else {
+        succeeded.push({ id, title: tb.title });
+      }
+    }
+
+    // 6) 审计日志
+    await createAuditLog({
+      action: 'batch_delete',
+      module: 'textbook',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        requested: textbookIds.length,
+        deleted: deletedCount,
+        skipped: skippedIds.length,
+      },
+      result: deletedCount > 0 ? 'success' : 'failed',
+      message: `批量删除教材：成功 ${deletedCount} 个，跳过 ${skippedIds.length} 个`,
+    });
+
+    success(res, {
+      total: textbookIds.length,
+      succeeded,
+      failed,
+      skippedIds,
+      deletedCount,
+    });
+  } catch (e) {
+    next(e);
+  }
+}

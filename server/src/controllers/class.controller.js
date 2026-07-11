@@ -2,12 +2,12 @@ import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { NotFoundError, ValidationError } from '../utils/error.js';
-import { getCurrentSemesterInfo } from '../services/settings.service.js';
+import { getCurrentSemesterInfo, getSemesterStartMonth } from '../services/settings.service.js';
 import { getActiveClassFilter, invalidateDurationCache } from '../services/class.service.js';
 import { buildClassFilter } from '../services/class-filter.service.js';
 import { findBestMatchPlan } from '../services/plan.service.js';
 
-function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null) {
+function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null, semesterStartMonth = 8) {
   let startYear;
 
   if (semesterInfo && semesterInfo.startYear) {
@@ -18,9 +18,8 @@ function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    // B-11 说明：暑期边界取 8 月而非 9 月，因为秋季学期通常 8 月底已开始准备，
-    // 此处为降级逻辑（无学期配置时），与服务端其他实现（useSemesters.js）保持一致
-    startYear = currentMonth >= 8 ? currentYear : currentYear - 1;
+    // B-04 修复：使用可配置的学期边界月份替代硬编码 8
+    startYear = currentMonth >= semesterStartMonth ? currentYear : currentYear - 1;
   }
 
   const grade = startYear - enrollmentYear + 1;
@@ -72,6 +71,7 @@ export async function listClasses(req, res, next) {
     });
 
     const semesterInfo = await getCurrentSemesterInfo();
+    const semesterStartMonth = await getSemesterStartMonth();
 
     // 预加载所有培养方案，用于自动匹配
     const allPlans = await prisma.training_plans.findMany({
@@ -83,7 +83,7 @@ export async function listClasses(req, res, next) {
       if (cls.is_left_school) {
         status = 'left_school';
       } else if (cls.enrollment_year && cls.duration_years) {
-        status = calculateClassStatus(cls.enrollment_year, cls.duration_years, semesterInfo);
+        status = calculateClassStatus(cls.enrollment_year, cls.duration_years, semesterInfo, semesterStartMonth);
       } else {
         // P2-5: enrollment_year/duration_years 缺失时兜底为 active，避免 status 为 undefined
         status = 'active';
@@ -276,11 +276,15 @@ export async function createClass(req, res, next) {
     if (leftSchool) {
       autoStatus = 'left_school';
     } else {
-      const semesterInfo = await getCurrentSemesterInfo();
+      const [semesterInfo, semesterStartMonth] = await Promise.all([
+        getCurrentSemesterInfo(),
+        getSemesterStartMonth(),
+      ]);
       autoStatus = calculateClassStatus(
         Number(enrollment_year),
         Number(duration_years),
-        semesterInfo
+        semesterInfo,
+        semesterStartMonth
       );
     }
 
@@ -346,7 +350,10 @@ export async function updateClass(req, res, next) {
 
     const leftSchool =
       is_left_school !== undefined ? !!is_left_school : currentClass.is_left_school;
-    const semesterInfo = await getCurrentSemesterInfo();
+    const [semesterInfo, semesterStartMonth] = await Promise.all([
+      getCurrentSemesterInfo(),
+      getSemesterStartMonth(),
+    ]);
     let autoStatus;
     if (leftSchool) {
       autoStatus = 'left_school';
@@ -357,7 +364,7 @@ export async function updateClass(req, res, next) {
       const calcDurationYears = duration_years
         ? Number(duration_years)
         : currentClass.duration_years;
-      autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
+      autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo, semesterStartMonth);
     }
 
     const updateData = {
@@ -599,6 +606,125 @@ export async function batchDeleteClasses(req, res, next) {
       succeeded,
       failed,
       deletedCount,
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
+ * POST /api/classes/batch-update — 批量更新班级
+ * Body: { ids: number[], updates: object }
+ * 在单个事务中完成所有更新，避免逐条请求触发 429 限流和 SQLite 锁冲突
+ */
+export async function batchUpdateClasses(req, res, next) {
+  try {
+    const { ids, updates } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return fail(res, 'ids 不能为空');
+    }
+    if (ids.length > 500) {
+      return fail(res, '单次批量更新最多 500 个班级');
+    }
+    if (!updates || typeof updates !== 'object') {
+      return fail(res, 'updates 不能为空');
+    }
+
+    const classIds = [...new Set(ids.map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+    if (classIds.length === 0) {
+      return fail(res, 'ids 中没有有效的班级 ID');
+    }
+
+    // 只允许更新安全字段，防止前端传入不允许修改的字段
+    const safeFields = [
+      'major_id',
+      'training_level_id',
+      'college_id',
+      'status',
+      'enrollment_year',
+      'duration_years',
+      'is_left_school',
+    ];
+    const updateData = {};
+    for (const field of safeFields) {
+      if (updates[field] !== undefined) {
+        updateData[field] = updates[field];
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return fail(res, '没有可更新的字段');
+    }
+
+    // 数值字段转换
+    if (updateData.major_id !== undefined)
+      updateData.major_id = updateData.major_id ? Number(updateData.major_id) : null;
+    if (updateData.college_id !== undefined)
+      updateData.college_id = updateData.college_id ? Number(updateData.college_id) : null;
+    if (updateData.training_level_id !== undefined)
+      updateData.training_level_id = updateData.training_level_id
+        ? Number(updateData.training_level_id)
+        : null;
+    if (updateData.enrollment_year !== undefined)
+      updateData.enrollment_year = Number(updateData.enrollment_year);
+    if (updateData.duration_years !== undefined)
+      updateData.duration_years = Number(updateData.duration_years);
+    if (updateData.is_left_school !== undefined)
+      updateData.is_left_school = !!updateData.is_left_school;
+
+    // 批量查询目标班级（用于结果构造）
+    const classes = await prisma.classes.findMany({
+      where: { id: { in: classIds } },
+      select: { id: true, name: true },
+    });
+    const classMap = new Map(classes.map((c) => [c.id, c]));
+
+    // 在单个事务中执行所有更新
+    const succeeded = [];
+    const failed = [];
+
+    await prisma.$transaction(async (tx) => {
+      for (const id of classIds) {
+        try {
+          await tx.classes.update({
+            where: { id },
+            data: updateData,
+          });
+          const cls = classMap.get(id);
+          succeeded.push({ id, name: cls?.name || `ID:${id}` });
+        } catch (e) {
+          const cls = classMap.get(id);
+          failed.push({
+            id,
+            name: cls?.name || `ID:${id}`,
+            reason: e.code === 'P2025' ? '班级不存在' : e.message,
+          });
+        }
+      }
+    });
+
+    // 审计日志
+    await createAuditLog({
+      action: 'batch_update',
+      module: 'class',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        requested: classIds.length,
+        succeeded: succeeded.length,
+        failed: failed.length,
+        fields: Object.keys(updateData),
+      },
+      result: succeeded.length > 0 ? 'success' : 'failed',
+      message: `批量更新班级：成功 ${succeeded.length} 个，失败 ${failed.length} 个`,
+    });
+
+    if (updateData.duration_years !== undefined) invalidateDurationCache();
+
+    success(res, {
+      total: classIds.length,
+      succeeded,
+      failed,
     });
   } catch (e) {
     next(e);

@@ -101,7 +101,7 @@ export const TEXTBOOK_COHESION = {
   // 教材数量分级奖惩（2026-06-20 十二轮：强化内聚）
   // P1-4 修复：对齐配置项与实现，移除 calcMatchScore 中的硬编码
   ZERO_TEXTBOOK_BONUS: 30, // 0本教师加分（提高）
-  TEXTBOOK_COUNT_PENALTY_1_NEW: 10000, // 1本教师接新课极重惩罚（实质淘汰，原硬编码 -10000）
+  TEXTBOOK_COUNT_PENALTY_1_NEW: 300, // 1本教师接不同教材强力惩罚（≈5.3倍理论最大正分57，确保"一本教材"原则；100偏弱、10000过激致锁定）
   TEXTBOOK_COUNT_BONUS_1_SAME: 10, // 1本教师接同类加分（原硬编码 +10）
   TEXTBOOK_COUNT_PENALTY_2: 20, // 已有2本教材扣分（提高）
   TEXTBOOK_COUNT_PENALTY_3PLUS: 150, // 已有3+本教材惩戒（实质禁止）

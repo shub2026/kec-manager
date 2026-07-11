@@ -5,6 +5,15 @@ import { useAuthStore } from '../stores/auth';
 import { getCookie } from '../utils/cookies';
 
 /**
+ * S-02 修复：完整的 HTML 特殊字符转义，防止 XSS 注入
+ */
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(String(str)));
+  return div.innerHTML;
+}
+
+/**
  * 导入结果通知卡片（右下角浮层）
  * 自管理挂载，避免被全局 .el-dialog 样式污染
  */
@@ -98,7 +107,7 @@ export function showImportResultCard({
     errList.innerHTML = `<div style="max-height:200px;overflow-y:auto;padding:8px 10px;background:var(--bg-subtle);border-radius:4px;border:1px solid var(--border-light);margin-top:6px;">${previewErrors
       .map(
         (err, i) =>
-          `<div style="font-size:12px;color:var(--text-regular);padding:3px 0;border-bottom:1px dashed var(--border-light);display:flex;gap:6px;"><span style="color:var(--text-placeholder);flex-shrink:0;min-width:20px;">${i + 1}.</span><span style="flex:1;word-break:break-all;">${String(err).replace(/</g, '&lt;')}</span></div>`
+          `<div style="font-size:12px;color:var(--text-regular);padding:3px 0;border-bottom:1px dashed var(--border-light);display:flex;gap:6px;"><span style="color:var(--text-placeholder);flex-shrink:0;min-width:20px;">${i + 1}.</span><span style="flex:1;word-break:break-all;">${escapeHtml(err)}</span></div>`
       )
       .join('')}${
       hiddenCount > 0

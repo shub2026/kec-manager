@@ -3,6 +3,8 @@ import { DEFAULT_HOUR_SETTINGS, BATCH_CONFIG } from '../../constants/index.js';
 import { validateHourSettings } from './validate.js';
 import { autoArrange, batchLocks } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
+// B-01 修复：基于数据库的排课并发锁，支持多进程/多实例部署
+import { acquireLock, releaseLock } from './lock.js';
 
 // M-13: 批量排课超时上限（5分钟）
 const BATCH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -26,6 +28,12 @@ export async function batchAutoArrange(
   const lockKey = semesterStr;
   if (batchLocks.has(lockKey)) {
     throw new Error(`学期 ${semesterStr} 的批量排课正在进行中，请稍后再试`);
+  }
+  // B-01 修复：在进程内存锁之外，额外获取数据库锁以支持多实例部署
+  const dbLockKey = `batch:${lockKey}`;
+  const dbLocked = await acquireLock(dbLockKey);
+  if (!dbLocked) {
+    throw new Error(`学期 ${semesterStr} 的批量排课正在进行中（其他实例），请稍后重试`);
   }
   batchLocks.add(lockKey);
 
@@ -114,6 +122,13 @@ export async function batchAutoArrange(
       }
 
       const courseStart = Date.now();
+      // B-03 修复：预览模式下，单课程失败时回滚累积的虚拟工时和教材状态
+      let snapshotTeacherHours = null;
+      let snapshotTextbookMap = null;
+      if (options.preview) {
+        snapshotTeacherHours = virtualTeacherHours ? new Map(virtualTeacherHours) : null;
+        snapshotTextbookMap = globalTextbookMap ? new Map([...globalTextbookMap].map(([k, v]) => [k, new Set(v)])) : null;
+      }
       try {
         const result = await autoArrange(
           courseId,
@@ -156,6 +171,15 @@ export async function batchAutoArrange(
           `[批量排课] 课程 ${courseId}(${courseName}) 完成，耗时 ${Date.now() - courseStart}ms，安排 ${result.autoCount} 个班级`
         );
       } catch (e) {
+        // B-03 修复：失败时回滚预览状态，防止错误累积影响后续课程
+        if (options.preview && snapshotTeacherHours) {
+          virtualTeacherHours.clear();
+          for (const [k, v] of snapshotTeacherHours) virtualTeacherHours.set(k, v);
+        }
+        if (options.preview && snapshotTextbookMap) {
+          globalTextbookMap.clear();
+          for (const [k, v] of snapshotTextbookMap) globalTextbookMap.set(k, new Set(v));
+        }
         results.push({
           courseId,
           courseName,
@@ -211,5 +235,7 @@ export async function batchAutoArrange(
   } finally {
     // M-12: 无论成功或异常，始终释放锁
     batchLocks.delete(lockKey);
+    // B-01 修复：释放数据库锁
+    await releaseLock(dbLockKey);
   }
 }

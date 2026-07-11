@@ -217,7 +217,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getTeachingStatistics } from '../../api/teachingArrange';
-import { getSettings } from '../../api/settings';
+import { useSettingsStore } from '../../stores/settings';
 import { exportStatistics } from '../../api/export';
 import { downloadBlob } from '../../utils/download';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
@@ -226,6 +226,7 @@ import EmptyState from '../../components/EmptyState.vue';
 
 defineOptions({ name: 'TeachingStatistics' });
 
+const settingsStore = useSettingsStore();
 const semester = ref('');
 const statsData = ref(null);
 const loading = ref(false);
@@ -329,10 +330,11 @@ const filteredSummary = computed(() => {
 
 async function loadSemester() {
   try {
-    const res = await getSettings();
-    const settings = res.data || {};
-    if (settings.currentSemester) {
-      semester.value = settings.currentSemester.value;
+    // P-05 修复：复用 settingsStore 缓存，避免重复 API 请求
+    await settingsStore.load();
+    const semValue = settingsStore.currentSemesterValue();
+    if (semValue) {
+      semester.value = semValue;
     }
   } catch (e) {
     if (import.meta.env.DEV) {

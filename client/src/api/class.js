@@ -39,6 +39,15 @@ export const deleteClass = (id, { silent } = {}) =>
   request.delete(`/classes/${id}`, { silentError: silent });
 
 /**
+ * 批量更新班级
+ * @param {number[]} ids - 要更新的班级 ID 列表
+ * @param {object} updates - 要更新的字段（snake_case）
+ * @returns {Promise<import('./types').ApiResponse<{total: number, succeeded: Array, failed: Array}>>}
+ */
+export const batchUpdateClasses = (ids, updates) =>
+  request.post('/classes/batch-update', { ids, updates });
+
+/**
  * 批量删除班级
  * @param {number[]} ids - 要删除的班级 ID 列表
  * @returns {Promise<import('./types').ApiResponse<{total: number, succeeded: Array, failed: Array, deletedCount: number}>>}

@@ -137,6 +137,37 @@ export async function getCurrentSemesterInfo() {
 }
 
 /**
+ * 获取学期边界月份（从 system_settings 读取 semester_start_month）
+ * 该月份决定秋季学期的起始月，用于降级计算（无学期配置时判断当前属于哪个学年）
+ * @returns {Promise<number>} 月份值（1-12），默认 8（八月）
+ */
+export async function getSemesterStartMonth() {
+  const DEFAULT_MONTH = 8;
+  const cacheKey = 'semester_start_month';
+  const now = Date.now();
+  const cached = semesterCache.get(cacheKey);
+  if (cached && cached.expireAt > now) return cached.data;
+
+  try {
+    const setting = await prisma.system_settings.findUnique({
+      where: { key: 'semester_start_month' },
+    });
+    if (setting) {
+      const month = Number(setting.value);
+      if (Number.isInteger(month) && month >= 1 && month <= 12) {
+        semesterCache.set(cacheKey, { data: month, expireAt: now + SEMESTER_TTL });
+        return month;
+      }
+    }
+  } catch (e) {
+    // 降级为默认值
+  }
+
+  semesterCache.set(cacheKey, { data: DEFAULT_MONTH, expireAt: now + SEMESTER_TTL });
+  return DEFAULT_MONTH;
+}
+
+/**
  * 从请求中获取学期信息（优先 query.semester，否则用全局当前学期）
  * @param {object} req - Express 请求对象
  * @returns {Promise<object|null>}

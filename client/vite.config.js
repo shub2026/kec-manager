@@ -24,16 +24,39 @@ export default defineConfig({
     }
   },
   build: {
+    // cssCodeSplit 保持默认 true，CSS 随 JS chunk 自动拆分，无需手动配置
     target: 'es2022',
     sourcemap: false,
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vue-vendor': ['vue', 'vue-router', 'pinia'],
-          'element-plus': ['element-plus'],
-          'element-icons': ['@element-plus/icons-vue'],
-          'axios': ['axios'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            // Element Plus icons — must be checked before element-plus (path contains 'element-plus')
+            if (id.includes('@element-plus/icons-vue')) {
+              return 'element-icons';
+            }
+            // Element Plus — split large table/pagination components into a separate chunk
+            if (id.includes('element-plus')) {
+              if (
+                id.includes('/components/table/') ||
+                id.includes('/components/table-column/') ||
+                id.includes('/components/table-v2/') ||
+                id.includes('/components/pagination/')
+              ) {
+                return 'element-table';
+              }
+              return 'element-plus';
+            }
+            // Vue core ecosystem
+            if (id.includes('/vue/') || id.includes('/vue-router/') || id.includes('/pinia/')) {
+              return 'vue-vendor';
+            }
+            // HTTP client
+            if (id.includes('/axios/')) {
+              return 'axios';
+            }
+          }
         },
       },
     },

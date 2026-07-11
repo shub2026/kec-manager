@@ -1,5 +1,6 @@
 import express from 'express';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
+import { validatePagination } from '../middleware/pagination.js';
 import { sanitizeBody } from '../middleware/xss.js';
 import {
   validateIdParam,
@@ -21,7 +22,7 @@ const router = express.Router();
  * GET /api/users
  * 获取用户列表
  */
-router.get('/', roleMiddleware('admin', 'super_admin'), listUsers);
+router.get('/', roleMiddleware('admin', 'super_admin'), validatePagination(100), listUsers);
 
 /**
  * POST /api/users

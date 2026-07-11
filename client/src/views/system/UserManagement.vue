@@ -80,6 +80,19 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 分页 -->
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadUsers"
+          @current-change="loadUsers"
+        />
+      </div>
     </el-card>
 
     <!-- 创建/编辑用户对话框 -->
@@ -226,6 +239,11 @@ const isEdit = ref(false);
 const submitting = ref(false);
 const formRef = ref(null);
 
+// 分页
+const currentPage = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
+
 // 状态切换确认弹窗
 const statusConfirmVisible = ref(false);
 const statusConfirmMessage = ref('');
@@ -262,8 +280,16 @@ const rules = {
 async function loadUsers() {
   loading.value = true;
   try {
-    const response = await getUsers();
-    users.value = response.data;
+    const response = await getUsers({ page: currentPage.value, page_size: pageSize.value });
+    const data = response.data;
+    if (Array.isArray(data)) {
+      // 向后兼容：如果服务端返回的是平面数组
+      users.value = data;
+      total.value = data.length;
+    } else {
+      users.value = data.items || [];
+      total.value = data.total || 0;
+    }
   } catch (error) {
     ElMessage.error('加载用户列表失败：' + (error.message || '未知错误'));
   } finally {
@@ -273,8 +299,15 @@ async function loadUsers() {
 
 async function silentReload() {
   try {
-    const response = await getUsers();
-    users.value = response.data;
+    const response = await getUsers({ page: currentPage.value, page_size: pageSize.value });
+    const data = response.data;
+    if (Array.isArray(data)) {
+      users.value = data;
+      total.value = data.length;
+    } else {
+      users.value = data.items || [];
+      total.value = data.total || 0;
+    }
   } catch (error) {
     ElMessage.error('加载用户列表失败：' + (error.message || '未知错误'));
   }

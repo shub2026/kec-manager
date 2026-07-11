@@ -37,3 +37,20 @@ export const deleteTextbook = (id, { silent } = {}) =>
  * @returns {Promise<import('./types').ApiResponse<import('./types').Textbook>>}
  */
 export const toggleTextbookStatus = (id) => request.post(`/textbooks/${id}/toggle-status`);
+
+/**
+ * 批量更新教材
+ * @param {number[]} ids - 要更新的教材 ID 列表
+ * @param {object} updates - 要更新的字段（snake_case）
+ * @returns {Promise<import('./types').ApiResponse<{total: number, succeeded: Array, failed: Array}>>}
+ */
+export const batchUpdateTextbooks = (ids, updates) =>
+  request.post('/textbooks/batch-update', { ids, updates });
+
+/**
+ * 批量删除教材
+ * @param {number[]} ids - 要删除的教材 ID 列表
+ * @returns {Promise<import('./types').ApiResponse<{total: number, succeeded: Array, failed: Array, skippedIds: number[], deletedCount: number}>>}
+ */
+export const batchDeleteTextbooks = (ids) =>
+  request.post('/textbooks/batch-delete', { ids });

@@ -10,6 +10,7 @@ import {
   updateClass,
   deleteClass,
   batchDeleteClasses,
+  batchUpdateClasses,
 } from '../controllers/class.controller.js';
 
 const router = Router();
@@ -23,6 +24,11 @@ router.get('/stats', getClassStats);
  * POST /api/classes/batch-delete - 批量删除班级（须在 /:id 前注册）
  */
 router.post('/batch-delete', roleMiddleware('admin', 'super_admin'), batchDeleteClasses);
+
+/**
+ * POST /api/classes/batch-update - 批量更新班级（须在 /:id 前注册）
+ */
+router.post('/batch-update', roleMiddleware('admin', 'super_admin'), batchUpdateClasses);
 
 router.get('/', validatePagination(100), listClasses);
 router.post('/', roleMiddleware('admin', 'super_admin'), validateClass, sanitizeBody, createClass);

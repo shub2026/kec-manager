@@ -109,7 +109,7 @@
 
       <el-table
         v-loading="tableLoading"
-        :data="filteredClassList"
+        :data="paginatedClassList"
         stripe
         row-key="classId"
         :row-class-name="tableRowClassName"
@@ -184,6 +184,18 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="filteredClassList.length"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handlePageChange"
+          @current-change="handlePageChange"
+        />
+      </div>
     </el-card>
 
     <!-- 教师选择弹窗 -->
@@ -269,7 +281,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
+import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue';
 import { ElMessage } from 'element-plus';
 import { WarningFilled } from '@element-plus/icons-vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
@@ -406,6 +418,23 @@ const filteredClassList = computed(() => {
     return true;
   });
 });
+
+// P-04: 客户端分页
+const currentPage = ref(1);
+const pageSize = ref(20);
+
+const paginatedClassList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredClassList.value.slice(start, start + pageSize.value);
+});
+
+watch(filteredClassList, () => {
+  currentPage.value = 1;
+});
+
+function handlePageChange() {
+  // 分页变化时自动触发（el-pagination 事件）
+}
 
 // 自动排课状态
 const arranging = ref(false);

@@ -330,6 +330,8 @@ import {
   updateTextbook,
   deleteTextbook,
   toggleTextbookStatus,
+  batchUpdateTextbooks,
+  batchDeleteTextbooks,
 } from '../../api/textbook';
 import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
@@ -617,22 +619,31 @@ async function handleBatchSet() {
   batchSaving.value = true;
   try {
     const ids = selectedTextbooks.value.map((t) => t.id);
-    const updateData = {};
+    const updates = {};
 
     switch (type) {
       case 'publisher':
-        updateData.publisher = batchForm.value.publisher;
+        updates.publisher = batchForm.value.publisher;
         break;
       case 'author':
-        updateData.author = batchForm.value.author;
+        updates.author = batchForm.value.author;
         break;
       case 'category':
-        updateData.category = batchForm.value.category;
+        updates.category = batchForm.value.category;
         break;
     }
 
-    await Promise.all(ids.map((id) => updateTextbook(id, updateData)));
-    ElMessage.success(`已成功更新 ${ids.length} 个教材`);
+    const { data } = await batchUpdateTextbooks(ids, updates);
+    const { succeeded = [], failed = [] } = data || {};
+
+    if (failed.length === 0) {
+      ElMessage.success(`已成功更新 ${succeeded.length} 个教材`);
+    } else if (succeeded.length === 0) {
+      ElMessage.error(`批量更新失败：${failed[0]?.reason || '未知错误'}`);
+    } else {
+      ElMessage.warning(`批量更新部分成功：成功 ${succeeded.length} 个，失败 ${failed.length} 个`);
+    }
+
     batchDialogVisible.value = false;
     selectedTextbooks.value = [];
     await silentReload();
@@ -668,62 +679,56 @@ async function confirmBatchDelete() {
 }
 
 async function doBatchDelete() {
-  const targets = selectedTextbooks.value.map((t) => ({ id: t.id, title: t.title }));
+  const ids = selectedTextbooks.value.map((t) => t.id);
 
-  const succeeded = [];
-  const failed = [];
+  try {
+    const { data } = await batchDeleteTextbooks(ids);
+    const { succeeded = [], failed = [] } = data || {};
 
-  // 串行逐个删除，避免 SQLite 文件锁并行写冲突（与班级管理页批量删除一致）
-  for (const { id, title } of targets) {
-    try {
-      await deleteTextbook(id, { silent: true });
-      succeeded.push(title);
-    } catch (err) {
-      // axios 错误：后端真实 message 在 error.response.data.message；
-      // error.message 只是 "Request failed with status code 400" 这样的默认消息
-      const reason = err?.response?.data?.message || err?.message || '未知错误';
-      failed.push({ title, reason });
-    }
-  }
-
-  if (failed.length === 0) {
-    ElNotification({
-      title: '批量删除完成',
-      message: `已成功删除 ${succeeded.length} 个教材`,
-      type: 'success',
-      duration: 4000,
-    });
-  } else if (succeeded.length === 0) {
-    // 全部失败
-    const refCount = failed.filter((f) => f.reason.includes('培养方案')).length;
-    if (refCount === failed.length) {
-      // 全部因被培养方案引用
+    if (failed.length === 0) {
       ElNotification({
-        title: '批量删除失败',
-        message: `${refCount} 个教材已被培养方案引用，无法删除`,
+        title: '批量删除完成',
+        message: `已成功删除 ${succeeded.length} 个教材`,
+        type: 'success',
+        duration: 4000,
+      });
+    } else if (succeeded.length === 0) {
+      const refCount = failed.filter((f) => f.reason?.includes('培养方案')).length;
+      if (refCount === failed.length) {
+        ElNotification({
+          title: '批量删除失败',
+          message: `${refCount} 个教材已被培养方案引用，无法删除`,
+          type: 'warning',
+          duration: 6000,
+        });
+      } else {
+        ElNotification({
+          title: '批量删除失败',
+          message: `删除失败：${failed[0]?.reason || '未知错误'}`,
+          type: 'error',
+          duration: 6000,
+        });
+      }
+    } else {
+      const refCount = failed.filter((f) => f.reason?.includes('培养方案')).length;
+      const otherCount = failed.length - refCount;
+      let msg = `成功删除 ${succeeded.length} 个`;
+      if (refCount > 0) msg += `，${refCount} 个被培养方案引用无法删除`;
+      if (otherCount > 0) msg += `，${otherCount} 个删除失败`;
+      ElNotification({
+        title: '批量删除部分成功',
+        message: msg,
         type: 'warning',
         duration: 6000,
       });
-    } else {
-      // 其他原因导致的全失败，给出具体原因
-      ElNotification({
-        title: '批量删除失败',
-        message: `删除失败：${failed[0].reason}`,
-        type: 'error',
-        duration: 6000,
-      });
     }
-  } else {
-    // 部分成功部分失败
-    const refCount = failed.filter((f) => f.reason.includes('培养方案')).length;
-    const otherCount = failed.length - refCount;
-    let msg = `成功删除 ${succeeded.length} 个`;
-    if (refCount > 0) msg += `，${refCount} 个被培养方案引用无法删除`;
-    if (otherCount > 0) msg += `，${otherCount} 个删除失败`;
+  } catch (e) {
+    if (import.meta.env.DEV) console.error('[BatchDelete] 批量删除请求失败:', e);
+    const reason = e?.response?.data?.message || e?.message || '未知错误';
     ElNotification({
-      title: '批量删除部分成功',
-      message: msg,
-      type: 'warning',
+      title: '批量删除失败',
+      message: reason,
+      type: 'error',
       duration: 6000,
     });
   }

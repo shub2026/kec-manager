@@ -172,8 +172,8 @@ router.beforeEach(async (to, from, next) => {
     // 检查是否需要认证
     if (to.meta.requiresAuth !== false) {
       // 未登录，跳转到登录页
-      // isLoggedIn 检查 token/refreshToken cookie；userInfo 检查兜底：
-      // initAuth 可能通过后端 HttpOnly cookie 恢复了用户信息但 JS cookie 不可读
+      // isLoggedIn 检查 token；userInfo 兜底：
+      // initAuth 可能通过后端 HttpOnly cookie 恢复了用户信息但 JS token 不可读
       if (!authStore.isLoggedIn && !authStore.userInfo) {
         next({
           path: '/login',
@@ -182,10 +182,11 @@ router.beforeEach(async (to, from, next) => {
         return;
       }
 
-      // 如果 access token 过期或为空但 refresh token 有效，先刷新 token
-      // 例外：initAuth 已通过 HttpOnly cookie 恢复了 userInfo，无需再刷新（后端会自动携带 HttpOnly cookie 认证）
+      // S-01 修复：refreshToken 已完全由 HttpOnly Cookie 管理，不再存储于 JS 内存
+      // 当 access token 过期或为空时，尝试通过 HttpOnly Cookie 刷新
       if ((!authStore.token || authStore.isTokenExpired(authStore.token)) && !authStore.userInfo) {
-        if (authStore.refreshToken && !authStore.isTokenExpired(authStore.refreshToken)) {
+        if (localStorage.getItem('loggedIn') === 'true') {
+          // 浏览器会自动携带 HttpOnly refreshToken Cookie，尝试刷新
           const refreshed = await authStore.refreshAccessToken();
           if (!refreshed) {
             next({

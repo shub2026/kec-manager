@@ -17,7 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
   // H-3: Token 由后端 HttpOnly Cookie 管理，前端不再存储 Token 副本
   // 内存变量仅用于 isTokenExpired 等客户端逻辑判断，实际认证依赖浏览器自动携带 HttpOnly Cookie
   const token = ref('');
-  const refreshToken = ref('');
+  // S-01 修复：refreshToken 已从 JS 内存中移除，完全由 HttpOnly Cookie 管理，防止 XSS 窃取
 
   function isTokenExpired(tokenStr) {
     if (!tokenStr) return true;
@@ -47,7 +47,7 @@ export const useAuthStore = defineStore('auth', () => {
   // isLoggedIn 仅检查 token 是否存在（不依赖时间，避免 computed 缓存导致状态过时）
   // 实际的过期判断由 router guard 和 request interceptor 通过 isTokenExpired() 处理
   const isLoggedIn = computed(() => {
-    return !!(token.value || refreshToken.value);
+    return !!token.value;
   });
   const isAdmin = computed(() => ['admin', 'super_admin'].includes(userInfo.value?.role));
   const isSuperAdmin = computed(() => userInfo.value?.role === 'super_admin');
@@ -66,10 +66,10 @@ export const useAuthStore = defineStore('auth', () => {
         password,
       });
 
-      const { user, token: newToken, refreshToken: newRefreshToken } = response.data;
+      const { user, token: newToken } = response.data;
 
       token.value = newToken;
-      refreshToken.value = newRefreshToken;
+      // S-01 修复：refreshToken 完全由 HttpOnly Cookie 管理，不再存储于 JS 内存
       userInfo.value = user;
 
       // H-3: Token 由后端 HttpOnly Cookie 管理，前端不再通过 JS Cookie 存储 Token
@@ -126,20 +126,13 @@ export const useAuthStore = defineStore('auth', () => {
     _refreshPromise = (async () => {
       try {
         const { refreshAccessToken: apiRefresh } = await getAuthApi();
-        const response = await apiRefresh({
-          refreshToken: refreshToken.value,
-        });
+        // S-01 修复：不再在 body 中发送 refreshToken，由浏览器自动携带 HttpOnly Cookie
+        const response = await apiRefresh({});
 
-        const { token: newToken, refreshToken: newRefreshToken } = response.data;
+        const { token: newToken } = response.data;
 
         token.value = newToken;
         // H-3: 不再调用 setCookie，Token 由后端 HttpOnly Cookie 管理
-
-        // 若后端返回了新的 refreshToken，同步更新，避免长期登录后 refreshToken 过期失效
-        if (newRefreshToken) {
-          refreshToken.value = newRefreshToken;
-          // H-3: 不再调用 setCookie，Token 由后端 HttpOnly Cookie 管理
-        }
 
         return true;
       } catch (error) {
@@ -203,7 +196,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   function clearAuth() {
     token.value = '';
-    refreshToken.value = '';
     userInfo.value = null;
 
     // 清除Cookie
@@ -222,11 +214,6 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       if (token.value && !isTokenExpired(token.value)) {
         await fetchUserInfo();
-      } else if (refreshToken.value && !isTokenExpired(refreshToken.value)) {
-        const refreshed = await refreshAccessToken();
-        if (refreshed) {
-          await fetchUserInfo();
-        }
       } else if (localStorage.getItem('loggedIn') === 'true') {
         // JS cookie 可能因后端 HttpOnly 同名 cookie 冲突而不可读，
         // 但浏览器发送请求时会自动携带后端设置的 HttpOnly cookie，
@@ -243,7 +230,7 @@ export const useAuthStore = defineStore('auth', () => {
         } catch {
           clearAuth();
         }
-      } else if (token.value || refreshToken.value) {
+      } else if (token.value) {
         clearAuth();
       }
     } catch (error) {
@@ -257,7 +244,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     token,
-    refreshToken,
     userInfo,
     isLoggedIn,
     isAdmin,

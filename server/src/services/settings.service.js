@@ -14,6 +14,7 @@ export {
   formatSemesterLabel,
   getCurrentSemesterInfo,
   getSemesterInfoFromRequest,
+  getSemesterStartMonth,
   invalidateSemesterCache,
 } from './semester.service.js';
 

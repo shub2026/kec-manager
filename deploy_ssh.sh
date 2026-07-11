@@ -392,7 +392,7 @@ show_summary() {
     echo ""
     echo -e "${GREEN}默认管理员账号：${NC}"
     echo "  用户名: admin"
-    echo "  密码: admin@123456"
+    echo "  密码: 请查看 server/.env 中 ADMIN_INITIAL_PASSWORD 配置"
     echo -e "${YELLOW}⚠  请立即修改默认密码！${NC}"
     echo ""
 }

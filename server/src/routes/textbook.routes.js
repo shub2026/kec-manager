@@ -13,12 +13,26 @@ import {
   updateTextbook,
   deleteTextbook,
   toggleTextbookStatus,
+  batchUpdateTextbooks,
+  batchDeleteTextbooks,
 } from '../controllers/textbook.controller.js';
 
 const router = Router();
 
 // GET - 所有登录用户可访问
 router.get('/', listTextbooks);
+
+// 批量操作（须在 /:id 前注册，避免参数捕获）
+router.post(
+  '/batch-update',
+  roleMiddleware('admin', 'super_admin'),
+  batchUpdateTextbooks
+);
+router.post(
+  '/batch-delete',
+  roleMiddleware('admin', 'super_admin'),
+  batchDeleteTextbooks
+);
 
 // POST/PUT/DELETE - 需要admin权限
 router.post(

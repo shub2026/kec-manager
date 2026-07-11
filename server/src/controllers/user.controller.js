@@ -11,28 +11,39 @@ import { invalidateUserStatusCache } from '../middleware/auth.middleware.js';
  */
 export async function listUsers(req, res, next) {
   try {
+    const { page, page_size } = req.query;
+    const currentPage = Number(page) || 1;
+    const pageSize = Math.min(Math.max(Number(page_size) || 20, 1), 100);
+    const skip = (currentPage - 1) * pageSize;
+
     const where = {};
     if (req.user.role === 'admin') {
       where.role = 'viewer';
     }
 
-    const users = await prisma.users.findMany({
-      where,
-      select: {
-        id: true,
-        username: true,
-        real_name: true,
-        email: true,
-        role: true,
-        is_active: true,
-        last_login_at: true,
-        created_at: true,
-      },
-      take: Math.min(req.query.limit ? Number(req.query.limit) : 20, 100),
-      orderBy: { created_at: 'desc' },
-    });
+    const selectFields = {
+      id: true,
+      username: true,
+      real_name: true,
+      email: true,
+      role: true,
+      is_active: true,
+      last_login_at: true,
+      created_at: true,
+    };
 
-    success(res, users);
+    const [users, total] = await Promise.all([
+      prisma.users.findMany({
+        where,
+        select: selectFields,
+        skip,
+        take: pageSize,
+        orderBy: { created_at: 'desc' },
+      }),
+      prisma.users.count({ where }),
+    ]);
+
+    success(res, { items: users, total, page: currentPage, pageSize });
   } catch (error) {
     next(error);
   }

@@ -34,6 +34,7 @@ vi.mock('../../lib/prisma.js', () => ({
 // ──────────────────────────────────────────────
 vi.mock('../../services/settings.service.js', () => ({
   getCurrentSemesterInfo: vi.fn(),
+  getSemesterStartMonth: vi.fn().mockResolvedValue(8),
 }));
 
 vi.mock('../../services/class.service.js', () => ({

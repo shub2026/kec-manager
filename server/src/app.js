@@ -89,7 +89,8 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: '10mb' }));
+// S-05 修复：JSON body 限制降至 1MB（文件上传由 multer 独立处理，不受此限制）
+app.use(express.json({ limit: '1mb' }));
 app.use((req, res, next) => {
   // S-07修复：日志中脱敏下载令牌
   const logQuery = req.query.download_token

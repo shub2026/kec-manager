@@ -62,6 +62,12 @@ vi.mock('../validate.js', () => ({
   validateHourSettings: validateFn,
 }));
 
+// B-01 修复：mock 数据库锁模块
+vi.mock('../lock.js', () => ({
+  acquireLock: vi.fn().mockResolvedValue(true),
+  releaseLock: vi.fn().mockResolvedValue(undefined),
+}));
+
 const { batchAutoArrange } = await import('../batch.js');
 
 // ──────────────────────────────────────────────

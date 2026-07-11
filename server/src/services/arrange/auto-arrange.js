@@ -17,19 +17,18 @@ import {
   isLevelEligible,
 } from './queries.js';
 import { tabuOptimize } from './tabu-search.js';
+// B-01 修复：基于数据库的排课并发锁，支持多进程/多实例部署
+import { acquireLock, releaseLock } from './lock.js';
 
 // C-2: 并发锁，防止同一课程被并发排课
-// ⚠️ 技术债（P0-3）：此锁为进程内存级别，仅适用于单进程部署（如 PM2 fork 模式）。
-// 若切换为 PM2 cluster 模式或负载均衡多实例部署，必须改用 Redis 分布式锁
-// （SETNX + EXPIRE）或数据库行级锁（SELECT FOR UPDATE），
-// 否则多实例间无法感知彼此的排课状态，可能产生并发超载。
-// 迁移检查清单：1) PM2 exec_mode 是否为 fork  2) 是否有多实例负载均衡  3) Redis 是否可用
+// B-01 修复：保留进程内存 Set 作为单进程快速路径（防止同进程内重复进入），
+// 跨进程互斥由 lock.js 数据库锁（acquireLock / releaseLock）保证
 const arrangeLocks = new Set();
 
 // M-12 / P1-12: 批量排课并发锁（按学期维度），防止单课程排课与批量排课并发
 // 批量进行中，对同 semester 的单课程 autoArrange 调用直接拒绝，
 // 避免该课程的 arrangeLock 阻止批量到达时被 catch 吞掉、静默跳过
-// ⚠️ 技术债（P0-3）：同上，进程内存级别，多实例部署需迁移 Redis 分布式锁。
+// B-01 修复：保留进程内存 Set 作为单进程快速路径，跨进程互斥由 lock.js 数据库锁保证
 export const batchLocks = new Set();
 
 /**
@@ -185,7 +184,8 @@ function buildTeacherConstraints(
     const autoHoursForCourse = autoHoursMap.get(t.id) || 0;
     // 批量预览时叠加前序课程的虚拟分配课时，保证容量计算累积（H-11 修复）
     const extraHours = extraTeacherHours?.get(t.id) || 0;
-    const effectiveTotal = t.totalWeeklyHours - autoHoursForCourse + extraHours;
+    // B-05 修复：防止手动分配被删除后 effectiveTotal 为负值，导致教师容量计算偏差
+    const effectiveTotal = Math.max(0, t.totalWeeklyHours - autoHoursForCourse + extraHours);
     const courseExistingHours = t.courseHours - autoHoursForCourse;
 
     // ⚠️ 字段名误导（P2-11）：defaultWeeklyHours 实为"教师总周课时上限"
@@ -970,7 +970,6 @@ export async function autoArrange(
   validateHourSettings(hourSettings);
 
   // P1-12 修复：批量排课进行中拒绝单课程排课
-  // 否则该课程的 arrangeLock 会阻止批量到达时被 catch 吞掉、静默跳过
   // 批量内部调用通过 options.skipBatchLockCheck=true 绕过此检查
   if (!options.skipBatchLockCheck && batchLocks.has(semesterStr)) {
     throw new Error(`学期 ${semesterStr} 批量排课进行中，请稍后再试`);
@@ -980,6 +979,12 @@ export async function autoArrange(
   const lockKey = `${courseId}:${semesterStr}`;
   if (arrangeLocks.has(lockKey)) {
     throw new Error('该课程正在排课中，请稍后重试');
+  }
+  // B-01 修复：在进程内存锁之外，额外获取数据库锁以支持多实例部署
+  const dbLockKey = `arrange:${lockKey}`;
+  const dbLocked = await acquireLock(dbLockKey);
+  if (!dbLocked) {
+    throw new Error('该课程正在排课中（其他实例），请稍后重试');
   }
   arrangeLocks.add(lockKey);
 
@@ -1829,6 +1834,8 @@ export async function autoArrange(
   } finally {
     // C-2: 无论成功或异常，始终释放锁
     arrangeLocks.delete(lockKey);
+    // B-01 修复：释放数据库锁
+    await releaseLock(dbLockKey);
   }
 }
 

@@ -316,6 +316,7 @@ model teaching_assignments {
   @@map("teaching_assignments")
 }
 
+
 model token_blacklist {
   id         Int      @id @default(autoincrement())
   jti        String   @unique
@@ -323,4 +324,12 @@ model token_blacklist {
   created_at DateTime @default(now())
 
   @@index([expires_at])
+}
+
+// B-01 修复：排课并发锁表，支持多进程/多实例部署的跨进程互斥
+model arrange_locks {
+  id         Int      @id @default(autoincrement())
+  lock_key   String   @unique
+  created_at DateTime @default(now())
+  expires_at DateTime
 }
