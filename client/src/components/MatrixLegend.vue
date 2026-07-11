@@ -30,6 +30,9 @@
     <div class="legend-group">
       <span class="legend-group-label">教材状态</span>
       <span class="legend-item">
+        <i class="legend-dot" :style="{ background: 'var(--brand-success, #34D399)' }"></i>正常启用
+      </span>
+      <span class="legend-item">
         <i class="legend-dot" :style="{ background: 'var(--brand-warning, #FBBF24)' }"></i>未指定
       </span>
       <span class="legend-item">

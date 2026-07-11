@@ -89,7 +89,7 @@ defineExpose({ refresh: loadData, globalWeeks, totalAllHours, rawCourses });
 .matrix-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 300px);
-  min-height: 460px;
+  flex: 1;
+  min-height: 0;
 }
 </style>

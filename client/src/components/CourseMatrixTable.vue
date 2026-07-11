@@ -78,7 +78,8 @@
                     :class="{ 'textbook-disabled': !textbook.isActive }"
                   >
                     <span v-if="!textbook.isActive" class="disabled-dot"></span>
-                    {{ textbook.title }}
+                    <span v-else class="active-dot"></span>
+                    <span class="textbook-name">{{ textbook.title }}</span>
                   </div>
                 </el-tooltip>
               </template>
@@ -278,7 +279,8 @@ function calcGrandTotalSemester(semester) {
 
 .matrix-table {
   border-collapse: collapse;
-  width: max-content;
+  table-layout: fixed;
+  width: 100%;
   min-width: 100%;
   font-size: 13px;
 }
@@ -300,23 +302,23 @@ function calcGrandTotalSemester(semester) {
 }
 
 .matrix-semester-header {
-  min-width: 80px;
+  width: 100px;
 }
 
 .matrix-course-header {
-  min-width: 160px;
+  width: 160px;
   text-align: left !important;
   padding-left: 12px !important;
 }
 
 .matrix-total-header {
-  min-width: 70px;
+  width: 70px;
   background: var(--brand-primary-soft) !important;
   color: var(--brand-primary) !important;
 }
 
 .matrix-action-header {
-  min-width: 140px;
+  width: 140px;
   text-align: center;
   background: var(--bg-subtle) !important;
 }
@@ -339,11 +341,15 @@ function calcGrandTotalSemester(semester) {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 
 .course-name-text {
   font-weight: 500;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .course-type-tag {
@@ -431,9 +437,9 @@ function calcGrandTotalSemester(semester) {
   font-size: 11px;
   color: var(--text-secondary);
   margin-top: 6px;
-  max-width: 80px;
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   cursor: default;
   display: flex;
@@ -441,16 +447,23 @@ function calcGrandTotalSemester(semester) {
   gap: 3px;
 }
 
-/* 无教材占位提示：橙色圆点 + 醒目深色文案（避免与课时热力蓝底混淆） */
+/* 教材名：flex 内截断，超出列宽才省略 */
+.textbook-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* 无教材占位提示：橙色圆点 + "未指定"，观感与已指定教材完全一致（同字号/同色/左对齐） */
 .cell-no-textbook {
   margin-top: 6px;
   font-size: 11px;
-  color: var(--text-primary);
-  font-weight: 500;
+  color: var(--text-secondary);
+  font-weight: 400;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .no-textbook-dot {
@@ -464,7 +477,7 @@ function calcGrandTotalSemester(semester) {
 
 /* 禁用教材 — 红色圆点 + 淡化文字 */
 .textbook-disabled {
-  color: var(--text-placeholder) !important;
+  color: var(--text-secondary);
   text-decoration: line-through;
 }
 
@@ -474,6 +487,16 @@ function calcGrandTotalSemester(semester) {
   height: 6px;
   border-radius: 50%;
   background: var(--brand-danger);
+  flex-shrink: 0;
+}
+
+/* 正常启用状态教材：绿色圆点 */
+.active-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-success);
   flex-shrink: 0;
 }
 
