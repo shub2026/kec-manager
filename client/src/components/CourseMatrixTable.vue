@@ -45,16 +45,42 @@
               <div class="cell-hours">
                 {{ getHours(course, s) !== null ? getHours(course, s) : '-' }}
               </div>
-              <div
-                v-for="textbook in getTextbooks(course, s)"
-                :key="textbook.id"
-                class="cell-textbook"
-                :class="{ 'textbook-disabled': !textbook.isActive }"
-                :title="!textbook.isActive ? '该教材已禁用，建议更换' : textbook.title"
-              >
-                <el-icon v-if="!textbook.isActive" class="warning-icon"><Warning /></el-icon>
-                {{ textbook.title }}
-              </div>
+              <template v-if="getTextbooks(course, s).length > 0">
+                <el-tooltip
+                  v-for="textbook in getTextbooks(course, s)"
+                  :key="textbook.id"
+                  placement="right"
+                  :show-after="300"
+                  :hide-after="0"
+                  popper-class="textbook-tooltip"
+                >
+                  <template #content>
+                    <div class="tooltip-title">{{ textbook.title }}</div>
+                    <div v-if="textbook.isbn" class="tooltip-row">
+                      <span class="tooltip-label">ISBN</span>
+                      <span>{{ textbook.isbn }}</span>
+                    </div>
+                    <div v-if="textbook.publisher" class="tooltip-row">
+                      <span class="tooltip-label">出版社</span>
+                      <span>{{ textbook.publisher }}</span>
+                    </div>
+                    <div class="tooltip-row">
+                      <span class="tooltip-label">状态</span>
+                      <span v-if="!textbook.isActive" class="tooltip-status disabled">已停用</span>
+                      <span v-else-if="textbook.isRequired" class="tooltip-status required">必订</span>
+                      <span v-else class="tooltip-status elective">选修</span>
+                    </div>
+                  </template>
+                  <div
+                    class="cell-textbook"
+                    :class="{ 'textbook-disabled': !textbook.isActive }"
+                  >
+                    <span v-if="!textbook.isActive" class="disabled-dot"></span>
+                    {{ textbook.title }}
+                  </div>
+                </el-tooltip>
+              </template>
+              <div v-else class="cell-no-textbook">未指定</div>
             </template>
           </td>
           <!-- 总课时 -->
@@ -189,6 +215,7 @@ function getTextbooks(course, semester) {
     isbn: t.textbooks?.isbn,
     publisher: t.textbooks?.publisher,
     isActive: t.textbooks?.isActive ?? true,
+    isRequired: t.is_required ?? true,
   }));
 }
 
@@ -367,35 +394,50 @@ function calcSemesterSubtotal(group, semester) {
 }
 
 .cell-hours {
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 15px;
   color: var(--text-primary);
+  line-height: 1.2;
 }
 
 .cell-textbook {
   font-size: 11px;
   color: var(--text-secondary);
-  margin-top: 2px;
+  margin-top: 6px;
   max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
-/* 禁用教材样式 */
+/* 无教材占位提示 */
+.cell-no-textbook {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-placeholder);
+  font-style: italic;
+}
+
+/* 禁用教材 — 红色圆点 + 淡化文字 */
 .textbook-disabled {
   color: var(--text-placeholder) !important;
   text-decoration: line-through;
-  display: flex;
-  align-items: center;
-  gap: 2px;
 }
 
-.warning-icon {
-  color: var(--brand-warning);
-  font-size: 12px;
+.disabled-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-danger);
   flex-shrink: 0;
 }
+
+/* 教材 Tooltip 样式见下方非 scoped style 块（el-popper 渲染在 body 层） */
 
 /* 总课时列 */
 .matrix-total-cell {
@@ -477,5 +519,57 @@ function calcSemesterSubtotal(group, semester) {
 .footer-summary {
   flex-shrink: 0;
   padding-top: 20px;
+}
+</style>
+
+<!-- el-tooltip popper 渲染在 body 层，需要全局样式 -->
+<style>
+.textbook-tooltip {
+  max-width: 280px;
+  padding: 10px 14px !important;
+  line-height: 1.6;
+}
+
+.textbook-tooltip .tooltip-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #fff;
+  word-break: break-all;
+}
+
+.textbook-tooltip .tooltip-row {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.textbook-tooltip .tooltip-label {
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+  min-width: 36px;
+}
+
+.textbook-tooltip .tooltip-status {
+  font-weight: 600;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.textbook-tooltip .tooltip-status.required {
+  background: rgba(52, 211, 153, 0.25);
+  color: #6ee7b7;
+}
+
+.textbook-tooltip .tooltip-status.elective {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.textbook-tooltip .tooltip-status.disabled {
+  background: rgba(248, 113, 113, 0.25);
+  color: #fca5a5;
 }
 </style>
