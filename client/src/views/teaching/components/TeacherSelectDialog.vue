@@ -3,7 +3,7 @@
     v-model="visible"
     title="选择任课教师"
     width="80%"
-    :style="{ maxWidth: '1200px' }"
+    :style="{ maxWidth: '1400px' }"
     destroy-on-close
     class="teacher-dialog"
   >
@@ -84,7 +84,7 @@
           >
         </template>
       </el-table-column>
-      <el-table-column label="已用教材" min-width="5">
+      <el-table-column label="已用教材" min-width="8">
         <template #default="{ row }">
           <template v-if="uniqueTextbooks(row.assignedTextbooks).length">
             <el-tag

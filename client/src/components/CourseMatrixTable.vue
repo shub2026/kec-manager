@@ -24,14 +24,16 @@
         <!-- 课程行 -->
         <tr v-for="course in group.courses" :key="course.id" class="matrix-course-row">
           <td class="matrix-fixed-col matrix-course-name">
-            <span class="course-name-text">{{ course.courseName }}</span>
-            <el-tag
-              size="small"
-              :type="group.type === 'public' ? 'success' : 'warning'"
-              class="course-type-tag"
-            >
-              {{ group.type === 'public' ? '公共' : '专业' }}
-            </el-tag>
+            <div class="course-name-inner">
+              <span class="course-name-text">{{ course.courseName }}</span>
+              <el-tag
+                size="small"
+                :type="group.type === 'public' ? 'success' : 'warning'"
+                class="course-type-tag"
+              >
+                {{ group.type === 'public' ? '公共' : '专业' }}
+              </el-tag>
+            </div>
           </td>
           <!-- 学期单元格 -->
           <td
@@ -80,7 +82,9 @@
                   </div>
                 </el-tooltip>
               </template>
-              <div v-else class="cell-no-textbook">未指定</div>
+              <div v-else class="cell-no-textbook">
+                <span class="no-textbook-dot"></span>未指定
+              </div>
             </template>
           </td>
           <!-- 总课时 -->
@@ -132,6 +136,19 @@
           <td v-if="!readonly"></td>
         </tr>
       </tbody>
+      <!-- 总计行（仅 showGrandTotal 模式，与上方列共享宽度，天然对齐） -->
+      <tfoot v-if="showGrandTotal" class="matrix-grand-total-row">
+        <tr>
+          <td class="matrix-fixed-col matrix-grand-total-label">总计</td>
+          <td v-for="s in maxSemester" :key="s" class="matrix-cell matrix-grand-total-cell">
+            {{ calcGrandTotalSemester(s) }}
+          </td>
+          <td class="matrix-cell matrix-grand-total-cell">
+            <strong>{{ totalAllHours }}</strong>
+          </td>
+          <td v-if="!readonly"></td>
+        </tr>
+      </tfoot>
     </table>
     <el-empty v-else description="暂无课程，请添加课程到方案" />
   </div>
@@ -172,6 +189,7 @@ const props = defineProps({
   globalWeeks: { type: Number, default: 18 },
   totalAllHours: { type: Number, default: 0 },
   readonly: { type: Boolean, default: false },
+  showGrandTotal: { type: Boolean, default: false },
 });
 
 defineEmits([
@@ -242,6 +260,11 @@ function calcSemesterSubtotal(group, semester) {
   });
   return total;
 }
+
+// 所有分组的学期总计（用于总计行）
+function calcGrandTotalSemester(semester) {
+  return groups.value.reduce((sum, g) => sum + calcSemesterSubtotal(g, semester), 0);
+}
 </script>
 
 <style scoped>
@@ -309,6 +332,10 @@ function calcSemesterSubtotal(group, semester) {
 .matrix-course-name {
   padding: 8px 12px;
   border: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.course-name-inner {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -414,12 +441,25 @@ function calcSemesterSubtotal(group, semester) {
   gap: 3px;
 }
 
-/* 无教材占位提示 */
+/* 无教材占位提示：橙色圆点 + 醒目深色文案（避免与课时热力蓝底混淆） */
 .cell-no-textbook {
   margin-top: 6px;
-  font-size: 10px;
-  color: var(--text-placeholder);
-  font-style: italic;
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.no-textbook-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-warning);
+  flex-shrink: 0;
 }
 
 /* 禁用教材 — 红色圆点 + 淡化文字 */
@@ -486,23 +526,46 @@ function calcSemesterSubtotal(group, semester) {
   cursor: default !important;
 }
 
-/* 底部控制栏 */
+/* 总计行（tfoot，与上方 tbody 共享列宽，天然对齐） */
+.matrix-grand-total-row td {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-top: 3px solid var(--brand-primary);
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 6px 6px;
+  text-align: center;
+  cursor: default !important;
+}
+
+.matrix-grand-total-label {
+  padding: 8px 12px !important;
+  font-size: 14px;
+  text-align: left !important;
+}
+
+.matrix-grand-total-cell {
+  font-size: 14px;
+}
+
+/* 底部控制栏：统一年级周数设置卡片 */
 .matrix-footer {
   margin-top: 16px;
   padding: 12px 16px;
-  background: var(--bg-subtle);
-  border-radius: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
 }
 
 .footer-section {
-  flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .footer-label {
@@ -517,8 +580,9 @@ function calcSemesterSubtotal(group, semester) {
 }
 
 .footer-summary {
-  flex-shrink: 0;
-  padding-top: 20px;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
 }
 </style>
 

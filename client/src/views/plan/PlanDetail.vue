@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="plan-detail">
     <el-page-header class="plan-detail-header" @back="$router.push('/plans')">
       <template #breadcrumb>
         <el-breadcrumb separator="/">
@@ -10,12 +10,40 @@
       </template>
       <template #content>
         <span>{{ plan?.name || '方案明细' }}</span>
-        <el-tag v-if="plan?.major" class="plan-tag">{{ plan.major.name }}</el-tag>
-        <el-tag v-if="plan?.trainingLevel" type="warning" class="plan-tag">{{
-          plan.trainingLevel.name
+        <el-tag v-if="plan?.majors?.name" class="plan-tag">{{ plan.majors.name }}</el-tag>
+        <el-tag v-if="plan?.trainingLevels?.name" type="warning" class="plan-tag">{{
+          plan.trainingLevels.name
         }}</el-tag>
       </template>
     </el-page-header>
+
+    <!-- 方案概览条 -->
+    <section class="plan-overview" aria-label="方案概览">
+      <div class="ov-item">
+        <span class="ov-label">学院</span>
+        <span class="ov-value">{{ plan?.colleges?.name || '—' }}</span>
+      </div>
+      <div class="ov-divider"></div>
+      <div class="ov-item">
+        <span class="ov-label">公共/专业</span>
+        <span class="ov-value">{{ publicCount }} / {{ professionalCount }}</span>
+      </div>
+      <div class="ov-item">
+        <span class="ov-label">课程数</span>
+        <span class="ov-value">{{ courseCount }}</span>
+      </div>
+      <div class="ov-item">
+        <span class="ov-label">总课时</span>
+        <span class="ov-value ov-accent">{{ totalHours }}</span>
+      </div>
+      <div class="ov-item">
+        <span class="ov-label">学期周数</span>
+        <span class="ov-value">{{ currentGlobalWeeks }}<small> 周</small></span>
+      </div>
+      <el-button type="primary" class="ov-add-btn" @click="openSemesterDialog">
+        <el-icon><Plus /></el-icon> 添加课程
+      </el-button>
+    </section>
 
     <!-- 矩阵视图 -->
     <CourseMatrix
@@ -23,9 +51,11 @@
       :plan-id="planId"
       :all-courses="allCourses"
       :all-textbooks="allTextbooks"
-      @add-course="showSemesterDialog = true"
       @delete-course="handleDeleteCourse"
     />
+
+    <!-- 颜色语义图例（置于矩阵表下方） -->
+    <MatrixLegend class="plan-legend" />
 
     <!-- 开课学期设置对话框 -->
     <el-dialog v-model="showSemesterDialog" title="设置开课学期" width="min(480px, 90vw)">
@@ -104,10 +134,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import { Plus } from '@element-plus/icons-vue';
 import { getPlanById, addPlanCourse, deletePlanCourse } from '../../api/plan';
 import { getCourses } from '../../api/course';
 import { getTextbooks } from '../../api/textbook';
 import CourseMatrix from '../../components/CourseMatrix.vue';
+import MatrixLegend from '../../components/MatrixLegend.vue';
 
 const route = useRoute();
 // M-3 修复：使用 computed 使 planId 响应式，支持路由参数变化时自动更新
@@ -125,6 +157,31 @@ const courseDeleting = ref(false);
 const pendingDeleteCourse = ref(null);
 
 const showSemesterDialog = ref(false);
+
+// 从矩阵组件读取当前全局学期周数，未就绪时回退 18
+const currentGlobalWeeks = computed(() => courseMatrixRef.value?.globalWeeks ?? 18);
+// 概览条：课程数 / 总课时（矩阵数据就绪前回退 0）
+const courseCount = computed(() => courseMatrixRef.value?.rawCourses?.length ?? 0);
+const totalHours = computed(() => courseMatrixRef.value?.totalAllHours ?? 0);
+// 公共课 / 专业课数量（按 courses.type 拆分）
+const publicCount = computed(
+  () => courseMatrixRef.value?.rawCourses?.filter((c) => (c.courses?.type || 'public') === 'public').length ?? 0
+);
+const professionalCount = computed(
+  () => courseMatrixRef.value?.rawCourses?.filter((c) => c.courses?.type === 'professional').length ?? 0
+);
+
+function openSemesterDialog() {
+  semesterForm.value = {
+    courseId: null,
+    startSemester: 1,
+    endSemester: 2,
+    weeklyHours: 4,
+    weeksPerSemester: currentGlobalWeeks.value,
+  };
+  showSemesterDialog.value = true;
+}
+
 const semesterForm = ref({
   courseId: null,
   startSemester: 1,
@@ -162,7 +219,7 @@ async function saveSemester() {
       startSemester: semesterForm.value.startSemester,
       endSemester: semesterForm.value.endSemester,
       weeklyHours: semesterForm.value.weeklyHours,
-      weeksPerSemester: semesterForm.value.weeksPerSemester || 18,
+      weeksPerSemester: currentGlobalWeeks.value,
     };
     await addPlanCourse(planId.value, courseData);
     ElMessage.success('添加成功');
@@ -172,7 +229,7 @@ async function saveSemester() {
       startSemester: 1,
       endSemester: 2,
       weeklyHours: 4,
-      weeksPerSemester: 18,
+      weeksPerSemester: currentGlobalWeeks.value,
     };
     // 标记 PlanList 需要刷新课程数
     sessionStorage.setItem('planListNeedsRefresh', 'true');
@@ -223,12 +280,76 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.plan-detail {
+  width: 100%;
+}
+
 .plan-detail-header {
   margin-bottom: 16px;
 }
 
 .plan-tag {
   margin-left: 12px;
+}
+
+/* 方案概览条 */
+.plan-overview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  box-shadow: var(--el-box-shadow-light, 0 1px 2px rgba(0, 0, 0, 0.04));
+}
+
+.ov-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ov-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ov-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-value small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: 1px;
+}
+
+.ov-accent {
+  color: var(--brand-primary);
+}
+
+.ov-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-light);
+}
+
+/* 添加课程按钮推到概览条右侧 */
+.ov-add-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* 图例与矩阵间距 */
+.plan-legend {
+  margin-top: 12px;
 }
 
 .full-width {

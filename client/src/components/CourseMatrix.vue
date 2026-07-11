@@ -1,8 +1,5 @@
 <template>
   <div class="matrix-container">
-    <!-- 顶部工具栏 -->
-    <CourseMatrixToolbar :all-courses="allCourses" @add-course="$emit('add-course')" />
-
     <!-- 矩阵表格 -->
     <CourseMatrixTable
       :raw-courses="rawCourses"
@@ -42,7 +39,6 @@
 </template>
 
 <script setup>
-import CourseMatrixToolbar from './CourseMatrixToolbar.vue';
 import CourseMatrixTable from './CourseMatrixTable.vue';
 import CourseEditPopover from './CourseEditPopover.vue';
 import { useCourseMatrixData } from '../composables/useCourseMatrixData';
@@ -54,7 +50,7 @@ const props = defineProps({
   allTextbooks: { type: Array, default: () => [] },
 });
 
-defineEmits(['add-course', 'delete-course']);
+defineEmits(['delete-course']);
 
 // 数据层：加载、状态、计算
 const { loading, rawCourses, globalWeeks, totalAllHours, isInRange, loadData } =
@@ -85,15 +81,15 @@ const {
   loadData,
 });
 
-// 暴露刷新方法
-defineExpose({ refresh: loadData });
+// 暴露刷新方法与汇总数据给方案明细页
+defineExpose({ refresh: loadData, globalWeeks, totalAllHours, rawCourses });
 </script>
 
 <style scoped>
 .matrix-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 260px);
-  min-height: 500px;
+  height: calc(100vh - 300px);
+  min-height: 460px;
 }
 </style>

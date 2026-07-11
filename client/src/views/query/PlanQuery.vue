@@ -31,19 +31,10 @@
           :loading="loading"
           :readonly="true"
           :total-all-hours="totalAllHours"
+          :show-grand-total="true"
         />
-        <!-- 总计行（只读模式额外展示） -->
-        <table v-if="planCourses.length > 0" class="matrix-total-final">
-          <tr>
-            <td class="matrix-fixed-col matrix-total-final-label">总计</td>
-            <td v-for="s in maxSemester" :key="s" class="matrix-cell matrix-total-final-cell">
-              {{ calcFinalSemesterTotal(s) }}
-            </td>
-            <td class="matrix-cell matrix-total-final-cell">
-              <strong>{{ totalAllHours }}</strong>
-            </td>
-          </tr>
-        </table>
+        <!-- 颜色语义图例 -->
+        <MatrixLegend class="plan-query-legend" />
       </div>
 
       <EmptyState v-else-if="selectedPlanId" type="plan" description="该方案暂无课程数据" />
@@ -57,6 +48,7 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getPlans, getPlanCourses } from '../../api/plan';
 import CourseMatrixTable from '../../components/CourseMatrixTable.vue';
+import MatrixLegend from '../../components/MatrixLegend.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
 
@@ -101,19 +93,8 @@ function getPlanLabel(plan) {
   return `${plan.name} ${parts.join(' - ')}`;
 }
 
-// 每学期总计（所有课程的该学期周课时之和）
-function calcFinalSemesterTotal(semester) {
-  let total = 0;
-  planCourses.value.forEach((c) => {
-    if (semester >= c.startSemester && semester <= c.endSemester) {
-      const sem = (c.planCourseSemesters || []).find((x) => x.semester === semester);
-      if (sem && sem.weeklyHours !== null) {
-        total += sem.weeklyHours;
-      }
-    }
-  });
-  return total;
-}
+// 每学期总计（所有课程的该学期周课时之和）—— 已由 CourseMatrixTable 的 showGrandTotal 接管
+// function calcFinalSemesterTotal(semester) { ... }
 
 // 加载方案列表
 async function loadPlans() {
@@ -160,41 +141,8 @@ onMounted(() => {
   margin-top: 20px;
 }
 
-/* 总计行表格（紧接 CourseMatrixTable 下方） */
-.matrix-total-final {
-  border-collapse: collapse;
-  width: max-content;
-  min-width: 100%;
-  font-size: 13px;
-  border: 1px solid var(--border-light);
-  border-top: none;
-}
-
-.matrix-total-final td {
-  background: var(--border-light);
-  border-top: 3px solid var(--text-secondary);
-  font-weight: 600;
-  border: 1px solid var(--text-placeholder);
-  padding: 4px 6px;
-  text-align: center;
-}
-
-.matrix-total-final-label {
-  padding: 8px 12px;
-  font-weight: 700;
-  color: var(--text-primary);
-  text-align: left;
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background: var(--border-light);
-  min-width: 160px;
-}
-
-.matrix-total-final-cell {
-  font-weight: 700;
-  color: var(--text-primary);
-  font-size: 14px;
-  min-width: 80px;
+/* 图例间距 */
+.plan-query-legend {
+  margin-top: 12px;
 }
 </style>
