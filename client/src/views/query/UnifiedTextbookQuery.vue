@@ -10,6 +10,7 @@
           v-model="selectedSemester"
           placeholder="选择学期"
           class="filter-2xl"
+          :teleported="false"
           @change="handleSemesterChange"
         >
           <el-option
@@ -24,6 +25,7 @@
           filterable
           placeholder="搜索并选择教材"
           class="filter-2xl"
+          :teleported="false"
           :disabled="!selectedSemester"
           @change="loadDetail"
         >

@@ -108,7 +108,7 @@
         :page-size="pageSize"
         :total="filteredList.length"
         layout="prev, pager, next"
-        small
+        size="small"
         background
       />
     </div>
