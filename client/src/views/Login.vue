@@ -263,33 +263,12 @@ onMounted(() => {
 
 .card-accent {
   height: 3px;
-  position: relative;
-  /* 流光渐变:主蓝 → 薄荷绿对角色相流动,呼应首页三色体系,比同色对称渐变更有呼吸感 */
   background: linear-gradient(
-    105deg,
-    var(--brand-primary) 0%,
-    var(--brand-primary-lighter) 35%,
-    var(--brand-mint) 100%
+    to right,
+    var(--brand-primary),
+    var(--brand-mint)
   );
   box-shadow: 0 1px 8px var(--brand-primary-shadow);
-}
-
-.card-accent::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  height: 14px;
-  background: inherit;
-  filter: blur(12px) brightness(1.2);
-  opacity: 0.3;
-  animation: accent-shimmer 3.5s ease-in-out infinite;
-}
-
-@keyframes accent-shimmer {
-  0%, 100% { opacity: 0.3; transform: translateX(-8%); }
-  50%      { opacity: 0.9; transform: translateX(8%); }
 }
 
 .card-header {
