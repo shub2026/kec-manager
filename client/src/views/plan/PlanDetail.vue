@@ -1,21 +1,17 @@
 <template>
   <div class="plan-detail">
-    <el-page-header class="plan-detail-header" @back="$router.push('/plans')">
-      <template #breadcrumb>
-        <el-breadcrumb separator="/">
-          <el-breadcrumb-item :to="{ path: '/dashboard' }">首页</el-breadcrumb-item>
-          <el-breadcrumb-item :to="{ path: '/plans' }">培养方案</el-breadcrumb-item>
-          <el-breadcrumb-item>{{ plan?.name || '方案明细' }}</el-breadcrumb-item>
-        </el-breadcrumb>
-      </template>
-      <template #content>
-        <span>{{ plan?.name || '方案明细' }}</span>
-        <el-tag v-if="plan?.majors?.name" class="plan-tag">{{ plan.majors.name }}</el-tag>
-        <el-tag v-if="plan?.trainingLevels?.name" type="warning" class="plan-tag">{{
+    <PageHeader
+      :title="plan?.name || '方案明细'"
+      subtitle="培养方案"
+      back-route="/plans"
+    >
+      <template #tags>
+        <el-tag v-if="plan?.majors?.name" size="small">{{ plan.majors.name }}</el-tag>
+        <el-tag v-if="plan?.trainingLevels?.name" type="warning" size="small">{{
           plan.trainingLevels.name
         }}</el-tag>
       </template>
-    </el-page-header>
+    </PageHeader>
 
     <!-- 方案概览条 -->
     <section class="plan-overview" aria-label="方案概览">
@@ -140,6 +136,7 @@ import { getCourses } from '../../api/course';
 import { getTextbooks } from '../../api/textbook';
 import CourseMatrix from '../../components/CourseMatrix.vue';
 import MatrixLegend from '../../components/MatrixLegend.vue';
+import PageHeader from '../../components/PageHeader.vue';
 
 const route = useRoute();
 // M-3 修复：使用 computed 使 planId 响应式，支持路由参数变化时自动更新
@@ -285,14 +282,6 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.plan-detail-header {
-  margin-bottom: 16px;
-}
-
-.plan-tag {
-  margin-left: 12px;
 }
 
 /* 方案概览条 */

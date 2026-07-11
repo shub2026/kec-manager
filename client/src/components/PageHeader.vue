@@ -1,10 +1,19 @@
 <template>
   <div class="page-header">
-    <!-- 标题行 -->
+    <!-- 返回按钮 + 标题行 -->
     <div class="page-header-main">
       <div class="page-header-left">
+        <button
+          v-if="backRoute"
+          class="page-header-back"
+          title="返回"
+          @click="$router.push(backRoute)"
+        >
+          <el-icon :size="18"><ArrowLeft /></el-icon>
+        </button>
         <h2 class="page-header-title">{{ title }}</h2>
         <span v-if="subtitle" class="page-header-subtitle">{{ subtitle }}</span>
+        <slot name="tags" />
       </div>
       <div class="page-header-right">
         <slot name="extra" />
@@ -17,6 +26,8 @@
 </template>
 
 <script setup>
+import { ArrowLeft } from '@element-plus/icons-vue';
+
 defineProps({
   /** 页面标题 */
   title: { type: String, required: true },
@@ -24,6 +35,8 @@ defineProps({
   subtitle: { type: String, default: '' },
   /** 描述文字 */
   description: { type: String, default: '' },
+  /** 返回路由路径，提供时显示返回按钮 */
+  backRoute: { type: String, default: '' },
 });
 </script>
 
@@ -48,6 +61,28 @@ defineProps({
   /* 左侧品牌强调条：与首页 welcome-section 共享同一强调语言,使概览页/列表页系统化统一 */
   border-left: 3px solid var(--brand-primary);
   padding-left: 12px;
+}
+
+.page-header-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: center;
+  flex-shrink: 0;
+  margin-left: -4px;
+}
+
+.page-header-back:hover {
+  background: var(--bg-subtle);
+  color: var(--brand-primary);
 }
 
 .page-header-title {
