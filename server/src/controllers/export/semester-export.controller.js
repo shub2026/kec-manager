@@ -1,13 +1,13 @@
 import { prisma } from '../../lib/prisma.js';
 import { createWorkbook, workbookToBuffer } from '../../utils/excel.js';
-import {
-  getCurrentSemesterInfo,
-  getSemesterInfoFromRequest,
-  parseSemesterString,
-} from '../../services/settings.service.js';
+import { getCurrentSemesterInfo, getSemesterInfoFromRequest } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
-import { calcClassSemester, buildConsecutiveTextbookMap } from '../../services/semester.service.js';
+import {
+  calcClassSemester,
+  buildConsecutiveTextbookMap,
+  parseSemester,
+} from '../../services/semester.service.js';
 import { findBestMatchPlan, buildClassWithPlanFilter } from '../../services/plan.service.js';
 
 /**
@@ -335,11 +335,11 @@ export async function exportSemesterSchedulePost(req, res, next) {
     // 支持历史学期导出：优先使用传入的 semester，否则使用全局当前学期
     let semesterInfo;
     if (semester) {
-      const result = parseSemesterString(semester);
-      if (!result.success) {
-        return res.status(400).json({ success: false, message: result.error });
+      // 统一使用 semester.service.js#parseSemester（替代 deprecated 的 parseSemesterString）
+      semesterInfo = parseSemester(semester);
+      if (!semesterInfo) {
+        return res.status(400).json({ success: false, message: '学期格式错误，应为 YYYY-YYYY-N' });
       }
-      semesterInfo = result.data;
     } else {
       semesterInfo = await getCurrentSemesterInfo();
       if (!semesterInfo) {

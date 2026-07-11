@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => ({
   getSemesterInfoFromRequest: vi.fn(),
   getCurrentSemesterInfo: vi.fn(),
   getSemesterStartMonth: vi.fn().mockResolvedValue(8),
-  parseSemesterString: vi.fn(),
+  parseSemester: vi.fn(),
   buildClassWithPlanFilter: vi.fn().mockResolvedValue({ OR: [{ major_id: { in: [1] } }] }),
   getActiveClassFilter: vi.fn().mockResolvedValue({ is_left_school: false }),
   calcClassSemester: vi.fn(),
@@ -50,7 +50,6 @@ vi.mock('../../../services/settings.service.js', () => ({
   getSemesterInfoFromRequest: mocks.getSemesterInfoFromRequest,
   getCurrentSemesterInfo: mocks.getCurrentSemesterInfo,
   getSemesterStartMonth: mocks.getSemesterStartMonth,
-  parseSemesterString: mocks.parseSemesterString,
 }));
 
 vi.mock('../../../services/audit.service.js', () => ({
@@ -64,6 +63,7 @@ vi.mock('../../../services/class.service.js', () => ({
 vi.mock('../../../services/semester.service.js', () => ({
   calcClassSemester: mocks.calcClassSemester,
   buildConsecutiveTextbookMap: mocks.buildConsecutiveTextbookMap,
+  parseSemester: mocks.parseSemester,
 }));
 
 vi.mock('../../../services/plan.service.js', () => ({
@@ -524,10 +524,7 @@ describe('exportSemesterSchedule (GET)', () => {
 // ══════════════════════════════════════════════
 describe('exportSemesterSchedulePost (POST)', () => {
   it('body.semester 有效时应使用该学期', async () => {
-    mocks.parseSemesterString.mockReturnValue({
-      success: true,
-      data: SEMESTER_INFO,
-    });
+    mocks.parseSemester.mockReturnValue(SEMESTER_INFO);
     mocks.classesFindMany.mockResolvedValue([]);
     mocks.trainingPlansFindMany.mockResolvedValue([]);
 
@@ -539,15 +536,12 @@ describe('exportSemesterSchedulePost (POST)', () => {
 
     await exportSemesterSchedulePost(req, res, next);
 
-    expect(mocks.parseSemesterString).toHaveBeenCalledWith('2025-2026-1');
+    expect(mocks.parseSemester).toHaveBeenCalledWith('2025-2026-1');
     expect(res.send).toHaveBeenCalled();
   });
 
   it('body.semester 格式错误时应返回 400', async () => {
-    mocks.parseSemesterString.mockReturnValue({
-      success: false,
-      error: '学期格式错误，应为 YYYY-YYYY-N',
-    });
+    mocks.parseSemester.mockReturnValue(null);
 
     const req = makeReq({ body: { semester: 'bad' } });
     const res = makeRes();

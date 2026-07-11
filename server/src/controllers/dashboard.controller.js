@@ -25,6 +25,9 @@ export async function getDashboardStats(req, res, next) {
 
     // 显式解析查询学期信息，避免 getActiveClassFilter 回退全局学期导致的巧合性正确
     const semesterInfo = await getSemesterInfoFromRequest(req);
+    // 校验学期格式，避免 semesterInfo=null 时 getActiveClassFilter 退化为 { is_left_school: false }
+    // 导致已毕业班级被计入 totalStudents/classes 统计虚高
+    if (!semesterInfo) return fail(res, '学期格式错误，应为 YYYY-YYYY-N', 400);
 
     // 并行查询基础统计数据 + 在读班级筛选 + 教师排课统计
     const [majorsCount, plansCount, textbooksCount, activeFilter, teacherStats] =
@@ -81,19 +84,30 @@ export async function getDashboardStats(req, res, next) {
     let totalWeeklyHours = 0;
     let totalStudents = 0;
 
+    // 构建自定义方案映射表，与 queries.js / assignTeacher 口径一致，
+    // 供 findBestMatchPlan 优先匹配 custom_plan_id（allPlans 已含 created_at，排序确定性有保障）
+    const classPlanMap = new Map();
+    for (const cls of activeClasses) {
+      if (cls.custom_plan_id) {
+        const customPlan = allPlans.find((p) => p.id === cls.custom_plan_id);
+        if (customPlan) classPlanMap.set(cls.id, customPlan);
+      }
+    }
+
     for (const cls of activeClasses) {
       totalStudents += cls.student_count || 0;
 
       const calc = calcClassSemester(cls, semesterInfo);
       if (!calc) continue;
 
-      // 确定班级关联的方案（与 class.controller.js 一致的匹配逻辑）
+      // 确定班级关联的方案：优先 custom_plan_id，否则回退 findBestMatchPlan
+      // 保留显式 custom_plan 短路以避免对已有自定义方案的班级调用 findBestMatchPlan
       let plan;
       if (cls.custom_plan_id) {
         plan = allPlans.find((p) => p.id === cls.custom_plan_id);
       }
       if (!plan) {
-        plan = findBestMatchPlan(cls, allPlans);
+        plan = findBestMatchPlan(cls, allPlans, classPlanMap);
       }
       if (!plan) continue;
 
@@ -139,6 +153,9 @@ export async function getDashboardInsights(req, res, next) {
   try {
     const { semester } = req.query;
     if (!semester) return fail(res, '请选择学期');
+    // 校验学期格式，避免畸形字符串进入 where 条件后静默返回空结果
+    const semesterInfo = await getSemesterInfoFromRequest(req);
+    if (!semesterInfo) return fail(res, '学期格式错误，应为 YYYY-YYYY-N', 400);
 
     const [totalCourses, assignedCourses, allAssignments, colleges] = await Promise.all([
       // 总课程数

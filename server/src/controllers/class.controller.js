@@ -74,8 +74,15 @@ export async function listClasses(req, res, next) {
     const semesterStartMonth = await getSemesterStartMonth();
 
     // 预加载所有培养方案，用于自动匹配
+    // 注意：必须 select created_at，findBestMatchPlan 按 created_at 降序排序以保证多匹配时取最新方案的确定性
     const allPlans = await prisma.training_plans.findMany({
-      select: { id: true, name: true, major_id: true, training_level_id: true },
+      select: {
+        id: true,
+        name: true,
+        major_id: true,
+        training_level_id: true,
+        created_at: true,
+      },
     });
 
     const classesWithDynamicStatus = classes.map((cls) => {
@@ -100,7 +107,10 @@ export async function listClasses(req, res, next) {
         matchedPlanType = 'custom';
       } else {
         // C1 修复：使用 findBestMatchPlan 选定最佳方案（major > level 优先级，与排课算法一致）
-        const bestPlan = findBestMatchPlan(cls, allPlans);
+        // 构建 classPlanMap 以与 queries.js / assignTeacher 口径一致（此处 classes 已含 custom_plan_id 但
+        // 上面 custom 分支已处理，进入 else 分支的班级无 custom_plan_id，classPlanMap 为空 Map 等价于不传）
+        const classPlanMap = new Map();
+        const bestPlan = findBestMatchPlan(cls, allPlans, classPlanMap);
 
         if (bestPlan) {
           matchedPlanName = bestPlan.name;

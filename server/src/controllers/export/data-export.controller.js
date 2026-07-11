@@ -184,12 +184,29 @@ export async function exportClasses(req, res, next) {
     });
 
     // 预加载所有培养方案，用于自动匹配（与 listClasses 保持一致）
+    // 注意：必须 select created_at，findBestMatchPlan 按 created_at 降序排序以保证多匹配时取最新方案的确定性
     const allPlans = await prisma.training_plans.findMany({
-      select: { id: true, name: true, major_id: true, training_level_id: true },
+      select: {
+        id: true,
+        name: true,
+        major_id: true,
+        training_level_id: true,
+        created_at: true,
+      },
     });
 
     // 获取学期信息用于计算年级
     const semesterInfo = await getCurrentSemesterInfo();
+
+    // 构建自定义方案映射表（与 queries.js / assignTeacher 口径一致），
+    // 供 findBestMatchPlan 优先匹配 custom_plan_id
+    const classPlanMap = new Map();
+    for (const cls of classes) {
+      if (cls.custom_plan_id) {
+        const customPlan = allPlans.find((p) => p.id === cls.custom_plan_id);
+        if (customPlan) classPlanMap.set(cls.id, customPlan);
+      }
+    }
 
     const rows = classes.map((cls) => {
       // 计算匹配的培养方案名称（与前端逻辑一致）
@@ -199,22 +216,16 @@ export async function exportClasses(req, res, next) {
         matchedPlanName = cls.training_plans.name;
       } else {
         // C2 修复：使用 findBestMatchPlan 选定最佳方案（major > level 优先级，与排课/列表一致）
-        const matchedPlan = findBestMatchPlan(cls, allPlans);
+        const matchedPlan = findBestMatchPlan(cls, allPlans, classPlanMap);
         if (matchedPlan) {
           matchedPlanName = matchedPlan.name;
         }
       }
 
-      // 计算年级
-      let grade = null;
-      if (semesterInfo && cls.enrollment_year && cls.duration_years) {
-        const startYear = semesterInfo.startYear;
-        grade = startYear - cls.enrollment_year + 1;
-        // 只有在有效范围内才显示年级
-        if (grade < 1 || grade > cls.duration_years) {
-          grade = null;
-        }
-      }
+      // 统一使用 calcClassSemester 计算年级（含越界检查与 duration_years<=0 防御）
+      // 替代内联公式，与排课/查询口径一致
+      const calc = semesterInfo ? calcClassSemester(cls, semesterInfo) : null;
+      const grade = calc ? calc.grade : null;
 
       // 确定关联类型
       let relationType = '未关联';
@@ -226,16 +237,19 @@ export async function exportClasses(req, res, next) {
         relationType = '层次';
       }
 
-      // 确定状态文本
-      let statusText = '已毕业';
+      // 确定状态文本：基于 calcClassSemester 结果判断在读/已毕业
+      let statusText;
       if (cls.is_left_school) {
         statusText = '离校';
+      } else if (calc) {
+        // calc 非 null 表示班级在当前学期处于在读年级范围内
+        statusText = '在读';
       } else if (cls.enrollment_year && cls.duration_years) {
-        const calcGrade = semesterInfo ? semesterInfo.startYear - cls.enrollment_year + 1 : null;
-        statusText =
-          calcGrade !== null && calcGrade >= 1 && calcGrade <= cls.duration_years
-            ? '在读'
-            : '已毕业';
+        // calc 为 null 但字段完整：已毕业或未入学
+        statusText = '已毕业';
+      } else {
+        // 数据不完整，无法判断
+        statusText = '未知';
       }
 
       return {
