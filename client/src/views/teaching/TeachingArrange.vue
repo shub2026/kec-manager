@@ -116,7 +116,19 @@
         class="adaptive-table"
       >
         <el-table-column type="index" label="#" width="50" />
-        <el-table-column prop="className" label="班级名称" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="className" label="班级名称" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span>{{ row.className }}</span>
+            <el-tooltip
+              v-if="row.combinationId != null"
+              :content="row.partnerClassNames ? `合班伙伴：${row.partnerClassNames}` : '已标记合班教学'"
+              placement="top"
+              effect="light"
+            >
+              <el-icon class="combined-icon" :size="14"><Connection /></el-icon>
+            </el-tooltip>
+          </template>
+        </el-table-column>
         <el-table-column prop="collegeName" label="学院" min-width="100" show-overflow-tooltip />
         <el-table-column prop="majorName" label="专业" min-width="100" show-overflow-tooltip />
         <el-table-column
@@ -283,7 +295,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue';
 import { ElMessage } from 'element-plus';
-import { WarningFilled } from '@element-plus/icons-vue';
+import { WarningFilled, Connection } from '@element-plus/icons-vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
@@ -886,6 +898,12 @@ onMounted(async () => {
 <style scoped>
 .matrix-card {
   margin-bottom: 16px;
+}
+.combined-icon {
+  margin-left: 4px;
+  vertical-align: middle;
+  color: var(--el-color-warning);
+  cursor: help;
 }
 .card-header {
   display: flex;

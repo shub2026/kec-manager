@@ -7,7 +7,16 @@ import { getCurrentSemesterInfo } from './settings.service.js';
  * @returns {Promise<Object>} Prisma where 条件
  */
 export async function buildClassFilter(query) {
-  const { name, major_id, college_id, status, training_level_id, plan_id, enrollment_year } = query;
+  const {
+    name,
+    major_id,
+    college_id,
+    status,
+    training_level_id,
+    plan_id,
+    enrollment_year,
+    is_combined,
+  } = query;
 
   const where = {};
   if (name) where.name = { contains: name };
@@ -18,6 +27,13 @@ export async function buildClassFilter(query) {
 
   if (college_id) {
     where.college_id = Number(college_id);
+  }
+
+  // 合班筛选：1=只看合班班级，0=只看非合班班级，不传=全部
+  if (is_combined === '1' || is_combined === 1 || is_combined === true) {
+    where.combination_id = { not: null };
+  } else if (is_combined === '0' || is_combined === 0 || is_combined === false) {
+    where.combination_id = null;
   }
 
   let dynamicStatusFilter = null;

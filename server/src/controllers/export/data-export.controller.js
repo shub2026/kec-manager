@@ -11,6 +11,10 @@ import { calcClassSemester, buildConsecutiveTextbookMap } from '../../services/s
 import { isClassMatchPlan, findBestMatchPlan } from '../../services/plan.service.js';
 import { buildClassFilter } from '../../services/class-filter.service.js';
 import { getClassesWithCourse } from '../../services/teaching-arrange.service.js';
+import {
+  buildCombinationMemberMap,
+  formatPartnerNames,
+} from '../../services/class-combination.service.js';
 
 /**
  * 分批查询防止 OOM：每批 500 条用 skip/take 分页累积到数组
@@ -208,6 +212,10 @@ export async function exportClasses(req, res, next) {
       }
     }
 
+    // 预加载合班成员映射，用于导出合班伙伴名称
+    const combinationIds = classes.map((c) => c.combination_id).filter((id) => id != null);
+    const combinationMemberMap = await buildCombinationMemberMap(combinationIds);
+
     const rows = classes.map((cls) => {
       // 计算匹配的培养方案名称（与前端逻辑一致）
       let matchedPlanName = null;
@@ -252,6 +260,13 @@ export async function exportClasses(req, res, next) {
         statusText = '未知';
       }
 
+      // 合班伙伴名称（不含自身）
+      const members = combinationMemberMap.get(cls.combination_id) || [];
+      const partnerClasses = members.filter((m) => m.id !== cls.id);
+      const combinationText = cls.combination_id != null
+        ? (formatPartnerNames(partnerClasses) || '是')
+        : '';
+
       return {
         班级名称: cls.name,
         二级学院: cls.colleges?.name || '-',
@@ -264,6 +279,7 @@ export async function exportClasses(req, res, next) {
         状态: statusText,
         关联类型: relationType,
         当前方案: matchedPlanName || '-',
+        合班教学: combinationText,
       };
     });
 
@@ -279,6 +295,7 @@ export async function exportClasses(req, res, next) {
       { label: '状态', key: '状态', width: 10 },
       { label: '关联类型', key: '关联类型', width: 10 },
       { label: '当前方案', key: '当前方案', width: 30 },
+      { label: '合班教学', key: '合班教学', width: 25 },
     ];
 
     const workbook = await createWorkbook(headers, rows);
@@ -800,9 +817,21 @@ export async function exportTeachingArrange(req, res, next) {
       filteredClasses = classes.filter((c) => c.textbooks?.some((tb) => tb.title === textbook));
     }
 
+    // 预加载合班成员映射，用于导出合班伙伴名称
+    const teachCombinationIds = filteredClasses
+      .map((c) => c.combinationId)
+      .filter((id) => id != null);
+    const teachCombinationMemberMap = await buildCombinationMemberMap(teachCombinationIds);
+
     const rows = filteredClasses.map((c) => {
       const a = assignmentMap.get(c.classId);
       const textbookNames = c.textbooks?.map((tb) => tb.title).join('、') || '-';
+      // 合班伙伴名称（不含自身）
+      const members = teachCombinationMemberMap.get(c.combinationId) || [];
+      const partnerClasses = members.filter((m) => m.id !== c.classId);
+      const combinationText = c.combinationId != null
+        ? (formatPartnerNames(partnerClasses) || '是')
+        : '';
       return {
         班级名称: c.className,
         学院: c.collegeName || '-',
@@ -816,6 +845,7 @@ export async function exportTeachingArrange(req, res, next) {
         教材: textbookNames,
         任课教师: a?.teacher?.name || '未安排',
         安排方式: a ? (a.is_auto ? '自动' : '手动') : '-',
+        合班教学: combinationText,
       };
     });
 
@@ -837,6 +867,7 @@ export async function exportTeachingArrange(req, res, next) {
       { label: '教材', key: '教材', width: 30 },
       { label: '任课教师', key: '任课教师', width: 12 },
       { label: '安排方式', key: '安排方式', width: 10 },
+      { label: '合班教学', key: '合班教学', width: 25 },
     ];
 
     const workbook = await createWorkbook(headers, rows);

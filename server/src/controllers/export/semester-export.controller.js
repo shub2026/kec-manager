@@ -9,6 +9,10 @@ import {
   parseSemester,
 } from '../../services/semester.service.js';
 import { findBestMatchPlan, buildClassWithPlanFilter } from '../../services/plan.service.js';
+import {
+  buildCombinationMemberMap,
+  formatPartnerNames,
+} from '../../services/class-combination.service.js';
 
 /**
  * 分批查询防止 OOM：每批 500 条用 skip/take 分页累积到数组
@@ -145,6 +149,10 @@ async function buildSemesterExportData(semesterInfo, filters) {
   }
   const consecutiveMap = await buildConsecutiveTextbookMap(textbookRecords);
 
+  // 预加载合班成员映射，用于导出合班伙伴名称
+  const combinationIds = classes.map((c) => c.combination_id).filter((id) => id != null);
+  const combinationMemberMap = await buildCombinationMemberMap(combinationIds);
+
   // 构建导出行
   const rows = [];
   const grade = filters.grade;
@@ -177,6 +185,13 @@ async function buildSemesterExportData(semesterInfo, filters) {
       totalWeeklyHours += semRecord?.weekly_hours ?? pc.weekly_hours;
     }
 
+    // 合班伙伴名称（不含自身）
+    const members = combinationMemberMap.get(cls.combination_id) || [];
+    const partnerClasses = members.filter((m) => m.id !== cls.id);
+    const combinationText = cls.combination_id != null
+      ? (formatPartnerNames(partnerClasses) || '是')
+      : '';
+
     const baseRow = {
       班级名称: cls.name,
       二级学院: cls.colleges?.name || '-',
@@ -189,6 +204,7 @@ async function buildSemesterExportData(semesterInfo, filters) {
       开课数: courseCount,
       周课时合计: totalWeeklyHours,
       培养方案: plan.name || '-',
+      合班教学: combinationText,
     };
 
     if (planCourses.length === 0) {
@@ -252,6 +268,7 @@ const EXPORT_HEADERS = [
   { label: '学期总课时', key: '学期总课时', width: 12 },
   { label: '教材征订', key: '教材征订', width: 40 },
   { label: '书号', key: '书号', width: 25 },
+  { label: '合班教学', key: '合班教学', width: 25 },
 ];
 
 /**

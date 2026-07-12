@@ -72,6 +72,16 @@
       <el-option label="离校" value="left_school" />
     </el-select>
     <el-select
+      v-model="localFilters.isCombined"
+      clearable
+      placeholder="合班"
+      class="filter-sm"
+      @change="$emit('change')"
+    >
+      <el-option label="合班班级" value="1" />
+      <el-option label="非合班" value="0" />
+    </el-select>
+    <el-select
       v-model="localFilters.planId"
       clearable
       placeholder="培养方案"

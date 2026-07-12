@@ -65,6 +65,7 @@
       :colleges="colleges"
       :training-levels="trainingLevels"
       :plans="plans"
+      :classes="allClassOptions"
       @save="handleSave"
       @batch-save="handleBatchSet"
       @close="resetForm"
@@ -201,6 +202,9 @@ const planLevelRelation = ref({}); // 培养方案-层次关联
 const selectedClasses = ref([]);
 const currentSemesterInfo = ref(null); // 当前学期信息
 let _relationsLoaded = false; // 关联数据是否已加载（结构性数据只加载一次）
+// 合班伙伴候选班级（轻量列表：id/name/collegeId），在打开编辑弹窗时按需加载
+const allClassOptions = ref([]);
+let _allClassOptionsLoaded = false;
 
 const filters = ref({
   name: '',
@@ -210,6 +214,7 @@ const filters = ref({
   enrollmentYear: null,
   status: null,
   planId: null,
+  isCombined: null, // 合班筛选：1=只看合班，0=只看非合班，null=全部
 });
 
 const pagination = ref({
@@ -249,6 +254,8 @@ const form = ref({
   studentCount: 0,
   isLeftSchool: false,
   customPlanId: null,
+  isCombinedClass: false, // 是否参与合班教学
+  combinationClassIds: [], // 合班伙伴班级 ID 列表
 });
 
 // 使用导出 composable
@@ -388,11 +395,29 @@ function handleSizeChange() {
   load();
 }
 
-function openDialog(row = null) {
+async function openDialog(row = null) {
   if (row) {
-    form.value = { ...row };
+    form.value = {
+      ...row,
+      isCombinedClass: row.isCombinedClass ?? false,
+      combinationClassIds: Array.isArray(row.partnerClassIds) ? [...row.partnerClassIds] : [],
+    };
   } else {
     resetForm();
+  }
+  // 懒加载合班伙伴候选班级（轻量字段）
+  if (!_allClassOptionsLoaded) {
+    try {
+      const res = await getClasses({ page: 1, pageSize: 100 });
+      allClassOptions.value = (res?.data?.items || []).map((c) => ({
+        id: c.id,
+        name: c.name,
+        collegeId: c.collegeId,
+      }));
+      _allClassOptionsLoaded = true;
+    } catch {
+      allClassOptions.value = [];
+    }
   }
   dialogVisible.value = true;
 }
@@ -409,6 +434,8 @@ function resetForm() {
     studentCount: 0,
     isLeftSchool: false,
     customPlanId: null,
+    isCombinedClass: false,
+    combinationClassIds: [],
   };
 }
 
@@ -439,6 +466,10 @@ async function handleSave() {
           : undefined,
       customPlanId: form.value.customPlanId ?? null,
       isLeftSchool: form.value.isLeftSchool,
+      // 合班教学：始终传递 combinationClassIds（空数组表示解除合班）
+      combinationClassIds: form.value.isCombinedClass
+        ? (form.value.combinationClassIds || []).map(Number).filter((id) => id > 0)
+        : [],
     };
 
     if (form.value.id) {

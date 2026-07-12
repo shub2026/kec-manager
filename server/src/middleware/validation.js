@@ -56,6 +56,14 @@ export const validateClass = [
     .optional()
     .isInt({ min: 0, max: 999 })
     .withMessage('学生人数必须在0-999之间'),
+  body('combination_class_ids')
+    .optional()
+    .isArray({ max: 50 })
+    .withMessage('合班伙伴班级ID列表最多50个'),
+  body('combination_class_ids.*')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('合班伙伴班级ID必须为正整数'),
   handleValidationErrors,
 ];
 
@@ -86,6 +94,14 @@ export const validateClassUpdate = [
     .optional()
     .isInt({ min: 0, max: 999 })
     .withMessage('学生人数必须在0-999之间'),
+  body('combination_class_ids')
+    .optional()
+    .isArray({ max: 50 })
+    .withMessage('合班伙伴班级ID列表最多50个'),
+  body('combination_class_ids.*')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('合班伙伴班级ID必须为正整数'),
   handleValidationErrors,
 ];
 

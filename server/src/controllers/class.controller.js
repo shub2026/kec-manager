@@ -6,6 +6,13 @@ import { getCurrentSemesterInfo, getSemesterStartMonth } from '../services/setti
 import { getActiveClassFilter, invalidateDurationCache } from '../services/class.service.js';
 import { buildClassFilter } from '../services/class-filter.service.js';
 import { findBestMatchPlan } from '../services/plan.service.js';
+import {
+  applyCombination,
+  buildCombinationMemberMap,
+  formatPartnerNames,
+  getPartnersOfClass,
+  dissolveAfterClassDeletion,
+} from '../services/class-combination.service.js';
 
 function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null, semesterStartMonth = 8) {
   let startYear;
@@ -85,6 +92,12 @@ export async function listClasses(req, res, next) {
       },
     });
 
+    // 预加载本页班级涉及的合班组合成员映射，用于展示合班伙伴
+    const combinationIds = classes
+      .map((c) => c.combination_id)
+      .filter((id) => id != null);
+    const combinationMemberMap = await buildCombinationMemberMap(combinationIds);
+
     const classesWithDynamicStatus = classes.map((cls) => {
       let status;
       if (cls.is_left_school) {
@@ -145,6 +158,10 @@ export async function listClasses(req, res, next) {
         }
       }
 
+      // 合班伙伴：从组合成员映射中排除自身
+      const members = combinationMemberMap.get(cls.combination_id) || [];
+      const partnerClasses = members.filter((m) => m.id !== cls.id);
+
       return {
         ...cls,
         status,
@@ -152,6 +169,10 @@ export async function listClasses(req, res, next) {
         matchedPlanName, // 添加匹配的方案名称
         matchedPlanType, // 添加实际匹配类型（custom/major/level）
         planMatchWarning, // 添加交叉匹配警告
+        isCombinedClass: cls.combination_id != null, // 合班标记
+        combinationId: cls.combination_id, // 合班组合 ID
+        partnerClassNames: formatPartnerNames(partnerClasses), // 合班伙伴名称（顿号分隔）
+        partnerClassIds: partnerClasses.map((m) => m.id), // 合班伙伴班级 ID 列表
       };
     });
 
@@ -286,6 +307,7 @@ export async function createClass(req, res, next) {
       student_count,
       custom_plan_id,
       is_left_school,
+      combination_class_ids,
     } = req.body;
     if (!name || !enrollment_year || !duration_years || !training_level_id) {
       throw new ValidationError('班级名称、入学年份、学制、培养层次为必填项');
@@ -308,13 +330,16 @@ export async function createClass(req, res, next) {
       );
     }
 
+    const collegeIdNum = college_id ? Number(college_id) : null;
+
+    // 先创建班级，再在事务中应用合班关系
     const cls = await prisma.classes.create({
       data: {
         name,
         enrollment_year: Number(enrollment_year),
         duration_years: Number(duration_years),
         major_id: major_id ? Number(major_id) : null,
-        college_id: college_id ? Number(college_id) : null,
+        college_id: collegeIdNum,
         training_level_id: Number(training_level_id),
         student_count: Number(student_count) || 0,
         custom_plan_id: custom_plan_id ? Number(custom_plan_id) : null,
@@ -324,18 +349,37 @@ export async function createClass(req, res, next) {
       include: { majors: true, colleges: true, training_levels: true, training_plans: true },
     });
 
+    // 应用合班关系（如有）
+    if (combination_class_ids !== undefined) {
+      await prisma.$transaction(async (tx) => {
+        await applyCombination(
+          tx,
+          cls.id,
+          Array.isArray(combination_class_ids) ? combination_class_ids : [],
+          collegeIdNum
+        );
+      });
+    }
+
+    const result = combination_class_ids !== undefined
+      ? await prisma.classes.findUnique({
+          where: { id: cls.id },
+          include: { majors: true, colleges: true, training_levels: true, training_plans: true },
+        })
+      : cls;
+
     await createAuditLog({
       action: 'create',
       module: 'class',
       userId: req.user?.id,
       ip: req.ip,
-      details: { id: cls.id, name },
+      details: { id: cls.id, name, combination_class_ids },
       result: 'success',
       message: `创建班级：${name}`,
     });
 
     invalidateDurationCache();
-    success(res, cls, '创建成功');
+    success(res, result, '创建成功');
   } catch (e) {
     await createAuditLog({
       action: 'create',
@@ -363,6 +407,7 @@ export async function updateClass(req, res, next) {
       student_count,
       custom_plan_id,
       is_left_school,
+      combination_class_ids,
     } = req.body;
 
     const currentClass = await prisma.classes.findUnique({ where: { id: Number(id) } });
@@ -403,9 +448,14 @@ export async function updateClass(req, res, next) {
     if (custom_plan_id !== undefined)
       updateData.custom_plan_id = custom_plan_id ? Number(custom_plan_id) : null;
 
+    // 计算用于合班同学院校验的学院 ID（取更新后的值或原值）
+    const effectiveCollegeId =
+      college_id !== undefined ? (college_id ? Number(college_id) : null) : currentClass.college_id;
+
     // M-2修复：班级更新与级联删除排课记录放入同一事务，保证原子性
     let cls;
     let deletedAssignmentCount = 0;
+    let dissolvedCombinationIds = [];
     await prisma.$transaction(async (tx) => {
       cls = await tx.classes.update({
         where: { id: Number(id) },
@@ -420,6 +470,22 @@ export async function updateClass(req, res, next) {
         });
         deletedAssignmentCount = result.count;
       }
+
+      // 应用合班关系（仅当请求体显式传 combination_class_ids 时）
+      if (combination_class_ids !== undefined) {
+        const combResult = await applyCombination(
+          tx,
+          Number(id),
+          Array.isArray(combination_class_ids) ? combination_class_ids : [],
+          effectiveCollegeId
+        );
+        dissolvedCombinationIds = combResult.dissolvedCombinationIds;
+        // 重新查询以返回最新 combination_id
+        cls = await tx.classes.findUnique({
+          where: { id: Number(id) },
+          include: { majors: true, colleges: true, training_levels: true, training_plans: true },
+        });
+      }
     });
 
     await createAuditLog({
@@ -432,11 +498,16 @@ export async function updateClass(req, res, next) {
         name,
         is_left_school: leftSchool,
         deletedAssignments: deletedAssignmentCount,
+        combination_class_ids,
+        dissolvedCombinations: dissolvedCombinationIds,
       },
       result: 'success',
       message:
         `更新班级：${name}` +
-        (deletedAssignmentCount > 0 ? `，级联删除 ${deletedAssignmentCount} 条排课记录` : ''),
+        (deletedAssignmentCount > 0 ? `，级联删除 ${deletedAssignmentCount} 条排课记录` : '') +
+        (combination_class_ids !== undefined
+          ? `，合班伙伴 ${Array.isArray(combination_class_ids) ? combination_class_ids.length : 0} 个`
+          : ''),
     });
 
     success(res, cls, '更新成功');
@@ -483,17 +554,39 @@ export async function deleteClass(req, res, next) {
         }，请先删除排课后再删除班级`
       );
     }
+
+    // 删除前查询合班组合 ID（删除后需清理组合）
+    const classBeforeDelete = await prisma.classes.findUnique({
+      where: { id: classId },
+      select: { name: true, combination_id: true },
+    });
+    if (!classBeforeDelete) throw new NotFoundError('班级');
+
     try {
-      const deleted = await prisma.classes.delete({ where: { id: classId } });
+      // 删除班级 + 清理合班组合放入同一事务
+      let dissolvedCombinationIds = [];
+      await prisma.$transaction(async (tx) => {
+        await tx.classes.delete({ where: { id: classId } });
+        // 班级删除后，其原所属组合若剩余 ≤1 班则解散
+        const dissolvedId = await dissolveAfterClassDeletion(
+          tx,
+          classBeforeDelete.combination_id
+        );
+        if (dissolvedId != null) dissolvedCombinationIds.push(dissolvedId);
+      });
 
       await createAuditLog({
         action: 'delete',
         module: 'class',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: Number(id), name: deleted.name },
+        details: {
+          id: Number(id),
+          name: classBeforeDelete.name,
+          dissolvedCombinations: dissolvedCombinationIds,
+        },
         result: 'success',
-        message: `删除班级：${deleted.name}`,
+        message: `删除班级：${classBeforeDelete.name}`,
       });
 
       success(res, null, '删除成功');
@@ -572,13 +665,29 @@ export async function batchDeleteClasses(req, res, next) {
     // 4) 可删除的 ID（不在 blocked 列表中且在数据库中存在）
     const deletableIds = classIds.filter((id) => !blockedMap.has(id) && classMap.has(id));
 
-    // 5) 在单个事务中批量删除
+    // 4.5) 查询待删班级的合班组合 ID，删除后需清理组合
+    const combinationIdSet = new Set();
+    if (deletableIds.length > 0) {
+      const combClasses = await prisma.classes.findMany({
+        where: { id: { in: deletableIds }, combination_id: { not: null } },
+        select: { combination_id: true },
+      });
+      for (const c of combClasses) {
+        if (c.combination_id != null) combinationIdSet.add(c.combination_id);
+      }
+    }
+
+    // 5) 在单个事务中批量删除 + 清理合班组合
     let deletedCount = 0;
     if (deletableIds.length > 0) {
       deletedCount = await prisma.$transaction(async (tx) => {
         const result = await tx.classes.deleteMany({
           where: { id: { in: deletableIds } },
         });
+        // 批量删除后，对涉及的每个合班组合尝试清理（剩余 ≤1 班则解散）
+        for (const combId of combinationIdSet) {
+          await dissolveAfterClassDeletion(tx, combId);
+        }
         return result.count;
       });
       invalidateDurationCache();

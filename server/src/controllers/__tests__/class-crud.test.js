@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const mockTx = {
   classes: {
     update: vi.fn(),
+    delete: vi.fn(),
   },
   teaching_assignments: {
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -124,6 +125,7 @@ const EXISTING_CLASS = {
   training_level_id: 2,
   student_count: 40,
   custom_plan_id: null,
+  combination_id: null,
   is_left_school: false,
   status: 'active',
 };
@@ -342,7 +344,7 @@ describe('deleteClass', () => {
     mockPrisma.teaching_assignments.count.mockResolvedValue(0);
     mockPrisma.teaching_assignments.findMany.mockResolvedValue([]);
     mockPrisma.classes.findUnique.mockResolvedValue({ ...EXISTING_CLASS });
-    mockPrisma.classes.delete.mockResolvedValue({ ...EXISTING_CLASS });
+    mockTx.classes.delete.mockResolvedValue({ ...EXISTING_CLASS });
   });
 
   it('无排课记录时删除成功', async () => {
@@ -353,7 +355,7 @@ describe('deleteClass', () => {
     await deleteClass(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(mockPrisma.classes.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+    expect(mockTx.classes.delete).toHaveBeenCalledWith({ where: { id: 1 } });
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ success: true, message: '删除成功' })
     );
@@ -372,7 +374,7 @@ describe('deleteClass', () => {
 
     await deleteClass(req, res, next);
 
-    expect(mockPrisma.classes.delete).not.toHaveBeenCalled();
+    expect(mockTx.classes.delete).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -401,9 +403,8 @@ describe('deleteClass', () => {
   });
 
   it('删除不存在的班级 → 404', async () => {
-    const notFoundError = new Error('Record not found');
-    notFoundError.code = 'P2025';
-    mockPrisma.classes.delete.mockRejectedValue(notFoundError);
+    // findUnique 返回 null → NotFoundError
+    mockPrisma.classes.findUnique.mockResolvedValue(null);
 
     const req = mockReq({}, { id: '999' });
     const res = mockRes();

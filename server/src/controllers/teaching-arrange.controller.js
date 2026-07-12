@@ -14,6 +14,10 @@ import {
 } from '../services/teaching-arrange.service.js';
 import { calcClassSemester } from '../services/semester.service.js';
 import { initSSE, sendSSEEvent, isSSERequest } from '../utils/sse.js';
+import {
+  buildCombinationMemberMap,
+  formatPartnerNames,
+} from '../services/class-combination.service.js';
 
 /**
  * 安全解析 JSON 字符串，失败时返回 fallback 并记录告警
@@ -48,11 +52,19 @@ export async function getCourseClasses(req, res, next) {
     });
     const assignmentMap = new Map(assignments.map((a) => [a.class_id, a]));
 
+    // 预加载合班成员映射，用于展示合班伙伴
+    const combinationIds = classes.map((c) => c.combinationId).filter((id) => id != null);
+    const combinationMemberMap = await buildCombinationMemberMap(combinationIds);
+
     // 合并安排信息到班级列表
     const classList = classes.map((c) => {
       const a = assignmentMap.get(c.classId);
+      const members = combinationMemberMap.get(c.combinationId) || [];
+      const partnerClasses = members.filter((m) => m.id !== c.classId);
       return {
         ...c,
+        isCombinedClass: c.combinationId != null,
+        partnerClassNames: formatPartnerNames(partnerClasses),
         assignment: a
           ? {
               id: a.id,

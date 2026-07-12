@@ -137,6 +137,7 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
       majorName: cls.majors?.name || null,
       trainingLevelId: cls.training_level_id,
       trainingLevelName: cls.training_levels?.name || null,
+      combinationId: cls.combination_id,
       grade: calc.grade,
       enrollmentYear: cls.enrollment_year,
       studentCount: cls.student_count || 0,

@@ -44,6 +44,22 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="合班教学" min-width="140">
+        <template #default="{ row }">
+          <el-tooltip
+            v-if="row.isCombinedClass"
+            :content="row.partnerClassNames ? `合班伙伴：${row.partnerClassNames}` : '已标记合班（暂无伙伴）'"
+            placement="top"
+            effect="light"
+          >
+            <el-tag type="warning" size="small">
+              <el-icon style="vertical-align: middle"><Connection /></el-icon>
+              {{ row.partnerClassNames ? '合班' : '合班(无伙伴)' }}
+            </el-tag>
+          </el-tooltip>
+          <span v-else class="combined-empty">-</span>
+        </template>
+      </el-table-column>
       <el-table-column label="关联类型" min-width="90">
         <template #default="{ row }">
           <el-tag :type="getRelationTypeTag(row)" size="small">
@@ -123,7 +139,7 @@
 </template>
 
 <script setup>
-import { Edit, Delete } from '@element-plus/icons-vue';
+import { Edit, Delete, Connection } from '@element-plus/icons-vue';
 import EmptyState from '../../../components/EmptyState.vue';
 
 const props = defineProps({

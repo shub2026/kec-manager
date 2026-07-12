@@ -114,6 +114,42 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-row :gutter="20">
+          <el-col :span="24">
+            <el-form-item label="合班教学">
+              <el-switch v-model="localForm.isCombinedClass" />
+              <div class="form-hint">
+                开启后可指定同学院的其他班级作为合班伙伴，排课时合班班级继续遵循教材内聚与学院内聚
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row v-if="localForm.isCombinedClass" :gutter="20">
+          <el-col :span="24">
+            <el-form-item label="合班伙伴">
+              <el-select
+                v-model="localForm.combinationClassIds"
+                multiple
+                filterable
+                clearable
+                collapse-tags
+                collapse-tags-tooltip
+                placeholder="请选择同学院的班级（可多选）"
+                class="full-width"
+              >
+                <el-option
+                  v-for="c in sameCollegeClassOptions"
+                  :key="c.id"
+                  :label="c.name"
+                  :value="c.id"
+                />
+              </el-select>
+              <div class="form-hint">
+                仅可选择相同学院的班级，当前已选 {{ localForm.combinationClassIds?.length || 0 }} 个
+              </div>
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
       <template #footer>
         <el-button @click="visible = false">取消</el-button>
@@ -235,6 +271,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  classes: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits([
@@ -295,6 +335,16 @@ const rules = {
 
 // 小屏弹窗全屏：复用共享响应式断点（由 useResponsive 统一管理 resize 监听）
 const { isMobile } = useResponsive();
+
+// 同学院班级候选列表：排除当前编辑的班级自身，按名称排序
+const sameCollegeClassOptions = computed(() => {
+  const collegeId = localForm.value?.collegeId;
+  const currentId = localForm.value?.id;
+  if (!collegeId) return [];
+  return props.classes
+    .filter((c) => c.collegeId === collegeId && c.id !== currentId)
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+});
 
 async function handleSave() {
   try {
