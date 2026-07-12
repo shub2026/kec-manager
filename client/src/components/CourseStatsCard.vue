@@ -102,10 +102,10 @@ function barColor(idx) {
   padding: 2px 0;
 }
 
-/* 数据行 */
+/* 数据行 — 课程名列按内容自适应(最多五六个字),课时进度条吸收剩余宽度 */
 .table-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px 92px;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr) 92px;
   gap: 8px;
   align-items: center;
   padding: 4px 0;
@@ -126,6 +126,8 @@ function barColor(idx) {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  /* 课程名一般五六个字(约 90px),封顶防止极端长名挤压课时条 */
+  max-width: 128px;
 }
 
 .row-dot {
