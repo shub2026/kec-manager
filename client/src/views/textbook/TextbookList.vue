@@ -46,7 +46,7 @@
       </div>
       <el-table
         v-loading="loading"
-        :data="filteredList"
+        :data="pagedList"
         stripe
         row-key="id"
         @selection-change="handleSelectionChange"
@@ -55,7 +55,9 @@
           <EmptyState type="textbook" description="暂无教材数据" />
         </template>
         <el-table-column type="selection" width="45" />
-        <el-table-column type="index" label="序号" width="60" />
+        <el-table-column label="序号" width="60">
+          <template #default="{ row }">{{ globalIndex(row) + 1 }}</template>
+        </el-table-column>
         <el-table-column prop="title" label="书名" min-width="150" show-overflow-tooltip />
         <el-table-column prop="isbn" label="书号" min-width="120" show-overflow-tooltip />
         <el-table-column prop="publisher" label="出版社" min-width="120" show-overflow-tooltip />
@@ -92,7 +94,7 @@
               <el-button
                 size="small"
                 :icon="ArrowUp"
-                :disabled="$index === 0"
+                :disabled="globalIndex(row) === 0"
                 circle
                 title="上移"
                 @click="handleMoveUp(row)"
@@ -100,7 +102,7 @@
               <el-button
                 size="small"
                 :icon="ArrowDown"
-                :disabled="$index === filteredList.length - 1"
+                :disabled="globalIndex(row) === filteredList.length - 1"
                 circle
                 title="下移"
                 @click="handleMoveDown(row)"
@@ -131,6 +133,18 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="list-pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="filteredList.length"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next"
+          background
+          @size-change="currentPage = 1"
+        />
+      </div>
 
       <!-- 批量操作栏 -->
       <div v-if="selectedTextbooks.length > 0" class="batch-operations">
@@ -447,6 +461,22 @@ const { handleMoveUp, handleMoveDown } = useSortable(filteredList, updateTextboo
   indexFinder: (item) => filteredList.value.findIndex((i) => i.id === item.id),
 });
 
+// 前端分页：全量数据已在客户端筛选，按页切片渲染，避免大列表一次性渲染上千行卡顿。
+// 排序仍作用于完整 filteredList，分页仅影响视图；globalIndex 提供全局序号用于排序禁用判断。
+const currentPage = ref(1);
+const pageSize = ref(20);
+const pagedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredList.value.slice(start, start + pageSize.value);
+});
+function globalIndex(row) {
+  return filteredList.value.findIndex((i) => i.id === row.id);
+}
+// 筛选条件变化后回到第一页，避免停留在越界页码
+watch(filteredList, () => {
+  currentPage.value = 1;
+});
+
 async function load() {
   loading.value = true;
   try {
@@ -742,4 +772,10 @@ onMounted(() => {
 });
 </script>
 
-<style scoped></style>
+<style scoped>
+.list-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+</style>

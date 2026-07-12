@@ -1,12 +1,11 @@
 <template>
-  <el-dialog
+  <BaseConfirmDialog
     :model-value="modelValue"
     :title="data.title"
-    width="min(480px, 90vw)"
-    :close-on-click-modal="false"
-    destroy-on-close
-    align-center
+    :confirm-text="data.confirmText || '确定'"
+    :loading="loading"
     @update:model-value="emit('update:modelValue', $event)"
+    @confirm="emit('confirm')"
   >
     <div class="dialog-body">
       <!-- 单课程确认 -->
@@ -37,17 +36,12 @@
         <p class="info-detail">{{ data.message }}</p>
       </template>
     </div>
-
-    <template #footer>
-      <el-button @click="emit('update:modelValue', false)">取消</el-button>
-      <el-button type="primary" :loading="loading" @click="emit('confirm')">{{
-        data.confirmText || '确定'
-      }}</el-button>
-    </template>
-  </el-dialog>
+  </BaseConfirmDialog>
 </template>
 
 <script setup>
+import BaseConfirmDialog from '@/components/BaseConfirmDialog.vue';
+
 defineProps({
   modelValue: { type: Boolean, default: false },
   type: { type: String, default: 'single' }, // 'single' | 'batch'

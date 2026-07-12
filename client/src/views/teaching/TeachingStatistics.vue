@@ -88,7 +88,7 @@
       <div v-if="filteredTeachers.length > 0">
         <el-table
           v-loading="loading"
-          :data="filteredTeachers"
+          :data="pagedTeachers"
           stripe
           row-key="teacherId"
           style="width: 100%"
@@ -208,6 +208,18 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <div class="list-pagination">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :total="filteredTeachers.length"
+            :page-sizes="[20, 50, 100]"
+            layout="total, sizes, prev, pager, next"
+            background
+            @size-change="currentPage = 1"
+          />
+        </div>
       </div>
     </el-card>
   </div>
@@ -319,6 +331,18 @@ const filteredTeachers = computed(() => {
   });
 });
 
+// 前端分页：外层教师统计表按页切片渲染，避免大量教师行一次性渲染卡顿（嵌套展开表不受影响）
+const currentPage = ref(1);
+const pageSize = ref(20);
+const pagedTeachers = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredTeachers.value.slice(start, start + pageSize.value);
+});
+// 筛选条件变化后回到第一页，避免停留在越界页码
+watch(filteredTeachers, () => {
+  currentPage.value = 1;
+});
+
 const filteredSummary = computed(() => {
   const list = filteredTeachers.value;
   return {
@@ -398,6 +422,12 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
 }
+
+.list-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
 .card-header-actions {
   display: flex;
   flex-wrap: wrap;
@@ -418,9 +448,10 @@ onMounted(async () => {
   min-height: 28px;
   padding: 2px 8px;
 }
-/* 内嵌表格禁用行hover高亮，避免与外层表格hover效果叠加造成视觉干扰 */
+/* 内嵌表格禁用行hover高亮，避免与外层表格hover效果叠加造成视觉干扰
+   .expand-content 类带来更高特异性，无需 !important 即可覆盖全局规则 */
 .expand-content :deep(.el-table tbody tr:hover > td) {
-  background: inherit !important;
+  background: inherit;
 }
 .course-detail h4 {
   margin: 6px 0 2px;

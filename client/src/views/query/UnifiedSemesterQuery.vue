@@ -536,9 +536,10 @@ onMounted(async () => {
   min-height: 28px;
   padding: 2px 8px;
 }
-/* 内嵌表格禁用行hover高亮，避免与外层表格hover效果叠加造成视觉干扰 */
+/* 内嵌表格禁用行hover高亮，避免与外层表格hover效果叠加造成视觉干扰
+   .expand-content 类带来更高特异性，无需 !important 即可覆盖全局规则 */
 .expand-content :deep(.el-table tbody tr:hover > td) {
-  background: inherit !important;
+  background: inherit;
 }
 .expand-content .no-textbook {
   color: var(--text-secondary);

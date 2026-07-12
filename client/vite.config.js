@@ -27,6 +27,10 @@ export default defineConfig({
     // cssCodeSplit 保持默认 true，CSS 随 JS chunk 自动拆分，无需手动配置
     target: 'es2022',
     sourcemap: false,
+    // 生产构建剥离 console.*（错误仍通过 ElMessage 面向用户展示，devtools 保持干净）
+    esbuild: {
+      drop: ['console'],
+    },
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {

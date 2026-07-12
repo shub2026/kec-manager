@@ -1,6 +1,4 @@
-import request from '../utils/request';
-import { useAuthStore } from '@/stores/auth';
-import { getCookie } from '@/utils/cookies';
+import request, { buildAuthHeaders } from '../utils/request';
 import './types';
 
 /**
@@ -19,14 +17,12 @@ import './types';
  * @returns {Promise<{success: boolean, data: object, message: string}>} 最终结果
  */
 async function fetchArrangeSSE(url, body, onProgress, options = {}) {
-  const authStore = useAuthStore();
-  const csrfToken = getCookie('XSRF-TOKEN');
+  // 复用拦截器同源的认证头构造，避免认证逻辑漂移
   const headers = {
     'Content-Type': 'application/json',
     Accept: 'text/event-stream',
+    ...buildAuthHeaders(),
   };
-  if (authStore.token) headers.Authorization = `Bearer ${authStore.token}`;
-  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
 
   // SSE 流式响应不设 HTTP 超时（后端 batch.js 自带 5 分钟业务超时）
   // 但设置一个兜底超时避免无限等待

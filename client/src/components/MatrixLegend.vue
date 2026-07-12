@@ -57,7 +57,7 @@ import { InfoFilled } from '@element-plus/icons-vue';
 const heatColors = {
   low: 'var(--brand-primary-soft, #E8F3FE)',
   mid: 'var(--brand-primary-lighter, #B5D6FC)',
-  high: '#79B7FC',
+  high: 'var(--el-color-primary-light-5)',
 };
 
 function swatch(key) {

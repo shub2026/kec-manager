@@ -154,7 +154,7 @@ const remainingHours = computed(() => {
 
 .dual-bar-filled {
   height: 100%;
-  background: linear-gradient(90deg, var(--brand-success) 0%, #86EFAC 100%);
+  background: linear-gradient(90deg, var(--brand-success) 0%, var(--brand-success-soft) 100%);
   border-radius: var(--radius-sm);
   transition: width 0.6s var(--ease-out);
   min-width: 4px;

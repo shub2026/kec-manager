@@ -312,7 +312,7 @@ function handleSave() {
   right: 24px;
   padding: 4px 12px;
   background: var(--brand-primary);
-  color: #fff;
+  color: var(--bg-card);
   border-radius: var(--radius-lg);
   font-size: 12px;
   font-weight: 500;

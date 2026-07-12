@@ -378,6 +378,14 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+/* 窄屏收缩标签列，避免与全局 768 断点脱节 */
+@media (max-width: 768px) {
+  .textbook-descriptions :deep(.el-descriptions__label) {
+    width: auto;
+    min-width: 72px;
+  }
+}
+
 .textbook-descriptions :deep(.el-descriptions__content) {
   min-width: 0;
   word-break: break-word;

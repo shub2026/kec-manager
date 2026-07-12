@@ -33,9 +33,11 @@
   box-shadow: var(--shadow-glow);
 }
 
-/* 表格行 hover:更柔和的强调色 */
+/* 表格行 hover:更柔和的强调色
+   去掉 !important；内嵌展开表(.expand-content)靠组件更高特异性规则覆盖，
+   无需 !important 对抗 */
 .el-table tbody tr:hover > td {
-  background: var(--brand-primary-soft) !important;
+  background: var(--brand-primary-soft);
   transition: background var(--dur-fast) var(--ease-out);
 }
 
@@ -56,13 +58,13 @@
 }
 
 /* 全局聚焦环:键盘可见性
-   排除 Element Plus 表单控件（el-input/el-select 等），
-   它们已自带 box-shadow:inset 聚焦环，
-   叠加 outline 会在生产环境产生"双层边框" */
-*:focus-visible:not(.el-input__wrapper):not(.el-select__wrapper):not(.el-textarea__inner) {
+   排除 Element Plus 自带聚焦样式的控件（el-input/el-select/el-textarea
+   以及 checkbox/radio/switch/button/tabs/tree 等），它们已用 box-shadow
+   渲染聚焦环，叠加 outline 会在生产环境产生"双焦点环"。border-radius
+   不放进通配，避免给所有元素强加圆角造成副作用。 */
+*:focus-visible:not(.el-input__wrapper):not(.el-select__wrapper):not(.el-textarea__inner):not(.el-checkbox__inner):not(.el-radio__inner):not(.el-switch):not(.el-button):not(.el-tabs__item):not(.el-tree-node__content):not(.el-radio-button):not(.el-tag) {
   outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
 }
 
 /* ================================================================

@@ -84,11 +84,13 @@
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
+      <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
         <template #empty>
           <EmptyState type="teacher" description="暂无教师数据" />
         </template>
-        <el-table-column type="index" label="序号" min-width="60" align="center" />
+        <el-table-column label="序号" min-width="60" align="center">
+          <template #default="{ $index }">{{ (currentPage - 1) * pageSize + $index + 1 }}</template>
+        </el-table-column>
         <el-table-column prop="name" label="姓名" min-width="100">
           <template #default="{ row }">
             <span
@@ -191,6 +193,19 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="list-pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="filteredList.length"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next"
+          background
+          @current-change="currentPage = $event"
+          @size-change="currentPage = 1"
+        />
+      </div>
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
@@ -363,7 +378,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onActivated } from 'vue';
+import { ref, onMounted, computed, onActivated, watch } from 'vue';
 import { Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import {
@@ -513,6 +528,18 @@ const filteredList = computed(() => {
     result = result.filter((t) => (t.status || 'active') === filterStatus.value);
   }
   return result;
+});
+
+// 前端分页：全量数据已在客户端筛选，按页切片渲染，避免大列表一次性渲染上千行导致卡顿
+const currentPage = ref(1);
+const pageSize = ref(20);
+const pagedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredList.value.slice(start, start + pageSize.value);
+});
+// 筛选条件变化后回到第一页，避免停留在越界页码
+watch(filteredList, () => {
+  currentPage.value = 1;
 });
 
 const defaultForm = {
@@ -711,5 +738,11 @@ onActivated(() => {
 <style scoped>
 .tag-item {
   margin: 2px;
+}
+
+.list-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 </style>

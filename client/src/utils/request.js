@@ -130,8 +130,8 @@ request.interceptors.response.use(
     }
 
     // 处理其他错误
+    const silentError = error.config?.silentError;
     if (error.response) {
-      const silentError = error.config?.silentError;
       const status = error.response.status;
       const msgMap = {
         400: '请求参数错误',
@@ -161,8 +161,30 @@ request.interceptors.response.use(
     } else {
       if (!error.config?.silentError) ElMessage.error(error.message || '网络错误');
     }
+    // 安全网：silentError 模式下生产不弹窗（调用方自行处理），但开发环境记录日志便于排查
+    if (silentError && import.meta.env.DEV) {
+      console.error('[silent error] 拦截器已抑制弹窗，错误由调用方处理:', error?.response?.data?.message || error.message);
+    }
     return Promise.reject(error);
   }
 );
 
 export default request;
+
+/**
+ * 构造认证请求头（与请求拦截器逻辑保持一致），供非 axios 调用（如 SSE 的 fetch）复用，
+ * 避免认证头构造逻辑在多处漂移。
+ * @returns {{ Authorization?: string, 'X-CSRF-Token'?: string }}
+ */
+export function buildAuthHeaders() {
+  const authStore = useAuthStore();
+  const headers = {};
+  if (authStore.token) {
+    headers.Authorization = `Bearer ${authStore.token}`;
+  }
+  const csrfToken = getCookie('XSRF-TOKEN');
+  if (csrfToken) {
+    headers['X-CSRF-Token'] = csrfToken;
+  }
+  return headers;
+}

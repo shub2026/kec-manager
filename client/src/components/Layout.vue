@@ -297,7 +297,7 @@ function handlePasswordChangeSuccess() {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #fff;
+  color: var(--bg-card);
   font-size: 16px;
   font-weight: bold;
   border-bottom: 1px solid var(--sidebar-border);
@@ -366,7 +366,7 @@ function handlePasswordChangeSuccess() {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #fff;
+  color: var(--bg-card);
   font-size: 16px;
   font-weight: bold;
   border-bottom: 1px solid var(--sidebar-border);

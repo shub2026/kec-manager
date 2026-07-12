@@ -423,7 +423,7 @@ function calcGrandTotalSemester(semester) {
 }
 
 .cell-high {
-  background: #79B7FC;
+  background: var(--el-color-primary-light-5);
 }
 
 .cell-hours {
