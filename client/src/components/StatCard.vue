@@ -149,11 +149,17 @@ watch(
   letter-spacing: -0.03em;
 }
 
+/* 移动端：卡片内部改为纵向 —
+   图标+标签占上行、大数字独占整行居左，
+   保留 2 列网格节奏的同时给数字完整宽度，
+   避免窄屏下「居中数字」被挤压/溢出 */
 @media (max-width: 768px) {
   .stat-item {
+    flex-wrap: wrap;
+    align-content: center;
+    gap: 4px 12px;
     padding: 13px 16px;
-    gap: 11px;
-    min-height: 68px;
+    min-height: 0;
   }
   .stat-core {
     padding-left: 14px;
@@ -167,13 +173,18 @@ watch(
     height: 38px;
   }
   .stat-label {
+    flex: 1;
+    min-width: 0;
     font-size: 13px;
   }
   .stat-value {
-    font-size: 21px;
+    flex: 0 0 100%;
+    text-align: left;
+    font-size: 23px;
+    margin-top: 2px;
   }
   .stat-value-lg {
-    font-size: 24px;
+    font-size: 26px;
   }
 }
 </style>

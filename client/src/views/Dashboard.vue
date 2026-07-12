@@ -430,6 +430,7 @@ onMounted(async () => {
     min-height: calc(100vh - 50px - 24px);
     overflow-y: auto;
     gap: 12px;
+    padding-bottom: 4px;
   }
 
   .welcome-section {
@@ -440,10 +441,12 @@ onMounted(async () => {
 
   .welcome-actions {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .welcome-actions .el-button {
     flex: 1;
+    min-width: 120px;
   }
 
   .welcome-title {
