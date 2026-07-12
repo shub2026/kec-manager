@@ -349,6 +349,20 @@ function findBestMove(
       removeFromTeacher(teacherIdB, classIdB, clsB, teacherStates);
       addToTeacher(teacherIdB, classIdA, clsA, teacherStates);
 
+      // 模拟后硬约束检查：预检公式基于投影估算，此处用实际状态兜底
+      if (TEXTBOOK_COHESION.ENABLED && maxTb > 0) {
+        if (stateA.assignedTextbookIds.size > maxTb || stateB.assignedTextbookIds.size > maxTb) {
+          // 还原状态后跳过此交换对
+          removeFromTeacher(teacherIdA, classIdB, clsB, teacherStates);
+          addToTeacher(teacherIdA, classIdA, clsA, teacherStates);
+          removeFromTeacher(teacherIdB, classIdA, clsA, teacherStates);
+          addToTeacher(teacherIdB, classIdB, clsB, teacherStates);
+          stateA.assignedCollegeIds = savedCollegeA;
+          stateB.assignedCollegeIds = savedCollegeB;
+          continue;
+        }
+      }
+
       const proxyANew = buildScoringProxy(tA, stateA);
       const proxyBNew = buildScoringProxy(tB, stateB);
       const scoreANew = calcMatchScore(proxyANew, clsB);

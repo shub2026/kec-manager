@@ -226,13 +226,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getTeachingStatistics } from '../../api/teachingArrange';
 import { useSettingsStore } from '../../stores/settings';
 import { exportStatistics } from '../../api/export';
 import { downloadBlob } from '../../utils/download';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
+import { useDebounceFn } from '../../composables/useDebounce';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
 
@@ -254,18 +255,10 @@ const filterLevel = ref('');
 const filterAffiliatedCollege = ref('');
 
 // 防抖：姓名搜索200ms后触发筛选
-let _filterTimer = null;
-watch(filterName, (val) => {
-  clearTimeout(_filterTimer);
-  _filterTimer = setTimeout(() => {
-    debouncedFilterName.value = val;
-  }, 200);
-});
-
-// 卸载时清理防抖定时器，避免内存泄漏
-onUnmounted(() => {
-  if (_filterTimer) clearTimeout(_filterTimer);
-});
+const applyFilter = useDebounceFn((val) => {
+  debouncedFilterName.value = val;
+}, 200);
+watch(filterName, (val) => applyFilter(val));
 
 const teacherList = computed(() => statsData.value?.teachers || []);
 

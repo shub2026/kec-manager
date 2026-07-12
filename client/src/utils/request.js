@@ -94,6 +94,7 @@ request.interceptors.response.use(
       }
 
       isRefreshing = true;
+      let shouldLogout = false;
 
       try {
         const refreshed = await authStore.refreshAccessToken();
@@ -104,17 +105,22 @@ request.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${authStore.token}`;
           return request(originalRequest);
         } else {
+          shouldLogout = true;
           processQueue(new Error('登录已过期，请重新登录'), null);
           ElMessage.error('登录已过期，请重新登录');
-          await authStore.logout();
           return Promise.reject(error);
         }
       } catch (refreshError) {
         isRefreshing = false;
+        shouldLogout = true;
         processQueue(refreshError, null);
         ElMessage.error('登录已过期，请重新登录');
-        await authStore.logout();
         return Promise.reject(refreshError);
+      } finally {
+        // 仅在刷新失败时触发 logout，catch 防止异常导致后续请求挂起
+        if (shouldLogout) {
+          authStore.logout().catch(() => {});
+        }
       }
     }
 

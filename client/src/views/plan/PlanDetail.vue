@@ -268,11 +268,16 @@ async function confirmDeleteCourse() {
 }
 
 onMounted(async () => {
-  const [coursesRes, textbooksRes] = await Promise.all([getCourses(), getTextbooks()]);
-  allCourses.value = coursesRes.data || [];
-  // 只显示启用的教材
-  allTextbooks.value = (textbooksRes.data || []).filter((t) => t.isActive);
-  await loadPlan();
+  try {
+    const [coursesRes, textbooksRes] = await Promise.all([getCourses(), getTextbooks()]);
+    allCourses.value = coursesRes.data || [];
+    // 只显示启用的教材
+    allTextbooks.value = (textbooksRes.data || []).filter((t) => t.isActive);
+    await loadPlan();
+  } catch (e) {
+    if (import.meta.env.DEV) console.error('[PlanDetail] 初始化加载失败:', e);
+    ElMessage.error('加载数据失败，请刷新页面重试');
+  }
 });
 </script>
 

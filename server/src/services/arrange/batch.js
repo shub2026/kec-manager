@@ -46,7 +46,7 @@ export async function batchAutoArrange(
       where: {
         plan_courses: {
           some: {
-            plan_course_semesters: { some: {} },
+            plan_course_semesters: { some: { weekly_hours: { gt: 0 } } },
           },
         },
       },

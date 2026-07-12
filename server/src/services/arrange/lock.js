@@ -20,7 +20,7 @@ export async function acquireLock(lockKey, timeoutMs = LOCK_TIMEOUT_MS) {
       // SQLite 的写入串行化保证了原子性
       const result = await prisma.$executeRaw`
         INSERT OR IGNORE INTO arrange_locks (lock_key, created_at, expires_at)
-        VALUES (${lockKey}, datetime('now'), datetime('now', '+5 minutes'))
+        VALUES (${lockKey}, datetime('now'), datetime('now', '+10 minutes'))
       `;
       if (result > 0) return true;
 

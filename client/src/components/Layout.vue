@@ -184,7 +184,6 @@ const settingsStore = useSettingsStore();
 const authStore = useAuthStore();
 const userCollapsed = ref(false); // 用户手动折叠标记
 const windowNarrow = ref(false); // 窗口窄屏标记
-const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
 
 // 侧边栏配色绑定（el-menu 属性不支持 CSS 变量，通过 JS 读取令牌）
 const sidebarBg =

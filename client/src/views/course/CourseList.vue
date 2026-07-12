@@ -166,13 +166,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete, WarningFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course';
 import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
 import { useSortable } from '../../composables/useSortable';
+import { useDebounceFn } from '../../composables/useDebounce';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
 
@@ -183,17 +184,10 @@ const filterName = ref('');
 const debouncedFilterName = ref('');
 
 // 防抖：文本输入200ms后再触发筛选，减少每次按键的computed重算
-let _filterTimer = null;
-watch(filterName, (val) => {
-  clearTimeout(_filterTimer);
-  _filterTimer = setTimeout(() => {
-    debouncedFilterName.value = val;
-  }, 200);
-});
-// 卸载时清理防抖定时器，避免内存泄漏
-onUnmounted(() => {
-  if (_filterTimer) clearTimeout(_filterTimer);
-});
+const applyFilter = useDebounceFn((val) => {
+  debouncedFilterName.value = val;
+}, 200);
+watch(filterName, (val) => applyFilter(val));
 const loading = ref(false);
 const dialogVisible = ref(false);
 const saving = ref(false);

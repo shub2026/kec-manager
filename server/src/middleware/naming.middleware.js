@@ -11,6 +11,9 @@ import { log } from '../utils/logger.js';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
+// 响应转换时跳过的顶层字段（框架约定字段，不做命名转换）
+const SKIP_KEYS = new Set(['code', 'message', 'success']);
+
 /**
  * 检测对象中是否存在「已经是 snake_case 的 key 被错误地当作 camelCase 再转一次」
  * 例如：前端误发 current_semester（snake），中间件会转成 current__semester（双下划线）
@@ -91,7 +94,6 @@ export function convertResponseNaming(req, res, next) {
   res.json = function (data) {
     if (data && typeof data === 'object') {
       // M-1: 通用转换——遍历顶层所有字段，对对象或对象数组执行 snake→camel 转换
-      const SKIP_KEYS = new Set(['code', 'message', 'success']);
       for (const key of Object.keys(data)) {
         if (SKIP_KEYS.has(key)) continue;
         const val = data[key];
@@ -100,12 +102,7 @@ export function convertResponseNaming(req, res, next) {
             item && typeof item === 'object' && !Array.isArray(item) ? snakeToCamel(item) : item
           );
         } else if (val && typeof val === 'object' && !Array.isArray(val)) {
-          // 嵌套分页对象（如 data.data.list）
-          if (Array.isArray(val.list)) {
-            val.list = val.list.map((item) =>
-              item && typeof item === 'object' ? snakeToCamel(item) : item
-            );
-          }
+          // 嵌套分页对象（如 data.data.list）—— snakeToCamel 递归处理所有嵌套含数组
           data[key] = snakeToCamel(val);
         }
       }

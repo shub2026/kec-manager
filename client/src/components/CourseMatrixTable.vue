@@ -234,7 +234,7 @@ function getTextbooks(course, semester) {
     isbn: t.textbooks?.isbn,
     publisher: t.textbooks?.publisher,
     isActive: t.textbooks?.isActive ?? true,
-    isRequired: t.is_required ?? true,
+    isRequired: t.isRequired ?? true,
   }));
 }
 

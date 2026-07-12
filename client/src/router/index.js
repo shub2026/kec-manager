@@ -184,7 +184,10 @@ router.beforeEach(async (to, from, next) => {
 
       // S-01 修复：refreshToken 已完全由 HttpOnly Cookie 管理，不再存储于 JS 内存
       // 当 access token 过期或为空时，尝试通过 HttpOnly Cookie 刷新
-      if ((!authStore.token || authStore.isTokenExpired(authStore.token)) && !authStore.userInfo) {
+      // P1-2 修复：token 过期时始终尝试刷新，不再受 userInfo 缓存状态影响
+      // 原先条件 `&& !authStore.userInfo` 导致 F5 后 userInfo 已缓存时跳过刷新，
+      // 后续请求携带过期 token 必然 401
+      if (!authStore.token || authStore.isTokenExpired(authStore.token)) {
         if (localStorage.getItem('loggedIn') === 'true') {
           // 浏览器会自动携带 HttpOnly refreshToken Cookie，尝试刷新
           const refreshed = await authStore.refreshAccessToken();

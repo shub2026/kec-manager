@@ -127,7 +127,7 @@ const props = defineProps({
     type: Object,
     default: () => ({ startSemester: 1, endSemester: 2 }),
   },
-  editingTextbookId: { type: [Number, null], default: null },
+  editingTextbookId: { type: Number, default: null },
   saving: { type: Boolean, default: false },
   allTextbooks: { type: Array, default: () => [] },
 });

@@ -49,7 +49,7 @@ export function isClassMatchPlan(cls, plan) {
   if (cls.custom_plan_id != null && cls.custom_plan_id === plan.id) return true;
 
   // 未设置自定义方案的班级才走通用匹配
-  if (!cls.custom_plan_id) {
+  if (cls.custom_plan_id == null) {
     // 2. 按专业匹配(如果方案设置了专业,检查班级的专业是否相同)
     if (plan.major_id && cls.major_id && cls.major_id === plan.major_id) return true;
     // 3. 按层次匹配(如果方案设置了层次,检查班级的层次是否相同)
@@ -97,7 +97,7 @@ export function findBestMatchPlan(cls, matchingPlans, classPlanMap = null) {
   let levelMatch = null;
 
   for (const plan of sortedPlans) {
-    if (!cls.custom_plan_id) {
+    if (cls.custom_plan_id == null) {
       // 按专业匹配
       if (!majorMatch && plan.major_id && plan.major_id === cls.major_id) {
         majorMatch = plan;

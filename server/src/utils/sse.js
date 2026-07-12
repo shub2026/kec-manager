@@ -1,3 +1,5 @@
+import { snakeToCamel } from './naming.js';
+
 /**
  * SSE（Server-Sent Events）工具
  *
@@ -38,8 +40,10 @@ export function initSSE(res) {
  */
 export function sendSSEEvent(res, event, data) {
   if (res.writableEnded) return;
+  // SSE 使用 res.write() 而非 res.json()，不经过命名中间件，此处显式转换
+  const normalized = data && typeof data === 'object' ? snakeToCamel(data) : data;
   res.write(`event: ${event}\n`);
-  res.write(`data: ${JSON.stringify(data)}\n\n`);
+  res.write(`data: ${JSON.stringify(normalized)}\n\n`);
 }
 
 /**

@@ -253,8 +253,16 @@ export async function exportClasses(req, res, next) {
         // calc 非 null 表示班级在当前学期处于在读年级范围内
         statusText = '在读';
       } else if (cls.enrollment_year && cls.duration_years) {
-        // calc 为 null 但字段完整：已毕业或未入学
-        statusText = '已毕业';
+        // calc 为 null 但字段完整：可能是已毕业或未入学
+        // P2 修复：通过入学年份和当前学期起始年判断年级，区分两种状态
+        const estimatedGrade = semesterInfo
+          ? semesterInfo.startYear - cls.enrollment_year + 1
+          : null;
+        if (estimatedGrade !== null && estimatedGrade < 1) {
+          statusText = '未入学';
+        } else {
+          statusText = '已毕业';
+        }
       } else {
         // 数据不完整，无法判断
         statusText = '未知';

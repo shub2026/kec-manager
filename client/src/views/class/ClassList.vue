@@ -163,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onActivated } from 'vue';
+import { ref, onMounted, computed, onActivated, onUnmounted } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 // 按需导入项目中 service 函数（ElNotification）的 CSS 不会自动注入，需手动导入样式
 // 否则通知 DOM 渲染但不可见（无背景/定位/动画）
@@ -791,6 +791,14 @@ onActivated(() => {
   if (sessionStorage.getItem('classListNeedsRefresh') === 'true') {
     sessionStorage.removeItem('classListNeedsRefresh');
     loadBaseData();
+  }
+});
+
+// 组件卸载时清理离校确认弹窗的 pending Promise，防止内存泄漏
+onUnmounted(() => {
+  if (_leftSchoolResolve) {
+    _leftSchoolResolve(false);
+    _leftSchoolResolve = null;
   }
 });
 </script>

@@ -371,8 +371,8 @@ export async function runAutoArrange(req, res, next) {
     const courseId = req.body.course_id;
     const semester = req.body.semester;
     const mode = req.body.mode;
-    const hourSettings = req.body.hour_settings || req.body.hourSettings;
-    const scheduleConditions = req.body.schedule_conditions || req.body.scheduleConditions;
+    const hourSettings = req.body.hour_settings;
+    const scheduleConditions = req.body.schedule_conditions;
     const preview = req.body.preview;
 
     if (!courseId || !semester) return fail(res, '缺少课程或学期参数');
@@ -858,11 +858,10 @@ export async function saveHourSettings(req, res, next) {
 export async function runBatchAutoArrange(req, res, next) {
   const useSSE = isSSERequest(req);
   try {
-    // 兼容驼峰和下划线命名
     const semester = req.body.semester;
     const mode = req.body.mode;
-    const hourSettings = req.body.hour_settings || req.body.hourSettings;
-    const scheduleConditions = req.body.schedule_conditions || req.body.scheduleConditions;
+    const hourSettings = req.body.hour_settings;
+    const scheduleConditions = req.body.schedule_conditions;
     const preview = req.body.preview;
 
     if (!semester) return fail(res, '缺少学期参数');

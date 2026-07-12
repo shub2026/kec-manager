@@ -203,7 +203,7 @@ export async function updatePlanCourse(req, res, next) {
         if (newWeeklyHours !== currentPc.weekly_hours) {
           const retainedSemesters = [...existingSemesterSet].filter((s) => newSemesterSet.has(s));
           if (retainedSemesters.length > 0) {
-            await tx.plan_course_semesters.updateMany({
+            const updateResult = await tx.plan_course_semesters.updateMany({
               where: {
                 plan_course_id: Number(id),
                 semester: { in: retainedSemesters },
@@ -211,19 +211,21 @@ export async function updatePlanCourse(req, res, next) {
               },
               data: { weekly_hours: newWeeklyHours },
             });
+            updated.affectedSemesterCount = updateResult.count;
           }
         }
       } else {
         // M2 修复：学期范围未变时，如果 weekly_hours 或 weeks_per_semester 发生变化，
         // 仅同步仍等于旧默认值的学期记录，保留用户对特定学期的单独设置
         if (newWeeklyHours !== currentPc.weekly_hours) {
-          await tx.plan_course_semesters.updateMany({
+          const updateResult = await tx.plan_course_semesters.updateMany({
             where: {
               plan_course_id: Number(id),
               weekly_hours: currentPc.weekly_hours,
             },
             data: { weekly_hours: newWeeklyHours },
           });
+          updated.affectedSemesterCount = updateResult.count;
         }
         if (newWeeksPerSemester !== currentPc.weeks_per_semester) {
           await tx.plan_course_semesters.updateMany({

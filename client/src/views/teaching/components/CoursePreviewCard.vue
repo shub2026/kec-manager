@@ -6,9 +6,14 @@
           <span class="course-name">{{ courseInfo.name }}</span>
           <el-tag size="small">{{ courseTypeLabel(courseInfo.type) }}</el-tag>
         </div>
-        <el-button v-if="teacherCount" :loading="exporting" @click="emit('export')"
-          >数据导出</el-button
+        <el-button
+          v-if="teacherCount"
+          type="primary"
+          :loading="exporting"
+          @click="emit('export')"
         >
+          <el-icon><Download /></el-icon> 数据导出
+        </el-button>
       </div>
     </template>
     <div class="preview-stats">
@@ -42,6 +47,7 @@
 </template>
 
 <script setup>
+import { Download } from '@element-plus/icons-vue';
 defineProps({
   courseInfo: { type: Object, default: null },
   teacherCount: { type: Number, default: 0 },

@@ -59,8 +59,8 @@ export function useCourseMatrixEditing({
 
         await createSemester(getPlanId(), course.id, {
           semester,
-          weekly_hours: defaultWeeklyHours,
-          weeks_count: defaultWeeksCount,
+          weeklyHours: defaultWeeklyHours,
+          weeksCount: defaultWeeksCount,
         });
 
         await loadData();
@@ -172,8 +172,8 @@ export function useCourseMatrixEditing({
     saving.value = true;
     try {
       await updatePlanCourse(editingCourseForSemester.value.id, {
-        start_semester: startSemester,
-        end_semester: endSemester,
+        startSemester,
+        endSemester,
       });
 
       ElMessage.success('保存成功');
@@ -196,7 +196,7 @@ export function useCourseMatrixEditing({
     courses[indexA] = courses[indexB];
     courses[indexB] = tmp;
 
-    const items = courses.map((c, i) => ({ id: c.id, sort_order: i }));
+    const items = courses.map((c, i) => ({ id: c.id, sortOrder: i }));
     await batchUpdateCourseSortOrder(items);
   }
 

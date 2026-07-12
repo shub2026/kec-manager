@@ -442,9 +442,15 @@ export async function importTeachers(req, res, next) {
                 .map((tc) => tc.course_id)
                 .filter((cid) => !newCourseIdSet.has(cid));
               if (removedCourseIds.length > 0) {
-                await tx.teaching_assignments.deleteMany({
+                const deletedAssignments = await tx.teaching_assignments.deleteMany({
                   where: { teacher_id: op.teacherId, course_id: { in: removedCourseIds } },
                 });
+                if (deletedAssignments.count > 0) {
+                  op.warnings = op.warnings || [];
+                  op.warnings.push(
+                    `已删除 ${deletedAssignments.count} 条不再关联课程的排课记录`
+                  );
+                }
               }
               await tx.teacher_courses.deleteMany({ where: { teacher_id: op.teacherId } });
               if (allCourseIds.length > 0) {

@@ -67,8 +67,9 @@ export function useCrudList(api, options = {}) {
 
   async function silentReload() {
     try {
-      const res = await api.list();
-      list.value = res.data || [];
+      const params = typeof listParams === 'function' ? listParams() : listParams?.value || {};
+      const res = await api.list(params);
+      list.value = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error('刷新数据失败:', e);
