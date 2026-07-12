@@ -13,8 +13,17 @@ import {
  */
 export async function listTeachers(req, res, next) {
   try {
+    const { page, page_size } = req.query;
+    const pageNum = page ? Number(page) : 1;
+    const pageSizeNum = page_size ? Number(page_size) : 20;
+
     await autoFixSortOrder('teachers');
+
+    const where = {};
+    const total = await prisma.teachers.count({ where });
+
     const teachers = await prisma.teachers.findMany({
+      where,
       include: {
         affiliated_college: { select: { id: true, name: true } },
         courses: {
@@ -28,8 +37,9 @@ export async function listTeachers(req, res, next) {
         },
         _count: { select: { assignments: true } },
       },
-      take: 100,
       orderBy: { sort_order: 'asc' },
+      skip: (pageNum - 1) * pageSizeNum,
+      take: pageSizeNum,
     });
 
     // viewer 角色脱敏教师 PII（出生年月），仅 admin/super_admin 可见
@@ -44,7 +54,7 @@ export async function listTeachers(req, res, next) {
       assignmentCount: t._count?.assignments || 0,
     }));
 
-    success(res, formatted);
+    success(res, { items: formatted, total });
   } catch (e) {
     next(e);
   }
@@ -70,7 +80,7 @@ export async function createTeacher(req, res, next) {
     } = req.body;
     if (!name) return fail(res, '教师姓名不能为空');
 
-    const newSortOrder = await getNextSortOrder(prisma, 'teachers');
+    const newSortOrder = await getNextSortOrder('teachers');
 
     const teacher = await prisma.teachers.create({
       data: {
@@ -306,17 +316,16 @@ export async function deleteTeacher(req, res, next) {
     if (assignmentCount > 0) return fail(res, '该教师存在教学安排，无法删除');
 
     try {
-      const teacher = await prisma.teachers.findUnique({ where: { id: Number(id) } });
-      await prisma.teachers.delete({ where: { id: Number(id) } });
+      const deleted = await prisma.teachers.delete({ where: { id: Number(id) } });
 
       await createAuditLog({
         action: 'delete',
         module: 'teacher',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: Number(id), name: teacher?.name },
+        details: { id: Number(id), name: deleted.name },
         result: 'success',
-        message: `删除教师：${teacher?.name}`,
+        message: `删除教师：${deleted.name}`,
       });
 
       invalidateSortOrderCache('teachers');

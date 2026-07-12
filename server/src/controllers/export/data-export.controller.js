@@ -374,6 +374,8 @@ export async function exportTextbookUsage(req, res, next) {
     );
 
     const rows = [];
+    // 审计修复：去重集合，防止同一班级因匹配多个方案而被重复计数
+    const addedClassCoursePairs = new Set();
 
     for (const pt of textbook.plan_textbooks) {
       const sem = pt.plan_course_semesters;
@@ -388,6 +390,11 @@ export async function exportTextbookUsage(req, res, next) {
         if (calc.currentSemesterNum !== sem.semester) continue;
 
         if (!isClassMatchPlan(cls, plan)) continue;
+
+        // 审计修复：按 (class_id, plan_course_id) 去重，防止同一班级因匹配多个方案导致学生人数重复计算
+        const pairKey = `${cls.id}_${pc.id}`;
+        if (addedClassCoursePairs.has(pairKey)) continue;
+        addedClassCoursePairs.add(pairKey);
 
         rows.push({
           教材名称: textbook.title,

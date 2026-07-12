@@ -4,6 +4,18 @@ import { useSettingsStore } from '../stores/settings';
 export { downloadBlob } from '../utils/download';
 
 /**
+ * 审计修复：严格的学期校验，与后端 parseSemester 验证逻辑一致
+ * 格式 YYYY-YYYY-N，且 end === start+1，start 在 2000-2099 范围内
+ */
+function isValidSemester(value) {
+  const match = value.match(/^(\d{4})-(\d{4})-([12])$/);
+  if (!match) return false;
+  const start = Number(match[1]);
+  const end = Number(match[2]);
+  return end === start + 1 && start >= 2000 && start <= 2099;
+}
+
+/**
  * 学期相关逻辑的共享 composable
  * @param {object} options
  * @param {number} options.rangeBefore - 当前年份往前多少年（默认 3）
@@ -54,7 +66,7 @@ export function useSemesters(options = {}) {
           semesterStartMonth = parsed;
         }
       }
-      if (value && /^\d{4}-\d{4}-[12]$/.test(value)) {
+      if (value && isValidSemester(value)) {
         return value;
       }
     } catch (e) {

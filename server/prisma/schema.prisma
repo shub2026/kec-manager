@@ -132,7 +132,7 @@ model plan_courses {
   updated_at            DateTime                @updatedAt
   plan_course_semesters plan_course_semesters[]
   training_plans        training_plans          @relation(fields: [plan_id], references: [id], onDelete: Cascade)
-  courses               courses                 @relation(fields: [course_id], references: [id])
+  courses               courses                 @relation(fields: [course_id], references: [id], onDelete: Restrict)
 
   @@unique([plan_id, course_id])
   @@index([plan_id])
@@ -146,7 +146,7 @@ model plan_textbooks {
   is_required           Boolean               @default(true)
   created_at            DateTime              @default(now())
   plan_course_semesters plan_course_semesters @relation(fields: [semester_id], references: [id], onDelete: Cascade)
-  textbooks             textbooks             @relation(fields: [textbook_id], references: [id])
+  textbooks             textbooks             @relation(fields: [textbook_id], references: [id], onDelete: Restrict)
 
   @@index([semester_id])
   @@index([textbook_id])

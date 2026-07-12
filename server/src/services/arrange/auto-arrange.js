@@ -186,7 +186,6 @@ function buildTeacherConstraints(
     const extraHours = extraTeacherHours?.get(t.id) || 0;
     // B-05 修复：防止手动分配被删除后 effectiveTotal 为负值，导致教师容量计算偏差
     const effectiveTotal = Math.max(0, t.totalWeeklyHours - autoHoursForCourse + extraHours);
-    const courseExistingHours = t.courseHours - autoHoursForCourse;
 
     // ⚠️ 字段名误导（P2-11）：defaultWeeklyHours 实为"教师总周课时上限"
     // UI 已改名为"自定义课时"，但 DB/Prisma 字段名仍为 default_weekly_hours
@@ -210,7 +209,6 @@ function buildTeacherConstraints(
       standardHours: setting.standard,
       maxHours: setting.max,
       effectiveTotal,
-      courseExistingHours,
       standardCap: Math.floor(rawStandardCap * capacityReserveRatio),
       fullCap: Math.floor(rawFullCap * capacityReserveRatio),
       teacherHourCap,
@@ -870,6 +868,8 @@ function trySwapOne(
               !t2.schedulingLevelIds.includes(vInfo.trainingLevelId)
             )
               continue;
+            // 审计修复：班级无培养层次时，有层次约束的教师不可接管
+            if (!vInfo.trainingLevelId && t2.schedulingLevelIds?.length > 0) continue;
           }
         }
 

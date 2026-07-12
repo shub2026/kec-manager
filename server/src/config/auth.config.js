@@ -68,14 +68,23 @@ function validateSecretStrength(name, value) {
     if (isProduction) {
       throw new Error('生产环境 JWT 密钥必须至少 32 字符且不能使用占位符');
     } else {
-      log.warn(`安全警告: ${name} 强度不足（少于32字符或为占位符），生产环境将拒绝启动`);
+      // 审计修复：开发环境检测到占位符或弱密钥时，自动生成临时随机密钥，
+      // 防止任何能读取源码的人伪造 JWT
+      const ephemeral = crypto.randomBytes(64).toString('hex');
+      log.warn(
+        `安全警告: ${name} 强度不足（少于32字符或为占位符），已自动生成临时随机密钥。生产环境将拒绝启动。`
+      );
+      return ephemeral; // 返回自动生成的密钥
     }
   }
+  return value;
 }
 
-validateSecretStrength('JWT_SECRET', jwtSecret);
-validateSecretStrength('JWT_REFRESH_SECRET', jwtRefreshSecret);
-validateSecretStrength('JWT_DOWNLOAD_SECRET', jwtDownloadSecret);
+const validatedJwtSecret = validateSecretStrength('JWT_SECRET', jwtSecret) || jwtSecret;
+const validatedRefreshSecret =
+  validateSecretStrength('JWT_REFRESH_SECRET', jwtRefreshSecret) || jwtRefreshSecret;
+const validatedDownloadSecret =
+  validateSecretStrength('JWT_DOWNLOAD_SECRET', jwtDownloadSecret) || jwtDownloadSecret;
 
 checkSecretEntropy('JWT_SECRET', jwtSecret);
 checkSecretEntropy('JWT_REFRESH_SECRET', jwtRefreshSecret);
@@ -88,11 +97,12 @@ function deriveKey(secret, info) {
   return crypto.hkdfSync('sha256', secret, '', info, 64).toString('hex');
 }
 
-const finalRefreshSecret = jwtRefreshSecret || deriveKey(jwtSecret, 'jwt-refresh-token');
-const finalDownloadSecret = jwtDownloadSecret || deriveKey(jwtSecret, 'jwt-download-token');
+const finalRefreshSecret = validatedRefreshSecret || deriveKey(validatedJwtSecret, 'jwt-refresh-token');
+const finalDownloadSecret =
+  validatedDownloadSecret || deriveKey(validatedJwtSecret, 'jwt-download-token');
 
 export const authConfig = {
-  jwtSecret, // Access Token密钥
+  jwtSecret: validatedJwtSecret, // Access Token密钥（审计修复：可能为自动生成）
   jwtRefreshSecret: finalRefreshSecret, // M10修复: Refresh Token密钥
   jwtDownloadSecret: finalDownloadSecret, // M10修复: Download Token密钥
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',

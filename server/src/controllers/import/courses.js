@@ -37,6 +37,8 @@ export async function importCourses(req, res, next) {
     const name = sanitizedRow['课程名称'];
     const code = sanitizedRow['课程编码'] || null;
     const typeValue = sanitizedRow['课程类型'];
+    // 审计修复：读取"描述"列，与导出列对称，确保往返导入不丢失描述数据
+    const description = sanitizedRow['描述'] || null;
     // S-08 修复：标记类型是否为 Excel 显式指定（非空值），避免默认值覆盖已有类型
     const typeExplicit = !!typeValue;
     const type = typeValue === '专业课' || typeValue === 'professional' ? 'professional' : 'public';
@@ -51,6 +53,7 @@ export async function importCourses(req, res, next) {
       code: code ? String(code).trim() : null,
       type,
       typeExplicit,
+      description: description ? String(description).trim() : null,
     });
   }
 

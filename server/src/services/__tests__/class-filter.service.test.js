@@ -113,23 +113,23 @@ describe('buildClassFilter', () => {
       expect(orClause).toEqual([{ is_left_school: true }]);
     });
 
-    it('active 应匹配当前在读的班级（enrollment_year >= startYear - d + 1）', async () => {
+    it('active 应匹配当前在读的班级（enrollment_year >= startYear - d + 1 且 <= startYear）', async () => {
       const result = await buildClassFilter({ status: 'active' });
       expect(result.where.AND).toBeDefined();
       const orClause = result.where.AND[1].OR;
       // 应包含 3 年和 4 年学制的在读条件
       expect(orClause.length).toBe(2);
-      // 3年制: enrollment_year >= 2025-3+1=2023
+      // 3年制: enrollment_year >= 2025-3+1=2023, <= 2025
       expect(orClause[0]).toEqual({
         duration_years: 3,
         is_left_school: false,
-        enrollment_year: { gte: 2023 },
+        enrollment_year: { gte: 2023, lte: 2025 },
       });
-      // 4年制: enrollment_year >= 2025-4+1=2022
+      // 4年制: enrollment_year >= 2025-4+1=2022, <= 2025
       expect(orClause[1]).toEqual({
         duration_years: 4,
         is_left_school: false,
-        enrollment_year: { gte: 2022 },
+        enrollment_year: { gte: 2022, lte: 2025 },
       });
     });
 

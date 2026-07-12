@@ -40,8 +40,9 @@ export async function downloadTemplate(req, res, next) {
           { label: '课程名称', key: 'name', width: 20, required: true },
           { label: '课程编码', key: 'code', width: 15 },
           { label: '课程类型', key: 'type', width: 15 },
+          { label: '描述', key: 'description', width: 30 },
         ];
-        sample = { 课程名称: '语文', 课程编码: 'CHN001', 课程类型: '公共基础课' };
+        sample = { 课程名称: '语文', 课程编码: 'CHN001', 课程类型: '公共基础课', 描述: '基础语文课程' };
         filename = '课程导入模板.xlsx';
         break;
       case 'textbooks':
@@ -54,6 +55,7 @@ export async function downloadTemplate(req, res, next) {
           { label: '出版日期', key: 'publish_date', width: 15 },
           { label: '定价', key: 'price', width: 10 },
           { label: '类别', key: 'category', width: 10 },
+          { label: '状态', key: 'status', width: 10 },
         ];
         sample = {
           书名: '大学语文',
@@ -64,6 +66,7 @@ export async function downloadTemplate(req, res, next) {
           出版日期: '2024-01',
           定价: 45.0,
           类别: '技工',
+          状态: '启用',
         };
         filename = '教材导入模板.xlsx';
         break;

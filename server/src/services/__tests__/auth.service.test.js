@@ -1,24 +1,31 @@
 /**
  * auth.service.js 单元测试
  *
- * 策略：直接 mock auth.config.js，避免依赖 .env 文件
+ * 策略：设置环境变量 + mock auth.config.js，双重保证使用固定测试密钥
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 // ──────────────────────────────────────────────
+// 审计修复后必须在模块加载前设置环境变量，确保 auth.config.js 使用可预测的密钥
+// ──────────────────────────────────────────────
+process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-entropy-check';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-that-is-long-enough-for-check';
+process.env.JWT_DOWNLOAD_SECRET = 'test-download-secret-that-is-long-enough-for-check';
+
+// ──────────────────────────────────────────────
 // Mock auth.config（提供固定测试密钥，不依赖 .env）
 // ──────────────────────────────────────────────
-const TEST_SECRET = 'test-jwt-secret';
-const TEST_REFRESH_SECRET = 'test-refresh-secret';
-const TEST_DOWNLOAD_SECRET = 'test-download-secret';
+const TEST_SECRET = 'test-jwt-secret-that-is-long-enough-for-entropy-check';
+const TEST_REFRESH_SECRET = 'test-refresh-secret-that-is-long-enough-for-check';
+const TEST_DOWNLOAD_SECRET = 'test-download-secret-that-is-long-enough-for-check';
 
 vi.mock('../config/auth.config.js', () => ({
   authConfig: {
-    jwtSecret: 'test-jwt-secret',
-    jwtRefreshSecret: 'test-refresh-secret',
-    jwtDownloadSecret: 'test-download-secret',
+    jwtSecret: 'test-jwt-secret-that-is-long-enough-for-entropy-check',
+    jwtRefreshSecret: 'test-refresh-secret-that-is-long-enough-for-check',
+    jwtDownloadSecret: 'test-download-secret-that-is-long-enough-for-check',
     jwtExpiresIn: '1h',
     jwtRefreshExpiresIn: '7d',
     jwtDownloadExpiresIn: '60s',

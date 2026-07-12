@@ -305,6 +305,19 @@ router.put(
         }
       }
 
+      // 审计修复：密码修改后同时黑名单 Refresh Token，防止已窃取的 Refresh Token 继续签发新 Access Token
+      const refreshTokenValue = cookies['refreshToken'];
+      if (refreshTokenValue) {
+        try {
+          const refreshDecoded = jwt.verify(refreshTokenValue, authConfig.jwtRefreshSecret);
+          if (refreshDecoded.jti) {
+            await AuthService.addToBlacklist(refreshDecoded.jti, (refreshDecoded.exp || 0) * 1000);
+          }
+        } catch {
+          // Refresh Token已过期或无效，无需处理
+        }
+      }
+
       clearAuthCookies(res);
       success(res, null, '密码修改成功，请重新登录');
     } catch (error) {

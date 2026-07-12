@@ -23,8 +23,9 @@ export function invalidateSortOrderCache(modelName) {
  * SQLite 单写者模型下概率极低，autoFixSortOrder 可自动修复。
  * 高并发场景建议改为事务内 SELECT MAX + INSERT 或数据库自增序列。
  */
-export async function getNextSortOrder(prismaClient, modelName) {
-  const maxSort = await prismaClient[modelName].aggregate({
+export async function getNextSortOrder(modelName, tx = null) {
+  const client = tx || prisma;
+  const maxSort = await client[modelName].aggregate({
     _max: { sort_order: true },
   });
   return (maxSort._max.sort_order || 0) + 1;

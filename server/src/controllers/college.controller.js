@@ -42,7 +42,7 @@ export async function createCollege(req, res, next) {
   try {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '学院名称不能为空');
-    const newSortOrder = await getNextSortOrder(prisma, 'colleges');
+    const newSortOrder = await getNextSortOrder('colleges');
     const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const college = await prisma.colleges.create({
       data: { name, code, description, sort_order: finalSortOrder },
@@ -177,17 +177,16 @@ export async function deleteCollege(req, res, next) {
     }
 
     try {
-      const college = await prisma.colleges.findUnique({ where: { id: Number(id) } });
-      await prisma.colleges.delete({ where: { id: Number(id) } });
+      const deleted = await prisma.colleges.delete({ where: { id: Number(id) } });
 
       await createAuditLog({
         action: 'delete',
         module: 'college',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: Number(id), name: college?.name },
+        details: { id: Number(id), name: deleted.name },
         result: 'success',
-        message: `删除学院：${college?.name}`,
+        message: `删除学院：${deleted.name}`,
       });
 
       invalidateSortOrderCache('colleges');

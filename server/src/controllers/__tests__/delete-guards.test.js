@@ -126,7 +126,7 @@ describe('deleteCollege', () => {
     mockPrisma.training_plans.count.mockResolvedValue(0);
     mockPrisma.teachers.count.mockResolvedValue(0);
     mockPrisma.colleges.findUnique.mockResolvedValue({ id: 1, name: '计算机学院' });
-    mockPrisma.colleges.delete.mockResolvedValue({});
+    mockPrisma.colleges.delete.mockResolvedValue({ id: 1, name: '计算机学院' });
   });
 
   it('无引用 → 删除成功', async () => {
@@ -246,7 +246,7 @@ describe('deleteCourse', () => {
     mockPrisma.teaching_assignments.count.mockResolvedValue(0);
     mockPrisma.teacher_courses.count.mockResolvedValue(0);
     mockPrisma.courses.findUnique.mockResolvedValue({ id: 1, name: '高等数学' });
-    mockPrisma.courses.delete.mockResolvedValue({});
+    mockPrisma.courses.delete.mockResolvedValue({ id: 1, name: '高等数学' });
   });
 
   it('无引用 → 删除成功', async () => {
@@ -335,7 +335,7 @@ describe('deleteMajor', () => {
     mockPrisma.classes.count.mockResolvedValue(0);
     mockPrisma.training_plans.count.mockResolvedValue(0);
     mockPrisma.majors.findUnique.mockResolvedValue({ id: 1, name: '软件工程' });
-    mockPrisma.majors.delete.mockResolvedValue({});
+    mockPrisma.majors.delete.mockResolvedValue({ id: 1, name: '软件工程' });
   });
 
   it('无引用 → 删除成功', async () => {
@@ -408,7 +408,7 @@ describe('deleteTrainingLevel', () => {
     mockPrisma.classes.count.mockResolvedValue(0);
     mockPrisma.teacher_training_levels.count.mockResolvedValue(0);
     mockPrisma.training_plans.count.mockResolvedValue(0);
-    mockPrisma.training_levels.delete.mockResolvedValue({});
+    mockPrisma.training_levels.delete.mockResolvedValue({ id: 1, name: '本科' });
   });
 
   it('无引用 → 删除成功', async () => {
@@ -507,7 +507,7 @@ describe('deleteTeacher', () => {
     vi.clearAllMocks();
     mockPrisma.teaching_assignments.count.mockResolvedValue(0);
     mockPrisma.teachers.findUnique.mockResolvedValue({ id: 1, name: '张三' });
-    mockPrisma.teachers.delete.mockResolvedValue({});
+    mockPrisma.teachers.delete.mockResolvedValue({ id: 1, name: '张三' });
   });
 
   it('无教学安排 → 删除成功', async () => {

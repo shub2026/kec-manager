@@ -13,6 +13,13 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 // ──────────────────────────────────────────────
+// 审计修复：在所有模块加载前设置环境变量，确保 auth.config.js 使用可预测的密钥
+// ──────────────────────────────────────────────
+process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-entropy-check';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-that-is-long-enough-for-check';
+process.env.JWT_DOWNLOAD_SECRET = 'test-download-secret-that-is-long-enough-for-check';
+
+// ──────────────────────────────────────────────
 // Mock prisma client
 // ──────────────────────────────────────────────
 const mockPrismaUsers = {
@@ -60,7 +67,7 @@ const { invalidateUserStatusCache } = await import('../../middleware/auth.middle
 // ──────────────────────────────────────────────
 // 测试数据
 // ──────────────────────────────────────────────
-const TEST_SECRET = 'test-jwt-secret';
+const TEST_SECRET = 'test-jwt-secret-that-is-long-enough-for-entropy-check';
 const TEST_USER = {
   id: 1,
   username: 'admin',
@@ -211,7 +218,7 @@ describe('POST /api/auth/refresh', () => {
   it('合法 refreshToken 应返回新 token 对', async () => {
     const refreshToken = jwt.sign(
       { id: 1, username: 'admin', role: 'super_admin', type: 'refresh' },
-      'test-refresh-secret',
+      'test-refresh-secret-that-is-long-enough-for-check',
       { expiresIn: '7d' }
     );
     mockPrismaUsers.findUnique.mockResolvedValue(TEST_USER);

@@ -40,7 +40,7 @@ export async function createTrainingLevel(req, res, next) {
   try {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '层次名称不能为空');
-    const newSortOrder = await getNextSortOrder(prisma, 'training_levels');
+    const newSortOrder = await getNextSortOrder('training_levels');
     const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const level = await prisma.training_levels.create({
       data: { name, code, description, sort_order: finalSortOrder },

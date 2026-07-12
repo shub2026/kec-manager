@@ -81,7 +81,8 @@ export function findBestMatchPlan(cls, matchingPlans, classPlanMap = null) {
   });
 
   // 1. 自定义方案优先
-  if (cls.custom_plan_id) {
+  // 审计修复：使用 != null 替代 truthy 检查，与 L-3 修复保持一致
+  if (cls.custom_plan_id != null) {
     // 优先从传入的 Map 取
     let customPlan = classPlanMap?.get(cls.id);
     // Map 缺失或未命中时，自动从 sortedPlans 中查找（消除 footgun）

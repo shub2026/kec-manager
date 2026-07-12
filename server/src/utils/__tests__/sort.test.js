@@ -255,13 +255,13 @@ describe('normalizeSortOrder', () => {
 describe('getNextSortOrder', () => {
   it('返回 max + 1', async () => {
     mockPrisma.courses.aggregate.mockResolvedValue({ _max: { sort_order: 10 } });
-    const result = await getNextSortOrder(mockPrisma, 'courses');
+    const result = await getNextSortOrder('courses');
     expect(result).toBe(11);
   });
 
   it('max 为 null 时返回 1', async () => {
     mockPrisma.courses.aggregate.mockResolvedValue({ _max: { sort_order: null } });
-    const result = await getNextSortOrder(mockPrisma, 'courses');
+    const result = await getNextSortOrder('courses');
     expect(result).toBe(1);
   });
 });

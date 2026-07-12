@@ -39,7 +39,7 @@ export async function createMajor(req, res, next) {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '专业名称不能为空');
 
-    const newSortOrder = await getNextSortOrder(prisma, 'majors');
+    const newSortOrder = await getNextSortOrder('majors');
     const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
 
     const major = await prisma.majors.create({
@@ -135,17 +135,16 @@ export async function deleteMajor(req, res, next) {
     }
 
     try {
-      const major = await prisma.majors.findUnique({ where: { id: numId } });
-      await prisma.majors.delete({ where: { id: numId } });
+      const deleted = await prisma.majors.delete({ where: { id: numId } });
 
       await createAuditLog({
         action: 'delete',
         module: 'major',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: Number(id), name: major?.name },
+        details: { id: Number(id), name: deleted.name },
         result: 'success',
-        message: `删除专业：${major?.name}`,
+        message: `删除专业：${deleted.name}`,
       });
 
       invalidateSortOrderCache('majors');

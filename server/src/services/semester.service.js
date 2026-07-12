@@ -111,6 +111,8 @@ setInterval(
 
 export function invalidateSemesterCache() {
   semesterCache.delete('current_semester');
+  // 审计修复：同时清除 semester_start_month 缓存，确保开学月份设置变更后立即生效
+  semesterCache.delete('semester_start_month');
 }
 
 /**

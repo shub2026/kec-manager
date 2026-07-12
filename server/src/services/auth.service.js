@@ -16,6 +16,10 @@ const BLACKLIST_NEGATIVE_TTL = 10 * 1000;
 const blacklistMemoryCache = new Map(); // jti -> expiresAt (ms timestamp)
 const MEMORY_CACHE_MAX_SIZE = 10000;
 
+// 审计修复：预计算虚拟哈希，用于用户不存在时的恒定时间比较，防止计时攻击枚举用户名
+let DUMMY_HASH = '';
+(async () => { DUMMY_HASH = await bcrypt.hash('dummy-password-for-timing-attack', 12); })();
+
 // 定时清理过期黑名单记录（每小时一次）
 setInterval(
   () => {
@@ -41,6 +45,8 @@ export class AuthService {
     });
 
     if (!user) {
+      // 审计修复：恒定时间比较，防止计时攻击枚举用户名
+      await bcrypt.compare(password, DUMMY_HASH);
       await createAuditLog({
         action: 'login',
         module: 'auth',
@@ -193,9 +199,11 @@ export class AuthService {
       // DB异常时依赖内存缓存降级
       const memExp = blacklistMemoryCache.get(jti);
       if (memExp && memExp > now) return true;
-      // 内存缓存也未命中，安全降级允许通过
-      log.warn('Token黑名单DB查询失败，降级为内存缓存模式', { jti });
-      return false;
+      if (memExp && memExp <= now) blacklistMemoryCache.delete(jti);
+      // 审计修复：DB不可用且内存缓存未命中时，默认拒绝（fail-close），
+      // 防止数据库故障期间已注销/改密的令牌重新生效
+      log.warn('Token黑名单DB查询失败，默认拒绝（fail-close策略）', { jti });
+      return true;
     }
   }
 

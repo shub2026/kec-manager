@@ -37,7 +37,9 @@ export async function buildClassFilter(query) {
         duration_years: d,
         is_left_school: false,
         enrollment_year:
-          status === 'active' ? { gte: startYear - d + 1 } : { lt: startYear - d + 1 },
+          status === 'active'
+            ? { gte: startYear - d + 1, lte: startYear } // 审计修复：补上界，排除未来入学班级
+            : { lt: startYear - d + 1 },
       }));
     }
   } else if (status) {

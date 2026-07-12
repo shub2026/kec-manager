@@ -3,9 +3,12 @@ import './types';
 
 /**
  * 获取教师列表
- * @returns {Promise<import('./types').ApiResponse<import('./types').Teacher[]>>}
+ * @param {Object} [params] - 查询参数
+ * @param {number} [params.page] - 页码
+ * @param {number} [params.page_size] - 每页数量
+ * @returns {Promise<import('./types').ApiResponse<{ items: import('./types').Teacher[], total: number }>>}
  */
-export const getTeachers = () => request.get('/teachers');
+export const getTeachers = (params) => request.get('/teachers', { params });
 
 /**
  * 创建教师

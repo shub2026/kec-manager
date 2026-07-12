@@ -16,6 +16,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const mockPrisma = {
   teachers: {
     findMany: vi.fn(),
+    count: vi.fn().mockResolvedValue(0),
   },
 };
 
@@ -56,7 +57,7 @@ const { listTeachers } = await import('../teacher.controller.js');
 // 工具函数
 // ──────────────────────────────────────────────
 function mockReq(role = 'viewer') {
-  return { user: { id: 1, role }, ip: '127.0.0.1' };
+  return { user: { id: 1, role }, ip: '127.0.0.1', query: {} };
 }
 
 function mockRes() {
@@ -95,73 +96,80 @@ describe('listTeachers — PII 脱敏', () => {
   // ── admin 角色 → birth_date 可见 ──
   it('admin 角色 → birth_date 应可见（格式化为 YYYY-MM）', async () => {
     mockPrisma.teachers.findMany.mockResolvedValue([makeTeacher()]);
+    mockPrisma.teachers.count.mockResolvedValue(1);
 
     const req = mockReq('admin');
     const res = mockRes();
     await listTeachers(req, res, vi.fn());
 
     const data = res.json.mock.calls[0][0].data;
-    expect(data[0].birth_date).toBe('1990-05');
+    expect(data.items[0].birth_date).toBe('1990-05');
+    expect(data.total).toBe(1);
   });
 
   // ── super_admin 角色 → birth_date 可见 ──
   it('super_admin 角色 → birth_date 应可见', async () => {
     mockPrisma.teachers.findMany.mockResolvedValue([makeTeacher()]);
+    mockPrisma.teachers.count.mockResolvedValue(1);
 
     const req = mockReq('super_admin');
     const res = mockRes();
     await listTeachers(req, res, vi.fn());
 
     const data = res.json.mock.calls[0][0].data;
-    expect(data[0].birth_date).toBe('1990-05');
+    expect(data.items[0].birth_date).toBe('1990-05');
   });
 
   // ── viewer 角色 → birth_date 被脱敏 ──
   it('viewer 角色 → birth_date 应为 null', async () => {
     mockPrisma.teachers.findMany.mockResolvedValue([makeTeacher()]);
+    mockPrisma.teachers.count.mockResolvedValue(1);
 
     const req = mockReq('viewer');
     const res = mockRes();
     await listTeachers(req, res, vi.fn());
 
     const data = res.json.mock.calls[0][0].data;
-    expect(data[0].birth_date).toBeNull();
+    expect(data.items[0].birth_date).toBeNull();
   });
 
   // ── 无角色用户 → birth_date 被脱敏 ──
   it('无角色用户 → birth_date 应为 null', async () => {
     mockPrisma.teachers.findMany.mockResolvedValue([makeTeacher()]);
+    mockPrisma.teachers.count.mockResolvedValue(1);
 
-    const req = { user: { id: 1 }, ip: '127.0.0.1' };
+    const req = { user: { id: 1 }, ip: '127.0.0.1', query: {} };
     const res = mockRes();
     await listTeachers(req, res, vi.fn());
 
     const data = res.json.mock.calls[0][0].data;
-    expect(data[0].birth_date).toBeNull();
+    expect(data.items[0].birth_date).toBeNull();
   });
 
   // ── birth_date 本身为 null，admin 也应返回 null ──
   it('birth_date 为 null 时，admin 角色也应返回 null', async () => {
     mockPrisma.teachers.findMany.mockResolvedValue([makeTeacher({ birth_date: null })]);
+    mockPrisma.teachers.count.mockResolvedValue(1);
 
     const req = mockReq('admin');
     const res = mockRes();
     await listTeachers(req, res, vi.fn());
 
     const data = res.json.mock.calls[0][0].data;
-    expect(data[0].birth_date).toBeNull();
+    expect(data.items[0].birth_date).toBeNull();
   });
 
   // ── 验证关联数据也被正确映射 ──
   it('应正确映射 affiliatedCollege、courseList、collegeList、trainingLevelList', async () => {
     mockPrisma.teachers.findMany.mockResolvedValue([makeTeacher()]);
+    mockPrisma.teachers.count.mockResolvedValue(1);
 
     const req = mockReq('admin');
     const res = mockRes();
     await listTeachers(req, res, vi.fn());
 
     const data = res.json.mock.calls[0][0].data;
-    const t = data[0];
+    const t = data.items[0];
     expect(t.affiliatedCollege).toEqual({ id: 1, name: '教育学院' });
     expect(t.courseList).toEqual([{ id: 1, name: '数学', code: 'MATH101', type: 'required' }]);
     expect(t.collegeList).toEqual([{ id: 1, name: '教育学院' }]);
@@ -175,14 +183,15 @@ describe('listTeachers — PII 脱敏', () => {
       makeTeacher({ id: 1, birth_date: '1990-05-15' }),
       makeTeacher({ id: 2, birth_date: '1985-12-01' }),
     ]);
+    mockPrisma.teachers.count.mockResolvedValue(2);
 
     const req = mockReq('viewer');
     const res = mockRes();
     await listTeachers(req, res, vi.fn());
 
     const data = res.json.mock.calls[0][0].data;
-    expect(data).toHaveLength(2);
-    expect(data[0].birth_date).toBeNull();
-    expect(data[1].birth_date).toBeNull();
+    expect(data.items).toHaveLength(2);
+    expect(data.items[0].birth_date).toBeNull();
+    expect(data.items[1].birth_date).toBeNull();
   });
 });

@@ -275,7 +275,7 @@ export async function getDashboardInsights(req, res, next) {
       }))
       .sort((a, b) => b.totalHours - a.totalHours);
 
-    success(res, { semester, completion, distribution, courseStats });
+    success(res, { semester, completion, alerts, distribution, courseStats });
   } catch (e) {
     next(e);
   }

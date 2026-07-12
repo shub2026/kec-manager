@@ -37,7 +37,8 @@ export function errorHandler(err, req, res, next) {
   // S-06修复：详细信息仅对本地请求开放，不再仅依赖 NODE_ENV
   const isLocalRequest =
     req.ip === '::1' || req.ip === '127.0.0.1' || req.ip === '::ffff:127.0.0.1';
-  const showDetails = !isProduction && isLocalRequest;
+  // 审计修复：仅在显式启用 DEBUG_ERRORS 时暴露内部错误细节
+  const showDetails = !isProduction && isLocalRequest && process.env.DEBUG_ERRORS === 'true';
 
   // Prisma 记录不存在错误
   if (err.code === 'P2025') {

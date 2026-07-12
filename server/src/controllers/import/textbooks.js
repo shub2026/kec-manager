@@ -43,6 +43,9 @@ export async function importTextbooks(req, res, next) {
     const publish_date = sanitizedRow['出版日期'] || null;
     const price = sanitizedRow['定价'] ? Number(sanitizedRow['定价']) : null;
     const category = sanitizedRow['类别'] || null;
+    // 审计修复：读取"状态"列，与导出列对称，确保往返导入不丢失 is_active 状态
+    const statusValue = sanitizedRow['状态'];
+    const is_active = statusValue ? String(statusValue).trim() !== '停用' : true;
 
     if (!title) {
       validationErrors.push(`第${i + 2}行：缺少书名`);
@@ -58,6 +61,7 @@ export async function importTextbooks(req, res, next) {
       publish_date: publish_date ? String(publish_date).trim() : null,
       price: price && !isNaN(price) ? price : null,
       category: String(category).trim() || DEFAULT_TEXTBOOK_CATEGORY,
+      is_active,
     });
   }
 

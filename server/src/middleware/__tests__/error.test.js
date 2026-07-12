@@ -9,6 +9,9 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+// 审计修复后需要显式设置 DEBUG_ERRORS 才能在本地请求中显示详细错误信息
+process.env.DEBUG_ERRORS = 'true';
+
 // ──────────────────────────────────────────────
 // Mock logger
 // ──────────────────────────────────────────────

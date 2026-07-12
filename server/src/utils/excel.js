@@ -73,14 +73,12 @@ function normalizeCellValue(value) {
     return String(value);
   }
 
-  // 处理数字字符串（去除尾随空格）
+  // 审计修复：不再自动将纯数字字符串转为 Number，避免前导零丢失（如课程编码"001"→1、ISBN前导零丢失）
+  // 各导入控制器应自行处理需要转为数字的字段（如学时、人数、定价等）
   if (typeof value === 'string') {
     const trimmed = value.trim();
     // 空字符串或纯空白字符串返回null
     if (!trimmed) return null;
-    // 尝试转换为数字
-    if (/^\d+$/.test(trimmed)) return Number(trimmed);
-    if (/^\d+\.\d+$/.test(trimmed)) return Number(trimmed);
     return trimmed;
   }
 

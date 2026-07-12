@@ -584,7 +584,7 @@ async function load() {
   loading.value = true;
   try {
     const res = await getTeachers();
-    list.value = res.data || [];
+    list.value = res.data?.items || [];
   } finally {
     loading.value = false;
   }

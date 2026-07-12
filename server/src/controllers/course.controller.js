@@ -44,7 +44,7 @@ export async function createCourse(req, res, next) {
     if (!name) return fail(res, '课程名称不能为空');
     const existing = await prisma.courses.findFirst({ where: { name } });
     if (existing) return fail(res, '该课程名称已存在', 409);
-    const newSortOrder = await getNextSortOrder(prisma, 'courses');
+    const newSortOrder = await getNextSortOrder('courses');
     const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const course = await prisma.courses.create({
       data: { name, code, type: type || 'public', description, sort_order: finalSortOrder },
@@ -138,17 +138,16 @@ export async function deleteCourse(req, res, next) {
     if (assignmentCount > 0) return fail(res, '该课程已有排课记录，请先删除排课后再删除课程');
     if (teacherCourseCount > 0) return fail(res, '该课程已关联教师，请先解除教师关联后再删除课程');
     try {
-      const course = await prisma.courses.findUnique({ where: { id: courseId } });
-      await prisma.courses.delete({ where: { id: courseId } });
+      const deleted = await prisma.courses.delete({ where: { id: courseId } });
 
       await createAuditLog({
         action: 'delete',
         module: 'course',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: Number(id), name: course?.name },
+        details: { id: Number(id), name: deleted.name },
         result: 'success',
-        message: `删除课程：${course?.name}`,
+        message: `删除课程：${deleted.name}`,
       });
 
       invalidateSortOrderCache('courses');

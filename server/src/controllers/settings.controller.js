@@ -254,6 +254,9 @@ export async function resetSystem(req, res, next) {
       });
       await tx.token_blacklist.deleteMany();
     });
+    // 审计修复：系统重置后清除所有缓存，避免残留旧值
+    invalidateSemesterCache();
+    invalidateDurationCache();
     success(res, null, '系统已重置，所有业务数据和教师信息已清空，用户账号已保留');
   } catch (e) {
     await createAuditLog({

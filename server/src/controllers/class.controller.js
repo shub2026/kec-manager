@@ -474,17 +474,16 @@ export async function deleteClass(req, res, next) {
       );
     }
     try {
-      const cls = await prisma.classes.findUnique({ where: { id: classId } });
-      await prisma.classes.delete({ where: { id: classId } });
+      const deleted = await prisma.classes.delete({ where: { id: classId } });
 
       await createAuditLog({
         action: 'delete',
         module: 'class',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: Number(id), name: cls?.name },
+        details: { id: Number(id), name: deleted.name },
         result: 'success',
-        message: `删除班级：${cls?.name}`,
+        message: `删除班级：${deleted.name}`,
       });
 
       success(res, null, '删除成功');

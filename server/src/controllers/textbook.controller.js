@@ -43,7 +43,7 @@ export async function createTextbook(req, res, next) {
     if (!title) return fail(res, '书名不能为空');
     const existing = await prisma.textbooks.findFirst({ where: { title } });
     if (existing) return fail(res, '该教材名称已存在', 409);
-    const newSortOrder = await getNextSortOrder(prisma, 'textbooks');
+    const newSortOrder = await getNextSortOrder('textbooks');
     const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const textbook = await prisma.textbooks.create({
       data: {
@@ -160,17 +160,16 @@ export async function deleteTextbook(req, res, next) {
     const usageCount = await prisma.plan_textbooks.count({ where: { textbook_id: Number(id) } });
     if (usageCount > 0) return fail(res, '该教材已被培养方案引用，无法删除');
     try {
-      const textbook = await prisma.textbooks.findUnique({ where: { id: Number(id) } });
-      await prisma.textbooks.delete({ where: { id: Number(id) } });
+      const deleted = await prisma.textbooks.delete({ where: { id: Number(id) } });
 
       await createAuditLog({
         action: 'delete',
         module: 'textbook',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: Number(id), name: textbook?.title },
+        details: { id: Number(id), name: deleted.title },
         result: 'success',
-        message: `删除教材：${textbook?.title}`,
+        message: `删除教材：${deleted.title}`,
       });
 
       invalidateSortOrderCache('textbooks');
