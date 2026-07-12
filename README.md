@@ -2,7 +2,7 @@
 
 KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量级教学管理系统，涵盖培养计划、班级管理、教师排课、教材协调和数据导入导出等核心功能。采用前后端分离架构，基于 PM2 + Nginx 部署。
 
-**版本**：v1.1.1 | **数据库**：SQLite（WAL 模式）
+**版本**：v1.3.5 | **数据库**：SQLite（WAL 模式）
 
 ---
 
@@ -148,7 +148,7 @@ bash deploy_ssh.sh root@your-server.com
 | 变量 | 说明 | 示例值 |
 |------|------|--------|
 | `NODE_ENV` | 运行环境 | `development` |
-| `PORT` | 后端端口 | `3000` |
+| `PORT` | 后端端口 | `3002` |
 | `DATABASE_URL` | 数据库连接串 | `file:./data/kec.db` |
 | `JWT_SECRET` | JWT 签名密钥（64位 hex） | 必填 |
 | `JWT_REFRESH_SECRET` | 刷新令牌密钥 | 必填 |
@@ -189,7 +189,7 @@ kec-manager/
 │   │   ├── stores/             # Pinia 状态管理
 │   │   ├── styles/             # 全局样式
 │   │   ├── utils/              # 工具函数（request、download、cache 等）
-│   │   ├── views/              # 页面组件（14 个页面模块）
+│   │   ├── views/              # 页面组件（11 个页面模块）
 │   │   └── main.js             # 应用入口
 │   ├── eslint.config.js        # ESLint 配置
 │   └── vite.config.js          # Vite 构建配置
@@ -208,7 +208,7 @@ kec-manager/
 │   │   ├── __tests__/          # 集成测试
 │   │   └── server.js           # 服务入口
 │   ├── prisma/
-│   │   ├── schema.prisma       # 数据库模型定义（19 个模型）
+│   │   ├── schema.prisma       # 数据库模型定义（20 个模型）
 │   │   └── seed.js             # 种子数据
 │   ├── scripts/                # 运维脚本（初始化设置、重置数据库等）
 │   ├── .env.example            # 开发环境变量示例
@@ -217,11 +217,11 @@ kec-manager/
 │   └── vitest.config.js        # 测试配置
 ├── scripts/                    # 项目级脚本
 │   └── version.js              # 版本管理脚本
-├── docs/                       # 项目文档（9 个文档）
+├── docs/                       # 项目文档（11 个文档）
 ├── deploy.sh                   # 部署脚本（支持本地/远程）
 ├── deploy_ssh.sh               # SSH 远程部署脚本
 ├── CHANGELOG.md                # 变更日志
-└── package.json                # 根配置（版本 1.1.1）
+└── package.json                # 根配置（版本 1.3.5）
 ```
 
 ---
@@ -249,6 +249,7 @@ kec-manager/
 | `system_settings` | 系统配置（键值对） |
 | `audit_logs` | 审计日志（操作、模块、操作员、IP、详情） |
 | `token_blacklist` | JWT 令牌黑名单（支持令牌撤销） |
+| `arrange_locks` | 排课并发锁（防止同一课程重复排课） |
 
 ---
 
@@ -316,11 +317,13 @@ kec-manager/
 - [排课算法完整说明](docs/SCHEDULING_ALGORITHM.md) - 五阶段算法、评分机制、教材内聚策略、禁忌搜索优化、代码索引
 - [排课算法迭代分析](docs/SCHEDULING_ALGORITHM_ITERATION.md) - 禁忌搜索方案设计分析与实施记录
 - [代码格式化指南](docs/CODE_FORMATTING.md) - Prettier 和 ESLint 配置与使用
-- [学期计算说明](docs/semester-calculation.md) - 学期状态计算逻辑
+- [学期计算说明](docs/SEMESTER-CALCULATION.md) - 学期状态计算逻辑
 - [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) - 前后端命名规范与迁移方案
 - [版本管理指南](docs/VERSION_MANAGEMENT.md) - 语义化版本与自动化版本脚本
 - [UI 设计审查](docs/UI_DESIGN_REVIEW.md) - 视觉与交互设计改进建议及实施状态
 - [UI 架构审查（第二轮）](docs/UI_ARCHITECTURE_REVIEW_2.md) - 布局一致性、渲染性能、交互细节审查
+- [前端架构审查（第三轮）](docs/FRONTEND_ARCHITECTURE_REVIEW_3.md) - 前后端调用链、API 层、stores/composables 审查
+- [安全审计报告](docs/AUDIT_REPORT.md) - 安全漏洞检测与修复记录
 
 ---
 
