@@ -55,8 +55,11 @@
   padding: 4px 10px;
 }
 
-/* 全局聚焦环:键盘可见性 */
-*:focus-visible {
+/* 全局聚焦环:键盘可见性
+   排除 Element Plus 表单控件（el-input/el-select 等），
+   它们已自带 box-shadow:inset 聚焦环，
+   叠加 outline 会在生产环境产生"双层边框" */
+*:focus-visible:not(.el-input__wrapper):not(.el-select__wrapper):not(.el-textarea__inner) {
   outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
