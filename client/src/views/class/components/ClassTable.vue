@@ -44,7 +44,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="合班教学" min-width="140">
+      <el-table-column label="合班教学" min-width="95">
         <template #default="{ row }">
           <el-tooltip
             v-if="row.isCombinedClass"
