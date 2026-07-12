@@ -50,7 +50,8 @@ export const batchUpdateClasses = (ids, updates) =>
 /**
  * 批量删除班级
  * @param {number[]} ids - 要删除的班级 ID 列表
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗（由调用方统一展示）
  * @returns {Promise<import('./types').ApiResponse<{total: number, succeeded: Array, failed: Array, deletedCount: number}>>}
  */
-export const batchDeleteClasses = (ids) =>
-  request.post('/classes/batch-delete', { ids });
+export const batchDeleteClasses = (ids, { silent } = {}) =>
+  request.post('/classes/batch-delete', { ids }, { silentError: silent });

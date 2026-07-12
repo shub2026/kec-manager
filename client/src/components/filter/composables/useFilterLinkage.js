@@ -102,8 +102,9 @@ export function useFilterLinkage({ filters, relations = {}, fields = [] }) {
 
     // 遍历所有父级字段,收集它们的选项并取交集
     for (const [parentField, relationDataRef] of Object.entries(parentRelations)) {
-      // 支持ref和普通对象两种类型
+      // FR3修复：null 守卫，与 getFilteredOptions 对齐
       const relationData = relationDataRef?.value ?? relationDataRef;
+      if (!relationData) continue;
 
       const parentValue = filters.value[parentField];
 

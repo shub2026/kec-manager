@@ -451,7 +451,6 @@ async function goToCurrentSemester() {
   filterLevel.value = null;
   filterEnrollmentYear.value = null;
   filterGrade.value = null;
-  resetPaginationAndLoad();
 }
 
 function resetFilters() {

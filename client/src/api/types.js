@@ -118,7 +118,7 @@
 
 /** @typedef {Object} Course @property {number} id @property {string} name @property {string} [code] @property {string} [type] @property {string} [description] @property {number} [sortOrder] */
 /** @typedef {Object} CourseInput @property {string} name @property {string} [code] @property {string} [type] @property {string} [description] @property {number} [sortOrder] */
-/** @typedef {Object} CourseListParams @property {string} [name] @property {string} [type] @property {string} [code] } */
+/** @typedef {Object} CourseListParams @property {string} [name] @property {string} [type] @property {string} [code] */
 
 /**
  * 教材
@@ -243,8 +243,8 @@
  */
 
 /** @typedef {Object} AssignTeacherInput @property {number} teacherId @property {number} classId @property {number} courseId @property {string} semester @property {number} [weeklyHours] } */
-/** @typedef {Object} AutoArrangeInput @property {number} courseId @property {string} semester } */
-/** @typedef {Object} BatchAutoArrangeInput @property {string} semester } */
+/** @typedef {Object} AutoArrangeInput @property {number} courseId @property {string} semester @property {'full' | 'standard'} mode */
+/** @typedef {Object} BatchAutoArrangeInput @property {string} semester @property {'full' | 'standard'} mode */
 
 /**
  * 课时要求
@@ -259,14 +259,18 @@
 /**
  * 首页统计
  * @typedef {Object} DashboardStats
+ * @property {number} plans
+ * @property {number} teachingTeachers
  * @property {number} majors
  * @property {number} courses
  * @property {number} classes
- * @property {number} teachers
  * @property {number} textbooks
- * @property {number} trainingPlans
- * @property {number} activeClasses
  * @property {number} totalStudents
+ * @property {number} totalWeeklyHours
+ * @property {string} semester
+ * @property {Object} [alerts]
+ * @property {Array<{id: number, name: string}>} [alerts.unassignedCourses]
+ * @property {Array<{id: number, name: string, limit: number, hours: number}>} [alerts.overloadedTeachers]
  */
 
 /**

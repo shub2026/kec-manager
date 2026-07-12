@@ -159,33 +159,9 @@ const emit = defineEmits([
   'page-change',
 ]);
 
+// FR3修复：直接使用后端计算的 grade 字段，消除重复公式和硬编码边界月
 function calcGrade(row) {
-  if (!row.enrollmentYear) return null;
-
-  // 优先使用后端提供的学期信息
-  let startYear;
-  if (props.semesterInfo && props.semesterInfo.startYear) {
-    startYear = props.semesterInfo.startYear;
-  } else {
-    // 降级方案：如果无法获取学期信息，根据当前日期估算
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    startYear = currentMonth >= 8 ? currentYear : currentYear - 1;
-  }
-
-  const grade = startYear - row.enrollmentYear + 1;
-
-  // 年级必须在有效范围内才显示：
-  // 1. 年级 >= 1（已入学）
-  // 2. 年级 <= 学制年限（未毕业）
-  const durationYears = row.durationYears || 99;
-  if (grade >= 1 && grade <= durationYears) {
-    return grade;
-  }
-
-  // 超出学制范围（已毕业）或未入学，显示为空
-  return null;
+  return row.grade ?? null;
 }
 
 function getStatusType(status) {

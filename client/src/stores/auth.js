@@ -242,6 +242,24 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // FR3修复：跨标签页状态同步 — 检测其他标签页的登录/登出操作
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'loggedIn' && e.newValue === null) {
+        // 其他标签页登出
+        clearAuth();
+      } else if (e.key === 'userInfo') {
+        if (e.newValue) {
+          try {
+            userInfo.value = JSON.parse(e.newValue);
+          } catch { /* ignore parse errors */ }
+        } else {
+          userInfo.value = null;
+        }
+      }
+    });
+  }
+
   return {
     token,
     userInfo,

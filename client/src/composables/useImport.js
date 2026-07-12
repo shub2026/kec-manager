@@ -321,6 +321,8 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
       const response = await request.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         signal: abortController.signal,
+        // FR3修复：静默拦截器错误提示，由 onImportError 统一展示，避免双重弹窗
+        silentError: true,
       });
       onImportSuccess(response);
     } catch (err) {

@@ -58,8 +58,8 @@ export function useSemesters(options = {}) {
       const store = useSettingsStore();
       await store.load();
       const value = store.currentSemesterValue();
-      // B-04: 读取可配置的学期边界月份
-      const monthSetting = store.settings?.semester_start_month?.value;
+      // B-04: 读取可配置的学期边界月份（FR3修复：键名已改为 camelCase，与响应中间件转换后一致）
+      const monthSetting = store.settings?.semesterStartMonth?.value;
       if (monthSetting) {
         const parsed = Number(monthSetting);
         if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 12) {

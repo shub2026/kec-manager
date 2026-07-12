@@ -140,7 +140,16 @@ request.interceptors.response.use(
         502: '网关错误',
         503: '服务不可用',
       };
-      const rawMsg = error.response.data?.message;
+      // FR3修复：blob 响应的 data 是 Blob 对象而非 JSON，需先尝试读取文本提取后端错误消息
+      let rawMsg = error.response.data?.message;
+      if (!rawMsg && error.response.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          rawMsg = JSON.parse(text)?.message;
+        } catch (_) {
+          /* 非 JSON blob，忽略 */
+        }
+      }
       const msg = typeof rawMsg === 'string' ? rawMsg : msgMap[status] || `请求失败 (${status})`;
       if (!silentError) {
         ElMessage({ message: msg, type: 'error', duration: 5000, showClose: true });

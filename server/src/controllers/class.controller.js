@@ -136,9 +136,19 @@ export async function listClasses(req, res, next) {
         }
       }
 
+      // FR3修复：后端计算 grade，避免前端重复公式且硬编码边界月
+      let grade = null;
+      if (cls.enrollment_year && cls.duration_years && semesterInfo) {
+        const g = semesterInfo.startYear - cls.enrollment_year + 1;
+        if (g >= 1 && g <= cls.duration_years) {
+          grade = g;
+        }
+      }
+
       return {
         ...cls,
         status,
+        grade, // FR3: 后端计算的年级（1=大一，超出学制返回null）
         matchedPlanName, // 添加匹配的方案名称
         matchedPlanType, // 添加实际匹配类型（custom/major/level）
         planMatchWarning, // 添加交叉匹配警告

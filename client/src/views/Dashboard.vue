@@ -92,6 +92,7 @@
 
 <script setup>
 import { ref, computed, onMounted, markRaw } from 'vue';
+import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import {
   Calendar,
@@ -277,6 +278,7 @@ async function fetchStats() {
     }
   } catch (e) {
     if (import.meta.env.DEV) console.error('Dashboard 统计加载失败:', e);
+    ElMessage.error('统计数据加载失败');
   } finally {
     loading.value = false;
   }
@@ -307,6 +309,7 @@ async function fetchInsights() {
     }
   } catch (e) {
     if (import.meta.env.DEV) console.error('Dashboard 洞察加载失败:', e);
+    ElMessage.error('洞察数据加载失败');
   }
 }
 

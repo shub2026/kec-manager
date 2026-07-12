@@ -514,7 +514,7 @@ async function confirmBatchDelete() {
 
   try {
     const ids = targets.map((t) => t.id);
-    const { data } = await batchDeleteClasses(ids);
+    const { data } = await batchDeleteClasses(ids, { silent: true });
     const { succeeded = [], failed = [] } = data || {};
 
     ElMessage.closeAll();

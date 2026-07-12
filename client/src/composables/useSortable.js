@@ -49,6 +49,8 @@ export function useSortable(list, updateFn, reloadFn, options = {}) {
       ElMessage.success('排序已更新');
       await reloadFn();
     } catch (e) {
+      // FR3修复：部分失败时回滚到服务端真实状态，避免 UI 与后端不一致
+      await reloadFn?.();
       if (import.meta.env.DEV) console.error('排序更新失败:', e);
       ElMessage.error('排序更新失败');
     }
@@ -79,6 +81,8 @@ export function useSortable(list, updateFn, reloadFn, options = {}) {
       ElMessage.success('排序已更新');
       await reloadFn();
     } catch (e) {
+      // FR3修复：部分失败时回滚到服务端真实状态
+      await reloadFn?.();
       if (import.meta.env.DEV) console.error('排序更新失败:', e);
       ElMessage.error('排序更新失败');
     }

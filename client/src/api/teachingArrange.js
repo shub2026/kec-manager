@@ -43,11 +43,16 @@ async function fetchArrangeSSE(url, body, onProgress, options = {}) {
       credentials: 'include',
       signal: controller.signal,
     });
-  } finally {
+  } catch (fetchErr) {
     clearTimeout(timeoutId);
+    if (fetchErr.name === 'AbortError') {
+      throw new Error('排课请求超时，请稍后重试');
+    }
+    throw fetchErr;
   }
 
   if (!response.ok) {
+    clearTimeout(timeoutId);
     let msg = `HTTP ${response.status}`;
     try {
       const errBody = await response.json();
@@ -58,46 +63,51 @@ async function fetchArrangeSSE(url, body, onProgress, options = {}) {
     throw new Error(msg);
   }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let finalResult = null;
+  try {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let finalResult = null;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
 
-    // SSE 事件以空行分隔
-    const events = buffer.split('\n\n');
-    buffer = events.pop(); // 保留最后可能不完整的片段
+      // SSE 事件以空行分隔
+      const events = buffer.split('\n\n');
+      buffer = events.pop(); // 保留最后可能不完整的片段
 
-    for (const eventStr of events) {
-      if (!eventStr.trim()) continue;
-      const lines = eventStr.split('\n');
-      let eventType = 'message';
-      let eventData = '';
-      for (const line of lines) {
-        if (line.startsWith('event: ')) eventType = line.slice(7).trim();
-        else if (line.startsWith('data: ')) eventData = line.slice(6);
-      }
-      if (!eventData) continue;
+      for (const eventStr of events) {
+        if (!eventStr.trim()) continue;
+        const lines = eventStr.split('\n');
+        let eventType = 'message';
+        let eventData = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+          else if (line.startsWith('data: ')) eventData = line.slice(6);
+        }
+        if (!eventData) continue;
 
-      const parsed = JSON.parse(eventData);
-      if (eventType === 'progress') {
-        onProgress?.(parsed);
-      } else if (eventType === 'complete') {
-        finalResult = parsed;
-      } else if (eventType === 'error') {
-        throw new Error(parsed.message || '排课失败');
+        const parsed = JSON.parse(eventData);
+        if (eventType === 'progress') {
+          onProgress?.(parsed);
+        } else if (eventType === 'complete') {
+          finalResult = parsed;
+        } else if (eventType === 'error') {
+          throw new Error(parsed.message || '排课失败');
+        }
       }
     }
-  }
 
-  if (!finalResult) {
-    throw new Error('排课响应异常：未收到完成事件');
+    if (!finalResult) {
+      throw new Error('排课响应异常：未收到完成事件');
+    }
+    return finalResult;
+  } finally {
+    // FR3修复：clearTimeout 覆盖整个 SSE 流读取周期，包括 reader.read() 循环
+    clearTimeout(timeoutId);
   }
-  return finalResult;
 }
 
 /**

@@ -99,7 +99,18 @@ export const useSettingsStore = defineStore('settings', () => {
   async function save(data) {
     const { updateSettings: apiUpdateSettings } = await getSettingsApi();
     await apiUpdateSettings(data);
+    localStorage.setItem('settingsUpdatedAt', Date.now().toString());
     await load(true);
+  }
+
+  // FR3修复：跨标签页设置同步
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'settingsUpdatedAt' && e.newValue) {
+        // 其他标签页更新了设置，标记本地缓存过期
+        _lastLoadTime = 0;
+      }
+    });
   }
 
   return { settings, semesterLabel, load, save, currentSemesterValue };
