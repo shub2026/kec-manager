@@ -7,29 +7,13 @@
     @click="route && $router.push(route)"
     @keyup.enter="route && $router.push(route)"
   >
-    <div class="stat-item-left">
-      <div class="stat-icon" :style="{ backgroundColor: bgColor, color: iconColor }">
-        <el-icon :size="core ? 28 : 22"><component :is="icon" /></el-icon>
-      </div>
+    <div class="stat-icon" :style="{ backgroundColor: bgColor, color: iconColor }">
+      <el-icon :size="core ? 20 : 18"><component :is="icon" /></el-icon>
     </div>
-    <div class="stat-item-body">
-      <div class="stat-top">
-        <div class="stat-info">
-          <div class="stat-value" :class="{ 'stat-value-lg': core }">
-            {{ displayValue }}
-          </div>
-          <div class="stat-label">{{ label }}</div>
-        </div>
-        <SparklineSVG
-          v-if="sparkData.length >= 2"
-          :points="sparkData"
-          :color="iconColor"
-          :width="core ? 72 : 56"
-          :height="core ? 28 : 22"
-          class="stat-spark"
-        />
-      </div>
-    </div>
+    <span class="stat-label">{{ label }}</span>
+    <span class="stat-value" :class="{ 'stat-value-lg': core }">
+      {{ displayValue }}
+    </span>
   </div>
 </template>
 
@@ -37,7 +21,6 @@
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCountUp } from '../composables/useCountUp';
-import SparklineSVG from './SparklineSVG.vue';
 
 const props = defineProps({
   /** 当前数值 */
@@ -54,8 +37,6 @@ const props = defineProps({
   core: { type: Boolean, default: false },
   /** 点击跳转路由 */
   route: { type: String, default: '' },
-  /** sparkline 数据点数组（不传则自动生成） */
-  sparkData: { type: Array, default: () => [] },
 });
 
 const router = useRouter();
@@ -73,30 +54,33 @@ watch(
 </script>
 
 <style scoped>
+/* —— 统一水平布局：图标 + 文字在左，数字居中 —— */
 .stat-item {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
   background: var(--bg-card);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
   cursor: pointer;
   transition: all var(--dur-base) var(--ease-out);
   height: 100%;
+  min-height: 78px;
   position: relative;
 }
 
 .stat-item:hover {
   border-color: var(--brand-primary-lighter);
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
-/* 核心指标卡片 — 左侧色条 + 柔光晕,作为页面焦点 */
+/* 核心指标卡片 — 仅以左侧色条 + 柔光晕区分,布局与次要卡片保持一致 */
 .stat-core {
   border-left: 3px solid var(--brand-primary);
   box-shadow: var(--shadow-sm);
+  padding-left: 17px;
 }
 
 .stat-core:hover {
@@ -104,21 +88,25 @@ watch(
   border-color: var(--brand-primary-lighter);
 }
 
-.stat-item-left {
-  flex-shrink: 0;
-}
-
+/* —— 图标容器 —— */
 .stat-icon {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
-  /* 微妙内描边,让浅色图标容器在白底卡片上"浮"起来,提升精致度 */
+  flex-shrink: 0;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+/* 核心卡片图标略放大,强化焦点 */
+.stat-core .stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
 }
 
 /* 图标容器叠加柔光渐变层 — 通透质感 */
@@ -131,68 +119,61 @@ watch(
   pointer-events: none;
 }
 
-.stat-item-body {
-  flex: 1;
-  min-width: 0;
+/* —— 标签：与图标同处左侧 —— */
+.stat-label {
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.stat-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.stat-info {
-  flex: 1;
-  min-width: 0;
-}
-
+/* —— 数值：占据剩余空间并水平居中,作为视觉焦点 —— */
 .stat-value {
-  font-size: 20px;
+  flex: 1;
+  text-align: center;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.15;
-  margin-bottom: 2px;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
-/* 核心指标数值加大,强化数据冲击力与视觉焦点 */
+/* 核心指标数值加大,强化数据冲击力 */
 .stat-value-lg {
   font-size: 28px;
   letter-spacing: -0.03em;
 }
 
-.stat-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.stat-spark {
-  flex-shrink: 0;
-  opacity: 0.8;
-}
-
 @media (max-width: 768px) {
   .stat-item {
-    padding: 10px 12px;
-    gap: 10px;
+    padding: 13px 16px;
+    gap: 11px;
+    min-height: 68px;
+  }
+  .stat-core {
+    padding-left: 14px;
   }
   .stat-icon {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
+  }
+  .stat-core .stat-icon {
+    width: 38px;
+    height: 38px;
+  }
+  .stat-label {
+    font-size: 13px;
   }
   .stat-value {
-    font-size: 18px;
+    font-size: 21px;
   }
   .stat-value-lg {
     font-size: 24px;
-  }
-  .stat-spark {
-    display: none;
   }
 }
 </style>

@@ -22,49 +22,36 @@
     </div>
 
     <!-- 统计卡片 -->
-    <el-card class="stats-card">
-      <template #header>
-        <div class="card-header">
-          <span class="card-title">
-            <el-icon><DataLine /></el-icon>
-            数据概览
-          </span>
-        </div>
-      </template>
-
-      <el-skeleton v-if="loading" :rows="6" animated />
-      <template v-else>
-        <!-- 核心指标行 -->
-        <el-row :gutter="16" class="stats-row">
-          <el-col v-for="s in coreStats" :key="s.key" :xs="12" :sm="12" :md="6">
-            <StatCard
-              :value="stats[s.key]"
-              :label="s.label"
-              :icon="s.icon"
-              :bg-color="s.bg"
-              :icon-color="s.color"
-              :core="true"
-              :route="isAdmin ? s.route : ''"
-              :spark-data="sparkData(s.key)"
-            />
-          </el-col>
-        </el-row>
-        <!-- 次要指标行 -->
-        <el-row :gutter="16" class="stats-row">
-          <el-col v-for="s in secondaryStats" :key="s.key" :xs="12" :sm="8" :md="6">
-            <StatCard
-              :value="stats[s.key]"
-              :label="s.label"
-              :icon="s.icon"
-              :bg-color="s.bg"
-              :icon-color="s.color"
-              :route="isAdmin ? s.route : ''"
-              :spark-data="sparkData(s.key)"
-            />
-          </el-col>
-        </el-row>
-      </template>
-    </el-card>
+    <el-skeleton v-if="loading" :rows="3" animated />
+    <template v-else>
+      <!-- 核心指标行 -->
+      <el-row :gutter="16" class="stats-row">
+        <el-col v-for="s in coreStats" :key="s.key" :xs="12" :sm="12" :md="6">
+          <StatCard
+            :value="stats[s.key]"
+            :label="s.label"
+            :icon="s.icon"
+            :bg-color="s.bg"
+            :icon-color="s.color"
+            :core="true"
+            :route="isAdmin ? s.route : ''"
+          />
+        </el-col>
+      </el-row>
+      <!-- 次要指标行 -->
+      <el-row :gutter="16" class="stats-row">
+        <el-col v-for="s in secondaryStats" :key="s.key" :xs="12" :sm="8" :md="6">
+          <StatCard
+            :value="stats[s.key]"
+            :label="s.label"
+            :icon="s.icon"
+            :bg-color="s.bg"
+            :icon-color="s.color"
+            :route="isAdmin ? s.route : ''"
+          />
+        </el-col>
+      </el-row>
+    </template>
 
     <!-- 洞察区域 -->
     <el-row :gutter="16" class="insights-row">
@@ -98,7 +85,6 @@ import {
   Calendar,
   EditPen,
   Search,
-  DataLine,
   Clock,
   UserFilled,
   Reading,
@@ -214,21 +200,6 @@ const secondaryStats = [
   },
 ];
 
-// 生成 mock sparkline 趋势数据（基于当前值模拟 6 个点）
-function sparkData(key) {
-  const val = stats.value[key];
-  if (!val || val < 2) return [];
-  const points = 6;
-  const data = [];
-  for (let i = 0; i < points; i++) {
-    const ratio = 0.4 + (i / (points - 1)) * 0.6;
-    const jitter = Math.sin(i * 2.5 + key.length) * 0.08;
-    data.push(Math.max(1, Math.round(val * (ratio + jitter))));
-  }
-  data[data.length - 1] = val; // 确保最后一个点是当前值
-  return data;
-}
-
 const stats = ref({
   majors: 0,
   courses: 0,
@@ -328,28 +299,19 @@ onMounted(async () => {
   height: calc(100vh - 60px - var(--space-5) * 2);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
   overflow: hidden;
 }
 
-/* 欢迎区域 — 白底 + 左侧品牌渐变色条 + 角部柔光,克制而有呼吸感 */
+/* 欢迎区域 — 去卡片化，轻量标题行 */
 .welcome-section {
-  background: var(--bg-card);
-  background-image: radial-gradient(
-    ellipse 60% 120% at 0% 0%,
-    var(--brand-primary-soft) 0%,
-    transparent 70%
-  );
-  border: 1px solid var(--border-light);
-  border-left: 3px solid var(--brand-primary);
-  border-radius: var(--radius-md);
-  padding: 16px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
   flex-shrink: 0;
+  padding: 4px 0;
 }
 
 .welcome-title {
@@ -369,7 +331,6 @@ onMounted(async () => {
   gap: 6px;
 }
 
-/* 副标题图标着品牌色,增加细节精致度 */
 .welcome-subtitle .el-icon {
   color: var(--brand-primary);
 }
@@ -379,7 +340,6 @@ onMounted(async () => {
   gap: 10px;
 }
 
-/* 欢迎区域按钮 — 浅底场景下的主色实心 + 柔和次级 */
 .welcome-actions :deep(.el-button--primary) {
   font-weight: 600;
 }
@@ -396,43 +356,8 @@ onMounted(async () => {
   color: var(--brand-primary);
 }
 
-/* 卡片通用样式 */
-.stats-card {
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-}
-
-.stats-card :deep(.el-card__header) {
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.stats-card :deep(.el-card__body) {
-  padding: 14px 20px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  letter-spacing: -0.01em;
-}
-
 /* 统计卡片行间距 */
 .stats-row {
-  margin-bottom: 10px;
-}
-
-.stats-row:last-child {
   margin-bottom: 0;
 }
 
@@ -448,16 +373,17 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  border-radius: var(--radius-md);
 }
 
 .insights-row :deep(.el-card__header) {
-  padding: 10px 20px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 
 .insights-row :deep(.el-card__body) {
-  padding: 12px 20px;
+  padding: 10px 16px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -503,13 +429,13 @@ onMounted(async () => {
     height: auto;
     min-height: calc(100vh - 50px - 24px);
     overflow-y: auto;
-    gap: 10px;
+    gap: 12px;
   }
 
   .welcome-section {
     flex-direction: column;
     align-items: flex-start;
-    padding: 14px 16px;
+    padding: 4px 0;
   }
 
   .welcome-actions {

@@ -52,8 +52,8 @@
             placement="top"
             effect="light"
           >
-            <el-tag type="warning" size="small">
-              <el-icon style="vertical-align: middle"><Connection /></el-icon>
+            <el-tag class="combined-tag" size="small">
+              <el-icon class="combined-tag-icon"><Connection /></el-icon>
               {{ row.partnerClassNames ? '合班' : '合班(无伙伴)' }}
             </el-tag>
           </el-tooltip>
@@ -232,5 +232,20 @@ function getCurrentPlanName(row) {
 
 .plan-warning .el-tag {
   cursor: help;
+}
+
+/* 合班标签 — 紫色，与教学安排页合班图标配色一致 */
+.combined-tag {
+  --el-tag-bg-color: var(--brand-indigo-soft);
+  --el-tag-border-color: var(--brand-indigo-soft);
+  --el-tag-text-color: var(--brand-indigo);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  cursor: help;
+}
+
+.combined-tag-icon {
+  vertical-align: middle;
 }
 </style>

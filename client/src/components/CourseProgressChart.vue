@@ -105,26 +105,26 @@ const remainingHours = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 0;
+  padding: 24px 0;
   color: var(--text-secondary);
   font-size: 14px;
 }
 
 .progress-chart {
-  padding: 4px 0;
+  padding: 2px 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 /* 汇总百分比 — 视觉焦点 */
 .summary {
   text-align: center;
-  padding: 4px 0 0;
+  padding: 2px 0 0;
 }
 
 .summary-percent {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--brand-success);
   line-height: 1.1;
@@ -133,7 +133,7 @@ const remainingHours = computed(() => {
 }
 
 .percent-sign {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   margin-left: 2px;
 }
@@ -141,12 +141,12 @@ const remainingHours = computed(() => {
 .summary-label {
   font-size: 12px;
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 /* 双段对比条 */
 .dual-bar-track {
-  height: 10px;
+  height: 8px;
   background: var(--bg-subtle);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -163,7 +163,7 @@ const remainingHours = computed(() => {
 .dual-bar-legend {
   display: flex;
   justify-content: space-between;
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 12px;
   color: var(--text-secondary);
 }
@@ -200,7 +200,7 @@ const remainingHours = computed(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: var(--bg-subtle);
   border-radius: var(--radius-sm);
 }
@@ -218,7 +218,7 @@ const remainingHours = computed(() => {
 }
 
 .compare-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;

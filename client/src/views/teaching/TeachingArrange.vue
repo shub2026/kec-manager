@@ -125,7 +125,7 @@
               placement="top"
               effect="light"
             >
-              <el-icon class="combined-icon" :size="14"><Connection /></el-icon>
+              <el-icon class="combined-icon" :size="16"><Connection /></el-icon>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -902,7 +902,7 @@ onMounted(async () => {
 .combined-icon {
   margin-left: 4px;
   vertical-align: middle;
-  color: var(--el-color-warning);
+  color: var(--brand-indigo);
   cursor: help;
 }
 .card-header {
