@@ -58,11 +58,15 @@
 }
 
 /* 全局聚焦环:键盘可见性
-   排除 Element Plus 自带聚焦样式的控件（el-input/el-select/el-textarea
-   以及 checkbox/radio/switch/button/tabs/tree 等），它们已用 box-shadow
-   渲染聚焦环，叠加 outline 会在生产环境产生"双焦点环"。border-radius
-   不放进通配，避免给所有元素强加圆角造成副作用。 */
-*:focus-visible:not(.el-input__wrapper):not(.el-input__inner):not(.el-select__wrapper):not(.el-textarea__inner):not(.el-checkbox__inner):not(.el-radio__inner):not(.el-switch):not(.el-button):not(.el-tabs__item):not(.el-tree-node__content):not(.el-radio-button):not(.el-tag) {
+   目的:为无原生聚焦指示的元素(链接、自定义可聚焦 div 等)提供蓝色 outline。
+   关键:必须排除 Element Plus 的所有表单控件内部可聚焦元素——它们已用
+   box-shadow:...inset 渲染自己的聚焦环,若再叠加 outline 会产生"双层边框"。
+   此前仅排除外层 .el-input__wrapper,但 :focus-visible 实际落在内层 .el-input__inner
+   (以及 .el-select__wrapper / .el-select__input / 日期区间 .el-range-input /
+   标签输入 .el-input-tag__inner / 级联 .el-cascader-node 等),导致筛选器仍现双框。
+   下方一次性穷举 EP 各控件的可聚焦内部类,避免"打地鼠"式遗漏。
+   border-radius 不放进通配,避免给所有元素强加圆角造成副作用。 */
+*:focus-visible:not(.el-input__wrapper):not(.el-input__inner):not(.el-select__wrapper):not(.el-select__input):not(.el-textarea__inner):not(.el-range-input):not(.el-input-tag__inner):not(.el-cascader-node):not(.el-checkbox__inner):not(.el-radio__inner):not(.el-radio-button__inner):not(.el-switch):not(.el-switch__core):not(.el-color-picker):not(.el-slider):not(.el-rate):not(.el-upload):not(.el-tree-node__content):not(.el-tabs__item):not(.el-button):not(.el-tag) {
   outline: 2px solid var(--brand-primary);
   outline-offset: 2px;
 }
