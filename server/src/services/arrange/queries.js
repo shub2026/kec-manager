@@ -3,6 +3,7 @@ import { TEXTBOOK_COHESION } from '../../constants/index.js';
 import { isClassMatchPlan, findBestMatchPlan } from '../plan.service.js';
 // 学期相关函数统一收敛至 semester.service.js
 import { parseSemester, calcClassSemester, getActiveClassFilter } from '../semester.service.js';
+import { dedupeTeachingUnits } from '../teaching-statistics.service.js';
 
 // 重新导出 parseSemester，保持 `export { parseSemester, ... } from './arrange/queries.js'` 链路
 export { parseSemester };
@@ -112,6 +113,9 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
 
     const calc = calcClassSemester(cls, semesterInfo);
     if (!calc) continue;
+    // B2 修复：DB 层按学制范围筛选只卡下界，可能把非目标年级但学制更长/入学年更早的班误纳入。
+    // 循环内按实际年级精确复核，确保只返回目标 grade 的班级（结果变少且正确）。
+    if (filters.grade && calc.grade !== Number(filters.grade)) continue;
 
     // 找到班级当前学期的学期记录
     const semRecord = pc.plan_course_semesters.find(
@@ -125,7 +129,9 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
     const weeklyHours = semRecord.weekly_hours ?? pc.weekly_hours;
     // 过滤周课时为 0 的课程（本学期暂不开课）
     if (weeklyHours <= 0) continue;
-    const weeksCount = semRecord.weeks_count ?? pc.weeks_per_semester;
+    // B5 修复：weekly_hours 存在而 weeks_count 与 weeks_per_semester 同时缺失时，
+    // 原 `weeklyHours * null` 会得到 NaN。补充 18 周兜底默认值，消除 NaN。
+    const weeksCount = semRecord.weeks_count ?? pc.weeks_per_semester ?? 18;
     const textbooks = semRecord.plan_textbooks.map((pt) => pt.textbooks);
 
     results.push({
@@ -169,31 +175,40 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     orderBy: { sort_order: 'asc' },
   });
 
-  // 查询每个教师当前学期已安排的总课时和班级数（合并查询）
-  const teacherWorkloadStats = await prisma.teaching_assignments.groupBy({
-    by: ['teacher_id'],
+  // B1 修复（High）：合班教学时同一节合班课在每个成员班各存一行 teaching_assignments，
+  // 若直接对全部行 groupBy 求和，会把同一节合班课计 N 次 → 教师周课时虚高 N 倍，
+  // 引发超限告警误报、错误拒绝合理排课，且与 dashboard/导出统计口径打架。
+  // 改用 dedupeTeachingUnits 按 (combination_id??class_id, course_id, teacher_id) 去重后再聚合，
+  // 使排课界面与 dashboard/导出对齐。仅 totalWeeklyHours 口径变化（修复虚高），
+  // classCount 按成员班数累加，与原按行计数在数值上一致。
+  const allSemesterAssignments = await prisma.teaching_assignments.findMany({
     where: { semester: semesterStr },
-    _sum: { weekly_hours: true },
-    _count: { id: true },
+    select: {
+      teacher_id: true,
+      course_id: true,
+      weekly_hours: true,
+      class_id: true,
+      class: { select: { combination_id: true } },
+    },
   });
-  const workloadMap = new Map(
-    teacherWorkloadStats.map((w) => [w.teacher_id, w._sum.weekly_hours || 0])
-  );
-  const classCountMap = new Map(teacherWorkloadStats.map((w) => [w.teacher_id, w._count.id || 0]));
-
-  // 查询每个教师在当前课程下的安排
-  const courseAssignments = await prisma.teaching_assignments.groupBy({
-    by: ['teacher_id'],
-    where: { semester: semesterStr, course_id: Number(courseId) },
-    _sum: { weekly_hours: true },
-    _count: { id: true },
-  });
-  const courseAssignmentMap = new Map(
-    courseAssignments.map((w) => [
-      w.teacher_id,
-      { hours: w._sum.weekly_hours || 0, classCount: w._count.id || 0 },
-    ])
-  );
+  const dedupedUnits = dedupeTeachingUnits(allSemesterAssignments);
+  const workloadMap = new Map();
+  const classCountMap = new Map();
+  const courseAssignmentMap = new Map();
+  const targetCourseId = Number(courseId);
+  for (const u of dedupedUnits) {
+    const tid = u.representative.teacher_id;
+    const weekly = u.weeklyHours || 0;
+    const memberClasses = u.memberClassIds.length || 0;
+    workloadMap.set(tid, (workloadMap.get(tid) || 0) + weekly);
+    classCountMap.set(tid, (classCountMap.get(tid) || 0) + memberClasses);
+    if (u.representative.course_id === targetCourseId) {
+      const cur = courseAssignmentMap.get(tid) || { hours: 0, classCount: 0 };
+      cur.hours += weekly;
+      cur.classCount += memberClasses;
+      courseAssignmentMap.set(tid, cur);
+    }
+  }
 
   // 查询每个教师实际授课学院和授课层次（合并为单次查询，避免重复扫描 teaching_assignments）
   // H-6: 添加 teacher_id 过滤，避免拉取整个学期的排课数据

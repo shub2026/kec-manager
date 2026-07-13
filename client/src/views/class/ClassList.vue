@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="class-list">
     <PageHeader title="班级管理" subtitle="基础数据" description="管理各专业的教学班级信息">
       <template #extra>
         <el-button type="primary" @click="openDialog()">
@@ -102,14 +102,7 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
-          确定要删除此班级吗？此操作不可撤销。
-        </p>
-      </div>
+      <BaseConfirmBody icon-color="var(--brand-danger)">确定要删除此班级吗？此操作不可撤销。</BaseConfirmBody>
       <template #footer>
         <el-button @click="deleteConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
@@ -123,14 +116,7 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
-          {{ batchDeleteConfirmMessage }}
-        </p>
-      </div>
+      <BaseConfirmBody icon-color="var(--brand-danger)">{{ batchDeleteConfirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="batchDeleting" @click="confirmBatchDelete"
@@ -146,14 +132,7 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-warning)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
-          {{ leftSchoolConfirmMessage }}
-        </p>
-      </div>
+      <BaseConfirmBody>{{ leftSchoolConfirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="cancelLeftSchoolConfirm">取消</el-button>
         <el-button type="warning" @click="confirmLeftSchool">确定</el-button>
@@ -184,6 +163,7 @@ import { useSettingsStore } from '../../stores/settings';
 import { useExport } from '../../composables/useExport';
 import { showImportResultCard } from '../../composables/useImport';
 import PageHeader from '../../components/PageHeader.vue';
+import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 import ClassFilterBar from './components/ClassFilterBar.vue';
 import ClassTable from './components/ClassTable.vue';
 import ClassFormDialog from './components/ClassFormDialog.vue';
@@ -343,7 +323,8 @@ async function load() {
       _relationsLoaded = true;
     }
   } catch (error) {
-    ElMessage.error('加载失败：' + (error.message || '未知错误'));
+    // 拦截器已对失败请求统一弹出错误提示，此处不必重复（避免双重 toast）
+    if (import.meta.env.DEV) console.error('加载失败:', error);
   } finally {
     loading.value = false;
   }
@@ -676,21 +657,21 @@ async function doBatchSet() {
         ElMessage.error('请选择专业');
         return;
       }
-      updates.major_id = batchForm.value.majorId;
+      updates.majorId = batchForm.value.majorId;
     } else if (batchFormType.value === 'college') {
-      updates.college_id = batchForm.value.collegeId;
+      updates.collegeId = batchForm.value.collegeId;
     } else if (batchFormType.value === 'level') {
       if (!batchForm.value.trainingLevelId) {
         ElMessage.error('请选择培养层次');
         return;
       }
-      updates.training_level_id = batchForm.value.trainingLevelId;
+      updates.trainingLevelId = batchForm.value.trainingLevelId;
     } else if (batchFormType.value === 'year') {
-      updates.enrollment_year = batchForm.value.enrollmentYear;
+      updates.enrollmentYear = batchForm.value.enrollmentYear;
     } else if (batchFormType.value === 'duration') {
-      updates.duration_years = batchForm.value.durationYears;
+      updates.durationYears = batchForm.value.durationYears;
     } else if (batchFormType.value === 'leftSchool') {
-      updates.is_left_school = batchForm.value.isLeftSchool;
+      updates.isLeftSchool = batchForm.value.isLeftSchool;
     }
 
     const ids = selectedClasses.value.map((cls) => cls.id);

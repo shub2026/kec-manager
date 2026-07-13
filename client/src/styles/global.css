@@ -179,9 +179,10 @@
   margin-top: 0;
 }
 
-/* 工具栏内操作按钮组 */
+/* 工具栏内操作按钮组：margin-left:auto 将操作区推到右侧，
+   筛选控件自然靠左，实现"筛选居左 / 操作居右"的信息层级（修复 A1） */
 .page-toolbar .action-buttons {
-  margin-left: 8px;
+  margin-left: auto;
 }
 
 /* ----- 操作按钮组（导出/导入/新增等） ----- */
@@ -246,6 +247,52 @@
   justify-content: flex-end;
   margin-top: 16px;
   padding: 12px 0;
+}
+
+/* ================================================================
+   统一布局与间距规范（前端体检报告第七章 · 落地下沉）
+   约定即文档：以下类名为项目布局规范载体，新增页面须遵循。
+   - 分页容器：统一用 .pagination-container（A3 已收口 .list-pagination / 内联 div）。
+   - 工具条：筛选控件直接放 .page-toolbar，操作按钮包 .action-buttons
+     （margin-left:auto 推右，A1 已落地"筛选居左 / 操作居右"）。
+   - 表单 dialog：统一 label-width="100px"（B5）；多列 el-row :gutter="16"（B6）。
+   - 确认弹窗：复用 BaseConfirmBody.vue（C10），不再内联"图标+文字"结构。
+   下方 .page-pagination / .toolbar-filters / .toolbar-actions 为规范的同义 / 扩展
+   别名，供后续页面或需要显式分区时选用；既有页面无需改动即可生效。
+   ================================================================ */
+
+/* 分页容器同义别名（与 .pagination-container 等价，规范名二选一即可） */
+.page-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-block);
+  padding: 12px 0;
+}
+
+/* 确认弹窗统一骨架（BaseConfirmBody 已封装，此处提供全局工具类供复用） */
+.confirm-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+.confirm-row .confirm-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* 工具条左右分区（显式 wrapper 写法；既有页面用 .action-buttons 已等价实现） */
+.page-toolbar .toolbar-filters {
+  margin-right: auto;
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.page-toolbar .toolbar-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 /* ----- 批量操作栏 ----- */

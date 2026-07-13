@@ -3,6 +3,35 @@ import { success, fail } from '../../utils/response.js';
 import { createAuditLog } from '../../services/audit.service.js';
 
 /**
+ * B3 辅助：查找"可能成为孤儿"的教学安排。
+ * teaching_assignments 仅引用 class_id+course_id+semester，不引用 plan_courses；
+ * 当方案窗口收缩/删除后，落在该课程 [startSemester, endSemester] 窗口之外的安排，
+ * 对应的课程在本学期可能不再开课，导致排课清单/导出与方案矩阵不一致。
+ * 仅用于「提示」，默认不删除——避免误删仍有效的历史安排（同一课程可能属于多个方案）。
+ * @param {number} courseId 课程 ID
+ * @param {number} startSemester 新窗口起始学期号
+ * @param {number} endSemester 新窗口结束学期号
+ * @returns {Promise<Array>} 悬空安排列表（含班级/教师信息，最多 200 条）
+ */
+async function findDanglingAssignments(courseId, startSemester, endSemester) {
+  return prisma.teaching_assignments.findMany({
+    where: {
+      course_id: courseId,
+      OR: [
+        { semester: { lt: startSemester } },
+        { semester: { gt: endSemester } },
+      ],
+    },
+    include: {
+      class: { select: { id: true, name: true } },
+      teacher: { select: { id: true, name: true } },
+    },
+    orderBy: [{ class_id: 'asc' }, { semester: 'asc' }],
+    take: 200,
+  });
+}
+
+/**
  * 获取培养方案的课程列表（含学期和教材）
  */
 export async function listPlanCourses(req, res, next) {
@@ -251,7 +280,15 @@ export async function updatePlanCourse(req, res, next) {
       details: { course_id: pc.id },
     });
 
-    success(res, pc, '更新成功');
+    // B3 修复（提示，不静默删除）：仅当方案窗口收缩（起始后移或结束前移）时，
+    // 计算该课程落在窗口外的教学安排，作为「可能孤儿」提示返回，供前端确认是否需要清理。
+    const windowShrunk =
+      newStart > currentPc.start_semester || newEnd < currentPc.end_semester;
+    const danglingAssignments = windowShrunk
+      ? await findDanglingAssignments(pc.course_id, newStart, newEnd)
+      : [];
+
+    success(res, { ...pc, danglingAssignments }, '更新成功');
   } catch (e) {
     await createAuditLog({
       module: 'trainingPlan',
@@ -332,7 +369,19 @@ export async function deletePlanCourse(req, res, next) {
         details: { course_id: Number(id) },
       });
 
-      success(res, null, '删除成功');
+      // B3 修复（提示，不静默删除）：方案课程删除后，该课程下所有教学安排不再有开课窗口约束，
+      // 可能成为孤儿。返回候选清单供前端提示用户确认是否清理（同一课程可能属于多个方案，故默认仅提示）。
+      const danglingAssignments = await prisma.teaching_assignments.findMany({
+        where: { course_id: Number(id) },
+        include: {
+          class: { select: { id: true, name: true } },
+          teacher: { select: { id: true, name: true } },
+        },
+        orderBy: [{ class_id: 'asc' }, { semester: 'asc' }],
+        take: 200,
+      });
+
+      success(res, { danglingAssignments }, '删除成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);
       throw e;

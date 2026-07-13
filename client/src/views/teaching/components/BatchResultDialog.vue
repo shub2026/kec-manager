@@ -84,7 +84,7 @@
             <el-icon><WarningFilled /></el-icon> {{ r.error }}
           </div>
           <div v-if="r.warnings?.length" class="detail-warnings">
-            <div v-for="(w, i) in r.warnings" :key="i" class="detail-warning-item">
+            <div v-for="(w, i) in r.warnings" :key="w" class="detail-warning-item">
               <el-icon><Warning /></el-icon> {{ w }}
             </div>
           </div>

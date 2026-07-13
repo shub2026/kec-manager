@@ -64,11 +64,19 @@ function parseCookies(req) {
 }
 
 // 速率限制配置
+// S1 修复：keyGenerator 取 XFF 链末尾真实客户端 IP，纵深防御伪造 X-Forwarded-For 绕过限流
+// （权威修复仍依赖 Nginx 用 `proxy_set_header X-Forwarded-For $remote_addr;` 覆盖而非追加）。
+const xffKeyGenerator = (req) => {
+  const ips = req.ips && req.ips.length ? req.ips : null;
+  return ips ? ips[ips.length - 1] : req.ip || 'unknown';
+};
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分钟
   max: 10, // 每个IP最多10次
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: xffKeyGenerator,
   message: { success: false, message: '登录尝试过于频繁，请15分钟后再试' },
 });
 
@@ -248,27 +256,6 @@ router.get('/me', authMiddleware, async (req, res, next) => {
     });
 
     success(res, user);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// 生成短期下载令牌（用于 window.open 等无法设置 Authorization 头的场景）
-router.post('/download-token', authMiddleware, async (req, res, next) => {
-  try {
-    const downloadToken = AuthService.generateDownloadToken(req.user);
-
-    await createAuditLog({
-      action: 'generate_token',
-      module: 'auth',
-      userId: req.user.id,
-      ip: req.ip,
-      details: { username: req.user.username, token_type: 'download' },
-      result: 'success',
-      message: `${req.user.username} 生成下载令牌`,
-    });
-
-    success(res, { downloadToken });
   } catch (error) {
     next(error);
   }

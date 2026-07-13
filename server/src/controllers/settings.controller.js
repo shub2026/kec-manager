@@ -253,7 +253,13 @@ export async function resetSystem(req, res, next) {
             `（归档记录：删除前共${auditLogCount}条审计日志）`,
         },
       });
-      await tx.token_blacklist.deleteMany();
+      // S5 修复：系统重置时不再清空整个 token_blacklist。
+      // 原实现会删除全部黑名单，导致此前因登出/改密/重置而吊销、本应 fail-close 失效的
+      // access/refresh token 在 JWT 自然过期前重新可用，存在会话复活风险。
+      // 改为只清理已自然过期的条目，保留尚未过期的吊销记录，重置后旧会话更快失效。
+      await tx.token_blacklist.deleteMany({
+        where: { expires_at: { lt: new Date() } },
+      });
     });
     // 审计修复：系统重置后清除所有缓存，避免残留旧值
     invalidateSemesterCache();

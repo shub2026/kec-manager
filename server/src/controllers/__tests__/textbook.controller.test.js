@@ -29,6 +29,7 @@ const mockPrisma = {
     findMany: vi.fn().mockResolvedValue([]),
     findFirst: vi.fn().mockResolvedValue(null),
     findUnique: vi.fn().mockResolvedValue(null),
+    count: vi.fn().mockResolvedValue(0),
     create: vi.fn().mockResolvedValue({ id: 1 }),
     update: vi.fn().mockResolvedValue({ id: 1 }),
     delete: vi.fn().mockResolvedValue({ id: 1, title: '测试教材' }),
@@ -113,13 +114,21 @@ describe('listTextbooks', () => {
     vi.clearAllMocks();
   });
 
-  it('应返回教材列表含 usageCount 字段', async () => {
-    mockPrisma.textbooks.findMany.mockResolvedValue([
+  // 区分两次 findMany：带 distinct 的是出版社聚合查询
+  function mockFindMany(textbooks) {
+    mockPrisma.textbooks.findMany.mockImplementation((args) =>
+      args && args.distinct ? Promise.resolve([]) : Promise.resolve(textbooks)
+    );
+  }
+
+  it('应返回 {items,total,publishers} 且含 usageCount 字段', async () => {
+    mockFindMany([
       { id: 1, title: '教材A', _count: { plan_textbooks: 3 } },
       { id: 2, title: '教材B', _count: { plan_textbooks: 0 } },
     ]);
+    mockPrisma.textbooks.count.mockResolvedValue(2);
 
-    const req = { params: {}, body: {}, user: { id: 1 }, ip: '127.0.0.1' };
+    const req = { params: {}, query: {}, body: {}, user: { id: 1 }, ip: '127.0.0.1' };
     const res = mockRes();
     const next = vi.fn();
 
@@ -127,39 +136,116 @@ describe('listTextbooks', () => {
 
     expect(next).not.toHaveBeenCalled();
     expect(autoFixSortOrder).toHaveBeenCalledWith('textbooks');
-    expect(mockPrisma.textbooks.findMany).toHaveBeenCalledWith({
-      include: { _count: { select: { plan_textbooks: true } } },
-      orderBy: { sort_order: 'asc' },
-    });
-    expect(res.json).toHaveBeenCalledWith(
+    expect(mockPrisma.textbooks.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        success: true,
-        data: [
-          expect.objectContaining({ id: 1, title: '教材A', usageCount: 3 }),
-          expect.objectContaining({ id: 2, title: '教材B', usageCount: 0 }),
-        ],
+        where: {},
+        include: { _count: { select: { plan_textbooks: true } } },
+        orderBy: { sort_order: 'asc' },
       })
     );
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.items).toHaveLength(2);
+    expect(data.items[0]).toMatchObject({ id: 1, title: '教材A', usageCount: 3 });
+    expect(data.items[1]).toMatchObject({ id: 2, title: '教材B', usageCount: 0 });
+    expect(data.total).toBe(2);
+    expect(data.publishers).toEqual([]);
   });
 
   it('_count 缺失时 usageCount 应为 0', async () => {
-    mockPrisma.textbooks.findMany.mockResolvedValue([{ id: 1, title: '教材A' }]);
+    mockFindMany([{ id: 1, title: '教材A' }]);
+    mockPrisma.textbooks.count.mockResolvedValue(1);
 
-    const req = { params: {}, body: {}, user: { id: 1 }, ip: '127.0.0.1' };
+    const req = { params: {}, query: {}, body: {}, user: { id: 1 }, ip: '127.0.0.1' };
     const res = mockRes();
     const next = vi.fn();
 
     await listTextbooks(req, res, next);
 
     const responseCall = res.json.mock.calls[0][0];
-    expect(responseCall.data[0].usageCount).toBe(0);
+    expect(responseCall.data.items[0].usageCount).toBe(0);
+  });
+
+  it('分页参数应生效（skip/take 来自 page/page_size，total 取自 count）', async () => {
+    mockFindMany([{ id: 5, title: 'P2' }]);
+    mockPrisma.textbooks.count.mockResolvedValue(42);
+
+    const req = {
+      params: {},
+      query: { page: '2', page_size: '20' },
+      body: {},
+      user: { id: 1 },
+      ip: '127.0.0.1',
+    };
+    const res = mockRes();
+    const next = vi.fn();
+
+    await listTextbooks(req, res, next);
+
+    expect(mockPrisma.textbooks.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 20, take: 20 })
+    );
+    expect(res.json.mock.calls[0][0].data.total).toBe(42);
+  });
+
+  it('筛选参数应构建 where（title 模糊 / category / publisher 精确）', async () => {
+    mockFindMany([]);
+    mockPrisma.textbooks.count.mockResolvedValue(0);
+
+    const req = {
+      params: {},
+      query: { title: '高数', category: '技工', publisher: '高教社' },
+      body: {},
+      user: { id: 1 },
+      ip: '127.0.0.1',
+    };
+    const res = mockRes();
+    const next = vi.fn();
+
+    await listTextbooks(req, res, next);
+
+    expect(mockPrisma.textbooks.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { title: { contains: '高数' }, category: '技工', publisher: '高教社' },
+      })
+    );
+  });
+
+  it('排序参数应在白名单内才生效，否则回退默认 sort_order', async () => {
+    mockFindMany([]);
+    mockPrisma.textbooks.count.mockResolvedValue(0);
+
+    const req1 = {
+      params: {},
+      query: { sort_by: 'title', sort_dir: 'desc' },
+      body: {},
+      user: { id: 1 },
+      ip: '127.0.0.1',
+    };
+    const res1 = mockRes();
+    await listTextbooks(req1, res1, vi.fn());
+    expect(mockPrisma.textbooks.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { title: 'desc' } })
+    );
+
+    const req2 = {
+      params: {},
+      query: { sort_by: 'evil', sort_dir: 'desc' },
+      body: {},
+      user: { id: 1 },
+      ip: '127.0.0.1',
+    };
+    const res2 = mockRes();
+    await listTextbooks(req2, res2, vi.fn());
+    expect(mockPrisma.textbooks.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { sort_order: 'asc' } })
+    );
   });
 
   it('数据库错误应通过 next(e) 传递', async () => {
     const error = new Error('DB error');
     mockPrisma.textbooks.findMany.mockRejectedValue(error);
 
-    const req = { params: {}, body: {}, user: { id: 1 }, ip: '127.0.0.1' };
+    const req = { params: {}, query: {}, body: {}, user: { id: 1 }, ip: '127.0.0.1' };
     const res = mockRes();
     const next = vi.fn();
 

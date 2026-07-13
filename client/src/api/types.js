@@ -298,6 +298,16 @@
  */
 
 /**
+ * 审计日志分页响应
+ * 注意：后端对审计接口返回 `logs`（而非通用分页的 `items`），并额外携带 page/pageSize
+ * @typedef {Object} AuditLogResponse
+ * @property {Array<AuditLog>} logs
+ * @property {number} total
+ * @property {number} page
+ * @property {number} pageSize
+ */
+
+/**
  * 系统设置
  * @typedef {Object} SystemSettings
  * @property {{value: string}} [currentSemester] - 如 { value: '2025-2026-2' }

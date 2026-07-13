@@ -614,27 +614,33 @@ describe('getTeachersForCourse - 基础功能', () => {
   }
 
   function setupTeacherMocks(teachers, options = {}) {
-    const {
-      workloadStats = [],
-      courseAssignments = [],
-      collegeAndLevelAssignments = [],
-      allAssignments = [],
-      planCoursesForTextbooks = [],
-      allPlanCourses = [],
-      classesForTextbooks = [],
-      trainingLevels = [],
-      textbooks = [],
-    } = options;
+  const {
+    workloadStats = [],
+    courseAssignments = [],
+    collegeAndLevelAssignments = [],
+    allSemesterAssignments = [],
+    allAssignments = [],
+    planCoursesForTextbooks = [],
+    allPlanCourses = [],
+    classesForTextbooks = [],
+    trainingLevels = [],
+    textbooks = [],
+  } = options;
 
-    mockTeachersFindMany.mockResolvedValue(teachers);
-    // groupBy 被调用两次：第一次全部排课统计，第二次当前课程统计
-    mockAssignmentsGroupBy
-      .mockResolvedValueOnce(workloadStats)
-      .mockResolvedValueOnce(courseAssignments);
-    // findMany 被调用两次：学院/层次查询 + 全部排课记录
-    mockAssignmentsFindMany
-      .mockResolvedValueOnce(collegeAndLevelAssignments)
-      .mockResolvedValueOnce(allAssignments);
+  mockTeachersFindMany.mockResolvedValue(teachers);
+  // groupBy 已不再被 getTeachersForCourse 使用（B1 修复改为 findMany 全量 + dedupeTeachingUnits），
+  // 此处保留 mock 仅作回归保护，不被实际消费。
+  mockAssignmentsGroupBy
+    .mockResolvedValueOnce(workloadStats)
+    .mockResolvedValueOnce(courseAssignments);
+  // teaching_assignments.findMany 被调用 3 次（均路由到同一 mock）：
+  //   1) 184 行 B1 全量去重（allSemesterAssignments）
+  //   2) 216 行 学院/层次查询（collegeAndLevelAssignments）
+  //   3) 267 行 跨课程教材上下文（allAssignments）
+  mockAssignmentsFindMany
+    .mockResolvedValueOnce(allSemesterAssignments)
+    .mockResolvedValueOnce(collegeAndLevelAssignments)
+    .mockResolvedValueOnce(allAssignments);
     // plan_courses 被调用两次：教材兜底 + 跨课程教材
     mockPlanCoursesFindMany
       .mockResolvedValueOnce(planCoursesForTextbooks)
@@ -680,8 +686,14 @@ describe('getTeachersForCourse - 基础功能', () => {
   it('教师有工作量统计时应正确反映', async () => {
     const teacher = makeTeacher(1, '李老师');
     setupTeacherMocks([teacher], {
-      workloadStats: [{ teacher_id: 1, _sum: { weekly_hours: 16 }, _count: { id: 3 } }],
-      courseAssignments: [{ teacher_id: 1, _sum: { weekly_hours: 4 }, _count: { id: 1 } }],
+      // B1 修复后工作量统计来自 teaching_assignments.findMany 全量 + dedupeTeachingUnits，
+      // 不再使用 groupBy 的 workloadStats/courseAssignments。
+      // 构造：目标课程 1 节(weekly=4, 1 班) + 其他课程合班 1 节(weekly=12, 2 班) → 合计 16/3，课程 4/1
+      allSemesterAssignments: [
+        { teacher_id: 1, course_id: COURSE_ID, weekly_hours: 4, class_id: 1, class: { combination_id: null } },
+        { teacher_id: 1, course_id: 999, weekly_hours: 12, class_id: 2, class: { combination_id: 100 } },
+        { teacher_id: 1, course_id: 999, weekly_hours: 12, class_id: 3, class: { combination_id: 100 } },
+      ],
       collegeAndLevelAssignments: [],
       allAssignments: [],
       planCoursesForTextbooks: [],

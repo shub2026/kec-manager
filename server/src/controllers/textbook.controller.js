@@ -11,15 +11,67 @@ import {
 export async function listTextbooks(req, res, next) {
   try {
     await autoFixSortOrder('textbooks');
-    const textbooks = await prisma.textbooks.findMany({
+
+    const { page, page_size, title, category, publisher, sort_by, sort_dir } = req.query;
+
+    // 服务端筛选：书名模糊、类别精确、出版社精确
+    const where = {};
+    if (title) where.title = { contains: title };
+    if (category) where.category = category;
+    if (publisher) where.publisher = publisher;
+
+    // 排序：默认按 sort_order 升序；支持指定列与方向（白名单防注入）
+    const ALLOWED_SORT = [
+      'title',
+      'publisher',
+      'category',
+      'price',
+      'publish_date',
+      'sort_order',
+      'created_at',
+      'updated_at',
+    ];
+    let orderBy = { sort_order: 'asc' };
+    if (sort_by && ALLOWED_SORT.includes(sort_by)) {
+      const dir = sort_dir === 'desc' ? 'desc' : 'asc';
+      orderBy = { [sort_by]: dir };
+    }
+
+    // 分页：仅当显式传入 page/page_size 时分页；否则返回全部（兼容查询页/方案页取全量）
+    const usePagination = page !== undefined || page_size !== undefined;
+    const pageNum = page ? Number(page) : 1;
+    const pageSizeNum = page_size ? Number(page_size) : 20;
+
+    const baseQuery = {
+      where,
       include: { _count: { select: { plan_textbooks: true } } },
-      orderBy: { sort_order: 'asc' },
-    });
+      orderBy,
+    };
+    if (usePagination) {
+      baseQuery.skip = (pageNum - 1) * pageSizeNum;
+      baseQuery.take = pageSizeNum;
+    }
+
+    // 聚合全部出版社（不随筛选变化），用于前端筛选下拉；与列表查询并发执行
+    const [textbooks, total, publisherRows] = await Promise.all([
+      prisma.textbooks.findMany(baseQuery),
+      prisma.textbooks.count({ where }),
+      prisma.textbooks.findMany({
+        where: { publisher: { not: null } },
+        select: { publisher: true },
+        distinct: ['publisher'],
+        orderBy: { publisher: 'asc' },
+      }),
+    ]);
+
     const formattedTextbooks = textbooks.map((textbook) => ({
       ...textbook,
       usageCount: textbook._count?.plan_textbooks || 0,
     }));
-    success(res, formattedTextbooks);
+
+    const publishers = publisherRows.map((r) => r.publisher).filter(Boolean).sort();
+
+    success(res, { items: formattedTextbooks, total, publishers });
   } catch (e) {
     next(e);
   }

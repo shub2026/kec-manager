@@ -195,3 +195,82 @@ describe('listTeachers — PII 脱敏', () => {
     expect(data.items[1].birth_date).toBeNull();
   });
 });
+
+// ════════════════════════════════════════════════
+// 筛选 / 排序 / 分页
+// ════════════════════════════════════════════════
+describe('listTeachers — 筛选/排序/分页', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('应返回 {items,total} 并应用分页 skip/take', async () => {
+    mockPrisma.teachers.findMany.mockResolvedValue([makeTeacher({ id: 9 })]);
+    mockPrisma.teachers.count.mockResolvedValue(99);
+
+    const req = mockReq('admin');
+    req.query = { page: '2', page_size: '20' };
+    const res = mockRes();
+    await listTeachers(req, res, vi.fn());
+
+    expect(mockPrisma.teachers.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 20, take: 20 })
+    );
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.items).toHaveLength(1);
+    expect(data.total).toBe(99);
+  });
+
+  it('筛选参数应构建 where（name 模糊 / personnel_type / status / 关联表 some）', async () => {
+    mockPrisma.teachers.findMany.mockResolvedValue([]);
+    mockPrisma.teachers.count.mockResolvedValue(0);
+
+    const req = mockReq('admin');
+    req.query = {
+      name: '张',
+      personnel_type: 'full_time',
+      status: 'active',
+      course_id: '3',
+      college_id: '2',
+      training_level_id: '5',
+      affiliated_college_id: '1',
+    };
+    const res = mockRes();
+    await listTeachers(req, res, vi.fn());
+
+    expect(mockPrisma.teachers.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          name: { contains: '张' },
+          personnel_type: 'full_time',
+          status: 'active',
+          affiliated_college_id: 1,
+          courses: { some: { course_id: 3 } },
+          scheduling_colleges: { some: { college_id: 2 } },
+          scheduling_levels: { some: { training_level_id: 5 } },
+        },
+      })
+    );
+  });
+
+  it('排序参数应在白名单内才生效，否则回退默认 sort_order', async () => {
+    mockPrisma.teachers.findMany.mockResolvedValue([]);
+    mockPrisma.teachers.count.mockResolvedValue(0);
+
+    const req1 = mockReq('admin');
+    req1.query = { sort_by: 'name', sort_dir: 'desc' };
+    const res1 = mockRes();
+    await listTeachers(req1, res1, vi.fn());
+    expect(mockPrisma.teachers.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { name: 'desc' } })
+    );
+
+    const req2 = mockReq('admin');
+    req2.query = { sort_by: 'injection', sort_dir: 'desc' };
+    const res2 = mockRes();
+    await listTeachers(req2, res2, vi.fn());
+    expect(mockPrisma.teachers.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { sort_order: 'asc' } })
+    );
+  });
+});

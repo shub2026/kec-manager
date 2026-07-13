@@ -105,12 +105,21 @@ app.use((req, res, next) => {
 });
 
 // H4修复：全局 API 速率限制，防止无限制调用导致 DoS 或数据爬取
+// S1 修复：限流绕过纵深防御。app.set('trust proxy', 1) 时 express-rate-limit 默认用 req.ip
+// （XFF 最左受信跳）；若前置 Nginx 仅"追加"而非"覆盖"客户端传入的 X-Forwarded-For，
+// 攻击者可伪造 XFF 任意变换 req.ip 绕过限流。这里取 XFF 链中"最后一个"IP 作为限流 key
+// （Nginx 反向代理会把真实客户端追加到 XFF 末尾），即便请求头前置伪造值，真实客户端仍在末尾，
+// 限流归因更稳。权威修复仍依赖运维侧 Nginx 用 `proxy_set_header X-Forwarded-For $remote_addr;` 覆盖而非追加。
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1分钟
   max: 120, // 每 IP 每分钟最多 120 次
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => req.path === '/api/health', // 健康检查不限流
+  keyGenerator: (req) => {
+    const ips = req.ips && req.ips.length ? req.ips : null;
+    return ips ? ips[ips.length - 1] : req.ip || 'unknown';
+  },
   message: { success: false, message: '请求过于频繁，请稍后再试' },
 });
 app.use('/api', apiLimiter);

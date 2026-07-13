@@ -13,13 +13,43 @@ import {
  */
 export async function listTeachers(req, res, next) {
   try {
-    const { page, page_size } = req.query;
+    const {
+      page,
+      page_size,
+      name,
+      course_id,
+      personnel_type,
+      college_id,
+      training_level_id,
+      affiliated_college_id,
+      status,
+      sort_by,
+      sort_dir,
+    } = req.query;
     const pageNum = page ? Number(page) : 1;
     const pageSizeNum = page_size ? Number(page_size) : 20;
 
     await autoFixSortOrder('teachers');
 
+    // 服务端筛选：姓名模糊、人员类别、状态、归属学院、以及通过关联表过滤学科/意向学院/意向层次
     const where = {};
+    if (name) where.name = { contains: name };
+    if (personnel_type) where.personnel_type = personnel_type;
+    if (status) where.status = status;
+    if (affiliated_college_id) where.affiliated_college_id = Number(affiliated_college_id);
+    if (course_id) where.courses = { some: { course_id: Number(course_id) } };
+    if (college_id) where.scheduling_colleges = { some: { college_id: Number(college_id) } };
+    if (training_level_id)
+      where.scheduling_levels = { some: { training_level_id: Number(training_level_id) } };
+
+    // 排序：默认按 sort_order 升序；支持指定列与方向（白名单防注入）
+    const ALLOWED_SORT = ['name', 'personnel_type', 'status', 'sort_order', 'created_at', 'updated_at'];
+    let orderBy = { sort_order: 'asc' };
+    if (sort_by && ALLOWED_SORT.includes(sort_by)) {
+      const dir = sort_dir === 'desc' ? 'desc' : 'asc';
+      orderBy = { [sort_by]: dir };
+    }
+
     const total = await prisma.teachers.count({ where });
 
     const teachers = await prisma.teachers.findMany({
@@ -37,7 +67,7 @@ export async function listTeachers(req, res, next) {
         },
         _count: { select: { assignments: true } },
       },
-      orderBy: { sort_order: 'asc' },
+      orderBy,
       skip: (pageNum - 1) * pageSizeNum,
       take: pageSizeNum,
     });

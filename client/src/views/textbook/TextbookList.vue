@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="textbook-list">
     <PageHeader
       title="教材管理"
       subtitle="基础数据"
@@ -46,7 +46,7 @@
       </div>
       <el-table
         v-loading="loading"
-        :data="pagedList"
+        :data="list"
         stripe
         row-key="id"
         @selection-change="handleSelectionChange"
@@ -56,17 +56,17 @@
         </template>
         <el-table-column type="selection" width="45" />
         <el-table-column label="序号" width="60">
-          <template #default="{ row }">{{ globalIndex(row) + 1 }}</template>
+          <template #default="{ row }">{{ (currentPage - 1) * pageSize + globalIndex(row) + 1 }}</template>
         </el-table-column>
         <el-table-column prop="title" label="书名" min-width="150" show-overflow-tooltip />
         <el-table-column prop="isbn" label="书号" min-width="120" show-overflow-tooltip />
         <el-table-column prop="publisher" label="出版社" min-width="120" show-overflow-tooltip />
         <el-table-column prop="author" label="作者" min-width="80" show-overflow-tooltip />
-        <el-table-column prop="edition" label="版次" min-width="55" />
+        <el-table-column prop="edition" label="版次" min-width="55" show-overflow-tooltip />
         <el-table-column label="出版日期" min-width="85">
           <template #default="{ row }">{{ row.publishDate || '-' }}</template>
         </el-table-column>
-        <el-table-column label="定价" min-width="65">
+        <el-table-column label="定价" min-width="65" show-overflow-tooltip>
           <template #default="{ row }">{{ row.price || '-' }}</template>
         </el-table-column>
         <el-table-column label="类别" min-width="80">
@@ -102,7 +102,7 @@
               <el-button
                 size="small"
                 :icon="ArrowDown"
-                :disabled="globalIndex(row) === filteredList.length - 1"
+                :disabled="globalIndex(row) === list.length - 1"
                 circle
                 title="下移"
                 @click="handleMoveDown(row)"
@@ -134,15 +134,16 @@
         </el-table-column>
       </el-table>
 
-      <div class="list-pagination">
+      <div class="pagination-container">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :total="filteredList.length"
+          :total="total"
           :page-sizes="[20, 50, 100]"
           layout="total, sizes, prev, pager, next"
           background
-          @size-change="currentPage = 1"
+          @current-change="load"
+          @size-change="handleSizeChange"
         />
       </div>
 
@@ -171,7 +172,7 @@
       width="min(500px, 90vw)"
       destroy-on-close
     >
-      <el-form label-width="90px">
+      <el-form label-width="100px">
         <el-form-item v-if="batchFormType === 'publisher'" label="出版社">
           <el-input v-model="batchForm.publisher" placeholder="请输入出版社名称" />
         </el-form-item>
@@ -198,7 +199,7 @@
       width="min(600px, 90vw)"
       destroy-on-close
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-row :gutter="16">
           <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="书名" prop="title" required>
@@ -267,14 +268,7 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
-          {{ batchDeleteConfirmMessage }}
-        </p>
-      </div>
+      <BaseConfirmBody icon-color="var(--brand-danger)">{{ batchDeleteConfirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="batchDeleting" @click="confirmBatchDelete"
@@ -290,20 +284,9 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
-          <p style="margin: 0">确定要删除此教材吗？此操作不可撤销。</p>
-          <p
-            v-if="deleteWarning"
-            style="margin: 8px 0 0; color: var(--brand-danger-text); font-size: 13px"
-          >
-            <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
-          </p>
-        </div>
-      </div>
+      <BaseConfirmBody icon-color="var(--brand-danger)" :warning="deleteWarning">
+        确定要删除此教材吗？此操作不可撤销。
+      </BaseConfirmBody>
       <template #footer>
         <el-button @click="cancelDelete">取消</el-button>
         <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
@@ -317,12 +300,7 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-warning)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ confirmMessage }}</p>
-      </div>
+      <BaseConfirmBody>{{ confirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="cancelImport">取消</el-button>
         <el-button type="warning" :loading="importing" @click="confirmImport">确定导入</el-button>
@@ -354,6 +332,7 @@ import { useResponsive } from '../../composables/useResponsive';
 import { useDebounceFn } from '../../composables/useDebounce';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
+import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 
 defineOptions({ name: 'TextbookList' });
 
@@ -431,57 +410,53 @@ const batchForm = ref({
 // 使用导出 composable
 const { exportData, downloadTemplate } = useExport('textbooks', '教材数据');
 
-// 获取所有出版社列表
-const publishers = computed(() => {
-  const pubs = new Set();
-  list.value.forEach((item) => {
-    if (item.publisher) pubs.add(item.publisher);
-  });
-  return Array.from(pubs).sort();
-});
+// 出版社筛选项（由后端聚合返回，不随分页/筛选变化）
+const publishers = ref([]);
 
-// 筛选后的列表
-const filteredList = computed(() => {
-  let result = list.value;
-  if (debouncedFilterTitle.value) {
-    const titleLower = debouncedFilterTitle.value.toLowerCase();
-    result = result.filter((item) => item.title && item.title.toLowerCase().includes(titleLower));
-  }
-  if (filterCategory.value) {
-    result = result.filter((item) => item.category === filterCategory.value);
-  }
-  if (filterPublisher.value) {
-    result = result.filter((item) => item.publisher === filterPublisher.value);
-  }
-  return result;
-});
+// 服务端已按筛选条件过滤并分页，前端仅持有当前页数据
+const total = ref(0);
 
-// 使用排序 composable（注意：TextbookList 使用 filteredList 而非 list）
-const { handleMoveUp, handleMoveDown } = useSortable(filteredList, updateTextbook, silentReload, {
-  indexFinder: (item) => filteredList.value.findIndex((i) => i.id === item.id),
-});
-
-// 前端分页：全量数据已在客户端筛选，按页切片渲染，避免大列表一次性渲染上千行卡顿。
-// 排序仍作用于完整 filteredList，分页仅影响视图；globalIndex 提供全局序号用于排序禁用判断。
+// 列表分页控件
 const currentPage = ref(1);
 const pageSize = ref(20);
-const pagedList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredList.value.slice(start, start + pageSize.value);
+
+// 拖拽排序作用于当前页（连续的 sort_order 切片，相邻交换即全局正确）；跨页排序不在本页能力范围内
+const { handleMoveUp, handleMoveDown } = useSortable(list, updateTextbook, silentReload, {
+  indexFinder: (item) => list.value.findIndex((i) => i.id === item.id),
 });
+
+// 行在当前页内的下标，用于序号与排序禁用判断
 function globalIndex(row) {
-  return filteredList.value.findIndex((i) => i.id === row.id);
+  return list.value.findIndex((i) => i.id === row.id);
 }
-// 筛选条件变化后回到第一页，避免停留在越界页码
-watch(filteredList, () => {
+
+// 筛选条件变化后回到第一页并重新拉取（防抖，避免逐字符触发请求）
+const reload = useDebounceFn(() => {
   currentPage.value = 1;
-});
+  load();
+}, 300);
+watch([debouncedFilterTitle, filterCategory, filterPublisher], () => reload());
+
+// 每页大小变化：回到第一页重新拉取
+function handleSizeChange() {
+  currentPage.value = 1;
+  load();
+}
 
 async function load() {
   loading.value = true;
   try {
-    const res = await getTextbooks();
-    list.value = res.data || [];
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value,
+      title: debouncedFilterTitle.value || undefined,
+      category: filterCategory.value || undefined,
+      publisher: filterPublisher.value || undefined,
+    };
+    const res = await getTextbooks(params);
+    list.value = res.data?.items || [];
+    total.value = res.data?.total || 0;
+    publishers.value = res.data?.publishers || [];
   } finally {
     loading.value = false;
   }
@@ -489,8 +464,17 @@ async function load() {
 
 async function silentReload() {
   try {
-    const res = await getTextbooks();
-    list.value = res.data || [];
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value,
+      title: debouncedFilterTitle.value || undefined,
+      category: filterCategory.value || undefined,
+      publisher: filterPublisher.value || undefined,
+    };
+    const res = await getTextbooks(params);
+    list.value = res.data?.items || [];
+    total.value = res.data?.total || 0;
+    publishers.value = res.data?.publishers || [];
   } catch {
     // silently ignore
   }
@@ -772,10 +756,4 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.list-pagination {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-</style>
+<style scoped></style>

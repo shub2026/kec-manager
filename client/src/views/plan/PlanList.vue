@@ -24,11 +24,16 @@
           <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
       </div>
-      <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
+      <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
         <template #empty>
           <EmptyState type="plan" description="暂无培养方案" />
         </template>
-        <el-table-column type="index" label="序号" width="55" />
+        <el-table-column
+          type="index"
+          label="序号"
+          width="55"
+          :index="(i) => (currentPage - 1) * pageSize + i + 1"
+        />
         <el-table-column prop="name" label="方案名称" min-width="200" />
         <el-table-column label="使用部门" min-width="120">
           <template #default="{ row }">{{ row.colleges?.name || '-' }}</template>
@@ -53,23 +58,23 @@
           <template #default="{ row }">{{ row.classCount || 0 }}</template>
         </el-table-column>
         <el-table-column label="排序" min-width="105" align="center">
-          <template #default="{ row, $index }">
+          <template #default="{ row }">
             <div class="sort-buttons">
               <el-button
                 size="small"
                 :icon="ArrowUp"
-                :disabled="$index === 0"
+                :disabled="realIndex(row) === 0"
                 circle
                 title="上移"
-                @click="handleMoveUp(row)"
+                @click="handleMoveUp(row, realIndex(row))"
               />
               <el-button
                 size="small"
                 :icon="ArrowDown"
-                :disabled="$index === filteredList.length - 1"
+                :disabled="realIndex(row) === filteredList.length - 1"
                 circle
                 title="下移"
-                @click="handleMoveDown(row)"
+                @click="handleMoveDown(row, realIndex(row))"
               />
             </div>
           </template>
@@ -93,6 +98,16 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <el-pagination
+        v-if="filteredList.length > pageSize"
+        class="pagination-container"
+        layout="total, prev, pager, next, jumper"
+        :total="filteredList.length"
+        :page-size="pageSize"
+        v-model:current-page="currentPage"
+        background
+      />
     </el-card>
 
     <el-dialog
@@ -101,7 +116,7 @@
       width="min(500px, 90vw)"
       destroy-on-close
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="方案名称" prop="name" required>
           <el-input v-model="form.name" placeholder="如：2024级学前教育培养方案" />
         </el-form-item>
@@ -180,20 +195,9 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
-          <p style="margin: 0">确定要删除此培养方案吗？此操作不可撤销。</p>
-          <p
-            v-if="deleteWarning"
-            style="margin: 8px 0 0; color: var(--brand-danger-text); font-size: 13px"
-          >
-            <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
-          </p>
-        </div>
-      </div>
+      <BaseConfirmBody icon-color="var(--brand-danger)" :warning="deleteWarning">
+        确定要删除此培养方案吗？此操作不可撤销。
+      </BaseConfirmBody>
       <template #footer>
         <el-button @click="cancelDelete">取消</el-button>
         <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
@@ -203,8 +207,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onActivated } from 'vue';
-import { ArrowUp, ArrowDown, Document, Edit, Delete, WarningFilled } from '@element-plus/icons-vue';
+import { ref, computed, watch, onMounted, onActivated } from 'vue';
+import { ArrowUp, ArrowDown, Document, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan';
 import { getMajors } from '../../api/major';
@@ -213,11 +217,14 @@ import { getColleges } from '../../api/college';
 import { useSortable } from '../../composables/useSortable';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
+import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 
 defineOptions({ name: 'PlanList' });
 
 const list = ref([]);
 const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(20);
 const majors = ref([]);
 const trainingLevels = ref([]);
 const colleges = ref([]);
@@ -225,6 +232,24 @@ const filterCollegeId = ref('');
 const filteredList = computed(() => {
   if (!filterCollegeId.value || filterCollegeId.value === '') return list.value;
   return list.value.filter((item) => item.collegeId === Number(filterCollegeId.value));
+});
+
+// 前端切片分页：避免数据增长后一次性渲染全部 DOM 行
+const pagedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredList.value.slice(start, start + pageSize.value);
+});
+
+// 计算行在 filteredList 中的真实索引（分页后视觉 $index 不再等于真实序）
+const realIndex = (row) => filteredList.value.findIndex((i) => i.id === row.id);
+
+// 筛选变化或数据缩减后重置/收敛页码，避免停留在空页
+watch(filterCollegeId, () => {
+  currentPage.value = 1;
+});
+watch(filteredList, (l) => {
+  const maxPage = Math.max(1, Math.ceil(l.length / pageSize.value));
+  if (currentPage.value > maxPage) currentPage.value = maxPage;
 });
 const dialogVisible = ref(false);
 const saving = ref(false);

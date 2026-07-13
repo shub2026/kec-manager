@@ -32,11 +32,16 @@
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
+      <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
         <template #empty>
           <EmptyState type="course" description="暂无课程数据" />
         </template>
-        <el-table-column type="index" label="序号" width="60" />
+        <el-table-column
+          type="index"
+          label="序号"
+          width="60"
+          :index="(i) => (currentPage - 1) * pageSize + i + 1"
+        />
         <el-table-column prop="name" label="课程名称" min-width="150" />
         <el-table-column prop="code" label="编码" min-width="120" />
         <el-table-column label="类型" min-width="120">
@@ -48,23 +53,23 @@
         </el-table-column>
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
         <el-table-column label="排序" min-width="120" align="center">
-          <template #default="{ row, $index }">
+          <template #default="{ row }">
             <div class="sort-buttons">
               <el-button
                 size="small"
                 :icon="ArrowUp"
-                :disabled="$index === 0"
+                :disabled="realIndex(row) === 0"
                 circle
                 title="上移"
-                @click="handleMoveUp(row, $index)"
+                @click="handleMoveUp(row, realIndex(row))"
               />
               <el-button
                 size="small"
                 :icon="ArrowDown"
-                :disabled="$index === filteredList.length - 1"
+                :disabled="realIndex(row) === filteredList.length - 1"
                 circle
                 title="下移"
-                @click="handleMoveDown(row, $index)"
+                @click="handleMoveDown(row, realIndex(row))"
               />
             </div>
           </template>
@@ -82,6 +87,16 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <el-pagination
+        v-if="filteredList.length > pageSize"
+        class="pagination-container"
+        layout="total, prev, pager, next, jumper"
+        :total="filteredList.length"
+        :page-size="pageSize"
+        v-model:current-page="currentPage"
+        background
+      />
     </el-card>
 
     <el-dialog
@@ -90,7 +105,7 @@
       width="min(500px, 90vw)"
       destroy-on-close
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="课程名称" prop="name" required>
           <el-input v-model="form.name" placeholder="请输入课程名称" />
         </el-form-item>
@@ -124,20 +139,9 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
-          <p style="margin: 0">确定要删除此课程吗？此操作不可撤销。</p>
-          <p
-            v-if="deleteWarning"
-            style="margin: 8px 0 0; color: var(--brand-danger-text); font-size: 13px"
-          >
-            <el-icon style="vertical-align: -2px"><WarningFilled /></el-icon> {{ deleteWarning }}
-          </p>
-        </div>
-      </div>
+      <BaseConfirmBody icon-color="var(--brand-danger)" :warning="deleteWarning">
+        确定要删除此课程吗？此操作不可撤销。
+      </BaseConfirmBody>
       <template #footer>
         <el-button @click="cancelDelete">取消</el-button>
         <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
@@ -151,12 +155,7 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-warning)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ confirmMessage }}</p>
-      </div>
+      <BaseConfirmBody>{{ confirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="cancelImport">取消</el-button>
         <el-button type="warning" :loading="importing" @click="confirmImport">确定导入</el-button>
@@ -167,7 +166,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { ArrowUp, ArrowDown, Edit, Delete, WarningFilled } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course';
 import { useExport } from '../../composables/useExport';
@@ -176,6 +175,7 @@ import { useSortable } from '../../composables/useSortable';
 import { useDebounceFn } from '../../composables/useDebounce';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
+import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 
 defineOptions({ name: 'CourseList' });
 
@@ -189,6 +189,8 @@ const applyFilter = useDebounceFn((val) => {
 }, 200);
 watch(filterName, (val) => applyFilter(val));
 const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(20);
 const dialogVisible = ref(false);
 const saving = ref(false);
 const form = ref({ id: null, name: '', code: '', type: 'public', description: '' });
@@ -224,6 +226,24 @@ const filteredList = computed(() => {
   if (!debouncedFilterName.value) return list.value;
   const keyword = debouncedFilterName.value.toLowerCase();
   return list.value.filter((item) => item.name && item.name.toLowerCase().includes(keyword));
+});
+
+// 前端切片分页：避免大数据量（>1000 行）一次性渲染全部 DOM 行导致卡顿
+const pagedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredList.value.slice(start, start + pageSize.value);
+});
+
+// 计算行在 filteredList 中的真实索引（分页后视觉 $index 不再等于真实序）
+const realIndex = (row) => filteredList.value.findIndex((i) => i.id === row.id);
+
+// 筛选变化或数据缩减后重置/收敛页码，避免停留在空页
+watch(debouncedFilterName, () => {
+  currentPage.value = 1;
+});
+watch(filteredList, (list) => {
+  const maxPage = Math.max(1, Math.ceil(list.length / pageSize.value));
+  if (currentPage.value > maxPage) currentPage.value = maxPage;
 });
 
 // 使用排序 composable（注意：CourseList 使用 filteredList 而非 list）

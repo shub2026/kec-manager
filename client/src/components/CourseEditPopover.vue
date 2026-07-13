@@ -15,7 +15,7 @@
           {{ editingCourse?.courseName }} — 第{{ editingSemester.semester }}学期
         </div>
 
-        <el-form label-width="80px" size="small">
+        <el-form label-width="100px" size="small">
           <el-form-item label="周课时">
             <el-radio-group
               :model-value="editingSemester?.weeklyHours"

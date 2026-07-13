@@ -249,7 +249,7 @@
         </el-table-column>
       </el-table>
 
-      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
+      <div class="pagination-container">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -320,24 +320,19 @@
 
     <!-- 重置排课确认弹窗 -->
     <el-dialog v-model="resetConfirmVisible" title="确认重置" width="min(520px, 90vw)" align-center>
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px">
-          <WarningFilled />
-        </el-icon>
-        <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
-          <p v-if="resetScope === 'current'" style="margin: 0">
-            确定要重置「{{ courseInfo?.name || '当前课程' }}」的所有自动排课安排吗？此操作不可撤销。
-          </p>
-          <p v-else style="margin: 0">
-            确定要重置本学期<strong>全部科目</strong>的自动排课安排吗？此操作不可撤销。
-          </p>
-          <p style="margin: 8px 0 0; color: var(--brand-danger-text); font-size: 13px">
-            将清除{{
-              resetScope === 'current' ? '该课程' : '所有课程'
-            }}在本学期的所有自动分配记录，手动安排不受影响。
-          </p>
-        </div>
-      </div>
+      <BaseConfirmBody icon-color="var(--brand-danger)">
+        <p v-if="resetScope === 'current'" style="margin: 0">
+          确定要重置「{{ courseInfo?.name || '当前课程' }}」的所有自动排课安排吗？此操作不可撤销。
+        </p>
+        <p v-else style="margin: 0">
+          确定要重置本学期<strong>全部科目</strong>的自动排课安排吗？此操作不可撤销。
+        </p>
+        <p style="margin: 8px 0 0; color: var(--brand-danger-text); font-size: 13px">
+          将清除{{
+            resetScope === 'current' ? '该课程' : '所有课程'
+          }}在本学期的所有自动分配记录，手动安排不受影响。
+        </p>
+      </BaseConfirmBody>
       <template #footer>
         <el-button @click="resetConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="resetting" @click="handleReset"> 确定重置 </el-button>
@@ -349,7 +344,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { WarningFilled, Connection, Lock } from '@element-plus/icons-vue';
+import { Connection, Lock } from '@element-plus/icons-vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
@@ -368,6 +363,7 @@ import {
 import HourSettingsCard from './components/HourSettingsCard.vue';
 import CoursePreviewCard from './components/CoursePreviewCard.vue';
 import PageHeader from '../../components/PageHeader.vue';
+import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 import SemesterSelect from '../../components/SemesterSelect.vue';
 
 defineOptions({ name: 'TeachingArrange' });

@@ -127,8 +127,9 @@ export async function deleteCourse(req, res, next) {
     const courseId = Number(id);
     // H-5: 补全关联检查 — 培养方案 + 排课记录 + 教师关联
     // P2-10: 以下 count 检查为 UX 软阻拦，提示用户先清理关联数据；
-    // DB 层 teacher_courses / teaching_assignments 等为 onDelete: Cascade，
-    // 即使绕过此处检查，Prisma 也会级联删除。此处保留软阻拦以避免误删导致数据丢失。
+    // DB 层 teacher_courses / teaching_assignments / plan_courses 均为 onDelete: Restrict
+    // （见 schema.prisma:320-322），任何仍被引用的课程删除都会被数据库拒绝，
+    // 此处软阻拦仅为提前给出友好提示，避免直接触发 400/500。
     const [planCount, assignmentCount, teacherCourseCount] = await Promise.all([
       prisma.plan_courses.count({ where: { course_id: courseId } }),
       prisma.teaching_assignments.count({ where: { course_id: courseId } }),

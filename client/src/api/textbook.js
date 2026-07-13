@@ -2,10 +2,16 @@ import request from '../utils/request';
 import './types';
 
 /**
- * 获取教材列表
- * @returns {Promise<import('./types').ApiResponse<import('./types').Textbook[]>>}
+ * 获取教材列表（服务端分页 + 筛选 + 排序）
+ * @param {Object} [params] - 查询参数
+ * @param {number} [params.page] - 页码
+ * @param {number} [params.page_size] - 每页数量
+ * @param {string} [params.title] - 书名模糊匹配
+ * @param {string} [params.category] - 类别精确匹配（技工/非技工）
+ * @param {string} [params.publisher] - 出版社精确匹配
+ * @returns {Promise<import('./types').ApiResponse<{ items: import('./types').Textbook[], total: number, publishers: string[] }>>}
  */
-export const getTextbooks = () => request.get('/textbooks');
+export const getTextbooks = (params) => request.get('/textbooks', { params });
 
 /**
  * 创建教材

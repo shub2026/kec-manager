@@ -10,7 +10,7 @@
       @close="$emit('close')"
     >
       <el-form ref="formRef" :model="localForm" :rules="rules" label-width="100px">
-        <el-row :gutter="20">
+        <el-row :gutter="16">
           <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="班级名称" prop="name" required>
               <el-input v-model="localForm.name" placeholder="如：2024级学前1班" />
@@ -29,7 +29,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20">
+        <el-row :gutter="16">
           <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="二级学院">
               <el-select
@@ -64,7 +64,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20">
+        <el-row :gutter="16">
           <el-col :span="8" :xs="24" :sm="8">
             <el-form-item label="入学年份" prop="enrollmentYear" required>
               <el-input-number
@@ -91,7 +91,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20">
+        <el-row :gutter="16">
           <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="特殊状态离校">
               <el-switch v-model="localForm.isLeftSchool" />
@@ -114,7 +114,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20">
+        <el-row :gutter="16">
           <el-col :span="24">
             <el-form-item label="合班教学">
               <el-switch v-model="localForm.isCombinedClass" />
@@ -165,7 +165,7 @@
       destroy-on-close
       @close="$emit('batch-close')"
     >
-      <el-form label-width="120px">
+      <el-form label-width="100px">
         <el-form-item v-if="batchFormType === 'major'" label="专业类别">
           <el-select v-model="batchForm.majorId" placeholder="请选择专业" class="full-width">
             <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />

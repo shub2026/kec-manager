@@ -101,17 +101,12 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <div style="flex: 1; line-height: 1.6; color: var(--text-regular)">
-          <p style="margin: 0">{{ deleteCourseConfirmMessage }}</p>
-          <p style="margin: 8px 0 0; color: var(--text-secondary); font-size: 13px">
-            此操作不可撤销。
-          </p>
-        </div>
-      </div>
+      <BaseConfirmBody icon-color="var(--brand-danger)">
+        <p style="margin: 0">{{ deleteCourseConfirmMessage }}</p>
+        <p style="margin: 8px 0 0; color: var(--text-secondary); font-size: 13px">
+          此操作不可撤销。
+        </p>
+      </BaseConfirmBody>
       <template #footer>
         <el-button @click="deleteCourseConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="courseDeleting" @click="confirmDeleteCourse"
@@ -133,6 +128,7 @@ import { getTextbooks } from '../../api/textbook';
 import CourseMatrix from '../../components/CourseMatrix.vue';
 import MatrixLegend from '../../components/MatrixLegend.vue';
 import PageHeader from '../../components/PageHeader.vue';
+import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 
 const route = useRoute();
 // M-3 修复：使用 computed 使 planId 响应式，支持路由参数变化时自动更新
@@ -271,7 +267,7 @@ onMounted(async () => {
     const [coursesRes, textbooksRes] = await Promise.all([getCourses(), getTextbooks()]);
     allCourses.value = coursesRes.data || [];
     // 只显示启用的教材
-    allTextbooks.value = (textbooksRes.data || []).filter((t) => t.isActive);
+    allTextbooks.value = (textbooksRes.data?.items || []).filter((t) => t.isActive);
     await loadPlan();
   } catch (e) {
     if (import.meta.env.DEV) console.error('[PlanDetail] 初始化加载失败:', e);
@@ -294,11 +290,11 @@ onMounted(async () => {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 20px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
   background: var(--bg-card);
   border: 1px solid var(--border-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: var(--el-box-shadow-light, 0 1px 2px rgba(0, 0, 0, 0.04));
 }
 

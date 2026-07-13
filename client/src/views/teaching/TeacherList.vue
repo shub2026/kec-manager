@@ -84,7 +84,7 @@
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
+      <el-table v-loading="loading" :data="list" stripe row-key="id">
         <template #empty>
           <EmptyState type="teacher" description="暂无教师数据" />
         </template>
@@ -194,16 +194,16 @@
         </el-table-column>
       </el-table>
 
-      <div class="list-pagination">
+      <div class="pagination-container">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :total="filteredList.length"
+          :total="total"
           :page-sizes="[20, 50, 100]"
           layout="total, sizes, prev, pager, next"
           background
-          @current-change="currentPage = $event"
-          @size-change="currentPage = 1"
+          @current-change="load"
+          @size-change="handleSizeChange"
         />
       </div>
     </el-card>
@@ -342,14 +342,7 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
-          确定要删除此教师吗？此操作不可撤销。
-        </p>
-      </div>
+      <BaseConfirmBody icon-color="var(--brand-danger)">确定要删除此教师吗？此操作不可撤销。</BaseConfirmBody>
       <template #footer>
         <el-button @click="deleteConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
@@ -363,12 +356,7 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-warning)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">{{ confirmMessage }}</p>
-      </div>
+      <BaseConfirmBody>{{ confirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="cancelImport">取消</el-button>
         <el-button type="warning" :loading="importing" @click="confirmImport">确定导入</el-button>
@@ -393,11 +381,13 @@ import { getTrainingLevels } from '../../api/trainingLevel';
 import { getCourses } from '../../api/course';
 import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
+import { useDebounceFn } from '../../composables/useDebounce';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useResponsive } from '../../composables/useResponsive';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
+import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 
 defineOptions({ name: 'TeacherList' });
 
@@ -498,49 +488,35 @@ const rules = {
 // 小屏弹窗全屏：复用共享响应式断点
 const { isMobile } = useResponsive();
 
-// 客户端筛选
-const filteredList = computed(() => {
-  let result = list.value;
-  if (filterName.value) {
-    const keyword = filterName.value.toLowerCase();
-    result = result.filter((t) => t.name && t.name.toLowerCase().includes(keyword));
-  }
-  if (filterCourseId.value) {
-    const cid = Number(filterCourseId.value);
-    result = result.filter((t) => t.courseList?.some((c) => c.id === cid));
-  }
-  if (filterPersonnelType.value) {
-    result = result.filter((t) => t.personnelType === filterPersonnelType.value);
-  }
-  if (filterCollegeId.value) {
-    const cid = Number(filterCollegeId.value);
-    result = result.filter((t) => t.collegeList?.some((c) => c.id === cid));
-  }
-  if (filterTrainingLevelId.value) {
-    const lid = Number(filterTrainingLevelId.value);
-    result = result.filter((t) => t.trainingLevelList?.some((l) => l.id === lid));
-  }
-  if (filterAffiliatedCollegeId.value) {
-    const cid = Number(filterAffiliatedCollegeId.value);
-    result = result.filter((t) => t.affiliatedCollege?.id === cid);
-  }
-  if (filterStatus.value) {
-    result = result.filter((t) => (t.status || 'active') === filterStatus.value);
-  }
-  return result;
-});
+// 列表总数（来自服务端分页）
+const total = ref(0);
 
-// 前端分页：全量数据已在客户端筛选，按页切片渲染，避免大列表一次性渲染上千行导致卡顿
+// 前端分页：数据已由服务端按筛选条件过滤并分页返回，这里仅做页码切片渲染
 const currentPage = ref(1);
 const pageSize = ref(20);
-const pagedList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredList.value.slice(start, start + pageSize.value);
-});
-// 筛选条件变化后回到第一页，避免停留在越界页码
-watch(filteredList, () => {
+// 筛选条件变化后回到第一页并重新拉取（防抖，避免逐字符触发请求）
+const reload = useDebounceFn(() => {
   currentPage.value = 1;
-});
+  load();
+}, 300);
+watch(
+  [
+    filterName,
+    filterCourseId,
+    filterPersonnelType,
+    filterCollegeId,
+    filterTrainingLevelId,
+    filterAffiliatedCollegeId,
+    filterStatus,
+  ],
+  () => reload()
+);
+
+// 每页大小变化：回到第一页重新拉取
+function handleSizeChange() {
+  currentPage.value = 1;
+  load();
+}
 
 const defaultForm = {
   id: null,
@@ -610,8 +586,20 @@ function calcAge(birthDate) {
 async function load() {
   loading.value = true;
   try {
-    const res = await getTeachers();
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value,
+      name: filterName.value || undefined,
+      course_id: filterCourseId.value || undefined,
+      personnel_type: filterPersonnelType.value || undefined,
+      college_id: filterCollegeId.value || undefined,
+      training_level_id: filterTrainingLevelId.value || undefined,
+      affiliated_college_id: filterAffiliatedCollegeId.value || undefined,
+      status: filterStatus.value || undefined,
+    };
+    const res = await getTeachers(params);
     list.value = res.data?.items || [];
+    total.value = res.data?.total || 0;
   } finally {
     loading.value = false;
   }
@@ -738,11 +726,5 @@ onActivated(() => {
 <style scoped>
 .tag-item {
   margin: 2px;
-}
-
-.list-pagination {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
 }
 </style>

@@ -82,7 +82,7 @@
       </el-table>
 
       <!-- 分页 -->
-      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
+      <div class="pagination-container">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -172,14 +172,7 @@
       width="min(400px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-warning)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
-          {{ statusConfirmMessage }}
-        </p>
-      </div>
+      <BaseConfirmBody>{{ statusConfirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="statusConfirmVisible = false">取消</el-button>
         <el-button type="warning" :loading="statusChanging" @click="confirmToggleStatus"
@@ -195,14 +188,7 @@
       width="min(400px, 90vw)"
       align-center
     >
-      <div style="display: flex; gap: 12px; align-items: flex-start">
-        <el-icon :size="24" color="var(--brand-danger)" style="flex-shrink: 0; margin-top: 2px"
-          ><WarningFilled
-        /></el-icon>
-        <p style="margin: 0; line-height: 1.6; color: var(--text-regular)">
-          {{ deleteConfirmMessage }}
-        </p>
-      </div>
+      <BaseConfirmBody icon-color="var(--brand-danger)">{{ deleteConfirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="deleteConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="userDeleting" @click="confirmDeleteUser"
@@ -227,6 +213,7 @@ import {
 } from '../../api/user';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 
 defineOptions({ name: 'UserManagement' });
 

@@ -40,6 +40,9 @@ const mockPrisma = {
   textbooks: {
     findUnique: vi.fn(),
   },
+  teaching_assignments: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
 };
 
 vi.mock('../../../lib/prisma.js', () => ({

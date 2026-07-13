@@ -8,7 +8,7 @@
     <el-card>
       <!-- 汇总统计 -->
       <div v-if="statsData" class="summary-section">
-        <el-row :gutter="20">
+        <el-row :gutter="16">
           <el-col :span="8" :xs="24" :sm="12" :md="8">
             <el-statistic title="参与教师" :value="filteredSummary.totalTeachers" suffix="人" />
           </el-col>
@@ -227,7 +227,7 @@
           </el-table-column>
         </el-table>
 
-        <div class="list-pagination">
+        <div class="pagination-container">
           <el-pagination
             v-model:current-page="currentPage"
             v-model:page-size="pageSize"
@@ -446,11 +446,6 @@ onMounted(async () => {
   align-items: center;
 }
 
-.list-pagination {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
 .card-header-actions {
   display: flex;
   flex-wrap: wrap;
