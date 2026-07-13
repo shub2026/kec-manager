@@ -130,8 +130,26 @@ describe('getDashboardStats', () => {
     mockPrisma.textbooks.count.mockResolvedValue(50);
     // 默认在读班级：2个班级，各有 enrollment_year 和 duration_years
     mockPrisma.classes.findMany.mockResolvedValue([
-      { id: 1, student_count: 40, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
-      { id: 2, student_count: 35, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      {
+        id: 1,
+        student_count: 40,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
+      {
+        id: 2,
+        student_count: 35,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
     ]);
     // 默认方案：一个按层次匹配的方案，含 2 门课程在当前学期（semester 4）
     mockPrisma.training_plans.findMany.mockResolvedValue([
@@ -212,9 +230,36 @@ describe('getDashboardStats', () => {
 
   it('在读学生数是各班级 student_count 之和', async () => {
     mockPrisma.classes.findMany.mockResolvedValue([
-      { id: 1, student_count: 30, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
-      { id: 2, student_count: 0, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
-      { id: 3, student_count: 50, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      {
+        id: 1,
+        student_count: 30,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
+      {
+        id: 2,
+        student_count: 0,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
+      {
+        id: 3,
+        student_count: 50,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
     ]);
 
     const req = mockReq({ semester: '2025-2026-2' });
@@ -227,8 +272,26 @@ describe('getDashboardStats', () => {
 
   it('student_count 为 null 时按 0 计算', async () => {
     mockPrisma.classes.findMany.mockResolvedValue([
-      { id: 1, student_count: null, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
-      { id: 2, student_count: 25, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      {
+        id: 1,
+        student_count: null,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
+      {
+        id: 2,
+        student_count: 25,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
     ]);
 
     const req = mockReq({ semester: '2025-2026-2' });
@@ -264,7 +327,16 @@ describe('getDashboardStats', () => {
     ]);
     // 1个班级
     mockPrisma.classes.findMany.mockResolvedValue([
-      { id: 1, student_count: 40, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      {
+        id: 1,
+        student_count: 40,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
     ]);
 
     const req = mockReq({ semester: '2025-2026-2' });
@@ -306,7 +378,16 @@ describe('getDashboardStats', () => {
     // 模拟 bug 场景：班级有 major_id=200(转段) + training_level_id=46(五年制)
     // 方案只有 training_level_id=46，应按层次匹配
     mockPrisma.classes.findMany.mockResolvedValue([
-      { id: 100, student_count: 45, enrollment_year: 2023, duration_years: 5, major_id: 200, training_level_id: 46, college_id: 44, custom_plan_id: null },
+      {
+        id: 100,
+        student_count: 45,
+        enrollment_year: 2023,
+        duration_years: 5,
+        major_id: 200,
+        training_level_id: 46,
+        college_id: 44,
+        custom_plan_id: null,
+      },
     ]);
     mockCalcClassSemester.mockReturnValue({ grade: 3, currentSemesterNum: 5 });
 
@@ -336,7 +417,16 @@ describe('getDashboardStats', () => {
       plan_courses: [makePlanCourse(70, 3, 6, 3, [{ semester: 4, weekly_hours: 3 }])],
     });
     mockPrisma.classes.findMany.mockResolvedValue([
-      { id: 1, student_count: 30, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: 99 },
+      {
+        id: 1,
+        student_count: 30,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: 99,
+      },
     ]);
     mockPrisma.training_plans.findMany.mockResolvedValue([customPlan]);
 
@@ -372,7 +462,16 @@ describe('getDashboardStats', () => {
   it('weekly_hours 为 0 的课程不计入', async () => {
     // 只用 1 个班级，避免累加翻倍
     mockPrisma.classes.findMany.mockResolvedValue([
-      { id: 1, student_count: 40, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      {
+        id: 1,
+        student_count: 40,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
     ]);
     mockPrisma.training_plans.findMany.mockResolvedValue([
       makePlan(1, {
@@ -396,8 +495,26 @@ describe('getDashboardStats', () => {
   it('相同 course_id 跨多个班级只计一次课程数，但周课时累加', async () => {
     // 2个班级匹配同一方案，方案含相同 course_id
     mockPrisma.classes.findMany.mockResolvedValue([
-      { id: 1, student_count: 40, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
-      { id: 2, student_count: 35, enrollment_year: 2024, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      {
+        id: 1,
+        student_count: 40,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
+      {
+        id: 2,
+        student_count: 35,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
     ]);
     mockPrisma.training_plans.findMany.mockResolvedValue([
       makePlan(1, {
@@ -419,7 +536,16 @@ describe('getDashboardStats', () => {
 
   it('calcClassSemester 返回 null 的班级跳过计算', async () => {
     mockPrisma.classes.findMany.mockResolvedValue([
-      { id: 1, student_count: 40, enrollment_year: 2020, duration_years: 3, major_id: 1, training_level_id: 2, college_id: 1, custom_plan_id: null },
+      {
+        id: 1,
+        student_count: 40,
+        enrollment_year: 2020,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
     ]);
     // 该班级已毕业，calcClassSemester 返回 null
     mockCalcClassSemester.mockReturnValue(null);

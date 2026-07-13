@@ -391,9 +391,15 @@ describe('createPlan — 创建培养方案', () => {
   });
   it('college_id 字符串 → Number() 转换后传入 Prisma', async () => {
     mockPrisma.training_plans.create.mockResolvedValue({
-      id: 20, name: '带学院方案', college_id: 5, major_id: 1,
-      training_level_id: null, status: 'draft', sort_order: 6,
-      majors: { id: 1, name: '学前' }, colleges: { id: 5, name: '教育学院' },
+      id: 20,
+      name: '带学院方案',
+      college_id: 5,
+      major_id: 1,
+      training_level_id: null,
+      status: 'draft',
+      sort_order: 6,
+      majors: { id: 1, name: '学前' },
+      colleges: { id: 5, name: '教育学院' },
       training_levels: null,
     });
 
@@ -401,9 +407,7 @@ describe('createPlan — 创建培养方案', () => {
     const res = mockRes();
     await createPlan(req, res, vi.fn());
 
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     const createCall = mockPrisma.training_plans.create.mock.calls[0][0];
     expect(createCall.data.college_id).toBe(5);
     expect(createCall.data.major_id).toBe(1);
@@ -411,9 +415,16 @@ describe('createPlan — 创建培养方案', () => {
 
   it('college_id 为 null/空 → 传 null 给 Prisma', async () => {
     mockPrisma.training_plans.create.mockResolvedValue({
-      id: 21, name: '无学院方案', college_id: null, major_id: 1,
-      training_level_id: null, status: 'draft', sort_order: 6,
-      majors: null, colleges: null, training_levels: null,
+      id: 21,
+      name: '无学院方案',
+      college_id: null,
+      major_id: 1,
+      training_level_id: null,
+      status: 'draft',
+      sort_order: 6,
+      majors: null,
+      colleges: null,
+      training_levels: null,
     });
 
     const req = mockReq({ name: '无学院方案', major_id: 1, college_id: null });
@@ -426,9 +437,16 @@ describe('createPlan — 创建培养方案', () => {
 
   it('status 未传 → 默认 draft', async () => {
     mockPrisma.training_plans.create.mockResolvedValue({
-      id: 22, name: '默认状态', major_id: 1, training_level_id: null,
-      college_id: null, status: 'draft', sort_order: 6,
-      majors: null, colleges: null, training_levels: null,
+      id: 22,
+      name: '默认状态',
+      major_id: 1,
+      training_level_id: null,
+      college_id: null,
+      status: 'draft',
+      sort_order: 6,
+      majors: null,
+      colleges: null,
+      training_levels: null,
     });
 
     const req = mockReq({ name: '默认状态', major_id: 1 });
@@ -441,9 +459,16 @@ describe('createPlan — 创建培养方案', () => {
 
   it('status 显式传 active → 覆盖默认值', async () => {
     mockPrisma.training_plans.create.mockResolvedValue({
-      id: 23, name: '激活方案', major_id: 1, training_level_id: null,
-      college_id: null, status: 'active', sort_order: 6,
-      majors: null, colleges: null, training_levels: null,
+      id: 23,
+      name: '激活方案',
+      major_id: 1,
+      training_level_id: null,
+      college_id: null,
+      status: 'active',
+      sort_order: 6,
+      majors: null,
+      colleges: null,
+      training_levels: null,
     });
 
     const req = mockReq({ name: '激活方案', major_id: 1, status: 'active' });
@@ -456,10 +481,17 @@ describe('createPlan — 创建培养方案', () => {
 
   it('完整字段（college_id + version + description + status）全部传入 Prisma', async () => {
     mockPrisma.training_plans.create.mockResolvedValue({
-      id: 24, name: '完整方案', college_id: 3, major_id: null,
-      training_level_id: 2, version: 'v2.0', description: '测试描述',
-      status: 'draft', sort_order: 6,
-      majors: null, colleges: { id: 3, name: '理学院' },
+      id: 24,
+      name: '完整方案',
+      college_id: 3,
+      major_id: null,
+      training_level_id: 2,
+      version: 'v2.0',
+      description: '测试描述',
+      status: 'draft',
+      sort_order: 6,
+      majors: null,
+      colleges: { id: 3, name: '理学院' },
       training_levels: { id: 2, name: '本科' },
     });
 
@@ -626,12 +658,19 @@ describe('updatePlan — 更新培养方案', () => {
 
   it('college_id 字符串 → Number() 转换后传入 Prisma update', async () => {
     mockPrisma.training_plans.findUnique.mockResolvedValue({
-      id: 1, college_id: 1, colleges: { name: '旧学院' },
+      id: 1,
+      college_id: 1,
+      colleges: { name: '旧学院' },
     });
     mockPrisma.training_plans.update.mockResolvedValue({
-      id: 1, name: '更新', college_id: 7, major_id: 1,
-      training_level_id: null, colleges: { name: '新学院' },
-      majors: { id: 1, name: '学前' }, training_levels: null,
+      id: 1,
+      name: '更新',
+      college_id: 7,
+      major_id: 1,
+      training_level_id: null,
+      colleges: { name: '新学院' },
+      majors: { id: 1, name: '学前' },
+      training_levels: null,
     });
 
     const req = mockReq({ name: '更新', major_id: '1', college_id: '7' }, { id: '1' });
@@ -644,12 +683,19 @@ describe('updatePlan — 更新培养方案', () => {
 
   it('college_id 为 null → 传 null 给 Prisma update', async () => {
     mockPrisma.training_plans.findUnique.mockResolvedValue({
-      id: 1, college_id: 1, colleges: { name: '旧学院' },
+      id: 1,
+      college_id: 1,
+      colleges: { name: '旧学院' },
     });
     mockPrisma.training_plans.update.mockResolvedValue({
-      id: 1, name: '更新', college_id: null, major_id: 1,
-      training_level_id: null, colleges: null,
-      majors: null, training_levels: null,
+      id: 1,
+      name: '更新',
+      college_id: null,
+      major_id: 1,
+      training_level_id: null,
+      colleges: null,
+      majors: null,
+      training_levels: null,
     });
 
     const req = mockReq({ name: '更新', major_id: 1, college_id: null }, { id: '1' });
@@ -662,12 +708,20 @@ describe('updatePlan — 更新培养方案', () => {
 
   it('status 未传 → 不包含在 updateData 中', async () => {
     mockPrisma.training_plans.findUnique.mockResolvedValue({
-      id: 1, college_id: null, colleges: null,
+      id: 1,
+      college_id: null,
+      colleges: null,
     });
     mockPrisma.training_plans.update.mockResolvedValue({
-      id: 1, name: '更新', college_id: null, major_id: 1,
-      training_level_id: null, status: 'draft',
-      colleges: null, majors: null, training_levels: null,
+      id: 1,
+      name: '更新',
+      college_id: null,
+      major_id: 1,
+      training_level_id: null,
+      status: 'draft',
+      colleges: null,
+      majors: null,
+      training_levels: null,
     });
 
     const req = mockReq({ name: '更新', major_id: 1 }, { id: '1' });
@@ -680,12 +734,20 @@ describe('updatePlan — 更新培养方案', () => {
 
   it('status 显式传 archived → 包含在 updateData 中', async () => {
     mockPrisma.training_plans.findUnique.mockResolvedValue({
-      id: 1, college_id: null, colleges: null,
+      id: 1,
+      college_id: null,
+      colleges: null,
     });
     mockPrisma.training_plans.update.mockResolvedValue({
-      id: 1, name: '更新', college_id: null, major_id: 1,
-      training_level_id: null, status: 'archived',
-      colleges: null, majors: null, training_levels: null,
+      id: 1,
+      name: '更新',
+      college_id: null,
+      major_id: 1,
+      training_level_id: null,
+      status: 'archived',
+      colleges: null,
+      majors: null,
+      training_levels: null,
     });
 
     const req = mockReq({ name: '更新', major_id: 1, status: 'archived' }, { id: '1' });
@@ -698,25 +760,37 @@ describe('updatePlan — 更新培养方案', () => {
 
   it('完整字段更新：所有字段正确传入 Prisma update data', async () => {
     mockPrisma.training_plans.findUnique.mockResolvedValue({
-      id: 1, college_id: 1, colleges: { name: '旧学院' },
+      id: 1,
+      college_id: 1,
+      colleges: { name: '旧学院' },
     });
     mockPrisma.training_plans.update.mockResolvedValue({
-      id: 1, name: '全字段', college_id: 3, major_id: null,
-      training_level_id: 2, version: 'v3.0', description: '新描述',
-      status: 'active', sort_order: 10,
-      colleges: { name: '新学院' }, majors: null,
-      training_levels: { id: 2, name: '本科' },
-    });
-
-    const req = mockReq({
+      id: 1,
       name: '全字段',
       college_id: 3,
+      major_id: null,
       training_level_id: 2,
       version: 'v3.0',
       description: '新描述',
       status: 'active',
       sort_order: 10,
-    }, { id: '1' });
+      colleges: { name: '新学院' },
+      majors: null,
+      training_levels: { id: 2, name: '本科' },
+    });
+
+    const req = mockReq(
+      {
+        name: '全字段',
+        college_id: 3,
+        training_level_id: 2,
+        version: 'v3.0',
+        description: '新描述',
+        status: 'active',
+        sort_order: 10,
+      },
+      { id: '1' }
+    );
     const res = mockRes();
     await updatePlan(req, res, vi.fn());
 
@@ -733,12 +807,19 @@ describe('updatePlan — 更新培养方案', () => {
 
   it('college_id 变更 → 审计日志记录 collegeChange', async () => {
     mockPrisma.training_plans.findUnique.mockResolvedValue({
-      id: 1, college_id: 1, colleges: { name: '旧学院' },
+      id: 1,
+      college_id: 1,
+      colleges: { name: '旧学院' },
     });
     mockPrisma.training_plans.update.mockResolvedValue({
-      id: 1, name: '更新', college_id: 5, major_id: 1,
-      training_level_id: null, colleges: { name: '新学院' },
-      majors: { id: 1, name: '学前' }, training_levels: null,
+      id: 1,
+      name: '更新',
+      college_id: 5,
+      major_id: 1,
+      training_level_id: null,
+      colleges: { name: '新学院' },
+      majors: { id: 1, name: '学前' },
+      training_levels: null,
     });
 
     const req = mockReq({ name: '更新', major_id: 1, college_id: 5 }, { id: '1' });
@@ -758,12 +839,19 @@ describe('updatePlan — 更新培养方案', () => {
 
   it('college_id 未变更 → 审计日志不含 collegeChange', async () => {
     mockPrisma.training_plans.findUnique.mockResolvedValue({
-      id: 1, college_id: 1, colleges: { name: '不变学院' },
+      id: 1,
+      college_id: 1,
+      colleges: { name: '不变学院' },
     });
     mockPrisma.training_plans.update.mockResolvedValue({
-      id: 1, name: '更新', college_id: 1, major_id: 1,
-      training_level_id: null, colleges: { name: '不变学院' },
-      majors: { id: 1, name: '学前' }, training_levels: null,
+      id: 1,
+      name: '更新',
+      college_id: 1,
+      major_id: 1,
+      training_level_id: null,
+      colleges: { name: '不变学院' },
+      majors: { id: 1, name: '学前' },
+      training_levels: null,
     });
 
     const req = mockReq({ name: '更新', major_id: 1, college_id: 1 }, { id: '1' });
@@ -777,7 +865,9 @@ describe('updatePlan — 更新培养方案', () => {
   it('Prisma update 抛非 P2025 错误 → 记录失败审计日志并 throw', async () => {
     const dbError = new Error('Unknown argument `college_id`');
     mockPrisma.training_plans.findUnique.mockResolvedValue({
-      id: 1, college_id: null, colleges: null,
+      id: 1,
+      college_id: null,
+      colleges: null,
     });
     mockPrisma.training_plans.update.mockRejectedValue(dbError);
 
@@ -801,9 +891,13 @@ describe('updatePlan — 更新培养方案', () => {
 
   it('sort_order 更新路径也应调用 invalidateSortOrderCache', async () => {
     mockPrisma.training_plans.update.mockResolvedValue({
-      id: 1, name: '排序更新', sort_order: 5,
-      college_id: null, colleges: null,
-      majors: null, training_levels: null,
+      id: 1,
+      name: '排序更新',
+      sort_order: 5,
+      college_id: null,
+      colleges: null,
+      majors: null,
+      training_levels: null,
     });
 
     const req = mockReq({ sort_order: 5 }, { id: '1' });

@@ -48,7 +48,11 @@
         <template #default="{ row }">
           <el-tooltip
             v-if="row.isCombinedClass"
-            :content="row.partnerClassNames ? `合班伙伴：${row.partnerClassNames}` : '已标记合班（暂无伙伴）'"
+            :content="
+              row.partnerClassNames
+                ? `合班伙伴：${row.partnerClassNames}`
+                : '已标记合班（暂无伙伴）'
+            "
             placement="top"
             effect="light"
           >

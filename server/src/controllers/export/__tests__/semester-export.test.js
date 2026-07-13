@@ -275,7 +275,8 @@ describe('exportSemesterSchedule (GET)', () => {
       expect(rows[0]['课程类型']).toBe('公共基础课');
       expect(rows[0]['周课时']).toBe(4);
       expect(rows[0]['学期总课时']).toBe(64);
-      expect(rows[0]['教材征订']).toBe('高数上册(选修)');
+      expect(rows[0]['教材名称']).toBe('高数上册');
+      expect(rows[0]['征订情况']).toBe('选修');
       expect(rows[0]['书号']).toBe('978-001');
     });
 
@@ -467,7 +468,8 @@ describe('exportSemesterSchedule (GET)', () => {
       await exportSemesterSchedule(req, res, vi.fn());
 
       const rows = mocks.createWorkbook.mock.calls[0][1];
-      expect(rows[0]['教材征订']).toBe('未指定');
+      expect(rows[0]['教材名称']).toBe('未指定');
+      expect(rows[0]['征订情况']).toBe('-');
       expect(rows[0]['书号']).toBe('-');
     });
 
@@ -497,7 +499,8 @@ describe('exportSemesterSchedule (GET)', () => {
       await exportSemesterSchedule(req, res, vi.fn());
 
       const rows = mocks.createWorkbook.mock.calls[0][1];
-      expect(rows[0]['教材征订']).toBe('教材A(选修)、教材B(选修)');
+      expect(rows[0]['教材名称']).toBe('教材A、教材B');
+      expect(rows[0]['征订情况']).toBe('选修、选修');
       expect(rows[0]['书号']).toBe('111、222');
     });
   });

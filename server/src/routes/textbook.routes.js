@@ -23,16 +23,8 @@ const router = Router();
 router.get('/', listTextbooks);
 
 // 批量操作（须在 /:id 前注册，避免参数捕获）
-router.post(
-  '/batch-update',
-  roleMiddleware('admin', 'super_admin'),
-  batchUpdateTextbooks
-);
-router.post(
-  '/batch-delete',
-  roleMiddleware('admin', 'super_admin'),
-  batchDeleteTextbooks
-);
+router.post('/batch-update', roleMiddleware('admin', 'super_admin'), batchUpdateTextbooks);
+router.post('/batch-delete', roleMiddleware('admin', 'super_admin'), batchDeleteTextbooks);
 
 // POST/PUT/DELETE - 需要admin权限
 router.post(

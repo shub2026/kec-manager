@@ -18,7 +18,9 @@ const MEMORY_CACHE_MAX_SIZE = 10000;
 
 // 审计修复：预计算虚拟哈希，用于用户不存在时的恒定时间比较，防止计时攻击枚举用户名
 let DUMMY_HASH = '';
-(async () => { DUMMY_HASH = await bcrypt.hash('dummy-password-for-timing-attack', 12); })();
+(async () => {
+  DUMMY_HASH = await bcrypt.hash('dummy-password-for-timing-attack', 12);
+})();
 
 // 定时清理过期黑名单记录（每小时一次）
 setInterval(

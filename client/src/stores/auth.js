@@ -252,7 +252,9 @@ export const useAuthStore = defineStore('auth', () => {
         if (e.newValue) {
           try {
             userInfo.value = JSON.parse(e.newValue);
-          } catch { /* ignore parse errors */ }
+          } catch {
+            /* ignore parse errors */
+          }
         } else {
           userInfo.value = null;
         }

@@ -99,7 +99,9 @@ const rules = {
         if (/\d/.test(value)) types++;
         if (/[^a-zA-Z\d]/.test(value)) types++;
         if (types < 2) {
-          callback(new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）'));
+          callback(
+            new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）')
+          );
         } else {
           callback();
         }

@@ -94,7 +94,9 @@
             </el-dropdown>
             <el-dropdown style="margin-left: 4px" @command="handleResetCommand">
               <el-button type="danger">
-                <el-icon><RefreshRight /></el-icon> 重置<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                <el-icon><RefreshRight /></el-icon> 重置<el-icon class="el-icon--right"
+                  ><ArrowDown
+                /></el-icon>
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
@@ -121,7 +123,9 @@
             <span>{{ row.className }}</span>
             <el-tooltip
               v-if="row.combinationId != null"
-              :content="row.partnerClassNames ? `合班伙伴：${row.partnerClassNames}` : '已标记合班教学'"
+              :content="
+                row.partnerClassNames ? `合班伙伴：${row.partnerClassNames}` : '已标记合班教学'
+              "
               placement="top"
               effect="light"
             >
@@ -197,7 +201,7 @@
         </el-table-column>
       </el-table>
 
-      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -280,7 +284,9 @@
             确定要重置本学期<strong>全部科目</strong>的自动排课安排吗？此操作不可撤销。
           </p>
           <p style="margin: 8px 0 0; color: var(--brand-danger-text); font-size: 13px">
-            将清除{{ resetScope === 'current' ? '该课程' : '所有课程' }}在本学期的所有自动分配记录，手动安排不受影响。
+            将清除{{
+              resetScope === 'current' ? '该课程' : '所有课程'
+            }}在本学期的所有自动分配记录，手动安排不受影响。
           </p>
         </div>
       </div>
@@ -932,7 +938,7 @@ onMounted(async () => {
   transition: background-color 0.15s ease;
 }
 .teacher-cell:hover {
-  background-color: var(--el-color-primary-light-9, #E8F3FE);
+  background-color: var(--el-color-primary-light-9, #e8f3fe);
 }
 .teacher-cell.no-teacher:hover .text-placeholder {
   color: var(--el-color-primary);

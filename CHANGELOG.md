@@ -5,6 +5,45 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本控制遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.4.0] - 2026-07-13
+
+### 新增
+
+- **合班教学组**：新增 `class_combinations` 数据模型，支持同学院多班级合班教学，提供 `applyCombination`、`dissolveAfterClassDeletion`、`buildCombinationMemberMap` 等完整 CRUD 服务
+- **排课并发锁**：新增 `arrange_locks` 表，支持数据库级咨询锁防止多进程/多实例并发排课数据竞争
+
+### 数据完整性
+
+- **唯一约束**：`courses.name` 和 `textbooks.title` 添加 `@unique` 约束，防止重复创建
+- **外键加固**：`plan_courses.courses` 和 `plan_textbooks.textbooks` 外键改为 `onDelete: Restrict`，防止级联删除
+
+### 导出优化
+
+- **开课导出列拆分**："教材征订"列拆为"教材名称"、"书号"、"征订情况"三列，便于 Excel 筛选征订状态
+
+### 响应式设计
+
+- **课程矩阵表格**：≤1024px 断点收缩学期列（100→80px）、课程名列（160→120px）、操作列（140→110px），减少水平滚动距离
+- **方案明细页**：≤768px 断点隐藏概览条分隔符，避免换行后视觉错位
+- **底部控制栏**：窄屏下纵向堆叠，取消右对齐
+
+### 修复
+
+- **catch 块作用域 bug**：`export-template.controller.js` 和 `trainingLevel.controller.js` 的 catch 块引用 try 块内 `const` 变量导致 ReferenceError，已改为 `req.params.type` / `req.body.name`
+
+### 测试
+
+- 新增 425 个测试用例（926 → 1351），13 个新测试文件
+- 语句覆盖率 52.82% → 70.84%，分支 46.3% → 62%，函数 47.36% → 66.66%，行 54.25% → 72.29%
+- 新增覆盖：textbook.controller（70）、import/textbooks（24）、class-combination（53）、arrange/lock（15）、arrange/queries（+27）、auto-arrange（+34）、data-export（28）、export-template（10）、excel（31）、sse（18）、college/major/trainingLevel 控制器（69）、class.controller.extra（35）、class.service（11）
+
+### 文档
+
+- 删除过时文件：`.qoder/specs/` 旧审计报告、`.workbuddy/memory/` 工具日志
+- 更新文档版本号和状态信息
+
+---
+
 ## [1.3.3] - 2026-07-11
 
 ### 业务逻辑校正

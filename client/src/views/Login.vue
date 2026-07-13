@@ -263,11 +263,7 @@ onMounted(() => {
 
 .card-accent {
   height: 3px;
-  background: linear-gradient(
-    to right,
-    var(--brand-primary),
-    var(--brand-mint)
-  );
+  background: linear-gradient(to right, var(--brand-primary), var(--brand-mint));
   box-shadow: 0 1px 8px var(--brand-primary-shadow);
 }
 

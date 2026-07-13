@@ -116,7 +116,7 @@ onMounted(() => {
 }
 
 .dot-green {
-  background-color: var(--brand-success, #34D399);
+  background-color: var(--brand-success, #34d399);
 }
 
 .card-title-text {
@@ -165,7 +165,7 @@ onMounted(() => {
   gap: 6px;
   margin-top: 12px;
   font-size: 13px;
-  color: var(--brand-success, #34D399);
+  color: var(--brand-success, #34d399);
 }
 
 .enabled-hint.off {
@@ -182,7 +182,7 @@ onMounted(() => {
 
 .dirty-hint {
   font-size: 13px;
-  color: var(--el-color-warning, #FBBF24);
+  color: var(--el-color-warning, #fbbf24);
 }
 
 @media (max-width: 768px) {

@@ -11,16 +11,39 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // ──────────────────────────────────────────────
 // Mock prisma client（vi.hoisted 确保变量在 mock 提升后可用）
 // ──────────────────────────────────────────────
-const { mockPlanCoursesFindMany, mockClassesFindMany, mockFindBestMatchPlan } = vi.hoisted(() => ({
+const {
+  mockPlanCoursesFindMany,
+  mockClassesFindMany,
+  mockFindBestMatchPlan,
+  mockTeachersFindMany,
+  mockAssignmentsGroupBy,
+  mockAssignmentsFindMany,
+  mockTrainingLevelsFindMany,
+  mockTextbooksFindMany,
+  mockIsClassMatchPlan,
+} = vi.hoisted(() => ({
   mockPlanCoursesFindMany: vi.fn(),
   mockClassesFindMany: vi.fn(),
   mockFindBestMatchPlan: vi.fn(),
+  mockTeachersFindMany: vi.fn(),
+  mockAssignmentsGroupBy: vi.fn(),
+  mockAssignmentsFindMany: vi.fn(),
+  mockTrainingLevelsFindMany: vi.fn(),
+  mockTextbooksFindMany: vi.fn(),
+  mockIsClassMatchPlan: vi.fn(),
 }));
 
 vi.mock('../../../lib/prisma.js', () => ({
   prisma: {
     plan_courses: { findMany: mockPlanCoursesFindMany },
     classes: { findMany: mockClassesFindMany },
+    teachers: { findMany: mockTeachersFindMany },
+    teaching_assignments: {
+      groupBy: mockAssignmentsGroupBy,
+      findMany: mockAssignmentsFindMany,
+    },
+    training_levels: { findMany: mockTrainingLevelsFindMany },
+    textbooks: { findMany: mockTextbooksFindMany },
   },
 }));
 
@@ -63,14 +86,19 @@ vi.mock('../../../services/semester.service.js', () => ({
 
 vi.mock('../../../services/plan.service.js', () => ({
   findBestMatchPlan: (...args) => mockFindBestMatchPlan(...args),
-  isClassMatchPlan: vi.fn(),
+  isClassMatchPlan: (...args) => mockIsClassMatchPlan(...args),
   buildClassWithPlanFilter: vi.fn(),
+}));
+
+vi.mock('../../../constants/index.js', () => ({
+  TEXTBOOK_COHESION: { FALLBACK_EMPTY: true },
 }));
 
 // ──────────────────────────────────────────────
 // 导入被测函数（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { getClassesWithCourse } = await import('../../../services/arrange/queries.js');
+const { getClassesWithCourse, getTeachersForCourse } =
+  await import('../../../services/arrange/queries.js');
 
 // ──────────────────────────────────────────────
 // 测试数据工厂
@@ -281,5 +309,549 @@ describe('getClassesWithCourse - 0 课时过滤', () => {
 
     // 当前学期（第 2 学期）0 课时 → 被过滤
     expect(result).toHaveLength(0);
+  });
+});
+
+// ══════════════════════════════════════════════
+// getClassesWithCourse - 错误与边界
+// ══════════════════════════════════════════════
+describe('getClassesWithCourse - 学期错误与空数据', () => {
+  it('学期格式错误时应抛出异常', async () => {
+    await expect(getClassesWithCourse(1, 'invalid')).rejects.toThrow('学期格式错误');
+  });
+
+  it('无 plan_courses 时应返回空数组', async () => {
+    mockPlanCoursesFindMany.mockResolvedValue([]);
+    mockClassesFindMany.mockResolvedValue([makeClass(10, '25级1班')]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toEqual([]);
+  });
+
+  it('无班级时应返回空数组', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    mockPlanCoursesFindMany.mockResolvedValue([pc]);
+    mockClassesFindMany.mockResolvedValue([]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe('getClassesWithCourse - 方案匹配与过滤', () => {
+  it('findBestMatchPlan 返回 null 时该班级应被跳过', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const cls = makeClass(10, '25级1班');
+    mockPlanCoursesFindMany.mockResolvedValue([pc]);
+    mockClassesFindMany.mockResolvedValue([cls]);
+    mockFindBestMatchPlan.mockReturnValue(null);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('bestPlan 对应的 planCourse 不存在时应跳过', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const cls = makeClass(10, '25级1班');
+    mockPlanCoursesFindMany.mockResolvedValue([pc]);
+    mockClassesFindMany.mockResolvedValue([cls]);
+    // 返回一个不在 planCourses 中的方案
+    mockFindBestMatchPlan.mockReturnValue({ id: 999, major_id: 1, training_level_id: 1 });
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('calcClassSemester 返回 null 时应跳过该班级（超龄/超学制）', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    // enrollment_year=2020, duration_years=4 → grade=6 > 4 → calcClassSemester 返回 null
+    const cls = makeClass(10, '20级1班', { enrollment_year: 2020, duration_years: 4 });
+    setupMocks([pc], [cls]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('semRecord 不在 [start_semester, end_semester] 范围内时应跳过', async () => {
+    // pc.start_semester=3, pc.end_semester=4, 当前学期=2 → semRecord.semester=2 不在范围内
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    pc.start_semester = 3;
+    pc.end_semester = 4;
+    const cls = makeClass(10, '25级1班');
+    setupMocks([pc], [cls]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(0);
+  });
+
+  it('weeks_count 为 null 时应回退到 pc.weeks_per_semester', async () => {
+    const sem = makeSemRecord(CURRENT_SEM_NUM, 4);
+    sem.weeks_count = null; // 回退
+    const pc = makePlanCourse(1, [sem]);
+    pc.weeks_per_semester = 16;
+    const cls = makeClass(10, '25级1班');
+    setupMocks([pc], [cls]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].weeksCount).toBe(16);
+    expect(result[0].totalHours).toBe(4 * 16);
+  });
+});
+
+describe('getClassesWithCourse - 筛选条件', () => {
+  it('传入 college 筛选条件时应添加到 where 中', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const cls = makeClass(10, '25级1班');
+    setupMocks([pc], [cls]);
+
+    await getClassesWithCourse(COURSE_ID, SEMESTER_STR, { college: '计算机学院' });
+
+    // 验证 getActiveClassFilter 返回的 where 对象被扩展了 colleges 条件
+    const findManyCall = mockClassesFindMany.mock.calls[0][0];
+    expect(findManyCall.where.colleges).toEqual({ name: '计算机学院' });
+  });
+
+  it('传入 major 筛选条件时应添加到 where 中', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const cls = makeClass(10, '25级1班');
+    setupMocks([pc], [cls]);
+
+    await getClassesWithCourse(COURSE_ID, SEMESTER_STR, { major: '软件工程' });
+
+    const findManyCall = mockClassesFindMany.mock.calls[0][0];
+    expect(findManyCall.where.majors).toEqual({ name: '软件工程' });
+  });
+
+  it('传入 training_level 筛选条件时应添加到 where 中', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const cls = makeClass(10, '25级1班');
+    setupMocks([pc], [cls]);
+
+    await getClassesWithCourse(COURSE_ID, SEMESTER_STR, { training_level: '本科' });
+
+    const findManyCall = mockClassesFindMany.mock.calls[0][0];
+    expect(findManyCall.where.training_levels).toEqual({ name: '本科' });
+  });
+
+  it('传入 grade 筛选条件时应过滤 OR 条件', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const cls = makeClass(10, '25级1班');
+    setupMocks([pc], [cls]);
+
+    // 模拟 getActiveClassFilter 返回含 OR 条件的 where
+    const { getActiveClassFilter } = await import('../../../services/semester.service.js');
+    getActiveClassFilter.mockResolvedValueOnce({
+      OR: [{ enrollment_year: { gte: 2025 } }, { enrollment_year: { gte: 2023 } }],
+    });
+
+    await getClassesWithCourse(COURSE_ID, SEMESTER_STR, { grade: '1' });
+
+    const findManyCall = mockClassesFindMany.mock.calls[0][0];
+    // grade=1 → enrollmentYear = 2025 - 1 + 1 = 2025
+    // gte <= 2025 的条件保留
+    expect(findManyCall.where.OR).toBeDefined();
+  });
+});
+
+describe('getClassesWithCourse - custom_plan_id 处理', () => {
+  it('班级有 custom_plan_id 时应构建 classPlanMap', async () => {
+    const plan1 = {
+      id: 1,
+      name: '方案A',
+      major_id: 1,
+      training_level_id: 1,
+      sort_order: 0,
+      majors: { id: 1, name: '专业A' },
+      training_levels: { id: 1, name: '本科' },
+      colleges: { id: 1, name: '学院A' },
+    };
+    const plan2 = {
+      id: 2,
+      name: '方案B',
+      major_id: 2,
+      training_level_id: 1,
+      sort_order: 1,
+      majors: { id: 2, name: '专业B' },
+      training_levels: { id: 1, name: '本科' },
+      colleges: { id: 1, name: '学院A' },
+    };
+    const pc1 = {
+      id: 100,
+      training_plans: plan1,
+      courses: { id: 1, name: '语文', code: 'CH001', type: 'public' },
+      start_semester: 1,
+      end_semester: 4,
+      weekly_hours: 4,
+      weeks_per_semester: 18,
+      plan_course_semesters: [makeSemRecord(CURRENT_SEM_NUM, 4)],
+    };
+    const pc2 = {
+      id: 200,
+      training_plans: plan2,
+      courses: { id: 1, name: '语文', code: 'CH001', type: 'public' },
+      start_semester: 1,
+      end_semester: 4,
+      weekly_hours: 4,
+      weeks_per_semester: 18,
+      plan_course_semesters: [makeSemRecord(CURRENT_SEM_NUM, 4)],
+    };
+    const cls = makeClass(10, '25级1班', { custom_plan_id: 2 });
+
+    mockPlanCoursesFindMany.mockResolvedValue([pc1, pc2]);
+    mockClassesFindMany.mockResolvedValue([cls]);
+    // findBestMatchPlan 应收到 classPlanMap 并返回 plan2
+    mockFindBestMatchPlan.mockReturnValue(plan2);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(1);
+    expect(mockFindBestMatchPlan).toHaveBeenCalledWith(cls, [plan1, plan2], expect.any(Map));
+  });
+});
+
+describe('getClassesWithCourse - 返回结构验证', () => {
+  it('返回对象应包含所有预期字段', async () => {
+    const pc = makePlanCourse(1, [
+      makeSemRecord(CURRENT_SEM_NUM, 4, [{ id: 1, title: '语文课本' }]),
+    ]);
+    const cls = makeClass(10, '25级1班', {
+      combination_id: 5,
+      student_count: 35,
+    });
+    setupMocks([pc], [cls]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(1);
+    const r = result[0];
+    expect(r).toHaveProperty('classId', 10);
+    expect(r).toHaveProperty('className', '25级1班');
+    expect(r).toHaveProperty('collegeId', 1);
+    expect(r).toHaveProperty('collegeName', '学院A');
+    expect(r).toHaveProperty('majorId', 1);
+    expect(r).toHaveProperty('majorName', '专业A');
+    expect(r).toHaveProperty('trainingLevelId', 1);
+    expect(r).toHaveProperty('trainingLevelName', '本科');
+    expect(r).toHaveProperty('combinationId', 5);
+    expect(r).toHaveProperty('grade');
+    expect(r).toHaveProperty('enrollmentYear', 2025);
+    expect(r).toHaveProperty('studentCount', 35);
+    expect(r).toHaveProperty('currentSemester');
+    expect(r).toHaveProperty('weeklyHours', 4);
+    expect(r).toHaveProperty('weeksCount', 18);
+    expect(r).toHaveProperty('totalHours', 72);
+    expect(r).toHaveProperty('textbooks');
+    expect(r.textbooks).toEqual([{ id: 1, title: '语文课本' }]);
+  });
+
+  it('student_count 为 null 时应默认 0', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const cls = makeClass(10, '25级1班', { student_count: null });
+    setupMocks([pc], [cls]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].studentCount).toBe(0);
+  });
+
+  it('colleges 关联为 null 时 collegeName 应为 null', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const cls = makeClass(10, '25级1班', { colleges: null });
+    setupMocks([pc], [cls]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].collegeName).toBeNull();
+  });
+
+  it('majors 关联为 null 时 majorName 应为 null', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const cls = makeClass(10, '25级1班', { majors: null });
+    setupMocks([pc], [cls]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].majorName).toBeNull();
+  });
+
+  it('training_levels 关联为 null 时 trainingLevelName 应为 null', async () => {
+    const pc = makePlanCourse(1, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const cls = makeClass(10, '25级1班', { training_levels: null });
+    setupMocks([pc], [cls]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].trainingLevelName).toBeNull();
+  });
+});
+
+// ══════════════════════════════════════════════
+// getTeachersForCourse
+// ══════════════════════════════════════════════
+describe('getTeachersForCourse - 基础功能', () => {
+  function makeTeacher(id, name, overrides = {}) {
+    return {
+      id,
+      name,
+      gender: 'male',
+      personnel_type: 'fulltime',
+      qualification_type: 'senior',
+      default_weekly_hours: 12,
+      sort_order: id,
+      courses: [{ course: { id: COURSE_ID, name: '语文' } }],
+      scheduling_colleges: [],
+      scheduling_levels: [],
+      ...overrides,
+    };
+  }
+
+  function setupTeacherMocks(teachers, options = {}) {
+    const {
+      workloadStats = [],
+      courseAssignments = [],
+      collegeAndLevelAssignments = [],
+      allAssignments = [],
+      planCoursesForTextbooks = [],
+      allPlanCourses = [],
+      classesForTextbooks = [],
+      trainingLevels = [],
+      textbooks = [],
+    } = options;
+
+    mockTeachersFindMany.mockResolvedValue(teachers);
+    // groupBy 被调用两次：第一次全部排课统计，第二次当前课程统计
+    mockAssignmentsGroupBy
+      .mockResolvedValueOnce(workloadStats)
+      .mockResolvedValueOnce(courseAssignments);
+    // findMany 被调用两次：学院/层次查询 + 全部排课记录
+    mockAssignmentsFindMany
+      .mockResolvedValueOnce(collegeAndLevelAssignments)
+      .mockResolvedValueOnce(allAssignments);
+    // plan_courses 被调用两次：教材兜底 + 跨课程教材
+    mockPlanCoursesFindMany
+      .mockResolvedValueOnce(planCoursesForTextbooks)
+      .mockResolvedValueOnce(allPlanCourses);
+    mockClassesFindMany.mockResolvedValue(classesForTextbooks);
+    mockTrainingLevelsFindMany.mockResolvedValue(trainingLevels);
+    mockTextbooksFindMany.mockResolvedValue(textbooks);
+  }
+
+  it('无教师时应返回空数组', async () => {
+    setupTeacherMocks([], {
+      workloadStats: [],
+      courseAssignments: [],
+    });
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toEqual([]);
+  });
+
+  it('单个教师无排课记录时应使用兜底教材（FALLBACK_EMPTY=true 时为空）', async () => {
+    const teacher = makeTeacher(1, '张老师');
+    setupTeacherMocks([teacher], {
+      workloadStats: [],
+      courseAssignments: [],
+      collegeAndLevelAssignments: [],
+      allAssignments: [], // 无排课记录
+      planCoursesForTextbooks: [],
+    });
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('张老师');
+    expect(result[0].textbookIds).toEqual([]);
+    expect(result[0].inherentTextbookIds).toEqual([]);
+    expect(result[0].totalWeeklyHours).toBe(0);
+    expect(result[0].totalClassCount).toBe(0);
+    expect(result[0].courseHours).toBe(0);
+    expect(result[0].courseClassCount).toBe(0);
+  });
+
+  it('教师有工作量统计时应正确反映', async () => {
+    const teacher = makeTeacher(1, '李老师');
+    setupTeacherMocks([teacher], {
+      workloadStats: [{ teacher_id: 1, _sum: { weekly_hours: 16 }, _count: { id: 3 } }],
+      courseAssignments: [{ teacher_id: 1, _sum: { weekly_hours: 4 }, _count: { id: 1 } }],
+      collegeAndLevelAssignments: [],
+      allAssignments: [],
+      planCoursesForTextbooks: [],
+    });
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].totalWeeklyHours).toBe(16);
+    expect(result[0].totalClassCount).toBe(3);
+    expect(result[0].courseHours).toBe(4);
+    expect(result[0].courseClassCount).toBe(1);
+  });
+
+  it('教师有学院和层次分配时应构建映射', async () => {
+    const teacher = makeTeacher(1, '王老师', {
+      scheduling_colleges: [{ college_id: 10 }],
+      scheduling_levels: [{ training_level: { id: 20, name: '本科' } }],
+    });
+    setupTeacherMocks([teacher], {
+      workloadStats: [],
+      courseAssignments: [],
+      collegeAndLevelAssignments: [
+        {
+          teacher_id: 1,
+          class: {
+            colleges: { id: 10, name: '计算机学院' },
+            training_level_id: 20,
+          },
+        },
+      ],
+      allAssignments: [],
+      planCoursesForTextbooks: [],
+      trainingLevels: [{ id: 20, name: '本科' }],
+    });
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].collegeList).toEqual([{ id: 10, name: '计算机学院' }]);
+    expect(result[0].schedulingCollegeIds).toEqual([10]);
+    expect(result[0].schedulingLevelIds).toEqual([20]);
+    // 有实际授课层次时优先使用
+    expect(result[0].trainingLevelList).toEqual([{ id: 20, name: '本科' }]);
+  });
+
+  it('教师无实际授课层次时应使用 scheduling_levels', async () => {
+    const teacher = makeTeacher(1, '赵老师', {
+      scheduling_levels: [{ training_level: { id: 30, name: '大专' } }],
+    });
+    setupTeacherMocks([teacher], {
+      workloadStats: [],
+      courseAssignments: [],
+      collegeAndLevelAssignments: [], // 无分配
+      allAssignments: [],
+      planCoursesForTextbooks: [],
+    });
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].trainingLevelList).toEqual([{ id: 30, name: '大专' }]);
+  });
+
+  it('教师有跨课程排课时应进入教材构建逻辑', async () => {
+    const teacher = makeTeacher(1, '陈老师');
+    setupTeacherMocks([teacher], {
+      workloadStats: [],
+      courseAssignments: [],
+      collegeAndLevelAssignments: [],
+      allAssignments: [{ teacher_id: 1, class_id: 100, course_id: COURSE_ID }],
+      planCoursesForTextbooks: [],
+      allPlanCourses: [
+        {
+          course_id: COURSE_ID,
+          training_plans: { id: 1, major_id: 1, training_level_id: 1 },
+          start_semester: 1,
+          end_semester: 4,
+          plan_course_semesters: [
+            {
+              semester: CURRENT_SEM_NUM,
+              plan_textbooks: [{ textbook_id: 501 }],
+            },
+          ],
+        },
+      ],
+      classesForTextbooks: [
+        {
+          id: 100,
+          custom_plan_id: null,
+          major_id: 1,
+          training_level_id: 1,
+          enrollment_year: 2025,
+          duration_years: 4,
+        },
+      ],
+      textbooks: [{ id: 501, title: '高等数学' }],
+    });
+
+    // findBestMatchPlan 返回匹配方案
+    mockFindBestMatchPlan.mockReturnValue({ id: 1, major_id: 1, training_level_id: 1 });
+    // isClassMatchPlan 返回 true
+    mockIsClassMatchPlan.mockReturnValue(true);
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    // 验证教师数据正常返回，教材字段为数组
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('陈老师');
+    expect(Array.isArray(result[0].inherentTextbookIds)).toBe(true);
+    expect(Array.isArray(result[0].assignedTextbooks)).toBe(true);
+    // 验证 prisma.classes.findMany 被调用（教材构建逻辑确实执行了）
+    expect(mockClassesFindMany).toHaveBeenCalled();
+  });
+
+  it('返回结构应包含所有预期字段', async () => {
+    const teacher = makeTeacher(1, '周老师');
+    setupTeacherMocks([teacher], {
+      workloadStats: [],
+      courseAssignments: [],
+    });
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(1);
+    const r = result[0];
+    expect(r).toHaveProperty('id', 1);
+    expect(r).toHaveProperty('name', '周老师');
+    expect(r).toHaveProperty('gender', 'male');
+    expect(r).toHaveProperty('personnelType', 'fulltime');
+    expect(r).toHaveProperty('qualificationType', 'senior');
+    expect(r).toHaveProperty('defaultWeeklyHours', 12);
+    expect(r).toHaveProperty('courseList');
+    expect(r).toHaveProperty('collegeList');
+    expect(r).toHaveProperty('schedulingCollegeIds');
+    expect(r).toHaveProperty('schedulingLevelIds');
+    expect(r).toHaveProperty('trainingLevelList');
+    expect(r).toHaveProperty('textbookIds');
+    expect(r).toHaveProperty('inherentTextbookIds');
+    expect(r).toHaveProperty('assignedTextbooks');
+    expect(r).toHaveProperty('assignedTextbookIds');
+    expect(r).toHaveProperty('assignedCollegeIds');
+    expect(r).toHaveProperty('totalWeeklyHours');
+    expect(r).toHaveProperty('totalClassCount');
+    expect(r).toHaveProperty('courseHours');
+    expect(r).toHaveProperty('courseClassCount');
+  });
+
+  it('工作量统计 weekly_hours 为 null 时应默认 0', async () => {
+    const teacher = makeTeacher(1, '孙老师');
+    setupTeacherMocks([teacher], {
+      workloadStats: [{ teacher_id: 1, _sum: { weekly_hours: null }, _count: { id: 0 } }],
+      courseAssignments: [{ teacher_id: 1, _sum: { weekly_hours: null }, _count: { id: 0 } }],
+    });
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].totalWeeklyHours).toBe(0);
+    expect(result[0].courseHours).toBe(0);
+  });
+
+  it('assignedTextbookIds 和 assignedCollegeIds 应为空 Set', async () => {
+    const teacher = makeTeacher(1, '吴老师');
+    setupTeacherMocks([teacher], {
+      workloadStats: [],
+      courseAssignments: [],
+    });
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].assignedTextbookIds).toBeInstanceOf(Set);
+    expect(result[0].assignedTextbookIds.size).toBe(0);
+    expect(result[0].assignedCollegeIds).toBeInstanceOf(Set);
+    expect(result[0].assignedCollegeIds.size).toBe(0);
   });
 });

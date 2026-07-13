@@ -47,10 +47,22 @@ export async function createAuditLog({ action, module, userId, ip, details, resu
     });
     // 审计修复：DB写入失败时降级写入文件日志，确保审计记录不丢失
     try {
-      const data = { action, module, userId, ip, details, result, message, timestamp: new Date().toISOString() };
+      const data = {
+        action,
+        module,
+        userId,
+        ip,
+        details,
+        result,
+        message,
+        timestamp: new Date().toISOString(),
+      };
       const logDir = path.join(process.cwd(), 'logs');
       if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
-      const logFile = path.join(logDir, `audit-fallback-${new Date().toISOString().split('T')[0]}.jsonl`);
+      const logFile = path.join(
+        logDir,
+        `audit-fallback-${new Date().toISOString().split('T')[0]}.jsonl`
+      );
       fs.appendFileSync(logFile, JSON.stringify(data) + '\n', 'utf-8');
     } catch (fileErr) {
       logger.error('审计日志文件降级写入也失败', { error: fileErr.message });

@@ -38,7 +38,14 @@ vi.mock('../../../constants/index.js', () => ({
 
 vi.mock('../../lib/prisma.js', () => ({ prisma: {} }));
 
-const { calcMatchScore, isTeacherEligible, calcAllMatchRates } = await import('../auto-arrange.js');
+const {
+  calcMatchScore,
+  isTeacherEligible,
+  calcAllMatchRates,
+  diagnoseFailure,
+  selectBestTeacher,
+  trySwapOne,
+} = await import('../auto-arrange.js');
 
 const C = {
   COLLEGE_WEIGHT: 5,
@@ -381,5 +388,737 @@ describe('calcAllMatchRates', () => {
     const result = calcAllMatchRates(assignments, classes, teacherMap);
     expect(result.textbookCohesionRate).toBe(50);
     expect(result.avgTextbookPerTeacher).toBe(2);
+  });
+
+  it('分散教师计数：教材数 >= SCATTERED_THRESHOLD 的教师应被计入 scatteredCount', () => {
+    const assignments = [
+      { teacher_id: 1, class_id: 100 },
+      { teacher_id: 1, class_id: 101 },
+      { teacher_id: 1, class_id: 102 },
+    ];
+    const classes = [
+      { classId: 100, collegeId: 10, trainingLevelId: 20, textbookIds: [300] },
+      { classId: 101, collegeId: 10, trainingLevelId: 20, textbookIds: [301] },
+      { classId: 102, collegeId: 10, trainingLevelId: 20, textbookIds: [302] },
+    ];
+    const teacherMap = new Map([
+      [1, { schedulingCollegeIds: [10], schedulingLevelIds: [20], inherentTextbookIds: [] }],
+    ]);
+
+    const result = calcAllMatchRates(assignments, classes, teacherMap);
+    // Teacher 1 has 3 textbooks >= SCATTERED_THRESHOLD (3)
+    expect(result.scatteredTeacherCount).toBe(1);
+    expect(result.involvedTeacherCount).toBe(1);
+  });
+
+  it('教师或班级在 map 中缺失时应跳过该分配', () => {
+    const assignments = [
+      { teacher_id: 999, class_id: 100 }, // teacher not in map
+      { teacher_id: 1, class_id: 999 }, // class not in map
+    ];
+    const classes = [{ classId: 100, collegeId: 10, trainingLevelId: 20, textbookIds: [300] }];
+    const teacherMap = new Map([
+      [1, { schedulingCollegeIds: [10], schedulingLevelIds: [20], inherentTextbookIds: [300] }],
+    ]);
+
+    const result = calcAllMatchRates(assignments, classes, teacherMap);
+    // Both assignments are skipped, total defaults to 1
+    expect(result.collegeMatchRate).toBe(0);
+    expect(result.textbookMatchRate).toBe(0);
+  });
+});
+
+// ──────────────────────────────────────────────
+// diagnoseFailure
+// ──────────────────────────────────────────────
+describe('diagnoseFailure', () => {
+  const mode = 'standard';
+
+  it('无教师时应返回"没有可教此课程的教师"', () => {
+    const cls = { ...baseClass(), weeklyHours: 4 };
+    const result = diagnoseFailure(cls, [], mode);
+    expect(result.reason).toBe('没有可教此课程的教师');
+    expect(result.details).toBeNull();
+  });
+
+  it('所有教师容量已满时应返回对应诊断', () => {
+    const cls = { ...baseClass(), weeklyHours: 8 };
+    const teachers = [
+      {
+        ...baseTeacher(),
+        id: 1,
+        name: 'T1',
+        standardCap: 4,
+        fullCap: 6,
+        assignedHours: 0,
+        effectiveTotal: 0,
+        defaultWeeklyHours: null,
+        standardHours: 16,
+        maxHours: 20,
+      },
+      {
+        ...baseTeacher(),
+        id: 2,
+        name: 'T2',
+        standardCap: 4,
+        fullCap: 6,
+        assignedHours: 0,
+        effectiveTotal: 0,
+        defaultWeeklyHours: null,
+        standardHours: 16,
+        maxHours: 20,
+      },
+    ];
+    const result = diagnoseFailure(cls, teachers, mode);
+    expect(result.reason).toBe('所有候选教师课时容量已满');
+    expect(result.details).toHaveLength(2);
+    expect(result.details[0].teacherName).toBe('T1');
+  });
+
+  it('所有教师 totalWeeklyHours 达上限时应返回"总周课时已达上限"', () => {
+    const cls = { ...baseClass(), weeklyHours: 4 };
+    const teachers = [
+      {
+        ...baseTeacher(),
+        id: 1,
+        name: 'T1',
+        standardCap: 20,
+        fullCap: 20,
+        assignedHours: 0,
+        effectiveTotal: 18,
+        defaultWeeklyHours: 20,
+        standardHours: 16,
+        maxHours: 20,
+      },
+    ];
+    const result = diagnoseFailure(cls, teachers, mode);
+    expect(result.reason).toBe('所有候选教师总周课时已达上限');
+  });
+
+  it('所有教师教材上限已满时应返回"教材上限已满"', () => {
+    const cls = { ...baseClass(), weeklyHours: 4, textbookIds: [500] };
+    const teachers = [
+      {
+        ...baseTeacher(),
+        id: 1,
+        name: 'T1',
+        standardCap: 20,
+        fullCap: 20,
+        assignedHours: 0,
+        effectiveTotal: 0,
+        defaultWeeklyHours: null,
+        standardHours: 16,
+        maxHours: 20,
+        assignedTextbookIds: new Set([300, 301]), // MAX=2, new textbook 500 → exceed
+      },
+    ];
+    const result = diagnoseFailure(cls, teachers, mode);
+    expect(result.reason).toBe('所有候选教师教材上限已满');
+    expect(result.details[0].textbookCount).toBe(2);
+  });
+
+  it('部分教师有容量但不满足学院/层次偏好时应返回"无匹配的教师"并附带统计', () => {
+    const cls = { ...baseClass(), weeklyHours: 8, collegeId: 10, trainingLevelId: null };
+    const teachers = [
+      {
+        // Matches college, but cap-full → ineligible
+        ...baseTeacher(),
+        id: 1,
+        name: 'T1',
+        schedulingCollegeIds: [10],
+        schedulingLevelIds: [],
+        standardCap: 4,
+        fullCap: 6,
+        assignedHours: 0,
+        effectiveTotal: 0,
+        defaultWeeklyHours: null,
+        standardHours: 16,
+        maxHours: 20,
+        assignedTextbookIds: new Set(),
+      },
+      {
+        // Has capacity but wrong college → ineligible
+        ...baseTeacher(),
+        id: 2,
+        name: 'T2',
+        schedulingCollegeIds: [99],
+        schedulingLevelIds: [],
+        standardCap: 20,
+        fullCap: 20,
+        assignedHours: 0,
+        effectiveTotal: 0,
+        defaultWeeklyHours: null,
+        standardHours: 16,
+        maxHours: 20,
+        assignedTextbookIds: new Set(),
+      },
+    ];
+    const result = diagnoseFailure(cls, teachers, mode);
+    // Neither teacher is eligible → falls through to "no matching teacher"
+    expect(result.reason).toBe('无匹配的教师（学院/层次偏好筛选后无候选）');
+    expect(result.details.totalTeachers).toBe(2);
+    expect(result.details.collegeMatchCount).toBe(1); // T1 matches college
+  });
+
+  it('学院/层次不匹配时应返回"无匹配的教师"', () => {
+    const cls = { ...baseClass(), weeklyHours: 4, collegeId: 10, trainingLevelId: 20 };
+    const teachers = [
+      {
+        ...baseTeacher(),
+        id: 1,
+        name: 'T1',
+        schedulingCollegeIds: [99], // mismatch
+        schedulingLevelIds: [],
+        standardCap: 20,
+        fullCap: 20,
+        assignedHours: 0,
+        effectiveTotal: 0,
+        defaultWeeklyHours: null,
+        standardHours: 16,
+        maxHours: 20,
+        assignedTextbookIds: new Set(),
+      },
+    ];
+    const result = diagnoseFailure(cls, teachers, mode);
+    expect(result.reason).toBe('无匹配的教师（学院/层次偏好筛选后无候选）');
+    expect(result.details.totalTeachers).toBe(1);
+    expect(result.details.collegeMatchCount).toBe(0);
+  });
+});
+
+// ──────────────────────────────────────────────
+// selectBestTeacher
+// ──────────────────────────────────────────────
+describe('selectBestTeacher', () => {
+  it('分数差异 >= SCORE_THRESHOLD 时按分数降序选择', () => {
+    const candidates = [
+      { teacher: { id: 1 }, score: 10, loadRate: 0.5, cls: {} },
+      { teacher: { id: 2 }, score: 20, loadRate: 0.5, cls: {} },
+    ];
+    const result = selectBestTeacher(candidates);
+    expect(result.teacher.id).toBe(2);
+  });
+
+  it('分数接近时按负载率升序选择（低负载优先）', () => {
+    const candidates = [
+      { teacher: { id: 1 }, score: 10, loadRate: 0.8, cls: {} },
+      { teacher: { id: 2 }, score: 10, loadRate: 0.3, cls: {} },
+    ];
+    const result = selectBestTeacher(candidates);
+    expect(result.teacher.id).toBe(2);
+  });
+
+  it('分数和负载率都接近时综合排序（分数降序 > 负载率升序）', () => {
+    const candidates = [
+      { teacher: { id: 1 }, score: 10, loadRate: 0.5, cls: {} },
+      { teacher: { id: 2 }, score: 10.5, loadRate: 0.5, cls: {} },
+    ];
+    const result = selectBestTeacher(candidates);
+    // Score diff = 0.5 < SCORE_THRESHOLD(1), load diff = 0 < LOAD_RATE_THRESHOLD(0.2)
+    // Composite: score desc → id:2 wins (10.5 > 10)
+    expect(result.teacher.id).toBe(2);
+  });
+
+  it('单个候选时应直接返回', () => {
+    const candidates = [{ teacher: { id: 42 }, score: 5, loadRate: 0.2, cls: {} }];
+    const result = selectBestTeacher(candidates);
+    expect(result.teacher.id).toBe(42);
+  });
+
+  it('不应修改原数组', () => {
+    const candidates = [
+      { teacher: { id: 1 }, score: 5, loadRate: 0.8, cls: {} },
+      { teacher: { id: 2 }, score: 20, loadRate: 0.2, cls: {} },
+    ];
+    const original = [...candidates];
+    selectBestTeacher(candidates);
+    expect(candidates[0].teacher.id).toBe(original[0].teacher.id);
+    expect(candidates[1].teacher.id).toBe(original[1].teacher.id);
+  });
+});
+
+// ──────────────────────────────────────────────
+// isTeacherEligible - additional edge cases
+// ──────────────────────────────────────────────
+describe('isTeacherEligible - additional branches', () => {
+  it('full 模式下应使用 fullCap 判断容量', () => {
+    const t = baseTeacher();
+    t.standardCap = 4;
+    t.fullCap = 20;
+    t.assignedHours = 6;
+    const c = baseClass();
+    c.weeklyHours = 8;
+    // standard mode: 6+8=14 > 4 → false
+    expect(isTeacherEligible(t, c, 'standard')).toBe(false);
+    // full mode: 6+8=14 <= 20 → true
+    expect(isTeacherEligible(t, c, 'full')).toBe(true);
+  });
+
+  it('班级无 trainingLevelId 且教师有层次约束时应返回 false', () => {
+    const t = baseTeacher();
+    t.schedulingLevelIds = [20];
+    t.standardCap = 20;
+    t.fullCap = 20;
+    const c = baseClass();
+    c.trainingLevelId = null; // no training level
+    expect(isTeacherEligible(t, c, 'standard')).toBe(false);
+  });
+
+  it('班级有 trainingLevelId 且教师层次匹配时应返回 true', () => {
+    const t = baseTeacher();
+    t.schedulingLevelIds = [20];
+    t.standardCap = 20;
+    t.fullCap = 20;
+    const c = baseClass(); // trainingLevelId: 20
+    expect(isTeacherEligible(t, c, 'standard')).toBe(true);
+  });
+
+  it('TEXTBOOK_COHESION.ENABLED=true 但班级无 textbookIds 时不应被教材上限阻止', () => {
+    const t = baseTeacher();
+    t.assignedTextbookIds = new Set([300, 301]); // MAX=2
+    t.standardCap = 20;
+    t.fullCap = 20;
+    const c = baseClass();
+    c.textbookIds = []; // no textbooks
+    expect(isTeacherEligible(t, c, 'standard')).toBe(true);
+  });
+
+  it('教师 schedulingCollegeIds 包含班级 collegeId 时应通过学院检查', () => {
+    const t = baseTeacher();
+    t.schedulingCollegeIds = [10, 20];
+    t.standardCap = 20;
+    t.fullCap = 20;
+    const c = baseClass(); // collegeId: 10
+    expect(isTeacherEligible(t, c, 'standard')).toBe(true);
+  });
+
+  it('教师 schedulingLevelIds 不包含班级 trainingLevelId 时应拒绝', () => {
+    const t = baseTeacher();
+    t.schedulingLevelIds = [30, 40];
+    t.standardCap = 20;
+    t.fullCap = 20;
+    const c = baseClass(); // trainingLevelId: 20
+    expect(isTeacherEligible(t, c, 'standard')).toBe(false);
+  });
+});
+
+// ──────────────────────────────────────────────
+// calcMatchScore - additional branches
+// ──────────────────────────────────────────────
+describe('calcMatchScore - tbCount=1 branches', () => {
+  it('tbCount=1 且班级教材全部已持有 → BONUS_1_SAME', () => {
+    const t = baseTeacher();
+    t.assignedTextbookIds = new Set([300]); // tbCount=1
+    t.inherentTextbookIds = [300];
+    t.assignedCollegeIds = new Set();
+
+    const c = baseClass();
+    c.textbookIds = [300]; // all already held
+
+    const score = calcMatchScore(t, c);
+    // Should include TEXTBOOK_COUNT_BONUS_1_SAME (8)
+    // Compare with tbCount=1 but new textbook scenario
+    const t2 = baseTeacher();
+    t2.assignedTextbookIds = new Set([301]); // tbCount=1
+    t2.inherentTextbookIds = [301];
+    t2.assignedCollegeIds = new Set();
+    const c2 = baseClass();
+    c2.textbookIds = [300]; // new textbook for t2
+
+    const score2 = calcMatchScore(t2, c2);
+    // score has BONUS_1_SAME (+8), score2 has PENALTY_1_NEW (-200)
+    expect(score - score2).toBeGreaterThan(100);
+  });
+
+  it('tbCount=1 且班级有新教材 → PENALTY_1_NEW', () => {
+    const t = baseTeacher();
+    t.assignedTextbookIds = new Set([301]); // tbCount=1, different
+    t.inherentTextbookIds = [301];
+    t.assignedCollegeIds = new Set();
+
+    const c = baseClass();
+    c.textbookIds = [300]; // new textbook
+
+    const score = calcMatchScore(t, c);
+    // Should be significantly negative due to PENALTY_1_NEW (200)
+    expect(score).toBeLessThan(-100);
+  });
+
+  it('班级无教材时不应触发教材相关奖惩', () => {
+    const t = baseTeacher();
+    t.assignedTextbookIds = new Set();
+    t.inherentTextbookIds = [];
+    t.assignedCollegeIds = new Set();
+
+    const c = baseClass();
+    c.textbookIds = [];
+
+    const score = calcMatchScore(t, c);
+    // ZERO_TEXTBOOK_BONUS should still apply (tbCount=0)
+    // No penalty branches triggered since no class textbooks
+    expect(score).toBeGreaterThanOrEqual(0);
+  });
+
+  it('schedulingCollegeIds 为 null 时不崩溃', () => {
+    const t = baseTeacher();
+    t.schedulingCollegeIds = null;
+    const c = baseClass();
+    expect(() => calcMatchScore(t, c)).not.toThrow();
+  });
+
+  it('schedulingLevelIds 为 null 时不崩溃', () => {
+    const t = baseTeacher();
+    t.schedulingLevelIds = null;
+    const c = baseClass();
+    expect(() => calcMatchScore(t, c)).not.toThrow();
+  });
+});
+
+// ──────────────────────────────────────────────
+// trySwapOne
+// ──────────────────────────────────────────────
+describe('trySwapOne', () => {
+  function makeTeacher(id, overrides = {}) {
+    return {
+      id,
+      name: `T${id}`,
+      schedulingCollegeIds: [],
+      schedulingLevelIds: [],
+      assignedTextbookIds: new Set(),
+      assignedCollegeIds: new Set(),
+      assignedHours: 0,
+      standardCap: 16,
+      fullCap: 20,
+      standardHours: 16,
+      maxHours: 20,
+      effectiveTotal: 0,
+      ...overrides,
+    };
+  }
+
+  function makeAssignment(teacherId, classId, weeklyHours, overrides = {}) {
+    return {
+      teacher_id: teacherId,
+      teacher_name: `T${teacherId}`,
+      class_id: classId,
+      class_name: `C${classId}`,
+      course_id: 1,
+      semester: '2025-2026-1',
+      weekly_hours: weeklyHours,
+      is_auto: true,
+      ...overrides,
+    };
+  }
+
+  it('weeklyHours <= 0 时应直接返回 false', () => {
+    const u = { classId: 1, className: 'C1', weeklyHours: 0, textbookIds: [] };
+    const result = trySwapOne(
+      u,
+      [],
+      new Map(),
+      new Map(),
+      [],
+      'standard',
+      1,
+      '2025-2026-1',
+      new Map(),
+      new Map()
+    );
+    expect(result).toBe(false);
+  });
+
+  it('weeklyHours 为负数时应直接返回 false', () => {
+    const u = { classId: 1, className: 'C1', weeklyHours: -2, textbookIds: [] };
+    const result = trySwapOne(
+      u,
+      [],
+      new Map(),
+      new Map(),
+      [],
+      'standard',
+      1,
+      '2025-2026-1',
+      new Map(),
+      new Map()
+    );
+    expect(result).toBe(false);
+  });
+
+  it('成功置换：T 驱逐 V，T2 接管 V，T 接纳 U', () => {
+    const t1 = makeTeacher(1, { standardCap: 16, assignedHours: 8 });
+    const t2 = makeTeacher(2, { standardCap: 16, assignedHours: 0 });
+    const teachers = [t1, t2];
+
+    const vAssign = makeAssignment(1, 100, 8);
+    const assignments = [vAssign];
+
+    const assignmentsByTeacher = new Map();
+    assignmentsByTeacher.set(1, [vAssign]);
+    assignmentsByTeacher.set(2, []);
+
+    const teacherMap = new Map([
+      [1, t1],
+      [2, t2],
+    ]);
+
+    // U: 8 hours, wants to go to T1
+    const u = { classId: 200, className: 'C200', weeklyHours: 8, textbookIds: [] };
+
+    const classTextbookMap = new Map();
+    classTextbookMap.set(100, []);
+    classTextbookMap.set(200, []);
+
+    const classInfoMap = new Map();
+    classInfoMap.set(200, { collegeId: 10, trainingLevelId: null });
+    classInfoMap.set(100, { collegeId: 10, trainingLevelId: null });
+
+    const result = trySwapOne(
+      u,
+      assignments,
+      assignmentsByTeacher,
+      teacherMap,
+      teachers,
+      'standard',
+      1,
+      '2025-2026-1',
+      classTextbookMap,
+      classInfoMap
+    );
+
+    expect(result).toBe(true);
+    // T1 should now have U (8 hours: 8 - 8 + 8 = 8)
+    expect(t1.assignedHours).toBe(8);
+    // T2 should have V (8 hours)
+    expect(t2.assignedHours).toBe(8);
+    // V's teacher should be updated to T2
+    expect(vAssign.teacher_id).toBe(2);
+    // assignments should contain U
+    expect(assignments.some((a) => a.class_id === 200 && a.teacher_id === 1)).toBe(true);
+  });
+
+  it('T 无已分配班级时应跳过', () => {
+    const t1 = makeTeacher(1, { standardCap: 16, assignedHours: 0 });
+    const teachers = [t1];
+    const assignmentsByTeacher = new Map();
+    assignmentsByTeacher.set(1, []);
+    const teacherMap = new Map([[1, t1]]);
+
+    const u = { classId: 200, className: 'C200', weeklyHours: 4, textbookIds: [] };
+    const result = trySwapOne(
+      u,
+      [],
+      assignmentsByTeacher,
+      teacherMap,
+      teachers,
+      'standard',
+      1,
+      '2025-2026-1',
+      new Map(),
+      new Map()
+    );
+    expect(result).toBe(false);
+  });
+
+  it('无其他教师可接管 V 时应返回 false', () => {
+    const t1 = makeTeacher(1, { standardCap: 16, assignedHours: 8 });
+    // Only one teacher, no one to take over V
+    const teachers = [t1];
+
+    const vAssign = makeAssignment(1, 100, 8);
+    const assignments = [vAssign];
+    const assignmentsByTeacher = new Map();
+    assignmentsByTeacher.set(1, [vAssign]);
+    const teacherMap = new Map([[1, t1]]);
+
+    const u = { classId: 200, className: 'C200', weeklyHours: 8, textbookIds: [] };
+    const classTextbookMap = new Map();
+    classTextbookMap.set(100, []);
+    classTextbookMap.set(200, []);
+    const classInfoMap = new Map();
+
+    const result = trySwapOne(
+      u,
+      assignments,
+      assignmentsByTeacher,
+      teacherMap,
+      teachers,
+      'standard',
+      1,
+      '2025-2026-1',
+      classTextbookMap,
+      classInfoMap
+    );
+    expect(result).toBe(false);
+  });
+
+  it('置换后 T 容量仍不足时应跳过', () => {
+    const t1 = makeTeacher(1, { standardCap: 8, assignedHours: 8 });
+    const t2 = makeTeacher(2, { standardCap: 16, assignedHours: 0 });
+    const teachers = [t1, t2];
+
+    const vAssign = makeAssignment(1, 100, 4);
+    const assignments = [vAssign];
+    const assignmentsByTeacher = new Map();
+    assignmentsByTeacher.set(1, [vAssign]);
+    assignmentsByTeacher.set(2, []);
+    const teacherMap = new Map([
+      [1, t1],
+      [2, t2],
+    ]);
+
+    // U: 8 hours, T1 removes V (4h) → 8-4+8=12 > 8 (standardCap) → skip
+    const u = { classId: 200, className: 'C200', weeklyHours: 8, textbookIds: [] };
+    const classTextbookMap = new Map();
+    classTextbookMap.set(100, []);
+    classTextbookMap.set(200, []);
+    const classInfoMap = new Map();
+
+    const result = trySwapOne(
+      u,
+      assignments,
+      assignmentsByTeacher,
+      teacherMap,
+      teachers,
+      'standard',
+      1,
+      '2025-2026-1',
+      classTextbookMap,
+      classInfoMap
+    );
+    expect(result).toBe(false);
+  });
+
+  it('教材上限检查：置换后 T 教材超限时应跳过', () => {
+    const t1 = makeTeacher(1, {
+      standardCap: 20,
+      assignedHours: 8,
+      assignedTextbookIds: new Set([300]),
+    });
+    const t2 = makeTeacher(2, {
+      standardCap: 20,
+      assignedHours: 0,
+      assignedTextbookIds: new Set(),
+    });
+    const teachers = [t1, t2];
+
+    // V uses textbook 300 (which is T1's only textbook, so unique to V)
+    const vAssign = makeAssignment(1, 100, 8);
+    const assignments = [vAssign];
+    const assignmentsByTeacher = new Map();
+    assignmentsByTeacher.set(1, [vAssign]);
+    assignmentsByTeacher.set(2, []);
+    const teacherMap = new Map([
+      [1, t1],
+      [2, t2],
+    ]);
+
+    // U uses textbooks [301, 302], T1 after removing V has 0 textbooks + 2 new = 2, within MAX=2
+    const u = { classId: 200, className: 'C200', weeklyHours: 8, textbookIds: [301, 302] };
+
+    const classTextbookMap = new Map();
+    classTextbookMap.set(100, [300]);
+    classTextbookMap.set(200, [301, 302]);
+    const classInfoMap = new Map();
+
+    const result = trySwapOne(
+      u,
+      assignments,
+      assignmentsByTeacher,
+      teacherMap,
+      teachers,
+      'standard',
+      1,
+      '2025-2026-1',
+      classTextbookMap,
+      classInfoMap
+    );
+    // T1 after removing V's unique textbook 300 → 0 textbooks, then add [301,302] → 2, within MAX=2
+    // T2 takes V with textbook [300] → 1 textbook, within MAX=2
+    // Swap should succeed
+    expect(result).toBe(true);
+  });
+
+  it('college/level 资格校验：T 对 U 学院不匹配时应跳过', () => {
+    const t1 = makeTeacher(1, {
+      standardCap: 20,
+      assignedHours: 8,
+      schedulingCollegeIds: [99], // doesn't match U's college
+    });
+    const t2 = makeTeacher(2, { standardCap: 20, assignedHours: 0 });
+    const teachers = [t1, t2];
+
+    const vAssign = makeAssignment(1, 100, 8);
+    const assignmentsByTeacher = new Map();
+    assignmentsByTeacher.set(1, [vAssign]);
+    assignmentsByTeacher.set(2, []);
+    const teacherMap = new Map([
+      [1, t1],
+      [2, t2],
+    ]);
+
+    const u = { classId: 200, className: 'C200', weeklyHours: 8, textbookIds: [] };
+    const classTextbookMap = new Map();
+    classTextbookMap.set(100, []);
+    classTextbookMap.set(200, []);
+    const classInfoMap = new Map();
+    classInfoMap.set(200, { collegeId: 10, trainingLevelId: null });
+
+    const result = trySwapOne(
+      u,
+      [],
+      assignmentsByTeacher,
+      teacherMap,
+      teachers,
+      'standard',
+      1,
+      '2025-2026-1',
+      classTextbookMap,
+      classInfoMap
+    );
+    expect(result).toBe(false);
+  });
+});
+
+// ──────────────────────────────────────────────
+// calcAllMatchRates - cohesion edge cases
+// ──────────────────────────────────────────────
+describe('calcAllMatchRates - multi-teacher cohesion', () => {
+  it('两位教师各有不同教材分布时应正确计算平均内聚度', () => {
+    // Teacher 1: 2 classes, 1 textbook → cohesion = 1.0
+    // Teacher 2: 2 classes, 2 textbooks → cohesion = 0.5
+    const assignments = [
+      { teacher_id: 1, class_id: 100 },
+      { teacher_id: 1, class_id: 101 },
+      { teacher_id: 2, class_id: 102 },
+      { teacher_id: 2, class_id: 103 },
+    ];
+    const classes = [
+      { classId: 100, collegeId: 10, trainingLevelId: 20, textbookIds: [300] },
+      { classId: 101, collegeId: 10, trainingLevelId: 20, textbookIds: [300] },
+      { classId: 102, collegeId: 10, trainingLevelId: 20, textbookIds: [400] },
+      { classId: 103, collegeId: 10, trainingLevelId: 20, textbookIds: [401] },
+    ];
+    const teacherMap = new Map([
+      [1, { schedulingCollegeIds: [], schedulingLevelIds: [], inherentTextbookIds: [] }],
+      [2, { schedulingCollegeIds: [], schedulingLevelIds: [], inherentTextbookIds: [] }],
+    ]);
+
+    const result = calcAllMatchRates(assignments, classes, teacherMap);
+    // Teacher 1: cohesion = max(0, 1 - (1-1)/2) = 1.0
+    // Teacher 2: cohesion = max(0, 1 - (2-1)/2) = 0.5
+    // Average = (1.0 + 0.5) / 2 = 0.75 → 75%
+    expect(result.textbookCohesionRate).toBe(75);
+    expect(result.involvedTeacherCount).toBe(2);
+    expect(result.avgTextbookPerTeacher).toBe(1.5);
+  });
+
+  it('班级无 textbookIds 时不应导致异常', () => {
+    const assignments = [{ teacher_id: 1, class_id: 100 }];
+    const classes = [{ classId: 100, collegeId: 10, trainingLevelId: 20, textbookIds: null }];
+    const teacherMap = new Map([
+      [1, { schedulingCollegeIds: [], schedulingLevelIds: [], inherentTextbookIds: [] }],
+    ]);
+
+    expect(() => calcAllMatchRates(assignments, classes, teacherMap)).not.toThrow();
   });
 });

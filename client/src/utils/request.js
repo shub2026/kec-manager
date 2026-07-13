@@ -169,7 +169,10 @@ request.interceptors.response.use(
     }
     // 安全网：silentError 模式下生产不弹窗（调用方自行处理），但开发环境记录日志便于排查
     if (silentError && import.meta.env.DEV) {
-      console.error('[silent error] 拦截器已抑制弹窗，错误由调用方处理:', error?.response?.data?.message || error.message);
+      console.error(
+        '[silent error] 拦截器已抑制弹窗，错误由调用方处理:',
+        error?.response?.data?.message || error.message
+      );
     }
     return Promise.reject(error);
   }

@@ -6,40 +6,40 @@
 
 :root {
   /* —— 主色板:品牌蓝 #1C82F5(明亮 azure,白字按钮对比度达 WCAG AA) —— */
-  --brand-primary: #1C82F5;
-  --brand-primary-hover: #3D95F7; /* 主色 hover 阶(对应 light-3,下沉饱和度以保持白字对比) */
-  --brand-primary-active: #1668C4; /* 主色 active 阶(对应 dark-2) */
-  --brand-primary-soft: #E8F3FE; /* 主色极浅背景(对应 light-9) */
-  --brand-primary-lighter: #B5D6FC; /* 主色浅阶,渐变过渡(对应 light-7) */
+  --brand-primary: #1c82f5;
+  --brand-primary-hover: #3d95f7; /* 主色 hover 阶(对应 light-3,下沉饱和度以保持白字对比) */
+  --brand-primary-active: #1668c4; /* 主色 active 阶(对应 dark-2) */
+  --brand-primary-soft: #e8f3fe; /* 主色极浅背景(对应 light-9) */
+  --brand-primary-lighter: #b5d6fc; /* 主色浅阶,渐变过渡(对应 light-7) */
   --brand-primary-shadow: rgba(28, 130, 245, 0.32); /* 主色投影,按钮hover/glow用 */
-  --brand-success: #34D399;
+  --brand-success: #34d399;
   --brand-success-soft: #d1fae5;
-  --brand-warning: #FBBF24;
+  --brand-warning: #fbbf24;
   --brand-warning-soft: #fef3c7;
-  --brand-danger: #F87171;
+  --brand-danger: #f87171;
   --brand-danger-soft: #fee2e2;
   /* 语义色"正文"专用深阶:400 档语义色作白底正文时对比度不足(<2:1),需下沉到 600 档达标 */
   --brand-success-text: #059669; /* 深 emerald,白底正文 */
-  --brand-warning-text: #B45309; /* 深 amber,白底正文 */
-  --brand-danger-text: #DC2626; /* 深 red,白底正文 */
+  --brand-warning-text: #b45309; /* 深 amber,白底正文 */
+  --brand-danger-text: #dc2626; /* 深 red,白底正文 */
 
   /* —— 分类/数据可视化调色板：与品牌同饱和度的 400 档，避免高饱和冲突 —— */
   /* 仅用于需要额外区分色的场景（如空状态插画）；靛蓝为官方认可的"第二色相"，需多样性时唯一备用 */
-  --brand-indigo: #818CF8;
-  --brand-indigo-soft: #EEF2FF;
-  --brand-indigo-lighter: #C7D2FE;
+  --brand-indigo: #818cf8;
+  --brand-indigo-soft: #eef2ff;
+  --brand-indigo-lighter: #c7d2fe;
 
   /* —— 薄荷绿:低饱和第三色相,与主蓝形成蓝绿冷色互补,用于首页资源/成果维度 —— */
   /* 与语义 success 同 emerald 色相但更柔和,饱和度更低,高级感而非"成功"功能含义 */
-  --brand-mint: #5EBA9A;
-  --brand-mint-soft: #E6F5F0;
-  --brand-mint-lighter: #BFDFD2;
+  --brand-mint: #5eba9a;
+  --brand-mint-soft: #e6f5f0;
+  --brand-mint-lighter: #bfdfd2;
 
   /* —— 图表单色阶:主色按透明度分级,多系列图表复用,避免引入新色相 —— */
   --chart-1: var(--brand-primary);
   --chart-2: rgba(28, 130, 245, 0.72);
   --chart-3: rgba(28, 130, 245, 0.48);
-  --chart-4: rgba(28, 130, 245, 0.30);
+  --chart-4: rgba(28, 130, 245, 0.3);
   --chart-5: rgba(28, 130, 245, 0.16);
 
   /* —— 中性色阶(替换散落的 #303133 / #606266 / #909399) —— */
@@ -56,13 +56,13 @@
   --border-base: #cbd5e1;
 
   /* —— 侧边栏深色系（现代 Slate 渐变色板,独立色板便于将来暗色模式） —— */
-  --sidebar-bg: #1E293B; /* Slate-800,比旧 #304156 更深更现代 */
-  --sidebar-bg-deep: #0F172A; /* Slate-900,用于底部渐变 */
-  --sidebar-text: #94A3B8; /* Slate-400,与深色底对比更柔和 */
-  --sidebar-active: #FFFFFF; /* 纯白活跃文字,搭配左侧色条指示器 */
+  --sidebar-bg: #1e293b; /* Slate-800,比旧 #304156 更深更现代 */
+  --sidebar-bg-deep: #0f172a; /* Slate-900,用于底部渐变 */
+  --sidebar-text: #94a3b8; /* Slate-400,与深色底对比更柔和 */
+  --sidebar-active: #ffffff; /* 纯白活跃文字,搭配左侧色条指示器 */
   --sidebar-border: #334155; /* Slate-700 */
   --sidebar-scrollbar: #475569; /* Slate-600 */
-  --sidebar-scrollbar-hover: #64748B; /* Slate-500 */
+  --sidebar-scrollbar-hover: #64748b; /* Slate-500 */
 
   /* —— 间距基数 8px,统一节奏 —— */
   --space-1: 4px;
@@ -84,7 +84,7 @@
   --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 10px 24px -4px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 8px 16px -4px rgba(15, 23, 42, 0.06), 0 20px 50px -8px rgba(15, 23, 42, 0.12);
   --shadow-glow: 0 4px 16px rgba(28, 130, 245, 0.25); /* 主色按钮/核心卡片 hover 光晕 */
-  --shadow-glow-soft: 0 8px 24px rgba(28, 130, 245, 0.10); /* 核心卡片柔和光晕 */
+  --shadow-glow-soft: 0 8px 24px rgba(28, 130, 245, 0.1); /* 核心卡片柔和光晕 */
 
   /* —— 动效曲线:cubic-bezier 让过渡更有弹性 —— */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -104,7 +104,7 @@
   --el-color-success: var(--brand-success);
   --el-color-warning: var(--brand-warning);
   --el-color-danger: var(--brand-danger);
-  --el-color-info: #64748B; /* 覆盖 EP 默认灰 #909399,对齐项目 slate 中性阶 */
+  --el-color-info: #64748b; /* 覆盖 EP 默认灰 #909399,对齐项目 slate 中性阶 */
   --el-text-color-primary: var(--text-primary);
   --el-text-color-regular: var(--text-regular);
   --el-text-color-secondary: var(--text-secondary);
@@ -116,9 +116,9 @@
   /* —— ElementPlus 主色阶（light/dark），与品牌主色 #1C82F5 匹配 —— */
   /* light-3 下沉饱和度,确保主色按钮 hover 仍保持白字对比度(WCAG AA ≥ 3:1) */
   --el-color-primary-light-3: var(--brand-primary-hover);
-  --el-color-primary-light-5: #79B7FC;
+  --el-color-primary-light-5: #79b7fc;
   --el-color-primary-light-7: var(--brand-primary-lighter);
-  --el-color-primary-light-8: #CFE4FD;
+  --el-color-primary-light-8: #cfe4fd;
   --el-color-primary-light-9: var(--brand-primary-soft);
   --el-color-primary-dark-2: var(--brand-primary-active);
 }

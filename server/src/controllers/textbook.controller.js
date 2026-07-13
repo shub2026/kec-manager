@@ -276,8 +276,7 @@ export async function batchUpdateTextbooks(req, res, next) {
     }
 
     // 数值字段转换
-    if (updateData.sort_order !== undefined)
-      updateData.sort_order = Number(updateData.sort_order);
+    if (updateData.sort_order !== undefined) updateData.sort_order = Number(updateData.sort_order);
 
     // 批量查询目标教材（用于结果构造）
     const textbooks = await prisma.textbooks.findMany({
@@ -371,14 +370,10 @@ export async function batchDeleteTextbooks(req, res, next) {
       where: { textbook_id: { in: textbookIds } },
       _count: true,
     });
-    const referencedMap = new Map(
-      referencedTextbooks.map((r) => [r.textbook_id, r._count])
-    );
+    const referencedMap = new Map(referencedTextbooks.map((r) => [r.textbook_id, r._count]));
 
     // 3) 可删除的 ID（未被引用且在数据库中存在）
-    const deletableIds = textbookIds.filter(
-      (id) => !referencedMap.has(id) && textbookMap.has(id)
-    );
+    const deletableIds = textbookIds.filter((id) => !referencedMap.has(id) && textbookMap.has(id));
 
     // 4) 在单个事务中批量删除
     let deletedCount = 0;

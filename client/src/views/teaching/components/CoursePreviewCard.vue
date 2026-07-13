@@ -6,12 +6,7 @@
           <span class="course-name">{{ courseInfo.name }}</span>
           <el-tag size="small">{{ courseTypeLabel(courseInfo.type) }}</el-tag>
         </div>
-        <el-button
-          v-if="teacherCount"
-          type="primary"
-          :loading="exporting"
-          @click="emit('export')"
-        >
+        <el-button v-if="teacherCount" type="primary" :loading="exporting" @click="emit('export')">
           <el-icon><Download /></el-icon> 数据导出
         </el-button>
       </div>

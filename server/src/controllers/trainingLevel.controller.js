@@ -62,10 +62,12 @@ export async function createTrainingLevel(req, res, next) {
       module: 'training_level',
       userId: req.user?.id,
       ip: req.ip,
-      details: { name },
+      details: { name: req.body.name },
       result: 'failed',
       message:
-        e.code === 'P2002' ? `创建培养层次失败：${name} 已存在` : `创建培养层次失败: ${e.message}`,
+        e.code === 'P2002'
+          ? `创建培养层次失败：${req.body.name} 已存在`
+          : `创建培养层次失败: ${e.message}`,
     });
     if (e.code === 'P2002') return fail(res, '该层次名称已存在');
     next(e);

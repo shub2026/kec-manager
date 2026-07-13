@@ -117,7 +117,9 @@ function barColor(item) {
 .chart-bar {
   height: 100%;
   border-radius: var(--radius-sm);
-  transition: width 0.6s var(--ease-out), filter var(--dur-fast) var(--ease-out);
+  transition:
+    width 0.6s var(--ease-out),
+    filter var(--dur-fast) var(--ease-out);
   min-width: 4px;
 }
 

@@ -271,9 +271,8 @@ export async function exportClasses(req, res, next) {
       // 合班伙伴名称（不含自身）
       const members = combinationMemberMap.get(cls.combination_id) || [];
       const partnerClasses = members.filter((m) => m.id !== cls.id);
-      const combinationText = cls.combination_id != null
-        ? (formatPartnerNames(partnerClasses) || '是')
-        : '';
+      const combinationText =
+        cls.combination_id != null ? formatPartnerNames(partnerClasses) || '是' : '';
 
       return {
         班级名称: cls.name,
@@ -406,7 +405,8 @@ export async function exportTextbookUsage(req, res, next) {
       const sem = pt.plan_course_semesters;
       const pc = sem.plan_courses;
       const plan = pc.training_plans;
-      const isConsecutive = consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(sem.semester) ?? false;
+      const isConsecutive =
+        consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(sem.semester) ?? false;
 
       for (const cls of allClasses) {
         // 复用统一 calcClassSemester（含越界检查），替代无边界检查的内联副本
@@ -432,7 +432,7 @@ export async function exportTextbookUsage(req, res, next) {
           课程: pc.courses.name,
           学生人数: Number(cls.student_count) || 0,
           使用学期: `第${sem.semester}学期`,
-          是否必订: isConsecutive ? '否' : (pt.is_required ? '是' : '否'),
+          是否必订: isConsecutive ? '否' : pt.is_required ? '是' : '否',
         });
       }
     }
@@ -837,9 +837,8 @@ export async function exportTeachingArrange(req, res, next) {
       // 合班伙伴名称（不含自身）
       const members = teachCombinationMemberMap.get(c.combinationId) || [];
       const partnerClasses = members.filter((m) => m.id !== c.classId);
-      const combinationText = c.combinationId != null
-        ? (formatPartnerNames(partnerClasses) || '是')
-        : '';
+      const combinationText =
+        c.combinationId != null ? formatPartnerNames(partnerClasses) || '是' : '';
       return {
         班级名称: c.className,
         学院: c.collegeName || '-',

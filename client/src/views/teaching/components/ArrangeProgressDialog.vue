@@ -180,7 +180,7 @@ const progressStatus = computed(() => {
 }
 
 .progress-icon.finished {
-  color: var(--brand-success, #34D399);
+  color: var(--brand-success, #34d399);
 }
 
 .progress-title {
@@ -222,7 +222,7 @@ const progressStatus = computed(() => {
 }
 
 .phase-item.done {
-  color: var(--brand-success, #34D399);
+  color: var(--brand-success, #34d399);
 }
 
 .phase-icon {
@@ -259,11 +259,11 @@ const progressStatus = computed(() => {
 }
 
 .stat-value.assigned {
-  color: var(--brand-success, #34D399);
+  color: var(--brand-success, #34d399);
 }
 
 .stat-value.unassigned {
-  color: var(--brand-warning, #FBBF24);
+  color: var(--brand-warning, #fbbf24);
 }
 
 .current-course {
@@ -278,7 +278,7 @@ const progressStatus = computed(() => {
 }
 
 .current-course.done {
-  color: var(--brand-success, #34D399);
+  color: var(--brand-success, #34d399);
 }
 
 /* 旋转动画 */

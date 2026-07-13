@@ -127,7 +127,9 @@ export async function batchAutoArrange(
       let snapshotTextbookMap = null;
       if (options.preview) {
         snapshotTeacherHours = virtualTeacherHours ? new Map(virtualTeacherHours) : null;
-        snapshotTextbookMap = globalTextbookMap ? new Map([...globalTextbookMap].map(([k, v]) => [k, new Set(v)])) : null;
+        snapshotTextbookMap = globalTextbookMap
+          ? new Map([...globalTextbookMap].map(([k, v]) => [k, new Set(v)]))
+          : null;
       }
       try {
         const result = await autoArrange(

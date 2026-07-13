@@ -1,6 +1,9 @@
 import { prisma } from '../../lib/prisma.js';
 import { createWorkbook, workbookToBuffer } from '../../utils/excel.js';
-import { getCurrentSemesterInfo, getSemesterInfoFromRequest } from '../../services/settings.service.js';
+import {
+  getCurrentSemesterInfo,
+  getSemesterInfoFromRequest,
+} from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
 import {
@@ -188,9 +191,8 @@ async function buildSemesterExportData(semesterInfo, filters) {
     // 合班伙伴名称（不含自身）
     const members = combinationMemberMap.get(cls.combination_id) || [];
     const partnerClasses = members.filter((m) => m.id !== cls.id);
-    const combinationText = cls.combination_id != null
-      ? (formatPartnerNames(partnerClasses) || '是')
-      : '';
+    const combinationText =
+      cls.combination_id != null ? formatPartnerNames(partnerClasses) || '是' : '';
 
     const baseRow = {
       班级名称: cls.name,
@@ -216,8 +218,9 @@ async function buildSemesterExportData(semesterInfo, filters) {
         课程类型: '-',
         周课时: 0,
         学期总课时: 0,
-        教材征订: '未指定',
+        教材名称: '未指定',
         书号: '-',
+        征订情况: '-',
       });
     } else {
       for (const pc of planCourses) {
@@ -226,12 +229,12 @@ async function buildSemesterExportData(semesterInfo, filters) {
         const weeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours;
         const weeksCount = semRecord?.weeks_count ?? pc.weeks_per_semester;
 
-        // 构建教材征订信息：书名(征订状态)
-        const textbookInfo = textbooks.map((pt) => {
+        // 拆分教材名称和征订情况为独立列
+        const textbookNames = textbooks.map((pt) => pt.textbooks.title);
+        const textbookStatuses = textbooks.map((pt) => {
           const isConsecutive =
             consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(semRecord?.semester) ?? false;
-          const status = isConsecutive ? '选定' : pt.is_required ? '必订' : '选修';
-          return `${pt.textbooks.title}(${status})`;
+          return isConsecutive ? '选定' : pt.is_required ? '必订' : '选修';
         });
 
         rows.push({
@@ -240,8 +243,9 @@ async function buildSemesterExportData(semesterInfo, filters) {
           课程类型: pc.courses.type === 'public' ? '公共基础课' : '专业课',
           周课时: weeklyHours,
           学期总课时: weeklyHours * weeksCount,
-          教材征订: textbookInfo.join('、') || '未指定',
+          教材名称: textbookNames.join('、') || '未指定',
           书号: textbooks.map((pt) => pt.textbooks.isbn || '-').join('、') || '-',
+          征订情况: textbookStatuses.join('、') || '-',
         });
       }
     }
@@ -266,8 +270,9 @@ const EXPORT_HEADERS = [
   { label: '课程类型', key: '课程类型', width: 12 },
   { label: '周课时', key: '周课时', width: 8 },
   { label: '学期总课时', key: '学期总课时', width: 12 },
-  { label: '教材征订', key: '教材征订', width: 40 },
+  { label: '教材名称', key: '教材名称', width: 30 },
   { label: '书号', key: '书号', width: 25 },
+  { label: '征订情况', key: '征订情况', width: 15 },
   { label: '合班教学', key: '合班教学', width: 25 },
 ];
 

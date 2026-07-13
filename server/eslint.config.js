@@ -15,7 +15,13 @@ export default [
         setTimeout: 'readonly',
         setInterval: 'readonly',
         clearTimeout: 'readonly',
-        clearInterval: 'readonly'
+        clearInterval: 'readonly',
+        Buffer: 'readonly',
+        global: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        Map: 'readonly',
+        Set: 'readonly'
       }
     },
     rules: {

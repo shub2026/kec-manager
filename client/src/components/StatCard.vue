@@ -115,7 +115,7 @@ watch(
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 55%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 55%);
   pointer-events: none;
 }
 

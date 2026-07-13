@@ -42,7 +42,12 @@ export async function downloadTemplate(req, res, next) {
           { label: '课程类型', key: 'type', width: 15 },
           { label: '描述', key: 'description', width: 30 },
         ];
-        sample = { 课程名称: '语文', 课程编码: 'CHN001', 课程类型: '公共基础课', 描述: '基础语文课程' };
+        sample = {
+          课程名称: '语文',
+          课程编码: 'CHN001',
+          课程类型: '公共基础课',
+          描述: '基础语文课程',
+        };
         filename = '课程导入模板.xlsx';
         break;
       case 'textbooks':
@@ -131,7 +136,7 @@ export async function downloadTemplate(req, res, next) {
       module: 'system',
       userId: req.user?.id,
       ip: req.ip,
-      details: { type },
+      details: { type: req.params.type },
       result: 'failed',
       message: `下载模板失败: ${e.message}`,
     });

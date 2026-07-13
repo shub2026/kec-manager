@@ -69,23 +69,20 @@
                     <div class="tooltip-row">
                       <span class="tooltip-label">状态</span>
                       <span v-if="!textbook.isActive" class="tooltip-status disabled">已停用</span>
-                      <span v-else-if="textbook.isRequired" class="tooltip-status required">必订</span>
+                      <span v-else-if="textbook.isRequired" class="tooltip-status required"
+                        >必订</span
+                      >
                       <span v-else class="tooltip-status elective">选修</span>
                     </div>
                   </template>
-                  <div
-                    class="cell-textbook"
-                    :class="{ 'textbook-disabled': !textbook.isActive }"
-                  >
+                  <div class="cell-textbook" :class="{ 'textbook-disabled': !textbook.isActive }">
                     <span v-if="!textbook.isActive" class="disabled-dot"></span>
                     <span v-else class="active-dot"></span>
                     <span class="textbook-name">{{ textbook.title }}</span>
                   </div>
                 </el-tooltip>
               </template>
-              <div v-else class="cell-no-textbook">
-                <span class="no-textbook-dot"></span>未指定
-              </div>
+              <div v-else class="cell-no-textbook"><span class="no-textbook-dot"></span>未指定</div>
             </template>
           </td>
           <!-- 总课时 -->
@@ -415,11 +412,11 @@ function calcGrandTotalSemester(semester) {
 
 /* 课时热力：品牌蓝 #1C82F5 由浅到深（light-9 → light-7 → light-5） */
 .cell-low {
-  background: var(--brand-primary-soft, #E8F3FE);
+  background: var(--brand-primary-soft, #e8f3fe);
 }
 
 .cell-mid {
-  background: var(--brand-primary-lighter, #B5D6FC);
+  background: var(--brand-primary-lighter, #b5d6fc);
 }
 
 .cell-high {
@@ -606,6 +603,38 @@ function calcGrandTotalSemester(semester) {
   margin-left: auto;
   display: flex;
   align-items: center;
+}
+
+/* 平板及窄屏（≤1024px）：收缩矩阵列宽，减少水平滚动距离 */
+@media (max-width: 1024px) {
+  .matrix-semester-header {
+    width: 80px;
+  }
+
+  .matrix-course-header {
+    width: 120px;
+  }
+
+  .matrix-total-header {
+    width: 60px;
+  }
+
+  .matrix-action-header {
+    width: 110px;
+  }
+
+  .matrix-cell {
+    min-width: 65px;
+  }
+
+  .matrix-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .footer-summary {
+    margin-left: 0;
+  }
 }
 </style>
 

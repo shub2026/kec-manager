@@ -82,7 +82,7 @@
       </el-table>
 
       <!-- 分页 -->
-      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"

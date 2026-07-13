@@ -1,6 +1,6 @@
 # KEC 课程管理平台 - 部署与运维指南
 
-> **版本**：v1.1.1
+> **版本**：v1.4.1
 > **数据库**：SQLite（启用 WAL 模式）
 > **部署方式**：PM2 + deploy.sh
 > **部署路径**：`/opt/1panel/www/sites/kec/index/kec-manager`
@@ -262,7 +262,7 @@ server {
     # 安全头
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-XSS-Protection "0" always;
 
     # 前端静态文件：直接指向项目构建产物
     root /opt/1panel/www/sites/kec/index/kec-manager/client/dist;

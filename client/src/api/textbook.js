@@ -52,5 +52,4 @@ export const batchUpdateTextbooks = (ids, updates) =>
  * @param {number[]} ids - 要删除的教材 ID 列表
  * @returns {Promise<import('./types').ApiResponse<{total: number, succeeded: Array, failed: Array, skippedIds: number[], deletedCount: number}>>}
  */
-export const batchDeleteTextbooks = (ids) =>
-  request.post('/textbooks/batch-delete', { ids });
+export const batchDeleteTextbooks = (ids) => request.post('/textbooks/batch-delete', { ids });

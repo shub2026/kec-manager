@@ -57,7 +57,7 @@ export function useCrudList(api, options = {}) {
       const params = typeof listParams === 'function' ? listParams() : listParams?.value || {};
       const res = await api.list(params);
       // 防御：res.data 为 undefined 且 res 非数组时若直接赋值，v-for 会遍历对象
-      list.value = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      list.value = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
     } catch (e) {
       if (import.meta.env.DEV) console.error('加载失败:', e);
     } finally {
@@ -69,7 +69,7 @@ export function useCrudList(api, options = {}) {
     try {
       const params = typeof listParams === 'function' ? listParams() : listParams?.value || {};
       const res = await api.list(params);
-      list.value = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      list.value = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error('刷新数据失败:', e);

@@ -168,7 +168,14 @@ import { ElMessage, ElNotification } from 'element-plus';
 // 按需导入项目中 service 函数（ElNotification）的 CSS 不会自动注入，需手动导入样式
 // 否则通知 DOM 渲染但不可见（无背景/定位/动画）
 import 'element-plus/es/components/notification/style/css';
-import { getClasses, createClass, updateClass, deleteClass, batchDeleteClasses, batchUpdateClasses } from '../../api/class';
+import {
+  getClasses,
+  createClass,
+  updateClass,
+  deleteClass,
+  batchDeleteClasses,
+  batchUpdateClasses,
+} from '../../api/class';
 import { getMajors } from '../../api/major';
 import { getPlans } from '../../api/plan';
 import { getTrainingLevels } from '../../api/trainingLevel';
@@ -587,7 +594,12 @@ async function confirmBatchDelete() {
         duration: 6000,
       });
     } else {
-      ElNotification({ title: '批量删除', message: '未选择任何班级', type: 'info', duration: 3000 });
+      ElNotification({
+        title: '批量删除',
+        message: '未选择任何班级',
+        type: 'info',
+        duration: 3000,
+      });
     }
   } catch (e) {
     if (import.meta.env.DEV) console.error('[BatchDelete] 批量删除请求失败:', e);

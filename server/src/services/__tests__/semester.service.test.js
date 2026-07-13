@@ -351,7 +351,7 @@ describe('buildConsecutiveTextbookMap', () => {
     const semesters = result.get('30_174');
     expect(semesters).toBeDefined();
     expect(semesters.has(1)).toBe(false); // 学期1：第一次开课，不是连续
-    expect(semesters.has(2)).toBe(true);  // 学期2：上学期有同一教材，是连续
+    expect(semesters.has(2)).toBe(true); // 学期2：上学期有同一教材，是连续
   });
 
   it('仅一个学期（无连续） → Map 中无该键', async () => {

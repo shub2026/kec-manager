@@ -757,8 +757,7 @@ export async function getStatistics(req, res, next) {
           trainingLevelName: globalLevelMap.get(a.class.training_level_id)?.name || null,
           weeklyHours: a.weekly_hours,
           isAuto: a.is_auto,
-          textbookName:
-            classCourseTextbookNameMap.get(`${a.class_id}:${a.course_id}`) || null,
+          textbookName: classCourseTextbookNameMap.get(`${a.class_id}:${a.course_id}`) || null,
         });
         group.weeklyHours += a.weekly_hours;
       }

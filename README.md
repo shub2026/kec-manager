@@ -2,17 +2,17 @@
 
 KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量级教学管理系统，涵盖培养计划、班级管理、教师排课、教材协调和数据导入导出等核心功能。采用前后端分离架构，基于 PM2 + Nginx 部署。
 
-**版本**：v1.3.5 | **数据库**：SQLite（WAL 模式）
+**版本**：v1.4.1 | **数据库**：SQLite（WAL 模式）
 
 ---
 
 ## 功能特性
 
 - **培养计划管理** - 按专业或培养层次制定培养方案，可视化课程矩阵编辑各学期课时分布
-- **班级管理** - 班级信息维护，基于学期动态计算年级和状态（在读/毕业/离校）
+- **班级管理** - 班级信息维护，支持合班教学组，基于学期动态计算年级和状态（在读/毕业/离校）
 - **教师管理** - 教师档案、任课关联、上课学院和培养层次配置
 - **自动排课** - 五阶段匹配+置换回溯算法，可选禁忌搜索优化层，支持学院偏好、培养层次偏好、教材匹配和容量约束
-- **教材管理** - 教材信息维护，与培养计划学期课时关联
+- **教材管理** - 教材信息维护，与培养计划学期课时关联，支持征订状态跟踪
 - **数据导入导出** - Excel 批量导入班级/课程/教材/教师，支持模板下载和多维度数据导出
 - **统一查询** - 开课查询、教材查询、方案查询，支持多维度筛选与联动
 - **审计日志** - 全面记录增删改操作，支持筛选查询
@@ -28,7 +28,7 @@ KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量�
 | 后端 | Express 5.1 + Prisma 6.19 + Winston 3.19 |
 | 数据库 | SQLite（WAL 模式） |
 | 认证 | JWT 双令牌（Access 15min + Refresh 7天）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt 12轮 |
-| 测试 | Vitest + Supertest |
+| 测试 | Vitest + Supertest（1351 个测试用例，覆盖率 70%+） |
 | 部署 | PM2 + Nginx |
 
 ---
@@ -62,7 +62,7 @@ npm run db:migrate
 npm run db:generate
 cd server && npm run db:seed && cd ..
 
-# 启动开发服务（前端 5173 + 后端 3002）
+# 启动开发服务（前端 5173 + 后端 3000）
 npm run dev
 ```
 
@@ -84,6 +84,7 @@ npm run lint       # ESLint 检查并修复
 cd server
 npm run dev        # 启动开发服务器（自动重启）
 npm test           # 运行测试
+npm run test:coverage  # 运行测试并生成覆盖率报告
 npm run format     # 格式化代码
 npm run lint       # ESLint 检查并修复
 
@@ -148,7 +149,7 @@ bash deploy_ssh.sh root@your-server.com
 | 变量 | 说明 | 示例值 |
 |------|------|--------|
 | `NODE_ENV` | 运行环境 | `development` |
-| `PORT` | 后端端口 | `3002` |
+| `PORT` | 后端端口 | `3000` |
 | `DATABASE_URL` | 数据库连接串 | `file:./data/kec.db` |
 | `JWT_SECRET` | JWT 签名密钥（64位 hex） | 必填 |
 | `JWT_REFRESH_SECRET` | 刷新令牌密钥 | 必填 |
@@ -181,15 +182,15 @@ bash deploy_ssh.sh root@your-server.com
 kec-manager/
 ├── client/                     # 前端（Vue 3 + Element Plus）
 │   ├── src/
-│   │   ├── api/                # API 接口模块（17 个模块）
+│   │   ├── api/                # API 接口模块
 │   │   ├── assets/             # 静态资源
 │   │   ├── components/         # 共享组件（Layout、CourseMatrix 等）
 │   │   ├── composables/        # 可复用逻辑（useCrudList、useSortable 等）
 │   │   ├── router/             # 路由配置 + 导航守卫
 │   │   ├── stores/             # Pinia 状态管理
-│   │   ├── styles/             # 全局样式
+│   │   ├── styles/             # 全局样式 + 响应式断点
 │   │   ├── utils/              # 工具函数（request、download、cache 等）
-│   │   ├── views/              # 页面组件（11 个页面模块）
+│   │   ├── views/              # 页面组件
 │   │   └── main.js             # 应用入口
 │   ├── eslint.config.js        # ESLint 配置
 │   └── vite.config.js          # Vite 构建配置
@@ -197,18 +198,18 @@ kec-manager/
 │   ├── src/
 │   │   ├── config/             # 配置文件
 │   │   ├── constants/          # 常量定义（排课算法参数等）
-│   │   ├── controllers/        # 请求处理（19 个控制器）
+│   │   ├── controllers/        # 请求处理（含 import/export 子模块）
 │   │   ├── lib/                # 库封装（Prisma 客户端等）
 │   │   ├── middleware/         # 中间件（认证/CSRF/XSS/校验/分页/命名转换）
-│   │   ├── routes/             # 路由定义（17 个路由模块）
+│   │   ├── routes/             # 路由定义
 │   │   ├── services/           # 业务逻辑层
-│   │   │   ├── arrange/        # 排课算法（auto-arrange/batch/queries/validate）
+│   │   │   ├── arrange/        # 排课算法（auto-arrange/batch/lock/queries/validate/tabu-search）
 │   │   │   └── *.service.js    # 其他业务服务
-│   │   ├── utils/              # 工具函数
-│   │   ├── __tests__/          # 集成测试
+│   │   ├── utils/              # 工具函数（Excel/SSE/排序/命名转换）
 │   │   └── server.js           # 服务入口
 │   ├── prisma/
-│   │   ├── schema.prisma       # 数据库模型定义（20 个模型）
+│   │   ├── schema.prisma       # 数据库模型定义（22 个模型）
+│   │   ├── migrations/         # 数据库迁移文件
 │   │   └── seed.js             # 种子数据
 │   ├── scripts/                # 运维脚本（初始化设置、重置数据库等）
 │   ├── .env.example            # 开发环境变量示例
@@ -221,7 +222,7 @@ kec-manager/
 ├── deploy.sh                   # 部署脚本（支持本地/远程）
 ├── deploy_ssh.sh               # SSH 远程部署脚本
 ├── CHANGELOG.md                # 变更日志
-└── package.json                # 根配置（版本 1.3.5）
+└── package.json                # 根配置（版本 1.4.1）
 ```
 
 ---
@@ -234,9 +235,10 @@ kec-manager/
 | `colleges` | 学院/系部 |
 | `majors` | 专业 |
 | `training_levels` | 培养层次（本科/专科等） |
-| `classes` | 班级（入学年份、学制、状态、关联专业/学院） |
-| `courses` | 课程目录（名称、代码、类型） |
-| `textbooks` | 教材目录（ISBN、出版社、作者、版次、价格） |
+| `classes` | 班级（入学年份、学制、状态、关联专业/学院/合班组） |
+| `class_combinations` | 合班教学组（同组合班共享排课关系） |
+| `courses` | 课程目录（名称、代码、类型，名称唯一） |
+| `textbooks` | 教材目录（ISBN、出版社、作者、版次、价格，书名唯一） |
 | `training_plans` | 培养方案（关联专业/学院/层次） |
 | `plan_courses` | 方案课程（起止学期、周课时） |
 | `plan_course_semesters` | 方案课程学期（周课时、周数） |
@@ -305,7 +307,7 @@ kec-manager/
 5. **手动排课保护** - 自动排课永远不覆盖手动排课记录
 6. **禁忌搜索优化（可选）** - 在贪心初始解基础上，通过 Insert/Shift/Swap 邻域搜索迭代优化排课质量
 
-算法模块位于 `server/src/services/arrange/`，包含 6 个测试文件覆盖核心逻辑。禁忌搜索默认关闭，可通过系统设置页面动态启用。
+算法模块位于 `server/src/services/arrange/`，包含完整的测试覆盖。禁忌搜索默认关闭，可通过系统设置页面动态启用。
 
 详见 [排课算法完整说明](docs/SCHEDULING_ALGORITHM.md) 和 [排课算法迭代分析](docs/SCHEDULING_ALGORITHM_ITERATION.md)。
 
@@ -317,7 +319,7 @@ kec-manager/
 - [排课算法完整说明](docs/SCHEDULING_ALGORITHM.md) - 五阶段算法、评分机制、教材内聚策略、禁忌搜索优化、代码索引
 - [排课算法迭代分析](docs/SCHEDULING_ALGORITHM_ITERATION.md) - 禁忌搜索方案设计分析与实施记录
 - [代码格式化指南](docs/CODE_FORMATTING.md) - Prettier 和 ESLint 配置与使用
-- [学期计算说明](docs/SEMESTER-CALCULATION.md) - 学期状态计算逻辑
+- [学期计算说明](docs/semester-calculation.md) - 学期状态计算逻辑
 - [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) - 前后端命名规范与迁移方案
 - [版本管理指南](docs/VERSION_MANAGEMENT.md) - 语义化版本与自动化版本脚本
 - [UI 设计审查](docs/UI_DESIGN_REVIEW.md) - 视觉与交互设计改进建议及实施状态

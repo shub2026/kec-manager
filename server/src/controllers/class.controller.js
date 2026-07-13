@@ -14,7 +14,12 @@ import {
   dissolveAfterClassDeletion,
 } from '../services/class-combination.service.js';
 
-function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null, semesterStartMonth = 8) {
+function calculateClassStatus(
+  enrollmentYear,
+  durationYears,
+  semesterInfo = null,
+  semesterStartMonth = 8
+) {
   let startYear;
 
   if (semesterInfo && semesterInfo.startYear) {
@@ -93,9 +98,7 @@ export async function listClasses(req, res, next) {
     });
 
     // 预加载本页班级涉及的合班组合成员映射，用于展示合班伙伴
-    const combinationIds = classes
-      .map((c) => c.combination_id)
-      .filter((id) => id != null);
+    const combinationIds = classes.map((c) => c.combination_id).filter((id) => id != null);
     const combinationMemberMap = await buildCombinationMemberMap(combinationIds);
 
     const classesWithDynamicStatus = classes.map((cls) => {
@@ -103,7 +106,12 @@ export async function listClasses(req, res, next) {
       if (cls.is_left_school) {
         status = 'left_school';
       } else if (cls.enrollment_year && cls.duration_years) {
-        status = calculateClassStatus(cls.enrollment_year, cls.duration_years, semesterInfo, semesterStartMonth);
+        status = calculateClassStatus(
+          cls.enrollment_year,
+          cls.duration_years,
+          semesterInfo,
+          semesterStartMonth
+        );
       } else {
         // P2-5: enrollment_year/duration_years 缺失时兜底为 active，避免 status 为 undefined
         status = 'active';
@@ -128,7 +136,11 @@ export async function listClasses(req, res, next) {
         if (bestPlan) {
           matchedPlanName = bestPlan.name;
           // 根据方案实际字段判断匹配类型，而非根据班级自身字段
-          matchedPlanType = bestPlan.major_id ? 'major' : bestPlan.training_level_id ? 'level' : null;
+          matchedPlanType = bestPlan.major_id
+            ? 'major'
+            : bestPlan.training_level_id
+              ? 'level'
+              : null;
 
           // 检测是否存在专业和层次同时匹配的情况（交叉匹配）
           const majorMatchedPlans = allPlans.filter(
@@ -361,12 +373,13 @@ export async function createClass(req, res, next) {
       });
     }
 
-    const result = combination_class_ids !== undefined
-      ? await prisma.classes.findUnique({
-          where: { id: cls.id },
-          include: { majors: true, colleges: true, training_levels: true, training_plans: true },
-        })
-      : cls;
+    const result =
+      combination_class_ids !== undefined
+        ? await prisma.classes.findUnique({
+            where: { id: cls.id },
+            include: { majors: true, colleges: true, training_levels: true, training_plans: true },
+          })
+        : cls;
 
     await createAuditLog({
       action: 'create',
@@ -429,7 +442,12 @@ export async function updateClass(req, res, next) {
       const calcDurationYears = duration_years
         ? Number(duration_years)
         : currentClass.duration_years;
-      autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo, semesterStartMonth);
+      autoStatus = calculateClassStatus(
+        calcEnrollmentYear,
+        calcDurationYears,
+        semesterInfo,
+        semesterStartMonth
+      );
     }
 
     const updateData = {
@@ -568,10 +586,7 @@ export async function deleteClass(req, res, next) {
       await prisma.$transaction(async (tx) => {
         await tx.classes.delete({ where: { id: classId } });
         // 班级删除后，其原所属组合若剩余 ≤1 班则解散
-        const dissolvedId = await dissolveAfterClassDeletion(
-          tx,
-          classBeforeDelete.combination_id
-        );
+        const dissolvedId = await dissolveAfterClassDeletion(tx, classBeforeDelete.combination_id);
         if (dissolvedId != null) dissolvedCombinationIds.push(dissolvedId);
       });
 
@@ -642,9 +657,7 @@ export async function batchDeleteClasses(req, res, next) {
       where: { class_id: { in: classIds } },
       _count: true,
     });
-    const blockedMap = new Map(
-      blockedAssignments.map((a) => [a.class_id, a._count])
-    );
+    const blockedMap = new Map(blockedAssignments.map((a) => [a.class_id, a._count]));
 
     // 3) 对 blocked 班级查询涉及学期
     const blockedIds = [...blockedMap.keys()];

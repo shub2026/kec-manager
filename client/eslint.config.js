@@ -35,7 +35,9 @@ export default [
         fetch: 'readonly',
         navigator: 'readonly',
         location: 'readonly',
-        history: 'readonly'
+        history: 'readonly',
+        TextDecoder: 'readonly',
+        TextEncoder: 'readonly'
       }
     },
     rules: {

@@ -20,7 +20,10 @@
         </div>
         <div class="col-hours">
           <span class="hours-bar-wrap">
-            <span class="hours-bar" :style="{ width: barWidth(item.totalHours) + '%', backgroundColor: barColor(idx) }" />
+            <span
+              class="hours-bar"
+              :style="{ width: barWidth(item.totalHours) + '%', backgroundColor: barColor(idx) }"
+            />
           </span>
           <span class="hours-value">{{ item.totalHours }}</span>
         </div>
@@ -34,7 +37,9 @@
       <!-- 底部汇总 -->
       <div class="table-footer">
         <span>共 {{ data.length }} 门课程</span>
-        <span>合计 <strong>{{ totalHours }}</strong> 课时</span>
+        <span
+          >合计 <strong>{{ totalHours }}</strong> 课时</span
+        >
       </div>
     </div>
   </el-card>
@@ -61,9 +66,7 @@ const totalHours = computed(() => {
 // 展示数据：按课时降序，最多显示前8条（紧凑布局）
 const displayData = computed(() => {
   if (!props.data || props.data.length === 0) return [];
-  return [...props.data]
-    .sort((a, b) => b.totalHours - a.totalHours)
-    .slice(0, 8);
+  return [...props.data].sort((a, b) => b.totalHours - a.totalHours).slice(0, 8);
 });
 
 function barWidth(hours) {

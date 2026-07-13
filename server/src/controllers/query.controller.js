@@ -346,7 +346,8 @@ export async function querySemester(req, res, next) {
               isbn: pt.textbooks.isbn,
               publisher: pt.textbooks.publisher,
               isRequired: pt.is_required,
-              isConsecutive: consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(semRecord.semester) ?? false,
+              isConsecutive:
+                consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(semRecord.semester) ?? false,
             })),
           };
         });
@@ -473,7 +474,8 @@ export async function queryTextbookUsage(req, res, next) {
 
       const gradeForThisSemester = Math.ceil(sem.semester / 2);
       const enrollmentYear = semesterInfo.startYear - gradeForThisSemester + 1;
-      const isConsecutive = consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(sem.semester) ?? false;
+      const isConsecutive =
+        consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(sem.semester) ?? false;
 
       for (const cls of allClasses) {
         if (cls.enrollment_year !== enrollmentYear) continue;

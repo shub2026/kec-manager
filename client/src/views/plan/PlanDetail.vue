@@ -1,10 +1,6 @@
 <template>
   <div class="plan-detail">
-    <PageHeader
-      :title="plan?.name || '方案明细'"
-      subtitle="培养方案"
-      back-route="/plans"
-    >
+    <PageHeader :title="plan?.name || '方案明细'" subtitle="培养方案" back-route="/plans">
       <template #tags>
         <el-tag v-if="plan?.majors?.name" size="small">{{ plan.majors.name }}</el-tag>
         <el-tag v-if="plan?.trainingLevels?.name" type="warning" size="small">{{
@@ -162,10 +158,13 @@ const courseCount = computed(() => courseMatrixRef.value?.rawCourses?.length ?? 
 const totalHours = computed(() => courseMatrixRef.value?.totalAllHours ?? 0);
 // 公共课 / 专业课数量（按 courses.type 拆分）
 const publicCount = computed(
-  () => courseMatrixRef.value?.rawCourses?.filter((c) => (c.courses?.type || 'public') === 'public').length ?? 0
+  () =>
+    courseMatrixRef.value?.rawCourses?.filter((c) => (c.courses?.type || 'public') === 'public')
+      .length ?? 0
 );
 const professionalCount = computed(
-  () => courseMatrixRef.value?.rawCourses?.filter((c) => c.courses?.type === 'professional').length ?? 0
+  () =>
+    courseMatrixRef.value?.rawCourses?.filter((c) => c.courses?.type === 'professional').length ?? 0
 );
 
 function openSemesterDialog() {
@@ -355,5 +354,12 @@ onMounted(async () => {
 
 :deep(.el-input-number.full-width) {
   width: 100%;
+}
+
+/* 窄屏（≤768px）：概览条换行后隐藏分隔符，避免独占一行造成视觉错位 */
+@media (max-width: 768px) {
+  .ov-divider {
+    display: none;
+  }
 }
 </style>

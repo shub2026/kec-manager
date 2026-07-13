@@ -97,7 +97,8 @@ function deriveKey(secret, info) {
   return crypto.hkdfSync('sha256', secret, '', info, 64).toString('hex');
 }
 
-const finalRefreshSecret = validatedRefreshSecret || deriveKey(validatedJwtSecret, 'jwt-refresh-token');
+const finalRefreshSecret =
+  validatedRefreshSecret || deriveKey(validatedJwtSecret, 'jwt-refresh-token');
 const finalDownloadSecret =
   validatedDownloadSecret || deriveKey(validatedJwtSecret, 'jwt-download-token');
 

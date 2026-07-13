@@ -447,9 +447,7 @@ export async function importTeachers(req, res, next) {
                 });
                 if (deletedAssignments.count > 0) {
                   op.warnings = op.warnings || [];
-                  op.warnings.push(
-                    `已删除 ${deletedAssignments.count} 条不再关联课程的排课记录`
-                  );
+                  op.warnings.push(`已删除 ${deletedAssignments.count} 条不再关联课程的排课记录`);
                 }
               }
               await tx.teacher_courses.deleteMany({ where: { teacher_id: op.teacherId } });

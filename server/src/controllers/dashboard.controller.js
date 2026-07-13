@@ -30,8 +30,8 @@ export async function getDashboardStats(req, res, next) {
     if (!semesterInfo) return fail(res, '学期格式错误，应为 YYYY-YYYY-N', 400);
 
     // 并行查询基础统计数据 + 在读班级筛选 + 教师排课统计
-    const [majorsCount, plansCount, textbooksCount, activeFilter, teacherStats] =
-      await Promise.all([
+    const [majorsCount, plansCount, textbooksCount, activeFilter, teacherStats] = await Promise.all(
+      [
         // 基础数据计数
         prisma.majors.count(),
         prisma.training_plans.count(),
@@ -44,7 +44,8 @@ export async function getDashboardStats(req, res, next) {
           where: { semester, weekly_hours: { gt: 0 }, teacher: { status: 'active' } },
           _sum: { weekly_hours: true },
         }),
-      ]);
+      ]
+    );
 
     // ── 从培养方案计算本学期开设课程数和总周课时 ──
     // 与 query.controller.js 的开课查询逻辑一致：
@@ -113,7 +114,10 @@ export async function getDashboardStats(req, res, next) {
 
       // 遍历方案课程，筛选本学期开设的课程
       for (const pc of plan.plan_courses) {
-        if (pc.start_semester > calc.currentSemesterNum || pc.end_semester < calc.currentSemesterNum) {
+        if (
+          pc.start_semester > calc.currentSemesterNum ||
+          pc.end_semester < calc.currentSemesterNum
+        ) {
           continue;
         }
 

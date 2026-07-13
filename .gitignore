@@ -12,3 +12,5 @@ nul
 .workbuddy/
 .qoder/
 .arts/
+server/src/utils/__tmp_*
+.arts/
