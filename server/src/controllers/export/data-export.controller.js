@@ -15,6 +15,7 @@ import {
   buildCombinationMemberMap,
   formatPartnerNames,
 } from '../../services/class-combination.service.js';
+import { dedupeTeachingUnits, isCombinedUnit } from '../../services/teaching-statistics.service.js';
 
 /**
  * 分批查询防止 OOM：每批 500 条用 skip/take 分页累积到数组
@@ -651,6 +652,7 @@ export async function exportStatistics(req, res, next) {
         class: {
           select: {
             name: true,
+            combination_id: true,
             colleges: { select: { id: true, name: true } },
             training_levels: { select: { name: true } },
           },
@@ -660,30 +662,41 @@ export async function exportStatistics(req, res, next) {
       orderBy: [{ teacher_id: 'asc' }, { course_id: 'asc' }],
     });
 
-    const assignmentsByTeacher = new Map();
-    for (const a of allAssignments) {
-      if (!assignmentsByTeacher.has(a.teacher_id)) {
-        assignmentsByTeacher.set(a.teacher_id, []);
-      }
-      assignmentsByTeacher.get(a.teacher_id).push(a);
+    // 合班去重：将成员班行归并为逻辑教学单元，避免课时/班级数虚高
+    const allUnits = dedupeTeachingUnits(allAssignments);
+
+    const unitsByTeacher = new Map();
+    for (const u of allUnits) {
+      const tid = u.representative.teacher_id;
+      if (!unitsByTeacher.has(tid)) unitsByTeacher.set(tid, []);
+      unitsByTeacher.get(tid).push(u);
     }
 
     const rows = [];
     for (const s of stats) {
       const teacher = teacherMap.get(s.teacher_id);
-      const assignments = assignmentsByTeacher.get(s.teacher_id) || [];
-      const totalHours = s._sum.weekly_hours || 0;
-      const classCount = s._count.id || 0;
+      const units = unitsByTeacher.get(s.teacher_id) || [];
+      let totalHours = 0;
+      let classCount = 0;
 
-      // 按课程分组
+      // 按课程分组（合班单元课时仅计 1 次）
       const byCourse = new Map();
-      for (const a of assignments) {
-        if (!byCourse.has(a.course_id)) {
-          byCourse.set(a.course_id, { course: a.course.name, classes: [], hours: 0 });
+      for (const u of units) {
+        totalHours += u.weeklyHours;
+        classCount += 1; // 合班=1 个逻辑教学班；非合班=1 个班级
+
+        const courseName = u.representative.course.name;
+        if (!byCourse.has(u.representative.course_id)) {
+          byCourse.set(u.representative.course_id, { course: courseName, classes: [], hours: 0 });
         }
-        const g = byCourse.get(a.course_id);
-        g.classes.push(a.class.name);
-        g.hours += a.weekly_hours;
+        const g = byCourse.get(u.representative.course_id);
+        const combined = isCombinedUnit(u);
+        g.classes.push(
+          combined
+            ? u.memberClasses.map((c) => c?.name).filter(Boolean).join('、')
+            : u.representative.class.name
+        );
+        g.hours += u.weeklyHours;
       }
 
       const courseDetail = Array.from(byCourse.values())
@@ -693,12 +706,13 @@ export async function exportStatistics(req, res, next) {
       // 从实际授课班级中提取任课学院（与前端 getStatistics 逻辑一致）
       const collegeMap = new Map();
       const levelSet = new Set();
-      for (const a of assignments) {
-        if (a.class.colleges && !collegeMap.has(a.class.colleges.id)) {
-          collegeMap.set(a.class.colleges.id, a.class.colleges);
+      for (const u of units) {
+        const c = u.representative.class;
+        if (c.colleges && !collegeMap.has(c.colleges.id)) {
+          collegeMap.set(c.colleges.id, c.colleges);
         }
-        if (a.class.training_levels?.name) {
-          levelSet.add(a.class.training_levels.name);
+        if (c.training_levels?.name) {
+          levelSet.add(c.training_levels.name);
         }
       }
       const teachingColleges = [...collegeMap.values()].map((c) => c.name).join('、') || '-';
@@ -706,9 +720,9 @@ export async function exportStatistics(req, res, next) {
 
       rows.push({
         姓名: teacher?.name || '未知',
+        归属学院: teacher?.affiliated_college?.name || '-',
         人员类别: personnelMap[teacher?.personnel_type] || '-',
         任教科目: teacher?.courses.map((tc) => tc.course.name).join('、') || '-',
-        归属学院: teacher?.affiliated_college?.name || '-',
         任课层次: trainingLevels,
         任课学院: teachingColleges,
         班级数: classCount,
@@ -738,9 +752,9 @@ export async function exportStatistics(req, res, next) {
 
     const headers = [
       { label: '姓名', key: '姓名', width: 12 },
+      { label: '归属学院', key: '归属学院', width: 18 },
       { label: '人员类别', key: '人员类别', width: 10 },
       { label: '任教科目', key: '任教科目', width: 25 },
-      { label: '归属学院', key: '归属学院', width: 18 },
       { label: '任课层次', key: '任课层次', width: 15 },
       { label: '任课学院', key: '任课学院', width: 25 },
       { label: '班级数', key: '班级数', width: 10 },

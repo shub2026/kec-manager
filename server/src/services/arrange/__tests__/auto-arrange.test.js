@@ -45,6 +45,8 @@ const {
   diagnoseFailure,
   selectBestTeacher,
   trySwapOne,
+  mergeCombinedClasses,
+  expandCombinedAssignments,
 } = await import('../auto-arrange.js');
 
 const C = {
@@ -1120,5 +1122,81 @@ describe('calcAllMatchRates - multi-teacher cohesion', () => {
     ]);
 
     expect(() => calcAllMatchRates(assignments, classes, teacherMap)).not.toThrow();
+  });
+});
+
+// ──────────────────────────────────────────────
+// 合班归并 / 展开（P0：合班排课一致性）
+// ──────────────────────────────────────────────
+describe('mergeCombinedClasses', () => {
+  it('同 combinationId 的成员班应合并为一个单元，携带 memberClassIds', () => {
+    const classes = [
+      { classId: 1, combinationId: 10, weeklyHours: 2, collegeId: 1, textbookIds: [300] },
+      { classId: 2, combinationId: 10, weeklyHours: 2, collegeId: 1, textbookIds: [300] },
+      { classId: 3, combinationId: null, weeklyHours: 4, collegeId: 2, textbookIds: [300] },
+    ];
+    const merged = mergeCombinedClasses(classes);
+    const combined = merged.find((m) => m.isCombinedDemand);
+    expect(merged).toHaveLength(2); // 1 个合班单元 + 1 个独立班
+    expect(combined.memberClassIds).toEqual([1, 2]);
+    expect(combined.weeklyHours).toBe(2); // 取代表班值
+  });
+
+  it('单成员组合应退化为独立班（不设置 memberClassIds）', () => {
+    const classes = [{ classId: 1, combinationId: 10, weeklyHours: 2 }];
+    const merged = mergeCombinedClasses(classes);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].isCombinedDemand).toBeFalsy();
+    expect(merged[0].memberClassIds).toBeUndefined();
+  });
+
+  it('不同 combinationId 的班级不应被合并', () => {
+    const classes = [
+      { classId: 1, combinationId: 10, weeklyHours: 2 },
+      { classId: 2, combinationId: 20, weeklyHours: 2 },
+    ];
+    const merged = mergeCombinedClasses(classes);
+    expect(merged).toHaveLength(2);
+    expect(merged.every((m) => !m.isCombinedDemand)).toBe(true);
+  });
+});
+
+describe('expandCombinedAssignments', () => {
+  it('合班单元应展开为 N 行，所有行共享同一 teacher_id / weekly_hours', () => {
+    const assignments = [
+      {
+        teacher_id: 7,
+        class_id: 1,
+        course_id: 9,
+        semester: '2026-2027-1',
+        weekly_hours: 2,
+        is_auto: true,
+        memberClassIds: [1, 2],
+      },
+      {
+        teacher_id: 8,
+        class_id: 3,
+        course_id: 9,
+        semester: '2026-2027-1',
+        weekly_hours: 4,
+        is_auto: false,
+        memberClassIds: null,
+      },
+    ];
+    const rows = expandCombinedAssignments(assignments);
+    expect(rows).toHaveLength(3); // 2 + 1
+    expect(rows[0]).toMatchObject({ teacher_id: 7, class_id: 1, weekly_hours: 2 });
+    expect(rows[1]).toMatchObject({ teacher_id: 7, class_id: 2, weekly_hours: 2 });
+    expect(rows[2]).toMatchObject({ teacher_id: 8, class_id: 3, weekly_hours: 4 });
+    // 合班两行教师必须一致（一致性保证）
+    expect(rows[0].teacher_id).toBe(rows[1].teacher_id);
+  });
+
+  it('无 memberClassIds 时按 class_id 展开为单行', () => {
+    const rows = expandCombinedAssignments([
+      { teacher_id: 5, class_id: 9, course_id: 1, semester: 'S', weekly_hours: 3, is_auto: true },
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].class_id).toBe(9);
   });
 });

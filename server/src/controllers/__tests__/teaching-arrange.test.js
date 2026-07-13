@@ -16,20 +16,32 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // Mock prisma
 // ──────────────────────────────────────────────
 const mockPrisma = {
+  $transaction: vi.fn(async (cb) => cb(mockPrisma)),
   classes: {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
+    findMany: vi.fn(),
   },
   teachers: {
     findUnique: vi.fn(),
+    findMany: vi.fn(),
   },
   teacher_courses: {
     findUnique: vi.fn(),
   },
   teaching_assignments: {
     upsert: vi.fn(),
+    delete: vi.fn(),
+    findUnique: vi.fn(),
     groupBy: vi.fn(),
     deleteMany: vi.fn(),
+    findMany: vi.fn(),
+  },
+  training_levels: {
+    findMany: vi.fn(),
+  },
+  textbooks: {
+    findMany: vi.fn(),
   },
   plan_courses: {
     findMany: vi.fn(),
@@ -71,7 +83,7 @@ vi.mock('../../services/semester.service.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { assignTeacher, resetAutoAssignments } = await import('../teaching-arrange.controller.js');
+const { assignTeacher, resetAutoAssignments, getStatistics, deleteAssignment } = await import('../teaching-arrange.controller.js');
 const { createAuditLog } = await import('../../services/audit.service.js');
 const { findBestMatchPlan } = await import('../../services/plan.service.js');
 const { parseSemester } = await import('../../services/teaching-arrange.service.js');
@@ -80,8 +92,8 @@ const { calcClassSemester } = await import('../../services/semester.service.js')
 // ──────────────────────────────────────────────
 // 工具函数
 // ──────────────────────────────────────────────
-function mockReq(body = {}) {
-  return { body, user: { id: 1 }, ip: '127.0.0.1' };
+function mockReq(body = {}, overrides = {}) {
+  return { body, user: { id: 1 }, ip: '127.0.0.1', ...overrides };
 }
 
 function mockRes() {
@@ -603,5 +615,250 @@ describe('resetAutoAssignments — 重置自动排课', () => {
 
     const deleteCall = mockPrisma.teaching_assignments.deleteMany.mock.calls[0][0];
     expect(deleteCall.where.is_auto).toBe(true);
+  });
+});
+
+// ════════════════════════════════════════════════
+// getStatistics — 合班去重回归
+// ════════════════════════════════════════════════
+describe('getStatistics', () => {
+  const teacher = {
+    id: 1,
+    name: '王五',
+    personnel_type: 'full_time',
+    affiliated_college: { id: 1, name: '教育学院' },
+    courses: [{ course: { id: 10, name: '数学' } }],
+    scheduling_colleges: [{ college: { id: 1, name: '教育学院' } }],
+    scheduling_levels: [],
+  };
+
+  // 合班 A+B（combination_id=99，同课程同教师）+ 独立班 C
+  const rawAssignments = [
+    {
+      teacher_id: 1,
+      class_id: 1,
+      course_id: 10,
+      weekly_hours: 4,
+      is_auto: false,
+      class: {
+        id: 1,
+        name: 'A班',
+        college_id: 1,
+        training_level_id: 2,
+        combination_id: 99,
+        colleges: { id: 1, name: '教育学院' },
+      },
+      course: { id: 10, name: '数学' },
+    },
+    {
+      teacher_id: 1,
+      class_id: 2,
+      course_id: 10,
+      weekly_hours: 4,
+      is_auto: false,
+      class: {
+        id: 2,
+        name: 'B班',
+        college_id: 1,
+        training_level_id: 2,
+        combination_id: 99,
+        colleges: { id: 1, name: '教育学院' },
+      },
+      course: { id: 10, name: '数学' },
+    },
+    {
+      teacher_id: 1,
+      class_id: 3,
+      course_id: 20,
+      weekly_hours: 2,
+      is_auto: false,
+      class: {
+        id: 3,
+        name: 'C班',
+        college_id: 1,
+        training_level_id: 2,
+        combination_id: null,
+        colleges: { id: 1, name: '教育学院' },
+      },
+      course: { id: 20, name: '英语' },
+    },
+  ];
+
+  beforeEach(() => {
+    // 不调用 clearAllMocks，避免清掉模块级 mock 工厂；直接覆盖所需 mock
+    mockPrisma.teaching_assignments.findMany.mockResolvedValue(rawAssignments);
+    mockPrisma.teachers.findMany.mockResolvedValue([teacher]);
+    mockPrisma.training_levels.findMany.mockResolvedValue([]);
+    mockPrisma.plan_courses.findMany.mockResolvedValue([]);
+    mockPrisma.textbooks.findMany.mockResolvedValue([]);
+    parseSemester.mockReturnValue({
+      startYear: 2025,
+      endYear: 2026,
+      semesterIndex: 2,
+      raw: '2025-2026-2',
+    });
+  });
+
+  it('合班教学应去重：总周课时与班级数不虚高', async () => {
+    const req = mockReq({}, { query: { semester: '2025-2026-2' } });
+    const res = mockRes();
+    await getStatistics(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    // 合班(A+B)合并为 1 个逻辑教学班 4 课时 + 独立班(C)2 课时 = 6，而非 10
+    expect(data.teachers).toHaveLength(1);
+    expect(data.teachers[0].totalWeeklyHours).toBe(6);
+    // 班级数：合班=1 个逻辑班 + 独立班=1 = 2，而非 3
+    expect(data.teachers[0].totalClassCount).toBe(2);
+    expect(data.summary.totalWeeklyHours).toBe(6);
+    expect(data.summary.totalClasses).toBe(2);
+  });
+
+  it('合班单元在课程明细中标记 isCombined=true 并合并班级名', async () => {
+    const req = mockReq({}, { query: { semester: '2025-2026-2' } });
+    const res = mockRes();
+    await getStatistics(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    const math = data.teachers[0].details.find((d) => d.course.id === 10);
+    expect(math.classes).toHaveLength(1);
+    expect(math.classes[0].isCombined).toBe(true);
+    expect(math.classes[0].className).toBe('A班、B班');
+    expect(math.weeklyHours).toBe(4);
+  });
+
+  it('无学期参数 → 返回错误', async () => {
+    const req = mockReq({}, { query: {} });
+    const res = mockRes();
+    await getStatistics(req, res, vi.fn());
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, message: '请选择学期' })
+    );
+  });
+});
+
+// ──────────────────────────────────────────────
+// 合班联动 / 级联（P0：合班成员班教师一致）
+// ──────────────────────────────────────────────
+const { getClassesWithCourse } = await import('../../services/teaching-arrange.service.js');
+
+describe('assignTeacher — 合班联动', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.$transaction.mockImplementation(async (cb) => cb(mockPrisma));
+  });
+
+  it('班级属合班时，应将同一教师同步到所有开设该课程的合班伙伴', async () => {
+    const req = mockReq({
+      class_id: 10,
+      course_id: 3,
+      semester: '2025-2026-2',
+      teacher_id: 5,
+      weekly_hours: 4,
+    });
+    const res = mockRes();
+
+    mockPrisma.classes.findFirst.mockResolvedValue({ id: 10, combination_id: 99 });
+    getClassesWithCourse.mockResolvedValue([{ classId: 10 }, { classId: 20 }]);
+    mockPrisma.classes.findMany.mockResolvedValue([{ id: 20 }]); // 伙伴班
+    mockPrisma.teachers.findUnique.mockResolvedValue(ACTIVE_TEACHER);
+    mockPrisma.teacher_courses.findUnique.mockResolvedValue({});
+    mockPrisma.teaching_assignments.upsert.mockResolvedValue(UPSERTED_ASSIGNMENT);
+    mockPrisma.teaching_assignments.groupBy.mockResolvedValue([]);
+
+    await assignTeacher(req, res, vi.fn());
+
+    // 主班级 + 1 个合班伙伴，各 upsert 一次
+    expect(mockPrisma.teaching_assignments.upsert).toHaveBeenCalledTimes(2);
+    const calls = mockPrisma.teaching_assignments.upsert.mock.calls;
+    // 两次调用的 teacher_id 必须相同（合班一致性）
+    expect(calls[0][0].create.teacher_id).toBe(5);
+    expect(calls[1][0].create.teacher_id).toBe(5);
+    // 伙伴班的 class_id 应为 20
+    expect(calls[1][0].create.class_id).toBe(20);
+  });
+
+  it('班级无合班时，仅 upsert 主班级一次', async () => {
+    const req = mockReq({
+      class_id: 10,
+      course_id: 3,
+      semester: '2025-2026-2',
+      teacher_id: 5,
+      weekly_hours: 4,
+    });
+    const res = mockRes();
+
+    mockPrisma.classes.findFirst.mockResolvedValue({ id: 10, combination_id: null });
+    mockPrisma.teachers.findUnique.mockResolvedValue(ACTIVE_TEACHER);
+    mockPrisma.teacher_courses.findUnique.mockResolvedValue({});
+    mockPrisma.teaching_assignments.upsert.mockResolvedValue(UPSERTED_ASSIGNMENT);
+    mockPrisma.teaching_assignments.groupBy.mockResolvedValue([]);
+
+    await assignTeacher(req, res, vi.fn());
+
+    expect(mockPrisma.teaching_assignments.upsert).toHaveBeenCalledTimes(1);
+    expect(getClassesWithCourse).not.toHaveBeenCalled();
+  });
+});
+
+describe('deleteAssignment — 合班级联', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.$transaction.mockImplementation(async (cb) => cb(mockPrisma));
+  });
+
+  it('合班成员班的安排被删除时，应级联删除所有成员班同课程的安排', async () => {
+    const req = { params: { id: '1' } };
+    const res = mockRes();
+    const next = vi.fn();
+
+    mockPrisma.teaching_assignments.findUnique.mockResolvedValue({
+      id: 1,
+      course_id: 3,
+      semester: '2025-2026-2',
+      is_auto: false,
+      teacher: { name: '张老师' },
+      class: { name: '2024级学前1班', combination_id: 99 },
+    });
+    mockPrisma.teaching_assignments.delete.mockResolvedValue({});
+    mockPrisma.classes.findMany.mockResolvedValue([{ id: 10 }, { id: 20 }]);
+    mockPrisma.teaching_assignments.deleteMany.mockResolvedValue({ count: 2 });
+
+    await deleteAssignment(req, res, next);
+
+    expect(mockPrisma.teaching_assignments.delete).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.teaching_assignments.deleteMany).toHaveBeenCalledTimes(1);
+    const dmCall = mockPrisma.teaching_assignments.deleteMany.mock.calls[0][0];
+    expect(dmCall).toMatchObject({
+      where: {
+        course_id: 3,
+        semester: '2025-2026-2',
+        class_id: { in: [10, 20] },
+        id: { not: 1 },
+      },
+    });
+  });
+
+  it('非合班班级的安排被删除时，不应级联', async () => {
+    const req = { params: { id: '1' } };
+    const res = mockRes();
+    const next = vi.fn();
+
+    mockPrisma.teaching_assignments.findUnique.mockResolvedValue({
+      id: 1,
+      course_id: 3,
+      semester: '2025-2026-2',
+      is_auto: false,
+      teacher: { name: '张老师' },
+      class: { name: '2024级学前1班', combination_id: null },
+    });
+    mockPrisma.teaching_assignments.delete.mockResolvedValue({});
+
+    await deleteAssignment(req, res, next);
+
+    expect(mockPrisma.teaching_assignments.delete).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.teaching_assignments.deleteMany).not.toHaveBeenCalled();
   });
 });

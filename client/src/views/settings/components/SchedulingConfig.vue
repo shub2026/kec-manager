@@ -37,6 +37,36 @@
           <span>已关闭 — 排课仅使用贪心算法 + 置换回溯，行为与之前版本一致</span>
         </div>
       </div>
+
+      <el-divider />
+
+      <div class="config-item">
+        <div class="switch-row">
+          <div class="switch-info">
+            <label class="field-label">允许编辑历史学期</label>
+            <p class="switch-desc">
+              默认关闭：历史（非当前）学期在教学安排页为<strong>只读状态</strong>，禁止任何排课写操作，避免误改已结课数据。
+              开启后：历史学期可编辑，但在自动排课 / 手动安排 / 重置 / 执行预览等写操作保存前，会弹出二次确认弹窗，确认后方可执行。
+            </p>
+          </div>
+          <el-switch
+            v-model="allowHistoricalEdit"
+            :loading="saving"
+            inline-prompt
+            active-text="开"
+            inactive-text="关"
+            size="large"
+          />
+        </div>
+        <div v-if="allowHistoricalEdit" class="enabled-hint">
+          <el-icon color="var(--brand-success)"><CircleCheckFilled /></el-icon>
+          <span>已开启 — 历史学期可编辑，但写操作保存前需二次确认</span>
+        </div>
+        <div v-else class="enabled-hint off">
+          <el-icon><InfoFilled /></el-icon>
+          <span>已关闭 — 历史学期为只读状态，禁止编辑（默认）</span>
+        </div>
+      </div>
     </div>
 
     <div class="scheduling-actions">
@@ -63,29 +93,39 @@ import { useSettingsStore } from '../../../stores/settings';
 const settingsStore = useSettingsStore();
 const enabled = ref(false);
 const savedValue = ref(false);
+const allowHistoricalEdit = ref(false);
+const savedAllow = ref(false);
 const saving = ref(false);
 const dirty = ref(false);
 
-watch(enabled, () => {
-  dirty.value = enabled.value !== savedValue.value;
+watch([enabled, allowHistoricalEdit], () => {
+  dirty.value =
+    enabled.value !== savedValue.value || allowHistoricalEdit.value !== savedAllow.value;
 });
 
 async function loadState() {
   await settingsStore.load();
   const s = settingsStore.settings;
-  const val = s.tabuSearchEnabled?.value === 'true';
-  enabled.value = val;
-  savedValue.value = val;
+  const tabu = s.tabuSearchEnabled?.value === 'true';
+  const allow = s.allowHistoricalEdit?.value === 'true';
+  enabled.value = tabu;
+  savedValue.value = tabu;
+  allowHistoricalEdit.value = allow;
+  savedAllow.value = allow;
   dirty.value = false;
 }
 
 async function handleSave() {
   saving.value = true;
   try {
-    await settingsStore.save({ tabuSearchEnabled: enabled.value });
+    await settingsStore.save({
+      tabuSearchEnabled: enabled.value,
+      allowHistoricalEdit: allowHistoricalEdit.value,
+    });
     savedValue.value = enabled.value;
+    savedAllow.value = allowHistoricalEdit.value;
     dirty.value = false;
-    ElMessage.success(enabled.value ? '禁忌搜索已启用' : '禁忌搜索已关闭');
+    ElMessage.success('设置已保存');
   } catch (e) {
     ElMessage.error('保存失败：' + (e.message || '未知错误'));
   } finally {

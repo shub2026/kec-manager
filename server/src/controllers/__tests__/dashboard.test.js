@@ -25,8 +25,14 @@ const mockPrisma = {
   },
   textbooks: { count: vi.fn() },
   classes: { findMany: vi.fn() },
+  courses: {
+    count: vi.fn(),
+    findMany: vi.fn(),
+  },
+  colleges: { findMany: vi.fn() },
   teaching_assignments: {
     groupBy: vi.fn(),
+    findMany: vi.fn(),
   },
 };
 
@@ -64,7 +70,7 @@ vi.mock('../../utils/logger.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块
 // ──────────────────────────────────────────────
-const { getDashboardStats } = await import('../dashboard.controller.js');
+const { getDashboardStats, getDashboardInsights } = await import('../dashboard.controller.js');
 const { getActiveClassFilter } = await import('../../services/class.service.js');
 const { getSemesterInfoFromRequest } = await import('../../services/semester.service.js');
 
@@ -592,5 +598,103 @@ describe('getDashboardStats', () => {
     await getDashboardStats(req, res, next);
 
     expect(next).toHaveBeenCalledWith(expect.any(Error));
+  });
+});
+
+// ════════════════════════════════════════════════
+// getDashboardInsights — 合班去重回归
+// ════════════════════════════════════════════════
+describe('getDashboardInsights', () => {
+  const semesterInfo = {
+    startYear: 2025,
+    endYear: 2026,
+    semesterIndex: 2,
+    raw: '2025-2026-2',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getSemesterInfoFromRequest.mockResolvedValue(semesterInfo);
+  });
+
+  it('合班教学应去重：课时只计 1 次、逻辑教学班=1（不虚高）', async () => {
+    const teacher = {
+      id: 1,
+      name: '王五',
+      default_weekly_hours: 10,
+      affiliated_college: { id: 1, name: '教育学院' },
+    };
+    // 两行同组合(99)、同课程(数学)、同教师 → 物理上是一节合班课
+    const allAssignments = [
+      {
+        weekly_hours: 4,
+        course_id: 10,
+        class_id: 1,
+        teacher,
+        class: { college_id: 1, combination_id: 99, colleges: { id: 1, name: '教育学院' } },
+        course: { id: 10, name: '数学', type: '必修' },
+      },
+      {
+        weekly_hours: 4,
+        course_id: 10,
+        class_id: 2,
+        teacher,
+        class: { college_id: 1, combination_id: 99, colleges: { id: 1, name: '教育学院' } },
+        course: { id: 10, name: '数学', type: '必修' },
+      },
+      // 一个独立班（非合班）英语课
+      {
+        weekly_hours: 2,
+        course_id: 20,
+        class_id: 3,
+        teacher,
+        class: { college_id: 1, combination_id: null, colleges: { id: 1, name: '教育学院' } },
+        course: { id: 20, name: '英语', type: '必修' },
+      },
+    ];
+
+    mockPrisma.courses.count.mockResolvedValue(5);
+    // 第一次 findMany：已排课课程（去重）
+    mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce([{ course_id: 10 }, { course_id: 20 }]);
+    // 第二次 findMany：全部排课记录（含合班成员班）
+    mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce(allAssignments);
+    mockPrisma.colleges.findMany.mockResolvedValue([{ id: 1, name: '教育学院' }]);
+    mockPrisma.courses.findMany.mockResolvedValue([
+      { id: 10, name: '数学' },
+      { id: 20, name: '英语' },
+    ]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardInsights(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+
+    // 数学：合班两行合并为 1 个逻辑教学班，课时只计 4（而非 8）
+    const math = data.courseStats.find((c) => c.name === '数学');
+    expect(math.totalHours).toBe(4);
+    expect(math.classCount).toBe(1);
+    // 英语：独立班，课时 2、班级数 1
+    const eng = data.courseStats.find((c) => c.name === '英语');
+    expect(eng.totalHours).toBe(2);
+    expect(eng.classCount).toBe(1);
+
+    // 学院课时分布也应去重：4（数学合班）+ 2（英语）= 6，而非 10
+    const dist = data.distribution.find((d) => d.name === '教育学院');
+    expect(dist.hours).toBe(6);
+
+    // 王五总课时去重后为 6，未超 default_weekly_hours(10)
+    expect(data.alerts.overloadedTeachers).toHaveLength(0);
+  });
+
+  it('无学期参数 → 返回错误', async () => {
+    const req = mockReq({});
+    const res = mockRes();
+    await getDashboardInsights(req, res, vi.fn());
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, message: '请选择学期' })
+    );
   });
 });

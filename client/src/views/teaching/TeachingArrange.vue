@@ -4,12 +4,36 @@
       title="教学安排"
       subtitle="智能排课"
       description="为课程自动分配教师课时，支持排课偏好和学院/层次匹配"
+    >
+      <template #extra>
+        <SemesterSelect v-model="selectedSemester" @change="onSemesterChange" />
+      </template>
+    </PageHeader>
+
+    <!-- 学期状态提示 -->
+    <el-alert
+      v-if="historicalReadOnly"
+      type="warning"
+      :closable="false"
+      show-icon
+      class="historical-alert"
+      title="当前为历史学期只读模式，禁止编辑"
+      description="如需编辑，请在 系统设置 → 排课优化 开启「允许编辑历史学期」开关"
     />
+    <el-alert
+      v-else-if="historicalGuarded"
+      type="warning"
+      :closable="false"
+      show-icon
+      class="historical-alert"
+      title="正在编辑历史学期，保存前需二次确认"
+    />
+
     <!-- 设置区 -->
     <HourSettingsCard
       ref="settingsCardRef"
       v-model:selected-course-id="selectedCourseId"
-      :current-semester-label="currentSemesterLabel"
+      :current-semester-label="selectedSemester"
       :all-courses="allCourses"
       @course-change="onCourseChange"
     />
@@ -71,14 +95,24 @@
               <el-option v-for="v in textbookOptions" :key="v" :label="v" :value="v" />
             </el-select>
             <el-checkbox v-model="previewMode" style="margin-left: 8px">预览模式</el-checkbox>
-            <el-button type="warning" :loading="arranging" @click="handleAutoArrange('full')">
+            <el-button
+              type="warning"
+              :loading="arranging"
+              :disabled="historicalReadOnly"
+              @click="handleAutoArrange('full')"
+            >
               <el-icon><MagicStick /></el-icon> 全量模式
             </el-button>
-            <el-button type="success" :loading="arranging" @click="handleAutoArrange('standard')">
+            <el-button
+              type="success"
+              :loading="arranging"
+              :disabled="historicalReadOnly"
+              @click="handleAutoArrange('standard')"
+            >
               <el-icon><SetUp /></el-icon> 标准模式
             </el-button>
             <el-dropdown
-              :disabled="batchArranging"
+              :disabled="batchArranging || historicalReadOnly"
               style="margin-left: 4px"
               @command="handleBatchAutoArrange"
             >
@@ -93,7 +127,7 @@
               </template>
             </el-dropdown>
             <el-dropdown style="margin-left: 4px" @command="handleResetCommand">
-              <el-button type="danger">
+              <el-button type="danger" :disabled="historicalReadOnly">
                 <el-icon><RefreshRight /></el-icon> 重置<el-icon class="el-icon--right"
                   ><ArrowDown
                 /></el-icon>
@@ -175,26 +209,40 @@
           <template #default="{ row }">
             <div
               class="teacher-cell"
-              :class="{ 'has-teacher': row.assignment, 'no-teacher': !row.assignment }"
+              :class="{
+                'has-teacher': row.assignment,
+                'no-teacher': !row.assignment,
+                'is-readonly': historicalReadOnly,
+              }"
               @click="openTeacherSelect(row)"
             >
               <template v-if="row.assignment">
                 <el-tag
                   :type="row.assignment.isAuto ? 'info' : 'primary'"
                   size="small"
-                  closable
+                  :closable="!historicalReadOnly"
                   @close.stop="handleRemoveAssignment(row)"
                 >
                   {{ row.assignment.teacherName }}
                 </el-tag>
-                <span class="replace-hint">
+                <span v-if="!historicalReadOnly" class="replace-hint">
                   <el-icon :size="12"><EditPen /></el-icon>
                   更换
                 </span>
+                <span v-else class="readonly-hint">
+                  <el-icon :size="12"><Lock /></el-icon>
+                  只读
+                </span>
               </template>
               <template v-else>
-                <el-icon :size="14" style="margin-right: 4px; opacity: 0.5"><Plus /></el-icon>
-                <span class="text-placeholder">点击安排</span>
+                <template v-if="historicalReadOnly">
+                  <el-icon :size="14" style="margin-right: 4px; opacity: 0.5"><Lock /></el-icon>
+                  <span class="text-muted">只读</span>
+                </template>
+                <template v-else>
+                  <el-icon :size="14" style="margin-right: 4px; opacity: 0.5"><Plus /></el-icon>
+                  <span class="text-placeholder">点击安排</span>
+                </template>
               </template>
             </div>
           </template>
@@ -300,8 +348,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue';
-import { ElMessage } from 'element-plus';
-import { WarningFilled, Connection } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { WarningFilled, Connection, Lock } from '@element-plus/icons-vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
@@ -320,6 +368,7 @@ import {
 import HourSettingsCard from './components/HourSettingsCard.vue';
 import CoursePreviewCard from './components/CoursePreviewCard.vue';
 import PageHeader from '../../components/PageHeader.vue';
+import SemesterSelect from '../../components/SemesterSelect.vue';
 
 defineOptions({ name: 'TeachingArrange' });
 
@@ -337,8 +386,10 @@ const ArrangeProgressDialog = defineAsyncComponent(
   () => import('./components/ArrangeProgressDialog.vue')
 );
 
-// 学期相关
-const currentSemesterLabel = ref('');
+// 学期相关：页面局部学期（默认全局当前学期），支持切换查看历史学期
+const selectedSemester = ref('');
+// 全局「当前学期」，用于判断是否正在查看历史学期（写操作需二次确认）
+const globalCurrentSemester = ref('');
 const selectedCourseId = ref(null);
 const allCourses = ref([]);
 const courseInfo = ref(null);
@@ -529,11 +580,68 @@ const tabuSearchEnabled = computed(
 async function loadSemester() {
   try {
     await settingsStore.load();
-    currentSemesterLabel.value = settingsStore.currentSemesterValue();
+    const current = settingsStore.currentSemesterValue();
+    globalCurrentSemester.value = current;
+    selectedSemester.value = current;
   } catch (e) {
     if (import.meta.env.DEV) {
       console.error('获取学期失败:', e);
     }
+  }
+}
+
+// 是否正在查看历史学期（非全局当前学期）
+const isHistoricalSemester = computed(
+  () => !!selectedSemester.value && selectedSemester.value !== globalCurrentSemester.value
+);
+
+// 历史学期是否处于只读模式（系统设置开关关闭时：禁止编辑）
+const historicalReadOnly = computed(
+  () => isHistoricalSemester.value && settingsStore.settings?.allowHistoricalEdit?.value !== 'true'
+);
+
+// 历史学期是否处于「编辑前二次确认」模式（系统设置开关开启时：可编辑但需确认）
+const historicalGuarded = computed(
+  () => isHistoricalSemester.value && settingsStore.settings?.allowHistoricalEdit?.value === 'true'
+);
+
+// 学期切换：重载当前课程的班级与教师数据
+function onSemesterChange() {
+  if (selectedCourseId.value) {
+    loadData();
+  }
+}
+
+/**
+ * 历史学期写操作权限控制。
+ * - 非历史学期：直接放行。
+ * - 历史学期且开关关闭（只读模式）：拦截，禁止编辑并提示用户去系统设置开启。
+ * - 历史学期且开关开启：弹出二次确认，用户确认后放行，取消则返回 false。
+ * @returns {Promise<boolean>}
+ */
+async function confirmHistoricalEdit() {
+  if (!isHistoricalSemester.value) return true;
+  // 开关关闭：历史学期为只读模式，禁止任何写操作
+  if (historicalReadOnly.value) {
+    ElMessage.warning(
+      '当前历史学期为只读模式，禁止编辑。如需编辑请在系统设置 → 排课优化 开启「允许编辑历史学期」。'
+    );
+    return false;
+  }
+  // 开关开启：编辑前二次确认
+  try {
+    await ElMessageBox.confirm(
+      `您正在修改历史学期「${selectedSemester.value}」的排课数据，此操作可能影响已结课记录，确认继续吗？`,
+      '编辑历史学期确认',
+      {
+        type: 'warning',
+        confirmButtonText: '确认修改',
+        cancelButtonText: '取消',
+      }
+    );
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -565,14 +673,14 @@ async function onCourseChange(courseId) {
 }
 
 async function loadData() {
-  if (!selectedCourseId.value || !currentSemesterLabel.value) return;
+  if (!selectedCourseId.value || !selectedSemester.value) return;
   tableLoading.value = true;
   try {
     const [classesRes, teachersRes] = await Promise.all([
-      getCourseClasses({ courseId: selectedCourseId.value, semester: currentSemesterLabel.value }),
+      getCourseClasses({ courseId: selectedCourseId.value, semester: selectedSemester.value }),
       getCourseTeachers({
         courseId: selectedCourseId.value,
-        semester: currentSemesterLabel.value,
+        semester: selectedSemester.value,
       }),
     ]);
     const classData = classesRes.data || {};
@@ -598,15 +706,22 @@ async function loadData() {
 
 // --- 教师选择 ---
 function openTeacherSelect(row) {
+  if (historicalReadOnly.value) {
+    ElMessage.warning(
+      '当前历史学期为只读模式，禁止编辑。如需编辑请在系统设置 → 排课优化 开启「允许编辑历史学期」。'
+    );
+    return;
+  }
   teacherDialogRef.value?.open(row);
 }
 
 async function onTeacherConfirm({ classId, teacherId, weeklyHours }) {
+  if (!(await confirmHistoricalEdit())) return;
   try {
     await assignTeacher({
       classId,
       courseId: selectedCourseId.value,
-      semester: currentSemesterLabel.value,
+      semester: selectedSemester.value,
       teacherId,
       weeklyHours,
     });
@@ -620,6 +735,7 @@ async function onTeacherConfirm({ classId, teacherId, weeklyHours }) {
 
 async function handleRemoveAssignment(row) {
   if (!row.assignment?.id) return;
+  if (!(await confirmHistoricalEdit())) return;
   try {
     await deleteAssignment(row.assignment.id);
     ElMessage.success('已移除安排');
@@ -651,6 +767,8 @@ async function doAutoArrange() {
   const mode = pendingArrangeMode;
   arrangeConfirmVisible.value = false;
 
+  if (!(await confirmHistoricalEdit())) return;
+
   arranging.value = true;
   // 初始化进度弹窗
   resetProgress();
@@ -662,7 +780,7 @@ async function doAutoArrange() {
     const result = await runAutoArrangeWithProgress(
       {
         courseId: selectedCourseId.value,
-        semester: currentSemesterLabel.value,
+        semester: selectedSemester.value,
         mode,
         hourSettings: hourSettingsRef.value,
         preview: previewMode.value,
@@ -711,6 +829,7 @@ function handleProgressClose() {
 }
 
 async function handleExecutePreview() {
+  if (!(await confirmHistoricalEdit())) return;
   const wasPreview = previewMode.value;
   previewMode.value = false;
 
@@ -727,7 +846,7 @@ async function handleExecutePreview() {
     await runAutoArrangeWithProgress(
       {
         courseId: selectedCourseId.value,
-        semester: currentSemesterLabel.value,
+        semester: selectedSemester.value,
         mode,
         hourSettings: hourSettingsRef.value,
         preview: false,
@@ -775,6 +894,8 @@ async function doBatchAutoArrange() {
   const mode = pendingBatchMode;
   batchConfirmVisible.value = false;
 
+  if (!(await confirmHistoricalEdit())) return;
+
   batchArranging.value = true;
   // 初始化进度弹窗
   resetProgress();
@@ -785,7 +906,7 @@ async function doBatchAutoArrange() {
   try {
     const result = await runBatchAutoArrangeWithProgress(
       {
-        semester: currentSemesterLabel.value,
+        semester: selectedSemester.value,
         mode,
         hourSettings: hourSettingsRef.value,
       },
@@ -827,7 +948,8 @@ function handleResetCommand(command) {
 async function handleReset() {
   resetting.value = true;
   try {
-    const payload = { semester: currentSemesterLabel.value };
+    if (!(await confirmHistoricalEdit())) return;
+    const payload = { semester: selectedSemester.value };
     if (resetScope.value === 'current') {
       payload.courseId = selectedCourseId.value;
     }
@@ -844,12 +966,12 @@ async function handleReset() {
 
 // --- 导出 ---
 async function handleExportArrange() {
-  if (!selectedCourseId.value || !currentSemesterLabel.value) return;
+  if (!selectedCourseId.value || !selectedSemester.value) return;
   exporting.value = true;
   try {
     const params = {
       courseId: selectedCourseId.value,
-      semester: currentSemesterLabel.value,
+      semester: selectedSemester.value,
     };
 
     if (filterCollege.value) params.college = filterCollege.value;
@@ -861,7 +983,7 @@ async function handleExportArrange() {
     const response = await exportTeachingArrange(params);
     downloadBlob(
       response,
-      `教学安排_${courseInfo.value?.name || ''}_${currentSemesterLabel.value}.xlsx`
+      `教学安排_${courseInfo.value?.name || ''}_${selectedSemester.value}.xlsx`
     );
     ElMessage.success('导出成功');
   } catch (e) {
@@ -905,6 +1027,15 @@ onMounted(async () => {
 .matrix-card {
   margin-bottom: 16px;
 }
+.historical-alert {
+  max-width: 560px;
+  width: 100%;
+  margin: 0 0 16px 0;
+}
+:deep(.semester-select) {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
 .combined-icon {
   margin-left: 4px;
   vertical-align: middle;
@@ -942,6 +1073,20 @@ onMounted(async () => {
 }
 .teacher-cell.no-teacher:hover .text-placeholder {
   color: var(--el-color-primary);
+}
+.teacher-cell.is-readonly {
+  cursor: not-allowed;
+}
+.teacher-cell.is-readonly:hover {
+  background-color: transparent;
+}
+.readonly-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 .replace-hint {
   display: none;

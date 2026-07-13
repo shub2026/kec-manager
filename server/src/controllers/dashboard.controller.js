@@ -3,6 +3,7 @@ import { success, fail } from '../utils/response.js';
 import { getActiveClassFilter } from '../services/class.service.js';
 import { getSemesterInfoFromRequest, calcClassSemester } from '../services/semester.service.js';
 import { findBestMatchPlan } from '../services/plan.service.js';
+import { dedupeTeachingUnits } from '../services/teaching-statistics.service.js';
 
 /**
  * GET /api/dashboard/stats?semester=YYYY-YYYY-N
@@ -188,6 +189,7 @@ export async function getDashboardInsights(req, res, next) {
           class: {
             select: {
               college_id: true,
+              combination_id: true,
               colleges: { select: { id: true, name: true } },
             },
           },
@@ -197,6 +199,9 @@ export async function getDashboardInsights(req, res, next) {
       // 所有学院（用于分布图标签）
       prisma.colleges.findMany({ select: { id: true, name: true } }),
     ]);
+
+    // 合班去重：将成员班行归并为逻辑教学单元，避免课时/班级数虚高
+    const allUnits = dedupeTeachingUnits(allAssignments);
 
     // —— 排课完成度 ——
     const assignedIds = new Set(assignedCourses.map((c) => c.course_id));
@@ -211,19 +216,20 @@ export async function getDashboardInsights(req, res, next) {
     const allCourses = await prisma.courses.findMany({ select: { id: true, name: true } });
     const unassignedCourses = allCourses.filter((c) => !assignedIds.has(c.id)).slice(0, 10);
 
-    // 2) 课时超限教师：总周课时 > default_weekly_hours
+    // 2) 课时超限教师：总周课时 > default_weekly_hours（按合班去重单元计）
     const teacherHours = {};
-    for (const a of allAssignments) {
-      const tid = a.teacher.id;
+    for (const u of allUnits) {
+      const t = u.representative.teacher;
+      const tid = t.id;
       if (!teacherHours[tid]) {
         teacherHours[tid] = {
           id: tid,
-          name: a.teacher.name,
-          limit: a.teacher.default_weekly_hours || 0,
+          name: t.name,
+          limit: t.default_weekly_hours || 0,
           hours: 0,
         };
       }
-      teacherHours[tid].hours += a.weekly_hours;
+      teacherHours[tid].hours += u.weeklyHours;
     }
     const overloadedTeachers = Object.values(teacherHours)
       .filter((t) => t.limit > 0 && t.hours > t.limit)
@@ -240,10 +246,10 @@ export async function getDashboardInsights(req, res, next) {
     for (const c of colleges) {
       collegeHours[c.name] = 0;
     }
-    for (const a of allAssignments) {
-      const collegeName = a.class?.colleges?.name;
+    for (const u of allUnits) {
+      const collegeName = u.representative.class?.colleges?.name;
       if (collegeName && collegeHours[collegeName] !== undefined) {
-        collegeHours[collegeName] += a.weekly_hours;
+        collegeHours[collegeName] += u.weeklyHours;
       }
     }
     // 过滤掉 0 课时的学院，转为数组
@@ -252,29 +258,31 @@ export async function getDashboardInsights(req, res, next) {
       .map(([name, hours]) => ({ name, hours: Math.round(hours * 10) / 10 }))
       .sort((a, b) => b.hours - a.hours);
 
-    // —— 课程课时统计（按课程聚合：总课时、班级数、教师数） ——
+    // —— 课程课时统计（按课程聚合：总课时、逻辑教学班数、教师数） ——
+    // 合班去重：同一组合的多个成员班合并为 1 个逻辑教学班
     const courseMap = {};
-    for (const a of allAssignments) {
-      const cid = a.course.id;
+    for (const u of allUnits) {
+      const c = u.representative.course;
+      const cid = c.id;
       if (!courseMap[cid]) {
         courseMap[cid] = {
           id: cid,
-          name: a.course.name,
+          name: c.name,
           totalHours: 0,
-          classIds: new Set(),
+          classCount: 0,
           teacherIds: new Set(),
         };
       }
-      courseMap[cid].totalHours += a.weekly_hours;
-      courseMap[cid].classIds.add(a.class_id);
-      courseMap[cid].teacherIds.add(a.teacher.id);
+      courseMap[cid].totalHours += u.weeklyHours;
+      courseMap[cid].classCount += 1; // 合班=1 个逻辑教学班
+      courseMap[cid].teacherIds.add(u.representative.teacher.id);
     }
     const courseStats = Object.values(courseMap)
       .map((c) => ({
         id: c.id,
         name: c.name,
         totalHours: Math.round(c.totalHours * 10) / 10,
-        classCount: c.classIds.size,
+        classCount: c.classCount,
         teacherCount: c.teacherIds.size,
       }))
       .sort((a, b) => b.totalHours - a.totalHours);

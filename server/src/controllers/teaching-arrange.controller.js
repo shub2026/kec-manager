@@ -13,6 +13,7 @@ import {
   validateHourSettings,
 } from '../services/teaching-arrange.service.js';
 import { calcClassSemester } from '../services/semester.service.js';
+import { dedupeTeachingUnits, isCombinedUnit } from '../services/teaching-statistics.service.js';
 import { initSSE, sendSSEEvent, isSSERequest } from '../utils/sse.js';
 import {
   buildCombinationMemberMap,
@@ -127,6 +128,7 @@ export async function assignTeacher(req, res, next) {
     // P1-8 修复：校验班级存在且未离校
     const classExists = await prisma.classes.findFirst({
       where: { id: Number(class_id), is_left_school: false },
+      select: { id: true, combination_id: true },
     });
     if (!classExists) return fail(res, '班级不存在或已离校', 400);
 
@@ -143,13 +145,6 @@ export async function assignTeacher(req, res, next) {
     });
     if (!canTeach) return fail(res, '该教师未关联此课程，无法安排');
 
-    // update 分支：未传 weekly_hours 时保留原值，避免静默清零
-    const updateData = { teacher_id: Number(teacher_id), is_auto: false };
-    if (weekly_hours != null && weekly_hours !== '') {
-      updateData.weekly_hours = Number(weekly_hours);
-    }
-
-    // create 分支：必须有 weekly_hours，缺失时从培养方案学期推导
     let createWeeklyHours =
       weekly_hours != null && weekly_hours !== '' ? Number(weekly_hours) : null;
     if (createWeeklyHours === null) {
@@ -224,27 +219,73 @@ export async function assignTeacher(req, res, next) {
       }
     }
 
-    const assignment = await prisma.teaching_assignments.upsert({
-      where: {
-        class_id_course_id_semester: {
+    // 目标课时值：显式传入用传入值，否则用上面推导值（已保证 >0）
+    const targetWeeklyHours =
+      weekly_hours != null && weekly_hours !== '' ? Number(weekly_hours) : createWeeklyHours;
+
+    // 合班联动：找出同样开设该课程的合班伙伴，准备同步同一教师
+    let partnerClassIds = [];
+    if (classExists.combination_id != null) {
+      const courseClassIds = new Set(
+        (await getClassesWithCourse(course_id, semester)).map((c) => c.classId)
+      );
+      const partners = await prisma.classes.findMany({
+        where: { combination_id: classExists.combination_id, id: { not: Number(class_id) } },
+        select: { id: true },
+      });
+      // 仅同步真正开设该课程的伙伴，避免为不开此课的成员造出错误安排
+      partnerClassIds = partners.map((p) => p.id).filter((id) => courseClassIds.has(id));
+    }
+
+    // 事务内写入：主班级 + 合班伙伴同步同一教师（保证合班成员班教师一致）
+    const assignment = await prisma.$transaction(async (tx) => {
+      const main = await tx.teaching_assignments.upsert({
+        where: {
+          class_id_course_id_semester: {
+            class_id: Number(class_id),
+            course_id: Number(course_id),
+            semester,
+          },
+        },
+        update: {
+          teacher_id: Number(teacher_id),
+          is_auto: false,
+          ...(weekly_hours != null && weekly_hours !== '' ? { weekly_hours: Number(weekly_hours) } : {}),
+        },
+        create: {
+          teacher_id: Number(teacher_id),
           class_id: Number(class_id),
           course_id: Number(course_id),
           semester,
+          weekly_hours: targetWeeklyHours,
+          is_auto: false,
         },
-      },
-      update: updateData,
-      create: {
-        teacher_id: Number(teacher_id),
-        class_id: Number(class_id),
-        course_id: Number(course_id),
-        semester,
-        weekly_hours: createWeeklyHours,
-        is_auto: false,
-      },
-      include: {
-        teacher: { select: { id: true, name: true, personnel_type: true } },
-        class: { select: { id: true, name: true } },
-      },
+        include: {
+          teacher: { select: { id: true, name: true, personnel_type: true } },
+          class: { select: { id: true, name: true } },
+        },
+      });
+      for (const pid of partnerClassIds) {
+        await tx.teaching_assignments.upsert({
+          where: {
+            class_id_course_id_semester: {
+              class_id: pid,
+              course_id: Number(course_id),
+              semester,
+            },
+          },
+          update: { teacher_id: Number(teacher_id), is_auto: false },
+          create: {
+            teacher_id: Number(teacher_id),
+            class_id: pid,
+            course_id: Number(course_id),
+            semester,
+            weekly_hours: targetWeeklyHours,
+            is_auto: false,
+          },
+        });
+      }
+      return main;
     });
 
     // M5 修复：非阻塞工作量警告——检查教师当前学期总课时是否超阈值
@@ -316,16 +357,40 @@ export async function deleteAssignment(req, res, next) {
       where: { id: Number(id) },
       include: {
         teacher: { select: { name: true } },
-        class: { select: { name: true } },
+        class: { select: { name: true, combination_id: true } },
       },
     });
 
     if (!assignment) return fail(res, '安排记录不存在', 404);
 
-    await prisma.teaching_assignments.delete({ where: { id: Number(id) } });
+    // 合班级联：若该班级属合班，同步删除所有成员班同课程的安排，保持合班教师一致
+    const combId = assignment.class?.combination_id;
+    const delHint = combId != null ? '（含合班伙伴一同解除）' : '';
+
+    await prisma.$transaction(async (tx) => {
+      await tx.teaching_assignments.delete({ where: { id: Number(id) } });
+      if (combId != null) {
+        const memberIds = await tx.classes.findMany({
+          where: { combination_id: combId },
+          select: { id: true },
+        });
+        const ids = memberIds.map((m) => m.id);
+        if (ids.length) {
+          await tx.teaching_assignments.deleteMany({
+            where: {
+              course_id: assignment.course_id,
+              semester: assignment.semester,
+              class_id: { in: ids },
+              id: { not: Number(id) },
+            },
+          });
+        }
+      }
+    });
 
     // 自动安排被删除后提示重新排课（M-8 修复）
-    const hint = assignment.is_auto ? '（该班级自动安排已删除，建议重新排课）' : '';
+    const hint =
+      (assignment.is_auto ? '（该班级自动安排已删除，建议重新排课）' : '') + delHint;
 
     await createAuditLog({
       action: 'delete',
@@ -543,34 +608,14 @@ export async function getStatistics(req, res, next) {
     const { semester } = req.query;
     if (!semester) return fail(res, '请选择学期');
 
-    // 按教师聚合统计（P1-4 双保险：仅统计在职教师，避免禁用教师历史排课污染）
-    const stats = await prisma.teaching_assignments.groupBy({
-      by: ['teacher_id'],
+    // ── 合班去重：将成员班行归并为"逻辑教学单元"，避免课时/班级数虚高 ──
+    // 预取本学期全部相关安排（含班级 combination_id），用于按单元归并
+    const rawAssignments = await prisma.teaching_assignments.findMany({
       where: {
         semester,
         teacher: { status: 'active' },
         weekly_hours: { gt: 0 }, // 排除历史遗留的 0 课时安排
       },
-      _sum: { weekly_hours: true },
-      _count: { id: true },
-    });
-
-    // 获取教师详细信息
-    const teacherIds = stats.map((s) => s.teacher_id);
-    const teachers = await prisma.teachers.findMany({
-      where: { id: { in: teacherIds }, status: 'active' },
-      include: {
-        affiliated_college: { select: { id: true, name: true } },
-        courses: { include: { course: { select: { id: true, name: true } } } },
-        scheduling_colleges: { include: { college: { select: { id: true, name: true } } } },
-        scheduling_levels: { include: { training_level: { select: { id: true, name: true } } } },
-      },
-    });
-    const teacherMap = new Map(teachers.map((t) => [t.id, t]));
-
-    // 获取每个教师的安排明细
-    const allAssignments = await prisma.teaching_assignments.findMany({
-      where: { semester, teacher_id: { in: teacherIds }, weekly_hours: { gt: 0 } },
       include: {
         class: {
           select: {
@@ -582,6 +627,7 @@ export async function getStatistics(req, res, next) {
             major_id: true,
             enrollment_year: true,
             duration_years: true,
+            combination_id: true,
             colleges: { select: { id: true, name: true } },
           },
         },
@@ -590,21 +636,37 @@ export async function getStatistics(req, res, next) {
       orderBy: [{ teacher_id: 'asc' }, { course_id: 'asc' }],
     });
 
-    // 按教师分组
-    const assignmentsByTeacher = new Map();
-    for (const a of allAssignments) {
-      if (!assignmentsByTeacher.has(a.teacher_id)) {
-        assignmentsByTeacher.set(a.teacher_id, []);
-      }
-      assignmentsByTeacher.get(a.teacher_id).push(a);
+    // 归并为逻辑教学单元（同组合 + 同课程 + 同教师 → 1 个单元，课时仅计 1 次）
+    const allUnits = dedupeTeachingUnits(rawAssignments);
+
+    // 涉及的教师（按单元代表行去重）
+    const teacherIds = [...new Set(allUnits.map((u) => u.representative.teacher_id))];
+
+    // 获取教师详细信息
+    const teachers = await prisma.teachers.findMany({
+      where: { id: { in: teacherIds }, status: 'active' },
+      include: {
+        affiliated_college: { select: { id: true, name: true } },
+        courses: { include: { course: { select: { id: true, name: true } } } },
+        scheduling_colleges: { include: { college: { select: { id: true, name: true } } } },
+        scheduling_levels: { include: { training_level: { select: { id: true, name: true } } } },
+      },
+    });
+    const teacherMap = new Map(teachers.map((t) => [t.id, t]));
+
+    // 按教师分组单元
+    const unitsByTeacher = new Map();
+    for (const u of allUnits) {
+      const tid = u.representative.teacher_id;
+      if (!unitsByTeacher.has(tid)) unitsByTeacher.set(tid, []);
+      unitsByTeacher.get(tid).push(u);
     }
 
     // H-7: 预加载所有授课层次，消除 N+1 查询
     const allLevelIds = new Set();
-    for (const a of allAssignments) {
-      if (a.class.training_level_id) {
-        allLevelIds.add(a.class.training_level_id);
-      }
+    for (const u of allUnits) {
+      const tl = u.representative.class.training_level_id;
+      if (tl) allLevelIds.add(tl);
     }
     let globalLevelMap = new Map();
     if (allLevelIds.size > 0) {
@@ -617,7 +679,7 @@ export async function getStatistics(req, res, next) {
 
     // 教材解析：批量查询培养方案教材，避免 N+1
     const semesterInfo = parseSemester(semester);
-    const uniqueCourseIds = [...new Set(allAssignments.map((a) => a.course_id))];
+    const uniqueCourseIds = [...new Set(rawAssignments.map((a) => a.course_id))];
 
     // 一次查询：所有相关 plan_courses + 方案 + 学期 + 教材
     const allPlanCourses = await prisma.plan_courses.findMany({
@@ -641,12 +703,12 @@ export async function getStatistics(req, res, next) {
       planCoursesByCourse.get(pc.course_id).push(pc);
     }
 
-    // 按 (class_id, course_id) 对匹配教材
-    const classInfoMap = new Map(allAssignments.map((a) => [a.class.id, a.class]));
+    // 按 (class_id, course_id) 对匹配教材（覆盖所有成员班行）
+    const classInfoMap = new Map(rawAssignments.map((a) => [a.class.id, a.class]));
     const classCourseTextbookMap = new Map();
     const allTextbookIds = new Set();
 
-    for (const a of allAssignments) {
+    for (const a of rawAssignments) {
       const key = `${a.class_id}:${a.course_id}`;
       if (classCourseTextbookMap.has(key)) continue;
 
@@ -710,25 +772,25 @@ export async function getStatistics(req, res, next) {
       classCourseTextbookNameMap.set(key, names.join('、'));
     }
 
-    const result = stats.map((s) => {
-      const teacher = teacherMap.get(s.teacher_id);
-      const assignments = assignmentsByTeacher.get(s.teacher_id) || [];
+    const result = teacherIds.map((tid) => {
+      const teacher = teacherMap.get(tid);
+      const units = unitsByTeacher.get(tid) || [];
 
       // 从实际授课班级中提取任课学院（去重）
       const collegeMap = new Map();
-      for (const a of assignments) {
-        if (a.class.colleges && !collegeMap.has(a.class.colleges.id)) {
-          collegeMap.set(a.class.colleges.id, a.class.colleges);
+      for (const u of units) {
+        const c = u.representative.class;
+        if (c.colleges && !collegeMap.has(c.colleges.id)) {
+          collegeMap.set(c.colleges.id, c.colleges);
         }
       }
       const collegeList = [...collegeMap.values()];
 
       // 从实际授课班级中提取任课层次（去重）
       const levelIdSet = new Set();
-      for (const a of assignments) {
-        if (a.class.training_level_id) {
-          levelIdSet.add(a.class.training_level_id);
-        }
+      for (const u of units) {
+        const tl = u.representative.class.training_level_id;
+        if (tl) levelIdSet.add(tl);
       }
 
       // 优先使用实际授课层次，如果为空则使用意向设置
@@ -739,39 +801,53 @@ export async function getStatistics(req, res, next) {
         trainingLevelList = teacher?.scheduling_levels?.map((sl) => sl.training_level) ?? [];
       }
 
-      // 按课程分组
+      // 按课程分组（合班单元课时仅计 1 次）
       const byCourse = new Map();
-      for (const a of assignments) {
-        if (!byCourse.has(a.course_id)) {
-          byCourse.set(a.course_id, {
-            course: a.course,
+      let totalWeeklyHours = 0;
+      let totalClassCount = 0;
+      for (const u of units) {
+        totalWeeklyHours += u.weeklyHours;
+        totalClassCount += 1; // 合班=1 个逻辑教学班；非合班=1 个班级
+
+        if (!byCourse.has(u.representative.course_id)) {
+          byCourse.set(u.representative.course_id, {
+            course: u.representative.course,
             classes: [],
             weeklyHours: 0,
           });
         }
-        const group = byCourse.get(a.course_id);
+        const group = byCourse.get(u.representative.course_id);
+        const combined = isCombinedUnit(u);
         group.classes.push({
-          classId: a.class.id,
-          className: a.class.name,
-          collegeName: a.class.colleges?.name || null,
-          trainingLevelName: globalLevelMap.get(a.class.training_level_id)?.name || null,
-          weeklyHours: a.weekly_hours,
-          isAuto: a.is_auto,
-          textbookName: classCourseTextbookNameMap.get(`${a.class_id}:${a.course_id}`) || null,
+          unitKey: u.key,
+          classId: u.representative.class_id,
+          className: combined
+            ? u.memberClasses.map((c) => c?.name).filter(Boolean).join('、')
+            : u.representative.class.name,
+          isCombined: combined,
+          memberClassIds: u.memberClassIds,
+          collegeName: u.representative.class.colleges?.name || null,
+          trainingLevelName: globalLevelMap.get(u.representative.class.training_level_id)?.name || null,
+          weeklyHours: u.weeklyHours,
+          isAuto: u.representative.is_auto,
+          textbookName:
+            classCourseTextbookNameMap.get(
+              `${u.representative.class_id}:${u.representative.course_id}`
+            ) || null,
         });
-        group.weeklyHours += a.weekly_hours;
+        group.weeklyHours += u.weeklyHours;
       }
 
       return {
-        teacherId: s.teacher_id,
+        teacherId: tid,
         teacherName: teacher?.name || '未知',
         personnelType: teacher?.personnel_type || null,
         affiliatedCollege: teacher?.affiliated_college || null,
         collegeList,
         trainingLevelList,
         courseList: teacher?.courses?.map((tc) => tc.course) ?? [],
-        totalWeeklyHours: s._sum.weekly_hours || 0,
-        totalClassCount: s._count.id || 0,
+        totalWeeklyHours,
+        totalClassCount,
         details: Array.from(byCourse.values()),
       };
     });

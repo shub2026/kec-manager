@@ -2,7 +2,7 @@
 
 KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量级教学管理系统，涵盖培养计划、班级管理、教师排课、教材协调和数据导入导出等核心功能。采用前后端分离架构，基于 PM2 + Nginx 部署。
 
-**版本**：v1.4.1 | **数据库**：SQLite（WAL 模式）
+**版本**：v1.0.0 | **数据库**：SQLite（WAL 模式）
 
 ---
 
@@ -11,12 +11,12 @@ KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量�
 - **培养计划管理** - 按专业或培养层次制定培养方案，可视化课程矩阵编辑各学期课时分布
 - **班级管理** - 班级信息维护，支持合班教学组，基于学期动态计算年级和状态（在读/毕业/离校）
 - **教师管理** - 教师档案、任课关联、上课学院和培养层次配置
-- **自动排课** - 五阶段匹配+置换回溯算法，可选禁忌搜索优化层，支持学院偏好、培养层次偏好、教材匹配和容量约束
+- **自动排课** - 五阶段匹配 + 置换回溯算法，可选禁忌搜索优化层，支持学院偏好、培养层次偏好、教材匹配和容量约束；合班成员班强制共享同一教师
 - **教材管理** - 教材信息维护，与培养计划学期课时关联，支持征订状态跟踪
 - **数据导入导出** - Excel 批量导入班级/课程/教材/教师，支持模板下载和多维度数据导出
 - **统一查询** - 开课查询、教材查询、方案查询，支持多维度筛选与联动
 - **审计日志** - 全面记录增删改操作，支持筛选查询
-- **权限控制** - 三级角色体系（超级管理员/管理员/查看者）
+- **权限控制** - 三级角色体系（超级管理员 / 管理员 / 查看者）
 
 ---
 
@@ -28,7 +28,7 @@ KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量�
 | 后端 | Express 5.1 + Prisma 6.19 + Winston 3.19 |
 | 数据库 | SQLite（WAL 模式） |
 | 认证 | JWT 双令牌（Access 15min + Refresh 7天）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt 12轮 |
-| 测试 | Vitest + Supertest（1351 个测试用例，覆盖率 70%+） |
+| 测试 | Vitest + Supertest（1343 个测试用例，完整测试覆盖） |
 | 部署 | PM2 + Nginx |
 
 ---
@@ -48,58 +48,78 @@ KEC (Knowledge Education Course) 是一个面向中小型教育机构的轻量�
 git clone https://gitee.com/shub77/kec-manager.git
 cd kec-manager
 
-# 安装依赖
+# 安装依赖（根 / 后端 / 前端 三处）
 npm install
 cd server && npm install && cd ..
 cd client && npm install && cd ..
 
 # 配置环境变量
 cp server/.env.example server/.env
-# 编辑 server/.env，填入 JWT_SECRET 等配置
+# 编辑 server/.env，至少填入 JWT_SECRET / JWT_REFRESH_SECRET / JWT_DOWNLOAD_SECRET（随机 64 位 hex）
+# 注意：开发环境若未设置 JWT_SECRET，服务启动时会自动生成临时密钥（仅本次进程有效，并打印安全告警）；生产环境务必替换为持久随机密钥
 
 # 初始化数据库
-npm run db:migrate
-npm run db:generate
-cd server && npm run db:seed && cd ..
+npm run db:migrate       # 在 server/ 下执行迁移
+npm run db:generate      # 生成 Prisma Client
+cd server && npm run db:seed && cd ..   # 写入种子数据（admin / admin@123456）
 
-# 启动开发服务（前端 5173 + 后端 3000）
+# 启动开发服务（前端 5173 + 后端 3002）
 npm run dev
 ```
 
 访问 http://localhost:5173，使用默认账户登录：
+
 - 用户名：`admin`
 - 密码：`admin@123456`
+- 首次登录需修改密码
 
-### 开发常用命令
+---
+
+## 常用命令
+
+> ⚠️ 本项目的脚本分属**根目录**与 **`server/`** 两个层级，切勿混用。根目录只代理了少量数据库脚本；种子、测试、格式化等命令都在 `server/` 下。
+
+### 根目录（kec-manager/）
 
 ```bash
-# 前端
+npm run dev            # 同时启动前端(5173) + 后端(3002)
+npm run dev:server     # 仅启动后端
+npm run dev:client     # 仅启动前端
+npm run db:migrate     # 执行数据库迁移（代理到 server）
+npm run db:generate    # 生成 Prisma Client（代理到 server）
+npm run version        # 查看当前版本
+npm run version:patch  # 补丁版本 (1.0.0 → 1.0.1)
+npm run version:minor  # 次版本 (1.0.0 → 1.1.0)
+npm run version:major  # 主版本 (1.0.0 → 2.0.0)
+```
+
+### 后端（kec-manager/server/）
+
+```bash
+cd server
+npm run dev            # 启动后端（--watch 自动重启，端口 3002）
+npm start              # 生产模式启动
+npm run db:seed        # 初始化种子数据
+npm run db:seed:dev    # 开发环境种子数据
+npm run db:seed:reset  # 强制重置并重新 seed
+npm run db:reset       # 重置数据库（重建表）
+npm test               # 运行测试（Vitest）
+npm run test:watch     # 监听模式运行测试
+npm run test:coverage  # 测试并生成覆盖率报告
+npm run format         # Prettier 格式化
+npm run lint           # ESLint 检查并修复
+npm run diagnose       # 运行诊断
+npm run init:settings  # 初始化系统设置
+```
+
+### 前端（kec-manager/client/）
+
+```bash
 cd client
-npm run dev        # 启动开发服务器
+npm run dev        # 启动开发服务器（端口 5173）
 npm run build      # 生产构建
 npm run format     # 格式化代码
 npm run lint       # ESLint 检查并修复
-
-# 后端
-cd server
-npm run dev        # 启动开发服务器（自动重启）
-npm test           # 运行测试
-npm run test:coverage  # 运行测试并生成覆盖率报告
-npm run format     # 格式化代码
-npm run lint       # ESLint 检查并修复
-
-# 数据库
-npm run db:migrate      # 执行数据库迁移
-npm run db:generate     # 生成 Prisma Client
-npm run db:seed         # 初始化种子数据
-npm run db:seed:dev     # 开发环境种子数据
-npm run db:reset        # 重置数据库
-
-# 版本管理
-npm run version         # 查看当前版本
-npm run version:patch   # 补丁版本 (1.0.0 → 1.0.1)
-npm run version:minor   # 次版本 (1.0.0 → 1.1.0)
-npm run version:major   # 主版本 (1.0.0 → 2.0.0)
 ```
 
 详见 [代码格式化指南](docs/CODE_FORMATTING.md) 和 [版本管理指南](docs/VERSION_MANAGEMENT.md)。
@@ -124,9 +144,10 @@ bash deploy_ssh.sh root@your-server.com
 部署脚本会自动完成 10 个步骤：环境检查 → 目录创建 → 代码拉取 → 依赖安装 → 停止旧服务 → 配置环境变量 → 数据库迁移 → 初始化系统设置 → 前端构建 → PM2 启动。
 
 服务启动后：
-- 前端：http://your-server（80端口，由 Nginx 代理）
-- 后端 API：http://your-server:3000（内部端口，不对外暴露）
-- 健康检查：http://your-server:3000/api/health
+
+- 前端：http://your-server（80 端口，由 Nginx 代理）
+- 后端 API：http://your-server:3002（内部端口，不对外暴露）
+- 健康检查：http://your-server:3002/api/health
 
 ### 服务器要求
 
@@ -149,9 +170,9 @@ bash deploy_ssh.sh root@your-server.com
 | 变量 | 说明 | 示例值 |
 |------|------|--------|
 | `NODE_ENV` | 运行环境 | `development` |
-| `PORT` | 后端端口 | `3000` |
+| `PORT` | 后端端口 | `3002` |
 | `DATABASE_URL` | 数据库连接串 | `file:./data/kec.db` |
-| `JWT_SECRET` | JWT 签名密钥（64位 hex） | 必填 |
+| `JWT_SECRET` | JWT 签名密钥（64 位 hex） | 必填 |
 | `JWT_REFRESH_SECRET` | 刷新令牌密钥 | 必填 |
 | `JWT_DOWNLOAD_SECRET` | 下载令牌密钥 | 必填 |
 | `JWT_EXPIRES_IN` | 访问令牌过期时间 | `15m` |
@@ -162,6 +183,8 @@ bash deploy_ssh.sh root@your-server.com
 | `BCRYPT_ROUNDS` | bcrypt 迭代次数 | `10` |
 | `MAX_FILE_SIZE` | 文件上传大小限制（MB） | `10` |
 | `DEFAULT_SEMESTER` | 默认学期（格式 YYYY-YYYY-N） | `2025-2026-2` |
+
+> 📌 `DATABASE_URL` 中的 `file:./data/kec.db` 由 Prisma 相对于 `prisma/schema.prisma` 解析，实际数据库文件落在 **`server/prisma/data/kec.db`**（含 `.wal` / `.shm` 配套文件）。迁移/重置命令也作用于该路径。
 
 ### 生产环境（`.env.production.example`）
 
@@ -208,10 +231,10 @@ kec-manager/
 │   │   ├── utils/              # 工具函数（Excel/SSE/排序/命名转换）
 │   │   └── server.js           # 服务入口
 │   ├── prisma/
-│   │   ├── schema.prisma       # 数据库模型定义（22 个模型）
+│   │   ├── schema.prisma       # 数据库模型定义（21 个模型）
 │   │   ├── migrations/         # 数据库迁移文件
 │   │   └── seed.js             # 种子数据
-│   ├── scripts/                # 运维脚本（初始化设置、重置数据库等）
+│   ├── scripts/                # 运维脚本（初始化设置、重置数据库、诊断等）
 │   ├── .env.example            # 开发环境变量示例
 │   ├── .env.production.example # 生产环境变量示例
 │   ├── eslint.config.js        # ESLint 配置
@@ -222,7 +245,7 @@ kec-manager/
 ├── deploy.sh                   # 部署脚本（支持本地/远程）
 ├── deploy_ssh.sh               # SSH 远程部署脚本
 ├── CHANGELOG.md                # 变更日志
-└── package.json                # 根配置（版本 1.4.1）
+└── package.json                # 根配置（版本 1.0.0）
 ```
 
 ---
@@ -305,7 +328,8 @@ kec-manager/
 3. **意向约束严格** - 指定了学院/层次意向的教师严格按意向分配
 4. **容量约束** - 教师课时不超过标准/满载容量，支持教材数量硬上限
 5. **手动排课保护** - 自动排课永远不覆盖手动排课记录
-6. **禁忌搜索优化（可选）** - 在贪心初始解基础上，通过 Insert/Shift/Swap 邻域搜索迭代优化排课质量
+6. **合班一致性** - 同一 `combination_id` 的成员班在自动/手动排课中强制共享同一教师，且按逻辑教学单元计课时（不重复计数）
+7. **禁忌搜索优化（可选）** - 在贪心初始解基础上，通过 Insert/Shift/Swap 邻域搜索迭代优化排课质量
 
 算法模块位于 `server/src/services/arrange/`，包含完整的测试覆盖。禁忌搜索默认关闭，可通过系统设置页面动态启用。
 
@@ -319,7 +343,7 @@ kec-manager/
 - [排课算法完整说明](docs/SCHEDULING_ALGORITHM.md) - 五阶段算法、评分机制、教材内聚策略、禁忌搜索优化、代码索引
 - [排课算法迭代分析](docs/SCHEDULING_ALGORITHM_ITERATION.md) - 禁忌搜索方案设计分析与实施记录
 - [代码格式化指南](docs/CODE_FORMATTING.md) - Prettier 和 ESLint 配置与使用
-- [学期计算说明](docs/semester-calculation.md) - 学期状态计算逻辑
+- [学期计算说明](docs/SEMESTER-CALCULATION.md) - 学期状态计算逻辑
 - [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) - 前后端命名规范与迁移方案
 - [版本管理指南](docs/VERSION_MANAGEMENT.md) - 语义化版本与自动化版本脚本
 - [UI 设计审查](docs/UI_DESIGN_REVIEW.md) - 视觉与交互设计改进建议及实施状态

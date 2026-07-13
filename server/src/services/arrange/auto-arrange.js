@@ -474,6 +474,73 @@ function buildResult(
 }
 
 /**
+ * 将逐班需求列表按合班（combinationId）合并为"合班教学单元"。
+ *
+ * 业务约定：合班成员班周课时相同，物理上合班一节 = 教师 1 个课时槽位。
+ * 因此同 combinationId 的成员班合并为一个单元：
+ *  - 仅代表班参与算法选择与容量计算（周课时只计 1 次，不放大容量压力）
+ *  - memberClassIds 记录所有成员班，落库/返回时展开为 N 行（同教师、同课时）
+ * 单成员组合退化为独立班（memberClassIds 不设置）。
+ *
+ * @param {Array<{classId:number, combinationId:number|null, [k:string]:any}>} classes
+ * @returns {Array} 合并后的单元列表（合班单元带 memberClassIds / isCombinedDemand）
+ */
+export function mergeCombinedClasses(classes) {
+  const byComb = new Map();
+  const solos = [];
+  for (const c of classes) {
+    if (c.combinationId != null) {
+      if (!byComb.has(c.combinationId)) byComb.set(c.combinationId, []);
+      byComb.get(c.combinationId).push(c);
+    } else {
+      solos.push(c);
+    }
+  }
+  const merged = [];
+  for (const members of byComb.values()) {
+    if (members.length === 1) {
+      merged.push(members[0]);
+      continue;
+    }
+    const rep = members[0];
+    merged.push({
+      ...rep,
+      memberClassIds: members.map((m) => m.classId),
+      memberClasses: members,
+      isCombinedDemand: true,
+    });
+  }
+  return [...solos, ...merged];
+}
+
+/**
+ * 将单元级安排（可能带 memberClassIds）展开为逐班安排行。
+ * 每个单元展开为 N 行，所有行共享同一 teacher_id / course_id / semester / weekly_hours。
+ * 合班一致性由"单元内同教师"保证：展开后所有成员班 teacher_id 必然相同。
+ *
+ * @param {Array<{teacher_id:number, class_id:number, course_id:number, semester:string, weekly_hours:number, memberClassIds?:number[]|null, is_auto?:boolean, [k:string]:any}>} assignments
+ * @returns {Array} 逐班安排行
+ */
+export function expandCombinedAssignments(assignments) {
+  const out = [];
+  for (const a of assignments) {
+    const memberIds =
+      a.memberClassIds && a.memberClassIds.length ? a.memberClassIds : [a.class_id];
+    for (const cid of memberIds) {
+      out.push({
+        teacher_id: a.teacher_id,
+        class_id: cid,
+        course_id: a.course_id,
+        semester: a.semester,
+        weekly_hours: a.weekly_hours,
+        is_auto: a.is_auto,
+      });
+    }
+  }
+  return out;
+}
+
+/**
  * P2 修复：置换回溯
  * 对未分配班级尝试置换已分配教师，腾出容量接纳未分配班级，提升全局分配率
  * P0-1 修复：改为受限深度递归（maxDepth=3），支持 A→B→C 链式调整
@@ -928,6 +995,7 @@ function trySwapOne(
           semester: semesterStr,
           weekly_hours: uHours,
           is_auto: true,
+          memberClassIds: u.memberClassIds || null,
         });
         if (!assignmentsByTeacher.has(t.id)) assignmentsByTeacher.set(t.id, []);
         assignmentsByTeacher.get(t.id).push(assignments[assignments.length - 1]);
@@ -1038,6 +1106,8 @@ export async function autoArrange(
       });
     }
     const validClassesToAssign = classesToAssign.filter((c) => c.weeklyHours && c.weeklyHours > 0);
+    // 合班归并：同 combinationId 的成员班合并为 1 个教学单元（容量/选择按 1 班计，落库再展开）
+    const mergedDemands = mergeCombinedClasses(validClassesToAssign);
 
     const teacherConstraints = buildTeacherConstraints(
       teachers,
@@ -1090,7 +1160,7 @@ export async function autoArrange(
       logger.debug('================================\n');
     }
 
-    const totalClassHours = validClassesToAssign.reduce((s, c) => s + c.weeklyHours, 0);
+    const totalClassHours = mergedDemands.reduce((s, c) => s + c.weeklyHours, 0);
     const totalTeacherCapacity = teacherConstraints.reduce(
       (s, t) => s + (mode === 'standard' ? t.standardCap : t.fullCap),
       0
@@ -1106,7 +1176,7 @@ export async function autoArrange(
     const collegeTextbookMatchCount = new Map();
     const levelTextbookMatchCount = new Map();
 
-    for (const cls of validClassesToAssign) {
+    for (const cls of mergedDemands) {
       let collegeTextbookCount = 0;
       let levelTextbookCount = 0;
       for (const t of teacherConstraints) {
@@ -1201,6 +1271,7 @@ export async function autoArrange(
           semester: semesterStr,
           weekly_hours: cls.weeklyHours,
           is_auto: true,
+          memberClassIds: cls.memberClassIds || null,
         });
       }
       return remaining;
@@ -1299,6 +1370,7 @@ export async function autoArrange(
         semester: semesterStr,
         weekly_hours: cls.weeklyHours,
         is_auto: true,
+        memberClassIds: cls.memberClassIds || null,
       });
     }
 
@@ -1347,7 +1419,7 @@ export async function autoArrange(
 
     // --- 步骤1：按教材分组 ---
     const textbookGroups = new Map();
-    for (const cls of validClassesToAssign) {
+    for (const cls of mergedDemands) {
       const key =
         cls.textbookIds && cls.textbookIds.length > 0
           ? cls.textbookIds.slice().sort().join(',')
@@ -1595,7 +1667,7 @@ export async function autoArrange(
     const classTextbookMap = new Map();
     // S-02 修复：预构建班级信息查找表，供置换时做学院/层次资格校验
     const classInfoMap = new Map();
-    for (const cls of validClassesToAssign) {
+    for (const cls of mergedDemands) {
       classTextbookMap.set(cls.classId, cls.textbookIds || []);
       classInfoMap.set(cls.classId, {
         collegeId: cls.collegeId,
@@ -1630,7 +1702,7 @@ export async function autoArrange(
     }
     if (tabuEnabled) {
       try {
-        const tsClassMap = new Map(validClassesToAssign.map((c) => [c.classId, c]));
+        const tsClassMap = new Map(mergedDemands.map((c) => [c.classId, c]));
         const tsResult = tabuOptimize(
           assignments,
           unassigned,
@@ -1677,7 +1749,7 @@ export async function autoArrange(
 
     if (preview) {
       const previewResult = buildResult(
-        assignments,
+        expandCombinedAssignments(assignments),
         unassigned,
         classesToAssign,
         manualAssignments.length,
@@ -1782,15 +1854,9 @@ export async function autoArrange(
         }
 
         if (safeAssignments.length > 0) {
+          // 合班单元展开为逐班行：所有成员班共享同一 teacher_id / weekly_hours
           await tx.teaching_assignments.createMany({
-            data: safeAssignments.map((a) => ({
-              teacher_id: a.teacher_id,
-              class_id: a.class_id,
-              course_id: a.course_id,
-              semester: a.semester,
-              weekly_hours: a.weekly_hours,
-              is_auto: true,
-            })),
+            data: expandCombinedAssignments(safeAssignments),
           });
         }
 
@@ -1821,7 +1887,7 @@ export async function autoArrange(
       `[自动排课] 课程 ${courseId} 完成，分配 ${assignments.length}，未分配 ${unassigned.length}，耗时 ${Date.now() - _arrangeStart}ms`
     );
     return buildResult(
-      assignments,
+      expandCombinedAssignments(assignments),
       unassigned,
       classesToAssign,
       manualAssignments.length,

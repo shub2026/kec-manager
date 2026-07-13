@@ -28,7 +28,7 @@
 
       <!-- 筛选器 -->
       <div class="page-toolbar">
-        <el-tag type="info">{{ semester }}</el-tag>
+        <SemesterSelect v-model="semester" @change="loadStats" />
         <el-input v-model="filterName" placeholder="姓名" clearable style="width: 120px" />
         <el-select v-model="filterType" placeholder="类别" clearable style="width: 100px">
           <el-option label="专职" value="full_time" />
@@ -103,9 +103,16 @@
                     size="small"
                     border
                     style="margin: 4px 0"
-                    row-key="className"
+                    row-key="unitKey"
                   >
-                    <el-table-column prop="className" label="班级" min-width="150" />
+                    <el-table-column label="班级" min-width="150">
+                      <template #default="{ row: cls }">
+                        <span>{{ cls.className }}</span>
+                        <el-tag v-if="cls.isCombined" size="small" type="success" class="tag-item"
+                          >合班</el-tag
+                        >
+                      </template>
+                    </el-table-column>
                     <el-table-column label="学院" min-width="100">
                       <template #default="{ row: cls }">
                         <el-tag v-if="cls.collegeName" size="small" type="info">{{
@@ -146,28 +153,28 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column type="index" label="#" width="50" />
-          <el-table-column prop="teacherName" label="姓名" min-width="80" />
-          <el-table-column label="人员类别" min-width="80" align="center">
+          <el-table-column type="index" label="#" width="48" />
+          <el-table-column prop="teacherName" label="姓名" width="85" />
+          <el-table-column label="归属学院" width="140">
+            <template #default="{ row }">
+              <span>{{ row.affiliatedCollege?.name || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="人员类别" width="90" align="center">
             <template #default="{ row }">
               <el-tag :type="personnelTagType(row.personnelType)" size="small">
                 {{ personnelLabel(row.personnelType) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="任教科目" min-width="115">
+          <el-table-column label="任教科目" width="150" cell-class-name="wrap-cell">
             <template #default="{ row }">
               <el-tag v-for="d in row.details" :key="d.course.id" size="small" class="tag-item">{{
                 d.course.name
               }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="归属学院" min-width="80">
-            <template #default="{ row }">
-              <span>{{ row.affiliatedCollege?.name || '-' }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="任课层次" min-width="90">
+          <el-table-column label="任课层次" min-width="110" cell-class-name="wrap-cell">
             <template #default="{ row }">
               <el-tag
                 v-for="l in row.trainingLevelList"
@@ -180,7 +187,7 @@
               <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
             </template>
           </el-table-column>
-          <el-table-column label="任课学院" min-width="180">
+          <el-table-column label="任课学院" min-width="210" cell-class-name="wrap-cell">
             <template #default="{ row }">
               <el-tag
                 v-for="c in row.collegeList"
@@ -193,12 +200,23 @@
               <span v-if="!row.collegeList?.length" class="text-muted">-</span>
             </template>
           </el-table-column>
-          <el-table-column label="班级数" min-width="70" align="center">
-            <template #default="{ row }">{{ row.totalClassCount }}</template>
+          <el-table-column label="班级数" width="100" align="center">
+            <template #default="{ row }">
+              <span>{{ row.totalClassCount }}</span>
+              <el-tooltip
+                v-if="combinedUnitsOf(row) > 0"
+                :content="`含 ${combinedUnitsOf(row)} 个合班教学单元`"
+                placement="top"
+              >
+                <el-tag size="small" type="primary" class="combined-tag"
+                  >合{{ combinedUnitsOf(row) }}</el-tag
+                >
+              </el-tooltip>
+            </template>
           </el-table-column>
           <el-table-column
             label="总周课时"
-            min-width="120"
+            width="110"
             align="center"
             sortable
             :sort-method="(a, b) => a.totalWeeklyHours - b.totalWeeklyHours"
@@ -236,6 +254,7 @@ import { personnelLabel, personnelTagType } from '../../utils/personnel';
 import { useDebounceFn } from '../../composables/useDebounce';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import SemesterSelect from '../../components/SemesterSelect.vue';
 
 defineOptions({ name: 'TeachingStatistics' });
 
@@ -344,6 +363,17 @@ const filteredSummary = computed(() => {
     totalClasses: list.reduce((sum, t) => sum + t.totalClassCount, 0),
   };
 });
+
+// 统计某教师行包含的合班教学单元数（用于「班级数」列标记，合班改变的是教学班口径）
+function combinedUnitsOf(row) {
+  let n = 0;
+  for (const d of row.details || []) {
+    for (const c of d.classes || []) {
+      if (c.isCombined) n++;
+    }
+  }
+  return n;
+}
 
 async function loadSemester() {
   try {
@@ -460,5 +490,19 @@ onMounted(async () => {
 .hours-value {
   font-weight: bold;
   font-size: 16px;
+}
+.combined-tag {
+  margin-left: 4px;
+  vertical-align: middle;
+  cursor: default;
+}
+/* 标签密集列允许换行，避免学院/科目名称被单元格 nowrap 裁切 */
+.teaching-statistics :deep(.wrap-cell .cell) {
+  white-space: normal;
+  line-height: 1.5;
+}
+/* 表头强制单行不换行（与单元格换行互不干扰） */
+.teaching-statistics :deep(.el-table__header .cell) {
+  white-space: nowrap;
 }
 </style>

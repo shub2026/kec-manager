@@ -4,7 +4,7 @@
 > 审查范围：`server/src`（后端全部）、`client/src`（前端路由与 API 层）  
 > 审查版本：v2.17.2
 
-> **状态更新（v1.4.1，2026-07-13）**：
+> **状态更新（v1.0.0，2026-07-13）**：
 > - **VULN-1**（Token 非 HttpOnly）：✅ 已修复 — v1.3.0 S-01 实现 HttpOnly Cookie 托管，refreshToken 完全交由 HttpOnly Cookie 管理
 > - **VULN-2**（XSS 清洗未全覆盖）：✅ 已修复 — `sanitizeBody` 和 `sanitizeQuery` 均已在 `app.js` 中全局注册
 > - **VULN-3**（缺少 CSRF 防护）：✅ 已修复 — Double Submit Cookie 模式已实现，`csrf.js` 中间件已全局挂载

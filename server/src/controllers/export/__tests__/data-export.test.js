@@ -593,10 +593,13 @@ describe('exportStatistics', () => {
     mocks.teachingAssignmentsFindMany.mockResolvedValue([
       {
         teacher_id: 1,
+        class_id: 1,
         course_id: 10,
         weekly_hours: 4,
         class: {
+          id: 1,
           name: '班级A',
+          combination_id: null,
           colleges: { id: 1, name: '教育学院' },
           training_levels: { name: '大专' },
         },
@@ -604,10 +607,13 @@ describe('exportStatistics', () => {
       },
       {
         teacher_id: 1,
+        class_id: 2,
         course_id: 10,
         weekly_hours: 4,
         class: {
+          id: 2,
           name: '班级B',
+          combination_id: null,
           colleges: { id: 1, name: '教育学院' },
           training_levels: { name: '大专' },
         },
@@ -615,10 +621,13 @@ describe('exportStatistics', () => {
       },
       {
         teacher_id: 1,
+        class_id: 3,
         course_id: 10,
         weekly_hours: 4,
         class: {
+          id: 3,
           name: '班级C',
+          combination_id: null,
           colleges: { id: 1, name: '教育学院' },
           training_levels: { name: '大专' },
         },
@@ -642,6 +651,119 @@ describe('exportStatistics', () => {
     expect(rows[1]['总周课时']).toBe(12);
     expect(rows[1]['班级数']).toBe(3);
     expect(rows[1]['课程明细']).toBe('1位教师');
+    expect(res.send).toHaveBeenCalled();
+  });
+
+  it('导出列顺序应与前端课时统计页一致', async () => {
+    const teacher = {
+      id: 1,
+      name: '王五',
+      personnel_type: 'full_time',
+      affiliated_college: { name: '教育学院' },
+      courses: [{ course: { name: '数学' } }],
+      scheduling_colleges: [{ college: { name: '教育学院' } }],
+    };
+    mocks.teachingAssignmentsGroupBy.mockResolvedValue([
+      { teacher_id: 1, _sum: { weekly_hours: 12 }, _count: { id: 3 } },
+    ]);
+    mocks.teachersFindMany.mockResolvedValue([teacher]);
+    mocks.teachingAssignmentsFindMany.mockResolvedValue([
+      {
+        teacher_id: 1,
+        class_id: 1,
+        course_id: 10,
+        weekly_hours: 4,
+        class: {
+          id: 1,
+          name: '班级A',
+          combination_id: null,
+          colleges: { id: 1, name: '教育学院' },
+          training_levels: { name: '大专' },
+        },
+        course: { name: '数学' },
+      },
+    ]);
+
+    const req = makeReq({ query: { semester: '2025-2026-1' } });
+    const res = makeRes();
+    await exportStatistics(req, res, vi.fn());
+
+    const headers = mocks.createWorkbook.mock.calls[0][0];
+    const labelOrder = headers.map((h) => h.label);
+    // 与前端 TeachingStatistics.vue 主表列顺序对齐（课程明细为展开明细的额外列，置于末位）
+    expect(labelOrder).toEqual([
+      '姓名',
+      '归属学院',
+      '人员类别',
+      '任教科目',
+      '任课层次',
+      '任课学院',
+      '班级数',
+      '总周课时',
+      '课程明细',
+    ]);
+  });
+
+  it('合班教学应去重为 1 个逻辑教学班（课时与班级数不虚高）', async () => {
+    const teacher = {
+      id: 1,
+      name: '王五',
+      personnel_type: 'full_time',
+      affiliated_college: { name: '教育学院' },
+      courses: [{ course: { name: '数学' } }],
+      scheduling_colleges: [{ college: { name: '教育学院' } }],
+    };
+
+    mocks.teachingAssignmentsGroupBy.mockResolvedValue([
+      { teacher_id: 1, _sum: { weekly_hours: 8 }, _count: { id: 2 } },
+    ]);
+    mocks.teachersFindMany.mockResolvedValue([teacher]);
+    // 两个成员班（A、B）同属组合 99，同课程、同教师，各 4 课时：
+    // 物理上是一节合班课，应只计 1 次（总周课时 4，班级数 1）
+    mocks.teachingAssignmentsFindMany.mockResolvedValue([
+      {
+        teacher_id: 1,
+        class_id: 1,
+        course_id: 10,
+        weekly_hours: 4,
+        class: {
+          id: 1,
+          name: '班级A',
+          combination_id: 99,
+          colleges: { id: 1, name: '教育学院' },
+          training_levels: { name: '大专' },
+        },
+        course: { name: '数学' },
+      },
+      {
+        teacher_id: 1,
+        class_id: 2,
+        course_id: 10,
+        weekly_hours: 4,
+        class: {
+          id: 2,
+          name: '班级B',
+          combination_id: 99,
+          colleges: { id: 1, name: '教育学院' },
+          training_levels: { name: '大专' },
+        },
+        course: { name: '数学' },
+      },
+    ]);
+
+    const req = makeReq({ query: { semester: '2025-2026-1' } });
+    const res = makeRes();
+    await exportStatistics(req, res, vi.fn());
+
+    const rows = mocks.createWorkbook.mock.calls[0][1];
+    // 1 data row + 1 summary row
+    expect(rows).toHaveLength(2);
+    expect(rows[0]['总周课时']).toBe(4);
+    expect(rows[0]['班级数']).toBe(1);
+    expect(rows[0]['课程明细']).toBe('数学(4课时/1班)');
+    // 合计行同样去重
+    expect(rows[1]['总周课时']).toBe(4);
+    expect(rows[1]['班级数']).toBe(1);
     expect(res.send).toHaveBeenCalled();
   });
 

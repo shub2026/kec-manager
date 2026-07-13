@@ -22,3 +22,30 @@ export function validateHourSettings(hourSettings) {
     }
   }
 }
+
+/**
+ * 校验合班一致性：同一 combinationId 的成员班必须分配同一教师。
+ *
+ * @param {Array<{classId:number, teacherId:number|null, combinationId:number|null}>} assignments
+ * @returns {Array<{combinationId:number, classTeachers: Array<[number, number|null]>}>}
+ *   返回存在冲突（同一组合出现 ≥2 个不同 teacherId）的组合列表
+ */
+export function validateCombinedClassConsistency(assignments) {
+  const byComb = new Map();
+  for (const a of assignments) {
+    if (a.combinationId == null) continue;
+    if (!byComb.has(a.combinationId)) byComb.set(a.combinationId, new Map());
+    byComb.get(a.combinationId).set(a.classId, a.teacherId);
+  }
+  const violations = [];
+  for (const [combinationId, classTeacherMap] of byComb) {
+    const teachers = new Set([...classTeacherMap.values()].filter((t) => t != null));
+    if (teachers.size > 1) {
+      violations.push({
+        combinationId,
+        classTeachers: [...classTeacherMap.entries()],
+      });
+    }
+  }
+  return violations;
+}

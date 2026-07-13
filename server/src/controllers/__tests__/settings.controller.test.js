@@ -166,6 +166,46 @@ describe('updateSettings — 更新系统设置', () => {
   });
 
   // ──────────────────────────────────────────────
+  // 2b. allow_historical_edit 开关（今日新增）
+  // ──────────────────────────────────────────────
+  it('更新 allow_historical_edit=true 应成功（白名单已注册该 key）', async () => {
+    const req = makeReq({ allow_historical_edit: 'true' });
+    const res = makeRes();
+    const next = vi.fn();
+
+    await updateSettings(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    // 白名单校验通过后应持久化该 key
+    expect(mockTx.system_settings.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { key: 'allow_historical_edit' },
+        update: { value: 'true' },
+        create: expect.objectContaining({ key: 'allow_historical_edit', value: 'true' }),
+      })
+    );
+  });
+
+  it('更新 allow_historical_edit=false 也应被接受', async () => {
+    const req = makeReq({ allow_historical_edit: 'false' });
+    const res = makeRes();
+    const next = vi.fn();
+
+    await updateSettings(req, res, next);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(mockTx.system_settings.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { key: 'allow_historical_edit' },
+        update: { value: 'false' },
+      })
+    );
+  });
+
+  // ──────────────────────────────────────────────
   // 3. current_semester 格式正确 → 成功
   // ──────────────────────────────────────────────
   it('current_semester 格式正确应成功更新', async () => {

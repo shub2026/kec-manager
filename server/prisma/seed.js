@@ -64,21 +64,32 @@ async function clearAllData() {
   console.warn('\n⚠️  警告：即将清空所有数据！');
   console.warn('   此操作不可恢复！\n');
 
-  // 按依赖关系逆序删除
+  // 按依赖关系逆序删除（子表先于父表），并使用事务保证原子性，
+  // 避免出现「删到一半报错」导致数据库处于不一致状态。
+  // 注意：teaching_assignments / teacher_* / teachers 必须在 classes、courses 等父表之前删除，
+  // 否则 SQLite 会因外键约束（onDelete: Restrict）拒绝删除。
   console.log('清空现有数据...');
-  await prisma.audit_logs.deleteMany();
-  await prisma.users.deleteMany();
-  await prisma.plan_textbooks.deleteMany();
-  await prisma.plan_course_semesters.deleteMany();
-  await prisma.plan_courses.deleteMany();
-  await prisma.training_plans.deleteMany();
-  await prisma.classes.deleteMany();
-  await prisma.textbooks.deleteMany();
-  await prisma.courses.deleteMany();
-  await prisma.majors.deleteMany();
-  await prisma.colleges.deleteMany();
-  await prisma.training_levels.deleteMany();
-  await prisma.system_settings.deleteMany();
+  await prisma.$transaction([
+    prisma.audit_logs.deleteMany(),
+    prisma.teaching_assignments.deleteMany(),
+    prisma.teacher_courses.deleteMany(),
+    prisma.teacher_scheduling_colleges.deleteMany(),
+    prisma.teacher_training_levels.deleteMany(),
+    prisma.plan_textbooks.deleteMany(),
+    prisma.plan_course_semesters.deleteMany(),
+    prisma.plan_courses.deleteMany(),
+    prisma.teachers.deleteMany(),
+    prisma.classes.deleteMany(),
+    prisma.training_plans.deleteMany(),
+    prisma.textbooks.deleteMany(),
+    prisma.courses.deleteMany(),
+    prisma.class_combinations.deleteMany(),
+    prisma.majors.deleteMany(),
+    prisma.colleges.deleteMany(),
+    prisma.training_levels.deleteMany(),
+    prisma.system_settings.deleteMany(),
+    prisma.users.deleteMany(),
+  ]);
   console.log('✓ 数据清空完成\n');
 }
 
