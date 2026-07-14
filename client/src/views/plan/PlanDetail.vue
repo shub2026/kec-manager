@@ -284,6 +284,15 @@ onMounted(async () => {
   flex-direction: column;
 }
 
+/* 手机端:放弃固定高度+内部滚动模式,改为自然高度+整页滚动
+   否则 PageHeader/概览条换行后占满高度,flex:1 的矩阵区被压缩到 0 而完全不可见 */
+@media (max-width: 768px) {
+  .plan-detail {
+    height: auto;
+    min-height: 100%;
+  }
+}
+
 /* 方案概览条 */
 .plan-overview {
   display: flex;

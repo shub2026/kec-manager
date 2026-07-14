@@ -274,6 +274,16 @@ function calcGrandTotalSemester(semester) {
   border-radius: 4px;
 }
 
+/* 手机端:取消 flex:1,让矩阵表格按内容自然展开
+   横向仍由 overflow:auto 滚动(表格 min-width 超出视口),纵向交给页面滚动 */
+@media (max-width: 768px) {
+  .matrix-scroll {
+    flex: none;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+}
+
 .matrix-table {
   border-collapse: collapse;
   table-layout: fixed;

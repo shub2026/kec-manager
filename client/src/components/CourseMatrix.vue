@@ -92,4 +92,12 @@ defineExpose({ refresh: loadData, globalWeeks, totalAllHours, rawCourses });
   flex: 1;
   min-height: 0;
 }
+
+/* 手机端:不再用 flex:1 抢剩余高度,改为自然高度,让矩阵表格完整展开 */
+@media (max-width: 768px) {
+  .matrix-container {
+    flex: none;
+    min-height: auto;
+  }
+}
 </style>
