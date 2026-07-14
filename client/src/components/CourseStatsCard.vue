@@ -12,11 +12,21 @@
     </div>
 
     <div v-else class="stats-table">
+      <!-- 表头:与数据行共用同一套 grid 轨道,列边界严格对齐 -->
+      <div class="table-head">
+        <span class="col-name">课程</span>
+        <span class="col-hours-head">课时</span>
+        <span class="col-meta-head">
+          <span>班</span>
+          <span>人</span>
+        </span>
+      </div>
+
       <!-- 数据行 -->
       <div v-for="(item, idx) in displayData" :key="item.id" class="table-row">
         <div class="col-name" :title="item.name">
           <i class="row-dot" :style="{ background: barColor(idx) }"></i>
-          {{ item.name }}
+          <span class="name-text">{{ item.name }}</span>
         </div>
         <div class="col-hours">
           <span class="hours-bar-wrap">
@@ -28,18 +38,15 @@
           <span class="hours-value">{{ item.totalHours }}</span>
         </div>
         <div class="col-meta">
-          <span class="meta-label">{{ item.classCount }}<small>班</small></span>
-          <span class="meta-divider"></span>
-          <span class="meta-label">{{ item.teacherCount }}<small>人</small></span>
+          <span class="meta-num" data-unit="班">{{ item.classCount }}</span>
+          <span class="meta-num" data-unit="人">{{ item.teacherCount }}</span>
         </div>
       </div>
 
       <!-- 底部汇总 -->
       <div class="table-footer">
         <span>共 {{ data.length }} 门课程</span>
-        <span
-          >合计 <strong>{{ totalHours }}</strong> 课时</span
-        >
+        <span>合计 <strong>{{ totalHours }}</strong> 课时</span>
       </div>
     </div>
   </el-card>
@@ -105,32 +112,73 @@ function barColor(idx) {
   padding: 2px 0;
 }
 
-/* 数据行 — 课程名列按内容自适应(最多五六个字),课时进度条吸收剩余宽度 */
+/* —— 表头：与数据行共用固定轨道,保证列边界严格对齐 —— */
+/* 轨道:课程名 96px / 课时区 1fr / 班+人 64px */
+.table-head,
 .table-row {
   display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, 1fr) 92px;
-  gap: 8px;
+  grid-template-columns: 96px minmax(0, 1fr) 64px;
+  gap: 10px;
   align-items: center;
-  padding: 4px 0;
+}
+
+.table-head {
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 2px;
+}
+
+.table-head .col-name,
+.col-hours-head,
+.col-meta-head {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.col-hours-head {
+  text-align: right;
+  padding-right: 46px;
+}
+
+.col-meta-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  text-align: center;
+}
+
+/* —— 数据行 —— */
+.table-row {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-light);
   transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.table-row:last-of-type {
+  border-bottom: none;
 }
 
 .stats-table:hover .table-row:not(:hover) {
   opacity: 0.55;
 }
 
+/* 课程名列:固定宽度,名称超长省略,圆点+名称垂直居中 */
 .col-name {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
   color: var(--text-regular);
+  min-width: 0;
+}
+
+.name-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-  /* 课程名一般五六个字(约 90px),封顶防止极端长名挤压课时条 */
-  max-width: 128px;
 }
 
 .row-dot {
@@ -141,10 +189,12 @@ function barColor(idx) {
   flex-shrink: 0;
 }
 
+/* 课时列:进度条 flex + 数值固定 40px 右对齐 */
 .col-hours {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .hours-bar-wrap {
@@ -153,6 +203,7 @@ function barColor(idx) {
   background: var(--bg-subtle);
   border-radius: 3px;
   overflow: hidden;
+  min-width: 0;
 }
 
 .hours-bar {
@@ -164,47 +215,46 @@ function barColor(idx) {
 }
 
 .hours-value {
-  width: 36px;
+  width: 40px;
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-/* 班级+教师合并列 */
+/* 班级+教师列:内部 1:1 双格 grid,数字右对齐等宽,单位下沉为小字 */
 .col-meta {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.meta-num {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-regular);
+  text-align: right;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.col-meta small {
-  font-size: 11px;
+/* 为区分两列含义,给数值加极小号单位后缀(不破坏对齐) */
+.meta-num::after {
+  content: attr(data-unit);
+  font-size: 10px;
   font-weight: 400;
   color: var(--text-secondary);
-  margin-left: 1px;
-}
-
-.meta-divider {
-  width: 1px;
-  height: 12px;
-  background: var(--border-light);
+  margin-left: 2px;
 }
 
 /* 底部汇总 */
 .table-footer {
   display: flex;
   justify-content: space-between;
-  margin-top: 6px;
-  padding-top: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid var(--border-light);
   font-size: 12px;
   color: var(--text-secondary);
@@ -213,5 +263,6 @@ function barColor(idx) {
 .table-footer strong {
   color: var(--text-primary);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 </style>
