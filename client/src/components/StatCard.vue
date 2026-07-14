@@ -11,7 +11,7 @@
       <el-icon :size="core ? 20 : 18"><component :is="icon" /></el-icon>
     </div>
     <span class="stat-label">{{ label }}</span>
-    <span class="stat-value" :class="{ 'stat-value-lg': core }">
+    <span class="stat-value">
       {{ displayValue }}
     </span>
   </div>
@@ -54,19 +54,19 @@ watch(
 </script>
 
 <style scoped>
-/* —— 统一水平布局：图标 + 文字在左，数字居中 —— */
+/* —— 次要卡：横向布局,图标+标签居左,数字居右 —— */
 .stat-item {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 20px;
+  padding: 14px 20px;
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
   cursor: pointer;
   transition: all var(--dur-base) var(--ease-out);
   height: 100%;
-  min-height: 78px;
+  min-height: 64px;
   position: relative;
 }
 
@@ -76,11 +76,22 @@ watch(
   transform: translateY(-1px);
 }
 
-/* 核心指标卡片 — 仅以左侧色条 + 柔光晕区分,布局与次要卡片保持一致 */
+/* —— 核心卡：纵向堆叠(图标+标签一行,大数字独占一行) ——
+   用 grid areas 在不改变 template 结构的前提下重排,浅蓝底+左色条强化焦点 */
 .stat-core {
+  display: grid;
+  grid-template-areas:
+    'icon label'
+    'value value';
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 22px;
+  min-height: 96px;
+  background: var(--brand-primary-soft);
+  border: 1px solid var(--brand-primary-lighter);
   border-left: 3px solid var(--brand-primary);
   box-shadow: var(--shadow-sm);
-  padding-left: 17px;
 }
 
 .stat-core:hover {
@@ -102,10 +113,10 @@ watch(
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
-/* 核心卡片图标略放大,强化焦点 */
 .stat-core .stat-icon {
-  width: 42px;
-  height: 42px;
+  grid-area: icon;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
 }
 
@@ -119,9 +130,8 @@ watch(
   pointer-events: none;
 }
 
-/* —— 标签：与图标同处左侧 —— */
+/* —— 标签 —— */
 .stat-label {
-  flex-shrink: 0;
   font-size: 14px;
   color: var(--text-secondary);
   font-weight: 500;
@@ -130,11 +140,17 @@ watch(
   text-overflow: ellipsis;
 }
 
-/* —— 数值：占据剩余空间并水平居中,作为视觉焦点 —— */
+.stat-core .stat-label {
+  grid-area: label;
+  font-size: 13px;
+  color: var(--text-regular);
+}
+
+/* —— 次要卡数值：右对齐 —— */
 .stat-value {
   flex: 1;
-  text-align: center;
-  font-size: 24px;
+  text-align: right;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
@@ -143,47 +159,42 @@ watch(
   white-space: nowrap;
 }
 
-/* 核心指标数值加大,强化数据冲击力 */
-.stat-value-lg {
-  font-size: 28px;
+/* —— 核心卡数值：左对齐大号,作为视觉锚点 —— */
+.stat-core .stat-value {
+  grid-area: value;
+  flex: none;
+  text-align: left;
+  font-size: 30px;
   letter-spacing: -0.03em;
 }
 
-/* 移动端：卡片内部改为纵向 —
-   图标+标签占上行、大数字独占整行居左，
-   保留 2 列网格节奏的同时给数字完整宽度，
-   避免窄屏下「居中数字」被挤压/溢出 */
+/* 移动端：卡片内部收缩,保持各自布局节奏 */
 @media (max-width: 768px) {
   .stat-item {
-    flex-wrap: wrap;
-    align-content: center;
-    gap: 4px 12px;
-    padding: 13px 16px;
+    padding: 12px 16px;
     min-height: 0;
   }
+
   .stat-core {
-    padding-left: 14px;
+    padding: 16px 18px;
+    min-height: 0;
   }
+
   .stat-icon {
     width: 34px;
     height: 34px;
   }
+
   .stat-core .stat-icon {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
   }
-  .stat-label {
-    flex: 1;
-    min-width: 0;
-    font-size: 13px;
-  }
+
   .stat-value {
-    flex: 0 0 100%;
-    text-align: left;
-    font-size: 23px;
-    margin-top: 2px;
+    font-size: 20px;
   }
-  .stat-value-lg {
+
+  .stat-core .stat-value {
     font-size: 26px;
   }
 }

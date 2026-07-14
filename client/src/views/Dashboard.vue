@@ -3,10 +3,16 @@
     <!-- 欢迎区域 -->
     <div class="welcome-section">
       <div class="welcome-info">
-        <h2 class="welcome-title">{{ greeting }}，{{ userName }}</h2>
+        <h1 class="welcome-title">{{ greeting }}，{{ userName }}</h1>
         <p class="welcome-subtitle">
           <el-icon><Calendar /></el-icon>
-          当前学期：{{ semesterLabel || '未设置' }}
+          <span>{{ semesterLabel || '未设置学期' }}</span>
+          <template v-if="!loading && stats.courses">
+            <span class="subtitle-sep">·</span>
+            <span class="subtitle-summary">
+              {{ stats.courses }} 门课程 / {{ stats.teachingTeachers }} 位教师 / {{ stats.classes }} 个班级
+            </span>
+          </template>
         </p>
       </div>
       <div class="welcome-actions">
@@ -14,7 +20,7 @@
           <el-icon><EditPen /></el-icon>
           开始排课
         </el-button>
-        <el-button @click="navigateTo('/query/semester')">
+        <el-button text type="primary" @click="navigateTo('/query/semester')">
           <el-icon><Search /></el-icon>
           查询开课
         </el-button>
@@ -24,8 +30,8 @@
     <!-- 统计卡片 -->
     <el-skeleton v-if="loading" :rows="3" animated />
     <template v-else>
-      <!-- 核心指标行 -->
-      <el-row :gutter="16" class="stats-row">
+      <!-- 核心指标行（4 张纵向大卡） -->
+      <el-row :gutter="20" class="stats-row">
         <el-col v-for="s in coreStats" :key="s.key" :xs="12" :sm="12" :md="6">
           <StatCard
             :value="stats[s.key]"
@@ -38,9 +44,9 @@
           />
         </el-col>
       </el-row>
-      <!-- 次要指标行 -->
-      <el-row :gutter="16" class="stats-row">
-        <el-col v-for="s in secondaryStats" :key="s.key" :xs="12" :sm="8" :md="6">
+      <!-- 次要指标行（2 张横向宽卡） -->
+      <el-row :gutter="20" class="stats-row">
+        <el-col v-for="s in secondaryStats" :key="s.key" :xs="12" :sm="12" :md="12">
           <StatCard
             :value="stats[s.key]"
             :label="s.label"
@@ -53,15 +59,20 @@
       </el-row>
     </template>
 
-    <!-- 洞察区域 -->
-    <el-row :gutter="16" class="insights-row">
-      <el-col :xs="24" :sm="12" :md="8">
+    <!-- 洞察区域：2×2 栅格，恢复异常提醒 -->
+    <el-row :gutter="20" class="insights-row">
+      <el-col :xs="24" :md="12">
         <CourseProgressChart :data="insights.completion" :total-hours="stats.totalWeeklyHours" />
       </el-col>
-      <el-col :xs="24" :sm="12" :md="8">
+      <el-col :xs="24" :md="12">
+        <AlertCard :data="insights.alerts" />
+      </el-col>
+    </el-row>
+    <el-row :gutter="20" class="insights-row">
+      <el-col :xs="24" :md="12">
         <CourseStatsCard :data="insights.courseStats" />
       </el-col>
-      <el-col :xs="24" :sm="12" :md="8">
+      <el-col :xs="24" :md="12">
         <HoursChart :data="insights.distribution" />
       </el-col>
     </el-row>
@@ -88,9 +99,7 @@ import {
   Clock,
   UserFilled,
   Reading,
-  Histogram,
-  OfficeBuilding,
-  Notebook,
+  School,
   Files,
   User,
 } from '@element-plus/icons-vue';
@@ -100,6 +109,7 @@ import { getDashboardStats } from '../api/dashboard';
 import { getDashboardInsights } from '../api/dashboard';
 import { getWithCache } from '../utils/cache';
 import StatCard from '../components/StatCard.vue';
+import AlertCard from '../components/AlertCard.vue';
 import HoursChart from '../components/HoursChart.vue';
 import CourseProgressChart from '../components/CourseProgressChart.vue';
 import CourseStatsCard from '../components/CourseStatsCard.vue';
@@ -126,8 +136,8 @@ const greeting = computed(() => {
   return '晚上好';
 });
 
-// 统计配置：核心指标（大卡片 + sparkline）
-// 色彩策略：主蓝聚焦核心业务(课时/排课)，靛蓝为同系冷色第二色相，区分"人/资源"维度，避免 4 卡完全雷同
+// 统计配置：核心指标（大卡片）
+// 色彩策略：核心卡统一浅蓝底+左色条,图标色按"排课业务(蓝)/资源(靛蓝)"区分,收敛色相
 const coreStats = [
   {
     key: 'totalWeeklyHours',
@@ -141,22 +151,22 @@ const coreStats = [
     key: 'teachingTeachers',
     label: '参与教师',
     icon: markRaw(UserFilled),
-    bg: 'var(--brand-indigo-soft)',
-    color: 'var(--brand-indigo)',
+    bg: 'var(--brand-primary-soft)',
+    color: 'var(--brand-primary)',
     route: '/teaching/arrange',
   },
   {
     key: 'courses',
     label: '课程数量',
     icon: markRaw(Reading),
-    bg: 'var(--brand-primary-soft)',
-    color: 'var(--brand-primary)',
+    bg: 'var(--brand-indigo-soft)',
+    color: 'var(--brand-indigo)',
     route: '/courses',
   },
   {
     key: 'classes',
     label: '班级数量',
-    icon: markRaw(Histogram),
+    icon: markRaw(School),
     bg: 'var(--brand-indigo-soft)',
     color: 'var(--brand-indigo)',
     route: '/classes',
@@ -164,23 +174,15 @@ const coreStats = [
 ];
 
 // 统计配置：次要指标（小卡片）
-// 色彩策略：三色相层次 — 靛蓝(可操作业务) / 薄荷绿(资源与成果,蓝绿冷色互补) / 中性灰(纯展示)
+// 色彩策略：薄荷绿统一表达"资源与成果"维度,与核心蓝形成蓝绿冷色互补
 const secondaryStats = [
   {
-    key: 'majors',
-    label: '专业类别',
-    icon: markRaw(OfficeBuilding),
-    bg: 'var(--brand-indigo-soft)',
-    color: 'var(--brand-indigo)',
-    route: '/majors',
-  },
-  {
-    key: 'textbooks',
-    label: '活跃教材',
-    icon: markRaw(Notebook),
-    bg: 'var(--brand-indigo-soft)',
-    color: 'var(--brand-indigo)',
-    route: '/textbooks',
+    key: 'totalStudents',
+    label: '在读学生',
+    icon: markRaw(User),
+    bg: 'var(--brand-mint-soft)',
+    color: 'var(--brand-mint)',
+    route: '',
   },
   {
     key: 'plans',
@@ -189,14 +191,6 @@ const secondaryStats = [
     bg: 'var(--brand-mint-soft)',
     color: 'var(--brand-mint)',
     route: '/plans',
-  },
-  {
-    key: 'totalStudents',
-    label: '在读学生',
-    icon: markRaw(User),
-    bg: 'var(--brand-mint-soft)',
-    color: 'var(--brand-mint)',
-    route: '',
   },
 ];
 
@@ -296,64 +290,65 @@ onMounted(async () => {
 .dashboard {
   max-width: 1400px;
   margin: 0 auto;
-  height: calc(100vh - 60px - var(--space-5) * 2);
+  /* 放开 overflow,内容自然流动,首屏核心信息可见,洞察区下滑查看 */
+  min-height: calc(100vh - 60px - var(--space-5) * 2);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  overflow: hidden;
+  gap: 20px;
 }
 
-/* 欢迎区域 — 去卡片化，轻量标题行 */
+/* 欢迎区域 — 去卡片化,作为页面视觉入口 */
 .welcome-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   flex-shrink: 0;
   padding: 4px 0;
 }
 
 .welcome-title {
-  margin: 0 0 2px 0;
-  font-size: 20px;
+  margin: 0 0 4px 0;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 
 .welcome-subtitle {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .welcome-subtitle .el-icon {
   color: var(--brand-primary);
 }
 
+.subtitle-sep {
+  color: var(--text-placeholder);
+  margin: 0 2px;
+}
+
+.subtitle-summary {
+  color: var(--text-regular);
+  font-variant-numeric: tabular-nums;
+}
+
 .welcome-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  align-items: center;
 }
 
 .welcome-actions :deep(.el-button--primary) {
   font-weight: 600;
-}
-
-.welcome-actions :deep(.el-button:not(.el-button--primary)) {
-  background: var(--bg-subtle);
-  border-color: var(--border-light);
-  color: var(--text-regular);
-}
-
-.welcome-actions :deep(.el-button:not(.el-button--primary):hover) {
-  background: var(--brand-primary-soft);
-  border-color: var(--brand-primary-lighter);
-  color: var(--brand-primary);
 }
 
 /* 统计卡片行间距 */
@@ -361,10 +356,8 @@ onMounted(async () => {
   margin-bottom: 0;
 }
 
-/* 洞察区域 — flex:1 吸收剩余高度 */
+/* 洞察区域 — 自然高度,行间由父级 gap 控制 */
 .insights-row {
-  flex: 1;
-  min-height: 0;
   margin-bottom: 0;
 }
 
@@ -377,13 +370,13 @@ onMounted(async () => {
 }
 
 .insights-row :deep(.el-card__header) {
-  padding: 10px 16px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
 }
 
 .insights-row :deep(.el-card__body) {
-  padding: 10px 16px;
+  padding: 16px 20px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -399,10 +392,11 @@ onMounted(async () => {
   letter-spacing: -0.01em;
 }
 
-/* 底部版权 — 紧凑贴底 */
+/* 底部版权 — 贴底 + 留白呼吸 */
 .dashboard-footer {
+  margin-top: auto;
   text-align: center;
-  padding: 6px 0 0;
+  padding: 16px 0 4px;
   font-size: 11px;
   color: var(--text-placeholder);
   flex-shrink: 0;
@@ -426,10 +420,8 @@ onMounted(async () => {
 /* 响应式 */
 @media (max-width: 768px) {
   .dashboard {
-    height: auto;
     min-height: calc(100vh - 50px - 24px);
-    overflow-y: auto;
-    gap: 12px;
+    gap: 16px;
     padding-bottom: 4px;
   }
 
@@ -450,11 +442,16 @@ onMounted(async () => {
   }
 
   .welcome-title {
-    font-size: 16px;
+    font-size: 20px;
   }
 
-  .insights-row {
-    flex: none;
+  /* 洞察卡纵向堆叠时增加行间距 */
+  .insights-row .el-col {
+    margin-bottom: 16px;
+  }
+
+  .insights-row .el-col:last-child {
+    margin-bottom: 0;
   }
 
   .insights-row :deep(.el-card__body) {
