@@ -58,7 +58,7 @@
               v-model="filterCollege"
               placeholder="学院"
               clearable
-              style="width: 120px"
+              class="header-filter filter-md"
               @change="handleCollegeFilterChange"
             >
               <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
@@ -68,7 +68,7 @@
               placeholder="专业"
               clearable
               filterable
-              style="width: 130px"
+              class="header-filter filter-lg"
               @change="handleMajorFilterChange"
             >
               <el-option v-for="v in majorOptions" :key="v" :label="v" :value="v" />
@@ -77,12 +77,17 @@
               v-model="filterTrainingLevel"
               placeholder="层次"
               clearable
-              style="width: 100px"
+              class="header-filter filter-sm"
               @change="handleTrainingLevelFilterChange"
             >
               <el-option v-for="v in trainingLevelOptions" :key="v" :label="v" :value="v" />
             </el-select>
-            <el-select v-model="filterGrade" placeholder="年级" clearable style="width: 90px">
+            <el-select
+              v-model="filterGrade"
+              placeholder="年级"
+              clearable
+              class="header-filter filter-xs"
+            >
               <el-option v-for="v in gradeOptions" :key="v" :label="v + '年级'" :value="v" />
             </el-select>
             <el-select
@@ -90,11 +95,11 @@
               placeholder="教材"
               clearable
               filterable
-              style="width: 140px"
+              class="header-filter filter-xl"
             >
               <el-option v-for="v in textbookOptions" :key="v" :label="v" :value="v" />
             </el-select>
-            <el-checkbox v-model="previewMode" style="margin-left: 8px">预览模式</el-checkbox>
+            <el-checkbox v-model="previewMode" class="preview-checkbox">预览模式</el-checkbox>
             <el-button
               type="warning"
               :loading="arranging"
@@ -113,7 +118,7 @@
             </el-button>
             <el-dropdown
               :disabled="batchArranging || historicalReadOnly"
-              style="margin-left: 4px"
+              class="dropdown-gap"
               @command="handleBatchAutoArrange"
             >
               <el-button type="primary" :loading="batchArranging">
@@ -126,7 +131,7 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-            <el-dropdown style="margin-left: 4px" @command="handleResetCommand">
+            <el-dropdown class="dropdown-gap" @command="handleResetCommand">
               <el-button type="danger" :disabled="historicalReadOnly">
                 <el-icon><RefreshRight /></el-icon> 重置<el-icon class="el-icon--right"
                   ><ArrowDown
@@ -236,11 +241,11 @@
               </template>
               <template v-else>
                 <template v-if="historicalReadOnly">
-                  <el-icon :size="14" style="margin-right: 4px; opacity: 0.5"><Lock /></el-icon>
+                  <el-icon :size="14" class="cell-hint-icon"><Lock /></el-icon>
                   <span class="text-muted">只读</span>
                 </template>
                 <template v-else>
-                  <el-icon :size="14" style="margin-right: 4px; opacity: 0.5"><Plus /></el-icon>
+                  <el-icon :size="14" class="cell-hint-icon"><Plus /></el-icon>
                   <span class="text-placeholder">点击安排</span>
                 </template>
               </template>
@@ -321,13 +326,13 @@
     <!-- 重置排课确认弹窗 -->
     <el-dialog v-model="resetConfirmVisible" title="确认重置" width="min(520px, 90vw)" align-center>
       <BaseConfirmBody icon-color="var(--brand-danger)">
-        <p v-if="resetScope === 'current'" style="margin: 0">
+        <p v-if="resetScope === 'current'" class="reset-text">
           确定要重置「{{ courseInfo?.name || '当前课程' }}」的所有自动排课安排吗？此操作不可撤销。
         </p>
-        <p v-else style="margin: 0">
+        <p v-else class="reset-text">
           确定要重置本学期<strong>全部科目</strong>的自动排课安排吗？此操作不可撤销。
         </p>
-        <p style="margin: 8px 0 0; color: var(--brand-danger-text); font-size: 13px">
+        <p class="reset-warning">
           将清除{{
             resetScope === 'current' ? '该课程' : '所有课程'
           }}在本学期的所有自动分配记录，手动安排不受影响。
@@ -1097,5 +1102,39 @@ onMounted(async () => {
 }
 .adaptive-table :deep(.el-table__body td .cell) {
   white-space: nowrap;
+}
+/* 卡片头部筛选器宽度 */
+.header-filter.filter-xs {
+  width: 80px;
+}
+.header-filter.filter-sm {
+  width: 100px;
+}
+.header-filter.filter-md {
+  width: 120px;
+}
+.header-filter.filter-lg {
+  width: 130px;
+}
+.header-filter.filter-xl {
+  width: 140px;
+}
+.preview-checkbox {
+  margin-left: var(--space-2);
+}
+.dropdown-gap {
+  margin-left: var(--space-1);
+}
+.cell-hint-icon {
+  margin-right: 4px;
+  opacity: 0.5;
+}
+.reset-text {
+  margin: 0;
+}
+.reset-warning {
+  margin: 8px 0 0;
+  color: var(--brand-danger-text);
+  font-size: 13px;
 }
 </style>

@@ -86,13 +86,13 @@
   --space-7: 48px;
 
   /* —— 语义间距别名（统一布局规范，替代散落硬编码；见前端体检报告第七章） —— */
-  --space-page: var(--space-5) var(--space-6);   /* 24/32，主内容区左右/上下 padding */
-  --space-card: 20px;                            /* el-card body 内边距建议值 */
-  --space-block: var(--space-4);                 /* 16px：标题→卡片、工具栏→表格、分页上间距统一 */
-  --space-toolbar: var(--space-3);               /* 12px：工具条内控件 gap */
-  --form-item-gap: 18px;                         /* .el-form-item 建议 margin-bottom */
-  --form-col-gutter: 16;                         /* el-row :gutter 统一值（约定，非 CSS 消费） */
-  --label-width: 100px;                          /* 表单 label-width 统一值（约定，模板 prop 使用） */
+  --space-page: var(--space-5) var(--space-6); /* 24/32，主内容区左右/上下 padding */
+  --space-card: 20px; /* el-card body 内边距建议值 */
+  --space-block: var(--space-4); /* 16px：标题→卡片、工具栏→表格、分页上间距统一 */
+  --space-toolbar: var(--space-3); /* 12px：工具条内控件 gap */
+  --form-item-gap: 18px; /* .el-form-item 建议 margin-bottom */
+  --form-col-gutter: 16; /* el-row :gutter 统一值（约定，非 CSS 消费） */
+  --label-width: 100px; /* 表单 label-width 统一值（约定，模板 prop 使用） */
 
   /* —— 圆角:从 4px → 6/10/16 三档 —— */
   --radius-sm: 6px;
@@ -109,10 +109,10 @@
   --shadow-glow-soft: 0 8px 24px rgba(28, 130, 245, 0.1); /* 核心卡片柔和光晕 */
 
   /* —— z-index 层级体系:统一管理层叠顺序,避免散落魔法数字 —— */
-  --z-sticky-cell: 1;       /* sticky 固定列/单元格 */
-  --z-sticky-header: 2;     /* sticky 表头 */
-  --z-toolbar: 10;          /* sticky 工具栏 */
-  --z-toast: 9999;          /* 浮层通知(toast) */
+  --z-sticky-cell: 1; /* sticky 固定列/单元格 */
+  --z-sticky-header: 2; /* sticky 表头 */
+  --z-toolbar: 10; /* sticky 工具栏 */
+  --z-toast: 9999; /* 浮层通知(toast) */
   --z-modal-fullscreen: 10000; /* 全屏遮罩 */
 
   /* —— 动效曲线:cubic-bezier 让过渡更有弹性 —— */

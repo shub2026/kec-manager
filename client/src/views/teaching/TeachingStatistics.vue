@@ -29,8 +29,8 @@
       <!-- 筛选器 -->
       <div class="page-toolbar">
         <SemesterSelect v-model="semester" @change="loadStats" />
-        <el-input v-model="filterName" placeholder="姓名" clearable style="width: 120px" />
-        <el-select v-model="filterType" placeholder="类别" clearable style="width: 100px">
+        <el-input v-model="filterName" placeholder="姓名" clearable class="filter-md" />
+        <el-select v-model="filterType" placeholder="类别" clearable class="filter-sm">
           <el-option label="专职" value="full_time" />
           <el-option label="兼职" value="part_time" />
           <el-option label="外聘" value="external" />
@@ -40,7 +40,7 @@
           placeholder="科目"
           clearable
           filterable
-          style="width: 140px"
+          class="filter-xl"
         >
           <el-option v-for="v in subjectOptions" :key="v" :label="v" :value="v" />
         </el-select>
@@ -49,7 +49,7 @@
           placeholder="归属学院"
           clearable
           filterable
-          style="width: 130px"
+          class="filter-lg"
         >
           <el-option v-for="v in affiliatedCollegeOptions" :key="v" :label="v" :value="v" />
         </el-select>
@@ -58,7 +58,7 @@
           placeholder="任课层次"
           clearable
           filterable
-          style="width: 110px"
+          class="filter-md"
         >
           <el-option v-for="v in levelOptions" :key="v" :label="v" :value="v" />
         </el-select>
@@ -67,7 +67,7 @@
           placeholder="任课学院"
           clearable
           filterable
-          style="width: 120px"
+          class="filter-md"
         >
           <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
         </el-select>
@@ -91,7 +91,7 @@
           :data="pagedTeachers"
           stripe
           row-key="teacherId"
-          style="width: 100%"
+          class="stats-table"
         >
           <el-table-column type="expand">
             <template #default="{ row }">
@@ -102,7 +102,7 @@
                     :data="detail.classes"
                     size="small"
                     border
-                    style="margin: 4px 0"
+                    class="nested-table"
                     row-key="unitKey"
                   >
                     <el-table-column label="班级" min-width="150">
@@ -487,5 +487,11 @@ onMounted(async () => {
 /* 表头强制单行不换行（与单元格换行互不干扰） */
 .teaching-statistics :deep(.el-table__header .cell) {
   white-space: nowrap;
+}
+.stats-table {
+  width: 100%;
+}
+.nested-table {
+  margin: 4px 0;
 }
 </style>

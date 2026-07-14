@@ -370,7 +370,7 @@
 <script setup>
 import { ref, onMounted, computed, onActivated, watch } from 'vue';
 import { Edit, Delete } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElNotification } from 'element-plus';
 import {
   getTeachers,
   createTeacher,
@@ -691,14 +691,28 @@ function handleDelete(id) {
 async function confirmDelete() {
   if (!pendingDeleteId) return;
   deleting.value = true;
+  const target = list.value.find((t) => t.id === pendingDeleteId);
+  const targetName = target?.name || '该教师';
   try {
-    await deleteTeacher(pendingDeleteId);
-    ElMessage.success('删除成功');
+    // silent:true 抑制拦截器 ElMessage，由本函数统一用 ElNotification 展示原因与结果
+    await deleteTeacher(pendingDeleteId, { silent: true });
+    ElNotification({
+      title: '删除成功',
+      message: `已删除教师：${targetName}`,
+      type: 'success',
+      duration: 4000,
+    });
     await load();
     deleteConfirmVisible.value = false;
-  } catch {
+  } catch (e) {
+    const reason = e?.response?.data?.message || e?.message || '未知错误';
+    ElNotification({
+      title: '删除失败',
+      message: `${targetName}：${reason}`,
+      type: 'error',
+      duration: 6000,
+    });
     deleteConfirmVisible.value = false;
-    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
   } finally {
     pendingDeleteId = null;
     deleting.value = false;

@@ -28,9 +28,11 @@ export const updateTeacher = (id, data) => request.put(`/teachers/${id}`, data);
 /**
  * 删除教师
  * @param {number} id
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
-export const deleteTeacher = (id) => request.delete(`/teachers/${id}`);
+export const deleteTeacher = (id, { silent } = {}) =>
+  request.delete(`/teachers/${id}`, { silentError: silent });
 
 /**
  * 批量更新教师默认课时

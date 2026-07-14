@@ -102,10 +102,8 @@
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)">
-        <p style="margin: 0">{{ deleteCourseConfirmMessage }}</p>
-        <p style="margin: 8px 0 0; color: var(--text-secondary); font-size: 13px">
-          此操作不可撤销。
-        </p>
+        <p class="confirm-text">{{ deleteCourseConfirmMessage }}</p>
+        <p class="confirm-hint">此操作不可撤销。</p>
       </BaseConfirmBody>
       <template #footer>
         <el-button @click="deleteCourseConfirmVisible = false">取消</el-button>
@@ -396,5 +394,13 @@ onMounted(async () => {
   .ov-label {
     font-size: 11px;
   }
+}
+.confirm-text {
+  margin: 0;
+}
+.confirm-hint {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 </style>

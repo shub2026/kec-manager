@@ -77,7 +77,7 @@
         type="info"
         :closable="false"
         show-icon
-        style="margin-bottom: 16px"
+        class="semester-alert"
       />
       <el-form-item label="起始学期" required>
         <el-input-number
@@ -180,5 +180,8 @@ defineEmits([
 
 :deep(.el-input-number.full-width) {
   width: 100%;
+}
+.semester-alert {
+  margin-bottom: var(--space-4);
 }
 </style>

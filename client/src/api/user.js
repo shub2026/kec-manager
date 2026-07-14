@@ -28,9 +28,11 @@ export const updateUser = (id, data) => request.put(`/users/${id}`, data);
 /**
  * 删除用户
  * @param {number} id
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
-export const deleteUser = (id) => request.delete(`/users/${id}`);
+export const deleteUser = (id, { silent } = {}) =>
+  request.delete(`/users/${id}`, { silentError: silent });
 
 /**
  * 切换用户激活/禁用状态

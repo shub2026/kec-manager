@@ -47,7 +47,7 @@
         striped
         striped-flow
         :duration="type === 'batch' ? 30 : 0"
-        style="margin: 20px 0"
+        class="progress-bar"
       />
 
       <!-- 单课程：显示当前阶段 -->
@@ -293,5 +293,8 @@ const progressStatus = computed(() => {
   to {
     transform: rotate(360deg);
   }
+}
+.progress-bar {
+  margin: 20px 0;
 }
 </style>

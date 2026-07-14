@@ -152,16 +152,12 @@
     :close-on-click-modal="false"
     destroy-on-close
   >
-    <div style="padding: 4px 0">
-      <p style="font-size: 14px; color: var(--text-primary); margin: 0 0 8px">
-        <el-icon style="vertical-align: middle; color: var(--brand-warning); margin-right: 6px"
-          ><SwitchButton
-        /></el-icon>
+    <div class="logout-body">
+      <p class="logout-title">
+        <el-icon class="logout-icon"><SwitchButton /></el-icon>
         当前用户：<strong>{{ authStore.realName || authStore.username }}</strong>
       </p>
-      <p style="font-size: 13px; color: var(--text-secondary); margin: 0">
-        退出后需重新登录才能使用系统功能。
-      </p>
+      <p class="logout-hint">退出后需重新登录才能使用系统功能。</p>
     </div>
     <template #footer>
       <el-button @click="logoutDialogVisible = false">取消</el-button>
@@ -505,5 +501,24 @@ function handlePasswordChangeSuccess() {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateX(-12px);
+}
+
+.logout-body {
+  padding: 4px 0;
+}
+.logout-title {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+.logout-icon {
+  vertical-align: middle;
+  color: var(--brand-warning);
+  margin-right: 6px;
+}
+.logout-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
 }
 </style>

@@ -5,6 +5,7 @@
 > 下方迁移清单中的复选框反映初始规划状态，实际集成进度请以各页面代码为准。
 
 ## 📋 目录
+
 - [设计理念](#设计理念)
 - [使用方式](#使用方式)
 - [各页面迁移方案](#各页面迁移方案)
@@ -69,7 +70,7 @@ const { getFilteredOptions, handleParentChange } = useFilterLinkage({
 const allMajors = ref([...]); // 所有专业列表
 
 // 动态过滤专业列表
-const filteredMajors = computed(() => 
+const filteredMajors = computed(() =>
   getFilteredOptions.value('majorId', allMajors.value, ['collegeId'])
 );
 
@@ -83,7 +84,7 @@ function handleCollegeChange() {
   <el-select v-model="filters.collegeId" @change="handleCollegeChange">
     <!-- 学院选项 -->
   </el-select>
-  
+
   <el-select v-model="filters.majorId" :disabled="!filteredMajors.length">
     <el-option v-for="m in filteredMajors" :key="m.id" :label="m.name" :value="m.id" />
   </el-select>
@@ -113,7 +114,8 @@ const filteredYears = computed(() =>
 
 ### 1. 教师信息页 (TeacherList.vue)
 
-**当前状态**: 
+**当前状态**:
+
 - ❌ 筛选器无联动
 - ✅ 编辑表单有联动
 - 前端computed过滤
@@ -121,6 +123,7 @@ const filteredYears = computed(() =>
 **迁移步骤**:
 
 #### Step 1: 后端添加关联数据
+
 ```javascript
 // server/src/controllers/teacher.controller.js
 // 在 listTeachers 接口中添加:
@@ -130,6 +133,7 @@ const teacherLevelRelation = {}; // 教师-意向层次关联
 ```
 
 #### Step 2: 前端接收关联数据
+
 ```javascript
 // client/src/views/teaching/TeacherList.vue
 const teacherCourseRelation = ref({});
@@ -146,6 +150,7 @@ async function load() {
 ```
 
 #### Step 3: 使用Hook实现联动
+
 ```javascript
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 
@@ -174,6 +179,7 @@ function handleCollegeFilterChange() {
 ### 2. 教学安排页 (TeachingArrange.vue)
 
 **当前状态**:
+
 - ⚠️ 学院→专业有部分联动
 - ❌ 其他字段无联动
 - 后端API + 前端computed混合
@@ -181,6 +187,7 @@ function handleCollegeFilterChange() {
 **迁移步骤**:
 
 #### Step 1: 完善后端关联数据
+
 ```javascript
 // server/src/controllers/teaching-arrange.controller.js
 // 已有 collegeMajorRelation,需要补充:
@@ -189,6 +196,7 @@ const collegeLevelRelation = {}; // 学院-层次
 ```
 
 #### Step 2: 前端使用Hook重构
+
 ```javascript
 const { getFilteredOptions, getIntersectedOptions } = useFilterLinkage({
   filters: reactive({
@@ -224,12 +232,14 @@ const trainingLevelOptions = computed(() =>
 ### 3. 课时统计页 (TeachingStatistics.vue)
 
 **当前状态**:
+
 - ❌ 完全无联动
 - 前端computed过滤
 
 **迁移步骤**:
 
 #### Step 1: 后端添加关联数据
+
 ```javascript
 // server/src/controllers/teacher.controller.js (统计数据来自教师表)
 // 添加:
@@ -239,10 +249,9 @@ const teacherCollegeRelation = {}; // 学院-教师关联
 ```
 
 #### Step 2: 前端实现联动
+
 ```javascript
-const filteredTypes = computed(() =>
-  getFilteredOptions.value('type', allTypes.value, [])
-);
+const filteredTypes = computed(() => getFilteredOptions.value('type', allTypes.value, []));
 
 const filteredSubjects = computed(() =>
   getFilteredOptions.value('subject', allSubjects.value, ['type'])
@@ -256,6 +265,7 @@ const filteredSubjects = computed(() =>
 ### 4. 开课查询页 (UnifiedSemesterQuery.vue)
 
 **当前状态**:
+
 - ❌ 完全无联动
 - 后端API参数
 
@@ -273,12 +283,12 @@ const filteredSubjects = computed(() =>
 
 ```javascript
 // 关联关系命名: {parent}{Child}Relation
-collegeMajorRelation    // ✅
-major_level_relation    // ❌
+collegeMajorRelation; // ✅
+major_level_relation; // ❌
 
 // 过滤后的选项命名: filtered{FieldName}s
-filteredMajors          // ✅
-majorOptions            // ⚠️ 不够明确
+filteredMajors; // ✅
+majorOptions; // ⚠️ 不够明确
 ```
 
 ### 2. 联动优先级
@@ -320,7 +330,7 @@ handleCollegeChange() {
 
 ```javascript
 // Set自动去重,适合数值类型
-const resultSet = new Set(years1.filter(y => years2.includes(y)));
+const resultSet = new Set(years1.filter((y) => years2.includes(y)));
 ```
 
 ### 3. 性能优化

@@ -615,8 +615,8 @@ function calcGrandTotalSemester(semester) {
   align-items: center;
 }
 
-/* 平板及窄屏（≤1024px）：收缩矩阵列宽，减少水平滚动距离 */
-@media (max-width: 1024px) {
+/* 平板及窄屏（≤992px）：收缩矩阵列宽，减少水平滚动距离 */
+@media (max-width: 992px) {
   .matrix-semester-header {
     width: 80px;
   }
@@ -744,7 +744,11 @@ function calcGrandTotalSemester(semester) {
 }
 </style>
 
-<!-- el-tooltip popper 渲染在 body 层，需要全局样式 -->
+<!--
+  el-tooltip popper 渲染在 body 层，无法使用 scoped 样式。
+  以下颜色用于深色 tooltip 背景（effect="dark"）上的白色文字/装饰，
+  rgba(255,255,255,x) 是刻意保持的——深色 popper 上无对应 CSS 变量可用。
+-->
 <style>
 .textbook-tooltip {
   max-width: 280px;
@@ -756,7 +760,7 @@ function calcGrandTotalSemester(semester) {
   font-weight: 600;
   font-size: 13px;
   margin-bottom: 6px;
-  color: #fff;
+  color: var(--bg-card);
   word-break: break-all;
 }
 

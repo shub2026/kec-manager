@@ -25,6 +25,8 @@ export const updateTrainingLevel = (id, data) => request.put(`/training-levels/$
 /**
  * 删除培养层次（已关联班级/方案/教师时会被拒绝）
  * @param {number} id
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
-export const deleteTrainingLevel = (id) => request.delete(`/training-levels/${id}`);
+export const deleteTrainingLevel = (id, { silent } = {}) =>
+  request.delete(`/training-levels/${id}`, { silentError: silent });

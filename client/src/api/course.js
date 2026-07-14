@@ -26,6 +26,8 @@ export const updateCourse = (id, data) => request.put(`/courses/${id}`, data);
 /**
  * 删除课程（已关联方案/教师/教学安排时会被拒绝）
  * @param {number} id
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
-export const deleteCourse = (id) => request.delete(`/courses/${id}`);
+export const deleteCourse = (id, { silent } = {}) =>
+  request.delete(`/courses/${id}`, { silentError: silent });

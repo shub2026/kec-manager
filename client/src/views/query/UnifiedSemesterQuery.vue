@@ -130,7 +130,7 @@
                   size="small"
                   border
                   row-key="courseName"
-                  style="margin: 4px 0"
+                  class="nested-table"
                 >
                   <el-table-column
                     prop="courseName"
@@ -544,5 +544,8 @@ onMounted(async () => {
 .expand-content .no-textbook {
   color: var(--text-secondary);
   font-size: 12px;
+}
+.nested-table {
+  margin: 4px 0;
 }
 </style>

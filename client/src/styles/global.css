@@ -217,20 +217,6 @@
   width: 200px;
 }
 
-/* 向后兼容旧类名映射 */
-.page-toolbar .filter-select-sm {
-  width: 100px;
-}
-.page-toolbar .filter-select-md {
-  width: 120px;
-}
-.page-toolbar .filter-select-lg {
-  width: 140px;
-}
-.page-toolbar .filter-select-xl {
-  width: 160px;
-}
-
 /* ----- 排序按钮 ----- */
 .sort-buttons {
   display: flex;
@@ -424,13 +410,6 @@
   .page-toolbar .filter-lg {
     width: 120px;
   }
-  /* 兼容旧类名 */
-  .page-toolbar .filter-select-xl {
-    width: 140px;
-  }
-  .page-toolbar .filter-select-lg {
-    width: 120px;
-  }
 }
 
 /* 小桌面（≤1200px）：筛选器进一步收缩,card-header 允许换行 */
@@ -470,19 +449,6 @@
   }
   .page-toolbar .filter-md {
     width: 100px;
-  }
-  /* 兼容旧类名 */
-  .page-toolbar .filter-select-sm {
-    width: 90px;
-  }
-  .page-toolbar .filter-select-md {
-    width: 120px;
-  }
-  .page-toolbar .filter-select-lg {
-    width: 120px;
-  }
-  .page-toolbar .filter-select-xl {
-    width: 140px;
   }
 }
 
@@ -528,11 +494,7 @@
   .page-toolbar .filter-md,
   .page-toolbar .filter-lg,
   .page-toolbar .filter-xl,
-  .page-toolbar .filter-2xl,
-  .page-toolbar .filter-select-sm,
-  .page-toolbar .filter-select-md,
-  .page-toolbar .filter-select-lg,
-  .page-toolbar .filter-select-xl {
+  .page-toolbar .filter-2xl {
     width: 100%;
   }
 

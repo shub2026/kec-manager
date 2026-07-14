@@ -169,12 +169,12 @@ const displayedTeachers = computed(() => {
 
 /* 降低告警项背景饱和度,避免与数据图表争抢注意力 */
 .alert-item-warning {
-  background: rgba(251, 191, 36, 0.08);
+  background: color-mix(in srgb, var(--brand-warning) 8%, transparent);
   color: var(--text-regular);
 }
 
 .alert-item-danger {
-  background: rgba(248, 113, 113, 0.08);
+  background: color-mix(in srgb, var(--brand-danger) 8%, transparent);
   color: var(--text-regular);
 }
 

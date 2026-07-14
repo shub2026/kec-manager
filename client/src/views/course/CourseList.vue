@@ -167,7 +167,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElNotification } from 'element-plus';
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course';
 import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
@@ -330,14 +330,27 @@ function cancelDelete() {
 async function confirmDelete() {
   if (!pendingDeleteId) return;
   deleting.value = true;
+  const targetName = pendingDeleteRow.value?.name || '该课程';
   try {
-    await deleteCourse(pendingDeleteId);
-    ElMessage.success('删除成功');
+    // silent:true 抑制拦截器 ElMessage，由本函数统一用 ElNotification 展示原因与结果
+    await deleteCourse(pendingDeleteId, { silent: true });
+    ElNotification({
+      title: '删除成功',
+      message: `已删除课程：${targetName}`,
+      type: 'success',
+      duration: 4000,
+    });
     await silentReload();
     deleteConfirmVisible.value = false;
   } catch (e) {
+    const reason = e?.response?.data?.message || e?.message || '未知错误';
+    ElNotification({
+      title: '删除失败',
+      message: `${targetName}：${reason}`,
+      type: 'error',
+      duration: 6000,
+    });
     deleteConfirmVisible.value = false;
-    // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
   } finally {
     pendingDeleteId = null;
     pendingDeleteRow.value = null;

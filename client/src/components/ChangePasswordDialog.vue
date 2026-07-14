@@ -14,7 +14,7 @@
       type="warning"
       :closable="false"
       show-icon
-      style="margin-bottom: 16px"
+      class="forced-alert"
     />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
       <el-form-item label="原密码" prop="oldPassword">
@@ -166,3 +166,9 @@ async function handleSubmit() {
   }
 }
 </script>
+
+<style scoped>
+.forced-alert {
+  margin-bottom: var(--space-4);
+}
+</style>

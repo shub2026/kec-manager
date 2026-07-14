@@ -223,7 +223,7 @@ function toggleCourseDetail(courseId) {
   transition: background 0.15s;
 }
 .course-item-header:hover {
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--bg-subtle);
 }
 .course-item-left {
   display: flex;

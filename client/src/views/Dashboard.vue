@@ -23,7 +23,7 @@
       </div>
 
       <!-- 内联指标条：一行纵览,紧凑高效 -->
-      <el-skeleton v-if="loading" :rows="2" animated style="margin-top: 16px" />
+      <el-skeleton v-if="loading" :rows="2" animated class="loading-skeleton" />
       <div v-else class="metrics-strip" role="list" aria-label="核心指标">
         <div
           v-for="m in metrics"
@@ -435,11 +435,7 @@ onMounted(async () => {
   }
 }
 
-@media (max-width: 1024px) {
-  .insights-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
+@media (max-width: 992px) {
   .metric-value {
     font-size: 22px;
   }
@@ -495,5 +491,8 @@ onMounted(async () => {
   .insights-grid :deep(.insight-card .el-card__body) {
     overflow-y: visible;
   }
+}
+.loading-skeleton {
+  margin-top: var(--space-4);
 }
 </style>

@@ -31,6 +31,8 @@ export const updateCollege = (id, data) => request.put(`/colleges/${id}`, data);
 /**
  * 删除学院（已关联班级/方案时会被拒绝）
  * @param {number} id
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
-export const deleteCollege = (id) => request.delete(`/colleges/${id}`);
+export const deleteCollege = (id, { silent } = {}) =>
+  request.delete(`/colleges/${id}`, { silentError: silent });

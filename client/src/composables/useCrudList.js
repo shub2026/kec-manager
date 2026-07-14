@@ -1,5 +1,5 @@
 import { ref, computed, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElNotification } from 'element-plus';
 import { useSortable } from './useSortable';
 
 /**
@@ -121,14 +121,27 @@ export function useCrudList(api, options = {}) {
 
   async function confirmDelete() {
     deleting.value = true;
+    const targetName = deletingRow.value?.name || '该记录';
     try {
-      await api.remove(deletingId.value);
-      ElMessage.success('删除成功');
+      // silent:true 抑制拦截器 ElMessage，由本函数统一用 ElNotification 展示原因与结果
+      await api.remove(deletingId.value, { silent: true });
+      ElNotification({
+        title: '删除成功',
+        message: `已删除：${targetName}`,
+        type: 'success',
+        duration: 4000,
+      });
       await silentReload();
       deleteConfirmVisible.value = false;
-    } catch {
+    } catch (e) {
+      const reason = e?.response?.data?.message || e?.message || '未知错误';
+      ElNotification({
+        title: '删除失败',
+        message: `${targetName}：${reason}`,
+        type: 'error',
+        duration: 6000,
+      });
       deleteConfirmVisible.value = false;
-      // request.js 拦截器已显示后端返回的错误消息，此处不再重复弹窗
     } finally {
       deletingId.value = null;
       deletingRow.value = null;

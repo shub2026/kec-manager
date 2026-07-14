@@ -33,9 +33,11 @@ export const updatePlan = (id, data) => request.put(`/plans/${id}`, data);
 /**
  * 删除培养方案（会解除关联班级，不拒绝）
  * @param {number} id
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
-export const deletePlan = (id) => request.delete(`/plans/${id}`);
+export const deletePlan = (id, { silent } = {}) =>
+  request.delete(`/plans/${id}`, { silentError: silent });
 
 /**
  * 获取方案下的课程列表
@@ -72,9 +74,11 @@ export const updatePlanCourseSortOrder = (id, sortOrder) =>
 /**
  * 删除方案课程
  * @param {number} id - 方案课程 ID
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
-export const deletePlanCourse = (id) => request.delete(`/plans/courses/${id}`);
+export const deletePlanCourse = (id, { silent } = {}) =>
+  request.delete(`/plans/courses/${id}`, { silentError: silent });
 
 // 学期明细
 

@@ -15,7 +15,7 @@
         title="提示：您当前为管理员角色，只能查看和管理访客账号。如需管理其他角色，请联系超级管理员。"
         type="info"
         :closable="false"
-        style="margin-bottom: 16px"
+        class="admin-alert"
       />
 
       <!-- 用户列表 -->
@@ -128,32 +128,22 @@
             <!-- 所有管理员都可以创建管理员和访客 -->
             <el-option label="管理员" value="admin">
               <span>管理员</span>
-              <span style="color: var(--text-secondary); font-size: 12px; margin-left: 10px"
-                >基础数据和培养方案维护</span
-              >
+              <span class="role-hint">基础数据和培养方案维护</span>
             </el-option>
             <el-option label="访客" value="viewer">
               <span>访客</span>
-              <span style="color: var(--text-secondary); font-size: 12px; margin-left: 10px"
-                >仅查询权限</span
-              >
+              <span class="role-hint">仅查询权限</span>
             </el-option>
           </el-select>
         </el-form-item>
 
-        <el-alert
-          v-if="!isEdit"
-          title="角色说明"
-          type="info"
-          :closable="false"
-          style="margin-top: 10px"
-        >
+        <el-alert v-if="!isEdit" title="角色说明" type="info" :closable="false" class="role-alert">
           <p>
             <strong>管理员（二级管理员）：</strong
             >可以维护基础数据（专业、学院、课程等）和培养方案，但不能配置系统设置和重置系统
           </p>
           <p><strong>访客：</strong>只能访问查询页面，适合需要查看数据但不需要修改的用户</p>
-          <p style="margin-top: 8px; color: var(--brand-danger-text)">
+          <p class="danger-hint">
             <strong>注意：</strong>超级管理员是系统唯一角色，不能通过此界面创建。
           </p>
         </el-alert>
@@ -453,4 +443,20 @@ onMounted(() => {
 });
 </script>
 
-<style scoped></style>
+<style scoped>
+.admin-alert {
+  margin-bottom: var(--space-4);
+}
+.role-hint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-left: 10px;
+}
+.role-alert {
+  margin-top: 10px;
+}
+.danger-hint {
+  margin-top: 8px;
+  color: var(--brand-danger-text);
+}
+</style>

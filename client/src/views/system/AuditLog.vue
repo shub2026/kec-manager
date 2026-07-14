@@ -108,7 +108,7 @@
                 link
                 type="primary"
                 size="small"
-                style="margin-left: 6px"
+                class="details-btn"
                 @click="showDetails(row.details)"
               >
                 详情
@@ -433,5 +433,9 @@ onMounted(() => {
   color: var(--text-regular);
   font-size: 14px;
   line-height: 1.6;
+}
+
+.details-btn {
+  margin-left: 6px;
 }
 </style>

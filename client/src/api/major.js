@@ -25,6 +25,8 @@ export const updateMajor = (id, data) => request.put(`/majors/${id}`, data);
 /**
  * 删除专业（已关联班级/方案时会被拒绝）
  * @param {number} id
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
-export const deleteMajor = (id) => request.delete(`/majors/${id}`);
+export const deleteMajor = (id, { silent } = {}) =>
+  request.delete(`/majors/${id}`, { silentError: silent });

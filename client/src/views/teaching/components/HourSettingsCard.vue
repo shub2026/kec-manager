@@ -12,14 +12,12 @@
             placeholder="请选择课程"
             filterable
             clearable
-            style="width: 220px"
+            class="course-select"
             @update:model-value="handleCourseChange"
           >
             <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id">
               <span>{{ c.name }}</span>
-              <span style="color: var(--text-secondary); font-size: 12px; margin-left: 8px">{{
-                c.code
-              }}</span>
+              <span class="course-code-hint">{{ c.code }}</span>
             </el-option>
           </el-select>
         </div>
@@ -181,5 +179,13 @@ defineExpose({ hourSettings });
 .field-label {
   font-size: 12px;
   color: var(--text-regular);
+}
+.course-select {
+  width: 220px;
+}
+.course-code-hint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-left: var(--space-2);
 }
 </style>
