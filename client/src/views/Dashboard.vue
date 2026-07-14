@@ -1,82 +1,61 @@
 <template>
   <div class="dashboard">
-    <!-- 欢迎区域 -->
+    <!-- 欢迎区域 + 指标条 -->
     <div class="welcome-section">
-      <div class="welcome-info">
-        <h1 class="welcome-title">{{ greeting }}，{{ userName }}</h1>
-        <p class="welcome-subtitle">
-          <el-icon><Calendar /></el-icon>
-          <span>{{ semesterLabel || '未设置学期' }}</span>
-          <template v-if="!loading && stats.courses">
-            <span class="subtitle-sep">·</span>
-            <span class="subtitle-summary">
-              {{ stats.courses }} 门课程 / {{ stats.teachingTeachers }} 位教师 /
-              {{ stats.classes }} 个班级
-            </span>
-          </template>
-        </p>
+      <div class="welcome-top">
+        <div class="welcome-info">
+          <h1 class="welcome-title">{{ greeting }}，{{ userName }}</h1>
+          <p class="welcome-subtitle">
+            <el-icon><Calendar /></el-icon>
+            <span>{{ semesterLabel || '未设置学期' }}</span>
+          </p>
+        </div>
+        <div class="welcome-actions">
+          <el-button v-if="isAdmin" type="primary" @click="navigateTo('/teaching/arrange')">
+            <el-icon><EditPen /></el-icon>
+            开始排课
+          </el-button>
+          <el-button text type="primary" @click="navigateTo('/query/semester')">
+            <el-icon><Search /></el-icon>
+            查询开课
+          </el-button>
+        </div>
       </div>
-      <div class="welcome-actions">
-        <el-button v-if="isAdmin" type="primary" @click="navigateTo('/teaching/arrange')">
-          <el-icon><EditPen /></el-icon>
-          开始排课
-        </el-button>
-        <el-button text type="primary" @click="navigateTo('/query/semester')">
-          <el-icon><Search /></el-icon>
-          查询开课
-        </el-button>
+
+      <!-- 内联指标条：一行纵览,紧凑高效 -->
+      <el-skeleton v-if="loading" :rows="2" animated style="margin-top: 16px" />
+      <div v-else class="metrics-strip" role="list" aria-label="核心指标">
+        <div
+          v-for="m in metrics"
+          :key="m.key"
+          class="metric-item"
+          :class="{ 'metric-clickable': isAdmin && m.route }"
+          role="listitem"
+          :tabindex="isAdmin && m.route ? 0 : -1"
+          @click="isAdmin && m.route && navigateTo(m.route)"
+          @keyup.enter="isAdmin && m.route && navigateTo(m.route)"
+        >
+          <span class="metric-value">{{ m.displayValue }}</span>
+          <span class="metric-label">{{ m.label }}</span>
+        </div>
       </div>
     </div>
 
-    <!-- 统计卡片 -->
-    <el-skeleton v-if="loading" :rows="3" animated />
-    <template v-else>
-      <!-- 核心指标行（4 张纵向大卡） -->
-      <el-row :gutter="20" class="stats-row">
-        <el-col v-for="s in coreStats" :key="s.key" :xs="12" :sm="12" :md="6">
-          <StatCard
-            :value="stats[s.key]"
-            :label="s.label"
-            :icon="s.icon"
-            :bg-color="s.bg"
-            :icon-color="s.color"
-            :core="true"
-            :route="isAdmin ? s.route : ''"
-          />
-        </el-col>
-      </el-row>
-      <!-- 次要指标行（2 张横向宽卡） -->
-      <el-row :gutter="20" class="stats-row">
-        <el-col v-for="s in secondaryStats" :key="s.key" :xs="12" :sm="12" :md="12">
-          <StatCard
-            :value="stats[s.key]"
-            :label="s.label"
-            :icon="s.icon"
-            :bg-color="s.bg"
-            :icon-color="s.color"
-            :route="isAdmin ? s.route : ''"
-          />
-        </el-col>
-      </el-row>
-    </template>
-
-    <!-- 洞察区域：2×2 栅格，恢复异常提醒 -->
-    <el-row :gutter="20" class="insights-row">
-      <el-col :xs="24" :md="12">
+    <!-- 洞察区域：CSS Grid 非对称布局（左 60% 右 40%） -->
+    <div class="insights-grid">
+      <div class="insight-main">
         <CourseProgressChart :data="insights.completion" :total-hours="stats.totalWeeklyHours" />
-      </el-col>
-      <el-col :xs="24" :md="12">
+      </div>
+      <div class="insight-side">
         <AlertCard :data="insights.alerts" />
-      </el-col>
-    </el-row>
-    <el-row :gutter="20" class="insights-row">
-      <el-col :xs="24" :md="12">
+      </div>
+      <div class="insight-main">
         <CourseStatsCard :data="insights.courseStats" />
-      </el-col>
-      <el-col :xs="24" :md="12">
+      </div>
+      <div class="insight-side">
         <HoursChart :data="insights.distribution" />
-      </el-col>
-    </el-row>
+      </div>
+    </div>
 
     <!-- 底部版权 -->
     <div class="dashboard-footer">
@@ -97,19 +76,13 @@ import {
   Calendar,
   EditPen,
   Search,
-  Clock,
-  UserFilled,
-  Reading,
-  School,
-  Files,
-  User,
 } from '@element-plus/icons-vue';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
 import { getDashboardStats } from '../api/dashboard';
 import { getDashboardInsights } from '../api/dashboard';
 import { getWithCache } from '../utils/cache';
-import StatCard from '../components/StatCard.vue';
+import { useCountUp } from '../composables/useCountUp';
 import AlertCard from '../components/AlertCard.vue';
 import HoursChart from '../components/HoursChart.vue';
 import CourseProgressChart from '../components/CourseProgressChart.vue';
@@ -139,62 +112,14 @@ const greeting = computed(() => {
   return '晚上好';
 });
 
-// 统计配置：核心指标（大卡片）
-// 色彩策略：核心卡统一浅蓝底+左色条,图标色按"排课业务(蓝)/资源(靛蓝)"区分,收敛色相
-const coreStats = [
-  {
-    key: 'totalWeeklyHours',
-    label: '总周课时',
-    icon: markRaw(Clock),
-    bg: 'var(--brand-primary-soft)',
-    color: 'var(--brand-primary)',
-    route: '/teaching/arrange',
-  },
-  {
-    key: 'teachingTeachers',
-    label: '参与教师',
-    icon: markRaw(UserFilled),
-    bg: 'var(--brand-primary-soft)',
-    color: 'var(--brand-primary)',
-    route: '/teaching/arrange',
-  },
-  {
-    key: 'courses',
-    label: '课程数量',
-    icon: markRaw(Reading),
-    bg: 'var(--brand-indigo-soft)',
-    color: 'var(--brand-indigo)',
-    route: '/courses',
-  },
-  {
-    key: 'classes',
-    label: '班级数量',
-    icon: markRaw(School),
-    bg: 'var(--brand-indigo-soft)',
-    color: 'var(--brand-indigo)',
-    route: '/classes',
-  },
-];
-
-// 统计配置：次要指标（小卡片）
-// 色彩策略：薄荷绿统一表达"资源与成果"维度,与核心蓝形成蓝绿冷色互补
-const secondaryStats = [
-  {
-    key: 'totalStudents',
-    label: '在读学生',
-    icon: markRaw(User),
-    bg: 'var(--brand-mint-soft)',
-    color: 'var(--brand-mint)',
-    route: '',
-  },
-  {
-    key: 'plans',
-    label: '培养方案',
-    icon: markRaw(Files),
-    bg: 'var(--brand-mint-soft)',
-    color: 'var(--brand-mint)',
-    route: '/plans',
-  },
+// ─── 指标配置与 countup ───
+const metricConfigs = [
+  { key: 'totalWeeklyHours', label: '总周课时', route: '/teaching/arrange' },
+  { key: 'teachingTeachers', label: '参与教师', route: '/teaching/arrange' },
+  { key: 'courses', label: '课程数量', route: '/courses' },
+  { key: 'classes', label: '班级数量', route: '/classes' },
+  { key: 'totalStudents', label: '在读学生', route: '' },
+  { key: 'plans', label: '培养方案', route: '/plans' },
 ];
 
 const stats = ref({
@@ -208,7 +133,28 @@ const stats = ref({
   totalWeeklyHours: 0,
 });
 
-// 洞察数据：排课完成度 + 异常提醒 + 课时分布
+// 为每个指标创建独立 ref 和 countup
+const metricRefs = metricConfigs.map(() => ref(0));
+const metricCountups = metricRefs.map((r) => {
+  const { displayValue } = useCountUp(r, { duration: 900 });
+  return displayValue;
+});
+
+// 当 stats 变化时同步到各指标 ref
+const metrics = computed(() =>
+  metricConfigs.map((cfg, i) => ({
+    ...cfg,
+    displayValue: metricCountups[i].value,
+  }))
+);
+
+function syncMetricRefs() {
+  metricConfigs.forEach((cfg, i) => {
+    metricRefs[i].value = stats.value[cfg.key] || 0;
+  });
+}
+
+// 洞察数据
 const insights = ref({
   completion: { totalCourses: 0, assignedCourses: 0, rate: 0 },
   alerts: { unassignedCourses: [], overloadedTeachers: [] },
@@ -243,6 +189,7 @@ async function fetchStats() {
       stats.value.totalStudents = d.totalStudents || 0;
       stats.value.teachingTeachers = d.teachingTeachers || 0;
       stats.value.totalWeeklyHours = d.totalWeeklyHours || 0;
+      syncMetricRefs();
     }
   } catch (e) {
     if (import.meta.env.DEV) console.error('Dashboard 统计加载失败:', e);
@@ -284,36 +231,37 @@ async function fetchInsights() {
 onMounted(async () => {
   loading.value = true;
   await settingsStore.load();
-  // 统计和洞察并行加载
   await Promise.all([fetchStats(), fetchInsights()]);
 });
 </script>
 
 <style scoped>
 .dashboard {
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
-  /* 放开 overflow,内容自然流动,首屏核心信息可见,洞察区下滑查看 */
   min-height: calc(100vh - 60px - var(--space-5) * 2);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  /* 分级间距：欢迎→洞察 24px，洞察→页脚 auto */
+  gap: 0;
 }
 
-/* 欢迎区域 — 去卡片化,作为页面视觉入口 */
+/* ─── 欢迎区域 ─── */
 .welcome-section {
+  flex-shrink: 0;
+}
+
+.welcome-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: var(--space-3);
-  flex-shrink: 0;
-  padding: var(--space-1) 0;
 }
 
 .welcome-title {
-  margin: 0 0 var(--space-1) 0;
-  font-size: 24px;
+  margin: 0 0 4px 0;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -327,79 +275,143 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
 }
 
 .welcome-subtitle .el-icon {
   color: var(--brand-primary);
 }
 
-.subtitle-sep {
-  color: var(--text-placeholder);
-  margin: 0 2px;
-}
-
-.subtitle-summary {
-  color: var(--text-regular);
-  font-variant-numeric: tabular-nums;
-}
-
 .welcome-actions {
   display: flex;
   gap: var(--space-2);
   align-items: center;
+  flex-shrink: 0;
 }
 
 .welcome-actions :deep(.el-button--primary) {
   font-weight: 600;
 }
 
-/* 统计卡片行间距 */
-.stats-row {
-  margin-bottom: 0;
+/* ─── 内联指标条 ─── */
+.metrics-strip {
+  display: flex;
+  align-items: stretch;
+  margin-top: 20px;
+  padding: 20px 28px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-xs);
+  gap: 0;
 }
 
-/* 洞察区域 — 自然高度,行间由父级 gap 控制 */
-.insights-row {
-  margin-bottom: 0;
+.metric-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-fast) var(--ease-out);
+  position: relative;
 }
 
-.insights-row :deep(.el-card) {
-  margin-bottom: 0;
+/* 指标间的竖线分隔符 */
+.metric-item + .metric-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 1px;
+  background: var(--border-light);
+}
+
+.metric-clickable {
+  cursor: pointer;
+}
+
+.metric-clickable:hover {
+  background: var(--bg-subtle);
+}
+
+.metric-clickable:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
+}
+
+.metric-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ─── 洞察网格：非对称 3fr 2fr ─── */
+.insights-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.insights-grid > div {
+  min-height: 0;
+}
+
+.insights-grid :deep(.insight-card) {
   height: 100%;
   display: flex;
   flex-direction: column;
+  border: none;
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xxs);
 }
 
-.insights-row :deep(.el-card__header) {
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border-light);
+.insights-grid :deep(.insight-card .el-card__header) {
+  padding: 16px 20px 12px;
+  border-bottom: none;
   flex-shrink: 0;
 }
 
-.insights-row :deep(.el-card__body) {
-  padding: var(--space-4) 20px;
+.insights-grid :deep(.insight-card .el-card__body) {
+  padding: 0 20px 20px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
 
-.insights-row :deep(.card-title) {
+/* 卡片标题：左侧圆点色块，去掉下边框 */
+.insights-grid :deep(.card-title) {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   letter-spacing: -0.01em;
 }
 
-/* 底部版权 — 贴底 + 留白呼吸 */
+.insights-grid :deep(.card-title .el-icon) {
+  color: var(--brand-primary);
+  font-size: 16px;
+}
+
+/* ─── 底部版权 ─── */
 .dashboard-footer {
   margin-top: auto;
   text-align: center;
-  padding: var(--space-4) 0 var(--space-1);
+  padding: 28px 0 8px;
   font-size: 11px;
   color: var(--text-placeholder);
   flex-shrink: 0;
@@ -420,18 +432,35 @@ onMounted(async () => {
   margin: 0 var(--space-1);
 }
 
-/* 响应式 */
+/* ─── 响应式 ─── */
+@media (max-width: 1200px) {
+  .insights-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .insights-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .metric-value {
+    font-size: 22px;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard {
     min-height: calc(100vh - 50px - 24px);
-    gap: var(--space-4);
-    padding-bottom: var(--space-1);
   }
 
-  .welcome-section {
+  .welcome-top {
     flex-direction: column;
     align-items: flex-start;
-    padding: var(--space-1) 0;
+  }
+
+  .welcome-title {
+    font-size: 19px;
   }
 
   .welcome-actions {
@@ -444,20 +473,30 @@ onMounted(async () => {
     min-width: 120px;
   }
 
-  .welcome-title {
-    font-size: 20px;
+  /* 指标条 3×2 网格 */
+  .metrics-strip {
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    gap: 0;
   }
 
-  /* 洞察卡纵向堆叠时增加行间距 */
-  .insights-row .el-col {
-    margin-bottom: var(--space-4);
+  .metric-item {
+    flex: 0 0 calc(100% / 3);
+    padding: 10px 8px;
   }
 
-  .insights-row .el-col:last-child {
-    margin-bottom: 0;
+  /* 隐藏第二个分组起的竖线 */
+  .metric-item:nth-child(4)::before {
+    display: none;
   }
 
-  .insights-row :deep(.el-card__body) {
+  /* 洞察区单列堆叠 */
+  .insights-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .insights-grid :deep(.insight-card .el-card__body) {
     overflow-y: visible;
   }
 }

@@ -12,7 +12,7 @@
     </div>
 
     <div v-else class="stats-table">
-      <!-- 表头:与数据行共用同一套 grid 轨道,列边界严格对齐 -->
+      <!-- 表头 -->
       <div class="table-head">
         <span class="col-name">课程</span>
         <span class="col-hours-head">课时</span>
@@ -59,7 +59,6 @@ import { computed } from 'vue';
 import { Document } from '@element-plus/icons-vue';
 
 const props = defineProps({
-  /** [{ id, name, totalHours, classCount, teacherCount }] */
   data: { type: Array, default: () => [] },
 });
 
@@ -72,7 +71,6 @@ const totalHours = computed(() => {
   return Math.round(props.data.reduce((sum, d) => sum + d.totalHours, 0) * 10) / 10;
 });
 
-// 展示数据：按课时降序，最多显示前8条（紧凑布局）
 const displayData = computed(() => {
   if (!props.data || props.data.length === 0) return [];
   return [...props.data].sort((a, b) => b.totalHours - a.totalHours).slice(0, 8);
@@ -82,13 +80,13 @@ function barWidth(hours) {
   return Math.max(4, (hours / maxHours.value) * 100);
 }
 
-// 暖珊瑚红单色阶：与主蓝互补，引用 design token 统一管理
+// 主蓝同色阶：与 HoursChart 保持色系一致,中性不引发告警联想
 const palette = [
-  'var(--chart-danger-1)',
-  'var(--chart-danger-2)',
-  'var(--chart-danger-3)',
-  'var(--chart-danger-4)',
-  'var(--chart-danger-5)',
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
 ];
 
 function barColor(idx) {
@@ -97,15 +95,11 @@ function barColor(idx) {
 </script>
 
 <style scoped>
-.insight-card {
-  height: 100%;
-}
-
 .chart-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-5) 0;
+  padding: var(--space-6) 0;
   color: var(--text-secondary);
   font-size: 14px;
 }
@@ -114,18 +108,17 @@ function barColor(idx) {
   padding: 2px 0;
 }
 
-/* —— 表头：与数据行共用固定轨道,保证列边界严格对齐 —— */
-/* 轨道:课程名 96px / 课时区 1fr / 班+人 64px */
+/* 表头与数据行共用固定轨道:课程名 120px / 课时区 1fr / 班+人 90px */
 .table-head,
 .table-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 64px;
+  grid-template-columns: 120px minmax(0, 1fr) 90px;
   gap: 10px;
   align-items: center;
 }
 
 .table-head {
-  padding: 0 0 6px;
+  padding: 0 0 8px;
   border-bottom: 1px solid var(--border-light);
   margin-bottom: 2px;
 }
@@ -151,9 +144,9 @@ function barColor(idx) {
   text-align: center;
 }
 
-/* —— 数据行 —— */
+/* 数据行 */
 .table-row {
-  padding: 7px 0;
+  padding: 8px 0;
   border-bottom: 1px solid var(--border-light);
   transition: opacity var(--dur-fast) var(--ease-out);
 }
@@ -166,11 +159,10 @@ function barColor(idx) {
   opacity: 0.55;
 }
 
-/* 课程名列:固定宽度,名称超长省略,圆点+名称垂直居中 */
 .col-name {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 13px;
   color: var(--text-regular);
   min-width: 0;
@@ -191,7 +183,7 @@ function barColor(idx) {
   flex-shrink: 0;
 }
 
-/* 课时列:进度条 flex + 数值固定 40px 右对齐 */
+/* 课时列 */
 .col-hours {
   display: flex;
   align-items: center;
@@ -226,7 +218,7 @@ function barColor(idx) {
   font-variant-numeric: tabular-nums;
 }
 
-/* 班级+教师列:内部 1:1 双格 grid,数字右对齐等宽,单位下沉为小字 */
+/* 班级+教师列 */
 .col-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -242,7 +234,6 @@ function barColor(idx) {
   white-space: nowrap;
 }
 
-/* 为区分两列含义,给数值加极小号单位后缀(不破坏对齐) */
 .meta-num::after {
   content: attr(data-unit);
   font-size: 10px;
@@ -257,7 +248,7 @@ function barColor(idx) {
   justify-content: space-between;
   margin-top: var(--space-2);
   padding-top: var(--space-2);
-  border-top: 1px solid var(--border-light);
+  border-top: 1.5px solid var(--border-light);
   font-size: 12px;
   color: var(--text-secondary);
 }

@@ -12,40 +12,39 @@
     </div>
 
     <div v-else class="progress-chart">
-      <!-- 汇总环形指标 -->
+      <!-- 汇总百分比 -->
       <div class="summary">
         <div class="summary-percent">{{ rate }}<span class="percent-sign">%</span></div>
         <div class="summary-label">已排课占比</div>
       </div>
 
-      <!-- 双段对比条：已排课(品牌绿) + 剩余(浅灰) -->
-      <div class="dual-bar">
-        <div class="dual-bar-track">
-          <div class="dual-bar-filled" :style="{ width: rate + '%' }" />
-        </div>
-        <div class="dual-bar-legend">
-          <span class="legend-item">
-            <i class="dot dot-filled"></i>
-            已排课 <strong>{{ assigned }}</strong> 门
-          </span>
-          <span class="legend-item">
-            <i class="dot dot-remaining"></i>
-            剩余 <strong>{{ remaining }}</strong> 门
-          </span>
+      <!-- 进度条 -->
+      <div class="progress-bar">
+        <div class="progress-track">
+          <div class="progress-filled" :style="{ width: rate + '%' }" />
         </div>
       </div>
 
-      <!-- 课时维度对比 -->
-      <div class="hours-compare">
-        <div class="compare-row">
-          <span class="compare-label">已排课时</span>
-          <span class="compare-value compare-value-filled">{{ assignedHours }}</span>
-        </div>
-        <div class="compare-divider"></div>
-        <div class="compare-row">
-          <span class="compare-label">剩余课时</span>
-          <span class="compare-value compare-value-remaining">{{ remainingHours }}</span>
-        </div>
+      <!-- 图例 -->
+      <div class="legend">
+        <span class="legend-item">
+          <i class="dot dot-filled"></i>
+          已排课 <strong>{{ assigned }}</strong> 门
+        </span>
+        <span class="legend-item">
+          <i class="dot dot-remaining"></i>
+          剩余 <strong>{{ remaining }}</strong> 门
+        </span>
+      </div>
+
+      <!-- 课时概要 -->
+      <div class="hours-summary">
+        <span class="hours-tag hours-tag-filled">
+          已排 <strong>{{ assignedHours }}</strong> 课时
+        </span>
+        <span class="hours-tag hours-tag-remaining">
+          剩余 <strong>{{ remainingHours }}</strong> 课时
+        </span>
       </div>
 
       <div v-if="remaining === 0" class="complete-hint">
@@ -61,26 +60,21 @@ import { computed } from 'vue';
 import { TrendCharts, CircleCheckFilled } from '@element-plus/icons-vue';
 
 const props = defineProps({
-  /** 排课完成度数据：{ totalCourses, assignedCourses, rate } */
   data: {
     type: Object,
     default: () => ({ totalCourses: 0, assignedCourses: 0, rate: 0 }),
   },
-  /** 全局本学期开设课程总周课时(来自培养方案),用于按比例分摊已排/剩余课时 */
   totalHours: { type: Number, default: 0 },
 });
 
 const total = computed(() => props.data?.totalCourses || 0);
 const assigned = computed(() => props.data?.assignedCourses || 0);
 const remaining = computed(() => Math.max(0, total.value - assigned.value));
-// rate 后端可能缺失或未更新,以前端派生为准确保一致
 const rate = computed(() => {
   if (total.value === 0) return 0;
   return Math.round((assigned.value / total.value) * 100);
 });
 
-// 课时维度：按课程排课比例分摊计划总课时
-// totalHours = 本学期开设课程总周课时（来自培养方案），按 assigned/total 比例拆分
 const AVG_HOURS_PER_COURSE = 16;
 const assignedHours = computed(() => {
   if (props.totalHours > 0 && total.value > 0) {
@@ -97,34 +91,29 @@ const remainingHours = computed(() => {
 </script>
 
 <style scoped>
-.insight-card {
-  height: 100%;
-}
-
 .chart-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-5) 0;
+  padding: var(--space-6) 0;
   color: var(--text-secondary);
   font-size: 14px;
 }
 
 .progress-chart {
-  padding: 2px 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-/* 汇总百分比 — 视觉焦点 */
+/* 汇总百分比 */
 .summary {
   text-align: center;
-  padding: 2px 0 0;
+  padding: 4px 0 0;
 }
 
 .summary-percent {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   color: var(--brand-success);
   line-height: 1.1;
@@ -133,7 +122,7 @@ const remainingHours = computed(() => {
 }
 
 .percent-sign {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   margin-left: 2px;
 }
@@ -141,37 +130,37 @@ const remainingHours = computed(() => {
 .summary-label {
   font-size: 12px;
   color: var(--text-secondary);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
-/* 双段对比条 */
-.dual-bar-track {
-  height: 8px;
+/* 进度条 */
+.progress-track {
+  height: 10px;
   background: var(--bg-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: 5px;
   overflow: hidden;
 }
 
-.dual-bar-filled {
+.progress-filled {
   height: 100%;
   background: linear-gradient(90deg, var(--brand-success) 0%, var(--brand-success-soft) 100%);
-  border-radius: var(--radius-sm);
+  border-radius: 5px;
   transition: width 0.6s var(--ease-out);
   min-width: 4px;
 }
 
-.dual-bar-legend {
+/* 图例 */
+.legend {
   display: flex;
   justify-content: space-between;
-  margin-top: var(--space-2);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
 .legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .legend-item strong {
@@ -195,47 +184,37 @@ const remainingHours = computed(() => {
   background: var(--border-base);
 }
 
-/* 课时维度对比 */
-.hours-compare {
+/* 课时概要标签 */
+.hours-summary {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 10px var(--space-3);
-  background: var(--bg-subtle);
-  border-radius: var(--radius-sm);
+  gap: var(--space-2);
 }
 
-.compare-row {
+.hours-tag {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.compare-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.compare-value {
-  font-size: 16px;
+.hours-tag strong {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
 }
 
-.compare-value-filled {
-  color: var(--brand-success);
+.hours-tag-filled {
+  background: var(--brand-success-soft);
+  color: var(--brand-success-text);
 }
 
-.compare-value-remaining {
+.hours-tag-remaining {
+  background: var(--bg-subtle);
   color: var(--text-regular);
-}
-
-.compare-divider {
-  width: 1px;
-  height: 32px;
-  background: var(--border-light);
 }
 
 /* 完成提示 */
@@ -244,7 +223,7 @@ const remainingHours = computed(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: var(--space-2) var(--space-3);
+  padding: 10px var(--space-3);
   background: var(--brand-success-soft);
   border-radius: var(--radius-sm);
   font-size: 13px;

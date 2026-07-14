@@ -11,7 +11,7 @@
     </template>
 
     <div v-if="totalCount === 0" class="alert-empty">
-      <el-icon :size="32" color="var(--brand-success)"><CircleCheckFilled /></el-icon>
+      <el-icon :size="36" class="empty-check-icon"><CircleCheckFilled /></el-icon>
       <span>暂无异常，一切正常</span>
     </div>
 
@@ -19,7 +19,7 @@
       <!-- 未排课课程 -->
       <div v-if="data.unassignedCourses?.length > 0" class="alert-group">
         <div class="alert-group-title">
-          <el-icon color="var(--brand-warning)"><WarningFilled /></el-icon>
+          <el-icon color="var(--brand-warning-text)"><WarningFilled /></el-icon>
           <span>{{ data.unassignedCourses.length }} 门课程未排课</span>
           <el-button
             v-if="data.unassignedCourses.length > 3"
@@ -44,7 +44,7 @@
       <!-- 课时超限教师 -->
       <div v-if="data.overloadedTeachers?.length > 0" class="alert-group">
         <div class="alert-group-title">
-          <el-icon color="var(--brand-danger)"><CircleCloseFilled /></el-icon>
+          <el-icon color="var(--brand-danger-text)"><CircleCloseFilled /></el-icon>
           <span>{{ data.overloadedTeachers.length }} 位教师课时超限</span>
           <el-button
             v-if="data.overloadedTeachers.length > 3"
@@ -99,24 +99,31 @@ const displayedTeachers = computed(() => {
 </script>
 
 <style scoped>
-.insight-card {
-  height: 100%;
-}
-
 .alert-header {
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
 
+/* 空状态：脉冲呼吸动效,传递"一切正常"的正向反馈 */
 .alert-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-5) 0;
+  padding: var(--space-6) 0;
   color: var(--text-secondary);
   font-size: 14px;
+}
+
+.empty-check-icon {
+  color: var(--brand-success);
+  animation: pulse-gentle 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse-gentle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.08); }
 }
 
 .alert-group {
@@ -147,19 +154,20 @@ const displayedTeachers = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   margin-bottom: var(--space-1);
 }
 
+/* 降低告警项背景饱和度,避免与数据图表争抢注意力 */
 .alert-item-warning {
-  background: var(--brand-warning-soft);
+  background: rgba(251, 191, 36, 0.08);
   color: var(--text-regular);
 }
 
 .alert-item-danger {
-  background: var(--brand-danger-soft);
+  background: rgba(248, 113, 113, 0.08);
   color: var(--text-regular);
 }
 

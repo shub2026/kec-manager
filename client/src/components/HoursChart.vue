@@ -38,7 +38,6 @@
 import { computed } from 'vue';
 
 const props = defineProps({
-  /** [{ name: string, hours: number }] */
   data: { type: Array, default: () => [] },
 });
 
@@ -55,7 +54,6 @@ function barWidth(hours) {
   return Math.max(2, (hours / maxHours.value) * 100);
 }
 
-// 单色阶柱状图：复用主色透明度序列令牌(--chart-1~5),单色相内分级,既保持品牌统一又区分多系列
 const palette = [
   'var(--chart-1)',
   'var(--chart-2)',
@@ -71,15 +69,11 @@ function barColor(item) {
 </script>
 
 <style scoped>
-.insight-card {
-  height: 100%;
-}
-
 .chart-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-5) 0;
+  padding: var(--space-6) 0;
   color: var(--text-secondary);
   font-size: 14px;
 }
@@ -92,11 +86,16 @@ function barColor(item) {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-2);
+  margin-bottom: 10px;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.chart-row:last-of-type {
+  margin-bottom: 0;
 }
 
 .chart-label {
-  width: 72px;
+  width: 88px;
   flex-shrink: 0;
   font-size: 12px;
   color: var(--text-regular);
@@ -108,31 +107,25 @@ function barColor(item) {
 
 .chart-bar-wrap {
   flex: 1;
-  height: 16px;
+  height: 20px;
   background: var(--bg-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .chart-bar {
   height: 100%;
-  border-radius: var(--radius-sm);
+  border-radius: 3px;
   transition:
     width 0.6s var(--ease-out),
     filter var(--dur-fast) var(--ease-out);
   min-width: 4px;
 }
 
-/* 柱条 hover 高亮,增强数据可读性与交互感 */
 .chart-row:hover .chart-bar {
   filter: brightness(1.12);
 }
 
-.chart-row {
-  transition: opacity var(--dur-fast) var(--ease-out);
-}
-
-/* hover 当行时,其他行轻微淡化,聚焦当前数据 */
 .chart-container:hover .chart-row:not(:hover) {
   opacity: 0.55;
 }
@@ -150,8 +143,8 @@ function barColor(item) {
 .chart-footer {
   display: flex;
   justify-content: space-between;
-  margin-top: var(--space-2);
-  padding-top: 6px;
+  margin-top: var(--space-3);
+  padding-top: 10px;
   border-top: 1px solid var(--border-light);
   font-size: 12px;
   color: var(--text-secondary);
