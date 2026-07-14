@@ -130,13 +130,13 @@
     <!-- 分页 -->
     <div v-if="pagination.total > 0" class="pagination-container">
       <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
+        :current-page="pagination.page"
+        :page-size="pagination.pageSize"
         :page-sizes="[10, 20, 50, 100]"
         :total="pagination.total"
         layout="total, sizes, prev, pager, next, jumper"
-        @size-change="$emit('size-change')"
-        @current-change="$emit('page-change')"
+        @size-change="(s) => $emit('size-change', s)"
+        @current-change="(p) => $emit('page-change', p)"
       />
     </div>
   </div>

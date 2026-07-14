@@ -110,11 +110,11 @@ defineEmits(['reset']);
 .danger-hint {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 10px 14px;
   background: var(--brand-danger-soft);
   border-radius: var(--radius-sm);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
   font-size: 13px;
   color: var(--text-regular);
 }
@@ -135,8 +135,8 @@ defineEmits(['reset']);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 24px;
-  padding: 16px 0;
+  gap: var(--space-5);
+  padding: var(--space-4) 0;
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -183,7 +183,7 @@ defineEmits(['reset']);
   .reset-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .reset-item-action {

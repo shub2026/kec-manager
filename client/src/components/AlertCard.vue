@@ -106,21 +106,21 @@ const displayedTeachers = computed(() => {
 .alert-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .alert-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 24px 0;
+  gap: var(--space-2);
+  padding: var(--space-5) 0;
   color: var(--text-secondary);
   font-size: 14px;
 }
 
 .alert-group {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .alert-group:last-child {
@@ -134,7 +134,7 @@ const displayedTeachers = computed(() => {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .alert-items {
@@ -150,7 +150,7 @@ const displayedTeachers = computed(() => {
   padding: 6px 10px;
   border-radius: 4px;
   font-size: 13px;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .alert-item-warning {
@@ -173,7 +173,7 @@ const displayedTeachers = computed(() => {
 
 .alert-item-detail {
   flex-shrink: 0;
-  margin-left: 8px;
+  margin-left: var(--space-2);
   font-weight: 600;
   color: var(--brand-danger-text);
   font-variant-numeric: tabular-nums;

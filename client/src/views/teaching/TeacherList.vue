@@ -342,7 +342,9 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <BaseConfirmBody icon-color="var(--brand-danger)">确定要删除此教师吗？此操作不可撤销。</BaseConfirmBody>
+      <BaseConfirmBody icon-color="var(--brand-danger)"
+        >确定要删除此教师吗？此操作不可撤销。</BaseConfirmBody
+      >
       <template #footer>
         <el-button @click="deleteConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>

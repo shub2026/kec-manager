@@ -404,7 +404,7 @@ onMounted(() => {
 
 .details-content {
   background-color: var(--el-fill-color-light);
-  padding: 16px;
+  padding: var(--space-4);
   border-radius: var(--radius-sm);
   max-height: 400px;
   overflow: auto;
@@ -429,7 +429,7 @@ onMounted(() => {
 }
 
 .confirm-text {
-  margin: 16px 0 0;
+  margin: var(--space-4) 0 0;
   color: var(--text-regular);
   font-size: 14px;
   line-height: 1.6;

@@ -102,7 +102,7 @@
     </el-table>
 
     <!-- M-10：分页组件 -->
-    <div class="pagination-bar" v-if="filteredList.length > pageSize">
+    <div v-if="filteredList.length > pageSize" class="pagination-bar">
       <el-pagination
         v-model:current-page="currentPage"
         :page-size="pageSize"
@@ -204,8 +204,8 @@ defineExpose({ open, close });
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 .search-input {
   width: 220px;
@@ -218,7 +218,7 @@ defineExpose({ open, close });
 .pagination-bar {
   display: flex;
   justify-content: center;
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 .text-warning {
   color: var(--brand-warning-text);

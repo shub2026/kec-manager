@@ -428,11 +428,11 @@ defineProps({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
+  padding: var(--space-7) var(--space-5);
 }
 
 .empty-illustration {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
   --illust-bg: var(--brand-primary-soft, #e8f3fe);
   --illust-main: var(--brand-primary, #1c82f5);
   --illust-dot: var(--brand-primary-lighter, #b5d6fc);
@@ -444,19 +444,19 @@ defineProps({
 .empty-major {
   --illust-bg: var(--brand-warning-soft, #fef3c7);
   --illust-main: var(--brand-warning, #fbbf24);
-  --illust-dot: #fde68a;
+  --illust-dot: var(--brand-warning-lighter);
 }
 
 .empty-teacher {
   --illust-bg: var(--brand-success-soft, #d1fae5);
   --illust-main: var(--brand-success, #34d399);
-  --illust-dot: #a7f3d0;
+  --illust-dot: var(--brand-success-lighter);
 }
 
 .empty-textbook {
   --illust-bg: var(--brand-danger-soft, #fee2e2);
   --illust-main: var(--brand-danger, #f87171);
-  --illust-dot: #fecaca;
+  --illust-dot: var(--brand-danger-lighter);
 }
 
 .empty-plan {
@@ -470,7 +470,7 @@ defineProps({
 }
 
 .empty-description {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.5;

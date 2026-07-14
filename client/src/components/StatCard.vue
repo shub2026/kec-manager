@@ -85,7 +85,7 @@ watch(
     'value value';
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 20px 22px;
   min-height: 96px;
   background: var(--brand-primary-soft);
@@ -171,12 +171,12 @@ watch(
 /* 移动端：卡片内部收缩,保持各自布局节奏 */
 @media (max-width: 768px) {
   .stat-item {
-    padding: 12px 16px;
+    padding: var(--space-3) var(--space-4);
     min-height: 0;
   }
 
   .stat-core {
-    padding: 16px 18px;
+    padding: var(--space-4) 18px;
     min-height: 0;
   }
 

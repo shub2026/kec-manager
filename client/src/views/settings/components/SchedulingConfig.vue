@@ -46,7 +46,8 @@
             <label class="field-label">允许编辑历史学期</label>
             <p class="switch-desc">
               默认关闭：历史（非当前）学期在教学安排页为<strong>只读状态</strong>，禁止任何排课写操作，避免误改已结课数据。
-              开启后：历史学期可编辑，但在自动排课 / 手动安排 / 重置 / 执行预览等写操作保存前，会弹出二次确认弹窗，确认后方可执行。
+              开启后：历史学期可编辑，但在自动排课 / 手动安排 / 重置 /
+              执行预览等写操作保存前，会弹出二次确认弹窗，确认后方可执行。
             </p>
           </div>
           <el-switch
@@ -203,7 +204,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: var(--space-3);
   font-size: 13px;
   color: var(--brand-success, #34d399);
 }
@@ -215,7 +216,7 @@ onMounted(() => {
 .scheduling-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding-top: var(--space-4, 16px);
   border-top: 1px solid var(--border-light, #e2e8f0);
 }

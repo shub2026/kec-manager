@@ -105,7 +105,7 @@ const remainingHours = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 0;
+  padding: var(--space-5) 0;
   color: var(--text-secondary);
   font-size: 14px;
 }
@@ -114,7 +114,7 @@ const remainingHours = computed(() => {
   padding: 2px 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 /* 汇总百分比 — 视觉焦点 */
@@ -163,7 +163,7 @@ const remainingHours = computed(() => {
 .dual-bar-legend {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   font-size: 12px;
   color: var(--text-secondary);
 }
@@ -199,8 +199,8 @@ const remainingHours = computed(() => {
 .hours-compare {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: var(--space-3);
+  padding: 10px var(--space-3);
   background: var(--bg-subtle);
   border-radius: var(--radius-sm);
 }
@@ -244,7 +244,7 @@ const remainingHours = computed(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   background: var(--brand-success-soft);
   border-radius: var(--radius-sm);
   font-size: 13px;

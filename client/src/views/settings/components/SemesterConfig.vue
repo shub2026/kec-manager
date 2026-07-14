@@ -291,7 +291,7 @@ function handleSave() {
   max-width: 380px;
   height: auto;
   position: relative;
-  padding: 28px 24px;
+  padding: 28px var(--space-5);
   background: var(--bg-subtle);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
@@ -309,8 +309,8 @@ function handleSave() {
 .preview-badge {
   position: absolute;
   top: -12px;
-  right: 24px;
-  padding: 4px 12px;
+  right: var(--space-5);
+  padding: var(--space-1) var(--space-3);
   background: var(--brand-primary);
   color: var(--bg-card);
   border-radius: var(--radius-lg);
@@ -329,7 +329,7 @@ function handleSave() {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .preview-footer {
@@ -356,7 +356,7 @@ function handleSave() {
   justify-content: center;
   min-height: 200px;
   height: auto;
-  padding: 32px 24px;
+  padding: var(--space-6) var(--space-5);
   background: var(--bg-subtle);
   border-radius: var(--radius-md);
   color: var(--text-secondary);

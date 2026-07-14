@@ -57,7 +57,7 @@ function onChange(val) {
 .semester-select {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 </style>

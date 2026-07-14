@@ -24,6 +24,8 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { Warning, HomeFilled, ArrowLeft } from '@element-plus/icons-vue';
 
+defineOptions({ name: 'NotFound' });
+
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -46,10 +48,10 @@ function goHome() {
 }
 .not-found-content {
   text-align: center;
-  padding: 48px 32px;
+  padding: var(--space-7) var(--space-6);
 }
 .not-found-icon {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 .not-found-code {
   font-size: 72px;
@@ -63,16 +65,16 @@ function goHome() {
   font-size: 24px;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 16px 0 8px;
+  margin: var(--space-4) 0 var(--space-2);
 }
 .not-found-desc {
   font-size: 14px;
   color: var(--text-secondary);
-  margin: 0 0 32px;
+  margin: 0 0 var(--space-6);
 }
 .not-found-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: center;
 }
 </style>

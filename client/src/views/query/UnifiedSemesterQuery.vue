@@ -526,15 +526,15 @@ onMounted(async () => {
 }
 /* 展开行内嵌表格紧凑化 */
 .expand-content {
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
 }
 .expand-content :deep(.el-table .cell) {
   min-height: 26px;
-  padding: 2px 8px;
+  padding: 2px var(--space-2);
 }
 .expand-content :deep(.el-table th .cell) {
   min-height: 28px;
-  padding: 2px 8px;
+  padding: 2px var(--space-2);
 }
 /* 内嵌表格禁用行hover高亮，避免与外层表格hover效果叠加造成视觉干扰
    .expand-content 类带来更高特异性，无需 !important 即可覆盖全局规则 */

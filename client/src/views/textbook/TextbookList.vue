@@ -56,7 +56,9 @@
         </template>
         <el-table-column type="selection" width="45" />
         <el-table-column label="序号" width="60">
-          <template #default="{ row }">{{ (currentPage - 1) * pageSize + globalIndex(row) + 1 }}</template>
+          <template #default="{ row }">{{
+            (currentPage - 1) * pageSize + globalIndex(row) + 1
+          }}</template>
         </el-table-column>
         <el-table-column prop="title" label="书名" min-width="150" show-overflow-tooltip />
         <el-table-column prop="isbn" label="书号" min-width="120" show-overflow-tooltip />
@@ -89,7 +91,7 @@
           </template>
         </el-table-column>
         <el-table-column label="排序" min-width="100" align="center">
-          <template #default="{ row, $index }">
+          <template #default="{ row }">
             <div class="sort-buttons">
               <el-button
                 size="small"
@@ -268,7 +270,9 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <BaseConfirmBody icon-color="var(--brand-danger)">{{ batchDeleteConfirmMessage }}</BaseConfirmBody>
+      <BaseConfirmBody icon-color="var(--brand-danger)">{{
+        batchDeleteConfirmMessage
+      }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="batchDeleting" @click="confirmBatchDelete"

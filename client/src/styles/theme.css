@@ -42,6 +42,18 @@
   --chart-4: rgba(28, 130, 245, 0.3);
   --chart-5: rgba(28, 130, 245, 0.16);
 
+  /* —— 图表语义色阶(danger):暖珊瑚红单色阶,与主蓝互补,用于对比型图表 —— */
+  --chart-danger-1: var(--brand-danger);
+  --chart-danger-2: rgba(248, 113, 113, 0.78);
+  --chart-danger-3: rgba(248, 113, 113, 0.58);
+  --chart-danger-4: rgba(248, 113, 113, 0.42);
+  --chart-danger-5: rgba(248, 113, 113, 0.28);
+
+  /* —— 语义色浅阶(lighter):第三档浅色,用于空状态插画点缀等场景 —— */
+  --brand-success-lighter: #a7f3d0;
+  --brand-warning-lighter: #fde68a;
+  --brand-danger-lighter: #fecaca;
+
   /* —— 中性色阶(替换散落的 #303133 / #606266 / #909399) —— */
   --text-primary: #1e293b;
   --text-regular: #475569;
@@ -94,6 +106,13 @@
   --shadow-lg: 0 8px 16px -4px rgba(15, 23, 42, 0.06), 0 20px 50px -8px rgba(15, 23, 42, 0.12);
   --shadow-glow: 0 4px 16px rgba(28, 130, 245, 0.25); /* 主色按钮/核心卡片 hover 光晕 */
   --shadow-glow-soft: 0 8px 24px rgba(28, 130, 245, 0.1); /* 核心卡片柔和光晕 */
+
+  /* —— z-index 层级体系:统一管理层叠顺序,避免散落魔法数字 —— */
+  --z-sticky-cell: 1;       /* sticky 固定列/单元格 */
+  --z-sticky-header: 2;     /* sticky 表头 */
+  --z-toolbar: 10;          /* sticky 工具栏 */
+  --z-toast: 9999;          /* 浮层通知(toast) */
+  --z-modal-fullscreen: 10000; /* 全屏遮罩 */
 
   /* —— 动效曲线:cubic-bezier 让过渡更有弹性 —— */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

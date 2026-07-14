@@ -130,6 +130,8 @@ import MatrixLegend from '../../components/MatrixLegend.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 
+defineOptions({ name: 'PlanDetail' });
+
 const route = useRoute();
 // M-3 修复：使用 computed 使 planId 响应式，支持路由参数变化时自动更新
 const planId = computed(() => Number(route.params.id));
@@ -350,7 +352,7 @@ onMounted(async () => {
 
 /* 图例与矩阵间距 */
 .plan-legend {
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .full-width {
@@ -368,7 +370,7 @@ onMounted(async () => {
   }
 
   .plan-overview {
-    gap: 8px 16px;
+    gap: var(--space-2) var(--space-4);
     padding: var(--space-3);
   }
 
@@ -381,7 +383,7 @@ onMounted(async () => {
     width: 100%;
     margin-left: 0;
     flex: 1 1 100%;
-    margin-top: 4px;
+    margin-top: var(--space-1);
   }
 }
 

@@ -147,31 +147,31 @@ defineEmits([
 <style scoped>
 /* Popover */
 .popover-content {
-  padding: 4px 0;
+  padding: var(--space-1) 0;
 }
 
 .popover-title {
   font-weight: 600;
   font-size: 14px;
   color: var(--text-primary);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--border-light);
 }
 
 .popover-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 8px;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--border-light);
 }
 
 .textbook-disabled-tip {
   font-size: 12px;
   color: var(--brand-danger-text);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .full-width {

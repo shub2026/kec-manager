@@ -1021,35 +1021,22 @@ onMounted(async () => {
 
 <style scoped>
 .matrix-card {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 .historical-alert {
   max-width: 560px;
   width: 100%;
-  margin: 0 0 16px 0;
+  margin: 0 0 var(--space-4) 0;
 }
 :deep(.semester-select) {
   flex-wrap: nowrap;
   white-space: nowrap;
 }
 .combined-icon {
-  margin-left: 4px;
+  margin-left: var(--space-1);
   vertical-align: middle;
   color: var(--brand-indigo);
   cursor: help;
-}
-.card-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-.card-header-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
 }
 .teacher-cell {
   cursor: pointer;
@@ -1060,7 +1047,7 @@ onMounted(async () => {
   /* flex:1 撑满父级 .cell（flex容器），负边距消除父级 padding 点击死区 */
   flex: 1;
   margin: -4px -10px;
-  padding: 4px 10px;
+  padding: var(--space-1) 10px;
   border-radius: 4px;
   transition: background-color 0.15s ease;
 }

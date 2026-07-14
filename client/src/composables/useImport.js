@@ -23,7 +23,7 @@ function getImportResultContainer() {
     importResultContainer = document.createElement('div');
     importResultContainer.id = 'import-result-toast-container';
     importResultContainer.style.cssText =
-      'position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;flex-direction:column;gap:12px;pointer-events:none;';
+      'position:fixed;right:16px;bottom:16px;z-index:var(--z-toast);display:flex;flex-direction:column;gap:12px;pointer-events:none;';
     document.body.appendChild(importResultContainer);
   }
   return importResultContainer;
@@ -201,7 +201,7 @@ function showImportProgressOverlay(onCancel) {
   // 全屏遮罩
   const overlay = document.createElement('div');
   overlay.style.cssText =
-    'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;' +
+    'position:fixed;inset:0;z-index:var(--z-modal-fullscreen);display:flex;align-items:center;justify-content:center;' +
     'background:rgba(0,0,0,0.45);animation:importOverlayFadeIn 0.2s ease;';
 
   // 居中卡片

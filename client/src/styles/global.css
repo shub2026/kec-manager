@@ -153,13 +153,15 @@
 /* ----- 卡片头部（标题行） ----- */
 .card-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 
 .card-header-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
 }

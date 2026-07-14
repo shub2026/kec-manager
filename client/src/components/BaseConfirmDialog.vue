@@ -42,7 +42,7 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 
 <style scoped>
 .base-confirm-body {
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 .base-confirm-message {

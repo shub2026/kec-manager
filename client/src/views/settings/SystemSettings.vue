@@ -49,6 +49,8 @@ import SchedulingConfig from './components/SchedulingConfig.vue';
 import DataReset from './components/DataReset.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 
+defineOptions({ name: 'SystemSettings' });
+
 const settingsStore = useSettingsStore();
 const saving = ref(false);
 const resetting = ref(false);
@@ -167,7 +169,7 @@ onMounted(() => {
 /* 响应式 */
 @media (max-width: 768px) {
   .settings-page {
-    padding: 12px;
+    padding: var(--space-3);
   }
 }
 </style>

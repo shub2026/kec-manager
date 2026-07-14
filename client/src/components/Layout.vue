@@ -336,7 +336,7 @@ function handlePasswordChangeSuccess() {
 /* 侧边栏渐变背景 */
 .layout-aside {
   background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-deep) 100%);
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 活跃菜单项左侧色条指示器 */
@@ -344,8 +344,8 @@ function handlePasswordChangeSuccess() {
   content: '';
   position: absolute;
   left: 0;
-  top: 8px;
-  bottom: 8px;
+  top: var(--space-2);
+  bottom: var(--space-2);
   width: 3px;
   border-radius: 0 3px 3px 0;
   background: var(--brand-primary);
@@ -411,13 +411,13 @@ function handlePasswordChangeSuccess() {
 .layout-header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .layout-header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .collapse-icon {
@@ -432,7 +432,7 @@ function handlePasswordChangeSuccess() {
   gap: 6px;
   cursor: pointer;
   outline: none;
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   transition: background var(--dur-fast) var(--ease-out);
 }
@@ -469,7 +469,7 @@ function handlePasswordChangeSuccess() {
 @media (max-width: 768px) {
   .layout-header {
     height: 50px;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
   }
 
   .layout-header-left {
@@ -481,11 +481,11 @@ function handlePasswordChangeSuccess() {
   }
 
   .layout-header-right {
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .layout-main {
-    padding: 12px 12px;
+    padding: var(--space-3) var(--space-3);
   }
 }
 

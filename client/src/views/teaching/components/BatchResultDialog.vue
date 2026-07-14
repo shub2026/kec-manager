@@ -84,7 +84,7 @@
             <el-icon><WarningFilled /></el-icon> {{ r.error }}
           </div>
           <div v-if="r.warnings?.length" class="detail-warnings">
-            <div v-for="(w, i) in r.warnings" :key="w" class="detail-warning-item">
+            <div v-for="(w, i) in r.warnings" :key="i" class="detail-warning-item">
               <el-icon><Warning /></el-icon> {{ w }}
             </div>
           </div>
@@ -146,18 +146,18 @@ function toggleCourseDetail(courseId) {
 
 <style scoped>
 :deep(.batch-result-dialog) .el-dialog__body {
-  padding: 16px 20px;
+  padding: var(--space-4) 20px;
 }
 .batch-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 .batch-stat-card {
   background: var(--bg-subtle);
   border-radius: 8px;
-  padding: 12px 8px;
+  padding: var(--space-3) var(--space-2);
   text-align: center;
   border: 1px solid transparent;
   transition: border-color 0.2s;
@@ -188,10 +188,10 @@ function toggleCourseDetail(courseId) {
 .batch-stat-label {
   font-size: 12px;
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 .batch-filter-tabs {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
   display: flex;
   justify-content: flex-end;
 }
@@ -228,7 +228,7 @@ function toggleCourseDetail(courseId) {
 .course-item-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 .expand-icon {
@@ -250,7 +250,7 @@ function toggleCourseDetail(courseId) {
 .course-item-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 .course-item-stat {
@@ -258,7 +258,7 @@ function toggleCourseDetail(courseId) {
   color: var(--text-secondary);
 }
 .course-item-detail {
-  padding: 8px 14px 12px 34px;
+  padding: var(--space-2) 14px var(--space-3) 34px;
   border-top: 1px dashed var(--border-light);
   font-size: 13px;
 }
@@ -267,20 +267,20 @@ function toggleCourseDetail(courseId) {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 .detail-warnings {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 .detail-warning-item {
   color: var(--brand-warning-text);
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 .detail-unassigned {
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 .detail-section-title {
   font-size: 12px;
@@ -292,7 +292,7 @@ function toggleCourseDetail(courseId) {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
   border-bottom: 1px solid var(--bg-subtle);
 }
 .detail-unassigned-item:last-child {

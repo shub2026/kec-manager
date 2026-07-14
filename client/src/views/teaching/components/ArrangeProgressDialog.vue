@@ -164,14 +164,14 @@ const progressStatus = computed(() => {
 
 <style scoped>
 .arrange-progress {
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 .progress-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
 }
 
 .progress-icon {
@@ -204,13 +204,13 @@ const progressStatus = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 .phase-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 13px;
   color: var(--text-secondary);
   transition: color 0.2s;
@@ -233,15 +233,15 @@ const progressStatus = computed(() => {
 .batch-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin: 16px 0;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px 8px;
+  padding: var(--space-3) var(--space-2);
   background: var(--fill-light, #f1f5f9);
   border-radius: 6px;
 }
@@ -249,7 +249,7 @@ const progressStatus = computed(() => {
 .stat-label {
   font-size: 12px;
   color: var(--text-secondary);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .stat-value {
@@ -269,10 +269,10 @@ const progressStatus = computed(() => {
 .current-course {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 13px;
   color: var(--text-regular);
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   background: var(--fill-light, #f1f5f9);
   border-radius: 4px;
 }

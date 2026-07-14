@@ -131,8 +131,7 @@ const filteredList = computed(() => {
   if (!kw) return list.value;
   return list.value.filter(
     (i) =>
-      (i.name && i.name.toLowerCase().includes(kw)) ||
-      (i.code && i.code.toLowerCase().includes(kw))
+      (i.name && i.name.toLowerCase().includes(kw)) || (i.code && i.code.toLowerCase().includes(kw))
   );
 });
 const realIndex = (row) => filteredList.value.findIndex((i) => i.id === row.id);

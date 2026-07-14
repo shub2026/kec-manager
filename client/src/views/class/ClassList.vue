@@ -102,7 +102,9 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <BaseConfirmBody icon-color="var(--brand-danger)">确定要删除此班级吗？此操作不可撤销。</BaseConfirmBody>
+      <BaseConfirmBody icon-color="var(--brand-danger)"
+        >确定要删除此班级吗？此操作不可撤销。</BaseConfirmBody
+      >
       <template #footer>
         <el-button @click="deleteConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
@@ -116,7 +118,9 @@
       width="min(450px, 90vw)"
       align-center
     >
-      <BaseConfirmBody icon-color="var(--brand-danger)">{{ batchDeleteConfirmMessage }}</BaseConfirmBody>
+      <BaseConfirmBody icon-color="var(--brand-danger)">{{
+        batchDeleteConfirmMessage
+      }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
         <el-button type="danger" :loading="batchDeleting" @click="confirmBatchDelete"
@@ -374,11 +378,13 @@ function resetPaginationAndLoad() {
   load();
 }
 
-function handlePageChange() {
+function handlePageChange(page) {
+  pagination.value.page = page;
   load();
 }
 
-function handleSizeChange() {
+function handleSizeChange(size) {
+  pagination.value.pageSize = size;
   pagination.value.page = 1;
   load();
 }
@@ -810,7 +816,7 @@ onUnmounted(() => {
   font-size: 16px;
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .progress-detail {
@@ -822,7 +828,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--border-light);

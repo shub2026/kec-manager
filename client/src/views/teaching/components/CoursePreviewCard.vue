@@ -67,14 +67,7 @@ function courseTypeLabel(type) {
 
 <style scoped>
 .preview-card {
-  margin-bottom: 16px;
-}
-.card-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
+  margin-bottom: var(--space-4);
 }
 .preview-title {
   display: flex;
@@ -96,8 +89,8 @@ function courseTypeLabel(type) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 4px 0;
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
 }
 .stat-label {
   font-size: 12px;

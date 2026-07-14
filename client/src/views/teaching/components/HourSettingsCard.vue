@@ -72,7 +72,7 @@ import { getHourSettings, saveHourSettings } from '../../../api/teachingArrange'
 const props = defineProps({
   currentSemesterLabel: { type: String, default: '' },
   allCourses: { type: Array, default: () => [] },
-  selectedCourseId: { type: [Number, String, null], default: null },
+  selectedCourseId: { type: [Number, String], default: null },
 });
 
 const emit = defineEmits(['update:selectedCourseId', 'course-change']);
@@ -145,27 +145,14 @@ defineExpose({ hourSettings });
 
 <style scoped>
 .settings-card {
-  margin-bottom: 16px;
-}
-.card-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-.card-header-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
+  margin-bottom: var(--space-4);
 }
 .hour-settings {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding-top: 4px;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
 }
 .hour-settings-title {
   font-size: 14px;
@@ -176,8 +163,8 @@ defineExpose({ hourSettings });
 .hour-setting-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
+  gap: var(--space-2);
+  padding: var(--space-1) 10px;
   background: var(--bg-subtle);
   border-radius: 4px;
 }
@@ -189,7 +176,7 @@ defineExpose({ hourSettings });
 .setting-field {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .field-label {
   font-size: 12px;

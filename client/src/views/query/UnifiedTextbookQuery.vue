@@ -358,14 +358,14 @@ onMounted(async () => {
 
 /* 强制 descriptions 内部表格固定布局，切换教材时列宽不跳动 */
 .textbook-descriptions :deep(table) {
-  table-layout: fixed !important;
-  width: 100% !important;
+  table-layout: fixed;
+  width: 100%;
 }
 
 /* 固定标签列宽度，保证切换教材时标题不换行、不抖动 */
 .textbook-descriptions :deep(.el-descriptions__label) {
-  width: 90px !important;
-  min-width: 90px !important;
+  width: 90px;
+  min-width: 90px;
   flex-shrink: 0;
   font-weight: 500;
   color: var(--text-regular);
@@ -395,7 +395,7 @@ onMounted(async () => {
 }
 
 .alert-success {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 /* 表格容器，确保撑满可用宽度 */

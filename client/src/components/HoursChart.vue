@@ -79,20 +79,20 @@ function barColor(item) {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 0;
+  padding: var(--space-5) 0;
   color: var(--text-secondary);
   font-size: 14px;
 }
 
 .chart-container {
-  padding: 4px 0;
+  padding: var(--space-1) 0;
 }
 
 .chart-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 
 .chart-label {
@@ -150,7 +150,7 @@ function barColor(item) {
 .chart-footer {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   padding-top: 6px;
   border-top: 1px solid var(--border-light);
   font-size: 12px;

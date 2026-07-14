@@ -143,6 +143,6 @@ onMounted(() => {
 
 /* 图例间距 */
 .plan-query-legend {
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 </style>

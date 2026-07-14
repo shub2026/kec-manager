@@ -362,7 +362,7 @@ async function handleSave() {
 }
 
 .form-hint {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   font-size: 12px;
   color: var(--text-secondary);
 }

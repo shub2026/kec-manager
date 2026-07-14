@@ -183,7 +183,7 @@ onMounted(() => {
   background: var(--bg-page);
   background-image: radial-gradient(
     ellipse 80% 60% at 50% 0%,
-    rgba(28, 130, 245, 0.06) 0%,
+    color-mix(in srgb, var(--brand-primary) 6%, transparent) 0%,
     transparent 70%
   );
   padding: 40px 20px;
@@ -214,7 +214,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-bottom: 48px;
+  margin-bottom: var(--space-7);
 }
 
 .brand-logo {
@@ -255,7 +255,7 @@ onMounted(() => {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  padding: 0 36px 32px;
+  padding: 0 36px var(--space-6);
   box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
@@ -272,7 +272,7 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   width: 100%;
-  padding: 24px 0 20px;
+  padding: var(--space-5) 0 20px;
 }
 
 .card-header h2 {
@@ -298,7 +298,7 @@ onMounted(() => {
 .login-form :deep(.el-input__wrapper) {
   border-radius: var(--radius-sm);
   box-shadow: 0 0 0 1px var(--border-light) inset;
-  padding: 4px 12px;
+  padding: var(--space-1) var(--space-3);
   transition: box-shadow var(--dur-base) var(--ease-out);
 }
 
@@ -339,7 +339,7 @@ onMounted(() => {
 /* ==================== 账号提示 ==================== */
 .account-hint {
   border-top: 1px solid var(--border-light);
-  padding-top: 12px;
+  padding-top: var(--space-3);
 }
 
 .account-hint :deep(.el-collapse) {
@@ -360,26 +360,26 @@ onMounted(() => {
 }
 
 .account-hint :deep(.el-collapse-item__content) {
-  padding: 0 0 4px;
+  padding: 0 0 var(--space-1);
 }
 
 .hint-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .hint-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 12px;
   color: var(--text-regular);
 }
 
 .hint-row code {
   background: var(--bg-subtle);
-  padding: 2px 8px;
+  padding: 2px var(--space-2);
   border-radius: 4px;
   font-size: 11px;
   color: var(--text-primary);
@@ -387,7 +387,7 @@ onMounted(() => {
 
 /* ==================== 底部 ==================== */
 .page-footer {
-  margin-top: 32px;
+  margin-top: var(--space-6);
   text-align: center;
   color: var(--text-placeholder);
   font-size: 12px;
@@ -396,7 +396,7 @@ onMounted(() => {
 /* ==================== 响应式 ==================== */
 @media (max-width: 480px) {
   .login-page {
-    padding: 24px 16px;
+    padding: var(--space-5) var(--space-4);
     align-items: flex-start;
     padding-top: 12vh;
   }
@@ -420,11 +420,11 @@ onMounted(() => {
   }
 
   .login-card {
-    padding: 0 24px 28px;
+    padding: 0 var(--space-5) 28px;
   }
 
   .card-header {
-    padding: 24px 0 20px;
+    padding: var(--space-5) 0 20px;
   }
 
   .card-header h2 {

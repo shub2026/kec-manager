@@ -10,7 +10,8 @@
           <template v-if="!loading && stats.courses">
             <span class="subtitle-sep">·</span>
             <span class="subtitle-summary">
-              {{ stats.courses }} 门课程 / {{ stats.teachingTeachers }} 位教师 / {{ stats.classes }} 个班级
+              {{ stats.courses }} 门课程 / {{ stats.teachingTeachers }} 位教师 /
+              {{ stats.classes }} 个班级
             </span>
           </template>
         </p>
@@ -113,6 +114,8 @@ import AlertCard from '../components/AlertCard.vue';
 import HoursChart from '../components/HoursChart.vue';
 import CourseProgressChart from '../components/CourseProgressChart.vue';
 import CourseStatsCard from '../components/CourseStatsCard.vue';
+
+defineOptions({ name: 'Dashboard' });
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -303,13 +306,13 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-3);
   flex-shrink: 0;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
 }
 
 .welcome-title {
-  margin: 0 0 4px 0;
+  margin: 0 0 var(--space-1) 0;
   font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
@@ -343,7 +346,7 @@ onMounted(async () => {
 
 .welcome-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -376,7 +379,7 @@ onMounted(async () => {
 }
 
 .insights-row :deep(.el-card__body) {
-  padding: 16px 20px;
+  padding: var(--space-4) 20px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -396,7 +399,7 @@ onMounted(async () => {
 .dashboard-footer {
   margin-top: auto;
   text-align: center;
-  padding: 16px 0 4px;
+  padding: var(--space-4) 0 var(--space-1);
   font-size: 11px;
   color: var(--text-placeholder);
   flex-shrink: 0;
@@ -414,21 +417,21 @@ onMounted(async () => {
 }
 
 .footer-sep {
-  margin: 0 4px;
+  margin: 0 var(--space-1);
 }
 
 /* 响应式 */
 @media (max-width: 768px) {
   .dashboard {
     min-height: calc(100vh - 50px - 24px);
-    gap: 16px;
-    padding-bottom: 4px;
+    gap: var(--space-4);
+    padding-bottom: var(--space-1);
   }
 
   .welcome-section {
     flex-direction: column;
     align-items: flex-start;
-    padding: 4px 0;
+    padding: var(--space-1) 0;
   }
 
   .welcome-actions {
@@ -447,7 +450,7 @@ onMounted(async () => {
 
   /* 洞察卡纵向堆叠时增加行间距 */
   .insights-row .el-col {
-    margin-bottom: 16px;
+    margin-bottom: var(--space-4);
   }
 
   .insights-row .el-col:last-child {

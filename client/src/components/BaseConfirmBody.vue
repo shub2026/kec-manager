@@ -29,7 +29,7 @@ defineProps({
 <style scoped>
 .confirm-row {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: flex-start;
 }
 .confirm-icon {
@@ -46,7 +46,7 @@ defineProps({
   margin: 0;
 }
 .confirm-warning {
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
   color: var(--brand-danger-text);
   font-size: 13px;
   line-height: 1.6;

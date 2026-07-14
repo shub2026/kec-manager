@@ -49,18 +49,18 @@ defineProps({
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .page-header-left {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
   /* 左侧品牌强调条：与首页 welcome-section 共享同一强调语言,使概览页/列表页系统化统一 */
   border-left: 3px solid var(--brand-primary);
-  padding-left: 12px;
+  padding-left: var(--space-3);
 }
 
 .page-header-back {
@@ -98,7 +98,7 @@ defineProps({
   font-size: 13px;
   color: var(--text-secondary);
   background: var(--brand-primary-soft);
-  padding: 2px 8px;
+  padding: 2px var(--space-2);
   border-radius: 4px;
   font-weight: 500;
   white-space: nowrap;
@@ -107,7 +107,7 @@ defineProps({
 .page-header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 
@@ -126,7 +126,7 @@ defineProps({
   .page-header-main {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .page-header-right {

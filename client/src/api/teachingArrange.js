@@ -42,7 +42,7 @@ async function fetchArrangeSSE(url, body, onProgress, options = {}) {
   } catch (fetchErr) {
     clearTimeout(timeoutId);
     if (fetchErr.name === 'AbortError') {
-      throw new Error('排课请求超时，请稍后重试');
+      throw new Error('排课请求超时，请稍后重试', { cause: fetchErr });
     }
     throw fetchErr;
   }

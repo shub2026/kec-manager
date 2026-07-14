@@ -63,13 +63,13 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 
 <style scoped>
 .dialog-body {
-  padding: 8px 0;
+  padding: var(--space-2) 0;
 }
 
 .info-title {
   font-size: 14px;
   color: var(--text-primary);
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
 }
 
 .info-icon {
@@ -81,7 +81,7 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 .info-row {
   font-size: 14px;
   color: var(--text-regular);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 .info-detail {

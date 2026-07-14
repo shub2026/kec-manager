@@ -90,11 +90,11 @@
 
       <el-pagination
         v-if="filteredList.length > pageSize"
+        v-model:current-page="currentPage"
         class="pagination-container"
         layout="total, prev, pager, next, jumper"
         :total="filteredList.length"
         :page-size="pageSize"
-        v-model:current-page="currentPage"
         background
       />
     </el-card>

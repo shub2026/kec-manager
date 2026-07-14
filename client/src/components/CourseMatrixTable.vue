@@ -301,7 +301,7 @@ function calcGrandTotalSemester(semester) {
 .matrix-table th {
   background: var(--bg-subtle);
   border: 1px solid var(--border-light);
-  padding: 8px 6px;
+  padding: var(--space-2) 6px;
   text-align: center;
   font-weight: 600;
   color: var(--text-primary);
@@ -314,20 +314,20 @@ function calcGrandTotalSemester(semester) {
 
 .matrix-course-header {
   width: 160px;
-  text-align: left !important;
-  padding-left: 12px !important;
+  text-align: left;
+  padding-left: var(--space-3);
 }
 
 .matrix-total-header {
   width: 70px;
-  background: var(--brand-primary-soft) !important;
-  color: var(--brand-primary) !important;
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
 }
 
 .matrix-action-header {
   width: 140px;
   text-align: center;
-  background: var(--bg-subtle) !important;
+  background: var(--bg-subtle);
 }
 
 /* 固定列 */
@@ -339,7 +339,7 @@ function calcGrandTotalSemester(semester) {
 }
 
 .matrix-course-name {
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-light);
   vertical-align: middle;
 }
@@ -370,7 +370,7 @@ function calcGrandTotalSemester(semester) {
 }
 
 .matrix-group-cell {
-  padding: 6px 16px !important;
+  padding: 6px var(--space-4);
   font-weight: 600;
   font-size: 14px;
   border: 1px solid var(--border-light);
@@ -387,7 +387,7 @@ function calcGrandTotalSemester(semester) {
 }
 
 .group-label {
-  margin-right: 8px;
+  margin-right: var(--space-2);
 }
 
 .group-count {
@@ -399,7 +399,7 @@ function calcGrandTotalSemester(semester) {
 /* 单元格 */
 .matrix-cell {
   border: 1px solid var(--border-light);
-  padding: 4px 6px;
+  padding: var(--space-1) 6px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
@@ -511,7 +511,7 @@ function calcGrandTotalSemester(semester) {
 
 /* 总课时列 */
 .matrix-total-cell {
-  background: var(--brand-primary-soft) !important;
+  background: var(--brand-primary-soft);
   font-size: 14px;
 }
 
@@ -533,7 +533,7 @@ function calcGrandTotalSemester(semester) {
 }
 
 .matrix-action-cell .el-button {
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
 }
 
 /* 小计行 */
@@ -543,7 +543,7 @@ function calcGrandTotalSemester(semester) {
 }
 
 .matrix-subtotal-label {
-  padding: 6px 12px;
+  padding: 6px var(--space-3);
   font-weight: 600;
   color: var(--text-regular);
   text-align: left;
@@ -569,9 +569,9 @@ function calcGrandTotalSemester(semester) {
 }
 
 .matrix-grand-total-label {
-  padding: 8px 12px !important;
+  padding: var(--space-2) var(--space-3);
   font-size: 14px;
-  text-align: left !important;
+  text-align: left;
 }
 
 .matrix-grand-total-cell {
@@ -580,15 +580,15 @@ function calcGrandTotalSemester(semester) {
 
 /* 底部控制栏：统一年级周数设置卡片 */
 .matrix-footer {
-  margin-top: 16px;
-  padding: 12px 16px;
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 16px;
+  gap: var(--space-3) var(--space-4);
 }
 
 .footer-section {
@@ -672,7 +672,7 @@ function calcGrandTotalSemester(semester) {
 
   .matrix-cell {
     min-width: 52px;
-    padding: 3px 4px;
+    padding: 3px var(--space-1);
   }
 
   /* 课时数字回调,避免在窄列里溢出 */
@@ -705,17 +705,17 @@ function calcGrandTotalSemester(semester) {
   .cell-textbook,
   .cell-no-textbook {
     font-size: 10px;
-    margin-top: 4px;
+    margin-top: var(--space-1);
   }
 
   /* 底部控制栏进一步紧凑 */
   .matrix-footer {
-    padding: 10px 12px;
-    gap: 8px 12px;
+    padding: 10px var(--space-3);
+    gap: var(--space-2) var(--space-3);
   }
 
   .footer-section {
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .footer-hint {
@@ -725,7 +725,7 @@ function calcGrandTotalSemester(semester) {
   /* 小计/总计标签收缩 */
   .matrix-subtotal-label,
   .matrix-grand-total-label {
-    padding: 4px 8px;
+    padding: var(--space-1) var(--space-2);
     font-size: 12px;
   }
 }
@@ -762,7 +762,7 @@ function calcGrandTotalSemester(semester) {
 
 .textbook-tooltip .tooltip-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 12px;
   color: rgba(255, 255, 255, 0.85);
 }
@@ -781,8 +781,8 @@ function calcGrandTotalSemester(semester) {
 }
 
 .textbook-tooltip .tooltip-status.required {
-  background: rgba(52, 211, 153, 0.25);
-  color: #6ee7b7;
+  background: color-mix(in srgb, var(--brand-success) 25%, transparent);
+  color: var(--brand-success-lighter);
 }
 
 .textbook-tooltip .tooltip-status.elective {
@@ -791,7 +791,7 @@ function calcGrandTotalSemester(semester) {
 }
 
 .textbook-tooltip .tooltip-status.disabled {
-  background: rgba(248, 113, 113, 0.25);
-  color: #fca5a5;
+  background: color-mix(in srgb, var(--brand-danger) 25%, transparent);
+  color: var(--brand-danger-lighter);
 }
 </style>

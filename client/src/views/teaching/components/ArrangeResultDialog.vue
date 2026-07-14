@@ -61,7 +61,7 @@
 
     <!-- 警告信息 -->
     <div v-if="result.warnings?.length" class="arrange-warnings">
-      <div v-for="(w, i) in result.warnings" :key="w" class="arrange-warning-item">
+      <div v-for="(w, i) in result.warnings" :key="i" class="arrange-warning-item">
         <el-icon><Warning /></el-icon> {{ w }}
       </div>
     </div>
@@ -115,13 +115,13 @@ const cohesionRateClass = computed(() => {
 
 <style scoped>
 :deep(.arrange-result-dialog) .el-dialog__body {
-  padding: 16px 20px;
+  padding: var(--space-4) 20px;
 }
 .arrange-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 .arrange-stat-card {
   background: var(--bg-subtle);
@@ -149,11 +149,11 @@ const cohesionRateClass = computed(() => {
 .arrange-stat-label {
   font-size: 12px;
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 .arrange-cohesion {
-  margin: 12px 0;
-  padding: 12px 14px;
+  margin: var(--space-3) 0;
+  padding: var(--space-3) 14px;
   background: var(--bg-subtle);
   border-radius: 8px;
   border-left: 3px solid var(--brand-primary);
@@ -162,11 +162,11 @@ const cohesionRateClass = computed(() => {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 .cohesion-metrics {
   display: flex;
-  gap: 24px;
+  gap: var(--space-5);
   margin-bottom: 6px;
 }
 .cohesion-metric {
@@ -197,10 +197,10 @@ const cohesionRateClass = computed(() => {
 .cohesion-hint {
   font-size: 11px;
   color: var(--text-placeholder);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 .arrange-warnings {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 .arrange-warning-item {
   color: var(--brand-warning-text);
@@ -222,7 +222,7 @@ const cohesionRateClass = computed(() => {
   font-size: 12px;
   color: var(--text-secondary);
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 .arrange-unassigned-item {
   display: flex;
@@ -252,8 +252,8 @@ const cohesionRateClass = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 16px;
+  gap: var(--space-2);
+  padding: var(--space-4);
   color: var(--brand-success-text);
   font-size: 14px;
   font-weight: 500;

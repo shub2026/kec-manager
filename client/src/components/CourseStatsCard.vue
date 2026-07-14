@@ -46,7 +46,9 @@
       <!-- 底部汇总 -->
       <div class="table-footer">
         <span>共 {{ data.length }} 门课程</span>
-        <span>合计 <strong>{{ totalHours }}</strong> 课时</span>
+        <span
+          >合计 <strong>{{ totalHours }}</strong> 课时</span
+        >
       </div>
     </div>
   </el-card>
@@ -80,13 +82,13 @@ function barWidth(hours) {
   return Math.max(4, (hours / maxHours.value) * 100);
 }
 
-// 暖珊瑚红单色阶：与主蓝 #1C82F5 形成互补对比，饱和度/亮度与整体风格统一
+// 暖珊瑚红单色阶：与主蓝互补，引用 design token 统一管理
 const palette = [
-  '#F87171', // red-400
-  'rgba(248, 113, 113, 0.78)',
-  'rgba(248, 113, 113, 0.58)',
-  'rgba(248, 113, 113, 0.42)',
-  'rgba(248, 113, 113, 0.28)',
+  'var(--chart-danger-1)',
+  'var(--chart-danger-2)',
+  'var(--chart-danger-3)',
+  'var(--chart-danger-4)',
+  'var(--chart-danger-5)',
 ];
 
 function barColor(idx) {
@@ -103,7 +105,7 @@ function barColor(idx) {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 0;
+  padding: var(--space-5) 0;
   color: var(--text-secondary);
   font-size: 14px;
 }
@@ -145,7 +147,7 @@ function barColor(idx) {
 .col-meta-head {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: var(--space-2);
   text-align: center;
 }
 
@@ -193,7 +195,7 @@ function barColor(idx) {
 .col-hours {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -228,7 +230,7 @@ function barColor(idx) {
 .col-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .meta-num {
@@ -253,8 +255,8 @@ function barColor(idx) {
 .table-footer {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--border-light);
   font-size: 12px;
   color: var(--text-secondary);

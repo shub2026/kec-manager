@@ -190,7 +190,7 @@ function handleConfirm() {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   background: var(--brand-danger-soft);
   border-left: 4px solid var(--brand-danger);
   border-radius: var(--radius-sm);
@@ -225,12 +225,12 @@ function handleConfirm() {
 }
 
 .reason-area {
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 .reason-area label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   font-size: 13px;
   color: var(--text-regular);
 }

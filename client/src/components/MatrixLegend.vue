@@ -70,7 +70,7 @@ function swatch(key) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 18px;
+  gap: var(--space-2) 18px;
   padding: 10px 14px;
   background: var(--bg-subtle);
   border: 1px solid var(--border-light);
@@ -83,7 +83,7 @@ function swatch(key) {
 .legend-title {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -91,7 +91,7 @@ function swatch(key) {
 .legend-group {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   padding-left: 18px;
   border-left: 1px solid var(--border-light);
 }
@@ -105,7 +105,7 @@ function swatch(key) {
 .legend-tag {
   display: inline-flex;
   align-items: center;
-  padding: 1px 8px;
+  padding: 1px var(--space-2);
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
