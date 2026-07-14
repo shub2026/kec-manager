@@ -352,10 +352,38 @@ onMounted(async () => {
   width: 100%;
 }
 
-/* 窄屏（≤768px）：概览条换行后隐藏分隔符，避免独占一行造成视觉错位 */
+/* 窄屏（≤768px）：概览条换行后隐藏分隔符，添加课程按钮全宽独占一行 */
 @media (max-width: 768px) {
   .ov-divider {
     display: none;
+  }
+
+  .plan-overview {
+    gap: 8px 16px;
+    padding: var(--space-3);
+  }
+
+  .ov-item {
+    flex: 0 0 auto;
+  }
+
+  /* 按钮:不再 margin-left:auto 挤在行尾,而是独占整行,避免被 ov-item 压扁 */
+  .ov-add-btn {
+    width: 100%;
+    margin-left: 0;
+    flex: 1 1 100%;
+    margin-top: 4px;
+  }
+}
+
+/* 小屏手机（≤480px）：概览条更紧凑，ov-item 允许两两并排 */
+@media (max-width: 480px) {
+  .ov-value {
+    font-size: 14px;
+  }
+
+  .ov-label {
+    font-size: 11px;
   }
 }
 </style>

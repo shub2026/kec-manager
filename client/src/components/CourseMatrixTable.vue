@@ -636,6 +636,102 @@ function calcGrandTotalSemester(semester) {
     margin-left: 0;
   }
 }
+
+/* 手机（≤768px）：矩阵进一步紧凑，操作列收为图标按钮 */
+@media (max-width: 768px) {
+  .matrix-table {
+    font-size: 12px;
+  }
+
+  .matrix-semester-header {
+    width: 64px;
+    font-size: 11px;
+  }
+
+  .matrix-course-header {
+    width: 100px;
+  }
+
+  .matrix-total-header {
+    width: 52px;
+  }
+
+  .matrix-action-header {
+    width: 96px;
+  }
+
+  .matrix-cell {
+    min-width: 52px;
+    padding: 3px 4px;
+  }
+
+  /* 课时数字回调,避免在窄列里溢出 */
+  .cell-hours {
+    font-size: 13px;
+  }
+
+  /* 课程名+tag 在窄列内纵向堆叠,避免 tag 挤压课程名 */
+  .course-name-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .course-type-tag {
+    transform: scale(0.85);
+    transform-origin: left center;
+  }
+
+  /* 操作列:4 按钮紧凑排列,缩小内边距 */
+  .action-buttons {
+    gap: 3px;
+  }
+
+  .matrix-action-cell .el-button {
+    padding: 3px 6px;
+  }
+
+  /* 教材信息字号回调 */
+  .cell-textbook,
+  .cell-no-textbook {
+    font-size: 10px;
+    margin-top: 4px;
+  }
+
+  /* 底部控制栏进一步紧凑 */
+  .matrix-footer {
+    padding: 10px 12px;
+    gap: 8px 12px;
+  }
+
+  .footer-section {
+    gap: 8px;
+  }
+
+  .footer-hint {
+    display: none;
+  }
+
+  /* 小计/总计标签收缩 */
+  .matrix-subtotal-label,
+  .matrix-grand-total-label {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+/* 小屏手机（≤480px）：操作列改为两行两列,避免横向溢出 */
+@media (max-width: 480px) {
+  .matrix-action-header {
+    width: 84px;
+  }
+
+  .action-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 84px;
+  }
+}
 </style>
 
 <!-- el-tooltip popper 渲染在 body 层，需要全局样式 -->
