@@ -1,11 +1,7 @@
 <template>
   <el-card class="semester-card" shadow="never">
     <template #header>
-      <div class="card-title-row">
-        <span class="card-dot dot-blue"></span>
-        <span class="card-title-text">学期配置</span>
-        <el-tag size="small" type="info" effect="plain">常规设置</el-tag>
-      </div>
+      <SettingsCardHeader dot="blue" tag="常规设置" tag-type="info">学期配置</SettingsCardHeader>
     </template>
 
     <div class="semester-body">
@@ -115,6 +111,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useSemesters } from '../../../composables/useSemesters';
+import SettingsCardHeader from './SettingsCardHeader.vue';
 
 const props = defineProps({
   form: {
@@ -206,48 +203,25 @@ function handleSave() {
 
 <style scoped>
 .semester-card {
-  margin-bottom: 20px;
-}
-
-.card-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.card-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.dot-blue {
-  background-color: var(--brand-primary);
-}
-
-.card-title-text {
-  font-weight: 600;
-  font-size: 16px;
-  color: var(--text-primary);
+  /* 卡片在 tab-pane 内，无需底部间距 */
 }
 
 .semester-body {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-6);
-  padding: var(--space-5) 0 var(--space-2);
+  gap: var(--space-8);
+  padding: var(--space-6) 0 var(--space-4);
   align-items: flex-start;
 }
 
 /* 左侧配置模块 */
 .config-module {
-  flex: 0 0 auto;
-  min-width: 400px;
-  max-width: 480px;
+  flex: 1 1 480px;
+  max-width: 640px;
 }
 
 .config-item {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-7);
 }
 
 .config-item:last-child {
@@ -260,38 +234,41 @@ function handleSave() {
 
 .field-label {
   display: block;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
   font-weight: 500;
+  font-size: 14px;
   color: var(--text-regular);
+  letter-spacing: 0.01em;
 }
 
 .semester-select {
   width: 100%;
-  max-width: 400px;
+  max-width: 520px;
 }
 
 .semester-hint {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
   font-size: 13px;
   color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 .organization-input {
   width: 100%;
-  max-width: 400px;
+  max-width: 520px;
 }
 
 /* 右侧：学期预览 */
 .semester-preview {
   flex: 0 0 auto;
-  min-width: 280px;
-  max-width: 380px;
+  min-width: 300px;
+  max-width: 440px;
   height: auto;
   position: relative;
-  padding: 28px var(--space-5);
+  padding: 32px var(--space-6);
   background: var(--bg-subtle);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
@@ -319,10 +296,11 @@ function handleSave() {
 }
 
 .preview-year {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
+  letter-spacing: 0.02em;
 }
 
 .preview-detail {
@@ -337,8 +315,8 @@ function handleSave() {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  margin-top: var(--space-5);
-  padding-top: var(--space-4);
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
   border-top: 1px solid var(--border-light);
   color: var(--text-regular);
   font-size: 14px;
@@ -354,9 +332,9 @@ function handleSave() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
+  min-height: 120px;
   height: auto;
-  padding: var(--space-6) var(--space-5);
+  padding: var(--space-4) var(--space-5);
   background: var(--bg-subtle);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
@@ -376,7 +354,7 @@ function handleSave() {
 .semester-actions {
   display: flex;
   justify-content: flex-start;
-  padding-top: var(--space-4);
+  padding-top: var(--space-5);
   border-top: 1px solid var(--border-light);
 }
 

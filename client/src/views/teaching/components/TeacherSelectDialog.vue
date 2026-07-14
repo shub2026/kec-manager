@@ -122,6 +122,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { ElMessageBox } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 import { personnelLabel } from '../../../utils/personnel';
 
@@ -173,12 +174,41 @@ function onTeacherSelect(teacher) {
   selectedTeacher.value = teacher;
 }
 
-function handleConfirm() {
+/**
+ * 审计修复：确认安排前检查课时是否超限，超限时弹出二次确认警告
+ */
+async function handleConfirm() {
   if (!selectedTeacher.value || !currentClass.value) return;
+  const teacher = selectedTeacher.value;
+  const newHours = currentClass.value.weeklyHours;
+  const standardLimit =
+    teacher.defaultWeeklyHours ??
+    props.hourSettings[teacher.personnelType || 'full_time']?.standard ??
+    16;
+  const projectedTotal = teacher.totalWeeklyHours + newHours;
+
+  if (projectedTotal > standardLimit) {
+    try {
+      await ElMessageBox.confirm(
+        `教师「${teacher.name}」当前总课时 ${teacher.totalWeeklyHours}，安排后将达到 ${projectedTotal}，超过标准课时上限 ${standardLimit}。确认继续安排吗？`,
+        '课时超限警告',
+        {
+          type: 'warning',
+          confirmButtonText: '确认安排',
+          cancelButtonText: '取消',
+          confirmButtonClass: 'el-button--warning',
+        }
+      );
+    } catch {
+      // 用户取消
+      return;
+    }
+  }
+
   emit('confirm', {
     classId: currentClass.value.classId,
-    teacherId: selectedTeacher.value.id,
-    weeklyHours: currentClass.value.weeklyHours,
+    teacherId: teacher.id,
+    weeklyHours: newHours,
   });
 }
 

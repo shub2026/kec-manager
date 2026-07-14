@@ -118,7 +118,7 @@
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="方案名称" prop="name" required>
-          <el-input v-model="form.name" placeholder="如：2024级学前教育培养方案" />
+          <el-input v-model="form.name" placeholder="如：2024级学前教育培养方案" maxlength="200" />
         </el-form-item>
 
         <el-form-item label="使用部门">
@@ -267,7 +267,10 @@ const form = ref({
 // 表单引用与校验规则
 const formRef = ref(null);
 const rules = {
-  name: [{ required: true, message: '请输入方案名称', trigger: 'blur' }],
+  name: [
+    { required: true, message: '请输入方案名称', trigger: 'blur' },
+    { min: 2, max: 200, message: '名称长度应在 2-200 个字符之间', trigger: 'blur' },
+  ],
 };
 
 // 使用排序 composable（针对 filteredList）

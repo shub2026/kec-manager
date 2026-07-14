@@ -107,7 +107,7 @@
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="课程名称" prop="name" required>
-          <el-input v-model="form.name" placeholder="请输入课程名称" />
+          <el-input v-model="form.name" placeholder="请输入课程名称" maxlength="100" />
         </el-form-item>
         <el-form-item label="编码" prop="code">
           <el-input v-model="form.code" placeholder="请输入编码（可选）" />
@@ -198,7 +198,10 @@ const form = ref({ id: null, name: '', code: '', type: 'public', description: ''
 // 表单引用与校验规则
 const formRef = ref(null);
 const rules = {
-  name: [{ required: true, message: '请输入课程名称', trigger: 'blur' }],
+  name: [
+    { required: true, message: '请输入课程名称', trigger: 'blur' },
+    { min: 2, max: 100, message: '名称长度应在 2-100 个字符之间', trigger: 'blur' },
+  ],
 };
 
 // 使用导入 composable

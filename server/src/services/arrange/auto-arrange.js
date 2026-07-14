@@ -524,8 +524,7 @@ export function mergeCombinedClasses(classes) {
 export function expandCombinedAssignments(assignments) {
   const out = [];
   for (const a of assignments) {
-    const memberIds =
-      a.memberClassIds && a.memberClassIds.length ? a.memberClassIds : [a.class_id];
+    const memberIds = a.memberClassIds && a.memberClassIds.length ? a.memberClassIds : [a.class_id];
     for (const cid of memberIds) {
       out.push({
         teacher_id: a.teacher_id,

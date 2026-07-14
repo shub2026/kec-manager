@@ -83,7 +83,8 @@ vi.mock('../../services/semester.service.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { assignTeacher, resetAutoAssignments, getStatistics, deleteAssignment } = await import('../teaching-arrange.controller.js');
+const { assignTeacher, resetAutoAssignments, getStatistics, deleteAssignment } =
+  await import('../teaching-arrange.controller.js');
 const { createAuditLog } = await import('../../services/audit.service.js');
 const { findBestMatchPlan } = await import('../../services/plan.service.js');
 const { parseSemester } = await import('../../services/teaching-arrange.service.js');

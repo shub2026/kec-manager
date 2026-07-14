@@ -6,20 +6,25 @@
       description="配置学期、管理系统数据、查看操作日志"
     />
 
-    <!-- 学期配置组件 -->
-    <SemesterConfig
-      v-model:form="form"
-      v-model:selected-semester="selectedSemester"
-      :saved-semester="savedSemester"
-      :saving="saving"
-      @save="handleSave"
-    />
+    <el-tabs v-model="activeTab" class="settings-tabs">
+      <el-tab-pane label="学期配置" name="semester">
+        <SemesterConfig
+          v-model:form="form"
+          v-model:selected-semester="selectedSemester"
+          :saved-semester="savedSemester"
+          :saving="saving"
+          @save="handleSave"
+        />
+      </el-tab-pane>
 
-    <!-- 排课优化设置 -->
-    <SchedulingConfig />
+      <el-tab-pane label="排课优化" name="scheduling">
+        <SchedulingConfig />
+      </el-tab-pane>
 
-    <!-- 数据重置组件 -->
-    <DataReset :resetting="resetting" @reset="showResetDialog" />
+      <el-tab-pane label="数据管理" name="data">
+        <DataReset :resetting="resetting" @reset="showResetDialog" />
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- 确认对话框组件 -->
     <ConfirmDialog
@@ -52,6 +57,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue';
 defineOptions({ name: 'SystemSettings' });
 
 const settingsStore = useSettingsStore();
+const activeTab = ref('semester');
 const saving = ref(false);
 const resetting = ref(false);
 const form = ref({
@@ -162,14 +168,46 @@ onMounted(() => {
 
 <style scoped>
 .settings-page {
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
+}
+
+/* Tabs 样式微调 */
+.settings-tabs :deep(.el-tabs__header) {
+  margin-bottom: var(--space-6);
+}
+
+.settings-tabs :deep(.el-tabs__nav-wrap::after) {
+  height: 1px;
+}
+
+.settings-tabs :deep(.el-tabs__item) {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* 卡片整体呼吸感 */
+.settings-tabs :deep(.el-card__header) {
+  padding: 20px 28px;
+}
+
+.settings-tabs :deep(.el-card__body) {
+  padding: 28px;
 }
 
 /* 响应式 */
 @media (max-width: 768px) {
   .settings-page {
     padding: var(--space-3);
+  }
+
+  .settings-tabs :deep(.el-card__header) {
+    padding: 16px 20px;
+  }
+
+  .settings-tabs :deep(.el-card__body) {
+    padding: 20px;
   }
 }
 </style>

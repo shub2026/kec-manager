@@ -17,10 +17,7 @@ async function findDanglingAssignments(courseId, startSemester, endSemester) {
   return prisma.teaching_assignments.findMany({
     where: {
       course_id: courseId,
-      OR: [
-        { semester: { lt: startSemester } },
-        { semester: { gt: endSemester } },
-      ],
+      OR: [{ semester: { lt: startSemester } }, { semester: { gt: endSemester } }],
     },
     include: {
       class: { select: { id: true, name: true } },
@@ -282,8 +279,7 @@ export async function updatePlanCourse(req, res, next) {
 
     // B3 修复（提示，不静默删除）：仅当方案窗口收缩（起始后移或结束前移）时，
     // 计算该课程落在窗口外的教学安排，作为「可能孤儿」提示返回，供前端确认是否需要清理。
-    const windowShrunk =
-      newStart > currentPc.start_semester || newEnd < currentPc.end_semester;
+    const windowShrunk = newStart > currentPc.start_semester || newEnd < currentPc.end_semester;
     const danglingAssignments = windowShrunk
       ? await findDanglingAssignments(pc.course_id, newStart, newEnd)
       : [];

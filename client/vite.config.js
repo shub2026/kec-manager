@@ -60,6 +60,9 @@ export default defineConfig({
             if (id.includes('/axios/')) {
               return 'axios';
             }
+            // 审计修复：其余 node_modules 统一进入 vendor chunk，
+            // 避免未显式列出的库挤入默认 chunk（含 nprogress 等）
+            return 'vendor';
           }
         },
       },

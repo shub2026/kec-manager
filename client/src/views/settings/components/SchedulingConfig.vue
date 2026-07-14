@@ -1,18 +1,26 @@
 <template>
   <el-card class="scheduling-card" shadow="never">
     <template #header>
-      <div class="card-title-row">
-        <span class="card-dot dot-green"></span>
-        <span class="card-title-text">排课优化</span>
-        <el-tag size="small" type="success" effect="plain">高级设置</el-tag>
-      </div>
+      <SettingsCardHeader dot="green" tag="高级设置" tag-type="success"
+        >排课优化</SettingsCardHeader
+      >
     </template>
 
     <div class="scheduling-body">
       <div class="config-item">
         <div class="switch-row">
           <div class="switch-info">
-            <label class="field-label">禁忌搜索优化</label>
+            <label class="field-label">
+              禁忌搜索优化
+              <el-tag
+                v-if="tabuDirty"
+                size="small"
+                type="warning"
+                effect="plain"
+                class="unsaved-tag"
+                >未保存</el-tag
+              >
+            </label>
             <p class="switch-desc">
               在贪心算法排课完成后，启用禁忌搜索迭代优化。可减少未分配班级数量、提升教师间教材内聚度和工作量均衡性。
               对 200 班级以上的大规模课程效果显著。
@@ -43,7 +51,17 @@
       <div class="config-item">
         <div class="switch-row">
           <div class="switch-info">
-            <label class="field-label">允许编辑历史学期</label>
+            <label class="field-label">
+              允许编辑历史学期
+              <el-tag
+                v-if="historicalDirty"
+                size="small"
+                type="warning"
+                effect="plain"
+                class="unsaved-tag"
+                >未保存</el-tag
+              >
+            </label>
             <p class="switch-desc">
               默认关闭：历史（非当前）学期在教学安排页为<strong>只读状态</strong>，禁止任何排课写操作，避免误改已结课数据。
               开启后：历史学期可编辑，但在自动排课 / 手动安排 / 重置 /
@@ -81,15 +99,20 @@
         <el-icon><Check /></el-icon>
         保存设置
       </el-button>
-      <span v-if="dirty" class="dirty-hint">有未保存的更改</span>
+      <div v-if="dirty" class="dirty-hint">
+        <el-icon color="var(--el-color-warning)"><WarningFilled /></el-icon>
+        <span>有未保存的更改，请点击保存</span>
+      </div>
     </div>
   </el-card>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import { WarningFilled } from '@element-plus/icons-vue';
 import { useSettingsStore } from '../../../stores/settings';
+import SettingsCardHeader from './SettingsCardHeader.vue';
 
 const settingsStore = useSettingsStore();
 const enabled = ref(false);
@@ -103,6 +126,10 @@ watch([enabled, allowHistoricalEdit], () => {
   dirty.value =
     enabled.value !== savedValue.value || allowHistoricalEdit.value !== savedAllow.value;
 });
+
+// 各开关独立脏状态追踪，用于显示“未保存”标签
+const tabuDirty = computed(() => enabled.value !== savedValue.value);
+const historicalDirty = computed(() => allowHistoricalEdit.value !== savedAllow.value);
 
 async function loadState() {
   await settingsStore.load();
@@ -141,44 +168,27 @@ onMounted(() => {
 
 <style scoped>
 .scheduling-card {
-  margin-bottom: 20px;
-}
-
-.card-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.card-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.dot-green {
-  background-color: var(--brand-success, #34d399);
-}
-
-.card-title-text {
-  font-weight: 600;
-  font-size: 16px;
-  color: var(--text-primary);
+  /* 卡片在 tab-pane 内，无需底部间距 */
 }
 
 .scheduling-body {
-  padding: var(--space-5, 20px) 0 var(--space-2, 8px);
+  padding: var(--space-6, 24px) 0 var(--space-4, 16px);
 }
 
 .config-item {
-  max-width: 640px;
+  max-width: 800px;
+  padding: var(--space-2) 0;
+}
+
+.config-item + .config-item {
+  margin-top: var(--space-4);
 }
 
 .switch-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 20px;
+  gap: var(--space-8);
 }
 
 .switch-info {
@@ -187,24 +197,25 @@ onMounted(() => {
 
 .field-label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-3);
   font-weight: 500;
   font-size: 14px;
   color: var(--text-regular);
+  letter-spacing: 0.01em;
 }
 
 .switch-desc {
   margin: 0;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
   color: var(--text-secondary);
 }
 
 .enabled-hint {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: var(--space-3);
+  gap: 8px;
+  margin-top: var(--space-4);
   font-size: 13px;
   color: var(--brand-success, #34d399);
 }
@@ -216,14 +227,22 @@ onMounted(() => {
 .scheduling-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding-top: var(--space-4, 16px);
+  gap: var(--space-4);
+  padding-top: var(--space-5, 20px);
   border-top: 1px solid var(--border-light, #e2e8f0);
 }
 
 .dirty-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   color: var(--el-color-warning, #fbbf24);
+}
+
+.unsaved-tag {
+  margin-left: 8px;
+  vertical-align: middle;
 }
 
 @media (max-width: 768px) {

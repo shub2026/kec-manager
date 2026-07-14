@@ -72,11 +72,7 @@
 import { ref, computed, onMounted, markRaw } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
-import {
-  Calendar,
-  EditPen,
-  Search,
-} from '@element-plus/icons-vue';
+import { Calendar, EditPen, Search } from '@element-plus/icons-vue';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
 import { getDashboardStats } from '../api/dashboard';
@@ -260,8 +256,8 @@ onMounted(async () => {
 }
 
 .welcome-title {
-  margin: 0 0 4px 0;
-  font-size: 22px;
+  margin: 0 0 2px 0;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -296,8 +292,8 @@ onMounted(async () => {
 .metrics-strip {
   display: flex;
   align-items: stretch;
-  margin-top: 20px;
-  padding: 20px 28px;
+  margin-top: 14px;
+  padding: 14px 24px;
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
@@ -342,7 +338,7 @@ onMounted(async () => {
 }
 
 .metric-value {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
@@ -361,8 +357,8 @@ onMounted(async () => {
 .insights-grid {
   display: grid;
   grid-template-columns: 3fr 2fr;
-  gap: 20px;
-  margin-top: 24px;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .insights-grid > div {
@@ -379,13 +375,13 @@ onMounted(async () => {
 }
 
 .insights-grid :deep(.insight-card .el-card__header) {
-  padding: 16px 20px 12px;
+  padding: 12px 18px 8px;
   border-bottom: none;
   flex-shrink: 0;
 }
 
 .insights-grid :deep(.insight-card .el-card__body) {
-  padding: 0 20px 20px;
+  padding: 0 18px 16px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -411,7 +407,7 @@ onMounted(async () => {
 .dashboard-footer {
   margin-top: auto;
   text-align: center;
-  padding: 28px 0 8px;
+  padding: 16px 0 4px;
   font-size: 11px;
   color: var(--text-placeholder);
   flex-shrink: 0;

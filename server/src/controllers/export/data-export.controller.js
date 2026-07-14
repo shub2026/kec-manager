@@ -693,7 +693,10 @@ export async function exportStatistics(req, res, next) {
         const combined = isCombinedUnit(u);
         g.classes.push(
           combined
-            ? u.memberClasses.map((c) => c?.name).filter(Boolean).join('、')
+            ? u.memberClasses
+                .map((c) => c?.name)
+                .filter(Boolean)
+                .join('、')
             : u.representative.class.name
         );
         g.hours += u.weeklyHours;

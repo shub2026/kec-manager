@@ -1,11 +1,7 @@
 <template>
   <el-card class="danger-card" shadow="never">
     <template #header>
-      <div class="card-title-row">
-        <span class="card-dot dot-red"></span>
-        <span class="card-title-text">数据管理</span>
-        <el-tag size="small" type="danger" effect="plain">危险操作</el-tag>
-      </div>
+      <SettingsCardHeader dot="red" tag="数据维护" tag-type="danger">数据管理</SettingsCardHeader>
     </template>
 
     <!-- 顶部提示 -->
@@ -45,7 +41,7 @@
         <div class="reset-item-info">
           <div class="reset-item-header">
             <h4>清空操作日志</h4>
-            <el-tag size="small" type="info" effect="plain">不影响业务数据</el-tag>
+            <el-tag size="small" type="warning" effect="plain">日常维护</el-tag>
           </div>
           <p class="reset-item-desc">
             删除所有审计日志记录。此操作不可恢复，但不会影响任何业务数据。
@@ -53,7 +49,7 @@
         </div>
         <div class="reset-item-action">
           <el-button
-            type="danger"
+            type="warning"
             plain
             size="small"
             :loading="resetting"
@@ -69,6 +65,8 @@
 </template>
 
 <script setup>
+import SettingsCardHeader from './SettingsCardHeader.vue';
+
 defineProps({
   resetting: {
     type: Boolean,
@@ -81,41 +79,20 @@ defineEmits(['reset']);
 
 <style scoped>
 .danger-card {
-  margin-bottom: 20px;
-}
-
-.card-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.card-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.dot-red {
-  background-color: var(--brand-danger);
-}
-
-.card-title-text {
-  font-weight: 600;
-  font-size: 16px;
-  color: var(--text-primary);
+  /* 卡片在 tab-pane 内，无需底部间距 */
 }
 
 /* 顶部提示 - 轻量内联风格 */
 .danger-hint {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 10px 14px;
+  gap: var(--space-3);
+  padding: 14px 18px;
   background: var(--brand-danger-soft);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-6);
   font-size: 13px;
+  line-height: 1.6;
   color: var(--text-regular);
 }
 
@@ -135,8 +112,8 @@ defineEmits(['reset']);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-5);
-  padding: var(--space-4) 0;
+  gap: var(--space-8);
+  padding: var(--space-5) 0;
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -157,22 +134,23 @@ defineEmits(['reset']);
 .reset-item-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
+  gap: 12px;
+  margin-bottom: var(--space-2);
 }
 
 .reset-item-header h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: 0.01em;
 }
 
 .reset-item-desc {
   margin: 0;
   font-size: 13px;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.7;
 }
 
 .reset-item-action {

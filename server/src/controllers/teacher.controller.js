@@ -43,7 +43,14 @@ export async function listTeachers(req, res, next) {
       where.scheduling_levels = { some: { training_level_id: Number(training_level_id) } };
 
     // 排序：默认按 sort_order 升序；支持指定列与方向（白名单防注入）
-    const ALLOWED_SORT = ['name', 'personnel_type', 'status', 'sort_order', 'created_at', 'updated_at'];
+    const ALLOWED_SORT = [
+      'name',
+      'personnel_type',
+      'status',
+      'sort_order',
+      'created_at',
+      'updated_at',
+    ];
     let orderBy = { sort_order: 'asc' };
     if (sort_by && ALLOWED_SORT.includes(sort_by)) {
       const dir = sort_dir === 'desc' ? 'desc' : 'asc';

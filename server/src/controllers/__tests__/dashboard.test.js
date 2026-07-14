@@ -655,7 +655,10 @@ describe('getDashboardInsights', () => {
 
     mockPrisma.courses.count.mockResolvedValue(5);
     // 第一次 findMany：已排课课程（去重）
-    mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce([{ course_id: 10 }, { course_id: 20 }]);
+    mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce([
+      { course_id: 10 },
+      { course_id: 20 },
+    ]);
     // 第二次 findMany：全部排课记录（含合班成员班）
     mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce(allAssignments);
     mockPrisma.colleges.findMany.mockResolvedValue([{ id: 1, name: '教育学院' }]);

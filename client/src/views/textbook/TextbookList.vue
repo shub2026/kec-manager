@@ -205,7 +205,7 @@
         <el-row :gutter="16">
           <el-col :span="12" :xs="24" :sm="12">
             <el-form-item label="书名" prop="title" required>
-              <el-input v-model="form.title" />
+              <el-input v-model="form.title" maxlength="200" />
             </el-form-item>
           </el-col>
           <el-col :span="12" :xs="24" :sm="12">
@@ -378,7 +378,10 @@ watch(filterTitle, (val) => {
 // 表单引用与校验规则
 const formRef = ref(null);
 const rules = {
-  title: [{ required: true, message: '请输入教材名称', trigger: 'blur' }],
+  title: [
+    { required: true, message: '请输入教材名称', trigger: 'blur' },
+    { min: 2, max: 200, message: '书名长度应在 2-200 个字符之间', trigger: 'blur' },
+  ],
   price: [{ type: 'number', min: 0, message: '定价必须大于等于0', trigger: 'blur' }],
 };
 

@@ -218,7 +218,7 @@
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="教师姓名" prop="name" required>
-          <el-input v-model="form.name" placeholder="请输入教师姓名" />
+          <el-input v-model="form.name" placeholder="请输入教师姓名" maxlength="50" />
         </el-form-item>
         <el-row :gutter="16">
           <el-col :span="12" :xs="24" :sm="12">
@@ -484,7 +484,10 @@ function handleTrainingLevelFilterChange() {
 
 const formRef = ref(null);
 const rules = {
-  name: [{ required: true, message: '请输入教师姓名', trigger: 'blur' }],
+  name: [
+    { required: true, message: '请输入教师姓名', trigger: 'blur' },
+    { min: 2, max: 50, message: '姓名长度应在 2-50 个字符之间', trigger: 'blur' },
+  ],
 };
 
 // 小屏弹窗全屏：复用共享响应式断点

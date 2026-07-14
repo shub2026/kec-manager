@@ -34,19 +34,10 @@ request.interceptors.request.use(
 );
 
 // 响应拦截器 - 处理Token刷新和错误
-let isRefreshing = false;
-let failedQueue = [];
-
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
+// 审计修复：统一为 auth.js 的 _refreshPromise 单点控制，
+// request.js 不再维护独立的 isRefreshing + failedQueue 机制，
+// 所有并发 401 请求共享同一个 authStore.refreshAccessToken() Promise
+let _sharedRefreshPromise = null;
 
 request.interceptors.response.use(
   (response) => {
@@ -81,46 +72,29 @@ request.interceptors.response.use(
       // 标记请求已重试，防止无限循环
       originalRequest._retry = true;
 
-      if (isRefreshing) {
-        // 入队等待刷新完成，刷新成功后用新 token 重发
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return request(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
+      // 审计修复：共享同一个 refresh Promise，所有并发 401 等待同一次刷新
+      if (!_sharedRefreshPromise) {
+        _sharedRefreshPromise = (async () => {
+          try {
+            const refreshed = await authStore.refreshAccessToken();
+            if (refreshed) {
+              return authStore.token;
+            }
+            throw new Error('登录已过期，请重新登录');
+          } finally {
+            _sharedRefreshPromise = null;
+          }
+        })();
       }
 
-      isRefreshing = true;
-      let shouldLogout = false;
-
       try {
-        const refreshed = await authStore.refreshAccessToken();
-        isRefreshing = false;
-
-        if (refreshed) {
-          processQueue(null, authStore.token);
-          originalRequest.headers.Authorization = `Bearer ${authStore.token}`;
-          return request(originalRequest);
-        } else {
-          shouldLogout = true;
-          processQueue(new Error('登录已过期，请重新登录'), null);
-          ElMessage.error('登录已过期，请重新登录');
-          return Promise.reject(error);
-        }
+        const newToken = await _sharedRefreshPromise;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return request(originalRequest);
       } catch (refreshError) {
-        isRefreshing = false;
-        shouldLogout = true;
-        processQueue(refreshError, null);
         ElMessage.error('登录已过期，请重新登录');
+        authStore.logout().catch(() => {});
         return Promise.reject(refreshError);
-      } finally {
-        // 仅在刷新失败时触发 logout，catch 防止异常导致后续请求挂起
-        if (shouldLogout) {
-          authStore.logout().catch(() => {});
-        }
       }
     }
 

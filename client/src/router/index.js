@@ -210,8 +210,19 @@ router.beforeEach(async (to, from, next) => {
       // 确保用户信息已加载
       if (!authStore.userInfo) {
         // 并行加载用户信息 + 系统设置，减少首屏串行等待
+        // 审计修复：settings 加载失败不阻断路由，降级为本地默认学期
         const settingsStore = useSettingsStore();
-        await Promise.all([authStore.fetchUserInfo(), settingsStore.load()]);
+        const [userResult, settingsResult] = await Promise.allSettled([
+          authStore.fetchUserInfo(),
+          settingsStore.load(),
+        ]);
+        // settings 加载失败时记录警告，页面将回退到本地日期计算学期
+        if (settingsResult.status === 'rejected') {
+          if (import.meta.env.DEV) {
+            console.warn('[Router Guard] settings load failed, will use local semester fallback');
+          }
+        }
+        // userResult 的成功/失败由后续 authStore.userInfo 检查兜底
       }
 
       // 再次检查用户信息是否加载成功

@@ -69,7 +69,10 @@ export async function listTextbooks(req, res, next) {
       usageCount: textbook._count?.plan_textbooks || 0,
     }));
 
-    const publishers = publisherRows.map((r) => r.publisher).filter(Boolean).sort();
+    const publishers = publisherRows
+      .map((r) => r.publisher)
+      .filter(Boolean)
+      .sort();
 
     success(res, { items: formattedTextbooks, total, publishers });
   } catch (e) {

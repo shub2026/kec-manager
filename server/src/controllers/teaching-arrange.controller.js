@@ -250,7 +250,9 @@ export async function assignTeacher(req, res, next) {
         update: {
           teacher_id: Number(teacher_id),
           is_auto: false,
-          ...(weekly_hours != null && weekly_hours !== '' ? { weekly_hours: Number(weekly_hours) } : {}),
+          ...(weekly_hours != null && weekly_hours !== ''
+            ? { weekly_hours: Number(weekly_hours) }
+            : {}),
         },
         create: {
           teacher_id: Number(teacher_id),
@@ -389,8 +391,7 @@ export async function deleteAssignment(req, res, next) {
     });
 
     // 自动安排被删除后提示重新排课（M-8 修复）
-    const hint =
-      (assignment.is_auto ? '（该班级自动安排已删除，建议重新排课）' : '') + delHint;
+    const hint = (assignment.is_auto ? '（该班级自动安排已删除，建议重新排课）' : '') + delHint;
 
     await createAuditLog({
       action: 'delete',
@@ -822,12 +823,16 @@ export async function getStatistics(req, res, next) {
           unitKey: u.key,
           classId: u.representative.class_id,
           className: combined
-            ? u.memberClasses.map((c) => c?.name).filter(Boolean).join('、')
+            ? u.memberClasses
+                .map((c) => c?.name)
+                .filter(Boolean)
+                .join('、')
             : u.representative.class.name,
           isCombined: combined,
           memberClassIds: u.memberClassIds,
           collegeName: u.representative.class.colleges?.name || null,
-          trainingLevelName: globalLevelMap.get(u.representative.class.training_level_id)?.name || null,
+          trainingLevelName:
+            globalLevelMap.get(u.representative.class.training_level_id)?.name || null,
           weeklyHours: u.weeklyHours,
           isAuto: u.representative.is_auto,
           textbookName:

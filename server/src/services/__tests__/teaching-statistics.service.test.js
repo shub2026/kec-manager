@@ -102,7 +102,12 @@ describe('dedupeTeachingUnits', () => {
     const rows = [
       row({ class_id: 1, weekly_hours: 4, class: { id: 1, name: 'A班', combination_id: 99 } }),
       row({ class_id: 2, weekly_hours: 4, class: { id: 2, name: 'B班', combination_id: 99 } }),
-      row({ class_id: 3, weekly_hours: 2, course_id: 20, class: { id: 3, name: 'C班', combination_id: null } }),
+      row({
+        class_id: 3,
+        weekly_hours: 2,
+        course_id: 20,
+        class: { id: 3, name: 'C班', combination_id: null },
+      }),
     ];
     const units = dedupeTeachingUnits(rows);
     expect(units).toHaveLength(2);
@@ -111,7 +116,12 @@ describe('dedupeTeachingUnits', () => {
   });
 
   it('representative 透传原始行字段（is_auto 等）', () => {
-    const r = row({ class_id: 1, weekly_hours: 4, is_auto: true, class: { id: 1, name: 'A班', combination_id: 99 } });
+    const r = row({
+      class_id: 1,
+      weekly_hours: 4,
+      is_auto: true,
+      class: { id: 1, name: 'A班', combination_id: 99 },
+    });
     const units = dedupeTeachingUnits([r]);
     expect(units[0].representative.is_auto).toBe(true);
     expect(units[0].representative.class_id).toBe(1);

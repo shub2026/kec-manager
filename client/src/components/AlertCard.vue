@@ -122,8 +122,15 @@ const displayedTeachers = computed(() => {
 }
 
 @keyframes pulse-gentle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.08); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.08);
+  }
 }
 
 .alert-group {
