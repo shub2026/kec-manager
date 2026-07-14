@@ -1,5 +1,5 @@
 <template>
-  <el-card class="scheduling-card" shadow="never">
+  <el-card class="scheduling-card">
     <template #header>
       <SettingsCardHeader dot="green" tag="高级设置" tag-type="success"
         >排课优化</SettingsCardHeader

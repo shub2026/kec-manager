@@ -297,7 +297,7 @@ onMounted(async () => {
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
   gap: 0;
 }
 
@@ -369,9 +369,9 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  border: none;
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xxs);
+  box-shadow: var(--shadow-sm);
 }
 
 .insights-grid :deep(.insight-card .el-card__header) {

@@ -1,5 +1,5 @@
 <template>
-  <el-card class="danger-card" shadow="never">
+  <el-card class="danger-card">
     <template #header>
       <SettingsCardHeader dot="red" tag="数据维护" tag-type="danger">数据管理</SettingsCardHeader>
     </template>

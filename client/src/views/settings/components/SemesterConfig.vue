@@ -1,5 +1,5 @@
 <template>
-  <el-card class="semester-card" shadow="never">
+  <el-card class="semester-card">
     <template #header>
       <SettingsCardHeader dot="blue" tag="常规设置" tag-type="info">学期配置</SettingsCardHeader>
     </template>

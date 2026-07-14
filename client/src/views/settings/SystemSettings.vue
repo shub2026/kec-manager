@@ -6,25 +6,27 @@
       description="配置学期、管理系统数据、查看操作日志"
     />
 
-    <el-tabs v-model="activeTab" class="settings-tabs">
-      <el-tab-pane label="学期配置" name="semester">
-        <SemesterConfig
-          v-model:form="form"
-          v-model:selected-semester="selectedSemester"
-          :saved-semester="savedSemester"
-          :saving="saving"
-          @save="handleSave"
-        />
-      </el-tab-pane>
+    <div class="settings-card">
+      <el-tabs v-model="activeTab" class="settings-tabs">
+        <el-tab-pane label="学期配置" name="semester">
+          <SemesterConfig
+            v-model:form="form"
+            v-model:selected-semester="selectedSemester"
+            :saved-semester="savedSemester"
+            :saving="saving"
+            @save="handleSave"
+          />
+        </el-tab-pane>
 
-      <el-tab-pane label="排课优化" name="scheduling">
-        <SchedulingConfig />
-      </el-tab-pane>
+        <el-tab-pane label="排课优化" name="scheduling">
+          <SchedulingConfig />
+        </el-tab-pane>
 
-      <el-tab-pane label="数据管理" name="data">
-        <DataReset :resetting="resetting" @reset="showResetDialog" />
-      </el-tab-pane>
-    </el-tabs>
+        <el-tab-pane label="数据管理" name="data">
+          <DataReset :resetting="resetting" @reset="showResetDialog" />
+        </el-tab-pane>
+      </el-tabs>
+    </div>
 
     <!-- 确认对话框组件 -->
     <ConfirmDialog
@@ -172,6 +174,14 @@ onMounted(() => {
   margin: 0 auto;
 }
 
+.settings-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5) var(--space-6);
+}
+
 /* Tabs 样式微调 */
 .settings-tabs :deep(.el-tabs__header) {
   margin-bottom: var(--space-6);
@@ -187,6 +197,12 @@ onMounted(() => {
   letter-spacing: 0.02em;
 }
 
+/* 内部卡片融入外层容器，不重复投影 */
+.settings-tabs :deep(.el-card) {
+  box-shadow: none;
+  border: none;
+}
+
 /* 卡片整体呼吸感 */
 .settings-tabs :deep(.el-card__header) {
   padding: 20px 28px;
@@ -200,6 +216,10 @@ onMounted(() => {
 @media (max-width: 768px) {
   .settings-page {
     padding: var(--space-3);
+  }
+
+  .settings-card {
+    padding: var(--space-3) var(--space-4);
   }
 
   .settings-tabs :deep(.el-card__header) {
