@@ -258,4 +258,35 @@ function barColor(idx) {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
+/* ─── 移动端响应式 ─── */
+@media (max-width: 768px) {
+  .table-head,
+  .table-row {
+    grid-template-columns: 90px minmax(0, 1fr) 76px;
+    gap: 6px;
+  }
+
+  .col-hours-head {
+    padding-right: 36px;
+  }
+
+  .hours-value {
+    width: 34px;
+    font-size: 12px;
+  }
+
+  .meta-num {
+    font-size: 12px;
+  }
+
+  .meta-num::after {
+    font-size: 9px;
+    margin-left: 1px;
+  }
+
+  .name-text {
+    font-size: 12px;
+  }
+}
 </style>

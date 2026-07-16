@@ -2,8 +2,8 @@
   <el-dialog
     v-model="visible"
     title="选择任课教师"
-    width="80%"
-    :style="{ maxWidth: '1400px' }"
+    :width="isMobile ? '95%' : '80%'"
+    :style="{ maxWidth: isMobile ? 'none' : '1400px' }"
     destroy-on-close
     class="teacher-dialog"
   >
@@ -28,11 +28,11 @@
       size="small"
       @current-change="onTeacherSelect"
     >
-      <el-table-column prop="name" label="姓名" width="80" />
-      <el-table-column label="人员类别" width="88" align="center">
+      <el-table-column prop="name" label="姓名" :width="isMobile ? 65 : 80" />
+      <el-table-column label="人员类别" :width="isMobile ? 72 : 88" align="center">
         <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
       </el-table-column>
-      <el-table-column label="当前总课时" width="92" align="center">
+      <el-table-column label="当前总课时" :width="isMobile ? 78 : 92" align="center">
         <template #default="{ row }">
           <span
             :class="{
@@ -47,10 +47,10 @@
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="班级数" width="68" align="center">
+      <el-table-column label="班级数" :width="isMobile ? 55 : 68" align="center">
         <template #default="{ row }">{{ row.totalClassCount }}</template>
       </el-table-column>
-      <el-table-column label="自定义课时" width="92" align="center">
+      <el-table-column v-if="!isMobile" label="自定义课时" width="92" align="center">
         <template #default="{ row }">{{ row.defaultWeeklyHours ?? '-' }}</template>
       </el-table-column>
       <el-table-column label="学科" min-width="3">
@@ -60,7 +60,7 @@
           }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="任课学院" min-width="4">
+      <el-table-column v-if="!isMobile" label="任课学院" min-width="4">
         <template #default="{ row }">
           <el-tag
             v-for="c in row.collegeList"
@@ -72,7 +72,7 @@
           >
         </template>
       </el-table-column>
-      <el-table-column label="任课层次" min-width="3">
+      <el-table-column v-if="!isMobile" label="任课层次" min-width="3">
         <template #default="{ row }">
           <el-tag
             v-for="l in row.trainingLevelList"
@@ -84,7 +84,7 @@
           >
         </template>
       </el-table-column>
-      <el-table-column label="已用教材" min-width="8">
+      <el-table-column v-if="!isTablet" label="已用教材" min-width="8">
         <template #default="{ row }">
           <template v-if="uniqueTextbooks(row.assignedTextbooks).length">
             <el-tag
@@ -121,10 +121,29 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 import { personnelLabel } from '../../../utils/personnel';
+
+/* 响应式断点 */
+const isMobile = ref(false);
+const isTablet = ref(false);
+let mqlMobile, mqlTablet;
+
+onMounted(() => {
+  mqlMobile = window.matchMedia('(max-width: 768px)');
+  mqlTablet = window.matchMedia('(max-width: 992px)');
+  isMobile.value = mqlMobile.matches;
+  isTablet.value = mqlTablet.matches;
+  mqlMobile.addEventListener('change', (e) => { isMobile.value = e.matches; });
+  mqlTablet.addEventListener('change', (e) => { isTablet.value = e.matches; });
+});
+
+onUnmounted(() => {
+  mqlMobile?.removeEventListener('change', () => {});
+  mqlTablet?.removeEventListener('change', () => {});
+});
 
 const props = defineProps({
   teacherList: { type: Array, default: () => [] },
@@ -260,5 +279,21 @@ defineExpose({ open, close });
 }
 .tag-item {
   margin: 2px;
+}
+
+/* ─── 响应式 ─── */
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-wrap: wrap;
+  }
+  .search-input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 992px) and (min-width: 769px) {
+  .search-input {
+    width: 180px;
+  }
 }
 </style>
