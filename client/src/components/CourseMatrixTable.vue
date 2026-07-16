@@ -558,12 +558,13 @@ function calcGrandTotalSemester(semester) {
 
 /* 总计行（tfoot，与上方 tbody 共享列宽，天然对齐） */
 .matrix-grand-total-row td {
-  background: var(--bg-subtle);
+  background: rgba(28, 130, 245, 0.04);
   border: 1px solid var(--border-light);
-  border-top: 3px solid var(--brand-primary);
+  border-top: 2px solid #5ba3f5;
+  border-bottom: none;
   font-weight: 700;
   color: var(--text-primary);
-  padding: 6px 6px;
+  padding: 8px 6px 14px;
   text-align: center;
   cursor: default !important;
 }
