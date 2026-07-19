@@ -66,7 +66,7 @@ vi.mock('../../utils/logger.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { querySemester } = await import('../query.controller.js');
+const { querySemester, invalidateQueryFilterCache } = await import('../query.controller.js');
 const { getSemesterInfoFromRequest } = await import('../../services/settings.service.js');
 const { getActiveClassFilter } = await import('../../services/class.service.js');
 const { buildClassWithPlanFilter } = await import('../../services/plan.service.js');
@@ -107,6 +107,7 @@ const PLAN_FILTER = {
 describe('querySemester — 筛选器单元测试', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    invalidateQueryFilterCache(); // 优化2：清除筛选器选项缓存，确保每次测试独立
 
     // 默认：学期正常
     getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
@@ -128,7 +129,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const where = mockPrisma.classes.findMany.mock.calls[0][0].where;
+      const where = mockPrisma.classes.findMany.mock.calls[1][0].where;
       expect(where.AND[1]).toHaveProperty('college_id', 35);
     });
 
@@ -137,7 +138,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const where = mockPrisma.classes.findMany.mock.calls[0][0].where;
+      const where = mockPrisma.classes.findMany.mock.calls[1][0].where;
       expect(where.AND[1]).toHaveProperty('major_id', 146);
     });
 
@@ -146,7 +147,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const where = mockPrisma.classes.findMany.mock.calls[0][0].where;
+      const where = mockPrisma.classes.findMany.mock.calls[1][0].where;
       expect(where.AND[1]).toHaveProperty('training_level_id', 10);
     });
 
@@ -155,7 +156,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const where = mockPrisma.classes.findMany.mock.calls[0][0].where;
+      const where = mockPrisma.classes.findMany.mock.calls[1][0].where;
       expect(where.AND[1]).toHaveProperty('enrollment_year', 2024);
     });
   });
@@ -173,7 +174,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const extra = mockPrisma.classes.findMany.mock.calls[0][0].where.AND[1];
+      const extra = mockPrisma.classes.findMany.mock.calls[1][0].where.AND[1];
       expect(extra).toHaveProperty('college_id', 35);
       expect(extra).toHaveProperty('major_id', 146);
     });
@@ -188,7 +189,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const extra = mockPrisma.classes.findMany.mock.calls[0][0].where.AND[1];
+      const extra = mockPrisma.classes.findMany.mock.calls[1][0].where.AND[1];
       expect(extra).toHaveProperty('college_id', 35);
       expect(extra).toHaveProperty('training_level_id', 10);
       expect(extra).toHaveProperty('enrollment_year', 2024);
@@ -205,7 +206,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const extra = mockPrisma.classes.findMany.mock.calls[0][0].where.AND[1];
+      const extra = mockPrisma.classes.findMany.mock.calls[1][0].where.AND[1];
       expect(Object.keys(extra)).toHaveLength(4);
       expect(extra.college_id).toBe(35);
       expect(extra.major_id).toBe(146);
@@ -223,7 +224,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const where = mockPrisma.classes.findMany.mock.calls[0][0].where;
+      const where = mockPrisma.classes.findMany.mock.calls[1][0].where;
       // baseWhere = { AND: [activeFilter, planFilter] }
       expect(where.AND).toHaveLength(2);
       // 没有 extraConditions 就不会有 AND[2]
@@ -239,7 +240,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const extra = mockPrisma.classes.findMany.mock.calls[0][0].where.AND[1];
+      const extra = mockPrisma.classes.findMany.mock.calls[1][0].where.AND[1];
       expect(extra).toHaveProperty('enrollment_year', 2025);
     });
 
@@ -248,7 +249,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const extra = mockPrisma.classes.findMany.mock.calls[0][0].where.AND[1];
+      const extra = mockPrisma.classes.findMany.mock.calls[1][0].where.AND[1];
       expect(extra).toHaveProperty('enrollment_year', 2024);
     });
 
@@ -257,7 +258,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const extra = mockPrisma.classes.findMany.mock.calls[0][0].where.AND[1];
+      const extra = mockPrisma.classes.findMany.mock.calls[1][0].where.AND[1];
       expect(extra).toHaveProperty('enrollment_year', 2023);
     });
 
@@ -270,7 +271,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const extra = mockPrisma.classes.findMany.mock.calls[0][0].where.AND[1];
+      const extra = mockPrisma.classes.findMany.mock.calls[1][0].where.AND[1];
       expect(extra).toHaveProperty('enrollment_year', 2025);
     });
   });
@@ -357,7 +358,7 @@ describe('querySemester — 筛选器单元测试', () => {
       await querySemester(req, res, vi.fn());
 
       // 控制器应能正确读取 college_id（snake_case）
-      const where = mockPrisma.classes.findMany.mock.calls[0][0].where;
+      const where = mockPrisma.classes.findMany.mock.calls[1][0].where;
       expect(where.AND[1]).toHaveProperty('college_id', 35);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
@@ -376,7 +377,7 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const extra = mockPrisma.classes.findMany.mock.calls[0][0].where.AND[1];
+      const extra = mockPrisma.classes.findMany.mock.calls[1][0].where.AND[1];
       expect(extra).toHaveProperty('training_level_id', 10);
     });
   });

@@ -291,14 +291,22 @@ export async function assignTeacher(req, res, next) {
     });
 
     // M5 修复：非阻塞工作量警告——检查教师当前学期总课时是否超阈值
+    // 优化5：使用 dedupeTeachingUnits 合班去重后再聚合，与 getTeachersForCourse / getStatistics 口径对齐，
+    // 避免合班教学时同一节课被重复计数导致误报超限。
     let workloadWarning = null;
     try {
-      const totalWorkload = await prisma.teaching_assignments.groupBy({
-        by: ['teacher_id'],
+      const teacherAssignments = await prisma.teaching_assignments.findMany({
         where: { semester, teacher_id: Number(teacher_id) },
-        _sum: { weekly_hours: true },
+        select: {
+          teacher_id: true,
+          course_id: true,
+          weekly_hours: true,
+          class_id: true,
+          class: { select: { combination_id: true } },
+        },
       });
-      const totalHours = totalWorkload[0]?._sum?.weekly_hours || 0;
+      const dedupedUnits = dedupeTeachingUnits(teacherAssignments);
+      const totalHours = dedupedUnits.reduce((sum, u) => sum + (u.weeklyHours || 0), 0);
       // H-4 修复：从 DEFAULT_HOUR_SETTINGS 读取人员类别对应的 max 课时，替代硬编码 20
       const personnelType = assignment.teacher?.personnel_type || 'full_time';
       const hourLimit = DEFAULT_HOUR_SETTINGS[personnelType]?.max || 20;

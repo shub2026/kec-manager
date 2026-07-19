@@ -13,6 +13,90 @@ import {
 } from '../services/plan.service.js';
 import { log } from '../utils/logger.js';
 
+// ── 开课查询筛选器选项缓存（优化2）──
+// 筛选器下拉选项仅依赖学期（不随用户选择的筛选条件变化），
+// 按学期 key 缓存，避免每次请求重复全量查询。
+const QUERY_FILTER_TTL = 5 * 60 * 1000;
+const queryFilterCache = new Map();
+
+export function invalidateQueryFilterCache() {
+  queryFilterCache.clear();
+}
+
+async function getQueryFilterOptions(semesterInfo, activeFilter, planFilter) {
+  const cacheKey = semesterInfo.raw;
+  const cached = queryFilterCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < QUERY_FILTER_TTL) {
+    return cached.data;
+  }
+
+  // 使用不含用户筛选条件的基础 where，保证下拉选项稳定
+  const baseWhere = { AND: [activeFilter, planFilter] };
+
+  const allMatchingClasses = await prisma.classes.findMany({
+    where: baseWhere,
+    select: {
+      enrollment_year: true,
+      duration_years: true,
+      college_id: true,
+      major_id: true,
+      training_level_id: true,
+    },
+  });
+
+  const enrollmentYearSet = new Set();
+  const gradeSet = new Set();
+  const collegeIdSet = new Set();
+  const majorIdSet = new Set();
+  const levelIdSet = new Set();
+  const collegeMajorMap = new Map();
+  const collegeLevelMap = new Map();
+  const majorLevelMap = new Map();
+
+  for (const c of allMatchingClasses) {
+    enrollmentYearSet.add(c.enrollment_year);
+    const g = semesterInfo.startYear - c.enrollment_year + 1;
+    if (g >= 1 && g <= c.duration_years) gradeSet.add(g);
+
+    if (c.college_id != null) collegeIdSet.add(c.college_id);
+    if (c.major_id != null) majorIdSet.add(c.major_id);
+    if (c.training_level_id != null) levelIdSet.add(c.training_level_id);
+
+    if (c.college_id != null && c.major_id != null) {
+      if (!collegeMajorMap.has(c.college_id)) collegeMajorMap.set(c.college_id, new Set());
+      collegeMajorMap.get(c.college_id).add(c.major_id);
+    }
+    if (c.college_id != null && c.training_level_id != null) {
+      if (!collegeLevelMap.has(c.college_id)) collegeLevelMap.set(c.college_id, new Set());
+      collegeLevelMap.get(c.college_id).add(c.training_level_id);
+    }
+    if (c.major_id != null && c.training_level_id != null) {
+      if (!majorLevelMap.has(c.major_id)) majorLevelMap.set(c.major_id, new Set());
+      majorLevelMap.get(c.major_id).add(c.training_level_id);
+    }
+  }
+
+  const mapToObj = (map) => {
+    const obj = {};
+    for (const [k, s] of map) obj[k] = Array.from(s);
+    return obj;
+  };
+
+  const data = {
+    enrollmentYears: [...enrollmentYearSet].sort((a, b) => b - a),
+    grades: [...gradeSet].sort((a, b) => a - b),
+    collegeIds: Array.from(collegeIdSet),
+    majorIds: Array.from(majorIdSet),
+    levelIds: Array.from(levelIdSet),
+    collegeMajorRelation: mapToObj(collegeMajorMap),
+    collegeLevelRelation: mapToObj(collegeLevelMap),
+    majorLevelRelation: mapToObj(majorLevelMap),
+  };
+
+  queryFilterCache.set(cacheKey, { data, at: Date.now() });
+  return data;
+}
+
 /**
  * GET /api/query/semester - 当前学期开课查询
  */
@@ -81,92 +165,17 @@ export async function querySemester(req, res, next) {
     // 多出来的页永远无法被前端请求，部分班级永久不可见。
     const totalClassesCount = await prisma.classes.count({ where: classWhere });
 
-    // 查询全量班级以提取可用的入学年份、年级和关联关系（用于前端筛选器下拉）
-    const allMatchingClasses = await prisma.classes.findMany({
-      where: classWhere,
-      select: {
-        enrollment_year: true,
-        duration_years: true,
-        college_id: true,
-        major_id: true,
-        training_level_id: true,
-      },
-    });
-    const enrollmentYearSet = new Set();
-    const gradeSet = new Set();
-    for (const c of allMatchingClasses) {
-      enrollmentYearSet.add(c.enrollment_year);
-      const g = semesterInfo.startYear - c.enrollment_year + 1;
-      if (g >= 1 && g <= c.duration_years) gradeSet.add(g);
-    }
-    const availableEnrollmentYears = [...enrollmentYearSet].sort((a, b) => b - a);
-    const availableGrades = [...gradeSet].sort((a, b) => a - b);
-
-    // 提取当前学期实际开课的学院、专业、层次ID列表
-    const collegeIdSet = new Set();
-    const majorIdSet = new Set();
-    const levelIdSet = new Set();
-
-    for (const cls of allMatchingClasses) {
-      if (cls.college_id != null) collegeIdSet.add(cls.college_id);
-      if (cls.major_id != null) majorIdSet.add(cls.major_id);
-      if (cls.training_level_id != null) levelIdSet.add(cls.training_level_id);
-    }
-
-    const availableCollegeIds = Array.from(collegeIdSet);
-    const availableMajorIds = Array.from(majorIdSet);
-    const availableLevelIds = Array.from(levelIdSet);
-
-    // 计算学院-专业关联关系（基于当前学期实际开课的班级数据）
-    const collegeMajorMap = new Map();
-
-    for (const cls of allMatchingClasses) {
-      if (cls.college_id != null && cls.major_id != null) {
-        if (!collegeMajorMap.has(cls.college_id)) {
-          collegeMajorMap.set(cls.college_id, new Set());
-        }
-        collegeMajorMap.get(cls.college_id).add(cls.major_id);
-      }
-    }
-
-    const collegeMajorRelation = {};
-    for (const [collegeId, majorIds] of collegeMajorMap) {
-      collegeMajorRelation[collegeId] = Array.from(majorIds);
-    }
-
-    // 计算学院-层次关联关系
-    const collegeLevelMap = new Map();
-
-    for (const cls of allMatchingClasses) {
-      if (cls.college_id != null && cls.training_level_id != null) {
-        if (!collegeLevelMap.has(cls.college_id)) {
-          collegeLevelMap.set(cls.college_id, new Set());
-        }
-        collegeLevelMap.get(cls.college_id).add(cls.training_level_id);
-      }
-    }
-
-    const collegeLevelRelation = {};
-    for (const [collegeId, levelIds] of collegeLevelMap) {
-      collegeLevelRelation[collegeId] = Array.from(levelIds);
-    }
-
-    // 计算专业-层次关联关系
-    const majorLevelMap = new Map();
-
-    for (const cls of allMatchingClasses) {
-      if (cls.major_id != null && cls.training_level_id != null) {
-        if (!majorLevelMap.has(cls.major_id)) {
-          majorLevelMap.set(cls.major_id, new Set());
-        }
-        majorLevelMap.get(cls.major_id).add(cls.training_level_id);
-      }
-    }
-
-    const majorLevelRelation = {};
-    for (const [majorId, levelIds] of majorLevelMap) {
-      majorLevelRelation[majorId] = Array.from(levelIds);
-    }
+    // 优化2：筛选器下拉选项使用按学期缓存（TTL 5分钟），避免每次请求重复全量查询。
+    // 选项仅依赖学期（不随用户筛选条件变化），保证下拉稳定且缓存命中率高。
+    const filterOptions = await getQueryFilterOptions(semesterInfo, activeFilter, planFilter);
+    const availableEnrollmentYears = filterOptions.enrollmentYears;
+    const availableGrades = filterOptions.grades;
+    const availableCollegeIds = filterOptions.collegeIds;
+    const availableMajorIds = filterOptions.majorIds;
+    const availableLevelIds = filterOptions.levelIds;
+    const collegeMajorRelation = filterOptions.collegeMajorRelation;
+    const collegeLevelRelation = filterOptions.collegeLevelRelation;
+    const majorLevelRelation = filterOptions.majorLevelRelation;
 
     const classes = await prisma.classes.findMany({
       where: classWhere,

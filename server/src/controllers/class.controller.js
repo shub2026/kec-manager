@@ -13,6 +13,125 @@ import {
   getPartnersOfClass,
   dissolveAfterClassDeletion,
 } from '../services/class-combination.service.js';
+import { invalidateQueryFilterCache } from './query.controller.js';
+
+// ── 班级筛选器关联映射缓存（优化1）──
+// 关联映射从全量班级/方案构建，数据变更频率低（仅增删改班级/方案时变化），
+// 但每次分页请求都需要，缓存后避免重复全量查询。
+const FILTER_RELATIONS_TTL = 5 * 60 * 1000; // 5 分钟
+let filterRelationsCache = null;
+let filterRelationsCacheAt = 0;
+
+export function invalidateFilterRelationsCache() {
+  filterRelationsCache = null;
+  filterRelationsCacheAt = 0;
+}
+
+async function getClassFilterRelations() {
+  if (filterRelationsCache && Date.now() - filterRelationsCacheAt < FILTER_RELATIONS_TTL) {
+    return filterRelationsCache;
+  }
+
+  const [allClassesForMappings, allPlansForMapping] = await Promise.all([
+    prisma.classes.findMany({
+      select: {
+        college_id: true,
+        major_id: true,
+        training_level_id: true,
+        enrollment_year: true,
+      },
+    }),
+    prisma.training_plans.findMany({
+      select: { id: true, college_id: true, major_id: true, training_level_id: true },
+    }),
+  ]);
+
+  const enrollmentYearSet = new Set();
+  const collegeMajorMap = new Map();
+  const collegeLevelMap = new Map();
+  const majorLevelMap = new Map();
+  const collegeYearMap = new Map();
+  const majorYearMap = new Map();
+  const levelYearMap = new Map();
+
+  for (const cls of allClassesForMappings) {
+    if (cls.enrollment_year != null) enrollmentYearSet.add(cls.enrollment_year);
+
+    if (cls.college_id != null && cls.major_id != null) {
+      if (!collegeMajorMap.has(cls.college_id)) collegeMajorMap.set(cls.college_id, new Set());
+      collegeMajorMap.get(cls.college_id).add(cls.major_id);
+    }
+    if (cls.college_id != null && cls.training_level_id != null) {
+      if (!collegeLevelMap.has(cls.college_id)) collegeLevelMap.set(cls.college_id, new Set());
+      collegeLevelMap.get(cls.college_id).add(cls.training_level_id);
+    }
+    if (cls.major_id != null && cls.training_level_id != null) {
+      if (!majorLevelMap.has(cls.major_id)) majorLevelMap.set(cls.major_id, new Set());
+      majorLevelMap.get(cls.major_id).add(cls.training_level_id);
+    }
+    if (cls.college_id != null && cls.enrollment_year != null) {
+      if (!collegeYearMap.has(cls.college_id)) collegeYearMap.set(cls.college_id, new Set());
+      collegeYearMap.get(cls.college_id).add(cls.enrollment_year);
+    }
+    if (cls.major_id != null && cls.enrollment_year != null) {
+      if (!majorYearMap.has(cls.major_id)) majorYearMap.set(cls.major_id, new Set());
+      majorYearMap.get(cls.major_id).add(cls.enrollment_year);
+    }
+    if (cls.training_level_id != null && cls.enrollment_year != null) {
+      if (!levelYearMap.has(cls.training_level_id))
+        levelYearMap.set(cls.training_level_id, new Set());
+      levelYearMap.get(cls.training_level_id).add(cls.enrollment_year);
+    }
+  }
+
+  const allEnrollmentYears = [...enrollmentYearSet].sort((a, b) => b - a);
+
+  const mapToObj = (map, sortFn) => {
+    const obj = {};
+    for (const [k, s] of map) obj[k] = sortFn ? [...s].sort(sortFn) : [...s];
+    return obj;
+  };
+
+  const planCollegeMap = new Map();
+  const planMajorMap = new Map();
+  const planLevelMap = new Map();
+
+  for (const plan of allPlansForMapping) {
+    if (plan.college_id != null && (plan.major_id != null || plan.training_level_id != null)) {
+      if (!planCollegeMap.has(plan.college_id)) {
+        planCollegeMap.set(plan.college_id, new Set());
+      }
+      planCollegeMap.get(plan.college_id).add(plan.id);
+    }
+    if (plan.major_id) {
+      if (!planMajorMap.has(plan.major_id)) {
+        planMajorMap.set(plan.major_id, new Set());
+      }
+      planMajorMap.get(plan.major_id).add(plan.id);
+    }
+    if (plan.training_level_id) {
+      if (!planLevelMap.has(plan.training_level_id)) {
+        planLevelMap.set(plan.training_level_id, new Set());
+      }
+      planLevelMap.get(plan.training_level_id).add(plan.id);
+    }
+  }
+
+  filterRelationsCache = {
+    allEnrollmentYears,
+    collegeMajorRelation: mapToObj(collegeMajorMap),
+    collegeLevelRelation: mapToObj(collegeLevelMap),
+    majorLevelRelation: mapToObj(majorLevelMap),
+    collegeYearRelation: mapToObj(collegeYearMap, (a, b) => b - a),
+    majorYearRelation: mapToObj(majorYearMap, (a, b) => b - a),
+    levelYearRelation: mapToObj(levelYearMap, (a, b) => b - a),
+    planCollegeRelation: mapToObj(planCollegeMap),
+    planMajorRelation: mapToObj(planMajorMap),
+    planLevelRelation: mapToObj(planLevelMap),
+  };
+  filterRelationsCacheAt = Date.now();
+  return filterRelationsCache;
+}
 
 function calculateClassStatus(
   enrollmentYear,
@@ -188,105 +307,21 @@ export async function listClasses(req, res, next) {
       };
     });
 
-    // H-10: 合并 7 次班级查询为单次查询，从结果集推导所有关联映射
-    // B-12 设计说明：关联映射（学院-专业、学院-层次等）从全量班级构建，而非当前筛选结果。
-    // 这是有意为之——级联筛选下拉框的选项应保持稳定，不随当前页面/筛选条件变化，
-    // 否则用户每切换一次筛选条件，下拉选项就会变动，体验极差。
-    const allClassesForMappings = await prisma.classes.findMany({
-      select: {
-        college_id: true,
-        major_id: true,
-        training_level_id: true,
-        enrollment_year: true,
-      },
-    });
-
-    const enrollmentYearSet = new Set();
-    const collegeMajorMap = new Map();
-    const collegeLevelMap = new Map();
-    const majorLevelMap = new Map();
-    const collegeYearMap = new Map();
-    const majorYearMap = new Map();
-    const levelYearMap = new Map();
-
-    for (const cls of allClassesForMappings) {
-      if (cls.enrollment_year != null) enrollmentYearSet.add(cls.enrollment_year);
-
-      if (cls.college_id != null && cls.major_id != null) {
-        if (!collegeMajorMap.has(cls.college_id)) collegeMajorMap.set(cls.college_id, new Set());
-        collegeMajorMap.get(cls.college_id).add(cls.major_id);
-      }
-      if (cls.college_id != null && cls.training_level_id != null) {
-        if (!collegeLevelMap.has(cls.college_id)) collegeLevelMap.set(cls.college_id, new Set());
-        collegeLevelMap.get(cls.college_id).add(cls.training_level_id);
-      }
-      if (cls.major_id != null && cls.training_level_id != null) {
-        if (!majorLevelMap.has(cls.major_id)) majorLevelMap.set(cls.major_id, new Set());
-        majorLevelMap.get(cls.major_id).add(cls.training_level_id);
-      }
-      if (cls.college_id != null && cls.enrollment_year != null) {
-        if (!collegeYearMap.has(cls.college_id)) collegeYearMap.set(cls.college_id, new Set());
-        collegeYearMap.get(cls.college_id).add(cls.enrollment_year);
-      }
-      if (cls.major_id != null && cls.enrollment_year != null) {
-        if (!majorYearMap.has(cls.major_id)) majorYearMap.set(cls.major_id, new Set());
-        majorYearMap.get(cls.major_id).add(cls.enrollment_year);
-      }
-      if (cls.training_level_id != null && cls.enrollment_year != null) {
-        if (!levelYearMap.has(cls.training_level_id))
-          levelYearMap.set(cls.training_level_id, new Set());
-        levelYearMap.get(cls.training_level_id).add(cls.enrollment_year);
-      }
-    }
-
-    const allEnrollmentYears = [...enrollmentYearSet].sort((a, b) => b - a);
-
-    // 辅助：将 Map<K, Set<V>> 转为普通对象（年份降序，其他保持插入顺序）
-    const mapToObj = (map, sortFn) => {
-      const obj = {};
-      for (const [k, s] of map) obj[k] = sortFn ? [...s].sort(sortFn) : [...s];
-      return obj;
-    };
-
-    const collegeMajorRelation = mapToObj(collegeMajorMap);
-    const collegeLevelRelation = mapToObj(collegeLevelMap);
-    const majorLevelRelation = mapToObj(majorLevelMap);
-    const collegeYearRelation = mapToObj(collegeYearMap, (a, b) => b - a);
-    const majorYearRelation = mapToObj(majorYearMap, (a, b) => b - a);
-    const levelYearRelation = mapToObj(levelYearMap, (a, b) => b - a);
-
-    // 培养方案关联映射（独立查询，因为是不同表）
-    const planCollegeMap = new Map();
-    const planMajorMap = new Map();
-    const planLevelMap = new Map();
-    const allPlansForMapping = await prisma.training_plans.findMany({
-      select: { id: true, college_id: true, major_id: true, training_level_id: true },
-    });
-
-    for (const plan of allPlansForMapping) {
-      if (plan.college_id != null && (plan.major_id != null || plan.training_level_id != null)) {
-        if (!planCollegeMap.has(plan.college_id)) {
-          planCollegeMap.set(plan.college_id, new Set());
-        }
-        planCollegeMap.get(plan.college_id).add(plan.id);
-      }
-      if (plan.major_id) {
-        if (!planMajorMap.has(plan.major_id)) {
-          planMajorMap.set(plan.major_id, new Set());
-        }
-        planMajorMap.get(plan.major_id).add(plan.id);
-      }
-      if (plan.training_level_id) {
-        if (!planLevelMap.has(plan.training_level_id)) {
-          planLevelMap.set(plan.training_level_id, new Set());
-        }
-        planLevelMap.get(plan.training_level_id).add(plan.id);
-      }
-    }
-
-    const planCollegeRelation = mapToObj(planCollegeMap);
-    const planMajorRelation = mapToObj(planMajorMap);
-    const planLevelRelation = mapToObj(planLevelMap);
+    // 优化1：关联映射使用模块级缓存（TTL 5分钟），避免每次分页请求重复全量查询。
+    // B-12 设计说明：关联映射从全量班级构建（而非当前筛选结果），
+    // 保证级联筛选下拉框选项稳定，不随筛选条件变化。
+    const {
+      allEnrollmentYears,
+      collegeMajorRelation,
+      collegeLevelRelation,
+      majorLevelRelation,
+      collegeYearRelation,
+      majorYearRelation,
+      levelYearRelation,
+      planCollegeRelation,
+      planMajorRelation,
+      planLevelRelation,
+    } = await getClassFilterRelations();
 
     success(res, {
       items: classesWithDynamicStatus,
@@ -392,6 +427,8 @@ export async function createClass(req, res, next) {
     });
 
     invalidateDurationCache();
+    invalidateFilterRelationsCache();
+    invalidateQueryFilterCache();
     success(res, result, '创建成功');
   } catch (e) {
     await createAuditLog({
@@ -531,6 +568,8 @@ export async function updateClass(req, res, next) {
     success(res, cls, '更新成功');
 
     if (duration_years !== undefined) invalidateDurationCache();
+    invalidateFilterRelationsCache();
+    invalidateQueryFilterCache();
   } catch (e) {
     await createAuditLog({
       action: 'update',
@@ -606,6 +645,8 @@ export async function deleteClass(req, res, next) {
 
       success(res, null, '删除成功');
       invalidateDurationCache();
+      invalidateFilterRelationsCache();
+      invalidateQueryFilterCache();
     } catch (e) {
       await createAuditLog({
         action: 'delete',
@@ -704,6 +745,8 @@ export async function batchDeleteClasses(req, res, next) {
         return result.count;
       });
       invalidateDurationCache();
+      invalidateFilterRelationsCache();
+      invalidateQueryFilterCache();
     }
 
     // 6) 构造逐项结果
@@ -861,6 +904,8 @@ export async function batchUpdateClasses(req, res, next) {
     });
 
     if (updateData.duration_years !== undefined) invalidateDurationCache();
+    invalidateFilterRelationsCache();
+    invalidateQueryFilterCache();
 
     success(res, {
       total: classIds.length,

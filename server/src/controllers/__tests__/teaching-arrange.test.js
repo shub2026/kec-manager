@@ -364,9 +364,12 @@ describe('assignTeacher — 手动安排教师', () => {
   // 6. 工作量超限警告
   // ──────────────────────────────────────────────
   it('教师工作量超限时应在响应中包含 workloadWarning', async () => {
-    // 模拟总课时超过 full_time 的 max (20)
-    mockPrisma.teaching_assignments.groupBy.mockResolvedValue([
-      { teacher_id: 5, _sum: { weekly_hours: 25 } },
+    // 优化5：工作量检查改用 findMany + dedupeTeachingUnits（合班去重）
+    // 模拟总课时超过 full_time 的 max (20)：3 个非合班单元，各 9 课时 = 27 > 20
+    mockPrisma.teaching_assignments.findMany.mockResolvedValue([
+      { teacher_id: 5, course_id: 1, weekly_hours: 9, class_id: 1, class: { combination_id: null } },
+      { teacher_id: 5, course_id: 2, weekly_hours: 9, class_id: 2, class: { combination_id: null } },
+      { teacher_id: 5, course_id: 3, weekly_hours: 9, class_id: 3, class: { combination_id: null } },
     ]);
 
     const req = mockReq({
