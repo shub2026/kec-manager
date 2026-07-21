@@ -129,7 +129,7 @@ const routes = [
         path: 'users',
         name: 'Users',
         component: () => import('../views/system/UserManagement.vue'),
-        meta: { title: '用户管理', requiresAdmin: true },
+        meta: { title: '用户管理', requiresSuperAdmin: true },
       },
     ],
   },

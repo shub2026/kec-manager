@@ -141,6 +141,28 @@ export const validateChangePassword = [
 ];
 
 /**
+ * 重置密码验证规则（管理员重置他人密码，无需原密码）
+ * H-2修复：与 validateChangePassword 的密码正则保持一致，严格限制字符集
+ */
+export const validateResetPassword = [
+  body('new_password')
+    .isLength({ min: 8, max: 128 })
+    .withMessage('新密码长度必须在8-128位之间')
+    .custom((value) => {
+      let types = 0;
+      if (/[a-z]/.test(value)) types++;
+      if (/[A-Z]/.test(value)) types++;
+      if (/\d/.test(value)) types++;
+      if (/[^a-zA-Z\d]/.test(value)) types++;
+      if (types < 2) {
+        throw new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）');
+      }
+      return true;
+    }),
+  handleValidationErrors,
+];
+
+/**
  * 分页参数验证规则
  */
 export const validatePagination = [

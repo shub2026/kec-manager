@@ -258,9 +258,10 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
+          :page-sizes="[20, 50, 100]"
           :total="filteredClassList.length"
-          layout="total, sizes, prev, pager, next, jumper"
+          layout="total, sizes, prev, pager, next"
+          background
           @size-change="handlePageChange"
           @current-change="handlePageChange"
         />

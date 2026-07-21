@@ -9,15 +9,6 @@
       </template>
     </PageHeader>
     <el-card>
-      <!-- 权限提示 -->
-      <el-alert
-        v-if="authStore.userInfo?.role === 'admin'"
-        title="提示：您当前为管理员角色，只能查看和管理访客账号。如需管理其他角色，请联系超级管理员。"
-        type="info"
-        :closable="false"
-        class="admin-alert"
-      />
-
       <!-- 用户列表 -->
       <el-table v-loading="loading" :data="users" stripe row-key="id">
         <template #empty>
@@ -48,7 +39,7 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" align="center">
+        <el-table-column label="操作" width="300" align="center">
           <template #default="{ row }">
             <el-button
               size="small"
@@ -70,6 +61,16 @@
             </el-button>
             <el-button
               size="small"
+              type="success"
+              plain
+              :disabled="row.id === authStore.userInfo?.id || row.role === 'super_admin'"
+              aria-label="重置密码"
+              @click="openResetPwdDialog(row)"
+            >
+              重置密码
+            </el-button>
+            <el-button
+              size="small"
               type="danger"
               :disabled="row.id === authStore.userInfo?.id || row.role === 'super_admin'"
               aria-label="删除用户"
@@ -86,9 +87,10 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
+          :page-sizes="[20, 50, 100]"
           :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
+          layout="total, sizes, prev, pager, next"
+          background
           @size-change="loadUsers"
           @current-change="loadUsers"
         />
@@ -125,7 +127,7 @@
 
         <el-form-item label="角色" prop="role">
           <el-select v-model="formData.role" placeholder="请选择角色" style="width: 100%">
-            <!-- 所有管理员都可以创建管理员和访客 -->
+            <!-- 本页仅超级管理员可见，可创建管理员和访客 -->
             <el-option label="管理员" value="admin">
               <span>管理员</span>
               <span class="role-hint">基础数据和培养方案维护</span>
@@ -140,7 +142,7 @@
         <el-alert v-if="!isEdit" title="角色说明" type="info" :closable="false" class="role-alert">
           <p>
             <strong>管理员（二级管理员）：</strong
-            >可以维护基础数据（专业、学院、课程等）和培养方案，但不能配置系统设置和重置系统
+            >可以维护基础数据（专业、学院、课程等）、培养方案和教学安排，但不能访问系统管理（用户管理、系统设置、操作日志）
           </p>
           <p><strong>访客：</strong>只能访问查询页面，适合需要查看数据但不需要修改的用户</p>
           <p class="danger-hint">
@@ -186,12 +188,55 @@
         >
       </template>
     </el-dialog>
+
+    <!-- 重置密码对话框 -->
+    <el-dialog v-model="resetPwdVisible" title="重置密码" width="min(500px, 90vw)" destroy-on-close>
+      <el-alert
+        :title="`将重置用户“${resetPwdUser?.username}”的密码，重置后该用户下次登录必须修改密码`"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="reset-pwd-alert"
+      />
+      <el-form
+        ref="resetPwdFormRef"
+        :model="resetPwdForm"
+        :rules="resetPwdRules"
+        label-width="100px"
+      >
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input
+            v-model="resetPwdForm.newPassword"
+            type="password"
+            show-password
+            placeholder="至少8位，包含两种字符类型（字母/数字/符号）"
+          >
+            <template #append>
+              <el-button @click="fillRandomPassword">随机生成</el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input
+            v-model="resetPwdForm.confirmPassword"
+            type="password"
+            show-password
+            placeholder="请再次输入新密码"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="resetPwdVisible = false">取消</el-button>
+        <el-button type="warning" :loading="resetPwdSubmitting" @click="handleResetPassword"
+          >确定重置</el-button
+        >
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { UserFilled } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { ElMessage } from 'element-plus';
 import {
@@ -200,6 +245,7 @@ import {
   updateUser,
   deleteUser as apiDeleteUser,
   toggleUserStatus as apiToggleUserStatus,
+  resetUserPassword,
 } from '../../api/user';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
@@ -233,6 +279,16 @@ const deleteConfirmMessage = ref('');
 const userDeleting = ref(false);
 const pendingDeleteUser = ref(null);
 
+// 重置密码对话框
+const resetPwdVisible = ref(false);
+const resetPwdUser = ref(null);
+const resetPwdFormRef = ref(null);
+const resetPwdSubmitting = ref(false);
+const resetPwdForm = ref({
+  newPassword: '',
+  confirmPassword: '',
+});
+
 const formData = ref({
   username: '',
   password: '',
@@ -252,6 +308,44 @@ const rules = {
   ],
   email: [{ type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
+};
+
+// 重置密码校验规则（强度规则与 ChangePasswordDialog / 后端保持一致）
+const validateResetConfirm = (rule, value, callback) => {
+  if (value !== resetPwdForm.value.newPassword) {
+    callback(new Error('两次输入的密码不一致'));
+  } else {
+    callback();
+  }
+};
+
+const resetPwdRules = {
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 8, max: 128, message: '密码长度必须在8-128位之间', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (!value) return callback();
+        let types = 0;
+        if (/[a-z]/.test(value)) types++;
+        if (/[A-Z]/.test(value)) types++;
+        if (/\d/.test(value)) types++;
+        if (/[^a-zA-Z\d]/.test(value)) types++;
+        if (types < 2) {
+          callback(
+            new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）')
+          );
+        } else {
+          callback();
+        }
+      },
+      trigger: 'blur',
+    },
+  ],
+  confirmPassword: [
+    { required: true, message: '请确认新密码', trigger: 'blur' },
+    { validator: validateResetConfirm, trigger: 'blur' },
+  ],
 };
 
 async function loadUsers() {
@@ -297,7 +391,7 @@ function showCreateDialog() {
     password: '',
     realName: '',
     email: '',
-    role: authStore.userInfo?.role === 'admin' ? 'viewer' : 'admin',
+    role: 'admin',
   };
   dialogVisible.value = true;
 }
@@ -416,6 +510,69 @@ async function confirmDeleteUser() {
   }
 }
 
+function openResetPwdDialog(user) {
+  resetPwdUser.value = user;
+  resetPwdForm.value = { newPassword: '', confirmPassword: '' };
+  resetPwdVisible.value = true;
+}
+
+// 生成随机密码：保证同时包含小写、大写、数字、特殊字符（满足强度校验），
+// 并剔除易混淆字符（l/O/0/1）
+function generateRandomPassword(length = 12) {
+  const lower = 'abcdefghijkmnopqrstuvwxyz';
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const digits = '23456789';
+  const symbols = '!@#$%^&*';
+  const all = lower + upper + digits + symbols;
+  const rand = new Uint32Array(length);
+  crypto.getRandomValues(rand);
+  const chars = [
+    lower[rand[0] % lower.length],
+    upper[rand[1] % upper.length],
+    digits[rand[2] % digits.length],
+    symbols[rand[3] % symbols.length],
+  ];
+  for (let i = 4; i < length; i++) {
+    chars.push(all[rand[i] % all.length]);
+  }
+  // Fisher-Yates 洗牌，打散前四位的固定类型顺序
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = rand[i] % (i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
+}
+
+function fillRandomPassword() {
+  const pwd = generateRandomPassword();
+  resetPwdForm.value.newPassword = pwd;
+  resetPwdForm.value.confirmPassword = pwd;
+  resetPwdFormRef.value?.clearValidate();
+}
+
+async function handleResetPassword() {
+  if (!resetPwdFormRef.value) return;
+
+  try {
+    await resetPwdFormRef.value.validate();
+  } catch {
+    return;
+  }
+
+  resetPwdSubmitting.value = true;
+  try {
+    await resetUserPassword(resetPwdUser.value.id, {
+      newPassword: resetPwdForm.value.newPassword,
+    });
+    ElMessage.success('密码重置成功，该用户下次登录须修改密码');
+    resetPwdVisible.value = false;
+  } catch (error) {
+    ElMessage.error('密码重置失败：' + (error.response?.data?.message || error.message || '未知错误'));
+  } finally {
+    resetPwdSubmitting.value = false;
+  }
+}
+
 function getRoleType(role) {
   const types = {
     super_admin: 'danger',
@@ -444,9 +601,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.admin-alert {
-  margin-bottom: var(--space-4);
-}
 .role-hint {
   color: var(--text-secondary);
   font-size: 12px;
@@ -458,5 +612,8 @@ onMounted(() => {
 .danger-hint {
   margin-top: 8px;
   color: var(--brand-danger-text);
+}
+.reset-pwd-alert {
+  margin-bottom: var(--space-4);
 }
 </style>

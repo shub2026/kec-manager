@@ -157,10 +157,11 @@
             <el-pagination
               v-model:current-page="pagination.page"
               v-model:page-size="pagination.pageSize"
-              :page-sizes="[10, 20, 50, 100]"
+              :page-sizes="[20, 50, 100]"
               :total="pagination.total"
               :layout="paginationLayout"
               :size="isMobile ? 'small' : 'default'"
+              background
               @size-change="handleSizeChange"
               @current-change="handlePageChange"
             />
@@ -202,9 +203,9 @@ const { isMobile } = useResponsive();
 // el-descriptions 列数：桌面 3 列，手机 1 列
 const descColumn = computed(() => (isMobile.value ? 1 : 3));
 
-// 分页 layout：桌面完整，手机精简（去除 sizes 和 jumper，避免溢出）
+// 分页 layout：桌面完整，手机精简（去除 sizes，避免溢出）
 const paginationLayout = computed(() =>
-  isMobile.value ? 'total, prev, pager, next' : 'total, sizes, prev, pager, next, jumper'
+  isMobile.value ? 'total, prev, pager, next' : 'total, sizes, prev, pager, next'
 );
 
 // 分页状态

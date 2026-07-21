@@ -3,248 +3,302 @@
 
 
 
-  "name": "client",
 
+ "name": "client",
 
 
 
-  "private": true,
 
 
+ "private": true,
 
 
-  "version": "1.1.4",
 
 
 
+ "version": "1.2.0",
 
-  "type": "module",
 
 
 
 
-  "scripts": {
+ "type": "module",
 
 
 
 
-  
 
+ "scripts": {
 
 
-  "dev": "vite",
 
 
 
+ 
 
-  
 
 
 
-  "build": "vite build",
+ "dev": "vite",
 
 
 
 
-  
 
+ 
 
 
-  "preview": "vite preview",
 
 
+ "build": "vite build",
 
 
-  
 
 
 
-  "analyze": "vite-bundle-visualizer",
+ 
 
 
 
 
-  
+ "preview": "vite preview",
 
 
 
-  "format": "prettier --write \"src/**/*.{js,vue,json}\"",
 
 
+ 
 
 
-  
 
 
+ "analyze": "vite-bundle-visualizer",
 
-  "lint": "eslint src --ext .vue,.js --fix"
 
 
 
 
-  },
+ 
 
 
 
 
-  "dependencies": {
+ "format": "prettier --write \"src/**/*.{js,vue,json}\"",
 
 
 
 
-  
 
+ 
 
 
-  "@element-plus/icons-vue": "^2.3.2",
 
 
+ "lint": "eslint src --ext .vue,.js --fix"
 
 
-  
 
 
 
-  "axios": "^1.17.0",
+ },
 
 
 
 
-  
 
+ "dependencies": {
 
 
-  "element-plus": "^2.14.1",
 
 
 
+ 
 
-  
 
 
 
-  "nprogress": "^0.2.0",
+ "@element-plus/icons-vue": "^2.3.2",
 
 
 
 
-  
 
+ 
 
 
-  "pinia": "^3.0.4",
 
 
+ "axios": "^1.17.0",
 
 
-  
 
 
 
-  "vue": "^3.5.34",
+ 
 
 
 
 
-  
+ "element-plus": "^2.14.1",
 
 
 
-  "vue-router": "^4.6.4"
 
 
+ 
 
 
-  },
 
 
+ "nprogress": "^0.2.0",
 
 
-  "devDependencies": {
 
 
 
+ 
 
-  
 
 
 
-  "@eslint/js": "^10.0.1",
+ "pinia": "^3.0.4",
 
 
 
 
-  
 
+ 
 
 
-  "@vitejs/plugin-vue": "^5.2.4",
 
 
+ "vue": "^3.5.34",
 
 
-  
 
 
 
-  "@vue/eslint-config-prettier": "^10.2.0",
+ 
 
 
 
 
-  
+ "vue-router": "^4.6.4"
 
 
 
-  "eslint": "^10.5.0",
 
 
+ },
 
 
-  
 
 
 
-  "eslint-plugin-vue": "^10.9.2",
+ "devDependencies": {
 
 
 
 
-  
 
+ 
 
 
-  "prettier": "^3.8.4",
 
 
+ "@eslint/js": "^10.0.1",
 
 
-  
 
 
 
-  "unplugin-auto-import": "^20.3.0",
+ 
 
 
 
 
-  
+ "@vitejs/plugin-vue": "^5.2.4",
 
 
 
-  "unplugin-vue-components": "^30.0.0",
 
 
+ 
 
 
-  
 
 
+ "@vue/eslint-config-prettier": "^10.2.0",
 
-  "vite": "^6.4.3"
 
 
 
 
-  }
+ 
+
+
+
+
+ "eslint": "^10.5.0",
+
+
+
+
+
+ 
+
+
+
+
+ "eslint-plugin-vue": "^10.9.2",
+
+
+
+
+
+ 
+
+
+
+
+ "prettier": "^3.8.4",
+
+
+
+
+
+ 
+
+
+
+
+ "unplugin-auto-import": "^20.3.0",
+
+
+
+
+
+ 
+
+
+
+
+ "unplugin-vue-components": "^30.0.0",
+
+
+
+
+
+ 
+
+
+
+
+ "vite": "^6.4.3"
+
+
+
+
+
+ }
 }

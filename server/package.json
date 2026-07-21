@@ -3,436 +3,531 @@
 
 
 
-  "name": "kec-manager-server",
 
+ "name": "kec-manager-server",
 
 
 
-  "version": "1.1.4",
 
 
+ "version": "1.2.0",
 
 
-  "description": "KEC课程管理平台后端",
 
 
 
+ "description": "KEC课程管理平台后端",
 
-  "main": "src/server.js",
 
 
 
 
-  "type": "module",
+ "main": "src/server.js",
 
 
 
 
-  "engines": {
 
+ "type": "module",
 
 
 
-  
 
 
+ "engines": {
 
-  "node": ">=20.0.0",
 
 
 
 
-  
+ 
 
 
 
-  "npm": ">=10.0.0"
 
+ "node": ">=20.0.0",
 
 
 
-  },
 
 
+ 
 
 
-  "scripts": {
 
 
+ "npm": ">=10.0.0"
 
 
-  
 
 
 
-  "dev": "node --watch-path=src src/server.js",
+ },
 
 
 
 
-  
 
+ "scripts": {
 
 
-  "start": "node src/server.js",
 
 
 
+ 
 
-  
 
 
 
-  "diagnose": "node scripts/diagnose.js",
+ "dev": "node --watch-path=src src/server.js",
 
 
 
 
-  
 
+ 
 
 
-  "init:settings": "node scripts/init-settings.js",
 
 
+ "start": "node src/server.js",
 
 
-  
 
 
 
-  "db:migrate": "npx prisma migrate dev",
+ 
 
 
 
 
-  
+ "diagnose": "node scripts/diagnose.js",
 
 
 
-  "db:generate": "npx prisma generate",
 
 
+ 
 
 
-  
 
 
+ "init:settings": "node scripts/init-settings.js",
 
-  "db:reset": "node scripts/reset-database.js",
 
 
 
 
-  
+ 
 
 
 
-  "db:seed": "node prisma/seed.js",
 
+ "db:migrate": "npx prisma migrate dev",
 
 
 
-  
 
 
+ 
 
-  "db:seed:dev": "DEV_SEEDS=true node prisma/seed.js",
 
 
 
+ "db:generate": "npx prisma generate",
 
-  
 
 
 
-  "db:seed:reset": "FORCE_RESET=true node prisma/seed.js",
 
+ 
 
 
 
-  
 
+ "db:reset": "node scripts/reset-database.js",
 
 
-  "format": "prettier --write \"src/**/*.{js,json}\" \"scripts/**/*.js\"",
 
 
 
+ 
 
-  
 
 
 
-  "lint": "eslint src scripts --ext .js --fix",
+ "db:seed": "node prisma/seed.js",
 
 
 
 
-  
 
+ 
 
 
-  "test": "vitest run",
 
 
+ "db:seed:dev": "DEV_SEEDS=true node prisma/seed.js",
 
 
-  
 
 
 
-  "test:watch": "vitest",
+ 
 
 
 
 
-  
+ "db:seed:reset": "FORCE_RESET=true node prisma/seed.js",
 
 
 
-  "test:coverage": "vitest run --coverage"
 
 
+ 
 
 
-  },
 
 
+ "format": "prettier --write \"src/**/*.{js,json}\" \"scripts/**/*.js\"",
 
 
-  "dependencies": {
 
 
 
+ 
 
-  
 
 
 
-  "@prisma/client": "^6.19.3",
+ "lint": "eslint src scripts --ext .js --fix",
 
 
 
 
-  
 
+ 
 
 
-  "bcryptjs": "^3.0.3",
 
 
+ "test": "vitest run",
 
 
-  
 
 
 
-  "cors": "^2.8.5",
+ 
 
 
 
 
-  
+ "test:watch": "vitest",
 
 
 
-  "dotenv": "^17.4.2",
 
 
+ 
 
 
-  
 
 
+ "test:coverage": "vitest run --coverage"
 
-  "exceljs": "^4.4.0",
 
 
 
 
-  
+ },
 
 
 
-  "express": "^5.1.0",
 
 
+ "dependencies": {
 
 
-  
 
 
 
-  "express-rate-limit": "^8.5.2",
+ 
 
 
 
 
-  
+ "@prisma/client": "^6.19.3",
 
 
 
-  "express-validator": "^7.3.2",
 
 
+ 
 
 
-  
 
 
+ "bcryptjs": "^3.0.3",
 
-  "helmet": "^8.2.0",
 
 
 
 
-  
+ 
 
 
 
-  "jsonwebtoken": "^9.0.3",
 
+ "cors": "^2.8.5",
 
 
 
-  
 
 
+ 
 
-  "multer": "^2.0.1",
 
 
 
+ "dotenv": "^17.4.2",
 
-  
 
 
 
-  "winston": "^3.19.0",
 
+ 
 
 
 
-  
 
+ "exceljs": "^4.4.0",
 
 
-  "xss": "^1.0.15"
 
 
 
+ 
 
-  },
 
 
 
+ "express": "^5.1.0",
 
-  "devDependencies": {
 
 
 
 
-  
+ 
 
 
 
-  "@eslint/js": "^10.0.1",
 
+ "express-rate-limit": "^8.5.2",
 
 
 
-  
 
 
+ 
 
-  "@vitest/coverage-v8": "^4.1.9",
 
 
 
+ "express-validator": "^7.3.2",
 
-  
 
 
 
-  "eslint": "^10.5.0",
 
+ 
 
 
 
-  
 
+ "helmet": "^8.2.0",
 
 
-  "prettier": "^3.8.4",
 
 
 
+ 
 
-  
 
 
 
-  "prisma": "^6.19.3",
+ "jsonwebtoken": "^9.0.3",
 
 
 
 
-  
 
+ 
 
 
-  "supertest": "^7.2.2",
 
 
+ "multer": "^2.0.1",
 
 
-  
 
 
 
-  "vitest": "^4.1.9"
+ 
 
 
 
 
-  },
+ "winston": "^3.19.0",
 
 
 
 
-  "overrides": {
 
+ 
 
 
 
-  
 
+ "xss": "^1.0.15"
 
 
-  "uuid": "^11.1.1"
 
 
 
+ },
 
-  },
 
 
 
 
-  "optionalDependencies": {
+ "devDependencies": {
 
 
 
 
-  
 
+ 
 
 
-  "magicast": "^0.3.5"
 
 
+ "@eslint/js": "^10.0.1",
 
 
-  }
+
+
+
+ 
+
+
+
+
+ "@vitest/coverage-v8": "^4.1.9",
+
+
+
+
+
+ 
+
+
+
+
+ "eslint": "^10.5.0",
+
+
+
+
+
+ 
+
+
+
+
+ "prettier": "^3.8.4",
+
+
+
+
+
+ 
+
+
+
+
+ "prisma": "^6.19.3",
+
+
+
+
+
+ 
+
+
+
+
+ "supertest": "^7.2.2",
+
+
+
+
+
+ 
+
+
+
+
+ "vitest": "^4.1.9"
+
+
+
+
+
+ },
+
+
+
+
+
+ "overrides": {
+
+
+
+
+
+ 
+
+
+
+
+ "uuid": "^11.1.1"
+
+
+
+
+
+ },
+
+
+
+
+
+ "optionalDependencies": {
+
+
+
+
+
+ 
+
+
+
+
+ "magicast": "^0.3.5"
+
+
+
+
+
+ }
 }

@@ -2,11 +2,14 @@
 
 
 
+
   "name": "kec-manager",
 
 
 
-  "version": "1.1.4",
+
+  "version": "1.2.0",
+
 
 
 
@@ -14,7 +17,9 @@
 
 
 
+
   "type": "module",
+
 
 
 
@@ -22,74 +27,95 @@
 
 
 
+
   "scripts": {
 
 
 
+
   
+
 
 
   "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
 
 
 
+
   
+
 
 
   "dev:server": "cd server && npm run dev",
 
 
 
+
   
+
 
 
   "dev:client": "cd client && npm run dev",
 
 
 
+
   
+
 
 
   "db:migrate": "cd server && npm run db:migrate",
 
 
 
+
   
+
 
 
   "db:generate": "cd server && npm run db:generate",
 
 
 
+
   
+
 
 
   "version": "node scripts/version.js",
 
 
 
+
   
+
 
 
   "version:patch": "node scripts/version.js patch",
 
 
 
+
   
+
 
 
   "version:minor": "node scripts/version.js minor",
 
 
 
+
   
+
 
 
   "version:major": "node scripts/version.js major"
 
 
 
+
   },
+
 
 
 
@@ -97,10 +123,13 @@
 
 
 
+
   
 
 
+
   "concurrently": "^9.2.1"
+
 
 
 
@@ -108,14 +137,18 @@
 
 
 
+
   "dependencies": {
+
 
 
 
   
 
 
+
   "dotenv": "^17.4.2"
+
 
 
 

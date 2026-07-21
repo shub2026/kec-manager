@@ -164,8 +164,8 @@ app.use('/api/query', authMiddleware, queryRoutes);
 // 导出接口 - 所有登录用户可访问
 app.use('/api/export', authMiddleware, exportRoutes);
 
-// 用户管理 - admin和super_admin可访问（admin只能管理访客）
-app.use('/api/users', authMiddleware, roleMiddleware('admin', 'super_admin'), userRoutes);
+// 用户管理 - 仅super_admin可访问（系统管理模块整体收归超级管理员）
+app.use('/api/users', authMiddleware, roleMiddleware('super_admin'), userRoutes);
 
 // 基础数据管理 - 所有登录用户GET可访问，修改需要admin权限（在路由文件中控制）
 app.use('/api/majors', authMiddleware, majorRoutes);

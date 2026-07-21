@@ -99,15 +99,17 @@
         </el-table-column>
       </el-table>
 
-      <el-pagination
-        v-if="filteredList.length > pageSize"
-        v-model:current-page="currentPage"
-        class="pagination-container"
-        layout="total, prev, pager, next, jumper"
-        :total="filteredList.length"
-        :page-size="pageSize"
-        background
-      />
+      <div v-if="filteredList.length > pageSize" class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="filteredList.length"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next"
+          background
+          @size-change="currentPage = 1"
+        />
+      </div>
     </el-card>
 
     <el-dialog

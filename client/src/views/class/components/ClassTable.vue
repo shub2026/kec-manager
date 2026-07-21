@@ -132,9 +132,10 @@
       <el-pagination
         :current-page="pagination.page"
         :page-size="pagination.pageSize"
-        :page-sizes="[10, 20, 50, 100]"
+        :page-sizes="[20, 50, 100]"
         :total="pagination.total"
-        layout="total, sizes, prev, pager, next, jumper"
+        layout="total, sizes, prev, pager, next"
+        background
         @size-change="(s) => $emit('size-change', s)"
         @current-change="(p) => $emit('page-change', p)"
       />

@@ -128,8 +128,9 @@
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next"
+          background
           @size-change="loadLogs"
           @current-change="loadLogs"
         />

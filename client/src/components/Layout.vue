@@ -49,32 +49,27 @@
             <el-menu-item index="/teaching/statistics">课时统计</el-menu-item>
           </el-sub-menu>
 
-          <!-- 系统管理菜单（所有管理员可见） -->
-          <el-sub-menu index="system">
-            <template #title>
-              <el-icon><Tools /></el-icon>
-              <span>系统管理</span>
-            </template>
-            <!-- 超级管理员专属 -->
-            <template v-if="authStore.userInfo?.role === 'super_admin'">
+          <!-- 系统管理菜单（超级管理员专属） -->
+          <template v-if="authStore.userInfo?.role === 'super_admin'">
+            <el-sub-menu index="system">
+              <template #title>
+                <el-icon><Tools /></el-icon>
+                <span>系统管理</span>
+              </template>
               <el-menu-item index="/settings">
                 <el-icon><Setting /></el-icon>
                 <template #title>系统设置</template>
               </el-menu-item>
-            </template>
-            <!-- admin和super_admin都可以访问 -->
-            <el-menu-item index="/users">
-              <el-icon><UserFilled /></el-icon>
-              <template #title>用户管理</template>
-            </el-menu-item>
-            <!-- 超级管理员专属 -->
-            <template v-if="authStore.userInfo?.role === 'super_admin'">
+              <el-menu-item index="/users">
+                <el-icon><UserFilled /></el-icon>
+                <template #title>用户管理</template>
+              </el-menu-item>
               <el-menu-item index="/audit-logs">
                 <el-icon><DocumentChecked /></el-icon>
                 <template #title>操作日志</template>
               </el-menu-item>
-            </template>
-          </el-sub-menu>
+            </el-sub-menu>
+          </template>
         </template>
 
         <!-- 查询报表（所有用户可见） -->

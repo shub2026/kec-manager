@@ -41,3 +41,11 @@ export const deleteUser = (id, { silent } = {}) =>
  * @returns {Promise<import('./types').ApiResponse<import('./types').User>>}
  */
 export const toggleUserStatus = (id, data) => request.put(`/users/${id}/status`, data);
+
+/**
+ * 重置用户密码（管理员操作，重置后用户下次登录须修改密码）
+ * @param {number} id
+ * @param {{ newPassword: string }} data
+ * @returns {Promise<import('./types').ApiResponse<void>>}
+ */
+export const resetUserPassword = (id, data) => request.put(`/users/${id}/password`, data);

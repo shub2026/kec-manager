@@ -68,7 +68,7 @@ vi.mock('../../middleware/auth.middleware.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { createUser, updateUser, updateUserStatus, deleteUser } =
+const { createUser, updateUser, updateUserStatus, resetUserPassword, deleteUser } =
   await import('../user.controller.js');
 const { createAuditLog } = await import('../../services/audit.service.js');
 const { invalidateUserStatusCache } = await import('../../middleware/auth.middleware.js');
@@ -877,6 +877,188 @@ describe('deleteUser', () => {
     expect(createAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'delete',
+        module: 'user',
+        result: 'success',
+        userId: 1,
+      })
+    );
+  });
+});
+
+// ════════════════════════════════════════════════
+// resetUserPassword
+// ════════════════════════════════════════════════
+describe('resetUserPassword', () => {
+  const viewerUser = {
+    id: 10,
+    username: 'viewer1',
+    real_name: '访客一',
+    email: 'v1@test.com',
+    role: 'viewer',
+    is_active: true,
+  };
+
+  const adminUser = {
+    id: 20,
+    username: 'admin1',
+    real_name: '管理员一',
+    email: 'a1@test.com',
+    role: 'admin',
+    is_active: true,
+  };
+
+  const superAdminUser = {
+    id: 30,
+    username: 'superadmin',
+    real_name: '超管',
+    email: 'sa@test.com',
+    role: 'super_admin',
+    is_active: true,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.users.findUnique.mockResolvedValue({ ...viewerUser });
+    mockPrisma.users.update.mockResolvedValue({});
+  });
+
+  it('super_admin 重置 viewer 密码 → 成功，密码被哈希且置 must_change_password=true', async () => {
+    const req = mockReq({
+      params: { id: '10' },
+      body: { new_password: 'NewPass@123' },
+      user: { id: 1, role: 'super_admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetUserPassword(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(bcrypt.hash).toHaveBeenCalledWith('NewPass@123', 10);
+    expect(mockPrisma.users.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 10 },
+        data: expect.objectContaining({
+          password: 'hashed-password-123',
+          must_change_password: true,
+        }),
+      })
+    );
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true, message: '密码重置成功，该用户下次登录须修改密码' })
+    );
+  });
+
+  it('admin 重置 viewer 密码 → 成功', async () => {
+    const req = mockReq({
+      params: { id: '10' },
+      body: { new_password: 'NewPass@123' },
+      user: { id: 2, role: 'admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetUserPassword(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+  });
+
+  it('重置自己的密码 → 403 blocked', async () => {
+    mockPrisma.users.findUnique.mockResolvedValue({
+      id: 1,
+      username: 'me',
+      role: 'super_admin',
+      is_active: true,
+    });
+
+    const req = mockReq({
+      params: { id: '1' },
+      body: { new_password: 'NewPass@123' },
+      user: { id: 1, role: 'super_admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetUserPassword(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    const error = next.mock.calls[0][0];
+    expect(error.statusCode).toBe(403);
+    expect(error.message).toContain('不能重置自己的密码');
+  });
+
+  it('重置 super_admin 密码 → 403 forbidden', async () => {
+    mockPrisma.users.findUnique.mockResolvedValue({ ...superAdminUser });
+
+    const req = mockReq({
+      params: { id: '30' },
+      body: { new_password: 'NewPass@123' },
+      user: { id: 1, role: 'super_admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetUserPassword(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    const error = next.mock.calls[0][0];
+    expect(error.statusCode).toBe(403);
+    expect(error.message).toContain('不能重置超级管理员账户的密码');
+  });
+
+  it('admin 重置 admin 密码 → 403 forbidden', async () => {
+    mockPrisma.users.findUnique.mockResolvedValue({ ...adminUser });
+
+    const req = mockReq({
+      params: { id: '20' },
+      body: { new_password: 'NewPass@123' },
+      user: { id: 2, role: 'admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetUserPassword(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    const error = next.mock.calls[0][0];
+    expect(error.statusCode).toBe(403);
+    expect(error.message).toContain('权限不足');
+  });
+
+  it('重置不存在的用户 → 404', async () => {
+    mockPrisma.users.findUnique.mockResolvedValue(null);
+
+    const req = mockReq({
+      params: { id: '999' },
+      body: { new_password: 'NewPass@123' },
+      user: { id: 1, role: 'super_admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetUserPassword(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    const error = next.mock.calls[0][0];
+    expect(error.statusCode).toBe(404);
+    expect(error.message).toContain('用户不存在');
+  });
+
+  it('重置成功后记录审计日志', async () => {
+    const req = mockReq({
+      params: { id: '10' },
+      body: { new_password: 'NewPass@123' },
+      user: { id: 1, role: 'super_admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetUserPassword(req, res, next);
+
+    expect(createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'update',
         module: 'user',
         result: 'success',
         userId: 1,

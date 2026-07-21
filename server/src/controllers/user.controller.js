@@ -252,6 +252,71 @@ export async function updateUserStatus(req, res, next) {
 }
 
 /**
+ * 重置用户密码（管理员操作，无需原密码）
+ *
+ * 重置后自动置 must_change_password=true，用户下次登录必须修改密码，
+ * 避免管理员设定的临时密码被长期持有。
+ * 注意：与修改密码一样，不会全局吊销该用户其他会话的存量 token，
+ * 依赖 access token 短 TTL 与 is_active 状态复查兜底（见 deleteUser 的 P2-9 说明）。
+ */
+export async function resetUserPassword(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { new_password } = req.body;
+
+    if (parseInt(id) === req.user.id) {
+      throw new AuthorizationError('不能重置自己的密码，请使用修改密码功能');
+    }
+
+    const user = await prisma.users.findUnique({ where: { id: parseInt(id) } });
+    if (!user) {
+      throw new NotFoundError('用户不存在');
+    }
+
+    if (user.role === 'super_admin') {
+      throw new AuthorizationError('不能重置超级管理员账户的密码');
+    }
+
+    if (req.user.role === 'admin' && user.role !== 'viewer') {
+      throw new AuthorizationError('权限不足，管理员只能重置访客账号的密码');
+    }
+
+    const hashedPassword = await bcrypt.hash(new_password, authConfig.bcryptRounds);
+
+    await prisma.users.update({
+      where: { id: parseInt(id) },
+      data: {
+        password: hashedPassword,
+        must_change_password: true,
+      },
+    });
+
+    await createAuditLog({
+      action: 'update',
+      module: 'user',
+      userId: req.user.id,
+      ip: req.ip,
+      details: { id: user.id, username: user.username },
+      result: 'success',
+      message: `重置用户密码：${user.username}`,
+    });
+
+    success(res, null, '密码重置成功，该用户下次登录须修改密码');
+  } catch (error) {
+    await createAuditLog({
+      action: 'update',
+      module: 'user',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { id: req.params.id, error: error.message },
+      result: 'failed',
+      message: `重置用户密码失败：${error.message}`,
+    });
+    next(error);
+  }
+}
+
+/**
  * 删除用户
  *
  * P2-9: 删除用户后未对仍有效的活跃 JWT 做黑名单处理。

@@ -7,12 +7,14 @@ import {
   validateUser,
   validateUserUpdate,
   validateUserStatus,
+  validateResetPassword,
 } from '../middleware/validation.js';
 import {
   listUsers,
   createUser,
   updateUser,
   updateUserStatus,
+  resetUserPassword,
   deleteUser,
 } from '../controllers/user.controller.js';
 
@@ -22,13 +24,13 @@ const router = express.Router();
  * GET /api/users
  * 获取用户列表
  */
-router.get('/', roleMiddleware('admin', 'super_admin'), validatePagination(100), listUsers);
+router.get('/', roleMiddleware('super_admin'), validatePagination(100), listUsers);
 
 /**
  * POST /api/users
  * 创建用户
  */
-router.post('/', roleMiddleware('admin', 'super_admin'), validateUser, sanitizeBody, createUser);
+router.post('/', roleMiddleware('super_admin'), validateUser, sanitizeBody, createUser);
 
 /**
  * PUT /api/users/:id
@@ -36,7 +38,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), validateUser, sanitizeB
  */
 router.put(
   '/:id',
-  roleMiddleware('admin', 'super_admin'),
+  roleMiddleware('super_admin'),
   validateIdParam,
   validateUserUpdate,
   sanitizeBody,
@@ -49,16 +51,28 @@ router.put(
  */
 router.put(
   '/:id/status',
-  roleMiddleware('admin', 'super_admin'),
+  roleMiddleware('super_admin'),
   validateIdParam,
   validateUserStatus,
   updateUserStatus
 );
 
 /**
+ * PUT /api/users/:id/password
+ * 重置用户密码（管理员操作，重置后用户下次登录须修改密码）
+ */
+router.put(
+  '/:id/password',
+  roleMiddleware('super_admin'),
+  validateIdParam,
+  validateResetPassword,
+  resetUserPassword
+);
+
+/**
  * DELETE /api/users/:id
  * 删除用户
  */
-router.delete('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, deleteUser);
+router.delete('/:id', roleMiddleware('super_admin'), validateIdParam, deleteUser);
 
 export default router;
