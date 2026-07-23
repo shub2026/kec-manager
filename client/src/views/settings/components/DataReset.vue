@@ -7,23 +7,17 @@
     <!-- 顶部提示 -->
     <div class="danger-hint">
       <el-icon :size="16"><WarningFilled /></el-icon>
-      <span>以下操作永久删除数据且不可恢复，请提前备份。</span>
+      <span>操作不可恢复，请提前备份数据。</span>
     </div>
 
     <!-- 操作列表 -->
     <div class="reset-list">
       <!-- 系统重置 -->
       <div class="reset-item">
-        <div class="reset-item-info">
-          <div class="reset-item-header">
-            <h4>系统重置</h4>
-            <el-tag size="small" type="warning" effect="plain">恢复初始状态</el-tag>
-          </div>
-          <p class="reset-item-desc">
-            清空所有业务数据（教师、班级、培养方案、课程、教材、专业、学院、培养层次、系统设置、操作日志），仅保留用户账号。
-          </p>
-        </div>
-        <div class="reset-item-action">
+        <div class="reset-item-header">
+          <h4>系统重置</h4>
+          <el-tag size="small" type="warning" effect="plain">恢复初始状态</el-tag>
+          <span class="header-spacer"></span>
           <el-button
             type="danger"
             size="small"
@@ -34,20 +28,17 @@
             系统重置
           </el-button>
         </div>
+        <p class="reset-item-desc">
+          清空所有业务数据（教师、班级、培养方案、课程、教材、专业、学院、培养层次、系统设置、操作日志），仅保留用户账号。
+        </p>
       </div>
 
       <!-- 清空操作日志 -->
       <div class="reset-item">
-        <div class="reset-item-info">
-          <div class="reset-item-header">
-            <h4>清空操作日志</h4>
-            <el-tag size="small" type="warning" effect="plain">日常维护</el-tag>
-          </div>
-          <p class="reset-item-desc">
-            删除所有审计日志记录。此操作不可恢复，但不会影响任何业务数据。
-          </p>
-        </div>
-        <div class="reset-item-action">
+        <div class="reset-item-header">
+          <h4>清空操作日志</h4>
+          <el-tag size="small" type="warning" effect="plain">日常维护</el-tag>
+          <span class="header-spacer"></span>
           <el-button
             type="warning"
             plain
@@ -59,6 +50,9 @@
             清空日志
           </el-button>
         </div>
+        <p class="reset-item-desc">
+          删除所有审计日志记录。此操作不可恢复，但不会影响任何业务数据。
+        </p>
       </div>
     </div>
   </el-card>
@@ -79,7 +73,7 @@ defineEmits(['reset']);
 
 <style scoped>
 .danger-card {
-  /* 卡片在 tab-pane 内，无需底部间距 */
+  max-width: 60%;
 }
 
 /* 顶部提示 - 轻量内联风格 */
@@ -109,10 +103,6 @@ defineEmits(['reset']);
 }
 
 .reset-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-8);
   padding: var(--space-5) 0;
   border-bottom: 1px solid var(--border-light);
 }
@@ -124,11 +114,6 @@ defineEmits(['reset']);
 
 .reset-item:first-child {
   padding-top: 0;
-}
-
-.reset-item-info {
-  flex: 1;
-  min-width: 0;
 }
 
 .reset-item-header {
@@ -146,6 +131,10 @@ defineEmits(['reset']);
   letter-spacing: 0.01em;
 }
 
+.header-spacer {
+  flex: 1;
+}
+
 .reset-item-desc {
   margin: 0;
   font-size: 13px;
@@ -153,19 +142,9 @@ defineEmits(['reset']);
   line-height: 1.7;
 }
 
-.reset-item-action {
-  flex-shrink: 0;
-}
-
 @media (max-width: 768px) {
-  .reset-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-3);
-  }
-
-  .reset-item-action {
-    align-self: flex-end;
+  .reset-item-header {
+    flex-wrap: wrap;
   }
 }
 </style>

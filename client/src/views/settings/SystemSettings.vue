@@ -170,8 +170,6 @@ onMounted(() => {
 
 <style scoped>
 .settings-page {
-  max-width: 1440px;
-  margin: 0 auto;
 }
 
 .settings-card {

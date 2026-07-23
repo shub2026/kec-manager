@@ -3,7 +3,18 @@
     <el-aside :width="isCollapse ? '64px' : '220px'" class="layout-aside">
       <div class="layout-logo">
         <img src="/icons.svg" alt="Logo" class="logo-icon" />
-        <span v-if="!isCollapse">KEC课程管理平台</span>
+        <span v-if="!isCollapse" class="logo-text">KEC课程管理平台</span>
+        <el-icon
+          class="collapse-btn"
+          role="button"
+          tabindex="0"
+          :aria-label="isCollapse ? '展开菜单' : '折叠菜单'"
+          @click="toggleSidebar"
+          @keyup.enter="toggleSidebar"
+        >
+          <Fold v-if="!isCollapse" />
+          <Expand v-else />
+        </el-icon>
       </div>
       <el-menu
         :default-active="activeMenu"
@@ -83,52 +94,46 @@
           <el-menu-item index="/query/textbook">教材查询</el-menu-item>
         </el-sub-menu>
       </el-menu>
-    </el-aside>
-    <el-container>
-      <el-header class="layout-header">
-        <div class="layout-header-left">
-          <el-icon
-            class="collapse-icon"
-            role="button"
-            tabindex="0"
-            :aria-label="isCollapse ? '展开菜单' : '折叠菜单'"
-            @click="toggleSidebar"
-            @keyup.enter="toggleSidebar"
-          >
-            <Fold v-if="!isCollapse" />
-            <Expand v-else />
-          </el-icon>
-          <span class="header-title">{{ currentTitle }}</span>
+      <!-- 侧边栏底部：学期标签 + 用户信息 -->
+      <div class="sidebar-footer">
+        <div v-if="semesterLabel && !isCollapse" class="sidebar-semester">
+          <el-tag size="small" type="info" effect="plain">{{ semesterLabel }}</el-tag>
         </div>
-        <div class="layout-header-right">
-          <el-tag v-if="semesterLabel" size="small" type="info">{{ semesterLabel }}</el-tag>
-          <el-dropdown aria-haspopup="true" @command="handleCommand">
-            <span class="user-info" aria-label="用户菜单">
-              <el-icon><User /></el-icon>
+        <el-dropdown
+          trigger="click"
+          aria-haspopup="true"
+          @command="handleCommand"
+          :teleported="true"
+        >
+          <div class="sidebar-user" :class="{ 'is-collapse': isCollapse }" aria-label="用户菜单">
+            <span class="user-avatar">{{ avatarChar }}</span>
+            <div v-if="!isCollapse" class="user-meta">
               <span class="user-name">{{ authStore.realName || authStore.username }}</span>
-              <el-tag size="small" :type="authStore.isAdmin ? 'success' : 'info'">
-                {{ authStore.isAdmin ? '管理员' : '访客' }}
-              </el-tag>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="password">修改密码</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </el-header>
-      <el-main class="layout-main">
-        <router-view v-slot="{ Component }">
-          <transition name="fade-slide" mode="out-in">
-            <keep-alive :include="cachedViews">
-              <component :is="Component" :key="$route.path" />
-            </keep-alive>
-          </transition>
-        </router-view>
-      </el-main>
-    </el-container>
+              <span class="user-role">{{ authStore.isAdmin ? '管理员' : '访客' }}</span>
+            </div>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="password">
+                <el-icon><Lock /></el-icon>修改密码
+              </el-dropdown-item>
+              <el-dropdown-item command="logout" divided>
+                <el-icon><SwitchButton /></el-icon>退出登录
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+    </el-aside>
+    <el-main class="layout-main">
+      <router-view v-slot="{ Component }">
+        <transition name="fade-slide" mode="out-in">
+          <keep-alive :include="cachedViews">
+            <component :is="Component" :key="$route.path" />
+          </keep-alive>
+        </transition>
+      </router-view>
+    </el-main>
   </el-container>
 
   <!-- 修改密码对话框 -->
@@ -219,8 +224,11 @@ const passwordDialogVisible = ref(false);
 const logoutDialogVisible = ref(false);
 
 const activeMenu = computed(() => route.path);
-const currentTitle = computed(() => route.meta?.title || '首页');
 const semesterLabel = computed(() => settingsStore.semesterLabel);
+const avatarChar = computed(() => {
+  const name = authStore.realName || authStore.username || '';
+  return name.charAt(0).toUpperCase();
+});
 
 onMounted(async () => {
   await settingsStore.load();
@@ -285,19 +293,41 @@ function handlePasswordChangeSuccess() {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  padding: 0 12px;
   gap: 10px;
   color: var(--bg-card);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: bold;
   border-bottom: 1px solid var(--sidebar-border);
   flex-shrink: 0;
-  overflow: hidden;
-  background: var(--sidebar-bg);
+  background: transparent;
   z-index: 10;
 }
 
-/* 菜单容器可滚动 */
+.logo-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.collapse-btn {
+  flex-shrink: 0;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.collapse-btn:hover {
+  opacity: 1;
+}
 .layout-aside :deep(.el-menu) {
   width: 100%;
   border-right: none;
@@ -348,28 +378,87 @@ function handlePasswordChangeSuccess() {
   background: rgba(255, 255, 255, 0.06) !important;
 }
 
-.layout-logo {
-  height: 60px;
-  min-height: 60px;
+/* 侧边栏底部 */
+.sidebar-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--sidebar-border);
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-footer :deep(.el-dropdown) {
   width: 100%;
+  display: block;
+}
+
+.sidebar-semester {
+  display: flex;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.sidebar-semester :deep(.el-tag) {
+  font-size: 12px;
+  color: var(--sidebar-text);
+  border-color: var(--sidebar-border);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 8px 12px;
+  width: 100%;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.sidebar-user:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-user.is-collapse {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 4px;
+  background: var(--brand-primary);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  color: var(--bg-card);
-  font-size: 16px;
-  font-weight: bold;
-  border-bottom: 1px solid var(--sidebar-border);
+  font-size: 14px;
+  font-weight: 600;
   flex-shrink: 0;
-  overflow: hidden;
-  background: transparent;
-  z-index: 10;
 }
 
-.logo-icon {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.user-meta .user-name {
+  font-size: 13px;
+  color: #e2e8f0;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-meta .user-role {
+  font-size: 11px;
+  color: var(--sidebar-text);
+  line-height: 1.2;
 }
 
 /* 确保菜单项占满宽度 */
@@ -389,64 +478,6 @@ function handlePasswordChangeSuccess() {
   display: none;
 }
 
-.layout-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border-light);
-  background: var(--bg-card);
-  flex-shrink: 0;
-  height: 60px;
-}
-
-.layout-header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.layout-header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.collapse-icon {
-  cursor: pointer;
-  font-size: 20px;
-}
-
-/* 用户菜单触发器:图标 / 用户名 / 角色标签 同行垂直居中 */
-.user-info {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  outline: none;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: background var(--dur-fast) var(--ease-out);
-}
-
-.user-info:hover {
-  background: var(--bg-subtle);
-}
-
-.user-info:focus-visible {
-  background: var(--brand-primary-soft);
-}
-
-.user-name {
-  font-size: 14px;
-  color: var(--text-regular);
-  line-height: 1;
-}
-
-.header-title {
-  font-size: 16px;
-  font-weight: 500;
-}
-
 .layout-main {
   background: var(--bg-page);
   padding: var(--space-5) var(--space-6);
@@ -456,25 +487,7 @@ function handlePasswordChangeSuccess() {
   min-height: 0;
 }
 
-/* 窄屏头部紧凑排列 */
 @media (max-width: 768px) {
-  .layout-header {
-    height: 50px;
-    padding: 0 var(--space-3);
-  }
-
-  .layout-header-left {
-    gap: 10px;
-  }
-
-  .header-title {
-    font-size: 14px;
-  }
-
-  .layout-header-right {
-    gap: var(--space-2);
-  }
-
   .layout-main {
     padding: var(--space-3) var(--space-3);
   }
