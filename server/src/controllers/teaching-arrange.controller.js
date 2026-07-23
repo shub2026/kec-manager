@@ -73,6 +73,7 @@ export async function getCourseClasses(req, res, next) {
               teacherName: a.teacher?.name || null,
               teacherPersonnelType: a.teacher?.personnel_type || null,
               isAuto: a.is_auto,
+              isLocked: a.is_locked,
             }
           : null,
       };
@@ -82,6 +83,7 @@ export async function getCourseClasses(req, res, next) {
     const totalCourseHours = classList.reduce((sum, c) => sum + c.weeklyHours, 0);
     const assignedClasses = classList.filter((c) => c.assignment);
     const assignedHours = assignedClasses.reduce((sum, c) => sum + c.weeklyHours, 0);
+    const lockedCount = classList.filter((c) => c.assignment && c.assignment.isLocked).length;
 
     success(res, {
       classes: classList,
@@ -89,6 +91,7 @@ export async function getCourseClasses(req, res, next) {
         totalClasses: classList.length,
         assignedCount: assignedClasses.length,
         unassignedCount: classList.length - assignedClasses.length,
+        lockedCount,
         totalCourseHours,
         assignedHours,
         remainingHours: totalCourseHours - assignedHours,
@@ -587,7 +590,7 @@ export async function resetAutoAssignments(req, res, next) {
     const { course_id, semester } = req.body;
     if (!semester) return fail(res, '缺少学期参数');
 
-    const where = { semester, is_auto: true };
+    const where = { semester, is_auto: true, is_locked: false };
     if (course_id) where.course_id = Number(course_id);
 
     const result = await prisma.teaching_assignments.deleteMany({ where });
@@ -935,6 +938,114 @@ export async function saveHourSettings(req, res, next) {
     });
 
     success(res, null, '保存成功');
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
+ * PATCH /assignments/:id/lock - 锁定/解锁单条教学安排
+ *   Body: { locked: boolean }
+ *   锁定后的分配在自动排课和重置时不会被覆盖/删除
+ */
+export async function toggleLock(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { locked } = req.body;
+    if (typeof locked !== 'boolean') return fail(res, 'locked 参数必须是布尔值');
+
+    const existing = await prisma.teaching_assignments.findUnique({
+      where: { id: Number(id) },
+      include: {
+        teacher: { select: { name: true } },
+        class: { select: { name: true, combination_id: true } },
+        course: { select: { name: true } },
+      },
+    });
+    if (!existing) return fail(res, '安排记录不存在', 404);
+
+    // 合班联动：锁定/解锁同步到所有合班成员
+    const targetIds = [Number(id)];
+    const combId = existing.class?.combination_id;
+    if (combId != null) {
+      const members = await prisma.classes.findMany({
+        where: { combination_id: combId },
+        select: { id: true },
+      });
+      const memberIds = members.map((m) => m.id);
+      const partnerAssignments = await prisma.teaching_assignments.findMany({
+        where: {
+          course_id: existing.course_id,
+          semester: existing.semester,
+          class_id: { in: memberIds },
+          id: { not: Number(id) },
+        },
+        select: { id: true },
+      });
+      targetIds.push(...partnerAssignments.map((a) => a.id));
+    }
+
+    await prisma.teaching_assignments.updateMany({
+      where: { id: { in: targetIds } },
+      data: { is_locked: locked },
+    });
+
+    const action = locked ? '锁定' : '解锁';
+    await createAuditLog({
+      action: 'update',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        id: Number(id),
+        locked,
+        affectedCount: targetIds.length,
+        teacher: existing.teacher?.name,
+        class: existing.class?.name,
+      },
+      result: 'success',
+      message: `${action}教学安排：${existing.teacher?.name} → ${existing.class?.name}（含合班共${targetIds.length}条）`,
+    });
+
+    success(res, { locked, affectedCount: targetIds.length }, `${action}成功`);
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
+ * POST /lock-batch - 批量锁定/解锁教学安排
+ *   Body: { semester, courseId?, locked: boolean }
+ *   courseId 可选：传则只操作该科目，不传则操作整个学期
+ *   仅作用于 is_auto=true 的记录（手动安排无需锁定）
+ */
+export async function batchLock(req, res, next) {
+  try {
+    const { semester, course_id, locked } = req.body;
+    if (!semester) return fail(res, '缺少学期参数');
+    if (typeof locked !== 'boolean') return fail(res, 'locked 参数必须是布尔值');
+
+    const where = { semester, is_auto: true };
+    if (course_id) where.course_id = Number(course_id);
+
+    const result = await prisma.teaching_assignments.updateMany({
+      where,
+      data: { is_locked: locked },
+    });
+
+    const action = locked ? '锁定' : '解锁';
+    const scope = course_id ? `课程${course_id}` : '全部课程';
+    await createAuditLog({
+      action: 'update',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { semester, course_id: course_id || null, locked, updatedCount: result.count },
+      result: 'success',
+      message: `批量${action}：${scope} ${result.count}条自动安排`,
+    });
+
+    success(res, { updatedCount: result.count }, `已${action}${result.count}条安排`);
   } catch (e) {
     next(e);
   }

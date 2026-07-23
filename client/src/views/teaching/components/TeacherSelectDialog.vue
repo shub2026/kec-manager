@@ -136,8 +136,12 @@ onMounted(() => {
   mqlTablet = window.matchMedia('(max-width: 992px)');
   isMobile.value = mqlMobile.matches;
   isTablet.value = mqlTablet.matches;
-  mqlMobile.addEventListener('change', (e) => { isMobile.value = e.matches; });
-  mqlTablet.addEventListener('change', (e) => { isTablet.value = e.matches; });
+  mqlMobile.addEventListener('change', (e) => {
+    isMobile.value = e.matches;
+  });
+  mqlTablet.addEventListener('change', (e) => {
+    isTablet.value = e.matches;
+  });
 });
 
 onUnmounted(() => {

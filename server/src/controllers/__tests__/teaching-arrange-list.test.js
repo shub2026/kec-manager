@@ -100,6 +100,7 @@ describe('getCourseClasses — 课时汇总', () => {
         class_id: 1,
         teacher_id: 10,
         is_auto: false,
+        is_locked: false,
         teacher: { id: 10, name: '王老师', personnel_type: 'full_time' },
       },
     ]);
@@ -121,6 +122,7 @@ describe('getCourseClasses — 课时汇总', () => {
     expect(data.summary.totalClasses).toBe(3);
     expect(data.summary.assignedCount).toBe(1);
     expect(data.summary.unassignedCount).toBe(2);
+    expect(data.summary.lockedCount).toBe(0);
     expect(data.summary.totalCourseHours).toBe(12); // 4+6+2
     expect(data.summary.assignedHours).toBe(4); // only class 1
     expect(data.summary.remainingHours).toBe(8); // 12-4
@@ -139,12 +141,14 @@ describe('getCourseClasses — 课时汇总', () => {
         class_id: 1,
         teacher_id: 10,
         is_auto: true,
+        is_locked: false,
         teacher: { id: 10, name: '王老师', personnel_type: 'full_time' },
       },
       {
         class_id: 2,
         teacher_id: 11,
         is_auto: false,
+        is_locked: false,
         teacher: { id: 11, name: '李老师', personnel_type: 'part_time' },
       },
     ]);
@@ -208,7 +212,7 @@ describe('getCourseClasses — 课时汇总', () => {
   });
 
   // ── 场景 6: assignment 信息正确映射 ──
-  it('assignment 信息包含 teacherId、teacherName、isAuto 等字段', async () => {
+  it('assignment 信息包含 teacherId、teacherName、isAuto、isLocked 等字段', async () => {
     mockGetClassesWithCourse.mockResolvedValue([
       { classId: 1, className: '班级A', weeklyHours: 4 },
     ]);
@@ -219,6 +223,7 @@ describe('getCourseClasses — 课时汇总', () => {
         class_id: 1,
         teacher_id: 10,
         is_auto: true,
+        is_locked: true,
         teacher: { id: 10, name: '赵老师', personnel_type: 'full_time' },
       },
     ]);
@@ -234,5 +239,49 @@ describe('getCourseClasses — 课时汇总', () => {
     expect(assignment.teacherName).toBe('赵老师');
     expect(assignment.teacherPersonnelType).toBe('full_time');
     expect(assignment.isAuto).toBe(true);
+    expect(assignment.isLocked).toBe(true);
+  });
+
+  // ── 场景 7: 锁定计数 lockedCount ──
+  it('有锁定安排时 lockedCount 应正确计数', async () => {
+    mockGetClassesWithCourse.mockResolvedValue([
+      { classId: 1, className: '班级A', weeklyHours: 4 },
+      { classId: 2, className: '班级B', weeklyHours: 6 },
+      { classId: 3, className: '班级C', weeklyHours: 2 },
+    ]);
+
+    mockPrisma.teaching_assignments.findMany.mockResolvedValue([
+      {
+        class_id: 1,
+        teacher_id: 10,
+        is_auto: true,
+        is_locked: true,
+        teacher: { id: 10, name: '王老师', personnel_type: 'full_time' },
+      },
+      {
+        class_id: 2,
+        teacher_id: 11,
+        is_auto: true,
+        is_locked: false,
+        teacher: { id: 11, name: '李老师', personnel_type: 'full_time' },
+      },
+      {
+        class_id: 3,
+        teacher_id: 12,
+        is_auto: false,
+        is_locked: false,
+        teacher: { id: 12, name: '赵老师', personnel_type: 'full_time' },
+      },
+    ]);
+
+    const req = mockReq({ course_id: '1', semester: '2025-2026-2' });
+    const res = mockRes();
+    await getCourseClasses(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.summary.assignedCount).toBe(3);
+    expect(data.summary.lockedCount).toBe(1); // 仅班级A锁定
+    expect(data.classes[0].assignment.isLocked).toBe(true);
+    expect(data.classes[1].assignment.isLocked).toBe(false);
   });
 });

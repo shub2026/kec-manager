@@ -367,9 +367,27 @@ describe('assignTeacher — 手动安排教师', () => {
     // 优化5：工作量检查改用 findMany + dedupeTeachingUnits（合班去重）
     // 模拟总课时超过 full_time 的 max (20)：3 个非合班单元，各 9 课时 = 27 > 20
     mockPrisma.teaching_assignments.findMany.mockResolvedValue([
-      { teacher_id: 5, course_id: 1, weekly_hours: 9, class_id: 1, class: { combination_id: null } },
-      { teacher_id: 5, course_id: 2, weekly_hours: 9, class_id: 2, class: { combination_id: null } },
-      { teacher_id: 5, course_id: 3, weekly_hours: 9, class_id: 3, class: { combination_id: null } },
+      {
+        teacher_id: 5,
+        course_id: 1,
+        weekly_hours: 9,
+        class_id: 1,
+        class: { combination_id: null },
+      },
+      {
+        teacher_id: 5,
+        course_id: 2,
+        weekly_hours: 9,
+        class_id: 2,
+        class: { combination_id: null },
+      },
+      {
+        teacher_id: 5,
+        course_id: 3,
+        weekly_hours: 9,
+        class_id: 3,
+        class: { combination_id: null },
+      },
     ]);
 
     const req = mockReq({
@@ -464,7 +482,7 @@ describe('resetAutoAssignments — 重置自动排课', () => {
 
     expect(next).not.toHaveBeenCalled();
     expect(mockPrisma.teaching_assignments.deleteMany).toHaveBeenCalledWith({
-      where: { course_id: 3, semester: '2025-2026-2', is_auto: true },
+      where: { course_id: 3, semester: '2025-2026-2', is_auto: true, is_locked: false },
     });
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -488,9 +506,9 @@ describe('resetAutoAssignments — 重置自动排课', () => {
     await resetAutoAssignments(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    // where 条件不应包含 course_id
+    // where 条件不应包含 course_id，且必须排除锁定安排
     expect(mockPrisma.teaching_assignments.deleteMany).toHaveBeenCalledWith({
-      where: { semester: '2025-2026-2', is_auto: true },
+      where: { semester: '2025-2026-2', is_auto: true, is_locked: false },
     });
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -619,6 +637,22 @@ describe('resetAutoAssignments — 重置自动排课', () => {
 
     const deleteCall = mockPrisma.teaching_assignments.deleteMany.mock.calls[0][0];
     expect(deleteCall.where.is_auto).toBe(true);
+  });
+
+  // ──────────────────────────────────────────────
+  // 8. 不影响锁定安排（WHERE 包含 is_locked:false）
+  // ──────────────────────────────────────────────
+  it('重置时 where 条件必须包含 is_locked:false，不影响锁定的安排', async () => {
+    mockPrisma.teaching_assignments.deleteMany.mockResolvedValue({ count: 2 });
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await resetAutoAssignments(req, res, next);
+
+    const deleteCall = mockPrisma.teaching_assignments.deleteMany.mock.calls[0][0];
+    expect(deleteCall.where.is_locked).toBe(false);
   });
 });
 

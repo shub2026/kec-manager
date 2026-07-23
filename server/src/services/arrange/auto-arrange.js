@@ -1076,11 +1076,23 @@ export async function autoArrange(
     const manualAssignments = await prisma.teaching_assignments.findMany({
       where: { course_id: Number(courseId), semester: semesterStr, is_auto: false },
     });
-    const manualClassIds = new Set(manualAssignments.map((a) => a.class_id));
+    // 锁定的自动安排也需排除（不参与重新分配）
+    const lockedAssignments = await prisma.teaching_assignments.findMany({
+      where: { course_id: Number(courseId), semester: semesterStr, is_auto: true, is_locked: true },
+    });
+    const manualClassIds = new Set([
+      ...manualAssignments.map((a) => a.class_id),
+      ...lockedAssignments.map((a) => a.class_id),
+    ]);
 
     const currentAutoHours = await prisma.teaching_assignments.groupBy({
       by: ['teacher_id'],
-      where: { course_id: Number(courseId), semester: semesterStr, is_auto: true },
+      where: {
+        course_id: Number(courseId),
+        semester: semesterStr,
+        is_auto: true,
+        is_locked: false,
+      },
       _sum: { weekly_hours: true },
     });
     const autoHoursMap = new Map(
@@ -1309,10 +1321,11 @@ export async function autoArrange(
 
     const maxCapFn = mode === 'standard' ? (t) => t.standardCap : (t) => t.fullCap;
 
-    // --- 手动排课教材追踪 ---
-    // 手动排课的班级虽然不参与自动排课，但教师已分配的教材和课时需要计入
+    // --- 手动排课 & 锁定安排教材追踪 ---
+    // 手动排课和锁定的班级虽然不参与自动排课，但教师已分配的教材和课时需要计入
     const allClassMap = new Map(classes.map((c) => [c.classId, c]));
-    for (const ma of manualAssignments) {
+    const protectedAssignments = [...manualAssignments, ...lockedAssignments];
+    for (const ma of protectedAssignments) {
       const teacher = teacherConstraints.find((t) => t.id === ma.teacher_id);
       if (!teacher) continue;
       const cls = allClassMap.get(ma.class_id);
@@ -1328,7 +1341,9 @@ export async function autoArrange(
       teacher.assignedCollegeIds.add(cls.collegeId);
       // 课时已通过 effectiveTotal 计入，不重复加
     }
-    logger.debug(`[手动排课追踪] ${manualAssignments.length} 条手动排课，教师教材已更新`);
+    logger.debug(
+      `[手动排课追踪] ${protectedAssignments.length} 条受保护安排（手动${manualAssignments.length}+锁定${lockedAssignments.length}），教师教材已更新`
+    );
 
     // --- 辅助函数：检查教师意向是否匹配某个班级（严格约束）---
     function isPrefMatch(teacher, cls) {
@@ -1751,7 +1766,7 @@ export async function autoArrange(
         expandCombinedAssignments(assignments),
         unassigned,
         classesToAssign,
-        manualAssignments.length,
+        manualAssignments.length + lockedAssignments.length,
         null,
         true,
         warnings,
@@ -1768,8 +1783,14 @@ export async function autoArrange(
     // 事务内重新校验教师实际课时，避免并发排课导致超载（C-2 修复）
     await prisma.$transaction(async (tx) => {
       // 事务内重新查询教师当前学期实际总课时（扣除即将删除的本课程自动安排）
+      // 仅删除未锁定的自动安排，锁定的保留不动
       await tx.teaching_assignments.deleteMany({
-        where: { course_id: Number(courseId), semester: semesterStr, is_auto: true },
+        where: {
+          course_id: Number(courseId),
+          semester: semesterStr,
+          is_auto: true,
+          is_locked: false,
+        },
       });
 
       if (assignments.length > 0) {
@@ -1889,7 +1910,7 @@ export async function autoArrange(
       expandCombinedAssignments(assignments),
       unassigned,
       classesToAssign,
-      manualAssignments.length,
+      manualAssignments.length + lockedAssignments.length,
       null,
       false,
       warnings,

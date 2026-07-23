@@ -2,7 +2,7 @@
 
 > 主代码：`server/src/services/arrange/auto-arrange.js`
 > 配置：`server/src/constants/index.js`（`TEXTBOOK_COHESION`）
-> 版本：v1.2.0
+> 版本：v1.3.0
 > 分析对象：`server/src/services/arrange/` 目录（`auto-arrange.js`、`queries.js`、`batch.js`、`validate.js`）
 
 ---
@@ -1053,4 +1053,4 @@ v2.21.0 已实现禁忌搜索作为局部搜索优化层。未来可以考虑：
 
 ---
 
-*文档版本：v1.2.0 | 最后更新：2026-07-21*
+*文档版本：v1.3.0 | 最后更新：2026-07-23*

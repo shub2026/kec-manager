@@ -205,3 +205,22 @@ export const getHourSettings = (params) =>
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
 export const saveHourSettings = (data) => request.put('/teaching-arrange/hour-settings', data);
+
+/**
+ * 锁定/解锁单条教学安排
+ * @param {number} id - 教学安排 ID
+ * @param {boolean} locked - 是否锁定
+ * @returns {Promise<import('./types').ApiResponse<Object>>}
+ */
+export const toggleAssignmentLock = (id, locked) =>
+  request.patch(`/teaching-arrange/assignments/${id}/lock`, { locked });
+
+/**
+ * 批量锁定/解锁教学安排
+ * @param {Object} data
+ * @param {string} data.semester - 学期
+ * @param {number} [data.courseId] - 课程ID，不传则操作全部科目
+ * @param {boolean} data.locked - 是否锁定
+ * @returns {Promise<import('./types').ApiResponse<Object>>}
+ */
+export const batchLockAssignments = (data) => request.post('/teaching-arrange/lock-batch', data);

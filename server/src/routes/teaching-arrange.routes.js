@@ -20,6 +20,8 @@ import {
   getStatistics,
   getHourSettings,
   saveHourSettings,
+  toggleLock,
+  batchLock,
 } from '../controllers/teaching-arrange.controller.js';
 
 const router = Router();
@@ -72,5 +74,17 @@ router.delete(
   validateIdParam,
   deleteAssignment
 );
+
+// PATCH /assignments/:id/lock - 锁定/解锁单条教学安排
+router.patch(
+  '/assignments/:id/lock',
+  roleMiddleware('admin', 'super_admin'),
+  validateIdParam,
+  sanitizeBody,
+  toggleLock
+);
+
+// POST /lock-batch - 批量锁定/解锁
+router.post('/lock-batch', roleMiddleware('admin', 'super_admin'), sanitizeBody, batchLock);
 
 export default router;

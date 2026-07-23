@@ -144,6 +144,24 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
+            <el-button
+              type="success"
+              plain
+              :disabled="historicalReadOnly"
+              class="lock-btn"
+              @click="handleBatchLockAll"
+            >
+              <el-icon><Lock /></el-icon> 锁定
+            </el-button>
+            <el-button
+              type="warning"
+              plain
+              :disabled="historicalReadOnly"
+              class="lock-btn"
+              @click="handleBatchUnlockAll"
+            >
+              <el-icon><Unlock /></el-icon> 解锁
+            </el-button>
           </div>
         </div>
       </template>
@@ -210,7 +228,7 @@
             <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="任课教师" min-width="140">
+        <el-table-column label="任课教师" min-width="160">
           <template #default="{ row }">
             <div
               class="teacher-cell"
@@ -223,16 +241,48 @@
             >
               <template v-if="row.assignment">
                 <el-tag
-                  :type="row.assignment.isAuto ? 'info' : 'primary'"
+                  :type="
+                    row.assignment.isLocked ? 'success' : row.assignment.isAuto ? 'info' : 'primary'
+                  "
                   size="small"
                   :closable="!historicalReadOnly"
                   @close.stop="handleRemoveAssignment(row)"
                 >
+                  <el-icon v-if="row.assignment.isLocked" class="locked-icon" :size="12"
+                    ><Lock
+                  /></el-icon>
                   {{ row.assignment.teacherName }}
                 </el-tag>
-                <span v-if="!historicalReadOnly" class="replace-hint">
+                <!-- 锁定/解锁按钮：仅自动安排显示 -->
+                <el-tooltip
+                  v-if="row.assignment.isAuto && !historicalReadOnly"
+                  :content="
+                    row.assignment.isLocked
+                      ? '点击解锁（解锁后重新排课可覆盖）'
+                      : '点击锁定（锁定后重新排课不受影响）'
+                  "
+                  placement="top"
+                  effect="light"
+                >
+                  <el-icon
+                    class="lock-toggle-icon"
+                    :class="{ 'is-locked': row.assignment.isLocked }"
+                    :size="14"
+                    @click.stop="handleToggleLock(row)"
+                  >
+                    <Lock v-if="row.assignment.isLocked" />
+                    <Unlock v-else />
+                  </el-icon>
+                </el-tooltip>
+                <span v-if="!historicalReadOnly && !row.assignment.isLocked" class="replace-hint">
                   <el-icon :size="12"><EditPen /></el-icon>
                   更换
+                </span>
+                <span
+                  v-else-if="!historicalReadOnly && row.assignment.isLocked"
+                  class="locked-hint"
+                >
+                  已锁定
                 </span>
                 <span v-else class="readonly-hint">
                   <el-icon :size="12"><Lock /></el-icon>
@@ -336,7 +386,7 @@
         <p class="reset-warning">
           将清除{{
             resetScope === 'current' ? '该课程' : '所有课程'
-          }}在本学期的所有自动分配记录，手动安排不受影响。
+          }}在本学期的所有自动分配记录，手动安排和已锁定的安排不受影响。
         </p>
       </BaseConfirmBody>
       <template #footer>
@@ -350,7 +400,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Connection, Lock } from '@element-plus/icons-vue';
+import { Connection, Lock, Unlock } from '@element-plus/icons-vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
@@ -364,6 +414,8 @@ import {
   runAutoArrangeWithProgress,
   runBatchAutoArrangeWithProgress,
   resetAutoAssignments,
+  toggleAssignmentLock,
+  batchLockAssignments,
 } from '../../api/teachingArrange';
 
 import HourSettingsCard from './components/HourSettingsCard.vue';
@@ -408,6 +460,7 @@ const summary = ref({
   totalClasses: 0,
   assignedCount: 0,
   unassignedCount: 0,
+  lockedCount: 0,
   totalCourseHours: 0,
   assignedHours: 0,
   remainingHours: 0,
@@ -691,6 +744,7 @@ async function loadData() {
       totalClasses: 0,
       assignedCount: 0,
       unassignedCount: 0,
+      lockedCount: 0,
       totalCourseHours: 0,
       assignedHours: 0,
       remainingHours: 0,
@@ -747,6 +801,50 @@ async function handleRemoveAssignment(row) {
   }
 }
 
+// --- 锁定/解锁 ---
+async function handleToggleLock(row) {
+  if (!row.assignment?.id) return;
+  if (!(await confirmHistoricalEdit())) return;
+  const newLocked = !row.assignment.isLocked;
+  try {
+    await toggleAssignmentLock(row.assignment.id, newLocked);
+    ElMessage.success(newLocked ? '已锁定' : '已解锁');
+    await loadData();
+  } catch (e) {
+    ElMessage.error('操作失败');
+  }
+}
+
+async function handleBatchLockAll() {
+  if (!(await confirmHistoricalEdit())) return;
+  try {
+    const res = await batchLockAssignments({
+      semester: selectedSemester.value,
+      courseId: selectedCourseId.value,
+      locked: true,
+    });
+    ElMessage.success(res.message || '已锁定');
+    await loadData();
+  } catch (e) {
+    ElMessage.error('操作失败');
+  }
+}
+
+async function handleBatchUnlockAll() {
+  if (!(await confirmHistoricalEdit())) return;
+  try {
+    const res = await batchLockAssignments({
+      semester: selectedSemester.value,
+      courseId: selectedCourseId.value,
+      locked: false,
+    });
+    ElMessage.success(res.message || '已解锁');
+    await loadData();
+  } catch (e) {
+    ElMessage.error('操作失败');
+  }
+}
+
 // --- 自动排课 ---
 function handleAutoArrange(mode) {
   const modeLabel = mode === 'full' ? '全量模式' : '标准模式';
@@ -758,7 +856,7 @@ function handleAutoArrange(mode) {
     courseName: courseInfo.value?.name || '当前课程',
     message: isPreview
       ? '将以预览模式运行，结果不会写入数据库。预览满意后可在结果弹窗中点击"执行排课"按钮应用结果。'
-      : '将自动安排当前课程的所有班级（已有手动安排不会被覆盖）。',
+      : '将自动安排当前课程的所有班级（已有手动安排和已锁定的安排不会被覆盖）。',
     confirmText: isPreview ? '开始预览' : '确定排课',
   };
   pendingArrangeMode = mode;
@@ -885,7 +983,7 @@ function handleBatchAutoArrange(mode) {
   batchConfirmData.value = {
     title: `批量排课 - ${modeLabel}`,
     mode: modeLabel,
-    message: '这会覆盖所有课程的自动安排（手动安排不受影响）。确定继续？',
+    message: '这会覆盖所有课程的自动安排（手动安排和已锁定的安排不受影响）。确定继续？',
     confirmText: '确定批量排课',
   };
   pendingBatchMode = mode;
@@ -1137,5 +1235,34 @@ onMounted(async () => {
   margin: 8px 0 0;
   color: var(--brand-danger-text);
   font-size: 13px;
+}
+.lock-toggle-icon {
+  cursor: pointer;
+  color: var(--text-placeholder);
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+.lock-toggle-icon:hover {
+  color: var(--el-color-primary);
+}
+.lock-toggle-icon.is-locked {
+  color: var(--el-color-success);
+}
+.lock-toggle-icon.is-locked:hover {
+  color: var(--el-color-warning);
+}
+.locked-icon {
+  margin-right: 2px;
+  vertical-align: -1px;
+}
+.locked-hint {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--el-color-success);
+  white-space: nowrap;
+}
+.lock-btn {
+  margin-left: var(--space-1);
 }
 </style>

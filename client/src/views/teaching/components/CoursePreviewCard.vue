@@ -25,6 +25,10 @@
         <span class="stat-value">{{ summary.assignedCount }}<small>个</small></span>
       </div>
       <div class="preview-stat-item">
+        <span class="stat-label">已锁定</span>
+        <span class="stat-value stat-locked">{{ summary.lockedCount || 0 }}<small>个</small></span>
+      </div>
+      <div class="preview-stat-item">
         <span class="stat-label">总课时</span>
         <span class="stat-value">{{ summary.totalCourseHours }}<small>课时</small></span>
       </div>
@@ -51,6 +55,7 @@ defineProps({
     default: () => ({
       totalClasses: 0,
       assignedCount: 0,
+      lockedCount: 0,
       totalCourseHours: 0,
       remainingHours: 0,
     }),
@@ -112,5 +117,8 @@ function courseTypeLabel(type) {
 }
 .text-danger {
   color: var(--brand-danger-text);
+}
+.stat-locked {
+  color: var(--el-color-success);
 }
 </style>

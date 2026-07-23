@@ -2,7 +2,7 @@
 
 > 面向大中专职业院校教学管理人员的轻量级教学管理系统
 
-**版本** v1.2.0 · **技术栈** Vue 3 + Express 5 + Prisma 6 · **数据库** SQLite WAL
+**版本** v1.3.0 · **技术栈** Vue 3 + Express 5 + Prisma 6 · **数据库** SQLite WAL
 
 KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心功能，采用前后端分离架构，基于 PM2 + Nginx 部署。
 
@@ -15,7 +15,7 @@ KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排�
 | 培养方案 | 按专业/层次制定方案，可视化课程矩阵编辑各学期课时分布，教材关联到学期 |
 | 班级管理 | 班级 CRUD、合班教学组、基于入学年份和学制动态计算年级与在读状态 |
 | 教师管理 | 教师档案、任课/学院/层次偏好配置、自定义周课时 |
-| 自动排课 | 五阶段匹配 + 置换回溯算法，可选禁忌搜索优化；支持预览模式、批量排课、历史学期保护 |
+| 自动排课 | 五阶段匹配 + 置换回溯算法，可选禁忌搜索优化；支持预览模式、批量排课、历史学期保护；自动排课结果可锁定，锁定后重置或重新排课不覆盖 |
 | 教材管理 | 教材 CRUD、与培养方案学期关联、征订状态跟踪 |
 | 数据导入导出 | Excel 批量导入（班级/课程/教材/教师）、模板下载、多维度数据导出 |
 | 统一查询 | 开课查询、教材查询、方案查询，多维度筛选与级联联动 |
@@ -34,7 +34,7 @@ KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排�
 | 后端 | Express 5.1 + Prisma 6.19 + Winston 3.19 |
 | 数据库 | SQLite（WAL 模式） |
 | 认证 | JWT 双令牌（Access 15 min + Refresh 7 d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt 12 轮 |
-| 测试 | Vitest + Supertest（1343 个用例） |
+| 测试 | Vitest + Supertest（1371 个用例） |
 | 部署 | PM2 + Nginx |
 
 ---
@@ -95,9 +95,9 @@ npm run dev:server       # 仅后端
 npm run dev:client       # 仅前端
 npm run db:migrate       # 数据库迁移
 npm run db:generate      # 生成 Prisma Client
-npm run version:patch    # 补丁版本 1.2.0 → 1.2.1
-npm run version:minor    # 次版本   1.2.0 → 1.3.0
-npm run version:major    # 主版本   1.2.0 → 2.0.0
+npm run version:patch    # 补丁版本 1.3.0 → 1.3.1
+npm run version:minor    # 次版本   1.3.0 → 1.4.0
+npm run version:major    # 主版本   1.3.0 → 2.0.0
 ```
 
 ### server/
@@ -182,7 +182,7 @@ kec-manager/
 | `teacher_courses` | 教师任课关联 |
 | `teacher_scheduling_colleges` | 教师上课学院意向 |
 | `teacher_training_levels` | 教师培养层次意向 |
-| `teaching_assignments` | 排课记录（手动/自动标记） |
+| `teaching_assignments` | 排课记录（手动/自动标记、锁定状态） |
 | `system_settings` | 系统配置 |
 | `audit_logs` | 审计日志 |
 | `token_blacklist` | JWT 令牌黑名单 |
@@ -206,7 +206,7 @@ kec-manager/
 | 班级 | `/api/classes` | CRUD + 合班组 + 导入 |
 | 培养方案 | `/api/plans` | 方案管理 + 课程矩阵 + 教材关联 |
 | 教师 | `/api/teachers` | CRUD + 导入导出 |
-| 排课 | `/api/teaching-arrange` | 手动 / 自动 / 批量排课 + SSE 进度 |
+| 排课 | `/api/teaching-arrange` | 手动 / 自动 / 批量排课 + 锁定/解锁 + SSE 进度 |
 | 查询 | `/api/query` | 学期 / 教材 / 方案多维查询 |
 | 导出 | `/api/export` | Excel 导出 + 模板下载 |
 | 导入 | `/api/import` | Excel 批量导入 |
@@ -241,8 +241,9 @@ kec-manager/
 3. **意向约束严格** — 指定了学院/层次意向的教师严格按意向分配
 4. **容量约束** — 教师课时不超过标准/满载容量，支持教材数量硬上限
 5. **手动排课保护** — 自动排课永远不覆盖手动排课记录
-6. **合班一致性** — 同一合班组的成员班强制共享同一教师，按逻辑教学单元计课时
-7. **禁忌搜索（可选）** — 在贪心初始解基础上通过 Insert/Shift/Swap 邻域搜索迭代优化
+6. **锁定保护** — 已锁定的自动排课记录在重置和重新排课时均保留，等同于手动排课
+7. **合班一致性** — 同一合班组的成员班强制共享同一教师，按逻辑教学单元计课时
+8. **禁忌搜索（可选）** — 在贪心初始解基础上通过 Insert/Shift/Swap 邻域搜索迭代优化
 
 算法模块位于 `server/src/services/arrange/`。禁忌搜索默认关闭，可通过系统设置页面动态启用。
 
@@ -320,9 +321,7 @@ bash deploy_ssh.sh root@your-server.com
 |------|------|
 | [部署与运维指南](docs/DEPLOYMENT.md) | 部署、更新、备份恢复、故障排查 |
 | [排课算法说明](docs/SCHEDULING_ALGORITHM.md) | 五阶段算法、评分机制、教材内聚策略 |
-| [排课算法迭代分析](docs/SCHEDULING_ALGORITHM_ITERATION.md) | 禁忌搜索方案设计与实施记录 |
 | [学期计算说明](docs/SEMESTER-CALCULATION.md) | 学期状态计算逻辑 |
-| [安全审计报告](docs/AUDIT_REPORT.md) | 安全漏洞检测与修复记录 |
 | [代码格式化指南](docs/CODE_FORMATTING.md) | Prettier + ESLint 配置 |
 | [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) | 前后端命名规范与迁移方案 |
 | [版本管理指南](docs/VERSION_MANAGEMENT.md) | 语义化版本与自动化脚本 |

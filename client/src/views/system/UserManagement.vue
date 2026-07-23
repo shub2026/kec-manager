@@ -567,7 +567,9 @@ async function handleResetPassword() {
     ElMessage.success('密码重置成功，该用户下次登录须修改密码');
     resetPwdVisible.value = false;
   } catch (error) {
-    ElMessage.error('密码重置失败：' + (error.response?.data?.message || error.message || '未知错误'));
+    ElMessage.error(
+      '密码重置失败：' + (error.response?.data?.message || error.message || '未知错误')
+    );
   } finally {
     resetPwdSubmitting.value = false;
   }

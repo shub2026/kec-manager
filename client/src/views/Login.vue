@@ -277,7 +277,9 @@ onMounted(() => {
 .card-accent {
   height: 3px;
   background: linear-gradient(to right, var(--brand-primary), var(--brand-mint));
-  box-shadow: 0 2px 16px var(--brand-primary-shadow), 0 0 24px rgba(28, 130, 245, 0.12);
+  box-shadow:
+    0 2px 16px var(--brand-primary-shadow),
+    0 0 24px rgba(28, 130, 245, 0.12);
 }
 
 .card-header {
