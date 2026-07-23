@@ -80,8 +80,7 @@ export async function getSettings(req, res, next) {
       return success(res, publicMap);
     }
 
-    // 登录用户返回全部设置
-    req.user = authUser;
+    // 登录用户返回全部设置（使用局部变量，不挂载到 req，避免下游中间件误读）
     success(res, map);
   } catch (e) {
     log.error('Settings GET Error', { error: e.message, stack: e.stack });
@@ -122,6 +121,14 @@ export async function updateSettings(req, res, next) {
           '当前学期格式错误，应为 YYYY-YYYY-N（如 2025-2026-1）；起始年份应在 2000-2099 之间，结束年份自动为起始+1，N 为 1（秋季）或 2（春季）',
           400
         );
+      }
+    }
+
+    // H-1补充修复：semester_start_month 写入前校验数值范围，防止脏数据入库
+    if (updates.semester_start_month != null) {
+      const month = Number(updates.semester_start_month);
+      if (!Number.isInteger(month) || month < 1 || month > 12) {
+        return fail(res, '学期边界月份必须为1-12之间的整数', 400);
       }
     }
 

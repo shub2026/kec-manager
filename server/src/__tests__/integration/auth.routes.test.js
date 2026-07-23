@@ -91,7 +91,9 @@ function makeToken(user = TEST_USER) {
   });
 }
 
-const CSRF_TOKEN = 'test-csrf-token-for-integration';
+// 导入 CSRF 签名工具（H-5修复后，token 必须带有效 HMAC 签名）
+const { generateSignedCsrfToken } = await import('../../utils/csrf.js');
+const CSRF_TOKEN = generateSignedCsrfToken();
 function withCsrf(req) {
   return req.set('Cookie', `XSRF-TOKEN=${CSRF_TOKEN}`).set('X-CSRF-Token', CSRF_TOKEN);
 }

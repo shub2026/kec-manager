@@ -22,7 +22,15 @@ export function validatePagination(maxPageSize = 100) {
     (req, res, next) => {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return fail(res, errors.array()[0].msg, 400);
+        return res.status(422).json({
+          success: false,
+          message: '请求参数验证失败',
+          errors: errors.array().map(err => ({
+            field: err.path,
+            message: err.msg,
+            location: err.location
+          }))
+        });
       }
       next();
     },

@@ -233,6 +233,18 @@ export async function updateTeacher(req, res, next) {
 
         // 更新课程关联
         if (course_ids !== undefined) {
+          // B-4修复：空 course_ids 安全守卫——清空课程关联将级联删除所有排课，需显式确认
+          if (course_ids.length === 0) {
+            const existingAssignments = await tx.teaching_assignments.count({
+              where: { teacher_id: Number(id) },
+            });
+            if (existingAssignments > 0) {
+              throw new Error(
+                `该教师存在 ${existingAssignments} 条排课记录，清空课程关联将级联删除所有排课，请先手动删除排课后再操作`
+              );
+            }
+          }
+
           // 找出被移除的课程关联，级联清理对应的 teaching_assignments 残留
           const newCourseIdSet = new Set(course_ids.map((cid) => Number(cid)));
           const existingTeacherCourses = await tx.teacher_courses.findMany({
@@ -398,8 +410,8 @@ export async function batchUpdateDefaultHours(req, res, next) {
         ? Number(default_weekly_hours)
         : null;
 
-    if (hours !== null && (isNaN(hours) || hours < 0 || hours > 200)) {
-      return fail(res, '自定义课时必须在 0~200 之间');
+    if (hours !== null && (isNaN(hours) || hours < 0 || hours > 40)) {
+      return fail(res, '自定义课时必须在 0~40 之间');
     }
 
     await prisma.teachers.updateMany({

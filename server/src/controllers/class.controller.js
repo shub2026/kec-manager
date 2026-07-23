@@ -856,6 +856,14 @@ export async function batchUpdateClasses(req, res, next) {
     if (updateData.is_left_school !== undefined)
       updateData.is_left_school = !!updateData.is_left_school;
 
+    // H-3修复：status 有效值校验，防止任意字符串写入
+    if (
+      updateData.status !== undefined &&
+      !['active', 'graduated', 'left_school'].includes(updateData.status)
+    ) {
+      return fail(res, '班级状态值无效，仅支持 active、graduated 或 left_school');
+    }
+
     // 批量查询目标班级（用于结果构造）
     const classes = await prisma.classes.findMany({
       where: { id: { in: classIds } },

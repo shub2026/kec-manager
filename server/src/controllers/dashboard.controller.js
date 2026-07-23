@@ -64,6 +64,7 @@ export async function getDashboardStats(req, res, next) {
           training_level_id: true,
           college_id: true,
           custom_plan_id: true,
+          combination_id: true,
         },
       }),
       // 加载所有培养方案及其课程结构（用于计算开设课程和周课时）
@@ -85,6 +86,9 @@ export async function getDashboardStats(req, res, next) {
     const offeredCourseIds = new Set();
     let totalWeeklyHours = 0;
     let totalStudents = 0;
+
+    // B-5修复：合班课时去重集合，同一 (combination_id, course_id) 只计一次
+    const combinationCourseDedup = new Set();
 
     // 构建自定义方案映射表，与 queries.js / assignTeacher 口径一致，
     // 供 findBestMatchPlan 优先匹配 custom_plan_id（allPlans 已含 created_at，排序确定性有保障）
@@ -129,6 +133,13 @@ export async function getDashboardStats(req, res, next) {
         const weeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours;
         if (weeklyHours > 0) {
           offeredCourseIds.add(pc.course_id);
+
+          // B-5修复：合班班级同一课程只计一次课时
+          if (cls.combination_id != null) {
+            const dedupKey = `${cls.combination_id}_${pc.course_id}`;
+            if (combinationCourseDedup.has(dedupKey)) continue;
+            combinationCourseDedup.add(dedupKey);
+          }
           totalWeeklyHours += weeklyHours;
         }
       }

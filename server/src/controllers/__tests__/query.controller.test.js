@@ -262,17 +262,19 @@ describe('querySemester — 筛选器单元测试', () => {
       expect(extra).toHaveProperty('enrollment_year', 2023);
     });
 
-    it('grade 应覆盖 enrollment_year（grade 优先级更高）', async () => {
+    it('同时传入 grade 和 enrollment_year 应返回400（互斥校验）', async () => {
       const req = mockReq({
         semester: '2025-2026-2',
         enrollment_year: '2024',
-        grade: '1', // grade=1 → enrollment_year=2025，覆盖上面的 2024
+        grade: '1',
       });
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const extra = mockPrisma.classes.findMany.mock.calls[1][0].where.AND[1];
-      expect(extra).toHaveProperty('enrollment_year', 2025);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, message: '年级和入学年份不能同时筛选' }),
+      );
     });
   });
 

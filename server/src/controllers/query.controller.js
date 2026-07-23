@@ -150,6 +150,10 @@ export async function querySemester(req, res, next) {
 
     // M-19: 年级筛选下推到数据库层，修正分页总数不准问题
     const gradeNum = safeInt(grade);
+    // B-2修复：grade 和 enrollment_year 互斥校验，防止后者被静默覆盖
+    if (gradeNum != null && enrollmentYearNum != null) {
+      return fail(res, '年级和入学年份不能同时筛选', 400);
+    }
     if (gradeNum != null && gradeNum >= 1) {
       // 年级 grade 对应入学年份 enrollment_year = startYear - grade + 1
       const targetEnrollmentYear = semesterInfo.startYear - gradeNum + 1;

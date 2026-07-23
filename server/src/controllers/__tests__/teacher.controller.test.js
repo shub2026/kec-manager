@@ -27,6 +27,7 @@ const mockTx = {
   teaching_assignments: {
     findMany: vi.fn().mockResolvedValue([]),
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    count: vi.fn().mockResolvedValue(0),
   },
   teacher_scheduling_colleges: {
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),

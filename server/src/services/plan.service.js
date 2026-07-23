@@ -74,10 +74,12 @@ export function isClassMatchPlan(cls, plan) {
  */
 export function findBestMatchPlan(cls, matchingPlans, classPlanMap = null) {
   // M-3修复：按 created_at 降序排序，确保多个匹配方案时取最新创建者为确定性结果
+  // B-3修复：增加 id 作为次级排序键，防止同秒创建的方案排序不确定
   const sortedPlans = [...matchingPlans].sort((a, b) => {
     const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
     const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return tb - ta;
+    if (tb !== ta) return tb - ta;
+    return (b.id || 0) - (a.id || 0);
   });
 
   // 1. 自定义方案优先

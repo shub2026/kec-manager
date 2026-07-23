@@ -11,6 +11,7 @@ import { createAuditLog } from '../services/audit.service.js';
 import { AuthenticationError, ValidationError } from '../utils/error.js';
 import { sanitizeBody } from '../middleware/xss.js'; // H7修复：XSS防护中间件
 import { validateChangePassword, validateLogin } from '../middleware/validation.js';
+import { generateSignedCsrfToken } from '../utils/csrf.js';
 
 const router = express.Router();
 
@@ -127,8 +128,9 @@ const logoutLimiter = rateLimit({
 });
 
 // 获取 CSRF Token（登录页加载时调用，设置 XSRF-TOKEN cookie）
+// H-5修复：使用 HMAC 签名 token，防止攻击者伪造
 router.get('/csrf-token', (req, res) => {
-  const csrfToken = crypto.randomBytes(32).toString('hex');
+  const csrfToken = generateSignedCsrfToken();
   res.cookie('XSRF-TOKEN', csrfToken, {
     secure: isSecure,
     sameSite: 'strict',
@@ -148,7 +150,7 @@ router.post('/login', loginLimiter, usernameLimiter, validateLogin, async (req, 
 
     const result = await AuthService.login(username, password, req.ip);
 
-    const csrfToken = crypto.randomBytes(32).toString('hex');
+    const csrfToken = generateSignedCsrfToken();
     setAuthCookies(res, {
       token: result.token,
       refreshToken: result.refreshToken,
@@ -182,7 +184,7 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
       // 旧token已过期或无效，无需黑名单
     }
 
-    const csrfToken = crypto.randomBytes(32).toString('hex');
+    const csrfToken = generateSignedCsrfToken();
     setAuthCookies(res, {
       token: result.token,
       refreshToken: result.refreshToken,

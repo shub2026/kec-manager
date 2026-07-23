@@ -23,6 +23,7 @@ vi.mock('../../utils/logger.js', () => ({
   },
 }));
 
+const { generateSignedCsrfToken } = await import('../../utils/csrf.js');
 const { validateCsrf } = await import('../csrf.js');
 
 // ──────────────────────────────────────────────
@@ -119,7 +120,7 @@ describe('validateCsrf — CSRF 验证中间件', () => {
   // POST 请求：header+cookie 匹配 → 通过
   // ──────────────────────────────────────────────
   it('POST header+cookie token 匹配时应通过', () => {
-    const token = 'abc123csrf';
+    const token = generateSignedCsrfToken();
     const req = makeReq({
       method: 'POST',
       headers: {
@@ -202,7 +203,7 @@ describe('validateCsrf — CSRF 验证中间件', () => {
   // Cookie 解析：多个 cookie 时正确提取 XSRF-TOKEN
   // ──────────────────────────────────────────────
   it('多个 cookie 中应正确提取 XSRF-TOKEN 并验证通过', () => {
-    const token = 'my-csrf-token';
+    const token = generateSignedCsrfToken();
     const req = makeReq({
       method: 'POST',
       headers: {
