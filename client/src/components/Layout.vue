@@ -22,6 +22,7 @@
         :background-color="sidebarBg"
         :text-color="sidebarText"
         :active-text-color="sidebarActive"
+        unique-opened
         router
       >
         <!-- 首页概览（所有用户可见） -->

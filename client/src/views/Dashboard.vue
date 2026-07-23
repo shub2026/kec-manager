@@ -63,7 +63,7 @@
       <span class="footer-sep">·</span>
       <span>© 2026</span>
       <span class="footer-sep">·</span>
-      <a href="mailto:Yangshubin@ztzyxy.cn">Yangshubin@ztzyxy.cn</a>
+      <span>Yangshubin@ztzyxy.cn</span>
     </div>
   </div>
 </template>
@@ -295,7 +295,7 @@ onMounted(async () => {
   display: flex;
   align-items: stretch;
   margin-top: 0;
-  padding: 18px 24px;
+  padding: 22px 28px;
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
@@ -308,8 +308,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  gap: 8px;
+  padding: 6px 16px;
   border-radius: var(--radius-sm);
   transition: background var(--dur-fast) var(--ease-out);
   position: relative;
@@ -320,8 +320,8 @@ onMounted(async () => {
   content: '';
   position: absolute;
   left: 0;
-  top: 20%;
-  bottom: 20%;
+  top: 25%;
+  bottom: 25%;
   width: 1px;
   background: var(--border-light);
 }
@@ -409,21 +409,11 @@ onMounted(async () => {
 .dashboard-footer {
   margin-top: auto;
   text-align: center;
-  padding: 16px 0 4px;
+  padding: 40px 0 12px;
   font-size: 11px;
   color: var(--text-placeholder);
   flex-shrink: 0;
   letter-spacing: 0.02em;
-}
-
-.dashboard-footer a {
-  color: var(--text-placeholder);
-  text-decoration: none;
-  transition: color var(--dur-fast);
-}
-
-.dashboard-footer a:hover {
-  color: var(--brand-primary);
 }
 
 .footer-sep {
