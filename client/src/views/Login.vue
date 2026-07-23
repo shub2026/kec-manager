@@ -1,17 +1,5 @@
 <template>
   <div class="login-page">
-    <!-- 左侧装饰（绝对定位，不影响居中布局） -->
-    <div class="deco-area" aria-hidden="true">
-      <div class="deco-circle deco-c1"></div>
-      <div class="deco-circle deco-c2"></div>
-      <div class="deco-circle deco-c3"></div>
-      <div class="deco-line deco-l1"></div>
-      <div class="deco-line deco-l2"></div>
-      <div class="deco-dot deco-d1"></div>
-      <div class="deco-dot deco-d2"></div>
-      <div class="deco-dot deco-d3"></div>
-    </div>
-
     <div class="login-container">
       <!-- 顶部品牌 -->
       <div class="brand">
@@ -191,8 +179,8 @@ onMounted(() => {
 
 <style scoped>
 /* ================================================================
-   登录页 — 居中布局 + 左侧点缀装饰（A 方案）
-   表单保持居中，左侧绝对定位几何装饰，不影响布局流
+   登录页 — 居中布局
+   表单居中展示，简洁干净
    ================================================================ */
 .login-page {
   min-height: 100vh;
@@ -208,138 +196,6 @@ onMounted(() => {
   padding: 40px 20px;
   overflow: hidden;
   position: relative;
-}
-
-.login-page::before,
-.login-page::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.login-page::before {
-  width: 480px;
-  height: 480px;
-  top: -160px;
-  left: -100px;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--brand-primary) 4%, transparent) 0%,
-    transparent 70%
-  );
-}
-
-.login-page::after {
-  width: 380px;
-  height: 380px;
-  bottom: -100px;
-  right: -60px;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--brand-primary) 3%, transparent) 0%,
-    transparent 70%
-  );
-}
-
-/* ==================== 左侧装饰区（绝对定位，不参与居中） ==================== */
-.deco-area {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 40%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.deco-circle {
-  position: absolute;
-  border-radius: 50%;
-}
-
-/* 大圆环：品牌蓝描边 */
-.deco-c1 {
-  width: 260px;
-  height: 260px;
-  top: 15%;
-  left: 8%;
-  border: 2px solid color-mix(in srgb, var(--brand-primary) 10%, transparent);
-}
-
-/* 中圆环：偏下偏右 */
-.deco-c2 {
-  width: 160px;
-  height: 160px;
-  bottom: 25%;
-  left: 18%;
-  border: 2px solid color-mix(in srgb, var(--brand-primary) 8%, transparent);
-}
-
-/* 填充光斑 */
-.deco-c3 {
-  width: 200px;
-  height: 200px;
-  top: 40%;
-  left: 5%;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--brand-primary) 5%, transparent) 0%,
-    transparent 70%
-  );
-}
-
-/* 装饰线 */
-.deco-line {
-  position: absolute;
-}
-
-.deco-l1 {
-  width: 140px;
-  height: 2px;
-  top: 38%;
-  left: 15%;
-  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
-  transform: rotate(-20deg);
-}
-
-.deco-l2 {
-  width: 100px;
-  height: 2px;
-  bottom: 32%;
-  left: 28%;
-  background: color-mix(in srgb, var(--brand-mint) 10%, transparent);
-  transform: rotate(15deg);
-}
-
-/* 装饰点 */
-.deco-dot {
-  position: absolute;
-  border-radius: 50%;
-}
-
-.deco-d1 {
-  width: 8px;
-  height: 8px;
-  top: 30%;
-  left: 32%;
-  background: color-mix(in srgb, var(--brand-primary) 18%, transparent);
-}
-
-.deco-d2 {
-  width: 6px;
-  height: 6px;
-  bottom: 38%;
-  left: 12%;
-  background: color-mix(in srgb, var(--brand-primary) 12%, transparent);
-}
-
-.deco-d3 {
-  width: 10px;
-  height: 10px;
-  top: 58%;
-  left: 25%;
-  background: color-mix(in srgb, var(--brand-mint) 15%, transparent);
 }
 
 /* ==================== 居中容器 ==================== */
@@ -556,13 +412,6 @@ onMounted(() => {
 }
 
 /* ==================== 响应式 ==================== */
-
-/* ≤992px：隐藏左侧装饰 */
-@media (max-width: 992px) {
-  .deco-area {
-    display: none;
-  }
-}
 
 @media (max-width: 768px) {
   .login-page {

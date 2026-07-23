@@ -12,16 +12,6 @@
     </div>
 
     <div v-else class="stats-table">
-      <!-- 表头 -->
-      <div class="table-head">
-        <span class="col-name">课程</span>
-        <span class="col-hours-head">课时</span>
-        <span class="col-meta-head">
-          <span>班</span>
-          <span>人</span>
-        </span>
-      </div>
-
       <!-- 数据行 -->
       <div v-for="(item, idx) in displayData" :key="item.id" class="table-row">
         <div class="col-name" :title="item.name">
@@ -108,45 +98,13 @@ function barColor(idx) {
   padding: 2px 0;
 }
 
-/* 表头与数据行共用固定轨道:课程名 120px / 课时区 1fr / 班+人 90px */
-.table-head,
+/* 数据行固定轨道:课程名 120px / 课时区 1fr / 班+人 104px */
 .table-row {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr) 90px;
-  gap: 10px;
+  grid-template-columns: 120px minmax(0, 1fr) 104px;
+  gap: 12px;
   align-items: center;
-}
-
-.table-head {
-  padding: 0 0 8px;
-  border-bottom: 1px solid var(--border-light);
-  margin-bottom: 2px;
-}
-
-.table-head .col-name,
-.col-hours-head,
-.col-meta-head {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  letter-spacing: 0.02em;
-}
-
-.col-hours-head {
-  text-align: right;
-  padding-right: 46px;
-}
-
-.col-meta-head {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-  text-align: center;
-}
-
-/* 数据行 */
-.table-row {
-  padding: 8px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--border-light);
   transition: opacity var(--dur-fast) var(--ease-out);
 }
@@ -187,7 +145,7 @@ function barColor(idx) {
 .col-hours {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -222,7 +180,7 @@ function barColor(idx) {
 .col-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .meta-num {
@@ -261,14 +219,9 @@ function barColor(idx) {
 
 /* ─── 移动端响应式 ─── */
 @media (max-width: 768px) {
-  .table-head,
   .table-row {
-    grid-template-columns: 90px minmax(0, 1fr) 76px;
-    gap: 6px;
-  }
-
-  .col-hours-head {
-    padding-right: 36px;
+    grid-template-columns: 90px minmax(0, 1fr) 88px;
+    gap: 8px;
   }
 
   .hours-value {

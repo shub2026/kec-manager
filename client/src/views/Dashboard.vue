@@ -15,7 +15,7 @@
             <el-icon><EditPen /></el-icon>
             开始排课
           </el-button>
-          <el-button text type="primary" @click="navigateTo('/query/semester')">
+          <el-button plain type="primary" @click="navigateTo('/query/semester')">
             <el-icon><Search /></el-icon>
             查询开课
           </el-button>
@@ -245,6 +245,7 @@ onMounted(async () => {
 /* ─── 欢迎区域 ─── */
 .welcome-section {
   flex-shrink: 0;
+  padding-top: var(--space-4);
 }
 
 .welcome-top {
@@ -253,11 +254,12 @@ onMounted(async () => {
   align-items: flex-start;
   flex-wrap: wrap;
   gap: var(--space-3);
+  padding-bottom: var(--space-5);
 }
 
 .welcome-title {
-  margin: 0 0 2px 0;
-  font-size: 20px;
+  margin: 0 0 8px 0;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -292,8 +294,8 @@ onMounted(async () => {
 .metrics-strip {
   display: flex;
   align-items: stretch;
-  margin-top: 14px;
-  padding: 14px 24px;
+  margin-top: 0;
+  padding: 18px 24px;
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
@@ -358,7 +360,7 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 3fr 2fr;
   gap: 16px;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .insights-grid > div {
