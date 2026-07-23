@@ -411,12 +411,12 @@ import {
   getCourseTeachers,
   assignTeacher,
   deleteAssignment,
-  runAutoArrangeWithProgress,
-  runBatchAutoArrangeWithProgress,
   resetAutoAssignments,
   toggleAssignmentLock,
   batchLockAssignments,
 } from '../../api/teachingArrange';
+import { useAutoArrange } from './composables/useAutoArrange';
+import { useBatchArrange } from './composables/useBatchArrange';
 
 import HourSettingsCard from './components/HourSettingsCard.vue';
 import CoursePreviewCard from './components/CoursePreviewCard.vue';
@@ -472,7 +472,7 @@ const filterMajor = ref('');
 const filterGrade = ref('');
 const filterTrainingLevel = ref('');
 const filterTextbook = ref('');
-const previewMode = ref(false);
+
 
 // 使用通用联动Hook
 const filters = computed(() => ({
@@ -561,64 +561,88 @@ function handlePageChange() {
 }
 
 // 自动排课状态
-const arranging = ref(false);
-const batchArranging = ref(false);
 const exporting = ref(false);
-
-// 排课进度弹窗
-const progressVisible = ref(false);
-const progressType = ref('single'); // 'single' | 'batch'
-const progressModeLabel = ref('');
-const progressFinished = ref(false);
-const progressCurrentPhase = ref(0);
-const progressProcessed = ref(0);
-const progressTotal = ref(0);
-const progressCurrentCourseName = ref('');
-const progressCumulativeAssigned = ref(0);
-const progressCumulativeUnassigned = ref(0);
-const progressMessage = ref('');
-
-function resetProgress() {
-  progressFinished.value = false;
-  progressCurrentPhase.value = 0;
-  progressProcessed.value = 0;
-  progressTotal.value = 0;
-  progressCurrentCourseName.value = '';
-  progressCumulativeAssigned.value = 0;
-  progressCumulativeUnassigned.value = 0;
-  progressMessage.value = '';
-}
 
 // 教师选择弹窗
 const teacherDialogRef = ref(null);
 
-// 自动排课确认弹窗
-const arrangeConfirmVisible = ref(false);
-const arrangeConfirmData = ref({
-  title: '',
-  mode: '',
-  message: '',
-  confirmText: '',
-  courseName: '',
-});
-let pendingArrangeMode = null;
-
-// 批量排课确认弹窗
-const batchConfirmVisible = ref(false);
-const batchConfirmData = ref({ title: '', mode: '', message: '', confirmText: '确定批量排课' });
-let pendingBatchMode = null;
-
-// 批量排课结果弹窗
-const batchResultVisible = ref(false);
-const batchResult = ref({});
-
-// 单课程排课结果弹窗
-const arrangeResultVisible = ref(false);
-const arrangeResult = ref({});
-const arrangeResultMode = ref('');
+// 重置排课状态
 const resetConfirmVisible = ref(false);
 const resetting = ref(false);
 const resetScope = ref('current');
+
+// 使用自动排课 composable
+const {
+  arranging,
+  arrangeConfirmVisible,
+  arrangeConfirmData,
+  arrangeResultVisible,
+  arrangeResult,
+  arrangeResultMode,
+  previewMode,
+  progressVisible: autoProgressVisible,
+  progressType: autoProgressType,
+  progressModeLabel: autoProgressModeLabel,
+  progressFinished: autoProgressFinished,
+  progressCurrentPhase: autoProgressCurrentPhase,
+  progressMessage: autoProgressMessage,
+  handleAutoArrange,
+  doAutoArrange,
+  handleExecutePreview,
+} = useAutoArrange({
+  selectedCourseId,
+  selectedSemester,
+  courseInfo,
+  hourSettingsRef,
+  loadData,
+  confirmHistoricalEdit,
+});
+
+// 使用批量排课 composable
+const {
+  batchArranging,
+  batchConfirmVisible,
+  batchConfirmData,
+  batchResultVisible,
+  batchResult,
+  progressVisible: batchProgressVisible,
+  progressType: batchProgressType,
+  progressModeLabel: batchProgressModeLabel,
+  progressFinished: batchProgressFinished,
+  progressProcessed: batchProgressProcessed,
+  progressTotal: batchProgressTotal,
+  progressCurrentCourseName: batchProgressCurrentCourseName,
+  progressCumulativeAssigned: batchProgressCumulativeAssigned,
+  progressCumulativeUnassigned: batchProgressCumulativeUnassigned,
+  progressMessage: batchProgressMessage,
+  handleBatchAutoArrange,
+  doBatchAutoArrange,
+} = useBatchArrange({
+  selectedSemester,
+  hourSettingsRef,
+  loadData,
+  confirmHistoricalEdit,
+});
+
+// 统一的进度弹窗状态（委托给当前活动的 composable）
+const progressVisible = computed({
+  get: () => autoProgressVisible.value || batchProgressVisible.value,
+  set: (val) => {
+    if (autoProgressVisible.value) autoProgressVisible.value = val;
+    if (batchProgressVisible.value) batchProgressVisible.value = val;
+  },
+});
+
+const progressType = computed(() => autoProgressType.value || batchProgressType.value);
+const progressModeLabel = computed(() => autoProgressModeLabel.value || batchProgressModeLabel.value);
+const progressFinished = computed(() => autoProgressFinished.value || batchProgressFinished.value);
+const progressCurrentPhase = computed(() => autoProgressCurrentPhase.value);
+const progressProcessed = computed(() => batchProgressProcessed.value);
+const progressTotal = computed(() => batchProgressTotal.value);
+const progressCurrentCourseName = computed(() => batchProgressCurrentCourseName.value);
+const progressCumulativeAssigned = computed(() => batchProgressCumulativeAssigned.value);
+const progressCumulativeUnassigned = computed(() => batchProgressCumulativeUnassigned.value);
+const progressMessage = computed(() => autoProgressMessage.value || batchProgressMessage.value);
 
 function tableRowClassName({ row }) {
   return row.assignment ? '' : 'unassigned-row';
@@ -845,197 +869,15 @@ async function handleBatchUnlockAll() {
   }
 }
 
-// --- 自动排课 ---
-function handleAutoArrange(mode) {
-  const modeLabel = mode === 'full' ? '全量模式' : '标准模式';
-  const isPreview = previewMode.value;
-
-  arrangeConfirmData.value = {
-    title: isPreview ? `预览排课 - ${modeLabel}` : `自动排课 - ${modeLabel}`,
-    mode: modeLabel,
-    courseName: courseInfo.value?.name || '当前课程',
-    message: isPreview
-      ? '将以预览模式运行，结果不会写入数据库。预览满意后可在结果弹窗中点击"执行排课"按钮应用结果。'
-      : '将自动安排当前课程的所有班级（已有手动安排和已锁定的安排不会被覆盖）。',
-    confirmText: isPreview ? '开始预览' : '确定排课',
-  };
-  pendingArrangeMode = mode;
-  arrangeConfirmVisible.value = true;
-}
-
-async function doAutoArrange() {
-  const mode = pendingArrangeMode;
-  arrangeConfirmVisible.value = false;
-
-  if (!(await confirmHistoricalEdit())) return;
-
-  arranging.value = true;
-  // 初始化进度弹窗
-  resetProgress();
-  progressType.value = 'single';
-  progressModeLabel.value = arrangeConfirmData.value.mode;
-  progressVisible.value = true;
-
-  try {
-    const result = await runAutoArrangeWithProgress(
-      {
-        courseId: selectedCourseId.value,
-        semester: selectedSemester.value,
-        mode,
-        hourSettings: hourSettingsRef.value,
-        preview: previewMode.value,
-      },
-      (progress) => {
-        // 单课程进度：更新当前阶段
-        if (progress.phase) {
-          progressCurrentPhase.value = progress.phase;
-        }
-      }
-    );
-    const data = result.data || {};
-    progressFinished.value = true;
-    progressMessage.value = result.message;
-
-    arrangeResult.value = data;
-    arrangeResultMode.value = arrangeConfirmData.value.mode;
-
-    if (!previewMode.value) {
-      await loadData();
-    }
-    // 进度弹窗保持显示完成状态，用户点击"关闭"后展示结果弹窗
-  } catch (e) {
-    progressVisible.value = false;
-    ElMessage.error('自动排课失败');
-    if (import.meta.env.DEV) {
-      console.error('自动排课失败:', e);
-    }
-  } finally {
-    arranging.value = false;
-  }
-}
-
+// 进度弹窗关闭处理
 function handleProgressClose() {
-  progressVisible.value = false;
-  // 排课完成后，根据类型展示对应的结果弹窗
-  if (progressType.value === 'batch') {
-    if (batchResult.value && Object.keys(batchResult.value).length > 0) {
-      batchResultVisible.value = true;
-    }
-  } else {
-    if (arrangeResult.value && Object.keys(arrangeResult.value).length > 0) {
-      arrangeResultVisible.value = true;
-    }
-  }
-}
-
-async function handleExecutePreview() {
-  if (!(await confirmHistoricalEdit())) return;
-  const wasPreview = previewMode.value;
-  previewMode.value = false;
-
-  const mode = arrangeResultMode.value === '全量模式' ? 'full' : 'standard';
-
-  arranging.value = true;
-  // 初始化进度弹窗
-  resetProgress();
-  progressType.value = 'single';
-  progressModeLabel.value = arrangeResultMode.value;
-  progressVisible.value = true;
-
-  try {
-    await runAutoArrangeWithProgress(
-      {
-        courseId: selectedCourseId.value,
-        semester: selectedSemester.value,
-        mode,
-        hourSettings: hourSettingsRef.value,
-        preview: false,
-      },
-      (progress) => {
-        if (progress.phase) {
-          progressCurrentPhase.value = progress.phase;
-        }
-      }
-    );
-
-    await loadData();
-    progressFinished.value = true;
-    progressMessage.value = '排课已执行，可关闭此弹窗';
-    arrangeResultVisible.value = false;
-    // handleExecutePreview 场景：执行排课后不需要再弹出结果弹窗
-    // 清空 arrangeResult 避免 handleProgressClose 重复展示
-    arrangeResult.value = {};
-  } catch (e) {
-    progressVisible.value = false;
-    ElMessage.error('执行排课失败');
-    if (import.meta.env.DEV) {
-      console.error('执行排课失败:', e);
-    }
-  } finally {
-    arranging.value = false;
-    previewMode.value = wasPreview;
-  }
-}
-
-// --- 批量排课 ---
-function handleBatchAutoArrange(mode) {
-  const modeLabel = mode === 'full' ? '全量模式' : '标准模式';
-  batchConfirmData.value = {
-    title: `批量排课 - ${modeLabel}`,
-    mode: modeLabel,
-    message: '这会覆盖所有课程的自动安排（手动安排和已锁定的安排不受影响）。确定继续？',
-    confirmText: '确定批量排课',
-  };
-  pendingBatchMode = mode;
-  batchConfirmVisible.value = true;
-}
-
-async function doBatchAutoArrange() {
-  const mode = pendingBatchMode;
-  batchConfirmVisible.value = false;
-
-  if (!(await confirmHistoricalEdit())) return;
-
-  batchArranging.value = true;
-  // 初始化进度弹窗
-  resetProgress();
-  progressType.value = 'batch';
-  progressModeLabel.value = batchConfirmData.value.mode;
-  progressVisible.value = true;
-
-  try {
-    const result = await runBatchAutoArrangeWithProgress(
-      {
-        semester: selectedSemester.value,
-        mode,
-        hourSettings: hourSettingsRef.value,
-      },
-      (progress) => {
-        // 批量进度：更新已处理课程数和当前课程名
-        if (progress.processed != null) {
-          progressProcessed.value = progress.processed;
-          progressTotal.value = progress.total;
-          progressCurrentCourseName.value = progress.currentCourseName || '';
-          progressCumulativeAssigned.value = progress.cumulativeAssigned || 0;
-          progressCumulativeUnassigned.value = progress.cumulativeUnassigned || 0;
-        }
-      }
-    );
-    const data = result.data || {};
-    progressFinished.value = true;
-    progressMessage.value = result.message;
-
-    batchResult.value = data;
-    await loadData();
-    // 进度弹窗保持显示完成状态，用户点击"关闭"后展示结果弹窗
-  } catch (e) {
-    progressVisible.value = false;
-    ElMessage.error('批量排课失败');
-    if (import.meta.env.DEV) {
-      console.error('批量排课失败:', e);
-    }
-  } finally {
-    batchArranging.value = false;
+  autoProgressVisible.value = false;
+  batchProgressVisible.value = false;
+  
+  if (autoProgressType.value === 'single' && autoProgressFinished.value) {
+    arrangeResultVisible.value = true;
+  } else if (batchProgressType.value === 'batch' && batchProgressFinished.value) {
+    batchResultVisible.value = true;
   }
 }
 

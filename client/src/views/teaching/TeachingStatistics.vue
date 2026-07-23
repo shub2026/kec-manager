@@ -92,10 +92,11 @@
           stripe
           row-key="teacherId"
           class="stats-table"
+          @expand-change="handleExpandChange"
         >
           <el-table-column type="expand">
             <template #default="{ row }">
-              <div class="expand-content">
+              <div v-loading="row._expanding" class="expand-content">
                 <div v-for="detail in row.details" :key="detail.course.id" class="course-detail">
                   <h4>{{ detail.course.name }}（周课时：{{ detail.weeklyHours }}）</h4>
                   <el-table
@@ -354,6 +355,16 @@ const pagedTeachers = computed(() => {
 watch(filteredTeachers, () => {
   currentPage.value = 1;
 });
+
+function handleExpandChange(row, expandedRows) {
+  // 展开时为行添加 loading 标记（数据已预加载，仅用于视觉反馈）
+  if (expandedRows.includes(row)) {
+    row._expanding = true;
+    setTimeout(() => {
+      row._expanding = false;
+    }, 100);
+  }
+}
 
 const filteredSummary = computed(() => {
   const list = filteredTeachers.value;

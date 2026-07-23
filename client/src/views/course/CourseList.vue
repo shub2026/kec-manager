@@ -233,7 +233,10 @@ const filteredList = computed(() => {
   return list.value.filter((item) => item.name && item.name.toLowerCase().includes(keyword));
 });
 
-// 前端切片分页：避免大数据量（>1000 行）一次性渲染全部 DOM 行导致卡顿
+// 前端切片分页（客户端分页）
+// 适用条件：后端不提供分页接口，且数据量有限（<500行），
+// 前端需要全量数据支持拖拽排序（useSortable），故一次加载全量后客户端切片渲染。
+// 数据量增长后应改为服务端分页 + 后端排序接口。
 const pagedList = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;
   return filteredList.value.slice(start, start + pageSize.value);

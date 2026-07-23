@@ -8,23 +8,9 @@
       </template>
     </PageHeader>
     <el-card>
-      <!-- 筛选器组件（移至卡片体内） -->
+      <!-- 筛选器组件：参考数据从 classDataStore 获取，无需 prop drilling -->
       <ClassFilterBar
         v-model:filters="filters"
-        :colleges="colleges"
-        :majors="majors"
-        :training-levels="trainingLevels"
-        :enrollment-years="enrollmentYears"
-        :plans="plans"
-        :college-major-relation="collegeMajorRelation"
-        :college-level-relation="collegeLevelRelation"
-        :major-level-relation="majorLevelRelation"
-        :college-year-relation="collegeYearRelation"
-        :major-year-relation="majorYearRelation"
-        :level-year-relation="levelYearRelation"
-        :plan-college-relation="planCollegeRelation"
-        :plan-major-relation="planMajorRelation"
-        :plan-level-relation="planLevelRelation"
         @change="resetPaginationAndLoad"
         @search="load"
         @export="handleExport"
@@ -52,7 +38,7 @@
       />
     </el-card>
 
-    <!-- 表单对话框组件 -->
+    <!-- 表单对话框组件：参考数据从 classDataStore 获取，无需 prop drilling -->
     <ClassFormDialog
       v-model:visible="dialogVisible"
       v-model:batch-visible="batchDialogVisible"
@@ -61,10 +47,6 @@
       :batch-form-type="batchFormType"
       :batch-dialog-title="batchDialogTitle"
       :saving="saving || batchSaving"
-      :majors="majors"
-      :colleges="colleges"
-      :training-levels="trainingLevels"
-      :plans="plans"
       :classes="allClassOptions"
       @save="handleSave"
       @batch-save="handleBatchSet"
@@ -148,8 +130,6 @@
 <script setup>
 import { ref, onMounted, computed, onActivated, onUnmounted } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
-// 按需导入项目中 service 函数（ElNotification）的 CSS 不会自动注入，需手动导入样式
-// 否则通知 DOM 渲染但不可见（无背景/定位/动画）
 import 'element-plus/es/components/notification/style/css';
 import {
   getClasses,
@@ -159,11 +139,8 @@ import {
   batchDeleteClasses,
   batchUpdateClasses,
 } from '../../api/class';
-import { getMajors } from '../../api/major';
-import { getPlans } from '../../api/plan';
-import { getTrainingLevels } from '../../api/trainingLevel';
-import { getColleges } from '../../api/college';
 import { useSettingsStore } from '../../stores/settings';
+import { useClassDataStore } from '../../stores/classData';
 import { useExport } from '../../composables/useExport';
 import { showImportResultCard } from '../../composables/useImport';
 import PageHeader from '../../components/PageHeader.vue';
@@ -176,26 +153,14 @@ defineOptions({ name: 'ClassList' });
 
 const list = ref([]);
 const loading = ref(false);
-const majors = ref([]);
-const plans = ref([]);
-const trainingLevels = ref([]);
-const colleges = ref([]);
-const allEnrollmentYears = ref([]);
-const collegeMajorRelation = ref({}); // 学院-专业关联关系
-const collegeLevelRelation = ref({}); // 学院-层次关联关系
-const majorLevelRelation = ref({}); // 专业-层次关联关系
-const collegeYearRelation = ref({}); // 学院-入学年份关联
-const majorYearRelation = ref({}); // 专业-入学年份关联
-const levelYearRelation = ref({}); // 层次-入学年份关联
-const planCollegeRelation = ref({}); // 培养方案-学院关联
-const planMajorRelation = ref({}); // 培养方案-专业关联
-const planLevelRelation = ref({}); // 培养方案-层次关联
 const selectedClasses = ref([]);
-const currentSemesterInfo = ref(null); // 当前学期信息
-let _relationsLoaded = false; // 关联数据是否已加载（结构性数据只加载一次）
+const currentSemesterInfo = ref(null);
 // 合班伙伴候选班级（轻量列表：id/name/collegeId），在打开编辑弹窗时按需加载
 const allClassOptions = ref([]);
 let _allClassOptionsLoaded = false;
+
+// 使用 classDataStore 管理共享参考数据（消除向 ClassFilterBar / ClassFormDialog 传递 15+ props）
+const classDataStore = useClassDataStore();
 
 const filters = ref({
   name: '',
@@ -205,7 +170,7 @@ const filters = ref({
   enrollmentYear: null,
   status: null,
   planId: null,
-  isCombined: null, // 合班筛选：1=只看合班，0=只看非合班，null=全部
+  isCombined: null,
 });
 
 const pagination = ref({
@@ -224,12 +189,10 @@ const progressStatus = ref('');
 const progressText = ref('');
 const progressDetail = ref('');
 
-// 批量删除确认弹窗
 const batchDeleteConfirmVisible = ref(false);
 const batchDeleteConfirmMessage = ref('');
 const batchDeleting = ref(false);
 
-// 批量离校确认弹窗
 const leftSchoolConfirmVisible = ref(false);
 const leftSchoolConfirmMessage = ref('');
 let _leftSchoolResolve = null;
@@ -245,11 +208,10 @@ const form = ref({
   studentCount: 0,
   isLeftSchool: false,
   customPlanId: null,
-  isCombinedClass: false, // 是否参与合班教学
-  combinationClassIds: [], // 合班伙伴班级 ID 列表
+  isCombinedClass: false,
+  combinationClassIds: [],
 });
 
-// 使用导出 composable
 const { exportData, downloadTemplate } = useExport('classes', '班级数据');
 
 const batchForm = ref({
@@ -262,10 +224,6 @@ const batchForm = ref({
 });
 
 const batchFormType = ref('');
-
-const enrollmentYears = computed(() => {
-  return allEnrollmentYears.value.filter((y) => y != null);
-});
 
 const batchDialogTitle = computed(() => {
   const titles = {
@@ -292,42 +250,9 @@ async function load() {
     list.value = res?.data?.items || [];
     pagination.value.total = res?.data?.total || 0;
 
-    // 关联数据（结构性参考数据）只在首次加载时更新，避免每次翻页触发响应式级联
-    if (!_relationsLoaded) {
-      if (res?.data?.allEnrollmentYears) {
-        allEnrollmentYears.value = res.data.allEnrollmentYears;
-      }
-      if (res?.data?.collegeMajorRelation) {
-        collegeMajorRelation.value = res.data.collegeMajorRelation;
-      }
-      if (res?.data?.collegeLevelRelation) {
-        collegeLevelRelation.value = res.data.collegeLevelRelation;
-      }
-      if (res?.data?.majorLevelRelation) {
-        majorLevelRelation.value = res.data.majorLevelRelation;
-      }
-      if (res?.data?.collegeYearRelation) {
-        collegeYearRelation.value = res.data.collegeYearRelation;
-      }
-      if (res?.data?.majorYearRelation) {
-        majorYearRelation.value = res.data.majorYearRelation;
-      }
-      if (res?.data?.levelYearRelation) {
-        levelYearRelation.value = res.data.levelYearRelation;
-      }
-      if (res?.data?.planCollegeRelation) {
-        planCollegeRelation.value = res.data.planCollegeRelation;
-      }
-      if (res?.data?.planMajorRelation) {
-        planMajorRelation.value = res.data.planMajorRelation;
-      }
-      if (res?.data?.planLevelRelation) {
-        planLevelRelation.value = res.data.planLevelRelation;
-      }
-      _relationsLoaded = true;
-    }
+    // 关联关系数据由 store 统一管理（首次加载后不再重复赋值）
+    classDataStore.ingestRelations(res?.data);
   } catch (error) {
-    // 拦截器已对失败请求统一弹出错误提示，此处不必重复（避免双重 toast）
     if (import.meta.env.DEV) console.error('加载失败:', error);
   } finally {
     loading.value = false;
@@ -337,19 +262,8 @@ async function load() {
 async function loadBaseData() {
   try {
     const settingsStore = useSettingsStore();
-    const [majorsRes, plansRes, levelsRes, collegesRes] = await Promise.all([
-      getMajors(),
-      getPlans(),
-      getTrainingLevels(),
-      getColleges(),
-      settingsStore.load(),
-    ]);
-    majors.value = majorsRes?.data || [];
-    plans.value = plansRes?.data || [];
-    trainingLevels.value = levelsRes?.data || [];
-    colleges.value = collegesRes?.data || [];
+    await Promise.all([classDataStore.loadBaseData(), settingsStore.load()]);
 
-    // 解析当前学期信息（从 settingsStore 获取）
     const semesterValue = settingsStore.currentSemesterValue();
     if (semesterValue) {
       const parts = semesterValue.split('-');
@@ -399,7 +313,6 @@ async function openDialog(row = null) {
   } else {
     resetForm();
   }
-  // 懒加载合班伙伴候选班级（轻量字段）
   if (!_allClassOptionsLoaded) {
     try {
       const res = await getClasses({ page: 1, pageSize: 100 });
@@ -446,7 +359,6 @@ async function handleSave() {
 
   saving.value = true;
   try {
-    // 前端统一使用 camelCase，由 naming 中间件自动转换为 snake_case 给后端
     const classData = {
       name: form.value.name,
       enrollmentYear: form.value.enrollmentYear,
@@ -460,7 +372,6 @@ async function handleSave() {
           : undefined,
       customPlanId: form.value.customPlanId ?? null,
       isLeftSchool: form.value.isLeftSchool,
-      // 合班教学：始终传递 combinationClassIds（空数组表示解除合班）
       combinationClassIds: form.value.isCombinedClass
         ? (form.value.combinationClassIds || []).map(Number).filter((id) => id > 0)
         : [],
@@ -497,7 +408,6 @@ async function confirmDelete() {
   const target = list.value.find((c) => c.id === pendingDeleteId);
   const targetName = target?.name || '该班级';
   try {
-    // silent:true 抑制拦截器 ElMessage，由本函数统一用 ElNotification 展示原因与结果
     await deleteClass(pendingDeleteId, { silent: true });
     ElNotification({
       title: '删除成功',
@@ -623,11 +533,9 @@ function resetBatchForm() {
 }
 
 async function handleBatchSet() {
-  // 批量标记离校时确认级联删除排课
   if (batchFormType.value === 'leftSchool' && batchForm.value.isLeftSchool) {
-    leftSchoolConfirmMessage.value = `标记为“离校”将自动删除所选 ${selectedClasses.value.length} 个班级在当前学期的所有排课记录，释放教师课时容量。确定继续？`;
+    leftSchoolConfirmMessage.value = `标记为"离校"将自动删除所选 ${selectedClasses.value.length} 个班级在当前学期的所有排课记录，释放教师课时容量。确定继续？`;
     leftSchoolConfirmVisible.value = true;
-    // 等待用户确认
     const confirmed = await new Promise((resolve) => {
       _leftSchoolResolve = resolve;
     });
@@ -721,7 +629,6 @@ function onImportSuccess(res) {
   const errors = Array.isArray(data.errors) ? data.errors : [];
   const succeeded = imported + overwritten;
 
-  // 判定结果类型
   let type = 'success';
   if (succeeded === 0 && failed > 0) type = 'error';
   else if (failed > 0) type = 'warning';
@@ -732,7 +639,6 @@ function onImportSuccess(res) {
     error: '导入失败',
   };
 
-  // 进度弹窗短暂展示成功状态后关闭，再用统一的通知卡片显示详细结果
   progressStatus.value =
     type === 'error' ? 'exception' : type === 'warning' ? 'warning' : 'success';
   progressText.value = titleMap[type];
@@ -766,7 +672,6 @@ function onImportError(err) {
 }
 
 async function handleExport() {
-  // 将filters转换为exportData需要的参数格式 to exportData需要的格式
   const customParams = {};
   if (filters.value.name) customParams.name = filters.value.name;
   if (filters.value.majorId) customParams.majorId = filters.value.majorId;
@@ -784,8 +689,6 @@ onMounted(() => {
   loadBaseData();
 });
 
-// keep-alive 缓存页被激活时重新加载选项数据
-// 避免在基础数据页新增专业/层次/学院/方案后，本页下拉选项仍为旧数据
 onActivated(() => {
   if (sessionStorage.getItem('classListNeedsRefresh') === 'true') {
     sessionStorage.removeItem('classListNeedsRefresh');
@@ -793,7 +696,6 @@ onActivated(() => {
   }
 });
 
-// 组件卸载时清理离校确认弹窗的 pending Promise，防止内存泄漏
 onUnmounted(() => {
   if (_leftSchoolResolve) {
     _leftSchoolResolve(false);

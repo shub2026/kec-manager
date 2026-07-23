@@ -121,10 +121,10 @@
           </template>
         </el-alert>
 
-        <el-table v-loading="loading" :data="data" stripe row-key="classId">
+        <el-table v-loading="loading" :data="data" stripe row-key="classId" @expand-change="handleExpandChange">
           <el-table-column type="expand">
             <template #default="{ row }">
-              <div class="expand-content">
+              <div v-loading="row._expanding" class="expand-content">
                 <el-table
                   :data="row.courses"
                   size="small"
@@ -452,6 +452,16 @@ async function goToCurrentSemester() {
   filterLevel.value = null;
   filterEnrollmentYear.value = null;
   filterGrade.value = null;
+}
+
+// 展开行时添加 loading 反馈（数据已预加载，仅用于视觉提示）
+function handleExpandChange(row, expandedRows) {
+  if (expandedRows.includes(row)) {
+    row._expanding = true;
+    setTimeout(() => {
+      row._expanding = false;
+    }, 100);
+  }
 }
 
 function resetFilters() {

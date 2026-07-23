@@ -224,7 +224,9 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useResponsive } from '../../../composables/useResponsive';
+import { useClassDataStore } from '@/stores/classData';
 
 const props = defineProps({
   visible: {
@@ -255,27 +257,15 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  majors: {
-    type: Array,
-    default: () => [],
-  },
-  colleges: {
-    type: Array,
-    default: () => [],
-  },
-  trainingLevels: {
-    type: Array,
-    default: () => [],
-  },
-  plans: {
-    type: Array,
-    default: () => [],
-  },
   classes: {
     type: Array,
     default: () => [],
   },
 });
+
+// 从 store 直接读取参考数据（storeToRefs 保持 ref 响应式，模板中自动解包）
+const classDataStore = useClassDataStore();
+const { majors, colleges, trainingLevels, plans } = storeToRefs(classDataStore);
 
 const emit = defineEmits([
   'update:visible',
@@ -333,10 +323,8 @@ const rules = {
   ],
 };
 
-// 小屏弹窗全屏：复用共享响应式断点（由 useResponsive 统一管理 resize 监听）
 const { isMobile } = useResponsive();
 
-// 同学院班级候选列表：排除当前编辑的班级自身，按名称排序
 const sameCollegeClassOptions = computed(() => {
   const collegeId = localForm.value?.collegeId;
   const currentId = localForm.value?.id;
