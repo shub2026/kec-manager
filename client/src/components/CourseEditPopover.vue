@@ -117,7 +117,7 @@
 
 <script setup>
 // TODO: L-7 - 当前组件有 8 个 emit，建议重构为 v-model + 事件对象模式减少 prop-drilling
-const props = defineProps({
+defineProps({
   popoverVisible: { type: Boolean, default: false },
   semesterDialogVisible: { type: Boolean, default: false },
   editingCourse: { type: Object, default: null },

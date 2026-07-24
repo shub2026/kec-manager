@@ -10,7 +10,7 @@
 
 import { computed } from 'vue';
 
-export function useFilterLinkage({ filters, relations = {}, fields = [] }) {
+export function useFilterLinkage({ filters, relations = {} }) {
   /**
    * 根据当前筛选条件动态计算某个字段的可用选项
    * @param {String} fieldName - 字段名

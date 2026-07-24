@@ -273,7 +273,7 @@ describe('querySemester — 筛选器单元测试', () => {
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: false, message: '年级和入学年份不能同时筛选' }),
+        expect.objectContaining({ success: false, message: '年级和入学年份不能同时筛选' })
       );
     });
   });

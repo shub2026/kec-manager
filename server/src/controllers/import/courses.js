@@ -1,10 +1,15 @@
 import { prisma } from '../../lib/prisma.js';
-import { success, fail } from '../../utils/response.js';
+import { success } from '../../utils/response.js';
 import { readWorkbook } from '../../utils/excel.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
-import { cleanupFile, sanitizeInput, normalizePlaceholder, verifyExcelMagicNumber } from '../import-shared.js';
+import {
+  cleanupFile,
+  sanitizeInput,
+  normalizePlaceholder,
+  verifyExcelMagicNumber,
+} from '../import-shared.js';
 
 /**
  * POST /api/import/courses - 批量导入课程

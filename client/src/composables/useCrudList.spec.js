@@ -73,7 +73,9 @@ describe('useCrudList error state (P0)', () => {
       list: vi
         .fn()
         .mockResolvedValueOnce({ data: [] })
-        .mockRejectedValueOnce(Object.assign(new Error('e'), { response: { data: { message: 'X' } } }))
+        .mockRejectedValueOnce(
+          Object.assign(new Error('e'), { response: { data: { message: 'X' } } })
+        )
         .mockResolvedValueOnce({ data: [{ id: 2 }] }),
     });
     const wrapper = makeWrapper(api);

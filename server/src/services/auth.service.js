@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma.js';
 import { authConfig } from '../config/auth.config.js';
 import { createAuditLog } from './audit.service.js';
-import { AuthenticationError, ValidationError } from '../utils/error.js';
+import { AuthenticationError } from '../utils/error.js';
 import { invalidateUserStatusCache } from '../middleware/auth.middleware.js';
 import { log } from '../utils/logger.js';
 
@@ -87,7 +87,9 @@ export class AuthService {
         where: { id: user.id },
         data: {
           failed_login_count: newFailCount,
-          locked_until: shouldLock ? new Date(Date.now() + LOGIN_LOCK_DURATION_MS) : user.locked_until,
+          locked_until: shouldLock
+            ? new Date(Date.now() + LOGIN_LOCK_DURATION_MS)
+            : user.locked_until,
         },
       });
       if (shouldLock) {

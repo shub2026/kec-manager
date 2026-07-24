@@ -17,7 +17,7 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason, _promise) => {
   log.error('[unhandledRejection] 未处理的Promise拒绝，进程即将退出', {
     reason:
       reason instanceof Error ? { message: reason.message, stack: reason.stack } : String(reason),

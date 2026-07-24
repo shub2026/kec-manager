@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma.js';
-import { success, fail } from '../../utils/response.js';
+import { success } from '../../utils/response.js';
 import { readWorkbook } from '../../utils/excel.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';

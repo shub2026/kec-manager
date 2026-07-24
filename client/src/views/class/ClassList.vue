@@ -630,7 +630,7 @@ async function doBatchSet() {
   }
 }
 
-function beforeImport(file) {
+function beforeImport() {
   progressDialogVisible.value = true;
   progressPercent.value = 0;
   progressStatus.value = '';

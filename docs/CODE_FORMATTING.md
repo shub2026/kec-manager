@@ -5,12 +5,14 @@
 ## 已安装的工具
 
 ### 前端 (client/)
+
 - **Prettier**: 代码格式化工具
 - **ESLint**: 代码质量检查工具
 - **eslint-plugin-vue**: Vue文件支持
 - **@vue/eslint-config-prettier**: Prettier与ESLint集成
 
 ### 后端 (server/)
+
 - **Prettier**: 代码格式化工具
 - **ESLint**: 代码质量检查工具
 
@@ -43,6 +45,7 @@ npm run lint
 ## 配置文件
 
 ### Prettier配置 (.prettierrc)
+
 - 使用分号
 - 单引号
 - 行宽100字符
@@ -50,12 +53,14 @@ npm run lint
 - 尾随逗号(es5)
 
 ### ESLint配置 (eslint.config.js)
+
 - 前端: Vue 3推荐规则 + Prettier集成（通过 `@vue/eslint-config-prettier`）
 - 后端: ESLint推荐规则（`js.configs.recommended`，未集成 Prettier）
 - 前端配置浏览器全局变量（`console`、`window`、`document`、`localStorage`、`setTimeout` 等）
 - 后端配置 Node.js 全局变量（`console`、`process`、`__dirname`、`__filename` 等）
 
 ### 已关闭/降级的 ESLint 规则
+
 - 前端 (`client/eslint.config.js`):
   - `vue/multi-word-component-names`: `'off'`
   - `vue/no-v-html`: `'off'`
@@ -67,11 +72,13 @@ npm run lint
 ## IDE集成建议
 
 ### VS Code
+
 1. 安装扩展:
    - Prettier - Code formatter
    - ESLint
 
 2. 在 `.vscode/settings.json` 中添加:
+
 ```json
 {
   "editor.formatOnSave": true,
@@ -83,12 +90,14 @@ npm run lint
 ```
 
 ### WebStorm/IntelliJ IDEA
+
 1. 设置 → Languages & Frameworks → JavaScript → Prettier
 2. 启用 "Run on save for files"
 
 ## 忽略文件
 
 以下文件不会被格式化:
+
 - node_modules/
 - dist/
 - build/
@@ -106,10 +115,13 @@ npm run lint
 ## 常见问题
 
 ### Q: 格式化后代码变化很大？
+
 A: 这是正常的，特别是第一次格式化。格式化会统一代码风格。
 
 ### Q: ESLint报告很多警告？
+
 A: 大部分是未使用变量的警告，可以根据需要调整规则或清理代码。
 
 ### Q: 如何自定义格式化规则？
+
 A: 修改 `.prettierrc` 文件中的配置项。

@@ -65,6 +65,7 @@
 ## [1.0.0] - 2026-07-13
 
 ### 正式发布
+
 - 基础功能全部完成，定为首个稳定发布版（v1.0.0）。
 - 核心模块：培养计划、班级管理（含合班教学组）、教师与课程管理、教材协调、手动 + 自动排课（含合班一致性约束）、课时统计与 Excel 导出、系统设置、角色权限、操作日志、仪表盘。
 - 排课引擎：五阶段贪心 + 禁忌搜索优化；合班按逻辑单元计课时并强制共享教师。
@@ -388,16 +389,19 @@
 ### 架构审计修复（13 项）
 
 #### 高危修复 (HIGH)
+
 - **H1**: 手动排课周课时推导统一使用 `findBestMatchPlan`，修复方案匹配不一致问题
 - **H2**: `parseSemester` 新增年份连续性校验（`endYear === startYear + 1`），与 `parseSemesterString` 行为统一
 - **H3**: 教师导入更新时新增 `hasCourseCol` 守卫，修复无学科列时课程关联被清空的数据丢失 bug
 - **H4**: 开课/教材查询分页 total 字段修复，新增 `totalWithCourses` 返回有课班级数
 
 #### 关键修复 (CRITICAL)
+
 - **C1**: 班级列表方案匹配统一为 `findBestMatchPlan`，修复与自动排课的优先级不一致
 - **C2**: 数据导出方案匹配统一为 `findBestMatchPlan`
 
 #### 中等修复 (MEDIUM)
+
 - **M1**: 学年起始月份边界从 `>=9` 统一为 `>=8`（8 月入学应属当年）
 - **M2**: `updatePlanCourse` 学期范围不变时同步 `weekly_hours`/`weeks_count` 到 `plan_course_semesters`
 - **M3**: 学期信息新增 30 秒 TTL 缓存，更新设置时自动失效
@@ -405,14 +409,17 @@
 - **M5**: 手动排课后新增教师工作量警告（超过 20 课时/周时提醒）
 
 #### 低危修复 (LOW)
+
 - **L1**: 并发锁代码已具备注释，确认无需额外修改
 - **L2**: 班级导入新增同名班级检测，防止重复创建
 
 ### 测试
+
 - 修复 `queries.test.js` 中与 H2 修复矛盾的断言
 - 新增 `plan.service.test.js`：13 用例覆盖 `isClassMatchPlan` 和 `findBestMatchPlan`
 
 ### 文档
+
 - 删除 7 个过时审计/检测报告
 - `LOGIN_GUIDE.md`: 端口号更正为 5173/3002
 - `semester-calculation.md`: 新增学期格式校验规则章节
@@ -425,18 +432,21 @@
 ### 测试工具链改进（P0 + P1）
 
 #### P0 — 环境与安全
+
 - **CI Node 版本对齐**：Gitee Go 流水线镜像从 `node:18` 升级至 `node:20`，与 `engines.node >= 20` 约束一致
 - **CI 质量门禁**：流水线新增 ESLint 代码检查、覆盖率测试、依赖安全审计（`npm audit --audit-level=high`）步骤
 - **覆盖率门槛**：Vitest 新增 `coverage.thresholds` 配置（语句 17%、分支 14%、函数 16%、行 17%），低于基线即阻断合并
 - **multer 高危漏洞修复**：升级 multer 至 2.2.0，消除深层嵌套字段名 DoS 漏洞
 
 #### P1 — 高风险纯函数补测
+
 - **naming.middleware 测试**（13 用例）：覆盖请求体驼峰转下划线、响应下划线转驼峰、SKIP_KEYS 跳过、数组/嵌套分页对象转换、空 body 处理
 - **validation 测试**（37 用例）：覆盖 handleValidationErrors、validateLogin/Class/ChangePassword/IdParam/Pagination/SemesterQuery/TeacherCreate/AutoArrange/Reset，验证通过/失败双路径
 - **selectBestTeacher + trySwapOne 测试**（19 用例）：覆盖七层优先级排序逻辑、S-02 回归（学院/层次资格校验）、教材上限检查、容量约束、成功置换、无可置换场景；重构 auto-arrange.js 将 selectBestTeacher 提取为模块级函数
 - **认证路由集成测试**（24 用例）：引入 supertest，覆盖登录/刷新/查询用户/修改密码/登出完整 HTTP 链路，含验证错误、认证失败、角色保护
 
 ### 测试数据
+
 - 测试文件：8 → 12（+4）
 - 测试用例：148 → 241（+93）
 - 语句覆盖率：8.43% → 17.39%（+106%）
@@ -465,18 +475,21 @@
 ### 架构审计修复（15项安全漏洞 + 业务逻辑修复）
 
 #### 高危（HIGH）
+
 - **S-01** 删除学院/层次前增加教师排课偏好、培养方案、教师所属关联检查，防止 `onDelete: Cascade` 静默清除数据
 - **S-02** 排课置换算法 `trySwapOne` 对教师 T 和 T2 均增加学院/层次资格校验，防止绕过业务规则
 - **S-03** `getClassesWithCourse` 年级筛选改为范围匹配，修复多学制场景下漏排问题
 - **S-04** `parseSemesterString` 增加学期索引范围（1-2）、年份连续性、年份区间校验
 
 #### 中危（MEDIUM）
+
 - **S-05** `listPlans` 班级计数改用 `findBestMatchPlan` 优先级语义（自定义>专业>层次），消除重复计数
 - **S-06** `deleteMajor` 增加培养方案前置检查，防止 `onDelete: SetNull` 静默破坏方案匹配
 - **S-07** 教师导入时空列不再清除现有排课学院/层次偏好
 - **S-08** 课程导入已有课程仅在 Excel 显式指定类型时才更新，防止默认值覆盖
 
 #### 低危（LOW）
+
 - **S-11** `resetBasic`/`resetColleges`/`resetLevels` 显式删除教师排课偏好表，替代依赖级联隐式清除
 - **S-12** 下载令牌路径补充用户激活状态校验，与 Bearer Token 路径一致
 - **S-13** 批量排课预览增加 `globalTextbookMap` 跨课程累计教材负载，提升教材内聚分析准确性
@@ -651,11 +664,13 @@
 ## [2.6.0] - 2026-06-19
 
 ### 安全修复（严重）
+
 - **C-4** 修复系统重置确认验证可被绕过：`validateReset` 的 `confirm` 字段移除 `.optional()`，省略字段不再放行破坏性重置操作
 - **C-5** 修复系统重置操作零审计痕迹：`resetSystem`/`resetAuditLogs` 审计记录改为事务内 `deleteMany` 后重新写入，确保破坏性操作可追溯
 - **C-6** 修复前端生产镜像构建失败：Dockerfile 构建阶段去掉 `--only=production`，恢复 devDependencies（vite 等）安装
 
 ### 排课算法修复（严重/高危）
+
 - **C-1** 修复培养方案匹配 `null===null` 误匹配：新增统一的三级互斥匹配函数 `isClassMatchPlan`（custom > major > level），补真值守卫，避免跨专业错误排课
 - **C-2** 修复排课并发竞态：教师工作量读取与写入移入事务，事务内二次校验教师实际容量，超载分配降级跳过
 - **C-3** 修复空分配跳过事务：非预览模式无论是否有新分配都执行 `deleteMany`，保证"全量替换"语义与幂等性
@@ -667,6 +682,7 @@
 - **M-10** 周课时为 0 或负数的班级不参与排课，归入 unassigned 并告警
 
 ### 安全校验修复（高危）
+
 - **H-5** 7 个 PUT 更新路由补全业务字段校验（teacher/textbook/course/major/college/trainingLevel/plan/class），新增 `validateClassUpdate`
 - **H-6** 教学安排 5 个写接口新增 express-validator 校验（semester 格式、weekly_hours 范围、course_id 类型等）
 - **H-8** 导出侧统一公式注入防护：`createWorkbook` 写入单元格前对 `= + - @` 开头字符串转义
@@ -674,6 +690,7 @@
 - **L-3/L-4/L-5** 导出/查询 `:id` 参数挂 `validateIdParam`；教材 `publish_date` 格式校验；query 参数安全解析避免 NaN
 
 ### 认证权限修复（高危/中危）
+
 - **H-1** 前端 Token Cookie 增加 `Secure` 标志（HTTPS 环境动态判断）
 - **H-2** access token 校验用户是否仍存在且激活，并使用数据库最新角色（30s 缓存），防止降级/禁用后旧 token 仍生效
 - **H-4** viewer 角色读取教师 PII 脱敏（birth_date）；含 PII 的导出接口（teachers/statistics/teaching-arrange）提升为 admin 权限
@@ -681,6 +698,7 @@
 - **M-2** `GET /api/settings` 匿名访问只返回 organization_name，登录用户（带 token）返回全部；`updateSettings` 校验 current_semester 格式
 
 ### 导入导出修复（高危/中危）
+
 - **H-13** 教师导入课程 auto-create、班级导入 level/major/college upsert 移入事务，避免回滚后残留孤儿数据
 - **H-14** Excel 解析增加行数上限（20000 行），防止 zip 炸弹 OOM
 - **H-2(导入)** 班级导入增加行级数值范围校验（入学年份/学制/人数），与单条 API 一致
@@ -691,9 +709,11 @@
 - **L-6** 审计日志 details 限制最大长度 2000 字符，防止表膨胀
 
 ### 阻断性 Bug 修复
+
 - 修复 Express 5 下 `sanitizeQuery`/`sanitizeBody` 中间件崩溃：`req.query` 为 getter-only 不能整体赋值，改为原地修改属性（此 bug 导致所有请求 500）
 
 ### 前端修复
+
 - **L-1** 登录跳转 `redirect` 参数校验，仅允许站内相对路径，防开放重定向
 - **L-7** 登出清除 API 响应缓存；cache.js 增加 LRU 上限（50 条）
 - **L-8** Login.vue 改用 `__APP_VERSION__` 替代 package.json import，避免泄露依赖清单
@@ -703,6 +723,7 @@
 - 401 刷新队列入队前标记 `_retry`，避免边界场景二次刷新
 
 ### 其他
+
 - `.env.example` 补全 `JWT_REFRESH_SECRET`/`JWT_DOWNLOAD_SECRET`/`BCRYPT_ROUNDS`
 - `saveHourSettings` 保存前调用 `validateHourSettings` 校验，避免无效设置静默持久化
 - `JSON.parse(system_settings.value)` 全部包裹 try/catch，存储损坏时回退默认值
@@ -714,6 +735,7 @@
 > 注：此为 2026-07-13 版本基线重置前的开发期发布标记，已被顶部正式的 v1.0.0 取代，仅作历史归档。
 
 ### 新增
+
 - 首次正式发布版本（开发期）
 - 完整的课程管理平台功能
   - 基础数据管理（培养层次、专业、学院、课程、教材、班级）
@@ -725,6 +747,7 @@
 - 页脚版本号显示功能
 
 ### 技术栈
+
 - 前端：Vue 3.5.34, Element Plus 2.14.1, Vite 5.4.21
 - 后端：Node.js, Express 5.1.0, Prisma 6.10.1
 - 数据库：支持 Prisma 的多种数据库

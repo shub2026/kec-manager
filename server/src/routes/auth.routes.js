@@ -1,14 +1,13 @@
 import express from 'express';
-import crypto from 'crypto';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { AuthService } from '../services/auth.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { success, fail } from '../utils/response.js';
+import { success } from '../utils/response.js';
 import { prisma } from '../lib/prisma.js';
 import jwt from 'jsonwebtoken';
 import { authConfig } from '../config/auth.config.js';
 import { createAuditLog } from '../services/audit.service.js';
-import { AuthenticationError, ValidationError } from '../utils/error.js';
+import { ValidationError } from '../utils/error.js';
 import { sanitizeBody } from '../middleware/xss.js'; // H7修复：XSS防护中间件
 import { validateChangePassword, validateLogin } from '../middleware/validation.js';
 import { generateSignedCsrfToken } from '../utils/csrf.js';

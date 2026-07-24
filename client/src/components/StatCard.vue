@@ -19,7 +19,6 @@
 
 <script setup>
 import { ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import { useCountUp } from '../composables/useCountUp';
 
 const props = defineProps({
@@ -39,7 +38,6 @@ const props = defineProps({
   route: { type: String, default: '' },
 });
 
-const router = useRouter();
 const targetRef = ref(0);
 const { displayValue } = useCountUp(targetRef, { duration: 900 });
 

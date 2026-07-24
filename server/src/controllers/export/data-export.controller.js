@@ -811,8 +811,6 @@ export async function exportTeachingArrange(req, res, next) {
       return res.status(400).json({ success: false, message: '缺少课程或学期参数' });
     }
 
-    const personnelMap = { full_time: '专职', part_time: '兼职', external: '外聘' };
-
     // 获取课程信息
     const course = await prisma.courses.findUnique({ where: { id: Number(course_id) } });
     if (!course) return res.status(404).json({ success: false, message: '课程不存在' });
@@ -872,11 +870,6 @@ export async function exportTeachingArrange(req, res, next) {
         合班教学: combinationText,
       };
     });
-
-    // 合计行
-    const totalHours = rows.reduce((sum, r) => sum + r['周课时'], 0);
-    const totalStudents = rows.reduce((sum, r) => sum + r['人数'], 0);
-    const assignedCount = rows.filter((r) => r['任课教师'] !== '未安排').length;
 
     const headers = [
       { label: '班级名称', key: '班级名称', width: 25 },

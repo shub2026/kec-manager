@@ -200,7 +200,12 @@
     </el-dialog>
 
     <!-- 重置密码对话框 -->
-    <el-dialog v-model="resetPwdVisible" title="重置密码" width="var(--dialog-width-lg)" destroy-on-close>
+    <el-dialog
+      v-model="resetPwdVisible"
+      title="重置密码"
+      width="var(--dialog-width-lg)"
+      destroy-on-close
+    >
       <el-alert
         :title="`将重置用户“${resetPwdUser?.username}”的密码，重置后该用户下次登录必须修改密码`"
         type="warning"
@@ -396,15 +401,15 @@ async function loadUsers() {
       // 向后兼容：如果服务端返回的是平面数组
       users.value = data;
       total.value = data.length;
-      } else {
-        users.value = data.items || [];
-        total.value = data.total || 0;
-      }
-    } catch (err) {
-      // P0 修复：写入错误状态（替代原有的仅 toast），列表区渲染 ListErrorState
-      error.value = err?.response?.data?.message || '用户列表加载失败，请稍后重试';
-      if (import.meta.env.DEV) console.error('加载用户列表失败:', err);
-    } finally {
+    } else {
+      users.value = data.items || [];
+      total.value = data.total || 0;
+    }
+  } catch (err) {
+    // P0 修复：写入错误状态（替代原有的仅 toast），列表区渲染 ListErrorState
+    error.value = err?.response?.data?.message || '用户列表加载失败，请稍后重试';
+    if (import.meta.env.DEV) console.error('加载用户列表失败:', err);
+  } finally {
     loading.value = false;
   }
 }

@@ -375,7 +375,12 @@
     />
 
     <!-- 重置排课确认弹窗 -->
-    <el-dialog v-model="resetConfirmVisible" title="确认重置" width="var(--dialog-width-lg)" align-center>
+    <el-dialog
+      v-model="resetConfirmVisible"
+      title="确认重置"
+      width="var(--dialog-width-lg)"
+      align-center
+    >
       <BaseConfirmBody icon-color="var(--brand-danger)">
         <p v-if="resetScope === 'current'" class="reset-text">
           确定要重置「{{ courseInfo?.name || '当前课程' }}」的所有自动排课安排吗？此操作不可撤销。
@@ -472,7 +477,6 @@ const filterMajor = ref('');
 const filterGrade = ref('');
 const filterTrainingLevel = ref('');
 const filterTextbook = ref('');
-
 
 // 使用通用联动Hook
 const filters = computed(() => ({
@@ -634,7 +638,9 @@ const progressVisible = computed({
 });
 
 const progressType = computed(() => autoProgressType.value || batchProgressType.value);
-const progressModeLabel = computed(() => autoProgressModeLabel.value || batchProgressModeLabel.value);
+const progressModeLabel = computed(
+  () => autoProgressModeLabel.value || batchProgressModeLabel.value
+);
 const progressFinished = computed(() => autoProgressFinished.value || batchProgressFinished.value);
 const progressCurrentPhase = computed(() => autoProgressCurrentPhase.value);
 const progressProcessed = computed(() => batchProgressProcessed.value);
@@ -873,7 +879,7 @@ async function handleBatchUnlockAll() {
 function handleProgressClose() {
   autoProgressVisible.value = false;
   batchProgressVisible.value = false;
-  
+
   if (autoProgressType.value === 'single' && autoProgressFinished.value) {
     arrangeResultVisible.value = true;
   } else if (batchProgressType.value === 'batch' && batchProgressFinished.value) {

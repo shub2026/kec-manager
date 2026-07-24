@@ -1,9 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
-import {
-  getCurrentSemesterInfo,
-  getSemesterInfoFromRequest,
-} from '../services/settings.service.js';
+import { getSemesterInfoFromRequest } from '../services/settings.service.js';
 import { getActiveClassFilter } from '../services/class.service.js';
 import { calcClassSemester, buildConsecutiveTextbookMap } from '../services/semester.service.js';
 import {

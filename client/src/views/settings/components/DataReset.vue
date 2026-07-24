@@ -18,11 +18,7 @@
           <h4>系统重置</h4>
           <el-tag size="small" type="warning" effect="plain">恢复初始状态</el-tag>
           <span class="header-spacer"></span>
-          <el-button
-            type="danger"
-            :loading="resetting"
-            @click="$emit('reset', 'settings')"
-          >
+          <el-button type="danger" :loading="resetting" @click="$emit('reset', 'settings')">
             <el-icon><Delete /></el-icon>
             系统重置
           </el-button>

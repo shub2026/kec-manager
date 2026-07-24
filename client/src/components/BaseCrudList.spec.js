@@ -45,7 +45,8 @@ const STUBS = {
   ListErrorState: {
     props: ['message'],
     emits: ['retry'],
-    template: '<div class="stub-error">{{ message }}<button @click="$emit(\'retry\')">重试</button></div>',
+    template:
+      '<div class="stub-error">{{ message }}<button @click="$emit(\'retry\')">重试</button></div>',
   },
 };
 

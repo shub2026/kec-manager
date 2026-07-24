@@ -34,8 +34,13 @@ vi.mock('xss', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块
 // ──────────────────────────────────────────────
-const { verifyExcelMagicNumber, sanitizeInput, sanitizeFormulaInjection, normalizePlaceholder, cleanupFile } =
-  await import('../import-shared.js');
+const {
+  verifyExcelMagicNumber,
+  sanitizeInput,
+  sanitizeFormulaInjection,
+  normalizePlaceholder,
+  cleanupFile,
+} = await import('../import-shared.js');
 const fs = await import('fs');
 
 // ──────────────────────────────────────────────
@@ -195,7 +200,7 @@ describe('normalizePlaceholder', () => {
     expect(normalizePlaceholder('－')).toBeNull();
   });
 
-  it("sanitizeInput 转义后的 \"'-\" 应返回 null（往返污染主场景）", () => {
+  it('sanitizeInput 转义后的 "\'-" 应返回 null（往返污染主场景）', () => {
     // 导出空字段以 '-' 呈现，再导入时先经 sanitizeInput 转义成 "'-"
     const sanitized = sanitizeInput('-');
     expect(sanitized).toBe("'-");

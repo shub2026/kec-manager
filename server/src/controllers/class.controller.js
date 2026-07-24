@@ -10,7 +10,6 @@ import {
   applyCombination,
   buildCombinationMemberMap,
   formatPartnerNames,
-  getPartnersOfClass,
   dissolveAfterClassDeletion,
 } from '../services/class-combination.service.js';
 import { invalidateQueryFilterCache } from './query.controller.js';

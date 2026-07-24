@@ -22,8 +22,6 @@ import { useSortable } from './useSortable';
  */
 export function useCrudList(api, options = {}) {
   const {
-    nameField = 'name',
-    nameLabel = '名称',
     defaultForm = { id: null, name: '', code: '', description: '' },
     getDeleteWarning = null,
     formRef = null,

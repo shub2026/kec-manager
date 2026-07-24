@@ -103,8 +103,8 @@
         <el-dropdown
           trigger="click"
           aria-haspopup="true"
-          @command="handleCommand"
           :teleported="true"
+          @command="handleCommand"
         >
           <div class="sidebar-user" :class="{ 'is-collapse': isCollapse }" aria-label="用户菜单">
             <span class="user-avatar">{{ avatarChar }}</span>
@@ -169,14 +169,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useSettingsStore } from '../stores/settings';
 import { useAuthStore } from '../stores/auth';
 import { ElMessage } from 'element-plus';
 const ChangePasswordDialog = defineAsyncComponent(() => import('./ChangePasswordDialog.vue'));
 
 const route = useRoute();
-const router = useRouter();
 const settingsStore = useSettingsStore();
 const authStore = useAuthStore();
 const userCollapsed = ref(false); // 用户手动折叠标记

@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import bcrypt from 'bcryptjs';
-import { success, fail } from '../utils/response.js';
+import { success } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { NotFoundError, ValidationError, AuthorizationError } from '../utils/error.js';
 import { authConfig } from '../config/auth.config.js';

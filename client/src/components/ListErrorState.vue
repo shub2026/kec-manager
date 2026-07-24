@@ -1,7 +1,13 @@
 <template>
   <div class="list-error-state" role="alert" aria-live="assertive">
     <div class="error-illustration" aria-hidden="true">
-      <svg viewBox="0 0 120 120" width="120" height="120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        viewBox="0 0 120 120"
+        width="120"
+        height="120"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <!-- 背景圆 -->
         <circle cx="60" cy="60" r="56" fill="var(--illust-bg)" />
         <!-- 装饰圆点 -->
@@ -35,7 +41,13 @@
 
     <div class="error-actions">
       <slot name="action" />
-      <el-button v-if="showRetry" type="primary" :icon="Refresh" :loading="loading" @click="$emit('retry')">
+      <el-button
+        v-if="showRetry"
+        type="primary"
+        :icon="Refresh"
+        :loading="loading"
+        @click="$emit('retry')"
+      >
         {{ retryText }}
       </el-button>
     </div>

@@ -25,7 +25,9 @@ export default [
         URLSearchParams: 'readonly',
         FormData: 'readonly',
         atob: 'readonly',
+        btoa: 'readonly',
         __APP_VERSION__: 'readonly',
+        __dirname: 'readonly',
         ElMessage: 'readonly',
         getComputedStyle: 'readonly',
         AbortController: 'readonly',
@@ -37,16 +39,27 @@ export default [
         location: 'readonly',
         history: 'readonly',
         TextDecoder: 'readonly',
-        TextEncoder: 'readonly'
-      }
+        TextEncoder: 'readonly',
+        crypto: 'readonly',
+        Uint32Array: 'readonly',
+      },
     },
     rules: {
       'vue/multi-word-component-names': 'off',
       'vue/no-v-html': 'off',
-      'no-unused-vars': 'warn'
-    }
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^(next|_)',
+          varsIgnorePattern: '^_',
+          caughtErrors: 'none',
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
   },
   {
-    ignores: ['node_modules/', 'dist/']
-  }
+    ignores: ['node_modules/', 'dist/', 'dist-verify/', '.prodcheck/'],
+  },
 ];

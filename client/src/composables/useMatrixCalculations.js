@@ -35,9 +35,7 @@ export function useMatrixCalculations(rawCourses, semesterWeeksRef = null) {
         } else {
           const hours = c.weeklyHours || 0;
           const weeks =
-            c.weeksPerSemester ||
-            (semesterWeeksRef ? semesterWeeksRef.value[s - 1] : null) ||
-            18;
+            c.weeksPerSemester || (semesterWeeksRef ? semesterWeeksRef.value[s - 1] : null) || 18;
           totalHours += hours * weeks;
         }
       }

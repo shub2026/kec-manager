@@ -5,7 +5,6 @@ import {
   TEXTBOOK_COHESION,
   TABU_SEARCH,
   SWAP_CONFIG,
-  BATCH_CONFIG,
 } from '../../constants/index.js';
 import logger from '../../utils/logger.js';
 import { validateHourSettings } from './validate.js';
@@ -1288,26 +1287,6 @@ export async function autoArrange(
       return remaining;
     }
 
-    const hasCollegePref = (t) => t.schedulingCollegeIds && t.schedulingCollegeIds.length > 0;
-    const hasLevelPref = (t) => t.schedulingLevelIds && t.schedulingLevelIds.length > 0;
-    const hasAnyPref = (t) => hasCollegePref(t) || hasLevelPref(t);
-
-    const hasAssignedTextbook = (t, cls) =>
-      cls.textbookIds?.length > 0 &&
-      t.assignedTextbookIds &&
-      cls.textbookIds.some((tid) => t.assignedTextbookIds.has(tid));
-
-    const prefMatch = (t, cls) => {
-      if (hasCollegePref(t) && !t.schedulingCollegeIds.includes(cls.collegeId)) return false;
-      if (
-        hasLevelPref(t) &&
-        cls.trainingLevelId &&
-        !t.schedulingLevelIds.includes(cls.trainingLevelId)
-      )
-        return false;
-      return true;
-    };
-
     // ================================================================
     // 全新分配算法：教师拿教材方式（彻底重写 v2）
     // ================================================================
@@ -1443,7 +1422,7 @@ export async function autoArrange(
     }
 
     // 每组内按学院排序（保证同教材内优先拿完一个学院）
-    for (const [key, group] of textbookGroups) {
+    for (const [, group] of textbookGroups) {
       group.sort((a, b) => {
         if (a.collegeId !== b.collegeId) return a.collegeId - b.collegeId;
         return a.classId - b.classId;

@@ -28,7 +28,13 @@ async function getActiveUserStatus(userId) {
   }
   const user = await prisma.users.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, is_active: true, must_change_password: true, token_version: true },
+    select: {
+      id: true,
+      role: true,
+      is_active: true,
+      must_change_password: true,
+      token_version: true,
+    },
   });
   // M-3: null 用户显式存储 is_active: false，避免 {...null} 产生空对象
   const result = user
@@ -126,7 +132,11 @@ export async function authMiddleware(req, res, next) {
           });
         }
         // SEC-H1: 下载令牌同样校验 token_version
-        if (decoded.v !== undefined && status.token_version !== null && decoded.v !== status.token_version) {
+        if (
+          decoded.v !== undefined &&
+          status.token_version !== null &&
+          decoded.v !== status.token_version
+        ) {
           return res.status(401).json({
             success: false,
             message: '凭证已失效，请重新登录',

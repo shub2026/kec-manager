@@ -20,10 +20,7 @@ const TOKEN_LEN = RANDOM_HEX_LEN + HMAC_HEX_LEN;
  */
 export function generateSignedCsrfToken() {
   const random = crypto.randomBytes(32).toString('hex');
-  const hmac = crypto
-    .createHmac('sha256', authConfig.jwtSecret)
-    .update(random)
-    .digest('hex');
+  const hmac = crypto.createHmac('sha256', authConfig.jwtSecret).update(random).digest('hex');
   return random + hmac;
 }
 

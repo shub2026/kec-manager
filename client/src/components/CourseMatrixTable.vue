@@ -209,7 +209,6 @@ const {
   maxSemester,
   isInRange,
   getHours,
-  calcTotalHours,
   calcGroupTotal,
   isFirstInGroup,
   isLastInGroup,

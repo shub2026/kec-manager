@@ -314,7 +314,14 @@ describe('AuthService.refreshToken', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('合法 refreshToken 应返回新 token 对', async () => {
-    const user = { id: 1, username: 'admin', role: 'super_admin', is_active: true, token_version: 0, must_change_password: false };
+    const user = {
+      id: 1,
+      username: 'admin',
+      role: 'super_admin',
+      is_active: true,
+      token_version: 0,
+      must_change_password: false,
+    };
     const refreshToken = AuthService.generateRefreshToken(user);
     mockPrismaUsers.findUnique.mockResolvedValue(user);
 

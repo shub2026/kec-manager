@@ -1,12 +1,12 @@
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import AutoImport from 'unplugin-auto-import/vite'
-import Components from 'unplugin-vue-components/vite'
-import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
-import { fileURLToPath, URL } from 'url'
-import pkg from '../package.json'
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import AutoImport from 'unplugin-auto-import/vite';
+import Components from 'unplugin-vue-components/vite';
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
+import { fileURLToPath, URL } from 'url';
+import pkg from '../package.json';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   plugins: [
@@ -20,8 +20,8 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': `${__dirname}/src`
-    }
+      '@': `${__dirname}/src`,
+    },
   },
   build: {
     // cssCodeSplit 保持默认 true，CSS 随 JS chunk 自动拆分，无需手动配置
@@ -72,7 +72,7 @@ export default defineConfig({
     include: ['vue', 'vue-router', 'pinia', 'element-plus', 'axios'],
   },
   define: {
-    __APP_VERSION__: JSON.stringify(pkg.version)
+    __APP_VERSION__: JSON.stringify(pkg.version),
   },
   server: {
     port: 5173,
@@ -83,4 +83,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

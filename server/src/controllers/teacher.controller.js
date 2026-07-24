@@ -226,7 +226,7 @@ export async function updateTeacher(req, res, next) {
       // 关联表重建与主表更新置于同一事务，避免中途失败导致关联丢失
       const updated = await prisma.$transaction(async (tx) => {
         // 更新主表
-        const teacher = await tx.teachers.update({
+        await tx.teachers.update({
           where: { id: Number(id) },
           data,
         });

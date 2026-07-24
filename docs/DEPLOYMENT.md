@@ -9,25 +9,25 @@
 
 ## 一、环境要求
 
-| 组件 | 版本 / 要求 | 说明 |
-| --- | --- | --- |
-| 操作系统 | CentOS 7+ / Ubuntu 18+ / Debian 10+ | |
-| Node.js | >= 20.0.0 | `package.json` 中 `engines.node` 强制约束 |
-| npm | >= 10.0.0 | 随 Node.js 20+ 自带 |
-| Git | 任意版本 | 用于拉取代码 |
-| sqlite3 | 可选 | 用于数据库完整性校验（缺失时跳过校验，不阻塞部署） |
-| PM2 | 最新版 | 进程管理，deploy.sh 会自动安装 |
-| Nginx | 1.18+ | 反向代理 + 静态资源服务 |
-| 内存 | >= 2GB | 推荐 |
-| 磁盘 | >= 10GB | |
-| SQLite | 3.x | 系统自带 |
+| 组件     | 版本 / 要求                         | 说明                                               |
+| -------- | ----------------------------------- | -------------------------------------------------- |
+| 操作系统 | CentOS 7+ / Ubuntu 18+ / Debian 10+ |                                                    |
+| Node.js  | >= 20.0.0                           | `package.json` 中 `engines.node` 强制约束          |
+| npm      | >= 10.0.0                           | 随 Node.js 20+ 自带                                |
+| Git      | 任意版本                            | 用于拉取代码                                       |
+| sqlite3  | 可选                                | 用于数据库完整性校验（缺失时跳过校验，不阻塞部署） |
+| PM2      | 最新版                              | 进程管理，deploy.sh 会自动安装                     |
+| Nginx    | 1.18+                               | 反向代理 + 静态资源服务                            |
+| 内存     | >= 2GB                              | 推荐                                               |
+| 磁盘     | >= 10GB                             |                                                    |
+| SQLite   | 3.x                                 | 系统自带                                           |
 
 ### 端口要求
 
-| 端口 | 用途 |
-|------|------|
-| 80 | Nginx HTTP |
-| 443 | Nginx HTTPS |
+| 端口 | 用途                                 |
+| ---- | ------------------------------------ |
+| 80   | Nginx HTTP                           |
+| 443  | Nginx HTTPS                          |
 | 3000 | 后端 API（生产环境，内部不对外暴露） |
 
 > **端口说明**：生产环境后端固定监听 **3000**（由 `deploy.sh` 写入 `.env` 的 `PORT=3000`，Nginx 反向代理转发至 3000）。开发环境后端端口由 `server/.env` 的 `PORT` 决定（默认 3000），但 `vite.config.js` 的代理目标当前为 `http://localhost:3002`，本地开发时请将 `.env` 的 `PORT` 设为 `3002` 或同步修改代理目标，使前后端端口一致。
@@ -38,18 +38,20 @@
 
 ## 二、默认管理员账号
 
-| 项目 | 值 |
-|------|-----|
-| 用户名 | `admin` |
-| 密码 | `admin@123456` |
-| 角色 | 超级管理员 (super_admin) |
+| 项目   | 值                       |
+| ------ | ------------------------ |
+| 用户名 | `admin`                  |
+| 密码   | `admin@123456`           |
+| 角色   | 超级管理员 (super_admin) |
 
 **访问地址**：
+
 - **开发环境前端**：http://localhost:5173（Vite 开发服务器）
 - **开发环境后端 API**：http://localhost:3002（`vite.config.js` 代理目标为 3002，本地开发时 `server/.env` 的 `PORT` 应设为 `3002`）
 - **生产环境**：取决于 Nginx 配置的域名
 
 > 首次登录后请立即修改默认密码。忘记密码时，可执行以下命令重置数据库：
+>
 > ```bash
 > cd server
 > # Linux
@@ -78,18 +80,18 @@ bash deploy.sh root@your-server.com
 
 脚本会依次执行以下步骤，任一步骤失败即中止：
 
-| 步骤 | 操作 | 说明 |
-| --- | --- | --- |
-| [1/10] | 检查前置条件 | Git、Node.js >=20、sqlite3（可选） |
-| [2/10] | 创建部署目录 | `PROJECT_DIR`、`server/data`、`client`、日志目录 |
-| [3/10] | 克隆 / 更新代码 | 已存在则 `git reset --hard origin/main`，否则 `git clone` |
-| [4/10] | 安装依赖 | server 与 client 均使用 `npm install`（含 devDependencies，prisma CLI / vite 需要） |
-| [5/10] | 停止现有服务 | PM2 delete + `pkill` 残留 node 进程 + `sleep 2` 等待端口释放 |
-| [6/10] | 配置环境变量 | `.env` 已存在则跳过；否则生成随机 JWT 密钥并写入 |
-| [7/10] | 初始化数据库 | 清理 WAL 残留 → `prisma migrate deploy` → `prisma generate` → `db:seed` → 完整性验证 |
-| [8/10] | 初始化系统设置 | `npm run init:settings` |
-| [9/10] | 构建前端 | 校验 esbuild → `vite build` → `npm prune --production` 清理 devDependencies |
-| [10/10] | 启动服务 | `pm2 start src/server.js --name kec-server` + 健康检查 |
+| 步骤    | 操作            | 说明                                                                                 |
+| ------- | --------------- | ------------------------------------------------------------------------------------ |
+| [1/10]  | 检查前置条件    | Git、Node.js >=20、sqlite3（可选）                                                   |
+| [2/10]  | 创建部署目录    | `PROJECT_DIR`、`server/data`、`client`、日志目录                                     |
+| [3/10]  | 克隆 / 更新代码 | 已存在则 `git reset --hard origin/main`，否则 `git clone`                            |
+| [4/10]  | 安装依赖        | server 与 client 均使用 `npm install`（含 devDependencies，prisma CLI / vite 需要）  |
+| [5/10]  | 停止现有服务    | PM2 delete + `pkill` 残留 node 进程 + `sleep 2` 等待端口释放                         |
+| [6/10]  | 配置环境变量    | `.env` 已存在则跳过；否则生成随机 JWT 密钥并写入                                     |
+| [7/10]  | 初始化数据库    | 清理 WAL 残留 → `prisma migrate deploy` → `prisma generate` → `db:seed` → 完整性验证 |
+| [8/10]  | 初始化系统设置  | `npm run init:settings`                                                              |
+| [9/10]  | 构建前端        | 校验 esbuild → `vite build` → `npm prune --production` 清理 devDependencies          |
+| [10/10] | 启动服务        | `pm2 start src/server.js --name kec-server` + 健康检查                               |
 
 ### 部署后验证
 
@@ -325,26 +327,26 @@ nginx -t && nginx -s reload
 
 ### 必填项
 
-| 变量 | 说明 | 示例 |
-| --- | --- | --- |
-| `JWT_SECRET` | JWT 签名密钥 | `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
-| `JWT_REFRESH_SECRET` | Refresh Token 签名密钥 | 同上，独立生成 |
-| `JWT_DOWNLOAD_SECRET` | 下载令牌签名密钥 | 同上，独立生成 |
-| `DEFAULT_SEMESTER` | 当前默认学期 | `2025-2026-2` |
-| `CORS_ORIGINS` | 允许的前端域名（逗号分隔） | `https://your-domain.com,https://www.your-domain.com` |
+| 变量                  | 说明                       | 示例                                                                       |
+| --------------------- | -------------------------- | -------------------------------------------------------------------------- |
+| `JWT_SECRET`          | JWT 签名密钥               | `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
+| `JWT_REFRESH_SECRET`  | Refresh Token 签名密钥     | 同上，独立生成                                                             |
+| `JWT_DOWNLOAD_SECRET` | 下载令牌签名密钥           | 同上，独立生成                                                             |
+| `DEFAULT_SEMESTER`    | 当前默认学期               | `2025-2026-2`                                                              |
+| `CORS_ORIGINS`        | 允许的前端域名（逗号分隔） | `https://your-domain.com,https://www.your-domain.com`                      |
 
 ### 可选项
 
-| 变量 | 默认值 | 说明 |
-| --- | --- | --- |
-| `NODE_ENV` | `production` | 运行环境 |
-| `DATABASE_URL` | `file:.../server/data/kec.db` | SQLite 数据库路径 |
-| `PORT` | `3000` | 后端监听端口（内部） |
-| `JWT_EXPIRES_IN` | `15m` | Access Token 有效期（不建议超过 1h） |
-| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh Token 有效期 |
-| `LOG_LEVEL` | `info` | 日志级别（error/warn/info/http/debug） |
-| `MAX_FILE_SIZE` | `10` | 文件上传大小限制（MB） |
-| `BCRYPT_ROUNDS` | `12` | bcrypt 加密轮数（10-14 之间，值越大越安全但越慢） |
+| 变量                     | 默认值                        | 说明                                              |
+| ------------------------ | ----------------------------- | ------------------------------------------------- |
+| `NODE_ENV`               | `production`                  | 运行环境                                          |
+| `DATABASE_URL`           | `file:.../server/data/kec.db` | SQLite 数据库路径                                 |
+| `PORT`                   | `3000`                        | 后端监听端口（内部）                              |
+| `JWT_EXPIRES_IN`         | `15m`                         | Access Token 有效期（不建议超过 1h）              |
+| `JWT_REFRESH_EXPIRES_IN` | `7d`                          | Refresh Token 有效期                              |
+| `LOG_LEVEL`              | `info`                        | 日志级别（error/warn/info/http/debug）            |
+| `MAX_FILE_SIZE`          | `10`                          | 文件上传大小限制（MB）                            |
+| `BCRYPT_ROUNDS`          | `12`                          | bcrypt 加密轮数（10-14 之间，值越大越安全但越慢） |
 
 ### SQLite WAL 配置（自动生效）
 
@@ -362,11 +364,11 @@ PRAGMA synchronous = NORMAL;        -- 平衡性能与数据安全
 
 ### 更新方式对比
 
-| 方式 | 适用场景 | 复杂度 | 风险 | 推荐度 |
-|------|---------|--------|------|--------|
-| **SSH 远程部署** | 日常更新、不便登录服务器 | 简单 | 低 | 推荐 |
-| **服务器本地部署**（deploy.sh） | 首次部署、生产环境 | 简单 | 低 | 最推荐 |
-| **手动更新** | 故障排查、精细控制 | 复杂 | 中 | 备用 |
+| 方式                            | 适用场景                 | 复杂度 | 风险 | 推荐度 |
+| ------------------------------- | ------------------------ | ------ | ---- | ------ |
+| **SSH 远程部署**                | 日常更新、不便登录服务器 | 简单   | 低   | 推荐   |
+| **服务器本地部署**（deploy.sh） | 首次部署、生产环境       | 简单   | 低   | 最推荐 |
+| **手动更新**                    | 故障排查、精细控制       | 复杂   | 中   | 备用   |
 
 > **deploy_ssh.sh 与 deploy.sh 的迁移时序差异**：
 > `deploy_ssh.sh` 为旧版远程脚本，其执行顺序为 **"先迁移后停服务"**：在旧 PM2 进程仍持有 SQLite 连接时执行 `prisma migrate deploy`，高并发下可能触发 `SQLITE_BUSY: database is locked` 错误。
@@ -420,6 +422,7 @@ bash deploy_ssh.sh --help
 ```
 
 执行流程：
+
 ```
 [0/10] 检查 SSH 连接
 [1/10] 备份数据库
@@ -500,12 +503,12 @@ pm2 save
 
 ### 更新时机选择
 
-| 更新类型 | 推荐时间 | 理由 |
-|---------|---------|------|
-| 紧急 bug 修复 | 立即 | 影响用户体验 |
-| 小功能更新 | 工作日晚上 | 用户较少 |
-| 大版本升级 | 周末凌晨 | 最低峰期 |
-| 数据库变更 | 周日凌晨 | 有充足时间回滚 |
+| 更新类型      | 推荐时间   | 理由           |
+| ------------- | ---------- | -------------- |
+| 紧急 bug 修复 | 立即       | 影响用户体验   |
+| 小功能更新    | 工作日晚上 | 用户较少       |
+| 大版本升级    | 周末凌晨   | 最低峰期       |
+| 数据库变更    | 周日凌晨   | 有充足时间回滚 |
 
 ---
 
@@ -571,11 +574,11 @@ crontab -e
 
 ### 备份策略建议
 
-| 频率 | 类型 | 保留时间 |
-|------|------|---------|
+| 频率       | 类型     | 保留时间         |
+| ---------- | -------- | ---------------- |
 | 每次更新前 | 自动备份 | 永久（手动清理） |
-| 每天凌晨 | 定时备份 | 30 天 |
-| 每周日 | 完整备份 | 90 天 |
+| 每天凌晨   | 定时备份 | 30 天            |
+| 每周日     | 完整备份 | 90 天            |
 
 ### 恢复数据库
 
@@ -883,6 +886,6 @@ du -sh server/data/kec.db
 
 ## 十四、更新日志
 
-| 日期 | 版本 | 变更 |
-| --- | --- | --- |
+| 日期       | 版本    | 变更                                                                                                                   |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
 | 2026-07-02 | v2.17.1 | 合并 DEPLOYMENT_GUIDE / PRODUCTION_DEPLOYMENT / CONFIG_UPDATE_GUIDE / UPDATE_OPERATIONS_GUIDE / LOGIN_GUIDE 为统一文档 |

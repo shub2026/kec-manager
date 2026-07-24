@@ -213,7 +213,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onActivated } from 'vue';
-import { ArrowUp, ArrowDown, Document, Edit, Delete } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan';
 import { getMajors } from '../../api/major';

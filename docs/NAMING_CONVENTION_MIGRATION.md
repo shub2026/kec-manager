@@ -8,14 +8,14 @@
 
 ## 当前机制与固有缺陷
 
-| 缺陷 | 表现 |
-|---|---|
-| **1. 转换边界模糊** | `SKIP_KEYS`、嵌套分页 `data.data.list`、Prisma Decimal 实例等都有特殊处理，容易遗漏 |
-| **2. 字段语义混淆** | `current_semester` 在 `system_settings` 表里是 **key 名**（业务字符串），不是字段名，却被中间件转成 `currentSemester`。Dashboard 读 `settings.currentSemester`，SystemSettings 写 `form.current_semester`，两边命名不一致 |
-| **3. 双向转换掩盖错误** | 前端发 `current_semester` 会被中间件当作驼峰转成 `current_semester`（巧合正确），但发 `user_name` 会被转成 `user__name`（双下划线），错误被吞掉 |
-| **4. 类型信息丢失** | 转换是运行时遍历对象，无法在编码期发现字段名错误，IDE 也无法提示 |
-| **5. 例外越来越多** | 已有 `SKIP_KEYS`、Decimal 跳过、嵌套分页特判，每加一个特例就多一个 bug 源 |
-| **6. query params 不转换** | `convertRequestNaming` 只处理 `req.body`，**不处理 `req.query`**。GET 请求的 query params 必须用后端期望的命名，且后端 query 读取命名本身不统一 |
+| 缺陷                       | 表现                                                                                                                                                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. 转换边界模糊**        | `SKIP_KEYS`、嵌套分页 `data.data.list`、Prisma Decimal 实例等都有特殊处理，容易遗漏                                                                                                                                       |
+| **2. 字段语义混淆**        | `current_semester` 在 `system_settings` 表里是 **key 名**（业务字符串），不是字段名，却被中间件转成 `currentSemester`。Dashboard 读 `settings.currentSemester`，SystemSettings 写 `form.current_semester`，两边命名不一致 |
+| **3. 双向转换掩盖错误**    | 前端发 `current_semester` 会被中间件当作驼峰转成 `current_semester`（巧合正确），但发 `user_name` 会被转成 `user__name`（双下划线），错误被吞掉                                                                           |
+| **4. 类型信息丢失**        | 转换是运行时遍历对象，无法在编码期发现字段名错误，IDE 也无法提示                                                                                                                                                          |
+| **5. 例外越来越多**        | 已有 `SKIP_KEYS`、Decimal 跳过、嵌套分页特判，每加一个特例就多一个 bug 源                                                                                                                                                 |
+| **6. query params 不转换** | `convertRequestNaming` 只处理 `req.body`，**不处理 `req.query`**。GET 请求的 query params 必须用后端期望的命名，且后端 query 读取命名本身不统一                                                                           |
 
 ## 三个可选方案
 
@@ -49,7 +49,7 @@ await prisma.classes.create({ data: { enrollmentYear, studentCount } });
 ```javascript
 // api/user.js
 export const createUser = (data) =>
-  request.post('/users', {
+  request.post("/users", {
     user_name: data.userName,
     real_name: data.realName,
     email: data.email,
@@ -57,7 +57,7 @@ export const createUser = (data) =>
   });
 
 export const getUsers = async () => {
-  const res = await request.get('/users');
+  const res = await request.get("/users");
   return res.data.map((u) => ({
     id: u.id,
     userName: u.user_name,
@@ -93,19 +93,19 @@ export const getUsers = async () => {
 
 #### 1.2 前端：请求 body 统一 camelCase（11 个文件）
 
-| 文件 | 修改 |
-|---|---|
-| `views/settings/SystemSettings.vue` | `current_semester`→`currentSemester`，`organization_name`→`organizationName` |
-| `views/settings/components/SemesterConfig.vue` | v-model 绑定同步改为 camelCase |
-| `views/plan/PlanList.vue` | `college_id/major_id/training_level_id`→camelCase |
-| `views/plan/PlanDetail.vue` | `course_id/start_semester/end_semester/weekly_hours/weeks_per_semester`→camelCase |
-| `views/class/ClassList.vue` | 创建/批量更新接口字段→camelCase |
-| `views/class/components/ClassTable.vue` | 移除 `row.duration_years` 兼容回退 |
-| `views/system/UserManagement.vue` | `real_name`→`realName`，`is_active`→`isActive` |
-| `views/textbook/TextbookList.vue` | `publish_date/is_active/sort_order`→camelCase，移除 `is_active` 兼容回退 |
-| `components/CourseMatrix.vue` | `weekly_hours/textbook_id/is_required`→camelCase |
-| `views/teaching/components/HourSettingsCard.vue` | `full_time/part_time` key 改 camelCase，save body 字段同步 |
-| `api/plan.js` | `sort_order`→`sortOrder` |
+| 文件                                             | 修改                                                                              |
+| ------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `views/settings/SystemSettings.vue`              | `current_semester`→`currentSemester`，`organization_name`→`organizationName`      |
+| `views/settings/components/SemesterConfig.vue`   | v-model 绑定同步改为 camelCase                                                    |
+| `views/plan/PlanList.vue`                        | `college_id/major_id/training_level_id`→camelCase                                 |
+| `views/plan/PlanDetail.vue`                      | `course_id/start_semester/end_semester/weekly_hours/weeks_per_semester`→camelCase |
+| `views/class/ClassList.vue`                      | 创建/批量更新接口字段→camelCase                                                   |
+| `views/class/components/ClassTable.vue`          | 移除 `row.duration_years` 兼容回退                                                |
+| `views/system/UserManagement.vue`                | `real_name`→`realName`，`is_active`→`isActive`                                    |
+| `views/textbook/TextbookList.vue`                | `publish_date/is_active/sort_order`→camelCase，移除 `is_active` 兼容回退          |
+| `components/CourseMatrix.vue`                    | `weekly_hours/textbook_id/is_required`→camelCase                                  |
+| `views/teaching/components/HourSettingsCard.vue` | `full_time/part_time` key 改 camelCase，save body 字段同步                        |
+| `api/plan.js`                                    | `sort_order`→`sortOrder`                                                          |
 
 #### 1.3 命名约定（止血阶段确立）
 
@@ -137,24 +137,24 @@ export const getUsers = async () => {
 
 中间件现在会把前端 camelCase query 转成 snake_case，后端需统一读 snake_case。
 
-| 文件 | 修改 |
-|---|---|
-| `services/class-filter.service.js` | `majorId/collegeId/trainingLevelId/planId/enrollmentYear` → snake_case |
-| `controllers/plan/plan.controller.js` | `collegeId` → `college_id` |
-| `controllers/export/semester-export.controller.js` | `collegeId/majorId/trainingLevelId/enrollmentYear` → snake_case |
-| `controllers/audit.controller.js` | `pageSize` → `page_size` |
-| `controllers/class.controller.js` | `pageSize` → `page_size` |
-| `middleware/auth.middleware.js` | `downloadToken` → `download_token` |
+| 文件                                               | 修改                                                                   |
+| -------------------------------------------------- | ---------------------------------------------------------------------- |
+| `services/class-filter.service.js`                 | `majorId/collegeId/trainingLevelId/planId/enrollmentYear` → snake_case |
+| `controllers/plan/plan.controller.js`              | `collegeId` → `college_id`                                             |
+| `controllers/export/semester-export.controller.js` | `collegeId/majorId/trainingLevelId/enrollmentYear` → snake_case        |
+| `controllers/audit.controller.js`                  | `pageSize` → `page_size`                                               |
+| `controllers/class.controller.js`                  | `pageSize` → `page_size`                                               |
+| `middleware/auth.middleware.js`                    | `downloadToken` → `download_token`                                     |
 
 #### 2.3 前端：query params 统一改为 camelCase
 
 中间件已处理 query 转换，前端可彻底统一用 camelCase。
 
-| 文件 | 修改 |
-|---|---|
-| `views/teaching/TeachingArrange.vue` | `course_id/training_level` → camelCase（loadData + export params） |
-| `views/teaching/components/HourSettingsCard.vue` | `course_id` → `courseId` |
-| `views/teaching/TeachingStatistics.vue` | `affiliated_college` → `affiliatedCollege` |
+| 文件                                             | 修改                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------ |
+| `views/teaching/TeachingArrange.vue`             | `course_id/training_level` → camelCase（loadData + export params） |
+| `views/teaching/components/HourSettingsCard.vue` | `course_id` → `courseId`                                           |
+| `views/teaching/TeachingStatistics.vue`          | `affiliated_college` → `affiliatedCollege`                         |
 
 #### 2.4 命名约定（第二阶段确立）
 
@@ -173,6 +173,7 @@ export const getUsers = async () => {
 > 说明：当前 `server/prisma/schema.prisma` 中已应用表级 `@@map` 映射（如 `@@map("teachers")`、`@@map("teacher_courses")` 等共 5 处），用于将 model 名映射到数据库表名。下文"暂缓"指的是**字段级 `@map` 映射**（用于将 camelCase 字段名映射到 snake_case 数据库列名），该部分尚未应用。
 
 Prisma schema 字段级 `@map` 注解的工作量评估：
+
 - **影响范围**：45 个文件，约 1501 处 snake_case 字段访问
 - **关联复杂度**：16 个 model 互相关联，一次改动会级联影响所有 controller/service
 - **风险等级**：极高（无自动化测试覆盖，无法在改动后验证正确性）
@@ -180,6 +181,7 @@ Prisma schema 字段级 `@map` 注解的工作量评估：
 **决定**：暂缓第三阶段迁移（字段级 `@map`）。当前中间件转换机制已足够（body + query 均已处理），命名不一致问题已在第一/二阶段止血。第三阶段待测试覆盖完善后再启动。
 
 **启动第三阶段的前置条件**：
+
 1. 为后端核心模块（auth/user/class/plan/teaching-arrange）补齐集成测试
 2. 按 model 依赖拓扑排序分批迁移：system_settings → users → colleges → majors → training_levels → courses → textbooks → classes → training_plans → plan_courses → plan_course_semesters → plan_textbooks → teachers → teacher_courses → teacher_scheduling_colleges → teacher_training_levels → teaching_assignments → audit_logs → token_blacklist
 3. 每 batch 改完后运行测试 + 手动验证
@@ -207,7 +209,7 @@ Prisma schema 字段级 `@map` 注解的工作量评估：
  * @returns {Promise<{success: boolean, data: DashboardStats}>}
  */
 export function getDashboardStats(semester) {
-  return request.get('/dashboard/stats', { params: { semester } });
+  return request.get("/dashboard/stats", { params: { semester } });
 }
 ```
 

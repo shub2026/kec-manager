@@ -212,7 +212,7 @@ router.beforeEach(async (to, from, next) => {
         // 并行加载用户信息 + 系统设置，减少首屏串行等待
         // 审计修复：settings 加载失败不阻断路由，降级为本地默认学期
         const settingsStore = useSettingsStore();
-        const [userResult, settingsResult] = await Promise.allSettled([
+        const [, settingsResult] = await Promise.allSettled([
           authStore.fetchUserInfo(),
           settingsStore.load(),
         ]);

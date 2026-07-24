@@ -30,7 +30,7 @@ async function ensureSuperAdmin() {
   const defaultPassword = process.env.ADMIN_INITIAL_PASSWORD || 'admin@123456';
   const adminPassword = await bcrypt.hash(defaultPassword, authConfig.bcryptRounds);
 
-  const admin = await prisma.users.create({
+  await prisma.users.create({
     data: {
       username: 'admin',
       password: adminPassword,

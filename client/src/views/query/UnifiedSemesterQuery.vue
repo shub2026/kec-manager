@@ -122,7 +122,14 @@
         </el-alert>
 
         <ListErrorState v-if="error" :message="error" @retry="load" />
-      <el-table v-else v-loading="loading" :data="data" stripe row-key="classId" @expand-change="handleExpandChange">
+        <el-table
+          v-else
+          v-loading="loading"
+          :data="data"
+          stripe
+          row-key="classId"
+          @expand-change="handleExpandChange"
+        >
           <el-table-column type="expand">
             <template #default="{ row }">
               <div v-loading="row._expanding" class="expand-content">
@@ -372,7 +379,7 @@ const filters = computed(() => ({
   trainingLevelId: filterLevel.value,
 }));
 
-const { getFilteredOptions, handleParentChange } = useFilterLinkage({
+const { handleParentChange } = useFilterLinkage({
   filters,
   relations: {
     collegeMajorRelation,

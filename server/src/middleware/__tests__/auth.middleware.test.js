@@ -265,7 +265,13 @@ describe('authMiddleware', () => {
     const res = makeRes();
     const next = vi.fn();
 
-    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin', jti: 'clean-jti', v: 0 });
+    mockVerifyToken.mockReturnValue({
+      id: 1,
+      username: 'admin',
+      role: 'admin',
+      jti: 'clean-jti',
+      v: 0,
+    });
     mockIsBlacklisted.mockResolvedValue(false);
     mockPrismaUsers.findUnique.mockResolvedValue({
       id: 1,
@@ -285,7 +291,13 @@ describe('authMiddleware', () => {
     const res = makeRes();
     const next = vi.fn();
 
-    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin', jti: 'error-jti', v: 0 });
+    mockVerifyToken.mockReturnValue({
+      id: 1,
+      username: 'admin',
+      role: 'admin',
+      jti: 'error-jti',
+      v: 0,
+    });
     mockIsBlacklisted.mockRejectedValue(new Error('DB connection failed'));
     mockPrismaUsers.findUnique.mockResolvedValue({
       id: 1,

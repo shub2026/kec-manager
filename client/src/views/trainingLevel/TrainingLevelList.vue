@@ -20,7 +20,12 @@
         <template #empty>
           <EmptyState type="generic" description="暂无培养层次数据" />
         </template>
-        <el-table-column type="index" label="序号" width="60" :index="(i) => (currentPage - 1) * pageSize + i + 1" />
+        <el-table-column
+          type="index"
+          label="序号"
+          width="60"
+          :index="(i) => (currentPage - 1) * pageSize + i + 1"
+        />
         <el-table-column prop="name" label="层次名称" min-width="150" />
         <el-table-column prop="code" label="编码" min-width="120" />
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />

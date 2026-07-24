@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
 import { success, fail } from '../../utils/response.js';
-import { NotFoundError, ValidationError, ConflictError } from '../../utils/error.js';
+import { NotFoundError, ValidationError } from '../../utils/error.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { autoFixSortOrder, invalidateSortOrderCache } from '../../utils/sort.js';
 import { findBestMatchPlan, isClassMatchPlan } from '../../services/plan.service.js';

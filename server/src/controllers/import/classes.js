@@ -1,11 +1,16 @@
 import { prisma } from '../../lib/prisma.js';
-import { success, fail } from '../../utils/response.js';
+import { success } from '../../utils/response.js';
 import { readWorkbook } from '../../utils/excel.js';
 import { getCurrentSemesterInfo } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
-import { cleanupFile, sanitizeInput, normalizePlaceholder, verifyExcelMagicNumber } from '../import-shared.js';
+import {
+  cleanupFile,
+  sanitizeInput,
+  normalizePlaceholder,
+  verifyExcelMagicNumber,
+} from '../import-shared.js';
 
 /**
  * POST /api/import/classes - 批量导入班级
@@ -26,7 +31,6 @@ export async function importClasses(req, res, next) {
     throw new ValidationError('Excel文件读取失败，请检查文件格式');
   }
 
-  const errors = [];
   let imported = 0;
   let overwritten = 0;
 

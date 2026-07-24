@@ -457,7 +457,7 @@ function computeObjective(
   teacherStates,
   classMap,
   teacherMap,
-  mode
+  _mode
 ) {
   let score = 0;
   for (const [classId, teacherId] of assignments) {

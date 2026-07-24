@@ -147,7 +147,7 @@
 import { Edit, Delete, Connection } from '@element-plus/icons-vue';
 import EmptyState from '../../../components/EmptyState.vue';
 
-const props = defineProps({
+defineProps({
   classes: {
     type: Array,
     required: true,
@@ -170,7 +170,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits([
+defineEmits([
   'selection-change',
   'edit',
   'delete',

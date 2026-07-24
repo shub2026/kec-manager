@@ -47,6 +47,7 @@ node scripts/version.js 1.2.3
 - **修订号(Patch)**: 向下兼容的问题修正
 
 **示例**: `v1.2.3`
+
 - `1` = 主版本
 - `2` = 次版本
 - `3` = 修订号
@@ -103,7 +104,8 @@ git push && git push --tags
 - `client/package.json` (前端)
 - `server/package.json` (后端)
 
-**注意**: 
+**注意**:
+
 - 前端通过 Vite 配置从根目录 `package.json` 读取版本号
 - 数据库中的 `system.version` 需要手动更新或通过系统设置界面修改
 
@@ -195,6 +197,7 @@ A: 手动修改容易遗漏某些文件,导致版本号不一致。使用自动�
 ### Q: 数据库中的版本号怎么更新?
 
 A: 有两种方式:
+
 1. 通过系统设置界面(推荐)
 2. 运行SQL: `UPDATE system_settings SET value = '1.0.2' WHERE key = 'system.version';`
 
@@ -209,10 +212,12 @@ A: 不建议。应该按照 Patch → Minor → Major 的顺序逐步更新,每�
 ## 📞 技术支持
 
 如遇问题,请检查:
+
 1. Node.js 版本是否正常
 2. 是否有足够的文件权限
 3. Git仓库状态是否正常
 
 ---
+
 **最后更新**: 2026-07-13
 **文档版本**: 1.0.0

@@ -10,32 +10,32 @@ KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排�
 
 ## 功能概览
 
-| 模块 | 能力 |
-|------|------|
-| 培养方案 | 按专业/层次制定方案，可视化课程矩阵编辑各学期课时分布，教材关联到学期 |
-| 班级管理 | 班级 CRUD、合班教学组、基于入学年份和学制动态计算年级与在读状态 |
-| 教师管理 | 教师档案、任课/学院/层次偏好配置、自定义周课时 |
-| 自动排课 | 五阶段匹配 + 置换回溯算法，可选禁忌搜索优化；支持预览模式、批量排课、历史学期保护；自动排课结果可锁定，锁定后重置或重新排课不覆盖 |
-| 教材管理 | 教材 CRUD、与培养方案学期关联、征订状态跟踪 |
-| 数据导入导出 | Excel 批量导入（班级/课程/教材/教师）、模板下载、多维度数据导出 |
-| 统一查询 | 开课查询、教材查询、方案查询，多维度筛选与级联联动 |
-| 课时统计 | 教师/班级/课程多维统计、图表可视化、Excel 导出 |
-| 用户管理 | 用户 CRUD、禁用/激活、密码重置（重置后下次登录强制改密），仅超级管理员可用 |
-| 审计日志 | 增删改全量记录，按模块/操作员/时间筛选 |
-| 权限控制 | 三级角色（super\_admin / admin / viewer），路由守卫 + API 鉴权双重校验 |
+| 模块         | 能力                                                                                                                              |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| 培养方案     | 按专业/层次制定方案，可视化课程矩阵编辑各学期课时分布，教材关联到学期                                                             |
+| 班级管理     | 班级 CRUD、合班教学组、基于入学年份和学制动态计算年级与在读状态                                                                   |
+| 教师管理     | 教师档案、任课/学院/层次偏好配置、自定义周课时                                                                                    |
+| 自动排课     | 五阶段匹配 + 置换回溯算法，可选禁忌搜索优化；支持预览模式、批量排课、历史学期保护；自动排课结果可锁定，锁定后重置或重新排课不覆盖 |
+| 教材管理     | 教材 CRUD、与培养方案学期关联、征订状态跟踪                                                                                       |
+| 数据导入导出 | Excel 批量导入（班级/课程/教材/教师）、模板下载、多维度数据导出                                                                   |
+| 统一查询     | 开课查询、教材查询、方案查询，多维度筛选与级联联动                                                                                |
+| 课时统计     | 教师/班级/课程多维统计、图表可视化、Excel 导出                                                                                    |
+| 用户管理     | 用户 CRUD、禁用/激活、密码重置（重置后下次登录强制改密），仅超级管理员可用                                                        |
+| 审计日志     | 增删改全量记录，按模块/操作员/时间筛选                                                                                            |
+| 权限控制     | 三级角色（super\_admin / admin / viewer），路由守卫 + API 鉴权双重校验                                                            |
 
 ---
 
 ## 技术栈
 
-| 层 | 技术 |
-|---|------|
-| 前端 | Vue 3.5 (Script Setup) + Element Plus 2.14 + Pinia 3 + Vite 6 |
-| 后端 | Express 5.1 + Prisma 6.19 + Winston 3.19 |
-| 数据库 | SQLite（WAL 模式） |
-| 认证 | JWT 双令牌（Access 15 min + Refresh 7 d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt 12 轮 |
-| 测试 | Vitest + Supertest（1371 个用例） |
-| 部署 | PM2 + Nginx |
+| 层     | 技术                                                                                      |
+| ------ | ----------------------------------------------------------------------------------------- |
+| 前端   | Vue 3.5 (Script Setup) + Element Plus 2.14 + Pinia 3 + Vite 6                             |
+| 后端   | Express 5.1 + Prisma 6.19 + Winston 3.19                                                  |
+| 数据库 | SQLite（WAL 模式）                                                                        |
+| 认证   | JWT 双令牌（Access 15 min + Refresh 7 d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt 12 轮 |
+| 测试   | Vitest + Supertest（1371 个用例）                                                         |
+| 部署   | PM2 + Nginx                                                                               |
 
 ---
 
@@ -77,8 +77,8 @@ npm run dev                 # 前端 :5173 + 后端 :3002 同时启动
 
 访问 <http://localhost:5173>，默认账户：
 
-| 用户名 | 密码 | 备注 |
-|--------|------|------|
+| 用户名  | 密码           | 备注             |
+| ------- | -------------- | ---------------- |
 | `admin` | `admin@123456` | 首次登录强制改密 |
 
 ---
@@ -164,29 +164,29 @@ kec-manager/
 
 ## 数据模型
 
-| 模型 | 说明 |
-|------|------|
-| `users` | 用户账户（三级角色） |
-| `colleges` | 学院/系部 |
-| `majors` | 专业 |
-| `training_levels` | 培养层次 |
-| `classes` | 班级（入学年份、学制、状态、合班组） |
-| `class_combinations` | 合班教学组 |
-| `courses` | 课程（名称唯一约束） |
-| `textbooks` | 教材（书名唯一约束） |
-| `training_plans` | 培养方案 |
-| `plan_courses` | 方案课程（起止学期、周课时） |
-| `plan_course_semesters` | 课程学期明细（周课时、周数） |
-| `plan_textbooks` | 课程-教材关联 |
-| `teachers` | 教师档案 |
-| `teacher_courses` | 教师任课关联 |
-| `teacher_scheduling_colleges` | 教师上课学院意向 |
-| `teacher_training_levels` | 教师培养层次意向 |
-| `teaching_assignments` | 排课记录（手动/自动标记、锁定状态） |
-| `system_settings` | 系统配置 |
-| `audit_logs` | 审计日志 |
-| `token_blacklist` | JWT 令牌黑名单 |
-| `arrange_locks` | 排课并发锁 |
+| 模型                          | 说明                                 |
+| ----------------------------- | ------------------------------------ |
+| `users`                       | 用户账户（三级角色）                 |
+| `colleges`                    | 学院/系部                            |
+| `majors`                      | 专业                                 |
+| `training_levels`             | 培养层次                             |
+| `classes`                     | 班级（入学年份、学制、状态、合班组） |
+| `class_combinations`          | 合班教学组                           |
+| `courses`                     | 课程（名称唯一约束）                 |
+| `textbooks`                   | 教材（书名唯一约束）                 |
+| `training_plans`              | 培养方案                             |
+| `plan_courses`                | 方案课程（起止学期、周课时）         |
+| `plan_course_semesters`       | 课程学期明细（周课时、周数）         |
+| `plan_textbooks`              | 课程-教材关联                        |
+| `teachers`                    | 教师档案                             |
+| `teacher_courses`             | 教师任课关联                         |
+| `teacher_scheduling_colleges` | 教师上课学院意向                     |
+| `teacher_training_levels`     | 教师培养层次意向                     |
+| `teaching_assignments`        | 排课记录（手动/自动标记、锁定状态）  |
+| `system_settings`             | 系统配置                             |
+| `audit_logs`                  | 审计日志                             |
+| `token_blacklist`             | JWT 令牌黑名单                       |
+| `arrange_locks`               | 排课并发锁                           |
 
 ---
 
@@ -194,39 +194,39 @@ kec-manager/
 
 所有接口以 `/api` 为前缀，除登录和健康检查外均需 JWT 认证。
 
-| 模块 | 路径 | 说明 |
-|------|------|------|
-| 健康检查 | `/api/health` | 服务状态（公开） |
-| 认证 | `/api/auth` | 登录 / 刷新令牌 / 修改密码 / CSRF 令牌 |
-| 学院 | `/api/colleges` | CRUD |
-| 专业 | `/api/majors` | CRUD |
-| 培养层次 | `/api/training-levels` | CRUD |
-| 课程 | `/api/courses` | CRUD + 导入导出 |
-| 教材 | `/api/textbooks` | CRUD + 批量操作 + 导入导出 |
-| 班级 | `/api/classes` | CRUD + 合班组 + 导入 |
-| 培养方案 | `/api/plans` | 方案管理 + 课程矩阵 + 教材关联 |
-| 教师 | `/api/teachers` | CRUD + 导入导出 |
-| 排课 | `/api/teaching-arrange` | 手动 / 自动 / 批量排课 + 锁定/解锁 + SSE 进度 |
-| 查询 | `/api/query` | 学期 / 教材 / 方案多维查询 |
-| 导出 | `/api/export` | Excel 导出 + 模板下载 |
-| 导入 | `/api/import` | Excel 批量导入 |
-| 系统设置 | `/api/settings` | 学期配置 / 排课优化 / 数据重置 |
-| 用户管理 | `/api/users` | 用户 CRUD + 密码重置（超级管理员权限） |
-| 审计日志 | `/api/audit` | 操作日志查询（超级管理员） |
-| 首页概览 | `/api/dashboard` | 统计数据概览 |
+| 模块     | 路径                    | 说明                                          |
+| -------- | ----------------------- | --------------------------------------------- |
+| 健康检查 | `/api/health`           | 服务状态（公开）                              |
+| 认证     | `/api/auth`             | 登录 / 刷新令牌 / 修改密码 / CSRF 令牌        |
+| 学院     | `/api/colleges`         | CRUD                                          |
+| 专业     | `/api/majors`           | CRUD                                          |
+| 培养层次 | `/api/training-levels`  | CRUD                                          |
+| 课程     | `/api/courses`          | CRUD + 导入导出                               |
+| 教材     | `/api/textbooks`        | CRUD + 批量操作 + 导入导出                    |
+| 班级     | `/api/classes`          | CRUD + 合班组 + 导入                          |
+| 培养方案 | `/api/plans`            | 方案管理 + 课程矩阵 + 教材关联                |
+| 教师     | `/api/teachers`         | CRUD + 导入导出                               |
+| 排课     | `/api/teaching-arrange` | 手动 / 自动 / 批量排课 + 锁定/解锁 + SSE 进度 |
+| 查询     | `/api/query`            | 学期 / 教材 / 方案多维查询                    |
+| 导出     | `/api/export`           | Excel 导出 + 模板下载                         |
+| 导入     | `/api/import`           | Excel 批量导入                                |
+| 系统设置 | `/api/settings`         | 学期配置 / 排课优化 / 数据重置                |
+| 用户管理 | `/api/users`            | 用户 CRUD + 密码重置（超级管理员权限）        |
+| 审计日志 | `/api/audit`            | 操作日志查询（超级管理员）                    |
+| 首页概览 | `/api/dashboard`        | 统计数据概览                                  |
 
 ---
 
 ## 角色权限
 
-| 功能 | super\_admin | admin | viewer |
-|------|:---:|:---:|:---:|
-| 查看数据 | ✓ | ✓ | ✓ |
-| 基础数据管理（学院/专业/课程等） | ✓ | ✓ | — |
-| 培养方案与排课 | ✓ | ✓ | — |
-| 导入/导出 | ✓ | ✓ | — |
-| 用户管理 / 系统设置 / 数据重置 | ✓ | — | — |
-| 审计日志 | ✓ | — | — |
+| 功能                             | super\_admin | admin | viewer |
+| -------------------------------- | :----------: | :---: | :----: |
+| 查看数据                         |      ✓       |   ✓   |   ✓    |
+| 基础数据管理（学院/专业/课程等） |      ✓       |   ✓   |   —    |
+| 培养方案与排课                   |      ✓       |   ✓   |   —    |
+| 导入/导出                        |      ✓       |   ✓   |   —    |
+| 用户管理 / 系统设置 / 数据重置   |      ✓       |   —   |   —    |
+| 审计日志                         |      ✓       |   —   |   —    |
 
 > 系统管理模块（用户管理、系统设置、操作日志）整体仅超级管理员可见可操作；普通管理员可访问除系统管理外的全部功能页面。
 
@@ -270,13 +270,13 @@ bash deploy_ssh.sh root@your-server.com
 
 ### 服务器要求
 
-| 项目 | 最低配置 |
-|------|---------|
-| CPU | 1 核 |
-| 内存 | 2 GB |
-| 磁盘 | 10 GB |
+| 项目 | 最低配置                            |
+| ---- | ----------------------------------- |
+| CPU  | 1 核                                |
+| 内存 | 2 GB                                |
+| 磁盘 | 10 GB                               |
 | 系统 | CentOS 7+ / Ubuntu 18+ / Debian 10+ |
-| 软件 | Node.js 20+, Nginx 1.18+, PM2, Git |
+| 软件 | Node.js 20+, Nginx 1.18+, PM2, Git  |
 
 ---
 
@@ -284,32 +284,32 @@ bash deploy_ssh.sh root@your-server.com
 
 ### 开发环境
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `NODE_ENV` | 运行环境 | `development` |
-| `PORT` | 后端端口 | `3002` |
-| `DATABASE_URL` | SQLite 连接串 | `file:./data/kec.db` |
-| `JWT_SECRET` | 访问令牌签名密钥 | 开发环境自动生成 |
-| `JWT_REFRESH_SECRET` | 刷新令牌签名密钥 | 开发环境自动生成 |
-| `JWT_DOWNLOAD_SECRET` | 下载令牌签名密钥 | 开发环境自动生成 |
-| `JWT_EXPIRES_IN` | 访问令牌有效期 | `15m` |
-| `JWT_REFRESH_EXPIRES_IN` | 刷新令牌有效期 | `7d` |
-| `CORS_ORIGINS` | 允许的前端域名 | `http://localhost:5173` |
-| `LOG_LEVEL` | 日志级别 | `debug` |
-| `BCRYPT_ROUNDS` | bcrypt 迭代次数 | `10` |
-| `MAX_FILE_SIZE` | 上传文件大小限制 | `10` (MB) |
-| `DEFAULT_SEMESTER` | 默认学期 | `2025-2026-2` |
+| 变量                     | 说明             | 默认值                  |
+| ------------------------ | ---------------- | ----------------------- |
+| `NODE_ENV`               | 运行环境         | `development`           |
+| `PORT`                   | 后端端口         | `3002`                  |
+| `DATABASE_URL`           | SQLite 连接串    | `file:./data/kec.db`    |
+| `JWT_SECRET`             | 访问令牌签名密钥 | 开发环境自动生成        |
+| `JWT_REFRESH_SECRET`     | 刷新令牌签名密钥 | 开发环境自动生成        |
+| `JWT_DOWNLOAD_SECRET`    | 下载令牌签名密钥 | 开发环境自动生成        |
+| `JWT_EXPIRES_IN`         | 访问令牌有效期   | `15m`                   |
+| `JWT_REFRESH_EXPIRES_IN` | 刷新令牌有效期   | `7d`                    |
+| `CORS_ORIGINS`           | 允许的前端域名   | `http://localhost:5173` |
+| `LOG_LEVEL`              | 日志级别         | `debug`                 |
+| `BCRYPT_ROUNDS`          | bcrypt 迭代次数  | `10`                    |
+| `MAX_FILE_SIZE`          | 上传文件大小限制 | `10` (MB)               |
+| `DEFAULT_SEMESTER`       | 默认学期         | `2025-2026-2`           |
 
 ### 生产环境
 
-| 变量 | 说明 |
-|------|------|
-| `NODE_ENV` | `production` |
-| `DATABASE_URL` | 数据库绝对路径 |
-| `JWT_*` | 三类密钥（随机 64 位 hex，部署脚本自动生成） |
-| `CORS_ORIGINS` | 生产域名 |
-| `LOG_LEVEL` | `info` |
-| `BCRYPT_ROUNDS` | `12` |
+| 变量            | 说明                                         |
+| --------------- | -------------------------------------------- |
+| `NODE_ENV`      | `production`                                 |
+| `DATABASE_URL`  | 数据库绝对路径                               |
+| `JWT_*`         | 三类密钥（随机 64 位 hex，部署脚本自动生成） |
+| `CORS_ORIGINS`  | 生产域名                                     |
+| `LOG_LEVEL`     | `info`                                       |
+| `BCRYPT_ROUNDS` | `12`                                         |
 
 > `DATABASE_URL` 中的 `file:./data/kec.db` 相对于 `prisma/schema.prisma` 解析，实际数据库文件位于 `server/prisma/data/kec.db`。
 
@@ -317,14 +317,14 @@ bash deploy_ssh.sh root@your-server.com
 
 ## 相关文档
 
-| 文档 | 说明 |
-|------|------|
-| [部署与运维指南](docs/DEPLOYMENT.md) | 部署、更新、备份恢复、故障排查 |
-| [排课算法说明](docs/SCHEDULING_ALGORITHM.md) | 五阶段算法、评分机制、教材内聚策略 |
-| [学期计算说明](docs/SEMESTER-CALCULATION.md) | 学期状态计算逻辑 |
-| [代码格式化指南](docs/CODE_FORMATTING.md) | Prettier + ESLint 配置 |
-| [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) | 前后端命名规范与迁移方案 |
-| [版本管理指南](docs/VERSION_MANAGEMENT.md) | 语义化版本与自动化脚本 |
+| 文档                                                | 说明                               |
+| --------------------------------------------------- | ---------------------------------- |
+| [部署与运维指南](docs/DEPLOYMENT.md)                | 部署、更新、备份恢复、故障排查     |
+| [排课算法说明](docs/SCHEDULING_ALGORITHM.md)        | 五阶段算法、评分机制、教材内聚策略 |
+| [学期计算说明](docs/SEMESTER-CALCULATION.md)        | 学期状态计算逻辑                   |
+| [代码格式化指南](docs/CODE_FORMATTING.md)           | Prettier + ESLint 配置             |
+| [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) | 前后端命名规范与迁移方案           |
+| [版本管理指南](docs/VERSION_MANAGEMENT.md)          | 语义化版本与自动化脚本             |
 
 ---
 
