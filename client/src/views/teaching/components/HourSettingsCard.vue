@@ -164,7 +164,7 @@ defineExpose({ hourSettings });
   gap: var(--space-2);
   padding: var(--space-1) 10px;
   background: var(--bg-subtle);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .type-label {
   font-weight: bold;

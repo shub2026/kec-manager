@@ -31,7 +31,8 @@ const authStore = useAuthStore();
 
 function goHome() {
   if (authStore.isLoggedIn) {
-    router.push('/query/semester');
+    // FE-P1-2修复：按钮文案为"返回首页"，应跳转到仪表盘（路由 / → /dashboard，侧边栏首项也是 /dashboard）
+    router.push('/dashboard');
   } else {
     router.push('/login');
   }

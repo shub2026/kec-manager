@@ -50,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { ElMessage } from 'element-plus';
 
@@ -153,7 +153,8 @@ async function handleSubmit() {
       emit('success');
 
       ElMessage.success('密码修改成功，2秒后将自动退出，请使用新密码重新登录');
-      setTimeout(() => {
+      // FE-P1-4修复：保存定时器引用并在组件卸载时清理，避免路由切换后仍触发登出
+      logoutTimer = setTimeout(() => {
         authStore.logout();
       }, 2000);
     } else {
@@ -165,6 +166,15 @@ async function handleSubmit() {
     loading.value = false;
   }
 }
+
+// FE-P1-4修复：组件卸载时清理登出定时器，避免在不当时机登出
+let logoutTimer = null;
+onUnmounted(() => {
+  if (logoutTimer) {
+    clearTimeout(logoutTimer);
+    logoutTimer = null;
+  }
+});
 </script>
 
 <style scoped>

@@ -86,7 +86,7 @@ beforeEach(() => {
 });
 
 function makeToken(user = TEST_USER) {
-  return jwt.sign({ id: user.id, username: user.username, role: user.role }, TEST_SECRET, {
+  return jwt.sign({ id: user.id, username: user.username, role: user.role, v: 0 }, TEST_SECRET, {
     expiresIn: '1h',
   });
 }
@@ -191,7 +191,7 @@ describe('POST /api/auth/login', () => {
 
   it('密码过短应返回 422 验证错误', async () => {
     const res = await withCsrf(request(app).post('/api/auth/login')).send({
-      username: 'admin',
+      username: 'pwtest',
       password: '123',
     });
 
@@ -273,6 +273,8 @@ describe('GET /api/auth/me', () => {
       username: 'admin',
       role: 'super_admin',
       is_active: true,
+      must_change_password: false,
+      token_version: 0,
       real_name: '管理员',
       email: 'admin@test.com',
       last_login_at: null,
@@ -304,6 +306,13 @@ describe('PUT /api/auth/password', () => {
   });
 
   it('新密码不符合正则应返回 422', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      id: 1,
+      role: 'super_admin',
+      is_active: true,
+      must_change_password: false,
+      token_version: 0,
+    });
     const token = makeToken();
     const res = await withCsrf(request(app).put('/api/auth/password'))
       .set('Authorization', `Bearer ${token}`)
@@ -324,6 +333,8 @@ describe('PUT /api/auth/password', () => {
       password: oldHashed,
       is_active: true,
       role: 'super_admin',
+      must_change_password: false,
+      token_version: 0,
     });
 
     const token = makeToken();
@@ -346,6 +357,8 @@ describe('PUT /api/auth/password', () => {
       password: oldHashed,
       is_active: true,
       role: 'super_admin',
+      must_change_password: false,
+      token_version: 0,
     });
     mockPrismaUsers.update.mockResolvedValue({});
 

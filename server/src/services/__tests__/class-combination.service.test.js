@@ -538,8 +538,8 @@ describe('applyCombination', () => {
         combination_id: null,
         college_id: 5,
       });
-      // validateSameCollege 使用的 prisma.classes.findMany (模块级)
-      mockClassesFindMany.mockResolvedValue([{ id: 10, name: 'X班', college_id: 9 }]);
+      // validateSameCollege 现使用 tx.classes.findMany（BIZ-M4：事务内校验避免 TOCTOU）
+      tx.classes.findMany.mockResolvedValue([{ id: 10, name: 'X班', college_id: 9 }]);
 
       await expect(applyCombination(tx, 1, [10], 5)).rejects.toThrow('同学院');
     });
@@ -552,8 +552,10 @@ describe('applyCombination', () => {
         college_id: 5,
       });
       // currentCollegeId=7 应覆盖 college_id=5
-      mockClassesFindMany.mockResolvedValue([{ id: 10, name: 'A班', college_id: 7 }]);
-      tx.classes.findMany.mockResolvedValue([{ id: 10, combination_id: null }]);
+      // validateSameCollege 先调用 tx.classes.findMany（需 college_id），随后伙伴查询再调用一次（需 combination_id）
+      tx.classes.findMany
+        .mockResolvedValueOnce([{ id: 10, name: 'A班', college_id: 7 }])
+        .mockResolvedValueOnce([{ id: 10, combination_id: null }]);
       tx.class_combinations.create.mockResolvedValue({ id: 99 });
       tx.classes.updateMany.mockResolvedValue({});
 
@@ -571,8 +573,8 @@ describe('applyCombination', () => {
         combination_id: 50,
         college_id: 5,
       });
-      // validateSameCollege is called with raw [1] before dedup, so prisma.classes.findMany must return the class
-      mockClassesFindMany.mockResolvedValue([{ id: 1, name: 'self', college_id: 5 }]);
+      // validateSameCollege 先用原始 [1] 调用 tx.classes.findMany（去重前），需返回该班级
+      tx.classes.findMany.mockResolvedValue([{ id: 1, name: 'self', college_id: 5 }]);
       tx.classes.update.mockResolvedValue({});
       tx.classes.count.mockResolvedValue(0);
       tx.class_combinations.delete.mockResolvedValue({});
@@ -590,13 +592,14 @@ describe('applyCombination', () => {
         combination_id: null,
         college_id: 5,
       });
-      // validateSameCollege is called with raw [10, 10, 10], needs 3 results to pass length check
-      mockClassesFindMany.mockResolvedValue([
-        { id: 10, name: 'A班', college_id: 5 },
-        { id: 10, name: 'A班', college_id: 5 },
-        { id: 10, name: 'A班', college_id: 5 },
-      ]);
-      tx.classes.findMany.mockResolvedValue([{ id: 10, combination_id: null }]);
+      // validateSameCollege 先用原始 [10, 10, 10] 调用 tx.classes.findMany，需 3 条结果通过长度校验
+      tx.classes.findMany
+        .mockResolvedValueOnce([
+          { id: 10, name: 'A班', college_id: 5 },
+          { id: 10, name: 'A班', college_id: 5 },
+          { id: 10, name: 'A班', college_id: 5 },
+        ])
+        .mockResolvedValueOnce([{ id: 10, combination_id: null }]);
       tx.class_combinations.create.mockResolvedValue({ id: 88 });
       tx.classes.updateMany.mockResolvedValue({});
 
@@ -617,8 +620,9 @@ describe('applyCombination', () => {
         combination_id: null,
         college_id: 5,
       });
-      mockClassesFindMany.mockResolvedValue([{ id: 10, name: 'A班', college_id: 5 }]);
-      tx.classes.findMany.mockResolvedValue([{ id: 10, combination_id: null }]);
+      tx.classes.findMany
+        .mockResolvedValueOnce([{ id: 10, name: 'A班', college_id: 5 }])
+        .mockResolvedValueOnce([{ id: 10, combination_id: null }]);
       tx.class_combinations.create.mockResolvedValue({ id: 200 });
       tx.classes.updateMany.mockResolvedValue({});
 
@@ -635,8 +639,9 @@ describe('applyCombination', () => {
         combination_id: 77,
         college_id: 5,
       });
-      mockClassesFindMany.mockResolvedValue([{ id: 10, name: 'A班', college_id: 5 }]);
-      tx.classes.findMany.mockResolvedValue([{ id: 10, combination_id: null }]);
+      tx.classes.findMany
+        .mockResolvedValueOnce([{ id: 10, name: 'A班', college_id: 5 }])
+        .mockResolvedValueOnce([{ id: 10, combination_id: null }]);
       tx.classes.updateMany.mockResolvedValue({});
 
       const result = await applyCombination(tx, 1, [10], 5);
@@ -652,8 +657,9 @@ describe('applyCombination', () => {
         combination_id: null,
         college_id: 5,
       });
-      mockClassesFindMany.mockResolvedValue([{ id: 10, name: 'A班', college_id: 5 }]);
-      tx.classes.findMany.mockResolvedValue([{ id: 10, combination_id: 55 }]);
+      tx.classes.findMany
+        .mockResolvedValueOnce([{ id: 10, name: 'A班', college_id: 5 }])
+        .mockResolvedValueOnce([{ id: 10, combination_id: 55 }]);
       tx.classes.updateMany.mockResolvedValue({});
 
       const result = await applyCombination(tx, 1, [10], 5);
@@ -671,14 +677,15 @@ describe('applyCombination', () => {
         combination_id: null,
         college_id: 5,
       });
-      mockClassesFindMany.mockResolvedValue([
-        { id: 10, name: 'A班', college_id: 5 },
-        { id: 11, name: 'B班', college_id: 5 },
-      ]);
-      tx.classes.findMany.mockResolvedValue([
-        { id: 10, combination_id: 30 },
-        { id: 11, combination_id: 40 },
-      ]);
+      tx.classes.findMany
+        .mockResolvedValueOnce([
+          { id: 10, name: 'A班', college_id: 5 },
+          { id: 11, name: 'B班', college_id: 5 },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, combination_id: 30 },
+          { id: 11, combination_id: 40 },
+        ]);
       tx.classes.updateMany.mockResolvedValue({});
       // 代码复用伙伴 10 的组合 30 作为目标（不新建），伙伴 11 的旧组合 40 需清理
       // 清理旧组合 40：剩余 0 个班 → 解散
@@ -702,8 +709,9 @@ describe('applyCombination', () => {
         combination_id: 50,
         college_id: 5,
       });
-      mockClassesFindMany.mockResolvedValue([{ id: 10, name: 'A班', college_id: 5 }]);
-      tx.classes.findMany.mockResolvedValue([{ id: 10, combination_id: 50 }]);
+      tx.classes.findMany
+        .mockResolvedValueOnce([{ id: 10, name: 'A班', college_id: 5 }])
+        .mockResolvedValueOnce([{ id: 10, combination_id: 50 }]);
       tx.classes.updateMany.mockResolvedValue({});
 
       const result = await applyCombination(tx, 1, [10], 5);
@@ -721,14 +729,15 @@ describe('applyCombination', () => {
         combination_id: null,
         college_id: 5,
       });
-      mockClassesFindMany.mockResolvedValue([
-        { id: 10, name: 'A班', college_id: 5 },
-        { id: 11, name: 'B班', college_id: 5 },
-      ]);
-      tx.classes.findMany.mockResolvedValue([
-        { id: 10, combination_id: null },
-        { id: 11, combination_id: null },
-      ]);
+      tx.classes.findMany
+        .mockResolvedValueOnce([
+          { id: 10, name: 'A班', college_id: 5 },
+          { id: 11, name: 'B班', college_id: 5 },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, combination_id: null },
+          { id: 11, combination_id: null },
+        ]);
       tx.class_combinations.create.mockResolvedValue({ id: 300 });
       tx.classes.updateMany.mockResolvedValue({});
 

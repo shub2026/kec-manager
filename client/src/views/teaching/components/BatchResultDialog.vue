@@ -156,7 +156,7 @@ function toggleCourseDetail(courseId) {
 }
 .batch-stat-card {
   background: var(--bg-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-2);
   text-align: center;
   border: 1px solid transparent;
@@ -199,7 +199,7 @@ function toggleCourseDetail(courseId) {
   max-height: 400px;
   overflow-y: auto;
   border: 1px solid var(--border-light);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 .batch-course-item {
   border-bottom: 1px solid var(--border-light);

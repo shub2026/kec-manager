@@ -44,13 +44,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getPlans, getPlanCourses } from '../../api/plan';
 import CourseMatrixTable from '../../components/CourseMatrixTable.vue';
 import MatrixLegend from '../../components/MatrixLegend.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import { useMatrixCalculations } from '../../composables/useMatrixCalculations';
 
 defineOptions({ name: 'PlanQuery' });
 
@@ -60,28 +61,8 @@ const selectedPlanId = ref(null);
 const loading = ref(false);
 const planCourses = ref([]);
 
-// 计算最大学期数
-const maxSemester = computed(() => {
-  if (!planCourses.value.length) return 8;
-  const max = Math.max(...planCourses.value.map((c) => c.endSemester), 0);
-  return Math.max(max, 8);
-});
-
-// 总课时
-const totalAllHours = computed(() => {
-  let total = 0;
-  planCourses.value.forEach((c) => {
-    for (let s = c.startSemester; s <= c.endSemester; s++) {
-      const sem = (c.planCourseSemesters || []).find((x) => x.semester === s);
-      if (sem) {
-        total += (sem.weeklyHours || 0) * (sem.weeksCount || 18);
-      } else {
-        total += (c.weeklyHours || 0) * (c.weeksPerSemester || 18);
-      }
-    }
-  });
-  return Math.round(total);
-});
+// FE-P2 优化：总课时复用共享 composable，消除与 useMatrixCalculations 的重复实现
+const { totalAllHours } = useMatrixCalculations(planCourses);
 
 // 获取方案显示标签
 function getPlanLabel(plan) {

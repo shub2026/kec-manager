@@ -256,8 +256,8 @@ export async function updateUserStatus(req, res, next) {
  *
  * 重置后自动置 must_change_password=true，用户下次登录必须修改密码，
  * 避免管理员设定的临时密码被长期持有。
- * 注意：与修改密码一样，不会全局吊销该用户其他会话的存量 token，
- * 依赖 access token 短 TTL 与 is_active 状态复查兜底（见 deleteUser 的 P2-9 说明）。
+ * SEC-H1修复：重置密码时递增 token_version，立即吊销该用户在其他设备上已签发的
+ * 全部 Access/Refresh Token，避免旧令牌在 Refresh Token 7 天有效期内继续访问。
  */
 export async function resetUserPassword(req, res, next) {
   try {
@@ -288,20 +288,28 @@ export async function resetUserPassword(req, res, next) {
       data: {
         password: hashedPassword,
         must_change_password: true,
+        // SEC-H1: 递增 token_version，使所有已签发令牌（含 Refresh Token）立即失效
+        token_version: { increment: 1 },
+        // SEC-M4: 重置密码同时清除可能存在的锁定状态
+        failed_login_count: 0,
+        locked_until: null,
       },
     });
+
+    // SEC-H1: 清除用户状态缓存，使后续请求立即查库校验
+    invalidateUserStatusCache(parseInt(id));
 
     await createAuditLog({
       action: 'update',
       module: 'user',
       userId: req.user.id,
       ip: req.ip,
-      details: { id: user.id, username: user.username },
+      details: { id: user.id, username: user.username, session_revoked: true },
       result: 'success',
-      message: `重置用户密码：${user.username}`,
+      message: `重置用户密码：${user.username}（已吊销全部会话）`,
     });
 
-    success(res, null, '密码重置成功，该用户下次登录须修改密码');
+    success(res, null, '密码重置成功，该用户其他设备已被强制下线，下次登录须修改密码');
   } catch (error) {
     await createAuditLog({
       action: 'update',

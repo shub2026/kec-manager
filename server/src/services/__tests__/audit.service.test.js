@@ -106,7 +106,7 @@ describe('createAuditLog', () => {
     expect(callData.details).toBe('plain text detail');
   });
 
-  it('details 超过 2000 字符时截断为 1997 + "..."', async () => {
+  it('details 超过 2000 字符时截断为合法 JSON 截断对象', async () => {
     const longDetail = 'A'.repeat(2500);
 
     await createAuditLog({
@@ -117,12 +117,14 @@ describe('createAuditLog', () => {
     });
 
     const callData = mockPrisma.audit_logs.create.mock.calls[0][0].data;
-    expect(callData.details).toHaveLength(2000);
-    expect(callData.details.endsWith('...')).toBe(true);
-    expect(callData.details.slice(0, 1997)).toBe('A'.repeat(1997));
+    // BIZ-8-3修复：截断为合法 JSON 对象 { truncated, preview, original_length }
+    const parsed = JSON.parse(callData.details);
+    expect(parsed.truncated).toBe(true);
+    expect(parsed.preview).toBe('A'.repeat(1900));
+    expect(parsed.original_length).toBe(2500);
   });
 
-  it('大对象 details 序列化后超过 2000 字符时截断', async () => {
+  it('大对象 details 序列化后超过 2000 字符时截断为合法 JSON 截断对象', async () => {
     const bigObject = { data: 'X'.repeat(3000) };
 
     await createAuditLog({
@@ -133,8 +135,10 @@ describe('createAuditLog', () => {
     });
 
     const callData = mockPrisma.audit_logs.create.mock.calls[0][0].data;
-    expect(callData.details).toHaveLength(2000);
-    expect(callData.details.endsWith('...')).toBe(true);
+    const parsed = JSON.parse(callData.details);
+    expect(parsed.truncated).toBe(true);
+    expect(parsed.preview).toHaveLength(1900);
+    expect(parsed.original_length).toBe(JSON.stringify(bigObject).length);
   });
 
   it('details 恰好 2000 字符时不截断', async () => {

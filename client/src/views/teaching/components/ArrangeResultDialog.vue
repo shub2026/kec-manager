@@ -125,7 +125,7 @@ const cohesionRateClass = computed(() => {
 }
 .arrange-stat-card {
   background: var(--bg-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 10px 6px;
   text-align: center;
   border: 1px solid transparent;
@@ -155,7 +155,7 @@ const cohesionRateClass = computed(() => {
   margin: var(--space-3) 0;
   padding: var(--space-3) 14px;
   background: var(--bg-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border-left: 3px solid var(--brand-primary);
 }
 .cohesion-title {
@@ -209,13 +209,13 @@ const cohesionRateClass = computed(() => {
   gap: 6px;
   padding: 6px 10px;
   background: var(--brand-warning-soft);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   margin-bottom: 6px;
   font-size: 13px;
 }
 .arrange-unassigned {
   border: 1px solid var(--border-light);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 10px 14px;
 }
 .arrange-unassigned .arrange-section-title {

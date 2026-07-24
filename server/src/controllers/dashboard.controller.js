@@ -16,8 +16,13 @@ import { dedupeTeachingUnits } from '../services/teaching-statistics.service.js'
  * - textbooks: 活跃教材数
  * - plans: 培养方案总数
  * - totalStudents: 在读学生数
- * - teachingTeachers: 本学期参与教师数（来自排课记录）
- * - totalWeeklyHours: 本学期开设课程总周课时（来自培养方案 plan_course_semesters）
+ * - teachingTeachers: 本学期参与教师数（来自排课记录，已排才计数）
+ * - totalWeeklyHours: 本学期开设课程总周课时（来自培养方案 plan_course_semesters，计划值）
+ *
+ * BIZ-M3修复：拆分课时语义，明确区分"计划课时"与"已排课时"
+ * - plannedWeeklyHours: 培养方案计划总周课时（未排也计数，与 totalWeeklyHours 同源）
+ * - assignedWeeklyHours: 实际已排课的总周课时（来自 teaching_assignments）
+ * 保留 totalWeeklyHours 字段向后兼容（= plannedWeeklyHours）
  */
 export async function getDashboardStats(req, res, next) {
   try {
@@ -30,9 +35,9 @@ export async function getDashboardStats(req, res, next) {
     // 导致已毕业班级被计入 totalStudents/classes 统计虚高
     if (!semesterInfo) return fail(res, '学期格式错误，应为 YYYY-YYYY-N', 400);
 
-    // 并行查询基础统计数据 + 在读班级筛选 + 教师排课统计
-    const [majorsCount, plansCount, textbooksCount, activeFilter, teacherStats] = await Promise.all(
-      [
+    // 并行查询基础统计数据 + 在读班级筛选 + 教师排课统计 + 已排课课时聚合
+    const [majorsCount, plansCount, textbooksCount, activeFilter, teacherStats, assignedHoursAgg] =
+      await Promise.all([
         // 基础数据计数
         prisma.majors.count(),
         prisma.training_plans.count(),
@@ -45,8 +50,12 @@ export async function getDashboardStats(req, res, next) {
           where: { semester, weekly_hours: { gt: 0 }, teacher: { status: 'active' } },
           _sum: { weekly_hours: true },
         }),
-      ]
-    );
+        // BIZ-M3: 已排课总周课时（实际值，来自 teaching_assignments）
+        prisma.teaching_assignments.aggregate({
+          where: { semester, weekly_hours: { gt: 0 }, teacher: { status: 'active' } },
+          _sum: { weekly_hours: true },
+        }),
+      ]);
 
     // ── 从培养方案计算本学期开设课程数和总周课时 ──
     // 与 query.controller.js 的开课查询逻辑一致：
@@ -145,6 +154,9 @@ export async function getDashboardStats(req, res, next) {
       }
     }
 
+    // BIZ-M3: 已排课总周课时（实际值）
+    const assignedWeeklyHours = Math.round((assignedHoursAgg._sum.weekly_hours || 0) * 10) / 10;
+
     success(res, {
       semester,
       majors: majorsCount,
@@ -154,7 +166,10 @@ export async function getDashboardStats(req, res, next) {
       plans: plansCount,
       totalStudents,
       teachingTeachers: teacherStats.length,
-      totalWeeklyHours: Math.round(totalWeeklyHours * 10) / 10,
+      // BIZ-M3: 课时语义拆分，明确区分计划与实际
+      totalWeeklyHours: Math.round(totalWeeklyHours * 10) / 10, // 向后兼容（= plannedWeeklyHours）
+      plannedWeeklyHours: Math.round(totalWeeklyHours * 10) / 10, // 计划课时（来自培养方案）
+      assignedWeeklyHours, // 已排课时（来自 teaching_assignments）
     });
   } catch (e) {
     next(e);

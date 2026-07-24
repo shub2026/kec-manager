@@ -32,6 +32,7 @@ const mockPrisma = {
     delete: vi.fn(),
   },
   training_levels: {
+    findUnique: vi.fn(),
     delete: vi.fn(),
   },
   teachers: {
@@ -408,6 +409,7 @@ describe('deleteTrainingLevel', () => {
     mockPrisma.classes.count.mockResolvedValue(0);
     mockPrisma.teacher_training_levels.count.mockResolvedValue(0);
     mockPrisma.training_plans.count.mockResolvedValue(0);
+    mockPrisma.training_levels.findUnique.mockResolvedValue({ id: 1, name: '本科' });
     mockPrisma.training_levels.delete.mockResolvedValue({ id: 1, name: '本科' });
   });
 

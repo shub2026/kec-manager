@@ -104,20 +104,15 @@
     </el-dialog>
 
     <!-- 删除确认弹窗 -->
-    <el-dialog
+    <DeleteConfirmDialog
       v-model="deleteConfirmVisible"
-      title="确认删除"
-      width="var(--dialog-width)"
-      align-center
+      :loading="deleting"
+      :warning="deleteWarning"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
     >
-      <BaseConfirmBody icon-color="var(--brand-danger)" :warning="deleteWarning">
-        确定要删除此培养层次吗？此操作不可撤销。
-      </BaseConfirmBody>
-      <template #footer>
-        <el-button @click="cancelDelete">取消</el-button>
-        <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
-      </template>
-    </el-dialog>
+      确定要删除此培养层次吗？此操作不可撤销。
+    </DeleteConfirmDialog>
   </div>
 </template>
 
@@ -133,7 +128,7 @@ import {
 import { useCrudList } from '../../composables/useCrudList';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
-import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import DeleteConfirmDialog from '../../components/DeleteConfirmDialog.vue';
 import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'TrainingLevelList' });

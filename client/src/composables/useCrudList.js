@@ -77,9 +77,12 @@ export function useCrudList(api, options = {}) {
       const res = await api.list(params);
       list.value = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
     } catch (e) {
+      // FE-P1-3修复：silentReload 用于保存/排序/删除后静默刷新，失败时不能完全静默
+      // 否则用户已看到"保存成功"提示，但列表实际未更新，造成数据与提示不一致
       if (import.meta.env.DEV) {
         console.error('刷新数据失败:', e);
       }
+      ElMessage.warning('数据已保存，列表刷新失败，请手动刷新页面');
     }
   }
 

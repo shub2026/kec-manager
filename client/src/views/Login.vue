@@ -400,7 +400,7 @@ onMounted(() => {
 .hint-row code {
   background: var(--bg-subtle);
   padding: 2px var(--space-2);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
   color: var(--text-primary);
 }

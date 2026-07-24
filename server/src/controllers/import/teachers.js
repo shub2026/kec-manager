@@ -534,6 +534,14 @@ export async function importTeachers(req, res, next) {
 
     success(res, result, message);
   } catch (e) {
+    // BIZ-M5修复：事务回滚后重置计数器，避免后续日志报告"成功导入 N 条"但实际 0 条
+    // 与班级导入（classes.js:326-331）处理方式保持一致
+    imported = 0;
+    overwritten = 0;
+    autoCreatedCourses = 0;
+    autoCreatedColleges = 0;
+    autoCreatedLevels = 0;
+
     log.error('[教师导入] 事务执行失败，已回滚', { error: e.message, stack: e.stack });
     await createAuditLog({
       action: 'import',

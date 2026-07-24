@@ -243,7 +243,7 @@ const progressStatus = computed(() => {
   align-items: center;
   padding: var(--space-3) var(--space-2);
   background: var(--fill-light, #f1f5f9);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .stat-label {
@@ -274,7 +274,7 @@ const progressStatus = computed(() => {
   color: var(--text-regular);
   padding: var(--space-2) var(--space-3);
   background: var(--fill-light, #f1f5f9);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .current-course.done {

@@ -115,6 +115,13 @@ export async function deleteTrainingLevel(req, res, next) {
     const { id } = req.params;
     const numId = Number(id);
 
+    // BIZ-8-2修复：删除前先查询层次名，用于审计日志记录被删实体的业务身份
+    const level = await prisma.training_levels.findUnique({
+      where: { id: numId },
+      select: { id: true, name: true },
+    });
+    if (!level) return fail(res, '层次不存在', 404);
+
     const classCount = await prisma.classes.count({ where: { training_level_id: numId } });
     if (classCount > 0) return fail(res, '该层次下存在班级，无法删除');
 
@@ -137,9 +144,9 @@ export async function deleteTrainingLevel(req, res, next) {
         module: 'training_level',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: Number(id) },
+        details: { id: numId, name: level.name },
         result: 'success',
-        message: `删除培养层次 ID: ${id}`,
+        message: `删除培养层次：${level.name}`,
       });
       invalidateSortOrderCache('training_levels');
       success(res, null, '删除成功');

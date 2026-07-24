@@ -29,6 +29,8 @@ const mockTx = {
   colleges: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
   training_levels: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
   system_settings: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+  // BIZ-M6修复：系统重置需清理 class_combinations 表（classes.combination_id 为 SetNull，删除后组合记录会变孤儿）
+  class_combinations: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
   audit_logs: {
     count: vi.fn().mockResolvedValue(42),
     deleteMany: vi.fn().mockResolvedValue({ count: 42 }),
@@ -135,6 +137,7 @@ describe('resetSystem — 系统重置', () => {
     expect(mockTx.colleges.deleteMany).toHaveBeenCalled();
     expect(mockTx.training_levels.deleteMany).toHaveBeenCalled();
     expect(mockTx.system_settings.deleteMany).toHaveBeenCalled();
+    expect(mockTx.class_combinations.deleteMany).toHaveBeenCalled();
     expect(mockTx.audit_logs.deleteMany).toHaveBeenCalled();
     expect(mockTx.token_blacklist.deleteMany).toHaveBeenCalled();
 

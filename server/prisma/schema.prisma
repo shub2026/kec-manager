@@ -241,12 +241,18 @@ model users {
   email                String?
   is_active            Boolean      @default(true)
   must_change_password Boolean      @default(false)
+  // SEC-H1: 令牌版本号，重置密码/吊销会话时自增，使所有已签发令牌失效
+  token_version        Int          @default(0)
+  // SEC-M4: 账号锁定字段，连续登录失败达到阈值后短期锁定
+  failed_login_count   Int          @default(0)
+  locked_until         DateTime?
   last_login_at        DateTime?
   created_at           DateTime     @default(now())
   updated_at           DateTime     @updatedAt
   audit_logs           audit_logs[]
 
   @@index([role])
+  @@index([locked_until])
 }
 
 model teachers {

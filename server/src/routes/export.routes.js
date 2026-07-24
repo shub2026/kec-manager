@@ -16,6 +16,8 @@ import {
   exportStatistics,
   exportTeachingArrange,
 } from '../controllers/export/data-export.controller.js';
+import { issueDownloadTicket } from '../services/download-ticket.service.js'; // SEC-M2修复
+import { success } from '../utils/response.js';
 
 // 导出接口限流：防止并发全量导出导致 OOM（H-10 修复）
 // S-11修复：Viewer角色导出同样受此10/min限流保护，如需更严格限制可后续增加角色感知的分级限流中间件
@@ -31,6 +33,17 @@ const router = Router();
 
 // authMiddleware 已在 app.js 挂载处统一应用
 router.use(exportLimiter);
+
+// SEC-M2修复：签发一次性下载票据
+// 前端调用导出接口前先 POST 此端点获取 ticket，再用 ?ticket=<hex> 通过 window.open 下载
+// 票据 30s 过期且单次消费，避免 JWT 进入 URL/日志/Referer
+router.post('/issue-ticket', (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: '未授权' });
+  }
+  const ticket = issueDownloadTicket(req.user.id, req.user.role, req.user.username);
+  success(res, { ticket, expires_in: 30 }, '票据签发成功，30秒内有效，仅可使用一次');
+});
 
 // ==================== 模板下载 ====================
 

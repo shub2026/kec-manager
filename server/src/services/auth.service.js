@@ -17,10 +17,12 @@ const blacklistMemoryCache = new Map(); // jti -> expiresAt (ms timestamp)
 const MEMORY_CACHE_MAX_SIZE = 10000;
 
 // 审计修复：预计算虚拟哈希，用于用户不存在时的恒定时间比较，防止计时攻击枚举用户名
-let DUMMY_HASH = '';
-(async () => {
-  DUMMY_HASH = await bcrypt.hash('dummy-password-for-timing-attack', 12);
-})();
+// L-1修复：改用同步生成，消除启动期计时泄露窗口
+let DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing-attack', 12);
+
+// SEC-M4: 账号锁定阈值
+const LOGIN_FAILURE_THRESHOLD = 5;
+const LOGIN_LOCK_DURATION_MS = 15 * 60 * 1000; // 15 分钟
 
 // 定时清理过期黑名单记录（每小时一次）
 setInterval(
@@ -60,18 +62,49 @@ export class AuthService {
       throw new AuthenticationError('用户名或密码错误');
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
+    // SEC-M4: 账号锁定校验（在密码校验前，避免对锁定账号做 bcrypt 计算）
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+      const remainMs = new Date(user.locked_until) - new Date();
+      const remainMin = Math.ceil(remainMs / 60000);
       await createAuditLog({
         action: 'login',
         module: 'auth',
         userId: user.id,
         ip,
-        details: { username },
+        details: { username, locked_until: user.locked_until },
         result: 'failed',
-        message: `登录失败：密码错误`,
+        message: `登录失败：账号已锁定，请 ${remainMin} 分钟后重试`,
       });
-      throw new AuthenticationError('用户名或密码错误');
+      throw new AuthenticationError(`账号已锁定，请 ${remainMin} 分钟后再试`);
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      // SEC-M4: 累计失败次数，达到阈值后锁定账号
+      const newFailCount = user.failed_login_count + 1;
+      const shouldLock = newFailCount >= LOGIN_FAILURE_THRESHOLD;
+      await prisma.users.update({
+        where: { id: user.id },
+        data: {
+          failed_login_count: newFailCount,
+          locked_until: shouldLock ? new Date(Date.now() + LOGIN_LOCK_DURATION_MS) : user.locked_until,
+        },
+      });
+      if (shouldLock) {
+        invalidateUserStatusCache(user.id);
+      }
+      await createAuditLog({
+        action: 'login',
+        module: 'auth',
+        userId: user.id,
+        ip,
+        details: { username, fail_count: newFailCount, locked: shouldLock },
+        result: 'failed',
+        message: `登录失败：密码错误${shouldLock ? '，账号已被锁定 15 分钟' : ''}`,
+      });
+      throw new AuthenticationError(
+        shouldLock ? '密码错误次数过多，账号已被锁定 15 分钟' : '用户名或密码错误'
+      );
     }
 
     if (!user.is_active) {
@@ -90,9 +123,14 @@ export class AuthService {
     const token = this.generateToken(user);
     const refreshToken = this.generateRefreshToken(user);
 
+    // SEC-M4: 登录成功重置失败计数与锁定状态
     await prisma.users.update({
       where: { id: user.id },
-      data: { last_login_at: new Date() },
+      data: {
+        last_login_at: new Date(),
+        failed_login_count: 0,
+        locked_until: null,
+      },
     });
 
     await createAuditLog({
@@ -132,8 +170,28 @@ export class AuthService {
     }
 
     // C-3修复：检查 Refresh Token 是否已被加入黑名单（登出/轮换后）
+    // SEC-M1: 重用检测——若已被黑名单的 Refresh Token 再次提交，说明令牌家族可能被窃，
+    //         立即递增 token_version 吊销该用户全部会话
     if (decoded.jti && (await this.isBlacklisted(decoded.jti))) {
-      throw new AuthenticationError('Refresh Token已失效，请重新登录');
+      try {
+        await prisma.users.update({
+          where: { id: decoded.id },
+          data: { token_version: { increment: 1 } },
+        });
+        invalidateUserStatusCache(decoded.id);
+        log.warn('Refresh Token 重用检测触发，已吊销用户全部会话', { userId: decoded.id });
+        await createAuditLog({
+          action: 'logout',
+          module: 'auth',
+          userId: decoded.id,
+          details: { reason: 'refresh_token_reuse_detected', jti: decoded.jti },
+          result: 'failed',
+          message: '检测到 Refresh Token 异常重用，已强制下线该用户所有会话',
+        });
+      } catch (e) {
+        log.error('Refresh Token 重用检测后吊销会话失败', { error: e.message });
+      }
+      throw new AuthenticationError('检测到凭证异常，请重新登录');
     }
 
     const user = await prisma.users.findUnique({
@@ -142,6 +200,16 @@ export class AuthService {
 
     if (!user || !user.is_active) {
       throw new AuthenticationError('用户不存在或已被禁用');
+    }
+
+    // SEC-H1: 校验 token_version，密码重置/会话吊销后旧令牌立即失效
+    if (decoded.v !== user.token_version) {
+      throw new AuthenticationError('凭证已失效，请重新登录');
+    }
+
+    // SEC-H2: 强制改密期间拒绝刷新，必须重新登录走改密流程
+    if (user.must_change_password) {
+      throw new AuthenticationError('请先修改初始密码');
     }
 
     // M-9: DB 查询异常不再被包装为 AuthenticationError，保留原始错误类型
@@ -229,6 +297,7 @@ export class AuthService {
         username: user.username,
         role: user.role,
         jti: crypto.randomUUID(),
+        v: user.token_version ?? 0, // SEC-H1: 令牌版本号
       },
       authConfig.jwtSecret,
       { expiresIn: authConfig.jwtExpiresIn }
@@ -241,6 +310,7 @@ export class AuthService {
         id: user.id,
         type: 'refresh',
         jti: crypto.randomUUID(),
+        v: user.token_version ?? 0, // SEC-H1: 令牌版本号
       },
       authConfig.jwtRefreshSecret, // M10修复：使用独立的Refresh密钥
       { expiresIn: authConfig.jwtRefreshExpiresIn }
@@ -295,9 +365,17 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, authConfig.bcryptRounds); // M9修复：使用配置的迭代次数
+    // SEC-H1: 自助改密同样递增 token_version，吊销该用户其他设备上已签发的全部令牌
+    // （当前会话的 Access/Refresh Token 由调用方 auth.routes.js /password 加入黑名单做即时撤销）
     await prisma.users.update({
       where: { id: userId },
-      data: { password: hashedPassword, must_change_password: false },
+      data: {
+        password: hashedPassword,
+        must_change_password: false,
+        token_version: { increment: 1 },
+        failed_login_count: 0,
+        locked_until: null,
+      },
     });
 
     // H3修复：密码修改后立即清除用户状态缓存，使后续请求重新查库验证

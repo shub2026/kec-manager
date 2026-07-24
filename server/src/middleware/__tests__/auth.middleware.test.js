@@ -150,11 +150,13 @@ describe('authMiddleware', () => {
     const res = makeRes();
     const next = vi.fn();
 
-    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'super_admin' });
+    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'super_admin', v: 0 });
     mockPrismaUsers.findUnique.mockResolvedValue({
       id: 1,
       role: 'super_admin',
       is_active: true,
+      must_change_password: false,
+      token_version: 0,
     });
 
     await authMiddleware(req, res, next);
@@ -263,12 +265,14 @@ describe('authMiddleware', () => {
     const res = makeRes();
     const next = vi.fn();
 
-    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin', jti: 'clean-jti' });
+    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin', jti: 'clean-jti', v: 0 });
     mockIsBlacklisted.mockResolvedValue(false);
     mockPrismaUsers.findUnique.mockResolvedValue({
       id: 1,
       role: 'admin',
       is_active: true,
+      must_change_password: false,
+      token_version: 0,
     });
 
     await authMiddleware(req, res, next);
@@ -281,12 +285,14 @@ describe('authMiddleware', () => {
     const res = makeRes();
     const next = vi.fn();
 
-    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin', jti: 'error-jti' });
+    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin', jti: 'error-jti', v: 0 });
     mockIsBlacklisted.mockRejectedValue(new Error('DB connection failed'));
     mockPrismaUsers.findUnique.mockResolvedValue({
       id: 1,
       role: 'admin',
       is_active: true,
+      must_change_password: false,
+      token_version: 0,
     });
 
     await authMiddleware(req, res, next);

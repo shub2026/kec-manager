@@ -153,7 +153,7 @@ function barColor(idx) {
   flex: 1;
   height: 10px;
   background: var(--bg-subtle);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   min-width: 0;
 }
@@ -161,7 +161,7 @@ function barColor(idx) {
 .hours-bar {
   display: block;
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: width 0.6s var(--ease-out);
   min-width: 3px;
 }

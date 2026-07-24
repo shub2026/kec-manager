@@ -352,6 +352,24 @@ export async function updatePlanCourseSortOrder(req, res, next) {
 export async function deletePlanCourse(req, res, next) {
   try {
     const { id } = req.params;
+
+    // BIZ-M1修复：删除前先读取 plan_courses 取其真实 course_id（plan_courses.id 与 courses.id 是不同命名空间）
+    // 原实现用 plan_courses.id 查询 teaching_assignments.course_id，导致悬空检测永远返回空
+    const planCourse = await prisma.plan_courses.findUnique({
+      where: { id: Number(id) },
+      select: {
+        id: true,
+        course_id: true,
+        start_semester: true,
+        end_semester: true,
+        course: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!planCourse) {
+      return fail(res, '方案课程不存在', 404);
+    }
+
     try {
       await prisma.plan_courses.delete({ where: { id: Number(id) } });
 
@@ -361,21 +379,23 @@ export async function deletePlanCourse(req, res, next) {
         userId: req.user?.id,
         ip: req.ip,
         result: 'success',
-        message: '删除培养方案课程',
-        details: { course_id: Number(id) },
+        message: `删除培养方案课程：${planCourse.course?.name || planCourse.course_id}`,
+        // BIZ-M1修复：审计字段同时记录 plan_course_id 与真实 course_id，避免命名混淆
+        details: {
+          plan_course_id: Number(id),
+          course_id: planCourse.course_id,
+          course_name: planCourse.course?.name,
+        },
       });
 
       // B3 修复（提示，不静默删除）：方案课程删除后，该课程下所有教学安排不再有开课窗口约束，
       // 可能成为孤儿。返回候选清单供前端提示用户确认是否清理（同一课程可能属于多个方案，故默认仅提示）。
-      const danglingAssignments = await prisma.teaching_assignments.findMany({
-        where: { course_id: Number(id) },
-        include: {
-          class: { select: { id: true, name: true } },
-          teacher: { select: { id: true, name: true } },
-        },
-        orderBy: [{ class_id: 'asc' }, { semester: 'asc' }],
-        take: 200,
-      });
+      // BIZ-M1修复：用真实 course_id 查询悬空排课，复用 findDanglingAssignments 统一口径
+      const danglingAssignments = await findDanglingAssignments(
+        planCourse.course_id,
+        planCourse.start_semester,
+        planCourse.end_semester
+      );
 
       success(res, { danglingAssignments }, '删除成功');
     } catch (e) {
@@ -479,6 +499,11 @@ export async function upsertSemester(req, res, next) {
 
 /**
  * 更新学期安排
+ *
+ * BIZ-M2修复：当 weekly_hours 变更时，同步更新该课程同学期未锁定的 teaching_assignments
+ * 的 weekly_hours 快照，避免方案矩阵与排课清单课时长期不一致。
+ * 已锁定（is_locked=true）的排课记录跳过更新，避免破坏锁定语义，
+ * 返回 skippedLockedCount 供前端提示用户手动处理。
  */
 export async function updateSemester(req, res, next) {
   try {
@@ -493,6 +518,39 @@ export async function updateSemester(req, res, next) {
       data,
     });
 
+    // BIZ-M2: 同步未锁定的排课记录快照
+    let syncedAssignments = 0;
+    let skippedLockedCount = 0;
+    if (weekly_hours !== undefined) {
+      // 查询该学期对应的 course_id + semester，用于定位排课记录
+      const planCourse = await prisma.plan_courses.findUnique({
+        where: { id: sem.plan_course_id },
+        select: { course_id: true },
+      });
+      if (planCourse) {
+        // 同步未锁定的排课记录
+        const updateResult = await prisma.teaching_assignments.updateMany({
+          where: {
+            course_id: planCourse.course_id,
+            semester: String(sem.semester),
+            is_locked: false,
+          },
+          data: { weekly_hours: Number(weekly_hours) },
+        });
+        syncedAssignments = updateResult.count;
+
+        // 统计被跳过的锁定记录数，供前端提示
+        const lockedCount = await prisma.teaching_assignments.count({
+          where: {
+            course_id: planCourse.course_id,
+            semester: String(sem.semester),
+            is_locked: true,
+          },
+        });
+        skippedLockedCount = lockedCount;
+      }
+    }
+
     await createAuditLog({
       module: 'trainingPlan',
       action: 'update',
@@ -500,10 +558,18 @@ export async function updateSemester(req, res, next) {
       ip: req.ip,
       result: 'success',
       message: '更新学期安排',
-      details: { semester_id: Number(id) },
+      details: {
+        semester_id: Number(id),
+        synced_assignments: syncedAssignments,
+        skipped_locked: skippedLockedCount,
+      },
     });
 
-    success(res, sem, '更新成功');
+    const message =
+      skippedLockedCount > 0
+        ? `更新成功，已同步 ${syncedAssignments} 条排课，${skippedLockedCount} 条锁定记录需手动处理`
+        : '更新成功';
+    success(res, { ...sem, syncedAssignments, skippedLockedCount }, message);
   } catch (e) {
     await createAuditLog({
       module: 'trainingPlan',

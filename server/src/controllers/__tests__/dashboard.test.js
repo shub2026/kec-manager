@@ -33,6 +33,7 @@ const mockPrisma = {
   teaching_assignments: {
     groupBy: vi.fn(),
     findMany: vi.fn(),
+    aggregate: vi.fn(),
   },
 };
 
@@ -177,6 +178,10 @@ describe('getDashboardStats', () => {
       { teacher_id: 1, _sum: { weekly_hours: 12 } },
       { teacher_id: 2, _sum: { weekly_hours: 8 } },
     ]);
+    // BIZ-M3: 已排课总周课时（与 groupBy 同源，12 + 8 = 20）
+    mockPrisma.teaching_assignments.aggregate.mockResolvedValue({
+      _sum: { weekly_hours: 20 },
+    });
   });
 
   it('无学期参数 → 返回错误', async () => {

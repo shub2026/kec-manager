@@ -994,7 +994,7 @@ onMounted(async () => {
   flex: 1;
   margin: -4px -10px;
   padding: var(--space-1) 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: background-color 0.15s ease;
 }
 .teacher-cell:hover {

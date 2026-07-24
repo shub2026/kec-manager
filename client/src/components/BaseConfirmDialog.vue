@@ -33,7 +33,7 @@ defineProps({
   cancelText: { type: String, default: '取消' },
   confirmType: { type: String, default: 'primary' }, // 'primary' | 'danger' | 'warning'
   loading: { type: Boolean, default: false },
-  width: { type: String, default: 'min(480px, 90vw)' },
+  width: { type: String, default: 'var(--dialog-width)' },
   closeOnClickModal: { type: Boolean, default: false },
 });
 

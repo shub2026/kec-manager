@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useMatrixCalculations } from './useMatrixCalculations';
 import { getPlanCourses, getPlanSemesters } from '../api/plan';
 
@@ -15,25 +15,17 @@ export function useCourseMatrixData(planId) {
   const semesterWeeks = ref([]);
   const globalWeeks = ref(18);
 
-  // ==================== 计算属性 ====================
-
-  /** 最大学期数（至少8） */
-  const maxSemester = computed(() => {
-    if (!rawCourses.value.length) return 8;
-    const max = Math.max(...rawCourses.value.map((c) => c.endSemester), 0);
-    return Math.max(max, 8);
-  });
-
   // ==================== 矩阵计算（委托给共享 composable） ====================
-  const { groups, isInRange, getHours, calcTotalHours, calcGroupTotal } = useMatrixCalculations(
-    rawCourses,
-    semesterWeeks
-  );
-
-  /** 所有课程总课时合计 */
-  const totalAllHours = computed(() => {
-    return groups.value.reduce((sum, g) => sum + calcGroupTotal(g), 0);
-  });
+  // FE-P2 优化：maxSemester / totalAllHours 统一由 composable 提供，消除重复定义
+  const {
+    groups,
+    maxSemester,
+    isInRange,
+    getHours,
+    calcTotalHours,
+    calcGroupTotal,
+    totalAllHours,
+  } = useMatrixCalculations(rawCourses, semesterWeeks);
 
   // ==================== 数据加载 ====================
 

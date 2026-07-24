@@ -74,7 +74,7 @@ function swatch(key) {
   padding: 10px 14px;
   background: var(--bg-subtle);
   border: 1px solid var(--border-light);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   color: var(--text-regular);
   line-height: 1.4;
@@ -106,7 +106,7 @@ function swatch(key) {
   display: inline-flex;
   align-items: center;
   padding: 1px var(--space-2);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
   line-height: 18px;
@@ -133,7 +133,7 @@ function swatch(key) {
   display: inline-block;
   width: 16px;
   height: 14px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-light);
   flex-shrink: 0;
 }

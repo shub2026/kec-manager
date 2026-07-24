@@ -24,6 +24,7 @@ import { errorHandler } from './middleware/error.js';
 import { convertResponseNaming, convertRequestNaming } from './middleware/naming.middleware.js';
 import { sanitizeBody, sanitizeQuery } from './middleware/xss.js';
 import { validateCsrf } from './middleware/csrf.js';
+import { auditMiddleware } from './middleware/audit.middleware.js'; // BIZ-H1修复：审计中间件兜底
 import { log } from './utils/logger.js'; // L1修复：使用winston logger
 import rateLimit from 'express-rate-limit';
 
@@ -133,6 +134,10 @@ app.use(sanitizeQuery); // 查询参数 XSS 过滤
 
 // S-04修复：CSRF Token 验证（在所有安全中间件之后，路由之前）
 app.use(validateCsrf);
+
+// BIZ-H1修复：审计中间件兜底，对所有写操作自动记录（req.user 可能为空，记录为匿名）
+// 挂载在 CSRF 之后、路由之前，确保所有写操作都被审计
+app.use(auditMiddleware);
 
 // 公开路由（无需认证）
 app.use('/api/auth', authRoutes);

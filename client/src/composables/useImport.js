@@ -82,7 +82,7 @@ export function showImportResultCard({
     .map(
       (
         s
-      ) => `<div style="flex:1;text-align:center;padding:6px 0;background:var(--bg-subtle);border-radius:4px;">
+      ) => `<div style="flex:1;text-align:center;padding:6px 0;background:var(--bg-subtle);border-radius:var(--radius-sm);">
       <div style="font-size:16px;font-weight:600;color:${s.color};line-height:1.2;">${s.value}</div>
       <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${s.label}</div>
     </div>`
@@ -104,7 +104,7 @@ export function showImportResultCard({
     const errList = document.createElement('div');
     errList.style.cssText =
       'max-height:0;overflow:hidden;transition:max-height 0.25s ease;margin-top:0;';
-    errList.innerHTML = `<div style="max-height:200px;overflow-y:auto;padding:8px 10px;background:var(--bg-subtle);border-radius:4px;border:1px solid var(--border-light);margin-top:6px;">${previewErrors
+    errList.innerHTML = `<div style="max-height:200px;overflow-y:auto;padding:8px 10px;background:var(--bg-subtle);border-radius:var(--radius-sm);border:1px solid var(--border-light);margin-top:6px;">${previewErrors
       .map(
         (err, i) =>
           `<div style="font-size:12px;color:var(--text-regular);padding:3px 0;border-bottom:1px dashed var(--border-light);display:flex;gap:6px;"><span style="color:var(--text-placeholder);flex-shrink:0;min-width:20px;">${i + 1}.</span><span style="flex:1;word-break:break-all;">${escapeHtml(err)}</span></div>`
@@ -137,7 +137,7 @@ export function showImportResultCard({
   const closeBtn2 = document.createElement('button');
   closeBtn2.textContent = '关闭';
   closeBtn2.style.cssText =
-    'padding:4px 12px;font-size:13px;border:1px solid var(--border-base);background:var(--bg-card);color:var(--text-regular);border-radius:4px;cursor:pointer;';
+    'padding:4px 12px;font-size:13px;border:1px solid var(--border-base);background:var(--bg-card);color:var(--text-regular);border-radius:var(--radius-sm);cursor:pointer;';
   closeBtn2.addEventListener('mouseenter', () => (closeBtn2.style.borderColor = c.primary));
   closeBtn2.addEventListener(
     'mouseleave',
@@ -207,7 +207,7 @@ function showImportProgressOverlay(onCancel) {
   // 居中卡片
   const card = document.createElement('div');
   card.style.cssText =
-    'background:var(--bg-card, #fff);border-radius:12px;padding:32px 40px;text-align:center;' +
+    'background:var(--bg-card, #fff);border-radius:var(--radius-lg);padding:32px 40px;text-align:center;' +
     'box-shadow:0 8px 32px rgba(0,0,0,0.18);min-width:260px;';
 
   // 跳动圆点动画
@@ -233,7 +233,7 @@ function showImportProgressOverlay(onCancel) {
   const cancelBtn = document.createElement('button');
   cancelBtn.textContent = '取消导入';
   cancelBtn.style.cssText =
-    'padding:8px 24px;font-size:13px;border-radius:6px;cursor:pointer;transition:all 0.2s;' +
+    'padding:8px 24px;font-size:13px;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.2s;' +
     'border:1px solid var(--border-base, #cbd5e1);background:var(--bg-card, #fff);color:var(--text-regular, #475569);';
   cancelBtn.addEventListener('mouseenter', () => {
     cancelBtn.style.borderColor = 'var(--brand-danger, #F87171)';

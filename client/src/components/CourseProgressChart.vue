@@ -137,14 +137,14 @@ const remainingHours = computed(() => {
 .progress-track {
   height: 10px;
   background: var(--bg-subtle);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .progress-filled {
   height: 100%;
   background: linear-gradient(90deg, var(--brand-success) 0%, var(--brand-success-soft) 100%);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   transition: width 0.6s var(--ease-out);
   min-width: 4px;
 }

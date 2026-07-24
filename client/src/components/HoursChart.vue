@@ -110,13 +110,13 @@ function barColor(item) {
   flex: 1;
   height: 20px;
   background: var(--bg-subtle);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .chart-bar {
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition:
     width 0.6s var(--ease-out),
     filter var(--dur-fast) var(--ease-out);

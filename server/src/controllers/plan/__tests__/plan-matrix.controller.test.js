@@ -548,7 +548,16 @@ describe('plan-matrix.controller', () => {
   // ════════════════════════════════════════════
   describe('deletePlanCourse', () => {
     it('正常删除应成功并记录审计日志', async () => {
+      // BIZ-M1修复：deletePlanCourse 先 findUnique 取真实 course_id 再删除
+      mockPrisma.plan_courses.findUnique.mockResolvedValue({
+        id: 5,
+        course_id: 100,
+        start_semester: 1,
+        end_semester: 2,
+        course: { id: 100, name: '测试课程' },
+      });
       mockPrisma.plan_courses.delete.mockResolvedValue({ id: 5 });
+      mockPrisma.teaching_assignments.findMany.mockResolvedValue([]);
 
       const req = mockReq({}, { id: '5' });
       const res = mockRes();

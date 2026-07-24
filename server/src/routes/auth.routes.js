@@ -82,9 +82,10 @@ const loginLimiter = rateLimit({
 });
 
 // 基于用户名的登录限流：防止针对单一账号的暴力破解
+// SEC-M3修复：收紧至 3/15min，配合账号锁定机制（SEC-M4）进一步压缩暴力破解空间
 const usernameLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 3,
   keyGenerator: (req, res) => req.body?.username || ipKeyGenerator(req, res),
   message: { success: false, message: '该账号登录尝试过于频繁，请15分钟后再试' },
   standardHeaders: true,

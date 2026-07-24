@@ -235,9 +235,30 @@ export async function updatePlan(req, res, next) {
           },
         });
         invalidateSortOrderCache('training_plans');
+        // BIZ-H1修复：补全 sort_order 交换分支的审计记录
+        await createAuditLog({
+          action: 'update',
+          module: 'trainingPlan',
+          userId: req.user?.id,
+          ip: req.ip,
+          details: { id: Number(id), sort_order: Number(sort_order), type: 'sort_order' },
+          result: 'success',
+          message: `调整培养方案排序：${plan.name} → ${sort_order}`,
+        });
         return success(res, plan, '更新成功');
       } catch (e) {
-        if (e.code === 'P2025') return fail(res, '培养方案不存在', 404);
+        if (e.code === 'P2025') {
+          await createAuditLog({
+            action: 'update',
+            module: 'trainingPlan',
+            userId: req.user?.id,
+            ip: req.ip,
+            details: { id: Number(id), sort_order: Number(sort_order), error: 'not_found' },
+            result: 'failed',
+            message: `调整培养方案排序失败：方案不存在`,
+          });
+          return fail(res, '培养方案不存在', 404);
+        }
         throw e;
       }
     }

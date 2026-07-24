@@ -1,6 +1,7 @@
 import { AuthService } from '../services/auth.service.js';
 import { prisma } from '../lib/prisma.js';
 import { log } from '../utils/logger.js'; // L1修复：使用winston logger
+import { consumeDownloadTicket } from '../services/download-ticket.service.js'; // SEC-M2修复
 
 // 用户状态缓存：短期内复用查询结果，避免每个请求都查库（TTL 5s，已从30秒缩短）
 const userStatusCache = new Map();
@@ -27,15 +28,29 @@ async function getActiveUserStatus(userId) {
   }
   const user = await prisma.users.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, is_active: true },
+    select: { id: true, role: true, is_active: true, must_change_password: true, token_version: true },
   });
   // M-3: null 用户显式存储 is_active: false，避免 {...null} 产生空对象
   const result = user
-    ? { role: user.role, is_active: user.is_active }
-    : { role: null, is_active: false };
+    ? {
+        role: user.role,
+        is_active: user.is_active,
+        must_change_password: user.must_change_password,
+        token_version: user.token_version,
+      }
+    : { role: null, is_active: false, must_change_password: false, token_version: null };
   userStatusCache.set(userId, { ...result, expireAt: now + USER_STATUS_TTL });
   return result;
 }
+
+// SEC-H2: 强制改密期间仅放行的接口路径（认证自身 + 改密）
+const MUST_CHANGE_PASSWORD_ALLOWED_PATHS = new Set([
+  '/api/auth/password',
+  '/api/auth/me',
+  '/api/auth/logout',
+  '/api/auth/refresh',
+  '/api/auth/csrf-token',
+]);
 
 export async function authMiddleware(req, res, next) {
   let token = null;
@@ -56,7 +71,48 @@ export async function authMiddleware(req, res, next) {
       token = cookies['token'];
     }
   }
+  // 备选：从查询参数获取一次性下载票据（SEC-M2修复，替代 download_token）
+  // 票据为 24 字节随机 hex，30s 过期，单次消费，避免 JWT 进入 URL/日志
+  if (!token && req.query.ticket) {
+    const ticketInfo = consumeDownloadTicket(req.query.ticket);
+    if (ticketInfo) {
+      try {
+        const status = await getActiveUserStatus(ticketInfo.userId);
+        if (!status || !status.is_active) {
+          return res.status(401).json({
+            success: false,
+            message: '账号不存在或已被禁用',
+          });
+        }
+        // SEC-H1: 票据签发后若用户 token_version 变化（改密/重置），票据仍可能有效
+        // 但票据 30s 过期且一次性，风险可控；这里仍校验用户状态确保账号未被禁用
+        // SEC-H2: 强制改密期间禁止下载（导出敏感数据）
+        if (status.must_change_password) {
+          return res.status(403).json({
+            success: false,
+            code: 'MUST_CHANGE_PASSWORD',
+            message: '请先修改初始密码',
+          });
+        }
+        req.user = {
+          id: ticketInfo.userId,
+          username: ticketInfo.username,
+          role: status.role,
+        };
+      } catch (err) {
+        log.error('下载票据用户状态校验失败', { message: err.message });
+        return res.status(500).json({ success: false, message: '服务内部错误' });
+      }
+      return next();
+    }
+    return res.status(401).json({
+      success: false,
+      message: '下载票据无效或已过期',
+    });
+  }
+
   // 备选：从查询参数获取短期下载令牌（用于 window.open 等场景，有效期60秒）
+  // SEC-M2: 已废弃，保留向后兼容，建议前端迁移到 /api/export/issue-ticket + ?ticket=
   if (!token && req.query.download_token) {
     const decoded = AuthService.verifyDownloadToken(req.query.download_token);
     if (decoded) {
@@ -67,6 +123,21 @@ export async function authMiddleware(req, res, next) {
           return res.status(401).json({
             success: false,
             message: '账号不存在或已被禁用',
+          });
+        }
+        // SEC-H1: 下载令牌同样校验 token_version
+        if (decoded.v !== undefined && status.token_version !== null && decoded.v !== status.token_version) {
+          return res.status(401).json({
+            success: false,
+            message: '凭证已失效，请重新登录',
+          });
+        }
+        // SEC-H2: 强制改密期间禁止下载（导出敏感数据）
+        if (status.must_change_password) {
+          return res.status(403).json({
+            success: false,
+            code: 'MUST_CHANGE_PASSWORD',
+            message: '请先修改初始密码',
           });
         }
         req.user = { ...decoded, role: status.role };
@@ -118,6 +189,24 @@ export async function authMiddleware(req, res, next) {
       return res.status(401).json({
         success: false,
         message: '账号不存在或已被禁用，请重新登录',
+      });
+    }
+    // SEC-H1: 校验 token_version，密码重置/会话吊销后旧令牌立即失效
+    // （旧令牌 payload 不含 v 字段，decoded.v === undefined；此时若用户 token_version > 0 则视为已吊销）
+    if (status.token_version !== null) {
+      if (decoded.v === undefined || decoded.v !== status.token_version) {
+        return res.status(401).json({
+          success: false,
+          message: '凭证已失效，请重新登录',
+        });
+      }
+    }
+    // SEC-H2: 强制改密期间仅放行认证自身接口
+    if (status.must_change_password && !MUST_CHANGE_PASSWORD_ALLOWED_PATHS.has(req.path)) {
+      return res.status(403).json({
+        success: false,
+        code: 'MUST_CHANGE_PASSWORD',
+        message: '请先修改初始密码',
       });
     }
     // 使用数据库中的最新角色，避免旧 token 中的角色信息过期

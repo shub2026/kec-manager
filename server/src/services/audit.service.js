@@ -17,12 +17,19 @@ import logger from '../utils/logger.js';
 export async function createAuditLog({ action, module, userId, ip, details, result, message }) {
   try {
     // details 序列化并限制最大长度，防止审计表膨胀
+    // BIZ-8-3修复：截断时保持 JSON 结构合法，避免下游解析失败
     let detailsStr = details;
     if (typeof details === 'object' && details !== null) {
       detailsStr = JSON.stringify(details);
     }
     if (typeof detailsStr === 'string' && detailsStr.length > 2000) {
-      detailsStr = detailsStr.slice(0, 1997) + '...';
+      // 改为合法的截断对象，而非破坏 JSON 结构的字符串切片
+      const truncated = detailsStr.slice(0, 1900);
+      detailsStr = JSON.stringify({
+        truncated: true,
+        preview: truncated,
+        original_length: detailsStr.length,
+      });
     }
 
     await prisma.audit_logs.create({

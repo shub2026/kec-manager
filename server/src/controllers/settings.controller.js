@@ -6,6 +6,8 @@ import { log } from '../utils/logger.js';
 import { DEFAULT_SEMESTER } from '../constants/index.js';
 import { invalidateDurationCache } from '../services/class.service.js';
 import { parseSemesterString, invalidateSemesterCache } from '../services/settings.service.js';
+import { invalidateQueryFilterCache } from './query.controller.js'; // BIZ-M6修复
+import { invalidateFilterRelationsCache } from './class.controller.js'; // BIZ-M6修复
 
 const DEFAULT_SETTINGS = {
   current_semester: { value: DEFAULT_SEMESTER, description: '当前学期' },
@@ -237,6 +239,9 @@ export async function resetSystem(req, res, next) {
       await tx.colleges.deleteMany();
       await tx.training_levels.deleteMany();
       await tx.system_settings.deleteMany();
+      // BIZ-M6修复：清理 class_combinations 表
+      // 因 classes.combination_id 为 onDelete: SetNull，班级删除后组合记录会变为无成员孤儿永久残留
+      await tx.class_combinations.deleteMany();
 
       // 3. 先清空审计日志，再在事务内重新写入本次重置记录，确保破坏性操作留痕
       // S-10修复：删除前记录快照数量
@@ -269,9 +274,16 @@ export async function resetSystem(req, res, next) {
       });
     });
     // 审计修复：系统重置后清除所有缓存，避免残留旧值
+    // BIZ-M6修复：补调查询缓存与筛选器关系缓存失效，避免重置后立即查询命中旧缓存
     invalidateSemesterCache();
     invalidateDurationCache();
-    success(res, null, '系统已重置，所有业务数据和教师信息已清空，用户账号已保留');
+    invalidateQueryFilterCache();
+    invalidateFilterRelationsCache();
+    success(
+      res,
+      null,
+      '系统已重置，所有业务数据和教师信息已清空，用户账号已保留。课时设置已清空，请重新配置后再排课'
+    );
   } catch (e) {
     await createAuditLog({
       action: 'delete',

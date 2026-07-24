@@ -12,16 +12,21 @@ import { log } from '../utils/logger.js';
 
 /**
  * 校验候选班级列表是否全部同学院（合班业务约束）。
+ * BIZ-M4修复：增加事务客户端参数 txClient，避免 TOCTOU——并发场景下校验通过后
+ * 伙伴班级学院可能被另一事务修改，导致合班伙伴最终不同学院。
+ * 优先使用传入的事务客户端查询；若未传入则降级使用全局 prisma（向后兼容）。
  * @param {number[]} classIds - 班级 ID 列表（不含当前班级自身）
  * @param {number} collegeId - 当前班级所属学院 ID
+ * @param {object} [txClient] - Prisma 事务客户端（推荐传入）
  * @returns {Promise<{ok: boolean, message?: string}>}
  */
-export async function validateSameCollege(classIds, collegeId) {
+export async function validateSameCollege(classIds, collegeId, txClient) {
   if (!Array.isArray(classIds) || classIds.length === 0) return { ok: true };
   if (!collegeId) {
     return { ok: false, message: '当前班级未设置学院，无法添加合班伙伴' };
   }
-  const classes = await prisma.classes.findMany({
+  const client = txClient || prisma;
+  const classes = await client.classes.findMany({
     where: { id: { in: classIds } },
     select: { id: true, name: true, college_id: true },
   });
@@ -81,8 +86,9 @@ export async function applyCombination(tx, classId, partnerClassIds, currentColl
   }
 
   // 同学院校验（使用当前班级学院 ID）
+  // BIZ-M4修复：传入事务客户端 tx，确保校验在事务内读取，避免 TOCTOU
   const collegeId = currentCollegeId != null ? currentCollegeId : currentClass.college_id;
-  const validation = await validateSameCollege(partnerClassIds, collegeId);
+  const validation = await validateSameCollege(partnerClassIds, collegeId, tx);
   if (!validation.ok) {
     throw new Error(validation.message);
   }

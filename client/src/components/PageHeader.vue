@@ -70,7 +70,7 @@ defineProps({
   width: 28px;
   height: 28px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -99,7 +99,7 @@ defineProps({
   color: var(--text-secondary);
   background: var(--brand-primary-soft);
   padding: 2px var(--space-2);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-weight: 500;
   white-space: nowrap;
 }

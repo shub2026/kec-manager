@@ -87,7 +87,7 @@
           </td>
           <!-- 总课时 -->
           <td class="matrix-cell matrix-total-cell">
-            <strong>{{ calcTotalHours(course) }}</strong>
+            <strong>{{ course.totalHours }}</strong>
           </td>
           <!-- 操作按钮 -->
           <td v-if="!readonly" class="matrix-cell matrix-action-cell">
@@ -126,7 +126,7 @@
         <tr class="matrix-subtotal-row">
           <td class="matrix-fixed-col matrix-subtotal-label">小计</td>
           <td v-for="s in maxSemester" :key="s" class="matrix-cell matrix-subtotal-cell">
-            {{ calcSemesterSubtotal(group, s) }}
+            {{ subtotals[group.type]?.[s - 1] || 0 }}
           </td>
           <td class="matrix-cell matrix-subtotal-cell">
             <strong>{{ calcGroupTotal(group) }}</strong>
@@ -139,7 +139,7 @@
         <tr>
           <td class="matrix-fixed-col matrix-grand-total-label">总计</td>
           <td v-for="s in maxSemester" :key="s" class="matrix-cell matrix-grand-total-cell">
-            {{ calcGrandTotalSemester(s) }}
+            {{ grandTotals[s - 1] }}
           </td>
           <td class="matrix-cell matrix-grand-total-cell">
             <strong>{{ totalAllHours }}</strong>
@@ -200,42 +200,57 @@ defineEmits([
   'update-global-weeks',
 ]);
 
-// 计算最大学期数
-const maxSemester = computed(() => {
-  if (!props.rawCourses.length) return 8;
-  const max = Math.max(...props.rawCourses.map((c) => c.endSemester), 0);
-  return Math.max(max, 8);
-});
-
 // 将 prop 包装为 computed ref 供 composable 使用
 const rawCoursesRef = computed(() => props.rawCourses);
 
-// 使用共享计算逻辑
+// 使用共享计算逻辑（maxSemester / subtotals / grandTotals 均为 computed，见 composable）
 const {
   groups,
+  maxSemester,
   isInRange,
   getHours,
   calcTotalHours,
   calcGroupTotal,
   isFirstInGroup,
   isLastInGroup,
+  subtotals,
+  grandTotals,
 } = useMatrixCalculations(rawCoursesRef);
 
-// 获取某学期教材信息（返回数组，包含状态）
+// FE-P2 优化：预计算教材网格 Map<courseId, Map<semester, textbookArray>>
+// 返回稳定引用，避免原先 getTextbooks 每次 .map() 生成新对象导致 v-for 无法复用
+const textbookGrid = computed(() => {
+  const grid = new Map();
+  groups.value.forEach((group) => {
+    group.courses.forEach((course) => {
+      const semMap = new Map();
+      course.semesters.forEach((sem) => {
+        if (sem.planTextbooks?.length) {
+          semMap.set(
+            sem.semester,
+            sem.planTextbooks.map((t) => ({
+              id: t.textbooks?.id,
+              title: t.textbooks?.title,
+              isbn: t.textbooks?.isbn,
+              publisher: t.textbooks?.publisher,
+              isActive: t.textbooks?.isActive ?? true,
+              isRequired: t.isRequired ?? true,
+            }))
+          );
+        }
+      });
+      grid.set(course.id, semMap);
+    });
+  });
+  return grid;
+});
+
+// 获取某学期教材信息（从预计算网格读取，O(1)，返回稳定引用）
 function getTextbooks(course, semester) {
-  const sem = course.semesters.find((s) => s.semester === semester);
-  if (!sem || !sem.planTextbooks?.length) return [];
-  return sem.planTextbooks.map((t) => ({
-    id: t.textbooks?.id,
-    title: t.textbooks?.title,
-    isbn: t.textbooks?.isbn,
-    publisher: t.textbooks?.publisher,
-    isActive: t.textbooks?.isActive ?? true,
-    isRequired: t.isRequired ?? true,
-  }));
+  return textbookGrid.value.get(course.id)?.get(semester) || [];
 }
 
-// 单元格样式
+// 单元格样式（getHours 已改为 O(1) Map 查找）
 function cellClass(course, semester) {
   if (!isInRange(course, semester)) return 'cell-out-of-range';
   const hours = getHours(course, semester) || 0;
@@ -243,25 +258,6 @@ function cellClass(course, semester) {
   if (hours <= 2) return 'cell-low';
   if (hours <= 4) return 'cell-mid';
   return 'cell-high';
-}
-
-// 分组学期小计
-function calcSemesterSubtotal(group, semester) {
-  let total = 0;
-  group.courses.forEach((c) => {
-    if (isInRange(c, semester)) {
-      const hours = getHours(c, semester);
-      if (hours !== null) {
-        total += hours;
-      }
-    }
-  });
-  return total;
-}
-
-// 所有分组的学期总计（用于总计行）
-function calcGrandTotalSemester(semester) {
-  return groups.value.reduce((sum, g) => sum + calcSemesterSubtotal(g, semester), 0);
 }
 </script>
 
@@ -271,7 +267,7 @@ function calcGrandTotalSemester(semester) {
   flex: 1;
   overflow: auto;
   border: 1px solid var(--border-light);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* 手机端:取消 flex:1,让矩阵表格按内容自然展开
@@ -585,7 +581,7 @@ function calcGrandTotalSemester(semester) {
   padding: var(--space-3) var(--space-4);
   background: var(--bg-card);
   border: 1px solid var(--border-light);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -781,7 +777,7 @@ function calcGrandTotalSemester(semester) {
 .textbook-tooltip .tooltip-status {
   font-weight: 600;
   padding: 0 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
 }
 

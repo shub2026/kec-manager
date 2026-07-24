@@ -348,7 +348,7 @@ function handlePasswordChangeSuccess() {
 
 .layout-aside :deep(.el-menu)::-webkit-scrollbar-thumb {
   background: var(--sidebar-scrollbar);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .layout-aside :deep(.el-menu)::-webkit-scrollbar-thumb:hover {
@@ -369,7 +369,7 @@ function handlePasswordChangeSuccess() {
   top: var(--space-2);
   bottom: var(--space-2);
   width: 3px;
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--brand-primary);
   transition: height var(--dur-fast) var(--ease-out);
 }
@@ -429,7 +429,7 @@ function handlePasswordChangeSuccess() {
 .user-avatar {
   width: 34px;
   height: 34px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--brand-primary);
   color: #fff;
   display: flex;

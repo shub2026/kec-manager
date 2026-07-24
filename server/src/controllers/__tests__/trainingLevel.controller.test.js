@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const mockPrisma = {
   training_levels: {
     findMany: vi.fn(),
+    findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -379,6 +380,7 @@ describe('deleteTrainingLevel', () => {
     mockPrisma.classes.count.mockResolvedValue(0);
     mockPrisma.teacher_training_levels.count.mockResolvedValue(0);
     mockPrisma.training_plans.count.mockResolvedValue(0);
+    mockPrisma.training_levels.findUnique.mockResolvedValue({ id: 1, name: '已删层次' });
     mockPrisma.training_levels.delete.mockResolvedValue({ id: 1, name: '已删层次' });
   });
 

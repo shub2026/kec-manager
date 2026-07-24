@@ -945,7 +945,10 @@ describe('resetUserPassword', () => {
       })
     );
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: true, message: '密码重置成功，该用户下次登录须修改密码' })
+      expect.objectContaining({
+        success: true,
+        message: '密码重置成功，该用户其他设备已被强制下线，下次登录须修改密码',
+      })
     );
   });
 
