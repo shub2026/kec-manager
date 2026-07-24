@@ -108,7 +108,7 @@ function barColor(item) {
 
 .chart-bar-wrap {
   flex: 1;
-  height: 20px;
+  height: 10px;
   background: var(--bg-subtle);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -120,7 +120,7 @@ function barColor(item) {
   transition:
     width 0.6s var(--ease-out),
     filter var(--dur-fast) var(--ease-out);
-  min-width: 4px;
+  min-width: 3px;
 }
 
 .chart-row:hover .chart-bar {

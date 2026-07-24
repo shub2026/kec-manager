@@ -162,8 +162,14 @@ function barColor(idx) {
   display: block;
   height: 100%;
   border-radius: var(--radius-sm);
-  transition: width 0.6s var(--ease-out);
+  transition:
+    width 0.6s var(--ease-out),
+    filter var(--dur-fast) var(--ease-out);
   min-width: 3px;
+}
+
+.table-row:hover .hours-bar {
+  filter: brightness(1.12);
 }
 
 .hours-value {

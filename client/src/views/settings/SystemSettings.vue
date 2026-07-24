@@ -195,10 +195,11 @@ onMounted(() => {
   letter-spacing: 0.02em;
 }
 
-/* 内部卡片融入外层容器，不重复投影 */
+/* 内部卡片融入外层容器，不重复投影；统一宽度占容器 60% 保持呼吸感 */
 .settings-tabs :deep(.el-card) {
   box-shadow: none;
   border: none;
+  max-width: 60%;
 }
 
 /* 卡片整体呼吸感 */
@@ -218,6 +219,10 @@ onMounted(() => {
 
   .settings-card {
     padding: var(--space-3) var(--space-4);
+  }
+
+  .settings-tabs :deep(.el-card) {
+    max-width: 100%;
   }
 
   .settings-tabs :deep(.el-card__header) {

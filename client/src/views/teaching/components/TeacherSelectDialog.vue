@@ -4,6 +4,7 @@
     title="选择任课教师"
     :width="isMobile ? '95%' : '80%'"
     :style="{ maxWidth: isMobile ? 'none' : '1400px' }"
+    top="8vh"
     destroy-on-close
     class="teacher-dialog"
   >

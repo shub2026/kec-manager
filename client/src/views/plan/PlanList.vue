@@ -136,21 +136,23 @@
         </el-form-item>
 
         <el-form-item label="关联方式" required>
-          <el-radio-group
-            v-model="relationMode"
-            class="relation-mode-group"
-            @change="handleModeChange"
-          >
-            <el-radio value="major">按专业</el-radio>
-            <el-radio value="trainingLevel">按层次</el-radio>
-          </el-radio-group>
-          <div class="form-hint">
-            <span v-if="relationMode === 'major'"
-              >该方案关联特定专业，适用于同一专业的培养方案</span
+          <div class="relation-mode-wrapper">
+            <el-radio-group
+              v-model="relationMode"
+              class="relation-mode-group"
+              @change="handleModeChange"
             >
-            <span v-else-if="relationMode === 'trainingLevel'"
-              >该方案关联特定培养层次，适用于跨专业的统一方案</span
-            >
+              <el-radio value="major">按专业</el-radio>
+              <el-radio value="trainingLevel">按层次</el-radio>
+            </el-radio-group>
+            <div class="form-hint">
+              <span v-if="relationMode === 'major'"
+                >该方案关联特定专业，适用于同一专业的培养方案</span
+              >
+              <span v-else-if="relationMode === 'trainingLevel'"
+                >该方案关联特定培养层次，适用于跨专业的统一方案</span
+              >
+            </div>
           </div>
         </el-form-item>
 
@@ -493,8 +495,20 @@ onActivated(() => {
 </script>
 
 <style scoped>
+.relation-mode-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
 .relation-mode-group {
   display: flex;
   gap: var(--space-4);
+}
+
+.form-hint {
+  margin-top: var(--space-3);
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.5;
 }
 </style>

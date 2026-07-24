@@ -1,5 +1,5 @@
 <template>
-  <el-card class="danger-card">
+  <el-card>
     <template #header>
       <SettingsCardHeader dot="red" tag="数据维护" tag-type="danger">数据管理</SettingsCardHeader>
     </template>
@@ -20,7 +20,6 @@
           <span class="header-spacer"></span>
           <el-button
             type="danger"
-            size="small"
             :loading="resetting"
             @click="$emit('reset', 'settings')"
           >
@@ -42,7 +41,6 @@
           <el-button
             type="warning"
             plain
-            size="small"
             :loading="resetting"
             @click="$emit('reset', 'audit-logs')"
           >
@@ -72,10 +70,6 @@ defineEmits(['reset']);
 </script>
 
 <style scoped>
-.danger-card {
-  max-width: 60%;
-}
-
 /* 顶部提示 - 轻量内联风格 */
 .danger-hint {
   display: flex;
@@ -99,28 +93,20 @@ defineEmits(['reset']);
 .reset-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: var(--space-6);
 }
 
 .reset-item {
-  padding: var(--space-5) 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.reset-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.reset-item:first-child {
-  padding-top: 0;
+  padding: var(--space-5) var(--space-5);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
 }
 
 .reset-item-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
 .reset-item-header h4 {
