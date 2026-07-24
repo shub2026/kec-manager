@@ -3,7 +3,7 @@
     <template #header>
       <span class="card-title">
         <el-icon><Document /></el-icon>
-        课程课时概览
+        课时概览
       </span>
     </template>
 

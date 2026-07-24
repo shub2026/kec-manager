@@ -3,7 +3,7 @@
     <template #header>
       <span class="card-title">
         <el-icon><TrendCharts /></el-icon>
-        课程排课进度
+        排课进度
       </span>
     </template>
 
