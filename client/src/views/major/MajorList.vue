@@ -129,6 +129,47 @@ import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'MajorList' });
 
+const formRef = ref(null);
+const rules = {
+  name: [
+    { required: true, message: '请输入专业名称', trigger: 'blur' },
+    { min: 2, max: 100, message: '名称长度应在 2-100 个字符之间', trigger: 'blur' },
+  ],
+};
+
+const {
+  list,
+  loading,
+  error,
+  load,
+  dialogVisible,
+  saving,
+  form,
+  handleMoveUp,
+  handleMoveDown,
+  openDialog,
+  handleSave,
+  handleDelete,
+  deleteConfirmVisible,
+  deleting,
+  deleteWarning,
+  confirmDelete,
+  cancelDelete,
+} = useCrudList(
+  { list: getMajors, create: createMajor, update: updateMajor, remove: deleteMajor },
+  {
+    nameLabel: '专业名称',
+    formRef,
+    getDeleteWarning: (row) => {
+      const parts = [];
+      if (row.classCount > 0) parts.push(`${row.classCount} 个班级`);
+      if (row.planCount > 0) parts.push(`${row.planCount} 个培养方案`);
+      if (parts.length === 0) return '';
+      return `该专业仍被引用（${parts.join('、')}），删除将被拒绝。请先解除上述关联后再删除。`;
+    },
+  }
+);
+
 // A2：补搜索工具条，维持"标题→筛选→表格"节奏；客户端按名称/编码过滤
 const keyword = ref('');
 const filteredList = computed(() => {
@@ -157,44 +198,4 @@ watch(filteredList, (l) => {
   const maxPage = Math.max(1, Math.ceil((l?.length || 0) / pageSize.value));
   if (currentPage.value > maxPage) currentPage.value = maxPage;
 });
-
-const formRef = ref(null);
-const rules = {
-  name: [
-    { required: true, message: '请输入专业名称', trigger: 'blur' },
-    { min: 2, max: 100, message: '名称长度应在 2-100 个字符之间', trigger: 'blur' },
-  ],
-};
-
-const {
-  list,
-  loading,
-  error,
-  dialogVisible,
-  saving,
-  form,
-  handleMoveUp,
-  handleMoveDown,
-  openDialog,
-  handleSave,
-  handleDelete,
-  deleteConfirmVisible,
-  deleting,
-  deleteWarning,
-  confirmDelete,
-  cancelDelete,
-} = useCrudList(
-  { list: getMajors, create: createMajor, update: updateMajor, remove: deleteMajor },
-  {
-    nameLabel: '专业名称',
-    formRef,
-    getDeleteWarning: (row) => {
-      const parts = [];
-      if (row.classCount > 0) parts.push(`${row.classCount} 个班级`);
-      if (row.planCount > 0) parts.push(`${row.planCount} 个培养方案`);
-      if (parts.length === 0) return '';
-      return `该专业仍被引用（${parts.join('、')}），删除将被拒绝。请先解除上述关联后再删除。`;
-    },
-  }
-);
 </script>

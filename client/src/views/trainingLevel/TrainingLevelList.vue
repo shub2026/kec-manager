@@ -133,35 +133,6 @@ import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'TrainingLevelList' });
 
-// A2：补搜索工具条，维持"标题→筛选→表格"节奏；客户端按名称/编码过滤
-const keyword = ref('');
-const filteredList = computed(() => {
-  const kw = keyword.value.trim().toLowerCase();
-  if (!kw) return list.value;
-  return list.value.filter(
-    (i) =>
-      (i.name && i.name.toLowerCase().includes(kw)) || (i.code && i.code.toLowerCase().includes(kw))
-  );
-});
-const realIndex = (row) => filteredList.value.findIndex((i) => i.id === row.id);
-
-// P1-2：客户端切片分页（对齐 Plan/Course），低频实体无需后端分页
-const currentPage = ref(1);
-const pageSize = ref(20);
-const pagedList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredList.value.slice(start, start + pageSize.value);
-});
-// 筛选变化后回到第 1 页，避免停留在空页
-watch(keyword, () => {
-  currentPage.value = 1;
-});
-// 数据缩减后收敛页码
-watch(filteredList, (l) => {
-  const maxPage = Math.max(1, Math.ceil((l?.length || 0) / pageSize.value));
-  if (currentPage.value > maxPage) currentPage.value = maxPage;
-});
-
 const formRef = ref(null);
 const rules = {
   name: [
@@ -174,6 +145,7 @@ const {
   list,
   loading,
   error,
+  load,
   dialogVisible,
   saving,
   form,
@@ -207,4 +179,33 @@ const {
     },
   }
 );
+
+// A2：补搜索工具条，维持"标题→筛选→表格"节奏；客户端按名称/编码过滤
+const keyword = ref('');
+const filteredList = computed(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  if (!kw) return list.value;
+  return list.value.filter(
+    (i) =>
+      (i.name && i.name.toLowerCase().includes(kw)) || (i.code && i.code.toLowerCase().includes(kw))
+  );
+});
+const realIndex = (row) => filteredList.value.findIndex((i) => i.id === row.id);
+
+// P1-2：客户端切片分页（对齐 Plan/Course），低频实体无需后端分页
+const currentPage = ref(1);
+const pageSize = ref(20);
+const pagedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredList.value.slice(start, start + pageSize.value);
+});
+// 筛选变化后回到第 1 页，避免停留在空页
+watch(keyword, () => {
+  currentPage.value = 1;
+});
+// 数据缩减后收敛页码
+watch(filteredList, (l) => {
+  const maxPage = Math.max(1, Math.ceil((l?.length || 0) / pageSize.value));
+  if (currentPage.value > maxPage) currentPage.value = maxPage;
+});
 </script>

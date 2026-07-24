@@ -130,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onActivated, onUnmounted } from 'vue';
+import { ref, onMounted, computed, onActivated, onUnmounted, watch } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import 'element-plus/es/components/notification/style/css';
 import {
@@ -298,6 +298,19 @@ function resetPaginationAndLoad() {
   pagination.value.page = 1;
   load();
 }
+
+// 名称输入防抖搜索：输入停顿 300ms 后自动触发查询，无需按回车
+let _nameTimer = null;
+watch(
+  () => filters.value.name,
+  () => {
+    clearTimeout(_nameTimer);
+    _nameTimer = setTimeout(() => {
+      pagination.value.page = 1;
+      load();
+    }, 300);
+  }
+);
 
 function handlePageChange(page) {
   pagination.value.page = page;
@@ -704,6 +717,7 @@ onActivated(() => {
 });
 
 onUnmounted(() => {
+  clearTimeout(_nameTimer);
   if (_leftSchoolResolve) {
     _leftSchoolResolve(false);
     _leftSchoolResolve = null;
