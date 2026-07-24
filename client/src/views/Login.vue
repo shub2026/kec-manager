@@ -1,89 +1,214 @@
 <template>
   <div class="login-page">
-    <div class="login-container">
-      <!-- 顶部品牌 -->
-      <div class="brand">
-        <div class="brand-logo">
-          <img src="/icons.svg" alt="" />
-        </div>
-        <div class="brand-info">
-          <h1 class="brand-name">KEC 课程管理平台</h1>
-          <p class="brand-tagline">课程编排 &middot; 培养方案 &middot; 教材管理</p>
-        </div>
+    <!-- 左侧品牌/插画区 -->
+    <aside class="login-brand" aria-hidden="true">
+      <div class="brand-bg">
+        <div class="bg-blob blob-1"></div>
+        <div class="bg-blob blob-2"></div>
+        <div class="bg-blob blob-3"></div>
       </div>
 
-      <!-- 表单区 -->
-      <div class="login-card">
-        <div class="card-accent"></div>
+      <div class="brand-inner">
+        <header class="brand-header">
+          <span class="brand-mark">K</span>
+          <div class="brand-text">
+            <h1 class="brand-name"><span class="brand-name__logo">KEC</span>课程管理平台</h1>
+            <p class="brand-slogan">培养方案 · 课程管理 · 自动排课 · 教材管理</p>
+          </div>
+        </header>
 
-        <div class="card-header">
-          <h2>{{ organizationName }}</h2>
+        <div class="brand-illustration">
+          <svg viewBox="0 0 520 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="k-top" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#7fc1ff"/>
+                <stop offset="100%" stop-color="#5aa3ff"/>
+              </linearGradient>
+              <linearGradient id="k-front" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#4a9af5"/>
+                <stop offset="100%" stop-color="#1c82f5"/>
+              </linearGradient>
+              <linearGradient id="k-side" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#1470d8"/>
+                <stop offset="100%" stop-color="#0d5cb5"/>
+              </linearGradient>
+              <linearGradient id="cloud-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="100%" stop-color="#d6eaff"/>
+              </linearGradient>
+              <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#1c82f5" flood-opacity="0.10"/>
+              </filter>
+              <filter id="card-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1c82f5" flood-opacity="0.12"/>
+              </filter>
+            </defs>
+
+            <!-- 柔和背景光斑 -->
+            <ellipse cx="260" cy="220" rx="220" ry="120" fill="#e8f3ff" opacity="0.6"/>
+
+            <!-- 底座平台 -->
+            <g transform="translate(110, 260)">
+              <path d="M0,20 L150,0 L300,20 L150,40 Z" fill="#ffffff"/>
+              <path d="M0,20 L150,40 L150,56 L0,36 Z" fill="#dbeafe"/>
+              <path d="M150,40 L300,20 L300,36 L150,56 Z" fill="#bfdbfe"/>
+            </g>
+
+            <!-- 立体 K -->
+            <g transform="translate(190, 140)" filter="url(#soft-shadow)">
+              <!-- 厚度 -->
+              <path d="M10,10 L50,10 L50,130 L10,130 Z" fill="url(#k-side)"/>
+              <path d="M10,130 L50,130 L58,138 L18,138 Z" fill="#0a4a8a"/>
+              <!-- 主体 -->
+              <path d="M10,10 L50,10 L50,50 L80,10 L120,10 L70,70 L120,130 L80,130 L50,90 L50,130 L10,130 Z" fill="url(#k-front)"/>
+              <!-- 顶面 -->
+              <path d="M10,10 L14,6 L54,6 L50,10 Z" fill="url(#k-top)"/>
+              <path d="M50,10 L54,6 L84,6 L80,10 Z" fill="url(#k-top)"/>
+              <path d="M80,10 L84,6 L124,6 L120,10 Z" fill="url(#k-top)"/>
+              <path d="M50,50 L54,46 L84,46 L80,50 Z" fill="url(#k-top)"/>
+              <path d="M50,90 L54,86 L84,86 L80,90 Z" fill="url(#k-top)"/>
+              <!-- 右侧厚度 -->
+              <path d="M120,10 L124,6 L124,126 L120,130 Z" fill="url(#k-side)"/>
+              <path d="M80,10 L84,6 L84,86 L80,90 Z" fill="url(#k-side)"/>
+            </g>
+
+            <!-- 左侧课程卡 -->
+            <g class="ill-card ill-card--left" transform="translate(60, 160)" filter="url(#card-shadow)">
+              <rect x="0" y="0" width="90" height="70" rx="10" fill="white" fill-opacity="0.95" stroke="#e1effe" stroke-width="1"/>
+              <rect x="0" y="0" width="90" height="18" rx="10" fill="#eaf5ff"/>
+              <rect x="0" y="0" width="90" height="18" rx="0" fill="#eaf5ff"/>
+              <circle cx="12" cy="9" r="3" fill="#1c82f5" opacity="0.5"/>
+              <rect x="22" y="7" width="40" height="4" rx="2" fill="#1c82f5" opacity="0.25"/>
+              <rect x="12" y="28" width="66" height="5" rx="2.5" fill="#1c82f5" opacity="0.15"/>
+              <rect x="12" y="38" width="52" height="5" rx="2.5" fill="#1c82f5" opacity="0.12"/>
+              <rect x="12" y="48" width="60" height="5" rx="2.5" fill="#1c82f5" opacity="0.12"/>
+            </g>
+
+            <!-- 右侧统计卡 -->
+            <g class="ill-card ill-card--right" transform="translate(360, 150)" filter="url(#card-shadow)">
+              <rect x="0" y="0" width="90" height="80" rx="10" fill="white" fill-opacity="0.95" stroke="#e1effe" stroke-width="1"/>
+              <rect x="12" y="12" width="28" height="4" rx="2" fill="#1c82f5" opacity="0.3"/>
+              <rect x="12" y="22" width="48" height="8" rx="2" fill="#1c82f5" opacity="0.12"/>
+              <rect x="12" y="38" width="10" height="28" rx="3" fill="#1c82f5" opacity="0.18"/>
+              <rect x="26" y="46" width="10" height="20" rx="3" fill="#1c82f5" opacity="0.28"/>
+              <rect x="40" y="38" width="10" height="28" rx="3" fill="#1c82f5" opacity="0.22"/>
+              <rect x="54" y="50" width="10" height="16" rx="3" fill="#1c82f5" opacity="0.35"/>
+              <rect x="68" y="42" width="10" height="24" rx="3" fill="#1c82f5" opacity="0.25"/>
+            </g>
+
+            <!-- 云 -->
+            <g class="ill-cloud" transform="translate(360, 60)" filter="url(#card-shadow)">
+              <path d="M20,30 Q25,10 45,15 Q55,0 80,10 Q100,5 110,25 Q130,25 125,45 Q135,60 115,65 L35,65 Q10,60 20,30 Z" fill="url(#cloud-grad)" fill-opacity="0.95" stroke="#e1effe" stroke-width="1"/>
+              <circle cx="55" cy="42" r="3" fill="#1c82f5" opacity="0.3"/>
+              <circle cx="68" cy="42" r="3" fill="#1c82f5" opacity="0.3"/>
+              <circle cx="81" cy="42" r="3" fill="#1c82f5" opacity="0.3"/>
+              <line x1="55" y1="50" x2="81" y2="50" stroke="#1c82f5" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+            </g>
+
+            <!-- 完成徽章 -->
+            <g class="ill-badge" transform="translate(390, 270)" filter="url(#card-shadow)">
+              <circle cx="20" cy="20" r="20" fill="white" fill-opacity="0.95" stroke="#e1effe" stroke-width="1"/>
+              <circle cx="20" cy="20" r="20" fill="url(#k-front)" opacity="0.1"/>
+              <path d="M12,20 L18,26 L29,14" stroke="#1c82f5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </g>
+
+            <!-- 装饰元素 -->
+            <circle cx="40" cy="80" r="6" fill="#ffffff" stroke="#d6eaff" stroke-width="1.5"/>
+            <circle cx="460" cy="110" r="5" fill="#d6eaff"/>
+            <circle cx="80" cy="310" r="4" fill="#bfdbfe"/>
+            <circle cx="430" cy="320" r="7" fill="#ffffff" stroke="#d6eaff" stroke-width="1.5"/>
+            <g transform="translate(450, 70)" opacity="0.4">
+              <line x1="0" y1="5" x2="10" y2="5" stroke="#1c82f5" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="5" y1="0" x2="5" y2="10" stroke="#1c82f5" stroke-width="1.5" stroke-linecap="round"/>
+            </g>
+            <g transform="translate(60, 110)" opacity="0.35">
+              <line x1="0" y1="4" x2="8" y2="4" stroke="#1c82f5" stroke-width="1.2" stroke-linecap="round"/>
+              <line x1="4" y1="0" x2="4" y2="8" stroke="#1c82f5" stroke-width="1.2" stroke-linecap="round"/>
+            </g>
+            <!-- 连接虚线 -->
+            <path d="M160,200 Q210,180 260,200" stroke="#1c82f5" stroke-width="1" fill="none" stroke-dasharray="4 4" opacity="0.2"/>
+            <path d="M280,200 Q330,220 370,200" stroke="#1c82f5" stroke-width="1" fill="none" stroke-dasharray="4 4" opacity="0.2"/>
+          </svg>
         </div>
+      </div>
+    </aside>
 
-        <el-form
-          ref="formRef"
-          :model="loginForm"
-          :rules="rules"
-          class="login-form"
-          label-position="top"
-          aria-label="用户登录表单"
-        >
-          <el-form-item label="用户名" prop="username">
-            <el-input
-              v-model="loginForm.username"
-              placeholder="请输入用户名"
-              size="large"
-              clearable
-              :prefix-icon="User"
-              @keyup.enter="handleLogin"
-            />
-          </el-form-item>
+    <!-- 右侧表单区 -->
+    <main class="login-main">
+      <div class="login-container">
+        <div class="login-card">
+          <div class="card-header">
+            <h2 class="form-title">{{ organizationName }}</h2>
+            <p class="form-subtitle">登录以进入 KEC 课程管理工作台</p>
+          </div>
 
-          <el-form-item label="密码" prop="password">
-            <el-input
-              v-model="loginForm.password"
-              type="password"
-              placeholder="请输入密码"
-              size="large"
-              show-password
-              :prefix-icon="Key"
-              @keyup.enter="handleLogin"
-            />
-          </el-form-item>
+          <el-form
+            ref="formRef"
+            :model="loginForm"
+            :rules="rules"
+            class="login-form"
+            aria-label="用户登录表单"
+          >
+            <el-form-item prop="username">
+              <el-input
+                v-model="loginForm.username"
+                placeholder="请输入账号"
+                size="large"
+                clearable
+                autocomplete="username"
+                aria-label="用户名"
+                :prefix-icon="User"
+                @keyup.enter="handleLogin"
+              />
+            </el-form-item>
 
-          <el-form-item>
-            <el-button
-              type="primary"
-              size="large"
-              :loading="loading"
-              class="login-btn"
-              aria-label="登录"
-              @click="handleLogin"
-            >
-              {{ loading ? '登录中...' : '登 录' }}
-            </el-button>
-          </el-form-item>
-        </el-form>
+            <el-form-item prop="password">
+              <el-input
+                v-model="loginForm.password"
+                type="password"
+                placeholder="请输入密码"
+                size="large"
+                show-password
+                autocomplete="current-password"
+                aria-label="密码"
+                :prefix-icon="Key"
+                @keyup.enter="handleLogin"
+              />
+            </el-form-item>
 
-        <!-- 账号提示（仅开发环境显示，凭据从本地环境变量读取） -->
-        <div v-if="showTestAccounts && devAccountHint" class="account-hint">
-          <el-collapse>
-            <el-collapse-item title="测试账号" name="1">
-              <div class="hint-body">
-                <div class="hint-row">
-                  <span>{{ devAccountHint }}</span>
+            <el-form-item>
+              <el-button
+                type="primary"
+                size="large"
+                :loading="loading"
+                class="login-btn"
+                aria-label="登录"
+                @click="handleLogin"
+              >
+                {{ loading ? '登录中...' : '登 录' }}
+              </el-button>
+            </el-form-item>
+          </el-form>
+
+          <!-- 账号提示（仅开发环境显示，凭据从本地环境变量读取） -->
+          <div v-if="showTestAccounts && devAccountHint" class="account-hint">
+            <el-collapse>
+              <el-collapse-item title="测试账号" name="1">
+                <div class="hint-body">
+                  <div class="hint-row">
+                    <span>{{ devAccountHint }}</span>
+                  </div>
                 </div>
-              </div>
-            </el-collapse-item>
-          </el-collapse>
+              </el-collapse-item>
+            </el-collapse>
+          </div>
         </div>
-      </div>
 
-      <!-- 底部 -->
-      <footer class="page-footer">
-        <span>KEC Platform v{{ appVersion }}</span>
-      </footer>
-    </div>
+        <footer class="page-footer">
+          <span>KEC Platform v{{ appVersion }}</span>
+        </footer>
+      </div>
+    </main>
   </div>
 </template>
 
@@ -147,7 +272,7 @@ async function handleLogin() {
       ElMessage.error(result.message);
     }
   } catch (error) {
-    // 兜底：确保登录失败时一定有提示（拦截器对 /auth/login 的 401 不弹窗）
+    // 兜底：确保登录失败状态下一定有提示（拦截器对 /auth/login 的 401 不弹窗）
     const msg = error?.response?.data?.message || error?.message || '登录失败，请稍后重试';
     ElMessage.error(msg);
   } finally {
@@ -179,187 +304,324 @@ onMounted(() => {
 
 <style scoped>
 /* ================================================================
-   登录页 — 居中布局
-   表单居中展示，简洁干净
+   登录页 — 探迹风格轻量 3D 等距插画 + 纯白卡片
    ================================================================ */
+
 .login-page {
   min-height: 100vh;
+  display: grid;
+  grid-template-columns: 58fr 42fr;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+/* ==================== 左侧品牌/插画区 ==================== */
+.login-brand {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-page);
-  background-image: radial-gradient(
-    ellipse 80% 60% at 50% 0%,
-    color-mix(in srgb, var(--brand-primary) 6%, transparent) 0%,
-    transparent 70%
-  );
-  padding: 40px 20px;
   overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(225, 239, 254, 0.9), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(214, 234, 255, 0.8), transparent 45%),
+    linear-gradient(150deg, #ffffff 0%, #f7fbff 45%, #e8f3ff 100%);
+}
+
+.brand-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bg-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+.blob-1 {
+  width: 420px;
+  height: 420px;
+  background: #e1effe;
+  top: -120px;
+  left: -120px;
+  opacity: 0.7;
+}
+.blob-2 {
+  width: 320px;
+  height: 320px;
+  background: #d6eaff;
+  bottom: -60px;
+  right: 40px;
+  opacity: 0.6;
+}
+.blob-3 {
+  width: 220px;
+  height: 220px;
+  background: #bfdbfe;
+  top: 45%;
+  left: 38%;
+  opacity: 0.35;
+}
+
+.brand-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
   position: relative;
+  z-index: 1;
+  padding: 40px 48px;
+  animation: brand-in 0.8s var(--ease-out) both;
+}
+
+@keyframes brand-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* 品牌标识 (左上角) */
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 56px;
+  margin-left: 24px;
+}
+
+.brand-mark {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, var(--brand-primary), #4a9af5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  box-shadow: 0 8px 22px rgba(28, 130, 245, 0.25);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  margin: 0;
+  color: #1f2937;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  line-height: 1.25;
+}
+.brand-name__logo {
+  color: var(--brand-primary);
+  margin-right: 4px;
+}
+
+.brand-slogan {
+  margin: 12px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.7;
+  letter-spacing: 0.3px;
+  max-width: 360px;
+}
+
+/* ==================== 产品插画 ==================== */
+.brand-illustration {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 24px 0;
+}
+
+.brand-illustration svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* 浮动微动效 */
+.ill-card {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: float 6s var(--ease-in-out) infinite;
+}
+.ill-card--left { animation-delay: 0s; }
+.ill-card--right { animation-delay: -2s; }
+
+.ill-cloud {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: float 7s var(--ease-in-out) infinite;
+  animation-delay: -1s;
+}
+
+.ill-badge {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: float 5s var(--ease-in-out) infinite;
+  animation-delay: -3s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ==================== 右侧表单区 ==================== */
+.login-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 40px 32px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.login-main::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  right: -200px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(225, 239, 254, 0.7), transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
 }
 
 /* ==================== 居中容器 ==================== */
 .login-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
   z-index: 1;
-  animation: login-fade-in 0.5s var(--ease-out) both;
+  animation: form-in 0.8s var(--ease-out) 0.1s both;
 }
 
-@keyframes login-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes form-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ==================== 品牌 ==================== */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: var(--space-7);
-}
-
-.brand-logo {
-  flex-shrink: 0;
-}
-
-.brand-logo img {
-  width: 64px;
-  height: 64px;
-  filter: drop-shadow(0 4px 12px rgba(0, 171, 107, 0.2));
-}
-
-.brand-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.brand-name {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: 4px;
-  line-height: 1.3;
-}
-
-.brand-tagline {
-  margin: 0;
-  font-size: 15px;
-  color: var(--text-secondary);
-  letter-spacing: 3px;
-}
-
-/* ==================== 卡片 ==================== */
+/* ==================== 登录卡片 ==================== */
 .login-card {
   width: 100%;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  padding: 0 36px var(--space-6);
-  box-shadow: var(--shadow-md);
-  position: relative;
-  overflow: hidden;
-}
-
-.card-accent {
-  height: 3px;
-  background: linear-gradient(to right, var(--brand-primary), var(--brand-mint));
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(225, 239, 254, 0.8);
+  border-radius: 22px;
+  padding: 44px;
   box-shadow:
-    0 2px 16px var(--brand-primary-shadow),
-    0 0 24px rgba(28, 130, 245, 0.12);
+    0 24px 70px rgba(28, 130, 245, 0.10),
+    0 8px 24px rgba(15, 23, 42, 0.04);
+  transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+.login-card:hover {
+  box-shadow:
+    0 28px 80px rgba(28, 130, 245, 0.14),
+    0 10px 28px rgba(15, 23, 42, 0.05);
+  transform: translateY(-2px);
 }
 
+/* ==================== 卡片头部 ==================== */
 .card-header {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
   width: 100%;
-  padding: var(--space-5) 0 20px;
+  padding: 0 0 36px;
 }
 
-.card-header h2 {
+.form-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #1f2937;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+.form-subtitle {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #64748b;
   text-align: center;
 }
 
 /* ==================== 表单 ==================== */
 .login-form :deep(.el-form-item) {
-  margin-bottom: 18px;
-}
-
-.login-form :deep(.el-form-item__label) {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-regular);
-  padding-bottom: 6px;
+  margin-bottom: 26px;
 }
 
 .login-form :deep(.el-input__wrapper) {
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px var(--border-light) inset;
-  padding: var(--space-1) var(--space-3);
-  transition: box-shadow var(--dur-base) var(--ease-out);
+  border-radius: 12px;
+  background: #f3f6fb;
+  box-shadow: none;
+  padding: 10px 18px;
+  height: 52px;
+  transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px var(--border-base) inset;
+  background: #eef2f8;
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 2px var(--brand-primary) inset;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(28, 130, 245, 0.15);
 }
 
 .login-form :deep(.el-input__prefix .el-icon) {
-  color: var(--text-secondary);
+  color: #94a3b8;
   font-size: 16px;
+  margin-right: 4px;
 }
 
+/* ==================== 登录按钮 ==================== */
 .login-btn {
   width: 100%;
-  height: 46px;
-  border-radius: var(--radius-sm);
+  height: 50px;
+  border-radius: 12px;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 4px;
   text-indent: 4px;
-  margin-top: 6px;
-  background: var(--brand-primary);
+  margin-top: 4px;
+  background: linear-gradient(135deg, var(--brand-primary), #4a9af5);
   border: none;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--dur-base) var(--ease-out);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(28, 130, 245, 0.25);
+  transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
-
 .login-btn:hover,
 .login-btn:focus {
-  background: var(--brand-primary-hover);
-  box-shadow: var(--shadow-glow);
+  box-shadow: 0 12px 28px rgba(28, 130, 245, 0.35);
+  transform: translateY(-1px);
 }
-
 .login-btn:active {
-  background: var(--brand-primary-active);
-  transform: scale(0.98);
+  transform: translateY(0) scale(0.985);
 }
 
 /* ==================== 账号提示 ==================== */
 .account-hint {
-  border-top: 1px solid var(--border-light);
-  padding-top: var(--space-3);
+  border-top: 1px solid #eef2f8;
+  padding-top: 12px;
+  margin-top: 8px;
 }
 
 .account-hint :deep(.el-collapse) {
@@ -368,7 +630,7 @@ onMounted(() => {
 
 .account-hint :deep(.el-collapse-item__header) {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: #64748b;
   border: none;
   height: 28px;
   line-height: 28px;
@@ -380,108 +642,104 @@ onMounted(() => {
 }
 
 .account-hint :deep(.el-collapse-item__content) {
-  padding: 0 0 var(--space-1);
+  padding: 0 0 4px;
 }
 
 .hint-body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 8px;
 }
 
 .hint-row {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 8px;
   font-size: 12px;
-  color: var(--text-regular);
+  color: #475569;
 }
 
 .hint-row code {
-  background: var(--bg-subtle);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
+  background: var(--brand-primary-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
   font-size: 11px;
-  color: var(--text-primary);
+  color: var(--brand-primary-active);
 }
 
 /* ==================== 底部 ==================== */
 .page-footer {
-  margin-top: var(--space-6);
+  margin-top: 22px;
   text-align: center;
-  color: var(--text-placeholder);
+  color: #94a3b8;
   font-size: 12px;
+  letter-spacing: 0.02em;
 }
 
 /* ==================== 响应式 ==================== */
+@media (max-width: 992px) {
+  .login-page {
+    grid-template-columns: 1fr 1fr;
+  }
+  .brand-illustration {
+    max-width: 420px;
+  }
+}
 
 @media (max-width: 768px) {
   .login-page {
-    padding: 32px 16px;
+    grid-template-columns: 1fr;
   }
-
-  .brand {
-    gap: 14px;
-    margin-bottom: 36px;
+  .login-brand {
+    display: none;
   }
-
-  .brand-logo img {
-    width: 56px;
-    height: 56px;
+  .login-main {
+    padding: 32px 20px;
   }
-
-  .brand-name {
-    font-size: 24px;
-  }
-
-  .brand-tagline {
-    font-size: 13px;
-  }
-
   .login-card {
-    padding: 0 28px var(--space-5);
+    padding: 32px 28px;
   }
 }
 
 @media (max-width: 480px) {
-  .login-page {
-    padding: var(--space-5) var(--space-4);
+  .login-main {
+    padding: 24px 16px;
     align-items: flex-start;
-    padding-top: 10vh;
+    padding-top: 8vh;
   }
-
-  .brand {
-    gap: 10px;
-    margin-bottom: 28px;
-  }
-
-  .brand-logo img {
-    width: 52px;
-    height: 52px;
-  }
-
-  .brand-name {
-    font-size: 22px;
-  }
-
-  .brand-tagline {
-    font-size: 13px;
-  }
-
   .login-card {
-    padding: 0 var(--space-5) 28px;
+    padding: 28px 22px;
   }
-
-  .card-header {
-    padding: var(--space-5) 0 20px;
+  .card-logo {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
   }
-
-  .card-header h2 {
-    font-size: 20px;
+  .form-title {
+    font-size: 21px;
   }
-
+  .form-subtitle {
+    font-size: 12px;
+  }
   .login-btn {
     height: 44px;
+  }
+}
+
+/* ==================== 动效偏好 ==================== */
+@media (prefers-reduced-motion: reduce) {
+  .brand-inner,
+  .login-container,
+  .ill-card,
+  .ill-cloud,
+  .ill-badge {
+    animation: none !important;
+  }
+  .login-card:hover {
+    transform: none;
+  }
+  .login-btn:hover {
+    transform: none;
   }
 }
 </style>
