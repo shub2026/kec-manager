@@ -236,6 +236,7 @@ a:focus-visible,
      （margin-left:auto 推右，A1 已落地"筛选居左 / 操作居右"）。
    - 表单 dialog：统一 label-width="100px"（B5）；多列 el-row :gutter="16"（B6）。
    - 确认弹窗：复用 BaseConfirmBody.vue（C10），不再内联"图标+文字"结构。
+   - 页面外层容器：以 Layout 的 .layout-main + el-card 为准，不强制额外 .page-container / .page-card 包裹（P1-3 落地下沉）。
    下方 .page-pagination / .toolbar-filters / .toolbar-actions 为规范的同义 / 扩展
    别名，供后续页面或需要显式分区时选用；既有页面无需改动即可生效。
    ================================================================ */

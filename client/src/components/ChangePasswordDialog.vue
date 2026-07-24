@@ -2,7 +2,7 @@
   <el-dialog
     v-model="dialogVisible"
     title="修改密码"
-    width="min(500px, 90vw)"
+    width="var(--dialog-width-lg)"
     :close-on-click-modal="!forced"
     :close-on-press-escape="!forced"
     :show-close="!forced"

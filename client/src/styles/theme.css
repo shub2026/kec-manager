@@ -94,6 +94,11 @@
   --form-col-gutter: 16; /* el-row :gutter 统一值（约定，非 CSS 消费） */
   --label-width: 100px; /* 表单 label-width 统一值（约定，模板 prop 使用） */
 
+  /* —— 对话框宽度令牌:收敛散落的 width="min(Npx, 90vw)"（P1-1,见前端体检报告第八章） —— */
+  --dialog-width: min(480px, 90vw); /* 确认 / 小型弹窗 */
+  --dialog-width-lg: min(640px, 92vw); /* 标准表单 / 内容弹窗 */
+  --dialog-width-xl: min(900px, 95vw); /* 大内容弹窗（批量结果等） */
+
   /* —— 圆角:从 4px → 6/10/16 三档 —— */
   --radius-sm: 6px;
   --radius-md: 10px;

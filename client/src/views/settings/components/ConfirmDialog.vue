@@ -4,7 +4,7 @@
     <el-dialog
       v-model="dialogVisible"
       title="系统重置"
-      width="min(480px, 90vw)"
+      width="var(--dialog-width)"
       :close-on-click-modal="false"
       destroy-on-close
     >
@@ -64,7 +64,7 @@
     <el-dialog
       v-model="simpleDialogVisible"
       title="清空操作日志"
-      width="min(500px, 90vw)"
+      width="var(--dialog-width-lg)"
       :close-on-click-modal="false"
       destroy-on-close
     >
@@ -82,7 +82,7 @@
     <el-dialog
       v-model="saveDialogVisible"
       title="确认保存"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       :close-on-click-modal="false"
       destroy-on-close
     >

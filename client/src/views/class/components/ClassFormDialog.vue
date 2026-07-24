@@ -4,7 +4,7 @@
     <el-dialog
       v-model="visible"
       :title="form.id ? '编辑班级' : '新增班级'"
-      width="min(800px, 92vw)"
+      width="var(--dialog-width-xl)"
       :fullscreen="isMobile"
       destroy-on-close
       @close="$emit('close')"
@@ -161,7 +161,7 @@
     <el-dialog
       v-model="batchVisible"
       :title="batchDialogTitle"
-      width="min(500px, 90vw)"
+      width="var(--dialog-width-lg)"
       destroy-on-close
       @close="$emit('batch-close')"
     >

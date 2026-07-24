@@ -44,7 +44,9 @@
           </el-upload>
         </div>
       </div>
+      <ListErrorState v-if="error" :message="error" @retry="load" />
       <el-table
+        v-else
         v-loading="loading"
         :data="list"
         stripe
@@ -171,7 +173,7 @@
     <el-dialog
       v-model="batchDialogVisible"
       :title="batchDialogTitle"
-      width="min(500px, 90vw)"
+      width="var(--dialog-width-lg)"
       destroy-on-close
     >
       <el-form label-width="100px">
@@ -198,7 +200,7 @@
       v-model="dialogVisible"
       :title="form.id ? '编辑教材' : '新增教材'"
       :fullscreen="isMobile"
-      width="min(600px, 90vw)"
+      width="var(--dialog-width-lg)"
       destroy-on-close
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
@@ -267,7 +269,7 @@
     <el-dialog
       v-model="batchDeleteConfirmVisible"
       title="批量删除"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)">{{
@@ -285,7 +287,7 @@
     <el-dialog
       v-model="deleteConfirmVisible"
       title="确认删除"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)" :warning="deleteWarning">
@@ -301,7 +303,7 @@
     <el-dialog
       v-model="importConfirmVisible"
       title="导入确认"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody>{{ confirmMessage }}</BaseConfirmBody>
@@ -337,6 +339,7 @@ import { useDebounceFn } from '../../composables/useDebounce';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'TextbookList' });
 
@@ -360,6 +363,8 @@ const {
 );
 
 const loading = ref(false);
+// P0 修复：列表加载错误状态，供 ListErrorState 占位（替代静默失败→误显空状态）
+const error = ref(null);
 const dialogVisible = ref(false);
 const saving = ref(false);
 const filterTitle = ref('');
@@ -452,6 +457,7 @@ function handleSizeChange() {
 
 async function load() {
   loading.value = true;
+  error.value = null;
   try {
     const params = {
       page: currentPage.value,
@@ -464,6 +470,9 @@ async function load() {
     list.value = res.data?.items || [];
     total.value = res.data?.total || 0;
     publishers.value = res.data?.publishers || [];
+  } catch (e) {
+    error.value = e?.response?.data?.message || '教材数据加载失败，请稍后重试';
+    if (import.meta.env.DEV) console.error('加载失败:', e);
   } finally {
     loading.value = false;
   }

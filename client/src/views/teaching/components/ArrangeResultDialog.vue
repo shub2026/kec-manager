@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="modelValue"
     :title="`${mode}排课结果`"
-    width="min(640px, 90vw)"
+    width="var(--dialog-width-lg)"
     destroy-on-close
     class="arrange-result-dialog"
     top="10vh"

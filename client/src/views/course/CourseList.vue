@@ -32,7 +32,8 @@
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
+      <ListErrorState v-if="error" :message="error" @retry="load" />
+      <el-table v-else v-loading="loading" :data="pagedList" stripe row-key="id">
         <template #empty>
           <EmptyState type="course" description="暂无课程数据" />
         </template>
@@ -104,7 +105,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑课程' : '新增课程'"
-      width="min(500px, 90vw)"
+      width="var(--dialog-width-lg)"
       destroy-on-close
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
@@ -138,7 +139,7 @@
     <el-dialog
       v-model="deleteConfirmVisible"
       title="确认删除"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)" :warning="deleteWarning">
@@ -154,7 +155,7 @@
     <el-dialog
       v-model="importConfirmVisible"
       title="导入确认"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody>{{ confirmMessage }}</BaseConfirmBody>
@@ -178,6 +179,7 @@ import { useDebounceFn } from '../../composables/useDebounce';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'CourseList' });
 
@@ -191,6 +193,8 @@ const applyFilter = useDebounceFn((val) => {
 }, 200);
 watch(filterName, (val) => applyFilter(val));
 const loading = ref(false);
+// P0 修复：列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 const currentPage = ref(1);
 const pageSize = ref(20);
 const dialogVisible = ref(false);
@@ -261,9 +265,13 @@ const { handleMoveUp, handleMoveDown } = useSortable(filteredList, updateCourse,
 
 async function load() {
   loading.value = true;
+  error.value = null;
   try {
     const res = await getCourses();
     list.value = res.data || [];
+  } catch (e) {
+    error.value = e?.response?.data?.message || '课程数据加载失败，请稍后重试';
+    if (import.meta.env.DEV) console.error('加载失败:', e);
   } finally {
     loading.value = false;
   }

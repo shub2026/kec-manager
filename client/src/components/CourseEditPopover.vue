@@ -68,7 +68,7 @@
   <el-dialog
     :model-value="semesterDialogVisible"
     title="设置开课学期"
-    width="480px"
+    width="var(--dialog-width)"
     @update:model-value="$emit('update-semester-dialog-visible', $event)"
   >
     <el-form label-width="100px">

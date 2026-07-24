@@ -138,7 +138,7 @@
     </el-card>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="detailsVisible" title="操作详情" width="min(620px, 90vw)">
+    <el-dialog v-model="detailsVisible" title="操作详情" width="var(--dialog-width-lg)">
       <div class="details-toggle" style="text-align: right; margin-bottom: 8px">
         <el-button link type="primary" size="small" @click="showRawJson = !showRawJson">
           {{ showRawJson ? '查看表格' : '查看原始数据' }}
@@ -167,7 +167,7 @@
     <el-dialog
       v-model="clearDialogVisible"
       title="清空操作日志"
-      width="min(500px, 90vw)"
+      width="var(--dialog-width-lg)"
       :close-on-click-modal="false"
     >
       <el-alert title="此操作不可恢复！" type="error" :closable="false" show-icon />

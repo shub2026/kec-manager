@@ -148,7 +148,7 @@
   <el-dialog
     v-model="logoutDialogVisible"
     title="退出登录"
-    width="min(400px, 90vw)"
+    width="var(--dialog-width)"
     top="30vh"
     :close-on-click-modal="false"
     destroy-on-close

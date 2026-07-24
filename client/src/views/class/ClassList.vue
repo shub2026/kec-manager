@@ -22,7 +22,9 @@
       />
 
       <!-- 表格组件 -->
+      <ListErrorState v-if="error" :message="error" @retry="load" />
       <ClassTable
+        v-else
         :classes="list"
         :loading="loading"
         :selected-classes="selectedClasses"
@@ -58,7 +60,7 @@
     <el-dialog
       v-model="progressDialogVisible"
       title="正在导入"
-      width="min(500px, 90vw)"
+      width="var(--dialog-width-lg)"
       :close-on-click-modal="false"
       :show-close="false"
     >
@@ -81,7 +83,7 @@
     <el-dialog
       v-model="deleteConfirmVisible"
       title="确认删除"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)"
@@ -97,7 +99,7 @@
     <el-dialog
       v-model="batchDeleteConfirmVisible"
       title="批量删除"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)">{{
@@ -115,7 +117,7 @@
     <el-dialog
       v-model="leftSchoolConfirmVisible"
       title="确认批量离校"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody>{{ leftSchoolConfirmMessage }}</BaseConfirmBody>
@@ -145,6 +147,7 @@ import { useExport } from '../../composables/useExport';
 import { showImportResultCard } from '../../composables/useImport';
 import PageHeader from '../../components/PageHeader.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 import ClassFilterBar from './components/ClassFilterBar.vue';
 import ClassTable from './components/ClassTable.vue';
 import ClassFormDialog from './components/ClassFormDialog.vue';
@@ -153,6 +156,8 @@ defineOptions({ name: 'ClassList' });
 
 const list = ref([]);
 const loading = ref(false);
+// P0 修复：列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 const selectedClasses = ref([]);
 const currentSemesterInfo = ref(null);
 // 合班伙伴候选班级（轻量列表：id/name/collegeId），在打开编辑弹窗时按需加载
@@ -239,6 +244,7 @@ const batchDialogTitle = computed(() => {
 
 async function load() {
   loading.value = true;
+  error.value = null;
   try {
     const params = {
       ...filters.value,
@@ -252,8 +258,9 @@ async function load() {
 
     // 关联关系数据由 store 统一管理（首次加载后不再重复赋值）
     classDataStore.ingestRelations(res?.data);
-  } catch (error) {
-    if (import.meta.env.DEV) console.error('加载失败:', error);
+  } catch (err) {
+    error.value = err?.response?.data?.message || '班级数据加载失败，请稍后重试';
+    if (import.meta.env.DEV) console.error('加载失败:', err);
   } finally {
     loading.value = false;
   }

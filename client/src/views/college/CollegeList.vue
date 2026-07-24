@@ -11,11 +11,17 @@
       <div class="page-toolbar">
         <el-input v-model="keyword" clearable placeholder="搜索名称或编码" class="filter-2xl" />
       </div>
-      <el-table v-loading="loading" :data="filteredList" stripe row-key="id">
+      <ListErrorState v-if="error" :message="error" @retry="load" />
+      <el-table v-else v-loading="loading" :data="pagedList" stripe row-key="id">
         <template #empty>
           <EmptyState type="college" description="暂无学院数据" />
         </template>
-        <el-table-column type="index" label="序号" width="60" />
+        <el-table-column
+          type="index"
+          label="序号"
+          width="60"
+          :index="(i) => (currentPage - 1) * pageSize + i + 1"
+        />
         <el-table-column prop="name" label="学院名称" min-width="150" />
         <el-table-column prop="code" label="编码" min-width="120" />
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
@@ -57,12 +63,24 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-if="filteredList.length > pageSize" class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="filteredList.length"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next"
+          background
+          @size-change="currentPage = 1"
+        />
+      </div>
     </el-card>
 
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑学院' : '新增学院'"
-      width="min(500px, 90vw)"
+      width="var(--dialog-width-lg)"
       destroy-on-close
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
@@ -90,7 +108,7 @@
     <el-dialog
       v-model="deleteConfirmVisible"
       title="确认删除"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)" :warning="deleteWarning">
@@ -105,13 +123,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { getColleges, createCollege, updateCollege, deleteCollege } from '../../api/college';
 import { useCrudList } from '../../composables/useCrudList';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'CollegeList' });
 
@@ -127,6 +146,23 @@ const filteredList = computed(() => {
 });
 const realIndex = (row) => filteredList.value.findIndex((i) => i.id === row.id);
 
+// P1-2：客户端切片分页（对齐 Plan/Course），低频实体无需后端分页
+const currentPage = ref(1);
+const pageSize = ref(20);
+const pagedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredList.value.slice(start, start + pageSize.value);
+});
+// 筛选变化后回到第 1 页，避免停留在空页
+watch(keyword, () => {
+  currentPage.value = 1;
+});
+// 数据缩减后收敛页码
+watch(filteredList, (l) => {
+  const maxPage = Math.max(1, Math.ceil((l?.length || 0) / pageSize.value));
+  if (currentPage.value > maxPage) currentPage.value = maxPage;
+});
+
 const formRef = ref(null);
 const rules = {
   name: [
@@ -138,6 +174,7 @@ const rules = {
 const {
   list,
   loading,
+  error,
   dialogVisible,
   saving,
   form,

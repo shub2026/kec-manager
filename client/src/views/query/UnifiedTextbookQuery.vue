@@ -52,7 +52,8 @@
       </div>
 
       <!-- 统一使用一个容器，保持最小高度 -->
-      <div v-loading="loadingDetail" class="content-container">
+      <ListErrorState v-if="error" :message="error" @retry="() => loadDetail(selectedTextbook)" />
+      <div v-else v-loading="loadingDetail" class="content-container">
         <!-- 空状态提示 -->
         <EmptyState
           v-if="!selectedSemester"
@@ -184,6 +185,7 @@ import { useAuthStore } from '@/stores/auth';
 import { getWithCache } from '../../utils/cache';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'UnifiedTextbookQuery' });
 
@@ -196,6 +198,8 @@ const selectedSemester = ref('');
 const detail = ref(null);
 // 标记是否已加载过详情，加载期间保持 true 防止 DOM 卸载导致抖动
 const hasDetail = ref(false);
+// P0 修复：列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 
 // 响应式断点：小屏（<768px）下 descriptions 改单列、表格隐藏次要列、分页简化
 const { isMobile } = useResponsive();
@@ -237,6 +241,7 @@ async function loadDetail(id) {
   // 先标记 hasDetail，保持 DOM 挂载，避免切换教材时内容块卸载重挂
   hasDetail.value = true;
   loadingDetail.value = true;
+  error.value = null;
   try {
     const res = await getWithCache(
       () => getTextbookQuery(id, { semester: selectedSemester.value }),
@@ -248,10 +253,12 @@ async function loadDetail(id) {
     pagination.value.page = 1;
     pagination.value.total = res.data?.totalClasses || 0;
   } catch (e) {
-    ElMessage.error('加载教材使用详情失败');
+    // P0 修复：写入错误状态（替代原有的仅 toast），详情区渲染 ListErrorState
+    error.value = e?.response?.data?.message || '教材使用详情加载失败，请稍后重试';
     detail.value = null;
     hasDetail.value = false;
     pagination.value.total = 0;
+    if (import.meta.env.DEV) console.error('加载教材使用详情失败:', e);
   } finally {
     loadingDetail.value = false;
   }

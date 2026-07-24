@@ -9,8 +9,18 @@
       </template>
     </PageHeader>
     <el-card>
+      <div class="page-toolbar">
+        <el-input
+          v-model="keyword"
+          clearable
+          placeholder="搜索用户名 / 姓名 / 邮箱"
+          class="filter-2xl"
+          :prefix-icon="Search"
+        />
+      </div>
       <!-- 用户列表 -->
-      <el-table v-loading="loading" :data="users" stripe row-key="id">
+      <ListErrorState v-if="error" :message="error" @retry="loadUsers" />
+      <el-table v-else v-loading="loading" :data="displayUsers" stripe row-key="id">
         <template #empty>
           <EmptyState type="generic" description="暂无数据" />
         </template>
@@ -88,7 +98,7 @@
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[20, 50, 100]"
-          :total="total"
+          :total="paginationTotal"
           layout="total, sizes, prev, pager, next"
           background
           @size-change="loadUsers"
@@ -101,7 +111,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑用户' : '创建用户'"
-      width="min(600px, 90vw)"
+      width="var(--dialog-width-lg)"
     >
       <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px">
         <el-form-item label="用户名" prop="username">
@@ -161,7 +171,7 @@
     <el-dialog
       v-model="statusConfirmVisible"
       title="确认操作"
-      width="min(400px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody>{{ statusConfirmMessage }}</BaseConfirmBody>
@@ -177,7 +187,7 @@
     <el-dialog
       v-model="deleteConfirmVisible"
       title="确认删除"
-      width="min(400px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)">{{ deleteConfirmMessage }}</BaseConfirmBody>
@@ -190,7 +200,7 @@
     </el-dialog>
 
     <!-- 重置密码对话框 -->
-    <el-dialog v-model="resetPwdVisible" title="重置密码" width="min(500px, 90vw)" destroy-on-close>
+    <el-dialog v-model="resetPwdVisible" title="重置密码" width="var(--dialog-width-lg)" destroy-on-close>
       <el-alert
         :title="`将重置用户“${resetPwdUser?.username}”的密码，重置后该用户下次登录必须修改密码`"
         type="warning"
@@ -236,7 +246,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { ElMessage } from 'element-plus';
 import {
@@ -250,6 +260,7 @@ import {
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'UserManagement' });
 
@@ -257,6 +268,8 @@ const authStore = useAuthStore();
 
 const users = ref([]);
 const loading = ref(false);
+// P0 修复：列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 const dialogVisible = ref(false);
 const isEdit = ref(false);
 const submitting = ref(false);
@@ -266,6 +279,27 @@ const formRef = ref(null);
 const currentPage = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
+
+// P1-4：补 .page-toolbar 搜索框，对齐基础数据组节奏；客户端过滤已加载用户
+const keyword = ref('');
+const displayUsers = computed(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  if (!kw) return users.value;
+  return users.value.filter(
+    (u) =>
+      (u.username && u.username.toLowerCase().includes(kw)) ||
+      (u.realName && u.realName.toLowerCase().includes(kw)) ||
+      (u.email && u.email.toLowerCase().includes(kw))
+  );
+});
+// 搜索时以过滤后数量作为分页总数（仅对当前已加载页生效，跨页全文搜索需后端支持）
+const paginationTotal = computed(() =>
+  keyword.value.trim() ? displayUsers.value.length : total.value
+);
+// 搜索词变化回到第 1 页
+watch(keyword, () => {
+  currentPage.value = 1;
+});
 
 // 状态切换确认弹窗
 const statusConfirmVisible = ref(false);
@@ -351,26 +385,36 @@ const resetPwdRules = {
 async function loadUsers() {
   loading.value = true;
   try {
-    const response = await getUsers({ page: currentPage.value, page_size: pageSize.value });
+    const response = await getUsers({
+      page: currentPage.value,
+      page_size: pageSize.value,
+      keyword: keyword.value,
+    });
     const data = response.data;
     if (Array.isArray(data)) {
       // 向后兼容：如果服务端返回的是平面数组
       users.value = data;
       total.value = data.length;
-    } else {
-      users.value = data.items || [];
-      total.value = data.total || 0;
-    }
-  } catch (error) {
-    ElMessage.error('加载用户列表失败：' + (error.message || '未知错误'));
-  } finally {
+      } else {
+        users.value = data.items || [];
+        total.value = data.total || 0;
+      }
+    } catch (err) {
+      // P0 修复：写入错误状态（替代原有的仅 toast），列表区渲染 ListErrorState
+      error.value = err?.response?.data?.message || '用户列表加载失败，请稍后重试';
+      if (import.meta.env.DEV) console.error('加载用户列表失败:', err);
+    } finally {
     loading.value = false;
   }
 }
 
 async function silentReload() {
   try {
-    const response = await getUsers({ page: currentPage.value, page_size: pageSize.value });
+    const response = await getUsers({
+      page: currentPage.value,
+      page_size: pageSize.value,
+      keyword: keyword.value,
+    });
     const data = response.data;
     if (Array.isArray(data)) {
       users.value = data;

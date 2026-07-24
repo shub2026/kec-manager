@@ -84,7 +84,8 @@
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="list" stripe row-key="id">
+      <ListErrorState v-if="error" :message="error" @retry="load" />
+      <el-table v-else v-loading="loading" :data="list" stripe row-key="id">
         <template #empty>
           <EmptyState type="teacher" description="暂无教师数据" />
         </template>
@@ -212,7 +213,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑教师' : '新增教师'"
-      width="min(600px, 90vw)"
+      width="var(--dialog-width-lg)"
       :fullscreen="isMobile"
       destroy-on-close
     >
@@ -339,7 +340,7 @@
     <el-dialog
       v-model="deleteConfirmVisible"
       title="确认删除"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)"
@@ -355,7 +356,7 @@
     <el-dialog
       v-model="importConfirmVisible"
       title="导入确认"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody>{{ confirmMessage }}</BaseConfirmBody>
@@ -390,11 +391,14 @@ import { useResponsive } from '../../composables/useResponsive';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'TeacherList' });
 
 const list = ref([]);
 const loading = ref(false);
+// P0 修复：列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 const dialogVisible = ref(false);
 const saving = ref(false);
 const allCourses = ref([]);
@@ -590,6 +594,7 @@ function calcAge(birthDate) {
 
 async function load() {
   loading.value = true;
+  error.value = null;
   try {
     const params = {
       page: currentPage.value,
@@ -605,6 +610,9 @@ async function load() {
     const res = await getTeachers(params);
     list.value = res.data?.items || [];
     total.value = res.data?.total || 0;
+  } catch (e) {
+    error.value = e?.response?.data?.message || '教师数据加载失败，请稍后重试';
+    if (import.meta.env.DEV) console.error('加载失败:', e);
   } finally {
     loading.value = false;
   }

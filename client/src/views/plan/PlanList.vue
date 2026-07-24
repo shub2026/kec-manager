@@ -24,7 +24,8 @@
           <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
       </div>
-      <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
+      <ListErrorState v-if="error" :message="error" @retry="load" />
+      <el-table v-else v-loading="loading" :data="pagedList" stripe row-key="id">
         <template #empty>
           <EmptyState type="plan" description="暂无培养方案" />
         </template>
@@ -115,7 +116,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑方案' : '新增方案'"
-      width="min(500px, 90vw)"
+      width="var(--dialog-width-lg)"
       destroy-on-close
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
@@ -194,7 +195,7 @@
     <el-dialog
       v-model="deleteConfirmVisible"
       title="确认删除"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)" :warning="deleteWarning">
@@ -220,11 +221,14 @@ import { useSortable } from '../../composables/useSortable';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'PlanList' });
 
 const list = ref([]);
 const loading = ref(false);
+// P0 修复：列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 const currentPage = ref(1);
 const pageSize = ref(20);
 const majors = ref([]);
@@ -285,9 +289,13 @@ const { handleMoveUp, handleMoveDown } = useSortable(filteredList, updatePlan, s
 
 async function load() {
   loading.value = true;
+  error.value = null;
   try {
     const res = await getPlans();
     list.value = res.data || [];
+  } catch (e) {
+    error.value = e?.response?.data?.message || '培养方案加载失败，请稍后重试';
+    if (import.meta.env.DEV) console.error('加载失败:', e);
   } finally {
     loading.value = false;
   }

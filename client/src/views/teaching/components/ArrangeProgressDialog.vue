@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="modelValue"
     title="排课进度"
-    width="min(520px, 90vw)"
+    width="var(--dialog-width-lg)"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     :show-close="false"

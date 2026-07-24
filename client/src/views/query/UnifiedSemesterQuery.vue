@@ -121,7 +121,8 @@
           </template>
         </el-alert>
 
-        <el-table v-loading="loading" :data="data" stripe row-key="classId" @expand-change="handleExpandChange">
+        <ListErrorState v-if="error" :message="error" @retry="load" />
+      <el-table v-else v-loading="loading" :data="data" stripe row-key="classId" @expand-change="handleExpandChange">
           <el-table-column type="expand">
             <template #default="{ row }">
               <div v-loading="row._expanding" class="expand-content">
@@ -237,6 +238,7 @@ import { useAuthStore } from '@/stores/auth';
 import { getWithCache } from '../../utils/cache';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'UnifiedSemesterQuery' });
 
@@ -244,6 +246,8 @@ const authStore = useAuthStore();
 
 const data = ref([]);
 const loading = ref(false);
+// P0 修复：列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 const majors = ref([]);
 const levels = ref([]);
 const colleges = ref([]);
@@ -295,6 +299,7 @@ async function load() {
   }
 
   loading.value = true;
+  error.value = null;
   try {
     const params = {
       semester: selectedSemester.value,
@@ -329,8 +334,9 @@ async function load() {
     if (res.data?.collegeLevelRelation) collegeLevelRelation.value = res.data.collegeLevelRelation;
     if (res.data?.majorLevelRelation) majorLevelRelation.value = res.data.majorLevelRelation;
   } catch (e) {
+    // P0 修复：写入错误状态（替代原有的仅 toast），列表区渲染 ListErrorState
+    error.value = e?.response?.data?.message || '开课查询失败，请稍后重试';
     if (import.meta.env.DEV) console.error(e);
-    ElMessage.error('查询失败');
   } finally {
     loading.value = false;
   }

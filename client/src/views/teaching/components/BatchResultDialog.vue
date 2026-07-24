@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="modelValue"
     title="批量排课结果"
-    width="min(900px, 95vw)"
+    width="var(--dialog-width-xl)"
     destroy-on-close
     class="batch-result-dialog"
     top="6vh"

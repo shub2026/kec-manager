@@ -33,6 +33,9 @@ export function useCrudList(api, options = {}) {
 
   const list = ref([]);
   const loading = ref(false);
+  // P0 修复：列表加载错误状态。load() 开始时清空、失败时写入消息，
+  // 供列表页渲染 ListErrorState 占位（替代原先静默失败→误显空状态的缺陷）
+  const error = ref(null);
   const dialogVisible = ref(false);
   const saving = ref(false);
   const form = ref({ ...defaultForm });
@@ -53,12 +56,15 @@ export function useCrudList(api, options = {}) {
 
   async function load() {
     loading.value = true;
+    error.value = null;
     try {
       const params = typeof listParams === 'function' ? listParams() : listParams?.value || {};
       const res = await api.list(params);
       // 防御：res.data 为 undefined 且 res 非数组时若直接赋值，v-for 会遍历对象
       list.value = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
     } catch (e) {
+      // P0 修复：记录错误消息，供列表区渲染 ListErrorState（区分「无数据」与「加载失败」）
+      error.value = e?.response?.data?.message || '数据加载失败，请稍后重试';
       if (import.meta.env.DEV) console.error('加载失败:', e);
     } finally {
       loading.value = false;
@@ -162,6 +168,7 @@ export function useCrudList(api, options = {}) {
   return {
     list,
     loading,
+    error,
     dialogVisible,
     saving,
     form,

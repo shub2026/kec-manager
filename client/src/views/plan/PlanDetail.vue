@@ -50,7 +50,7 @@
     <MatrixLegend class="plan-legend" />
 
     <!-- 开课学期设置对话框 -->
-    <el-dialog v-model="showSemesterDialog" title="设置开课学期" width="min(480px, 90vw)">
+    <el-dialog v-model="showSemesterDialog" title="设置开课学期" width="var(--dialog-width)">
       <el-form :model="semesterForm" label-width="100px">
         <el-form-item label="选择课程" required>
           <el-select
@@ -98,7 +98,7 @@
     <el-dialog
       v-model="deleteCourseConfirmVisible"
       title="确认删除"
-      width="min(450px, 90vw)"
+      width="var(--dialog-width)"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)">
