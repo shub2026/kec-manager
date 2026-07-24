@@ -50,6 +50,14 @@ vi.mock('../../import-shared.js', () => ({
     const s = String(v).trim();
     return s || null;
   }),
+  normalizePlaceholder: vi.fn((v) => {
+    if (v === null || v === undefined) return null;
+    let s = String(v).trim();
+    if (!s) return null;
+    if (s.startsWith("'")) s = s.slice(1);
+    if (!s || ['-', '—', '－'].includes(s)) return null;
+    return v;
+  }),
   verifyExcelMagicNumber: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -115,6 +123,21 @@ describe('importCourses', () => {
         data: expect.objectContaining({ imported: 1, overwritten: 0 }),
       })
     );
+  });
+
+  // ── 往返污染防御：占位符 '-' 应视为空 ──
+  it("课程编码/描述为占位符 '-' 时应导入为 null（往返污染防御）", async () => {
+    readWorkbook.mockResolvedValue([courseRow({ 课程编码: '-', 描述: '-' })]);
+    const req = mockReq({ path: '/tmp/test.xlsx' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await importCourses(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    const createArg = mockTx.courses.create.mock.calls[0][0].data;
+    expect(createArg.code).toBeNull();
+    expect(createArg.description).toBeNull();
   });
 
   // ── 2. S-08: Excel 无类型列 → 不覆盖已有类型 ──

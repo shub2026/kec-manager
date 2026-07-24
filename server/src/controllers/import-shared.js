@@ -78,6 +78,28 @@ export function sanitizeInput(value) {
   return xss(sanitized);
 }
 
+// 导出空值占位符集合（半角短横、全角破折号、全角短横）
+// 导出时空字段以这些占位符呈现，再导入时须视为空，避免占位符被当作真实数据写库
+const PLACEHOLDER_VALUES = new Set(['-', '—', '－']);
+
+/**
+ * 归一化导出占位符：将 sanitizeInput 后等于占位符（-/—/－）或空白的值视为空。
+ * 修复「导出→再导入」往返污染：占位符 '-' 不再被写入字段或触发基础数据自动创建。
+ *
+ * 注意：本函数接收的是 sanitizeInput 处理后的值。sanitizeInput 会给以 =+-@\t 开头的值
+ * 加前导单引号防公式注入，故半角短横 '-' 会被转义成 "'-"，比对前需先剥离前导单引号。
+ * @param {*} value - sanitizeInput 处理后的单元格值
+ * @returns {*|null} 原值（非占位符）或 null（占位符/空）
+ */
+export function normalizePlaceholder(value) {
+  if (value === null || value === undefined) return null;
+  let str = String(value).trim();
+  if (!str) return null;
+  if (str.startsWith("'")) str = str.slice(1);
+  if (!str || PLACEHOLDER_VALUES.has(str)) return null;
+  return value;
+}
+
 /**
  * @deprecated M-7修复：公式注入防护已统一由 sanitizeInput 承担（在 XSS 过滤前先转义前缀字符）。
  * 请勿再使用此函数，直接调用 sanitizeInput 即可。

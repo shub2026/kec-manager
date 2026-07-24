@@ -298,7 +298,7 @@ describe('exportTextbooks', () => {
     expect(rows[0]['状态']).toBe('启用');
     expect(rows[1]['书名']).toBe('高数');
     expect(rows[1]['状态']).toBe('停用');
-    expect(rows[1]['书号']).toBe('-');
+    expect(rows[1]['书号']).toBe('');
     expect(res.send).toHaveBeenCalled();
     expect(mocks.createAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({ module: 'textbook', result: 'success' })

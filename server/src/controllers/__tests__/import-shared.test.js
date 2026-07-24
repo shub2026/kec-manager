@@ -34,7 +34,7 @@ vi.mock('xss', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块
 // ──────────────────────────────────────────────
-const { verifyExcelMagicNumber, sanitizeInput, sanitizeFormulaInjection, cleanupFile } =
+const { verifyExcelMagicNumber, sanitizeInput, sanitizeFormulaInjection, normalizePlaceholder, cleanupFile } =
   await import('../import-shared.js');
 const fs = await import('fs');
 
@@ -163,6 +163,51 @@ describe('sanitizeFormulaInjection', () => {
 
   it('纯空白字符串应返回 null', () => {
     expect(sanitizeFormulaInjection('   ')).toBeNull();
+  });
+});
+
+describe('normalizePlaceholder', () => {
+  it('null 输入应返回 null', () => {
+    expect(normalizePlaceholder(null)).toBeNull();
+  });
+
+  it('undefined 输入应返回 null', () => {
+    expect(normalizePlaceholder(undefined)).toBeNull();
+  });
+
+  it('空字符串应返回 null', () => {
+    expect(normalizePlaceholder('')).toBeNull();
+  });
+
+  it('纯空白字符串应返回 null', () => {
+    expect(normalizePlaceholder('   ')).toBeNull();
+  });
+
+  it("半角短横 '-' 应返回 null", () => {
+    expect(normalizePlaceholder('-')).toBeNull();
+  });
+
+  it('全角破折号 — 应返回 null', () => {
+    expect(normalizePlaceholder('—')).toBeNull();
+  });
+
+  it('全角短横 － 应返回 null', () => {
+    expect(normalizePlaceholder('－')).toBeNull();
+  });
+
+  it("sanitizeInput 转义后的 \"'-\" 应返回 null（往返污染主场景）", () => {
+    // 导出空字段以 '-' 呈现，再导入时先经 sanitizeInput 转义成 "'-"
+    const sanitized = sanitizeInput('-');
+    expect(sanitized).toBe("'-");
+    expect(normalizePlaceholder(sanitized)).toBeNull();
+  });
+
+  it('正常值应原样返回', () => {
+    expect(normalizePlaceholder('CS101')).toBe('CS101');
+  });
+
+  it("含短横的正常值（如 'A-1'）不应被归一化", () => {
+    expect(normalizePlaceholder('A-1')).toBe('A-1');
   });
 });
 

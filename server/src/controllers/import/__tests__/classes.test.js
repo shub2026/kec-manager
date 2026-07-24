@@ -75,6 +75,14 @@ vi.mock('../../import-shared.js', () => ({
     const s = String(v).trim();
     return s || null;
   }),
+  normalizePlaceholder: vi.fn((v) => {
+    if (v === null || v === undefined) return null;
+    let s = String(v).trim();
+    if (!s) return null;
+    if (s.startsWith("'")) s = s.slice(1);
+    if (!s || ['-', '—', '－'].includes(s)) return null;
+    return v;
+  }),
   verifyExcelMagicNumber: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -160,6 +168,25 @@ describe('importClasses', () => {
         data: expect.objectContaining({ imported: 1, overwritten: 0 }),
       })
     );
+  });
+
+  // ── 往返污染防御：占位符 '-' 不应生成脏基础数据 ──
+  it("专业类别/二级学院为占位符 '-' 时应视为空，不新建名为 '-' 的专业/学院", async () => {
+    readWorkbook.mockResolvedValue([validRow({ 专业类别: '-', 二级学院: '-' })]);
+    const req = mockReq({ path: '/tmp/test.xlsx' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await importClasses(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    // 不应创建任何专业/学院（归一化为 null 后被 if 判空阻止）
+    expect(mockTx.majors.create).not.toHaveBeenCalled();
+    expect(mockTx.colleges.create).not.toHaveBeenCalled();
+    // 班级仍创建，但专业/学院关联未设置（connect 仅在非空时才挂载）
+    const createArg = mockTx.classes.create.mock.calls[0][0].data;
+    expect(createArg.majors).toBeUndefined();
+    expect(createArg.colleges).toBeUndefined();
   });
 
   // ── 2. 无效 enrollment_year → 行级错误 ──────

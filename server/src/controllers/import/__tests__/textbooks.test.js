@@ -58,6 +58,14 @@ vi.mock('../../import-shared.js', () => ({
     const s = String(v).trim();
     return s || null;
   }),
+  normalizePlaceholder: vi.fn((v) => {
+    if (v === null || v === undefined) return null;
+    let s = String(v).trim();
+    if (!s) return null;
+    if (s.startsWith("'")) s = s.slice(1);
+    if (!s || ['-', '—', '－'].includes(s)) return null;
+    return v;
+  }),
   verifyExcelMagicNumber: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -264,9 +272,9 @@ describe('importTextbooks', () => {
       expect(createData.is_active).toBe(true);
     });
 
-    it('类别为 null（sanitizeInput 返回 null）时，String(null).trim()="null" 不触发默认值', async () => {
-      // 注意：sanitizeInput('') 返回 null，然后 String(null).trim() === "null"（truthy），
-      // 所以不会回退到 DEFAULT_TEXTBOOK_CATEGORY。这是源码的一个边界行为。
+    it('类别为空时应回退到 DEFAULT_TEXTBOOK_CATEGORY（修复 String(null)="null" 隐性 bug）', async () => {
+      // 修复前：sanitizeInput('') 返回 null，String(null).trim()==="null"（truthy）会写入字面 'null'。
+      // 修复后：归一化后 category 为 null，显式判空回退到默认类别。
       readWorkbook.mockResolvedValue([textbookRow({ 类别: '' })]);
       const req = mockReq({ path: '/tmp/test.xlsx' });
       const res = mockRes();
@@ -275,7 +283,19 @@ describe('importTextbooks', () => {
       await importTextbooks(req, res, next);
 
       const createData = mockTx.textbooks.create.mock.calls[0][0].data;
-      expect(createData.category).toBe('null');
+      expect(createData.category).toBe('技工');
+    });
+
+    it("类别为占位符 '-' 时应视为空并回退到默认类别（往返污染防御）", async () => {
+      readWorkbook.mockResolvedValue([textbookRow({ 类别: '-' })]);
+      const req = mockReq({ path: '/tmp/test.xlsx' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await importTextbooks(req, res, next);
+
+      const createData = mockTx.textbooks.create.mock.calls[0][0].data;
+      expect(createData.category).toBe('技工');
     });
 
     it('类别有正常值时应使用该值', async () => {

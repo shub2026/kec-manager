@@ -48,9 +48,9 @@ export async function exportCourses(req, res, next) {
 
     const rows = courses.map((course) => ({
       课程名称: course.name,
-      课程编码: course.code || '-',
+      课程编码: course.code || '',
       课程类型: course.type === 'public' ? '公共基础课' : '专业课',
-      描述: course.description || '-',
+      描述: course.description || '',
     }));
 
     const headers = [
@@ -107,13 +107,13 @@ export async function exportTextbooks(req, res, next) {
 
     const rows = textbooks.map((textbook) => ({
       书名: textbook.title,
-      书号: textbook.isbn || '-',
-      出版社: textbook.publisher || '-',
-      作者: textbook.author || '-',
-      版次: textbook.edition || '-',
-      出版日期: textbook.publish_date || '-',
-      定价: textbook.price || '-',
-      类别: textbook.category || '-',
+      书号: textbook.isbn || '',
+      出版社: textbook.publisher || '',
+      作者: textbook.author || '',
+      版次: textbook.edition || '',
+      出版日期: textbook.publish_date || '',
+      定价: textbook.price || '',
+      类别: textbook.category || '',
       状态: textbook.is_active ? '启用' : '停用',
     }));
 
@@ -277,9 +277,9 @@ export async function exportClasses(req, res, next) {
 
       return {
         班级名称: cls.name,
-        二级学院: cls.colleges?.name || '-',
-        专业类别: cls.majors?.name || '-',
-        培养层次: cls.training_levels?.name || '-',
+        二级学院: cls.colleges?.name || '',
+        专业类别: cls.majors?.name || '',
+        培养层次: cls.training_levels?.name || '',
         入学年份: cls.enrollment_year,
         '学制(年)': cls.duration_years,
         班级人数: Number(cls.student_count) || 0,

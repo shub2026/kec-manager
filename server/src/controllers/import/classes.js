@@ -5,7 +5,7 @@ import { getCurrentSemesterInfo } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
-import { cleanupFile, sanitizeInput, verifyExcelMagicNumber } from '../import-shared.js';
+import { cleanupFile, sanitizeInput, normalizePlaceholder, verifyExcelMagicNumber } from '../import-shared.js';
 
 /**
  * POST /api/import/classes - 批量导入班级
@@ -70,9 +70,9 @@ export async function importClasses(req, res, next) {
     const name = sanitizedRow['班级名称'];
     const enrollmentYear = sanitizedRow['入学年份'];
     const durationYears = sanitizedRow['学制(年)'];
-    const majorName = sanitizedRow['专业类别'];
-    const collegeName = sanitizedRow['二级学院'];
-    const trainingLevelName = sanitizedRow['培养层次'];
+    const majorName = normalizePlaceholder(sanitizedRow['专业类别']);
+    const collegeName = normalizePlaceholder(sanitizedRow['二级学院']);
+    const trainingLevelName = normalizePlaceholder(sanitizedRow['培养层次']);
     const studentCount = sanitizedRow['班级人数'];
     const statusValue = sanitizedRow['状态'];
 

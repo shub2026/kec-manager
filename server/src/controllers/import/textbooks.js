@@ -4,7 +4,7 @@ import { readWorkbook } from '../../utils/excel.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { ValidationError } from '../../utils/error.js';
 import { log } from '../../utils/logger.js';
-import { cleanupFile, sanitizeInput, verifyExcelMagicNumber } from '../import-shared.js';
+import { cleanupFile, sanitizeInput, normalizePlaceholder, verifyExcelMagicNumber } from '../import-shared.js';
 import { DEFAULT_TEXTBOOK_CATEGORY } from '../../constants/index.js';
 
 /**
@@ -36,13 +36,14 @@ export async function importTextbooks(req, res, next) {
     }
 
     const title = sanitizedRow['书名'];
-    const isbn = sanitizedRow['书号'] || null;
-    const publisher = sanitizedRow['出版社'] || null;
-    const author = sanitizedRow['作者'] || null;
-    const edition = sanitizedRow['版次'] || null;
-    const publish_date = sanitizedRow['出版日期'] || null;
-    const price = sanitizedRow['定价'] ? Number(sanitizedRow['定价']) : null;
-    const category = sanitizedRow['类别'] || null;
+    const isbn = normalizePlaceholder(sanitizedRow['书号']);
+    const publisher = normalizePlaceholder(sanitizedRow['出版社']);
+    const author = normalizePlaceholder(sanitizedRow['作者']);
+    const edition = normalizePlaceholder(sanitizedRow['版次']);
+    const publish_date = normalizePlaceholder(sanitizedRow['出版日期']);
+    const priceRaw = normalizePlaceholder(sanitizedRow['定价']);
+    const price = priceRaw ? Number(priceRaw) : null;
+    const category = normalizePlaceholder(sanitizedRow['类别']);
     // 审计修复：读取"状态"列，与导出列对称，确保往返导入不丢失 is_active 状态
     const statusValue = sanitizedRow['状态'];
     const is_active = statusValue ? String(statusValue).trim() !== '停用' : true;
@@ -60,7 +61,8 @@ export async function importTextbooks(req, res, next) {
       edition: edition ? String(edition).trim() : null,
       publish_date: publish_date ? String(publish_date).trim() : null,
       price: price && !isNaN(price) ? price : null,
-      category: String(category).trim() || DEFAULT_TEXTBOOK_CATEGORY,
+      // 归一化后 category 可能为 null，需显式判空后回退默认类别（避免 String(null) 产生字面 'null'）
+      category: category ? String(category).trim() : DEFAULT_TEXTBOOK_CATEGORY,
       is_active,
     });
   }
