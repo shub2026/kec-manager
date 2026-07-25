@@ -46,7 +46,7 @@
         :show-text="type === 'batch'"
         striped
         striped-flow
-        :duration="type === 'batch' ? 30 : 0"
+        :duration="type === 'batch' ? 30 : 3"
         class="progress-bar"
       />
 
