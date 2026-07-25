@@ -1392,4 +1392,52 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       expect(t1.assignedHours).toBeLessThanOrEqual(t1.standardCap);
     });
   });
+
+  // ──────────────────────────────────────────────
+  // autoHoursMap 去重 bug 回归测试
+  // ──────────────────────────────────────────────
+  describe('autoHoursMap 正确性（dedupeTeachingUnits 字段依赖）', () => {
+    it('同一教师多个非合班班级不应被合并，课时应正确累加', async () => {
+      // 回归场景：教师 11 在课程 2 有 3 个非合班自动安排 (4h+4h+4h=12h)
+      // 若查询 select 缺少 course_id / class_id，dedupeTeachingUnits 会将 3 行合并为 1 个单元，
+      // autoHoursMap 只计 4h 而非 12h，导致 effectiveTotal 虚高 → 二次排课容量不足
+      const { dedupeTeachingUnits } = await import('../../teaching-statistics.service.js');
+
+      // 模拟 currentAutoAssignments 查询结果（含 course_id 和 class_id）
+      const assignments = [
+        { teacher_id: 11, course_id: 2, class_id: 500, weekly_hours: 4, class: { combination_id: null } },
+        { teacher_id: 11, course_id: 2, class_id: 574, weekly_hours: 4, class: { combination_id: null } },
+        { teacher_id: 11, course_id: 2, class_id: 535, weekly_hours: 4, class: { combination_id: null } },
+      ];
+
+      const units = dedupeTeachingUnits(assignments);
+
+      // 3 个不同班级应产生 3 个独立单元
+      expect(units.length).toBe(3);
+
+      // autoHoursMap 应正确累加为 12h
+      const autoHoursMap = new Map();
+      for (const u of units) {
+        const tid = u.representative.teacher_id;
+        autoHoursMap.set(tid, (autoHoursMap.get(tid) || 0) + u.weeklyHours);
+      }
+      expect(autoHoursMap.get(11)).toBe(12);
+    });
+
+    it('合班场景：同 combination_id 的同教师同课程应合并为 1 个单元', async () => {
+      const { dedupeTeachingUnits } = await import('../../teaching-statistics.service.js');
+
+      const assignments = [
+        { teacher_id: 30, course_id: 2, class_id: 601, weekly_hours: 4, class: { combination_id: 10 } },
+        { teacher_id: 30, course_id: 2, class_id: 602, weekly_hours: 4, class: { combination_id: 10 } },
+      ];
+
+      const units = dedupeTeachingUnits(assignments);
+
+      // 合班应合并为 1 个单元，课时只计 1 次
+      expect(units.length).toBe(1);
+      expect(units[0].weeklyHours).toBe(4);
+      expect(units[0].memberClassIds).toEqual([601, 602]);
+    });
+  });
 });
