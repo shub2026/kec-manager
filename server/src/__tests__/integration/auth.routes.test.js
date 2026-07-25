@@ -430,3 +430,110 @@ describe('认证保护', () => {
     expect(res.status).toBe(401);
   });
 });
+
+// ════════════════════════════════════════════════
+// SEC-H2: 首次登录强制改密流程（端到端）
+// ════════════════════════════════════════════════
+describe('SEC-H2: 首次登录强制改密', () => {
+  const FORCE_USER = {
+    id: 1,
+    username: 'newuser',
+    role: 'admin',
+    real_name: '新用户',
+    email: 'new@test.com',
+    is_active: true,
+    must_change_password: true,
+    token_version: 0,
+  };
+
+  it('登录 must_change_password=true 的用户应成功登录并标记强制改密', async () => {
+    const password = await bcrypt.hash('Initial@123', 10);
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      ...FORCE_USER,
+      password,
+    });
+
+    const res = await withCsrf(request(app).post('/api/auth/login')).send({
+      username: 'newuser',
+      password: 'Initial@123',
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.token).toBeTruthy();
+    // 前端依赖此字段弹出强制改密对话框
+    expect(res.body.data.user.mustChangePassword).toBe(true);
+  });
+
+  it('must_change_password=true 用户访问 GET /api/auth/me 应放行（白名单）', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue(FORCE_USER);
+    const token = makeToken({ ...FORCE_USER });
+
+    const res = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.username).toBe('newuser');
+  });
+
+  it('must_change_password=true 用户访问 PUT /api/auth/password 应放行（白名单）', async () => {
+    const oldHashed = await bcrypt.hash('Initial@123', 10);
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      ...FORCE_USER,
+      password: oldHashed,
+    });
+    mockPrismaUsers.update.mockResolvedValue({});
+
+    const token = makeToken({ ...FORCE_USER });
+    const res = await withCsrf(request(app).put('/api/auth/password'))
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        old_password: 'Initial@123',
+        new_password: 'NewSecure@456',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.message).toContain('密码修改成功');
+  });
+
+  it('must_change_password=true 用户访问 GET /api/dashboard/stats 应返回 403', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue(FORCE_USER);
+    const token = makeToken({ ...FORCE_USER });
+
+    const res = await request(app)
+      .get('/api/dashboard/stats')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('MUST_CHANGE_PASSWORD');
+    expect(res.body.message).toContain('修改初始密码');
+  });
+
+  it('must_change_password=true 用户访问 POST /api/users 应返回 403', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue(FORCE_USER);
+    const token = makeToken({ ...FORCE_USER });
+
+    const res = await withCsrf(request(app).post('/api/users'))
+      .set('Authorization', `Bearer ${token}`)
+      .send({ username: 'test', password: 'Test@123456' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('MUST_CHANGE_PASSWORD');
+  });
+
+  it('must_change_password=true 用户访问 POST /api/auth/logout 应放行（白名单）', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue(FORCE_USER);
+    const token = makeToken({ ...FORCE_USER });
+
+    const res = await withCsrf(request(app).post('/api/auth/logout')).set(
+      'Authorization',
+      `Bearer ${token}`
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+});

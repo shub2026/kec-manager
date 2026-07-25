@@ -99,6 +99,11 @@ request.interceptors.response.use(
 
     // 处理403权限不足
     if (error.response?.status === 403) {
+      // SEC-H2: 强制改密期间静默处理，Layout.vue 的 ChangePasswordDialog 已覆盖 UX
+      const resCode = error.response.data?.code;
+      if (resCode === 'MUST_CHANGE_PASSWORD') {
+        return Promise.reject(error);
+      }
       ElMessage({
         message: '权限不足，无法执行此操作',
         type: 'error',

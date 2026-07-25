@@ -23,6 +23,9 @@
           <el-option label="创建" value="create" />
           <el-option label="更新" value="update" />
           <el-option label="删除" value="delete" />
+          <el-option label="批量删除" value="batch_delete" />
+          <el-option label="批量更新" value="batch_update" />
+          <el-option label="初始化" value="initialize" />
         </el-select>
         <el-select
           v-model="filterModule"
@@ -266,6 +269,9 @@ const actionLabels = {
   create: '创建',
   update: '更新',
   delete: '删除',
+  batch_delete: '批量删除',
+  batch_update: '批量更新',
+  initialize: '初始化',
 };
 
 const moduleLabels = {
@@ -291,6 +297,9 @@ const actionTagTypes = {
   create: 'primary',
   update: 'info',
   delete: 'danger',
+  batch_delete: 'danger',
+  batch_update: 'info',
+  initialize: 'warning',
 };
 
 function getActionLabel(action) {

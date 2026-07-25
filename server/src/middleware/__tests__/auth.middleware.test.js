@@ -381,3 +381,106 @@ describe('roleMiddleware', () => {
     expect(next).toHaveBeenCalled();
   });
 });
+
+// ──────────────────────────────────────────────
+// SEC-H2: 强制改密（must_change_password）
+// ──────────────────────────────────────────────
+describe('SEC-H2: must_change_password 强制改密拦截', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    invalidateUserStatusCache(1);
+  });
+
+  function mockValidTokenAndUser(mustChangePassword) {
+    mockVerifyToken.mockReturnValue({ id: 1, username: 'admin', role: 'admin', v: 0 });
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      id: 1,
+      role: 'admin',
+      is_active: true,
+      must_change_password: mustChangePassword,
+      token_version: 0,
+    });
+  }
+
+  it('must_change_password=true 访问非白名单路由应返回 403 MUST_CHANGE_PASSWORD', async () => {
+    const req = makeReq({
+      headers: { authorization: 'Bearer valid' },
+      path: '/api/dashboard/stats',
+    });
+    const res = makeRes();
+    const next = vi.fn();
+
+    mockValidTokenAndUser(true);
+
+    await authMiddleware(req, res, next);
+    expect(res.statusCode).toBe(403);
+    expect(res.body.code).toBe('MUST_CHANGE_PASSWORD');
+    expect(res.body.message).toContain('修改初始密码');
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('must_change_password=true 访问白名单路由 /api/auth/password（app 级中间件）应放行', async () => {
+    // app 级中间件：req.baseUrl 为空，req.path 为完整路径
+    const req = makeReq({
+      headers: { authorization: 'Bearer valid' },
+      path: '/api/auth/password',
+      baseUrl: '',
+    });
+    const res = makeRes();
+    const next = vi.fn();
+
+    mockValidTokenAndUser(true);
+
+    await authMiddleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+    expect(req.user.id).toBe(1);
+  });
+
+  it('must_change_password=true 访问白名单路由 /password（路由级中间件）应放行', async () => {
+    // 路由级中间件：req.baseUrl 为挂载前缀，req.path 为相对路径
+    // 验证 req.baseUrl + req.path 拼接修复
+    const req = makeReq({
+      headers: { authorization: 'Bearer valid' },
+      path: '/password',
+      baseUrl: '/api/auth',
+    });
+    const res = makeRes();
+    const next = vi.fn();
+
+    mockValidTokenAndUser(true);
+
+    await authMiddleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+    expect(req.user.id).toBe(1);
+  });
+
+  it('must_change_password=true 访问白名单路由 /me（路由级中间件）应放行', async () => {
+    const req = makeReq({
+      headers: { authorization: 'Bearer valid' },
+      path: '/me',
+      baseUrl: '/api/auth',
+    });
+    const res = makeRes();
+    const next = vi.fn();
+
+    mockValidTokenAndUser(true);
+
+    await authMiddleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('must_change_password=false 访问任意路由应正常放行', async () => {
+    const req = makeReq({
+      headers: { authorization: 'Bearer valid' },
+      path: '/api/dashboard/stats',
+    });
+    const res = makeRes();
+    const next = vi.fn();
+
+    mockValidTokenAndUser(false);
+
+    await authMiddleware(req, res, next);
+    expect(next).toHaveBeenCalled();
+    expect(req.user.id).toBe(1);
+  });
+});

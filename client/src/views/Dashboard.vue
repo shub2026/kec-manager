@@ -225,6 +225,10 @@ async function fetchInsights() {
 }
 
 onMounted(async () => {
+  // SEC-H2: 强制改密期间跳过 API 调用，避免触发 403 MUST_CHANGE_PASSWORD
+  if (authStore.mustChangePassword) {
+    return;
+  }
   loading.value = true;
   await settingsStore.load();
   await Promise.all([fetchStats(), fetchInsights()]);

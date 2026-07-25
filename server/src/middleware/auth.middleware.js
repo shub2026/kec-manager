@@ -212,7 +212,9 @@ export async function authMiddleware(req, res, next) {
       }
     }
     // SEC-H2: 强制改密期间仅放行认证自身接口
-    if (status.must_change_password && !MUST_CHANGE_PASSWORD_ALLOWED_PATHS.has(req.path)) {
+    // 注意：路由级中间件的 req.path 是相对路径，须拼接 req.baseUrl 得到完整路径
+    const fullPath = req.baseUrl + req.path;
+    if (status.must_change_password && !MUST_CHANGE_PASSWORD_ALLOWED_PATHS.has(fullPath)) {
       return res.status(403).json({
         success: false,
         code: 'MUST_CHANGE_PASSWORD',
