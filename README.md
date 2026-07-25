@@ -2,7 +2,7 @@
 
 > 面向大中专职业院校教学管理人员的轻量级教学管理系统
 
-**版本** v1.3.0 · **技术栈** Vue 3 + Express 5 + Prisma 6 · **数据库** SQLite WAL
+**版本** v1.3.7 · **技术栈** Vue 3 + Express 5 + Prisma 6 · **数据库** SQLite WAL
 
 KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心功能，采用前后端分离架构，基于 PM2 + Nginx 部署。
 
@@ -34,7 +34,7 @@ KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排�
 | 后端   | Express 5.1 + Prisma 6.19 + Winston 3.19                                                  |
 | 数据库 | SQLite（WAL 模式）                                                                        |
 | 认证   | JWT 双令牌（Access 15 min + Refresh 7 d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt 12 轮 |
-| 测试   | Vitest + Supertest（1371 个用例）                                                         |
+| 测试   | Vitest + Supertest（1405 个用例）                                                         |
 | 部署   | PM2 + Nginx                                                                               |
 
 ---
@@ -95,9 +95,9 @@ npm run dev:server       # 仅后端
 npm run dev:client       # 仅前端
 npm run db:migrate       # 数据库迁移
 npm run db:generate      # 生成 Prisma Client
-npm run version:patch    # 补丁版本 1.3.0 → 1.3.1
-npm run version:minor    # 次版本   1.3.0 → 1.4.0
-npm run version:major    # 主版本   1.3.0 → 2.0.0
+npm run version:patch    # 补丁版本 1.3.7 → 1.3.8
+npm run version:minor    # 次版本   1.3.7 → 1.4.0
+npm run version:major    # 主版本   1.3.7 → 2.0.0
 ```
 
 ### server/
@@ -106,9 +106,13 @@ npm run version:major    # 主版本   1.3.0 → 2.0.0
 npm run dev              # --watch 自动重启，端口 3002
 npm start                # 生产模式
 npm run db:seed          # 种子数据
+npm run db:seed:dev      # 含开发测试数据
 npm run db:seed:reset    # 强制重置 + 重新 seed
 npm run db:reset         # 重建数据库
-npm test                 # Vitest
+npm run init:settings    # 初始化系统设置
+npm run diagnose         # 数据一致性诊断
+npm test                 # Vitest（62 个测试文件）
+npm run test:watch       # 监听模式
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化
@@ -119,6 +123,8 @@ npm run format           # Prettier 格式化
 ```bash
 npm run dev              # Vite 开发服务器，端口 5173
 npm run build            # 生产构建
+npm run preview          # 预览构建产物
+npm run analyze          # 包体积分析
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化
 ```
@@ -131,28 +137,31 @@ npm run format           # Prettier 格式化
 kec-manager/
 ├── client/                          # 前端 Vue 3 + Element Plus
 │   ├── src/
-│   │   ├── api/                     # API 接口（17 个模块）
-│   │   ├── components/              # 公共组件（Layout、CourseMatrix、EmptyState 等）
-│   │   ├── composables/             # 组合式函数（useCrudList、useImport、useSemesters 等）
+│   │   ├── api/                     # API 接口（17 个模块 + 类型定义）
+│   │   ├── components/              # 公共组件（21 个 + filter/ 筛选器子目录）
+│   │   ├── composables/             # 组合式函数（useCrudList、useImport、useExport 等 12 个）
 │   │   ├── router/                  # 路由配置 + 三级权限守卫
-│   │   ├── stores/                  # Pinia 状态（auth、settings）
+│   │   ├── stores/                  # Pinia 状态（auth、settings、classData）
+│   │   ├── styles/                  # 全局样式 + 主题变量
 │   │   ├── utils/                   # 工具（axios 封装、缓存、Cookie、下载）
-│   │   └── views/                   # 页面视图
+│   │   └── views/                   # 页面视图（14 个模块目录 + 顶层页面）
 │   └── vite.config.js               # Vite 构建 + 分包策略
 ├── server/                          # 后端 Express + Prisma
 │   ├── src/
-│   │   ├── controllers/             # 请求处理（含 import/export 子模块）
+│   │   ├── controllers/             # 请求处理（含 export/、import/、plan/ 子模块）
 │   │   ├── middleware/              # 认证 / CSRF / XSS / 校验 / 分页 / 命名转换
-│   │   ├── routes/                  # 路由定义（17 个模块）
+│   │   ├── routes/                  # 路由定义（18 个模块）
 │   │   ├── services/                # 业务逻辑
 │   │   │   └── arrange/             # 排课算法（五阶段 + 禁忌搜索）
-│   │   └── utils/                   # Excel / SSE / 排序工具
+│   │   ├── constants/               # 应用常量（课时设置、教材内聚、禁忌搜索参数）
+│   │   └── utils/                   # Excel / SSE / 排序 / 日志工具
 │   ├── prisma/
 │   │   ├── schema.prisma            # 21 个数据模型
 │   │   ├── migrations/              # 迁移文件
 │   │   └── seed.js                  # 种子数据
+│   ├── scripts/                     # 运维脚本（诊断、密码重置、数据库重建）
 │   └── vitest.config.js             # 测试配置
-├── docs/                            # 项目文档
+├── docs/                            # 项目文档（6 篇）
 ├── scripts/version.js               # 版本管理脚本
 ├── deploy.sh                        # 一键部署脚本
 ├── deploy_ssh.sh                    # SSH 远程部署
@@ -186,7 +195,7 @@ kec-manager/
 | `system_settings`             | 系统配置                             |
 | `audit_logs`                  | 审计日志                             |
 | `token_blacklist`             | JWT 令牌黑名单                       |
-| `arrange_locks`               | 排课并发锁                           |
+| `arrange_locks`               | 排课并发锁（跨进程互斥）             |
 
 ---
 
@@ -236,14 +245,21 @@ kec-manager/
 
 自动排课采用 **五阶段匹配 + 置换回溯** 算法，可选叠加 **禁忌搜索优化层**：
 
-1. **教材分组优先** — 所有教师先拿完第一本教材，再拿第二本
-2. **学院内聚** — 优先拿完一个学院的班级，再拿其他学院
-3. **意向约束严格** — 指定了学院/层次意向的教师严格按意向分配
-4. **容量约束** — 教师课时不超过标准/满载容量，支持教材数量硬上限
-5. **手动排课保护** — 自动排课永远不覆盖手动排课记录
-6. **锁定保护** — 已锁定的自动排课记录在重置和重新排课时均保留，等同于手动排课
-7. **合班一致性** — 同一合班组的成员班强制共享同一教师，按逻辑教学单元计课时
-8. **禁忌搜索（可选）** — 在贪心初始解基础上通过 Insert/Shift/Swap 邻域搜索迭代优化
+1. **意向教师分配** — 有指定学院/层次意向的教师严格按意向拿第一本教材
+2. **无意向教师分配** — 无指定意向的教师按课时容量拿第一本教材
+3. **追加同教材班级** — 所有教师追加已持有教材的班级（不增加教材数）
+4. **第二本教材分配** — 有剩余容量的教师拿第二本教材
+5. **兜底放宽约束** — 剩余班级用评分制放宽匹配
+
+**关键约束**：
+
+- **教材内聚** — 所有教师先拿完第一本教材，再拿第二本，优先拿完一个学院的班级
+- **容量约束** — 按周课时和教师标准/满载容量直接计算，教师课时不超限
+- **手动排课保护** — 自动排课永远不覆盖手动排课记录
+- **锁定保护** — 已锁定的自动排课在重置和重新排课时均保留
+- **合班一致性** — 同一合班组的成员班强制共享同一教师，按逻辑教学单元计课时
+- **置换回溯** — 对未分配班级尝试驱逐→递归链式置换，提升全局分配率
+- **禁忌搜索（可选）** — 在贪心初始解基础上通过 Insert/Shift/Swap 邻域搜索迭代优化
 
 算法模块位于 `server/src/services/arrange/`。禁忌搜索默认关闭，可通过系统设置页面动态启用。
 
@@ -298,7 +314,7 @@ bash deploy_ssh.sh root@your-server.com
 | `LOG_LEVEL`              | 日志级别         | `debug`                 |
 | `BCRYPT_ROUNDS`          | bcrypt 迭代次数  | `10`                    |
 | `MAX_FILE_SIZE`          | 上传文件大小限制 | `10` (MB)               |
-| `DEFAULT_SEMESTER`       | 默认学期         | `2025-2026-2`           |
+| `DEFAULT_SEMESTER`       | 默认学期         | `2026-2027-1`           |
 
 ### 生产环境
 
