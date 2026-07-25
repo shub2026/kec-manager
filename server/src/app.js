@@ -115,7 +115,7 @@ const apiLimiter = rateLimit({
   max: 120, // 每 IP 每分钟最多 120 次
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path === '/api/health', // 健康检查不限流
+  skip: (req) => isDev || req.path === '/health', // 开发环境跳过限流；健康检查不限流
   keyGenerator: (req, res, options) => {
     const ips = req.ips && req.ips.length ? req.ips : null;
     // 取 XFF 链末尾真实客户端 IP（S1 纵深防御）；降级调用 ipKeyGenerator 以正确处理 IPv6 校验

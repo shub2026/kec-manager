@@ -64,6 +64,9 @@ function parseCookies(req) {
 }
 
 // 速率限制配置
+// 开发环境禁用所有登录相关限流，避免频繁调试时触发 429
+const isDev = process.env.NODE_ENV === 'development';
+
 // S1 修复：keyGenerator 取 XFF 链末尾真实客户端 IP，纵深防御伪造 X-Forwarded-For 绕过限流
 // （权威修复仍依赖 Nginx 用 `proxy_set_header X-Forwarded-For $remote_addr;` 覆盖而非追加）。
 const xffKeyGenerator = (req, res, options) => {
@@ -76,6 +79,7 @@ const xffKeyGenerator = (req, res, options) => {
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分钟
   max: 10, // 每个IP最多10次
+  skip: () => isDev, // 开发环境跳过限流
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: xffKeyGenerator,
@@ -87,6 +91,7 @@ const loginLimiter = rateLimit({
 const usernameLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 3,
+  skip: () => isDev,
   keyGenerator: (req, res) => req.body?.username || ipKeyGenerator(req, res),
   message: { success: false, message: '该账号登录尝试过于频繁，请15分钟后再试' },
   standardHeaders: true,
@@ -96,6 +101,7 @@ const usernameLimiter = rateLimit({
 const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
+  skip: () => isDev,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: '刷新Token请求过于频繁，请稍后再试' },
@@ -114,6 +120,7 @@ const generateKeyByUserOrIp = (req) => {
 const passwordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10, // 每个用户/IP最多10次
+  skip: () => isDev,
   keyGenerator: generateKeyByUserOrIp,
   validate: false, // 禁用IPv6验证警告
   standardHeaders: true,
@@ -124,6 +131,7 @@ const passwordLimiter = rateLimit({
 const logoutLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
+  skip: () => isDev,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: '登出请求过于频繁，请稍后再试' },

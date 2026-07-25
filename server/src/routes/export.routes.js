@@ -21,9 +21,11 @@ import { success } from '../utils/response.js';
 
 // 导出接口限流：防止并发全量导出导致 OOM（H-10 修复）
 // S-11修复：Viewer角色导出同样受此10/min限流保护，如需更严格限制可后续增加角色感知的分级限流中间件
+const isDev = process.env.NODE_ENV === 'development';
 const exportLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
+  skip: () => isDev,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: '导出请求过于频繁，请稍后再试' },

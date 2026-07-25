@@ -13,9 +13,11 @@ const router = Router();
 // authMiddleware + roleMiddleware 已在 app.js 挂载处统一应用
 
 // 导入接口独立限流：每分钟最多 5 次，防止频繁导入压垮数据库
+const isDev = process.env.NODE_ENV === 'development';
 const importLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
+  skip: () => isDev,
   message: { success: false, message: '导入操作过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,

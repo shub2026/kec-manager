@@ -18,9 +18,11 @@ const router = Router();
 // 设计说明：原实现提供 10 个分类清空按钮（教师/班级/课程/教材/专业/学院/层次/培养方案/系统重置/操作日志），
 // 共享 max:3/小时 配额时，依次清空多个类型会触发 429 误伤（"清空班级失效"问题的根因）。
 // 现已精简为 2 个端点（系统重置 + 清空操作日志），基础数据精细删除请使用基础数据页逐条删除。
+const isDev = process.env.NODE_ENV === 'development';
 const resetLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 小时
   max: 5,
+  skip: () => isDev,
   keyGenerator: (req) => {
     // 按操作类型独立计数，避免不同类型相互影响
     const resetType = req.path.split('/').pop() || 'unknown';
