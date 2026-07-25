@@ -66,9 +66,11 @@ function parseCookies(req) {
 // 速率限制配置
 // S1 修复：keyGenerator 取 XFF 链末尾真实客户端 IP，纵深防御伪造 X-Forwarded-For 绕过限流
 // （权威修复仍依赖 Nginx 用 `proxy_set_header X-Forwarded-For $remote_addr;` 覆盖而非追加）。
-const xffKeyGenerator = (req) => {
+const xffKeyGenerator = (req, res, options) => {
   const ips = req.ips && req.ips.length ? req.ips : null;
-  return ips ? ips[ips.length - 1] : req.ip || 'unknown';
+  // S1 修复意图保留：优先取 XFF 链末尾真实客户端 IP；
+  // 降级路径调用 ipKeyGenerator 以正确处理 IPv6（满足 express-rate-limit 校验）。
+  return ips ? ips[ips.length - 1] : ipKeyGenerator(req, res, options);
 };
 
 const loginLimiter = rateLimit({

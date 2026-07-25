@@ -13,7 +13,7 @@
           <span class="brand-mark">K</span>
           <div class="brand-text">
             <h1 class="brand-name"><span class="brand-name__logo">KEC</span>课程管理平台</h1>
-            <p class="brand-slogan">培养方案 · 课程管理 · 自动排课 · 教材管理</p>
+            <p class="brand-slogan">基础数据管理 · 智能培养方案 · 自动教学排课</p>
           </div>
         </header>
 
@@ -139,7 +139,7 @@
         <div class="login-card">
           <div class="card-header">
             <h2 class="form-title">{{ organizationName }}</h2>
-            <p class="form-subtitle">登录以进入 KEC 课程管理工作台</p>
+            <p class="form-subtitle">登录进入 KEC 课程管理平台</p>
           </div>
 
           <el-form

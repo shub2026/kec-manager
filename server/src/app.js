@@ -26,7 +26,7 @@ import { sanitizeBody, sanitizeQuery } from './middleware/xss.js';
 import { validateCsrf } from './middleware/csrf.js';
 import { auditMiddleware } from './middleware/audit.middleware.js'; // BIZ-H1修复：审计中间件兜底
 import { log } from './utils/logger.js'; // L1修复：使用winston logger
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 const app = express();
 
@@ -117,9 +117,10 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => req.path === '/api/health', // 健康检查不限流
-  keyGenerator: (req) => {
+  keyGenerator: (req, res, options) => {
     const ips = req.ips && req.ips.length ? req.ips : null;
-    return ips ? ips[ips.length - 1] : req.ip || 'unknown';
+    // 取 XFF 链末尾真实客户端 IP（S1 纵深防御）；降级调用 ipKeyGenerator 以正确处理 IPv6 校验
+    return ips ? ips[ips.length - 1] : ipKeyGenerator(req, res, options);
   },
   message: { success: false, message: '请求过于频繁，请稍后再试' },
 });
