@@ -410,3 +410,69 @@ describe('tabuOptimize — 多教师场景', () => {
     }
   });
 });
+
+// ──────────────────────────────────────────────
+// 合班 memberClassIds 回写回归测试
+// ──────────────────────────────────────────────
+describe('tabuOptimize — 合班 memberClassIds 回写', () => {
+  it('合班班级经 tabu 搜索后 assignments 应保留 memberClassIds', () => {
+    const t1 = makeTeacher({ id: 1, name: '张老师', standardCap: 20, fullCap: 20 });
+
+    // 合班单元：classId=10 + classId=11，共享 memberClassIds
+    const combinedCls = makeClass({
+      classId: 10,
+      className: '合班A+B',
+      weeklyHours: 4,
+      textbookIds: [1],
+      memberClassIds: [10, 11], // 合班两个成员
+    });
+
+    // 初始分配：合班已分配给 t1
+    const assignments = [makeAssignment(t1, combinedCls)];
+    const classMap = new Map([[10, combinedCls]]);
+
+    tabuOptimize(assignments, [], [t1], 'full', classMap, 1, '2025-2026-2');
+
+    // tabu 搜索回写后，assignment 仍应携带 memberClassIds
+    expect(assignments).toHaveLength(1);
+    expect(assignments[0].memberClassIds).toEqual([10, 11]);
+  });
+
+  it('非合班班级回写时 memberClassIds 应为 null', () => {
+    const t1 = makeTeacher({ id: 1, name: '张老师', standardCap: 20, fullCap: 20 });
+    const cls = makeClass({ classId: 20, className: '单班', weeklyHours: 4 });
+
+    const assignments = [makeAssignment(t1, cls)];
+    const classMap = new Map([[20, cls]]);
+
+    tabuOptimize(assignments, [], [t1], 'full', classMap, 1, '2025-2026-2');
+
+    expect(assignments[0].memberClassIds).toBeNull();
+  });
+
+  it('合班回写后 assignment 数据结构可供 expandCombinedAssignments 正确展开', () => {
+    // 验证回写数据满足 expandCombinedAssignments 的展开条件：
+    // memberClassIds 存在且为数组 → 展开为 N 行
+    const t1 = makeTeacher({ id: 1, name: '张老师', standardCap: 20, fullCap: 20 });
+    const combinedCls = makeClass({
+      classId: 10,
+      className: '合班A+B',
+      weeklyHours: 4,
+      memberClassIds: [10, 11],
+    });
+
+    const assignments = [makeAssignment(t1, combinedCls)];
+    const classMap = new Map([[10, combinedCls]]);
+
+    tabuOptimize(assignments, [], [t1], 'full', classMap, 1, '2025-2026-2');
+
+    // 回写后的 assignment 必须满足展开条件
+    const a = assignments[0];
+    expect(a.memberClassIds).toEqual([10, 11]);
+    expect(a.class_id).toBe(10); // representative class
+    expect(a.teacher_id).toBe(1);
+    expect(a.weekly_hours).toBe(4);
+    // expandCombinedAssignments 看到 memberClassIds=[10,11] 会生成两行
+    // （展开逻辑已在 auto-arrange.test.js 中单独测试）
+  });
+});

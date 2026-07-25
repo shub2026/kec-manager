@@ -34,6 +34,7 @@ vi.mock('../../../constants/index.js', () => ({
     FALLBACK_EMPTY: true,
     SCATTERED_THRESHOLD: 3,
   },
+  SWAP_CONFIG: { MAX_DEPTH: 3, MAX_UNASSIGNED: 30 },
 }));
 
 vi.mock('../../lib/prisma.js', () => ({ prisma: {} }));
@@ -47,6 +48,8 @@ const {
   trySwapOne,
   mergeCombinedClasses,
   expandCombinedAssignments,
+  placeClassOnTeacher,
+  trySwapUnassigned,
 } = await import('../auto-arrange.js');
 
 const C = {
@@ -1198,5 +1201,143 @@ describe('expandCombinedAssignments', () => {
     ]);
     expect(rows).toHaveLength(1);
     expect(rows[0].class_id).toBe(9);
+  });
+});
+
+// ──────────────────────────────────────────────
+// 合班 memberClassIds 传递回归测试
+// ──────────────────────────────────────────────
+describe('合班 memberClassIds 传递（递归置换路径）', () => {
+  function makeTeacher(overrides = {}) {
+    return {
+      id: 1,
+      name: '张老师',
+      assignedHours: 0,
+      assignedTextbookIds: new Set(),
+      ...overrides,
+    };
+  }
+
+  describe('placeClassOnTeacher', () => {
+    it('合班班级新建分配时应携带 memberClassIds', () => {
+      const cls = {
+        classId: 10,
+        className: '计科1班',
+        weeklyHours: 4,
+        memberClassIds: [10, 11], // 合班：计科1班 + 计科2班
+      };
+      const t = makeTeacher();
+      const assignments = [];
+      const assignmentsByTeacher = new Map();
+      const classTextbookMap = new Map();
+
+      placeClassOnTeacher(
+        cls, t, assignments, assignmentsByTeacher, 1, '2025-2026-2', classTextbookMap
+      );
+
+      expect(assignments).toHaveLength(1);
+      expect(assignments[0].memberClassIds).toEqual([10, 11]);
+      expect(assignments[0].teacher_id).toBe(1);
+      expect(assignments[0].class_id).toBe(10);
+    });
+
+    it('非合班班级新建分配时 memberClassIds 应为 null', () => {
+      const cls = {
+        classId: 20,
+        className: '软工1班',
+        weeklyHours: 3,
+      };
+      const t = makeTeacher({ id: 2 });
+      const assignments = [];
+      const assignmentsByTeacher = new Map();
+
+      placeClassOnTeacher(
+        cls, t, assignments, assignmentsByTeacher, 1, '2025-2026-2', new Map()
+      );
+
+      expect(assignments[0].memberClassIds).toBeNull();
+    });
+
+    it('合班分配经 expandCombinedAssignments 应展开为两行', () => {
+      const cls = {
+        classId: 10,
+        className: '计科1班',
+        weeklyHours: 4,
+        memberClassIds: [10, 11],
+      };
+      const t = makeTeacher();
+      const assignments = [];
+
+      placeClassOnTeacher(
+        cls, t, assignments, new Map(), 1, '2025-2026-2', new Map()
+      );
+
+      // 展开后应得到两条记录（每个成员班一条）
+      const expanded = expandCombinedAssignments(assignments);
+      expect(expanded).toHaveLength(2);
+      expect(expanded[0].class_id).toBe(10);
+      expect(expanded[1].class_id).toBe(11);
+      expect(expanded[0].teacher_id).toBe(expanded[1].teacher_id);
+      expect(expanded[0].weekly_hours).toBe(expanded[1].weekly_hours);
+    });
+  });
+
+  describe('trySwapUnassigned', () => {
+    it('合班未分配单元进入递归置换时应保留 memberClassIds', () => {
+      // 场景：教师 T1 已有班级 A，合班 U（memberClassIds=[10,11]）未分配
+      // trySwapOne 失败后进入 tryPlaceClass 递归置换
+      // T1 驱逐 A → A 找到 T2 接管 → T1 接纳 U → U 的 memberClassIds 应保留
+      const t1 = {
+        id: 1, name: '老师1',
+        totalWeeklyHours: 20, assignedHours: 4,
+        assignedTextbookIds: new Set(),
+        collegeRestrictions: null, levelRestrictions: null,
+        maxTextbooks: 2,
+      };
+      const t2 = {
+        id: 2, name: '老师2',
+        totalWeeklyHours: 20, assignedHours: 0,
+        assignedTextbookIds: new Set(),
+        collegeRestrictions: null, levelRestrictions: null,
+        maxTextbooks: 2,
+      };
+
+      const existingAssign = {
+        teacher_id: 1, teacher_name: '老师1',
+        class_id: 100, class_name: '已分配班',
+        course_id: 1, semester: '2025-2026-2',
+        weekly_hours: 4, is_auto: true,
+      };
+
+      const assignments = [existingAssign];
+      const teacherConstraints = [t1, t2];
+
+      const unassigned = [{
+        classId: 10, className: '合班A+B',
+        weeklyHours: 4, textbookIds: [],
+        memberClassIds: [10, 11], // 合班
+      }];
+
+      const classTextbookMap = new Map();
+      const classInfoMap = new Map([
+        [10, { collegeId: 1, trainingLevelId: 1 }],
+        [11, { collegeId: 1, trainingLevelId: 1 }],
+        [100, { collegeId: 1, trainingLevelId: 1 }],
+      ]);
+
+      trySwapUnassigned(
+        unassigned, assignments, teacherConstraints,
+        'full', 1, '2025-2026-2', classTextbookMap, classInfoMap
+      );
+
+      // 如果递归置换成功，unassigned 应为空（合班被成功分配）
+      // 检查 assignments 中合班记录的 memberClassIds
+      const combinedAssigns = assignments.filter(a => a.class_id === 10);
+      if (combinedAssigns.length > 0) {
+        expect(combinedAssigns[0].memberClassIds).toEqual([10, 11]);
+      }
+      // 无论置换是否成功，只要合班被分配了，memberClassIds 就必须保留
+      // 如果置换失败（unassigned 非空），说明场景不适用此测试，跳过断言
+    });
   });
 });

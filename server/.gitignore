@@ -48,3 +48,4 @@ Thumbs.db
 # Uploads
 uploads/*
 !uploads/.gitkeep
+manual_create_settings.sql

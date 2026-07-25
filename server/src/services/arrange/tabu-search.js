@@ -674,6 +674,7 @@ export function tabuOptimize(
       semester: semesterStr,
       weekly_hours: cls.weeklyHours,
       is_auto: true,
+      memberClassIds: cls.memberClassIds || null,
     });
   }
 

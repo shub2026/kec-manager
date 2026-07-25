@@ -100,7 +100,7 @@
     </div>
 
     <template #footer>
-      <el-button v-if="finished" type="primary" @click="emit('close')">关闭</el-button>
+      <el-button v-if="finished" type="primary" @click="emit('close')">确定</el-button>
       <el-button v-else disabled>排课进行中，请勿关闭页面</el-button>
     </template>
   </el-dialog>

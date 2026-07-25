@@ -8,6 +8,7 @@ import {
 } from '../../constants/index.js';
 import logger from '../../utils/logger.js';
 import { validateHourSettings } from './validate.js';
+import { dedupeTeachingUnits } from '../teaching-statistics.service.js';
 import {
   getClassesWithCourse,
   getTeachersForCourse,
@@ -596,6 +597,7 @@ function trySwapUnassigned(
         className: u.className,
         weeklyHours: u.weeklyHours,
         textbookIds: clsTextbookIds,
+        memberClassIds: u.memberClassIds || null,
       };
       if (
         tryPlaceClass(
@@ -682,6 +684,7 @@ function placeClassOnTeacher(
       semester: semesterStr,
       weekly_hours: cls.weeklyHours,
       is_auto: true,
+      memberClassIds: cls.memberClassIds || null,
     };
     assignments.push(newAssign);
     if (!assignmentsByTeacher.has(t.id)) assignmentsByTeacher.set(t.id, []);
@@ -1084,19 +1087,28 @@ export async function autoArrange(
       ...lockedAssignments.map((a) => a.class_id),
     ]);
 
-    const currentAutoHours = await prisma.teaching_assignments.groupBy({
-      by: ['teacher_id'],
+    // 获取已自动排课的记录（含班级 combination_id，用于合班去重）
+    const currentAutoAssignments = await prisma.teaching_assignments.findMany({
       where: {
         course_id: Number(courseId),
         semester: semesterStr,
         is_auto: true,
         is_locked: false,
       },
-      _sum: { weekly_hours: true },
+      select: {
+        teacher_id: true,
+        weekly_hours: true,
+        class: { select: { combination_id: true } },
+      },
     });
-    const autoHoursMap = new Map(
-      currentAutoHours.map((w) => [w.teacher_id, w._sum.weekly_hours || 0])
-    );
+    // 合班场景下同一 (combination_id, course, teacher) 会有多条记录，
+    // 用 dedupeTeachingUnits 去重后再按教师汇总课时，避免重复计数
+    const dedupedAutoUnits = dedupeTeachingUnits(currentAutoAssignments);
+    const autoHoursMap = new Map();
+    for (const unit of dedupedAutoUnits) {
+      const tid = unit.representative.teacher_id;
+      autoHoursMap.set(tid, (autoHoursMap.get(tid) || 0) + unit.weeklyHours);
+    }
 
     const classesToAssign = classes
       .filter((c) => !manualClassIds.has(c.classId))
@@ -1913,4 +1925,6 @@ export {
   diagnoseFailure,
   selectBestTeacher,
   trySwapOne,
+  placeClassOnTeacher,
+  trySwapUnassigned,
 };
