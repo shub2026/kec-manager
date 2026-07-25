@@ -49,6 +49,7 @@ const {
   mergeCombinedClasses,
   expandCombinedAssignments,
   placeClassOnTeacher,
+  tryPlaceClass,
   trySwapUnassigned,
 } = await import('../auto-arrange.js');
 
@@ -1338,6 +1339,57 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       }
       // 无论置换是否成功，只要合班被分配了，memberClassIds 就必须保留
       // 如果置换失败（unassigned 非空），说明场景不适用此测试，跳过断言
+    });
+  });
+
+  // ──────────────────────────────────────────────
+  // tryPlaceClass 驱逐→放回 bug 回归测试
+  // ──────────────────────────────────────────────
+  describe('tryPlaceClass 排除驱逐来源教师', () => {
+    it('单教师场景：驱逐的班级不应放回同一教师，防止容量溢出', () => {
+      // 场景：1 个教师 cap=10，已分配 2 个班 (4h+4h=8h)，尝试为第 3 个班 (4h) 置换
+      // 驱逐 → 递归为被驱逐班级找新家 → 不应放回同一教师（否则容量不变，后续放置会溢出）
+      const t1 = {
+        id: 1, name: '唯一教师',
+        assignedHours: 8, standardCap: 10, fullCap: 14,
+        defaultWeeklyHours: null, effectiveTotal: 0,
+        schedulingCollegeIds: null, schedulingLevelIds: null,
+        assignedTextbookIds: new Set([205]),
+        textbookIds: [205], inherentTextbookIds: [205],
+        assignedCollegeIds: new Set([1]),
+        collegeRestrictions: null, levelRestrictions: null,
+        maxTextbooks: 2,
+      };
+
+      const a1 = { teacher_id: 1, teacher_name: '唯一教师', class_id: 100, class_name: '班A', course_id: 1, semester: 's', weekly_hours: 4, is_auto: true };
+      const a2 = { teacher_id: 1, teacher_name: '唯一教师', class_id: 101, class_name: '班B', course_id: 1, semester: 's', weekly_hours: 4, is_auto: true };
+      const assignments = [a1, a2];
+      const assignmentsByTeacher = new Map([[1, [a1, a2]]]);
+      const teacherConstraints = [t1];
+
+      const newCls = { classId: 200, className: '班C', weeklyHours: 4, textbookIds: [204] };
+      const classTextbookMap = new Map([
+        [100, [205]], [101, [205]], [200, [204]],
+      ]);
+      const classInfoMap = new Map([
+        [100, { collegeId: 1, trainingLevelId: 1 }],
+        [101, { collegeId: 1, trainingLevelId: 1 }],
+        [200, { collegeId: 1, trainingLevelId: 1 }],
+      ]);
+
+      const result = tryPlaceClass(
+        newCls, assignments, assignmentsByTeacher,
+        teacherConstraints, 'standard', 1, 's',
+        classTextbookMap, classInfoMap,
+        0, new Set()
+      );
+
+      // 驱逐→放回同一教师不应成功（只有 1 个教师，被驱逐的班级无处可去）
+      expect(result).toBe(false);
+      // assignments 不应增长（不应出现第 3 个分配）
+      expect(assignments.length).toBe(2);
+      // 教师课时不应溢出（8h + 4h = 12h > cap 10h）
+      expect(t1.assignedHours).toBeLessThanOrEqual(t1.standardCap);
     });
   });
 });

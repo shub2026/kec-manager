@@ -732,6 +732,7 @@ function checkTextbookSwap(
  * @param {object} cls - { classId, className, weeklyHours, textbookIds, _existingAssign? }
  * @param {number} depth - 当前递归深度
  * @param {Set} visited - 已访问的 (teacherId:classId) 对，防止环
+ * @param {number|null} [excludeTeacherId] - 驱逐来源教师ID，递归时排除该教师防止"驱逐→放回"无效循环
  * @returns {boolean} 是否成功放置
  */
 function tryPlaceClass(
@@ -745,12 +746,15 @@ function tryPlaceClass(
   classTextbookMap,
   classInfoMap,
   depth,
-  visited
+  visited,
+  excludeTeacherId = null
 ) {
   const useTbLimit = TEXTBOOK_COHESION.ENABLED && TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER > 0;
   const clsTextbookIds = classTextbookMap.get(cls.classId) || cls.textbookIds || [];
 
   for (const t of teacherConstraints) {
+    // 驱逐来源教师跳过：防止被驱逐的班级放回原教师（无效循环）
+    if (excludeTeacherId != null && t.id === excludeTeacherId) continue;
     // 资格校验
     if (classInfoMap) {
       const clsInfo = classInfoMap.get(cls.classId);
@@ -830,7 +834,8 @@ function tryPlaceClass(
           classTextbookMap,
           classInfoMap,
           depth + 1,
-          visited
+          visited,
+          t.id
         )
       ) {
         // V 找到新家，将 cls 放入 T
@@ -1926,5 +1931,6 @@ export {
   selectBestTeacher,
   trySwapOne,
   placeClassOnTeacher,
+  tryPlaceClass,
   trySwapUnassigned,
 };
