@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma.js';
-import { DEFAULT_HOUR_SETTINGS, BATCH_CONFIG } from '../../constants/index.js';
+import { DEFAULT_HOUR_SETTINGS } from '../../constants/index.js';
 import { validateHourSettings } from './validate.js';
 import { autoArrange, batchLocks } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
@@ -144,8 +144,6 @@ export async function batchAutoArrange(
             globalTextbookMap,
             // P1-12 修复：批量内部调用绕过 batchLocks 检查，由 batch.js 持有学期锁
             skipBatchLockCheck: true,
-            // P0-2 修复：批量排课容量预留，避免先处理课程耗尽教师容量
-            capacityReserveRatio: BATCH_CONFIG.RESERVE_RATIO,
           }
         );
         if (options.preview && virtualTeacherHours) {
