@@ -1102,6 +1102,8 @@ export async function autoArrange(
       },
       select: {
         teacher_id: true,
+        course_id: true,
+        class_id: true,
         weekly_hours: true,
         class: { select: { combination_id: true } },
       },
