@@ -10,11 +10,14 @@
   >
     <!-- 汇总统计 -->
     <div class="batch-summary">
-      <div class="batch-stat-card is-success">
-        <div class="batch-stat-num">{{ result.summary?.totalCourses || 0 }}</div>
+      <div class="batch-stat-card is-primary">
+        <div class="batch-stat-num text-brand">{{ result.summary?.totalCourses || 0 }}</div>
         <div class="batch-stat-label">课程总数</div>
       </div>
-      <div class="batch-stat-card is-success">
+      <div
+        class="batch-stat-card"
+        :class="{ 'is-success': (result.summary?.totalAssigned || 0) > 0 }"
+      >
         <div class="batch-stat-num text-success">
           {{ result.summary?.totalAssigned || 0 }}
         </div>
@@ -69,11 +72,22 @@
             <span class="course-item-name">{{ r.courseName }}</span>
           </div>
           <div class="course-item-right">
-            <el-tag v-if="r.error" type="danger" size="small">出错</el-tag>
-            <el-tag v-if="r.unassignedCount > 0" type="warning" size="small"
+            <div v-if="!r.error && r.totalClasses" class="course-mini-bar">
+              <div
+                class="course-mini-fill"
+                :class="r.unassignedCount > 0 ? 'is-warn' : 'is-ok'"
+                :style="{ width: courseRate(r) + '%' }"
+              ></div>
+            </div>
+            <el-tag v-if="r.error" type="danger" size="small" disable-transitions>出错</el-tag>
+            <el-tag v-if="r.unassignedCount > 0" type="warning" size="small" disable-transitions
               >{{ r.unassignedCount }} 未分配</el-tag
             >
-            <el-tag v-if="!r.error && r.unassignedCount === 0" type="success" size="small"
+            <el-tag
+              v-if="!r.error && r.unassignedCount === 0"
+              type="success"
+              size="small"
+              disable-transitions
               >完成</el-tag
             >
             <span class="course-item-stat">{{ r.autoCount || 0 }}/{{ r.totalClasses || 0 }}</span>
@@ -142,6 +156,12 @@ function toggleCourseDetail(courseId) {
   else s.add(courseId);
   expandedCourses.value = s;
 }
+
+// 课程完成率（迷你进度条用）
+function courseRate(r) {
+  if (!r.totalClasses) return 0;
+  return Math.min(100, Math.round(((r.autoCount || 0) / r.totalClasses) * 100));
+}
 </script>
 
 <style scoped>
@@ -160,21 +180,33 @@ function toggleCourseDetail(courseId) {
   padding: var(--space-3) var(--space-2);
   text-align: center;
   border: 1px solid transparent;
-  transition: border-color 0.2s;
+  transition: border-color var(--dur-base) var(--ease-out);
+}
+.batch-stat-card.is-primary {
+  background: var(--brand-primary-soft);
+  border-color: var(--brand-primary-lighter);
+}
+.batch-stat-card.is-success {
+  background: var(--brand-success-soft);
+  border-color: var(--brand-success-lighter);
 }
 .batch-stat-card.is-warning {
   background: var(--brand-warning-soft);
-  border-color: var(--brand-warning);
+  border-color: var(--brand-warning-lighter);
 }
 .batch-stat-card.is-danger {
   background: var(--brand-danger-soft);
-  border-color: var(--brand-danger);
+  border-color: var(--brand-danger-lighter);
 }
 .batch-stat-num {
   font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.batch-stat-num.text-brand {
+  color: var(--brand-primary);
 }
 .batch-stat-num.text-success {
   color: var(--brand-success-text);
@@ -196,22 +228,24 @@ function toggleCourseDetail(courseId) {
   justify-content: flex-end;
 }
 .batch-course-list {
-  max-height: 400px;
+  max-height: 420px;
   overflow-y: auto;
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
 }
 .batch-course-item {
   border-bottom: 1px solid var(--border-light);
+  border-left: 3px solid transparent;
 }
 .batch-course-item:last-child {
   border-bottom: none;
 }
+/* 整行浓色背景改为左侧语义色条，扫视更克制美观 */
 .batch-course-item.has-error {
-  background: var(--brand-danger-soft);
+  border-left-color: var(--brand-danger);
 }
 .batch-course-item.has-unassigned {
-  background: var(--brand-warning-soft);
+  border-left-color: var(--brand-warning);
 }
 .course-item-header {
   display: flex;
@@ -253,13 +287,33 @@ function toggleCourseDetail(courseId) {
   gap: var(--space-2);
   flex-shrink: 0;
 }
+.course-mini-bar {
+  width: 64px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-subtle);
+  overflow: hidden;
+}
+.course-mini-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width var(--dur-base) var(--ease-out);
+}
+.course-mini-fill.is-ok {
+  background: var(--brand-success);
+}
+.course-mini-fill.is-warn {
+  background: var(--brand-warning);
+}
 .course-item-stat {
   font-size: 12px;
   color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 .course-item-detail {
   padding: var(--space-2) 14px var(--space-3) 34px;
   border-top: 1px dashed var(--border-light);
+  background: var(--bg-subtle);
   font-size: 13px;
 }
 .detail-error {
@@ -293,7 +347,7 @@ function toggleCourseDetail(courseId) {
   align-items: center;
   gap: 10px;
   padding: var(--space-1) 0;
-  border-bottom: 1px solid var(--bg-subtle);
+  border-bottom: 1px solid var(--border-light);
 }
 .detail-unassigned-item:last-child {
   border-bottom: none;

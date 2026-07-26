@@ -15,9 +15,12 @@
           <strong>{{ data.courseName }}</strong>
         </p>
         <p class="info-row">
-          排课模式：<el-tag :type="data.mode === '全量模式' ? 'warning' : 'success'" size="small">{{
-            data.mode
-          }}</el-tag>
+          排课模式：<el-tag
+            :type="data.mode === '全量模式' ? 'warning' : 'success'"
+            size="small"
+            disable-transitions
+            >{{ data.mode }}</el-tag
+          >
         </p>
         <p class="info-detail">{{ data.message }}</p>
       </template>
@@ -29,9 +32,12 @@
           将对<strong>当前学期所有课程</strong>进行批量排课
         </p>
         <p class="info-row">
-          排课模式：<el-tag :type="data.mode === '全量模式' ? 'warning' : 'success'" size="small">{{
-            data.mode
-          }}</el-tag>
+          排课模式：<el-tag
+            :type="data.mode === '全量模式' ? 'warning' : 'success'"
+            size="small"
+            disable-transitions
+            >{{ data.mode }}</el-tag
+          >
         </p>
         <p class="info-detail">{{ data.message }}</p>
       </template>

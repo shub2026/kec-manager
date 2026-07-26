@@ -27,8 +27,8 @@
         </div>
         <div class="arrange-stat-label">未分配</div>
       </div>
-      <div class="arrange-stat-card">
-        <div class="arrange-stat-num">{{ result.totalClasses || 0 }}</div>
+      <div class="arrange-stat-card is-primary">
+        <div class="arrange-stat-num text-brand">{{ result.totalClasses || 0 }}</div>
         <div class="arrange-stat-label">班级总数</div>
       </div>
     </div>
@@ -68,7 +68,7 @@
 
     <!-- 未分配班级详情 -->
     <div v-if="result.unassigned?.length" class="arrange-unassigned">
-      <div class="arrange-section-title">未分配班级</div>
+      <div class="arrange-section-title">未分配班级（{{ result.unassigned.length }}）</div>
       <div v-for="u in result.unassigned" :key="u.classId" class="arrange-unassigned-item">
         <span class="unassigned-class-name">{{ u.className }}</span>
         <span class="unassigned-hours">{{ u.weeklyHours }} 课时</span>
@@ -78,7 +78,9 @@
 
     <!-- 全部完成 -->
     <div v-if="!result.unassigned?.length && !result.warnings?.length" class="arrange-all-done">
-      <el-icon :size="24" color="var(--brand-success)"><CircleCheckFilled /></el-icon>
+      <div class="all-done-icon">
+        <el-icon :size="26"><CircleCheckFilled /></el-icon>
+      </div>
       <span>所有班级均已安排</span>
     </div>
 
@@ -126,25 +128,38 @@ const cohesionRateClass = computed(() => {
 .arrange-stat-card {
   background: var(--bg-subtle);
   border-radius: var(--radius-md);
-  padding: 10px 6px;
+  padding: var(--space-3) var(--space-2);
   text-align: center;
   border: 1px solid transparent;
+  transition: border-color var(--dur-base) var(--ease-out);
+}
+.arrange-stat-card.is-success {
+  background: var(--brand-success-soft);
+  border-color: var(--brand-success-lighter);
 }
 .arrange-stat-card.is-warning {
   background: var(--brand-warning-soft);
-  border-color: var(--brand-warning);
+  border-color: var(--brand-warning-lighter);
+}
+.arrange-stat-card.is-primary {
+  background: var(--brand-primary-soft);
+  border-color: var(--brand-primary-lighter);
 }
 .arrange-stat-num {
   font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 .arrange-stat-num.text-success {
   color: var(--brand-success-text);
 }
 .arrange-stat-num.text-warning {
   color: var(--brand-warning-text);
+}
+.arrange-stat-num.text-brand {
+  color: var(--brand-primary);
 }
 .arrange-stat-label {
   font-size: 12px;
@@ -207,16 +222,19 @@ const cohesionRateClass = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: var(--space-2) var(--space-3);
   background: var(--brand-warning-soft);
+  border-left: 3px solid var(--brand-warning);
   border-radius: var(--radius-sm);
   margin-bottom: 6px;
   font-size: 13px;
 }
 .arrange-unassigned {
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) 14px;
+  max-height: 260px;
+  overflow-y: auto;
 }
 .arrange-unassigned .arrange-section-title {
   font-size: 12px;
@@ -250,12 +268,23 @@ const cohesionRateClass = computed(() => {
 }
 .arrange-all-done {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-4);
+  padding: var(--space-5) 0 var(--space-4);
   color: var(--brand-success-text);
   font-size: 14px;
   font-weight: 500;
+}
+.all-done-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--brand-success-soft);
+  color: var(--brand-success-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
