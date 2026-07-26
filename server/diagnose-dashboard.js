@@ -205,6 +205,113 @@ async function main() {
   console.log(
     `\n══ 前端"排课进度"卡片课时估算 ══\n  页面显示: 已排 ${estAssigned} / 剩余 ${estRemaining} 课时（按课程数比例折算计划课时）\n  实际已排课时（合班去重）: ${assignedHoursDedup}`
   );
+
+  // ── 5. "课时分布"（distribution）与"课时概览"（courseStats）明细核对 ──
+  // 独立实现合班去重（同 组合|课程|教师 为一个逻辑单元，代表行取首行），
+  // 与接口的 dedupeTeachingUnits 口径一致但代码独立，用于交叉验证
+  const detailRows = await prisma.teaching_assignments.findMany({
+    where: { semester, weekly_hours: { gt: 0 }, teacher: { status: 'active' } },
+    select: {
+      weekly_hours: true,
+      course_id: true,
+      class_id: true,
+      teacher_id: true,
+      teacher: { select: { id: true, name: true } },
+      class: {
+        select: { combination_id: true, colleges: { select: { name: true } } },
+      },
+      course: { select: { id: true, name: true } },
+    },
+  });
+  const detailUnits = new Map();
+  for (const r of detailRows) {
+    const combId = r.class?.combination_id ?? null;
+    const key = `${combId != null ? 'comb:' + combId : 'cls:' + r.class_id}|${r.course_id}|${r.teacher_id}`;
+    let u = detailUnits.get(key);
+    if (!u) {
+      u = { rep: r, hours: r.weekly_hours, collegeNames: new Set() };
+      detailUnits.set(key, u);
+    }
+    if (r.class?.colleges?.name) u.collegeNames.add(r.class.colleges.name);
+  }
+
+  console.log('\n══ "课时分布"卡片（按学院）明细核对 ══');
+  const collegeIndep = {};
+  let crossCollegeUnits = 0;
+  let noCollegeHours = 0;
+  for (const u of detailUnits.values()) {
+    if (u.collegeNames.size > 1) crossCollegeUnits++;
+    const name = u.rep.class?.colleges?.name;
+    if (!name) {
+      noCollegeHours += u.hours;
+      continue;
+    }
+    collegeIndep[name] = (collegeIndep[name] || 0) + u.hours;
+  }
+  const distIndep = Object.entries(collegeIndep)
+    .filter(([, h]) => h > 0)
+    .map(([name, h]) => ({ name, hours: Math.round(h * 10) / 10 }))
+    .sort((x, y) => y.hours - x.hours);
+  const apiDist = insights.distribution;
+  fmt('学院条目数', apiDist.length, distIndep.length);
+  const distIndepMap = new Map(distIndep.map((d) => [d.name, d.hours]));
+  for (const d of apiDist) {
+    fmt(`  ${d.name}`, d.hours, distIndepMap.get(d.name) ?? 0);
+    distIndepMap.delete(d.name);
+  }
+  for (const [name, h] of distIndepMap) {
+    console.log(`  ❌ 独立核算存在但接口缺失: ${name}=${h}`);
+  }
+  if (crossCollegeUnits > 0) {
+    console.log(
+      `  ⚠️ 存在 ${crossCollegeUnits} 个跨学院合班单元（课时归入代表行班级的学院，存在归属口径歧义）`
+    );
+  }
+  if (noCollegeHours > 0) {
+    console.log(
+      `  ℹ️ 有 ${Math.round(noCollegeHours * 10) / 10} 课时因班级无学院归属未计入分布图（页面合计会少于总已排课时）`
+    );
+  }
+
+  console.log('\n══ "课时概览"卡片（按课程）明细核对 ══');
+  const courseIndep = {};
+  for (const u of detailUnits.values()) {
+    const cid = u.rep.course_id;
+    if (!courseIndep[cid]) {
+      courseIndep[cid] = {
+        name: u.rep.course?.name,
+        totalHours: 0,
+        classCount: 0,
+        teacherIds: new Set(),
+      };
+    }
+    courseIndep[cid].totalHours += u.hours;
+    courseIndep[cid].classCount += 1;
+    courseIndep[cid].teacherIds.add(u.rep.teacher_id);
+  }
+  const apiCS = insights.courseStats;
+  fmt('课程条目数', apiCS.length, Object.keys(courseIndep).length);
+  for (const c of apiCS) {
+    const ind = courseIndep[c.id];
+    if (!ind) {
+      console.log(`  ❌ 接口存在但独立核算缺失: ${c.name}`);
+      continue;
+    }
+    const hoursOk = c.totalHours === Math.round(ind.totalHours * 10) / 10;
+    const classOk = c.classCount === ind.classCount;
+    const teacherOk = c.teacherCount === ind.teacherIds.size;
+    const ok = hoursOk && classOk && teacherOk;
+    console.log(
+      `${ok ? '  ✅' : '  ❌'} ${c.name}: 课时 ${c.totalHours}/${Math.round(ind.totalHours * 10) / 10}  教学班 ${c.classCount}/${ind.classCount}  教师 ${c.teacherCount}/${ind.teacherIds.size}${ok ? '' : '  <-- 不一致'}`
+    );
+    delete courseIndep[c.id];
+  }
+  for (const cid of Object.keys(courseIndep)) {
+    console.log(`  ❌ 独立核算存在但接口缺失: ${courseIndep[cid].name}`);
+  }
+  console.log(
+    `  ℹ️ 前端仅展示课时降序前 8 门，底部"共 N 门课程 / 合计课时"按全量 courseStats 计算`
+  );
 }
 
 main()
