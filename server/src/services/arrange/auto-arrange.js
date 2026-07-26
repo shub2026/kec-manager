@@ -1502,8 +1502,11 @@ export async function autoArrange(
 
     // ================================================================
     // 第一阶段：处理有指定意向的教师（严格按意向分配）
+    // 教师视角选组：按"本人意向范围内可拿课时"降序挑选教材组，
+    // 而非按全局需求顺序遍历。防止全局需求大但意向内只有零头课时的组
+    // 烧掉教材名额（MAX_TEXTBOOKS_PER_TEACHER），把意向内课时充足的组锁死
     // ================================================================
-    logger.info('[阶段1] 有指定意向的教师拿第一本教材');
+    logger.info('[阶段1] 意向教师按可拿课时最大的教材组优先拿取');
     if (onProgress)
       try {
         onProgress({ phase: 1, phaseName: '意向教师分配', total: 5 });
@@ -1513,43 +1516,80 @@ export async function autoArrange(
       (t) => t.schedulingCollegeIds?.length > 0 || t.schedulingLevelIds?.length > 0
     );
 
-    // 按教材组顺序处理：所有教师先拿完第一本教材
-    for (const [tbKey, available] of groupAvailable) {
-      if (available.length === 0) continue;
+    const phase1MaxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
+    const phase1UseTbLimit = TEXTBOOK_COHESION.ENABLED && phase1MaxTb > 0;
 
-      const textbookIds = tbKey === '__no_textbook__' ? [] : tbKey.split(',').map(Number);
+    // 优先处理剩余容量大的教师（与原实现口径一致）
+    const prefTeachersSorted = [...teachersWithPref].sort(
+      (a, b) => maxCapFn(b) - b.assignedHours - (maxCapFn(a) - a.assignedHours)
+    );
 
-      // 筛选：有指定意向且能教此教材的教师
-      const eligibleTeachers = teachersWithPref
-        .filter((t) => {
-          // 关键修复：只看本轮已分配的教材，不看固有教材
-          // 如果教师已经有分配的教材，必须包含当前教材组的教材
-          if (t.assignedTextbookIds.size > 0) {
-            return textbookIds.some((tid) => t.assignedTextbookIds.has(tid));
+    for (const teacher of prefTeachersSorted) {
+      // 连续拿组：拿完一组再选下一组（天然满足"先拿完第一本，再拿第二本"），
+      // 直到容量不足、教材名额用尽或无可拿组
+      for (;;) {
+        const remainingCap = maxCapFn(teacher) - teacher.assignedHours;
+        if (remainingCap <= 0) break;
+
+        // 候选组评分：已持教材的组优先（tier 0），其次新教材组（tier 1）；
+        // 同 tier 内按本人可拿课时降序，并列按组剩余需求降序、tbKey 升序保证确定性
+        let best = null;
+        for (const [tbKey, available] of groupAvailable) {
+          if (available.length === 0) continue;
+
+          const textbookIds = tbKey === '__no_textbook__' ? [] : tbKey.split(',').map(Number);
+          const holdsGroupTb =
+            textbookIds.length > 0 &&
+            textbookIds.some((tid) => teacher.assignedTextbookIds.has(tid));
+
+          // 教材上限预检：新增教材数不能超出剩余名额
+          // （takeClassesForTeacher 内部的 projectedTextbooks 校验保留为兜底）
+          if (phase1UseTbLimit && textbookIds.length > 0) {
+            const newTbCount = textbookIds.filter(
+              (tid) => !teacher.assignedTextbookIds.has(tid)
+            ).length;
+            if (teacher.assignedTextbookIds.size + newTbCount > phase1MaxTb) continue;
           }
-          // 0本教师：只能拿当前教材组（第一本）
-          return true;
-        })
-        .sort((a, b) => {
-          // 优先选剩余容量大的教师
-          return maxCapFn(b) - b.assignedHours - (maxCapFn(a) - a.assignedHours);
-        });
 
-      for (const teacher of eligibleTeachers) {
-        if (available.length === 0) break;
+          // 本人意向范围内可拿课时（只统计单班课时能放进剩余容量的班级）
+          let matchHours = 0;
+          let groupDemand = 0;
+          for (const cls of available) {
+            groupDemand += cls.weeklyHours || 0;
+            if ((cls.weeklyHours || 0) <= remainingCap && isPrefMatch(teacher, cls)) {
+              matchHours += cls.weeklyHours || 0;
+            }
+          }
+          if (matchHours <= 0) continue;
 
-        // 严格意向检查：只拿匹配的班级
-        const matchingClasses = available.filter((cls) => isPrefMatch(teacher, cls));
-        if (matchingClasses.length === 0) continue;
+          const tier = holdsGroupTb ? 0 : 1;
+          if (
+            !best ||
+            tier < best.tier ||
+            (tier === best.tier &&
+              (matchHours > best.matchHours ||
+                (matchHours === best.matchHours &&
+                  (groupDemand > best.groupDemand ||
+                    (groupDemand === best.groupDemand && tbKey < best.tbKey)))))
+          ) {
+            best = { tbKey, available, matchHours, groupDemand, tier };
+          }
+        }
+        if (!best) break;
 
+        const matchingClasses = best.available.filter((cls) => isPrefMatch(teacher, cls));
         const taken = takeClassesForTeacher(teacher, matchingClasses, true);
+        if (taken.length === 0) break; // 防死循环兜底：最佳组也拿不动时结束
         for (const cls of taken) {
           recordAssignment(teacher, cls);
-          const idx = available.findIndex((c) => c.classId === cls.classId);
-          if (idx >= 0) available.splice(idx, 1);
+          const idx = best.available.findIndex((c) => c.classId === cls.classId);
+          if (idx >= 0) best.available.splice(idx, 1);
         }
+        logger.debug(`  [阶段1] ${teacher.name} 拿取教材组 ${best.tbKey}: ${taken.length} 个班级`);
       }
+    }
 
+    for (const [tbKey, available] of groupAvailable) {
       logger.debug(`  [阶段1] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
     }
 
