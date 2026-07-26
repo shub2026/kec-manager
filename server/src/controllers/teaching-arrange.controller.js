@@ -1110,3 +1110,111 @@ export async function runBatchAutoArrange(req, res, next) {
     next(e);
   }
 }
+
+/**
+ * POST /optimize-schedule - 排课优化（预览模式）
+ * 对当前学期所有已排课的教师进行全局优化，返回优化前后对比
+ */
+export async function runOptimizeSchedule(req, res, next) {
+  const useSSE = isSSERequest(req);
+  try {
+    const semester = req.body.semester;
+    const mode = req.body.mode || 'standard';
+
+    if (!semester) return fail(res, '缺少学期参数');
+    if (!['full', 'standard'].includes(mode)) return fail(res, '排课模式必须是full或standard');
+
+    // SSE 模式：初始化流式响应，通过 onProgress 回调推送优化进度
+    if (useSSE) {
+      initSSE(res);
+      const onClose = () => {
+        res.writableEnded || res.end();
+      };
+      req.on('close', onClose);
+
+      try {
+        const { runOptimizeSchedule } = await import('../services/arrange/optimize.js');
+        const result = await runOptimizeSchedule(semester, mode, {
+          onProgress: (progress) => {
+            sendSSEEvent(res, 'progress', progress);
+          },
+        });
+
+        sendSSEEvent(res, 'complete', {
+          success: true,
+          data: result,
+          message: `优化分析完成：${result.summary.changedClasses}个班级可优化`,
+        });
+        res.end();
+      } catch (e) {
+        sendSSEEvent(res, 'error', { message: e.message });
+        res.end();
+      } finally {
+        req.off('close', onClose);
+      }
+      return;
+    }
+
+    // 非 SSE 模式：保持原有 JSON 响应
+    const { runOptimizeSchedule } = await import('../services/arrange/optimize.js');
+    const result = await runOptimizeSchedule(semester, mode);
+
+    success(res, result, `优化分析完成：${result.summary.changedClasses}个班级可优化`);
+  } catch (e) {
+    await createAuditLog({
+      action: 'update',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { semester: req.body.semester, mode: req.body.mode, error: e.message },
+      result: 'failed',
+      message: `排课优化失败：${e.message}`,
+    }).catch(() => {});
+    next(e);
+  }
+}
+
+/**
+ * POST /apply-optimize - 应用优化结果
+ * 将预览阶段确认的优化方案写入数据库
+ */
+export async function applyOptimizeResult(req, res, next) {
+  try {
+    const { semester, changes } = req.body;
+
+    if (!semester) return fail(res, '缺少学期参数');
+    if (!Array.isArray(changes) || changes.length === 0) {
+      return fail(res, '缺少变更数据或无变更需要应用');
+    }
+
+    const { applyOptimizeResult } = await import('../services/arrange/optimize.js');
+    const result = await applyOptimizeResult(semester, changes, req.user?.id);
+
+    await createAuditLog({
+      action: 'update',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        semester,
+        changesCount: changes.length,
+        improvedCourses: result.improvedCourses,
+      },
+      result: 'success',
+      message: `应用排课优化：${result.improvedCourses}门课程，变更${changes.length}个班级`,
+    });
+
+    success(res, result, `优化已应用：变更${changes.length}个班级`);
+  } catch (e) {
+    await createAuditLog({
+      action: 'update',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { semester: req.body.semester, error: e.message },
+      result: 'failed',
+      message: `应用优化结果失败：${e.message}`,
+    }).catch(() => {});
+    next(e);
+  }
+}

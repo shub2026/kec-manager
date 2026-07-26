@@ -224,3 +224,25 @@ export const toggleAssignmentLock = (id, locked) =>
  * @returns {Promise<import('./types').ApiResponse<Object>>}
  */
 export const batchLockAssignments = (data) => request.post('/teaching-arrange/lock-batch', data);
+
+/**
+ * 排课优化（预览模式）- SSE 流式版本
+ * 对当前学期所有已排课的教师进行全局优化，返回优化前后对比
+ * @param {Object} data
+ * @param {string} data.semester - 学期
+ * @param {string} [data.mode='standard'] - 排课模式 'standard' | 'full'
+ * @param {(progress: {phase: string, message: string, percent: number}) => void} onProgress
+ * @returns {Promise<{success: boolean, data: object, message: string}>}
+ */
+export const runOptimizeScheduleWithProgress = (data, onProgress) =>
+  fetchArrangeSSE('/teaching-arrange/optimize-schedule', data, onProgress);
+
+/**
+ * 应用优化结果
+ * 将预览阶段确认的优化方案写入数据库
+ * @param {Object} data
+ * @param {string} data.semester - 学期
+ * @param {Array} data.changes - 变更列表
+ * @returns {Promise<import('./types').ApiResponse<Object>>}
+ */
+export const applyOptimizeResult = (data) => request.post('/teaching-arrange/apply-optimize', data);

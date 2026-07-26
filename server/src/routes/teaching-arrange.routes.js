@@ -22,6 +22,8 @@ import {
   saveHourSettings,
   toggleLock,
   batchLock,
+  runOptimizeSchedule,
+  applyOptimizeResult,
 } from '../controllers/teaching-arrange.controller.js';
 
 const router = Router();
@@ -86,5 +88,21 @@ router.patch(
 
 // POST /lock-batch - 批量锁定/解锁
 router.post('/lock-batch', roleMiddleware('admin', 'super_admin'), sanitizeBody, batchLock);
+
+// POST /optimize-schedule - 排课优化（预览）
+router.post(
+  '/optimize-schedule',
+  roleMiddleware('admin', 'super_admin'),
+  sanitizeBody,
+  runOptimizeSchedule
+);
+
+// POST /apply-optimize - 应用优化结果
+router.post(
+  '/apply-optimize',
+  roleMiddleware('admin', 'super_admin'),
+  sanitizeBody,
+  applyOptimizeResult
+);
 
 export default router;

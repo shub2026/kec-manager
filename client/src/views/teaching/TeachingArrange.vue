@@ -131,6 +131,16 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
+            <el-button
+              type="info"
+              :loading="optimizing"
+              :disabled="historicalReadOnly"
+              class="dropdown-gap"
+              @click="handleOptimize"
+            >
+              <el-icon><DataAnalysis /></el-icon>
+              {{ optimizing && optimizeProgressMessage ? optimizeProgressMessage : '排课优化' }}
+            </el-button>
             <el-dropdown class="dropdown-gap" @command="handleResetCommand">
               <el-button type="danger" :disabled="historicalReadOnly">
                 <el-icon><RefreshRight /></el-icon> 重置<el-icon class="el-icon--right"
@@ -341,6 +351,22 @@
     <!-- 批量排课结果弹窗 -->
     <BatchResultDialog v-model="batchResultVisible" :result="batchResult" />
 
+    <!-- 排课优化确认弹窗 -->
+    <OptimizeConfirmDialog
+      v-model="optimizeConfirmVisible"
+      :loading="optimizing"
+      @confirm="doOptimize"
+    />
+
+    <!-- 排课优化结果弹窗 -->
+    <OptimizeResultDialog
+      v-model="optimizeResultVisible"
+      :result="optimizeResult"
+      :applying="optimizing"
+      @apply="applyOptimizeResult"
+      @close="closeOptimizeResult"
+    />
+
     <!-- 排课进度弹窗 -->
     <ArrangeProgressDialog
       v-model="progressVisible"
@@ -407,7 +433,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Connection, Lock, Unlock } from '@element-plus/icons-vue';
+import { Connection, Lock, Unlock, DataAnalysis } from '@element-plus/icons-vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
@@ -424,6 +450,7 @@ import {
 } from '../../api/teachingArrange';
 import { useAutoArrange } from './composables/useAutoArrange';
 import { useBatchArrange } from './composables/useBatchArrange';
+import { useOptimize } from './composables/useOptimize';
 
 import HourSettingsCard from './components/HourSettingsCard.vue';
 import CoursePreviewCard from './components/CoursePreviewCard.vue';
@@ -445,6 +472,12 @@ const ArrangeConfirmDialog = defineAsyncComponent(
 );
 const ArrangeProgressDialog = defineAsyncComponent(
   () => import('./components/ArrangeProgressDialog.vue')
+);
+const OptimizeConfirmDialog = defineAsyncComponent(
+  () => import('./components/OptimizeConfirmDialog.vue')
+);
+const OptimizeResultDialog = defineAsyncComponent(
+  () => import('./components/OptimizeResultDialog.vue')
 );
 
 // 学期相关：页面局部学期（默认全局当前学期），支持切换查看历史学期
@@ -626,6 +659,27 @@ const {
 } = useBatchArrange({
   selectedSemester,
   hourSettingsRef,
+  loadData,
+  confirmHistoricalEdit,
+});
+
+// 使用排课优化 composable
+const {
+  optimizing,
+  optimizeConfirmVisible,
+  optimizeResultVisible,
+  optimizeResult,
+  progressVisible: optimizeProgressVisible,
+  progressMessage: optimizeProgressMessage,
+  progressPercent: optimizeProgressPercent,
+  progressPhase: optimizeProgressPhase,
+  progressFinished: optimizeProgressFinished,
+  handleOptimize,
+  doOptimize,
+  applyOptimizeResult,
+  closeOptimizeResult,
+} = useOptimize({
+  selectedSemester,
   loadData,
   confirmHistoricalEdit,
 });
