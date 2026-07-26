@@ -98,7 +98,9 @@
       <!-- 侧边栏底部：学期标签 + 用户信息 -->
       <div class="sidebar-footer">
         <div v-if="semesterLabel && !isCollapse" class="sidebar-semester">
-          <el-tag size="small" type="info" effect="plain">{{ semesterLabel }}</el-tag>
+          <el-tag size="small" type="info" effect="plain" disable-transitions>{{
+            semesterLabel
+          }}</el-tag>
         </div>
         <el-dropdown
           trigger="click"

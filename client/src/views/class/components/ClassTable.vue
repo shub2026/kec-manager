@@ -33,13 +33,15 @@
       </el-table-column>
       <el-table-column label="年级" min-width="75">
         <template #default="{ row }">
-          <el-tag v-if="calcGrade(row)" size="small">{{ calcGrade(row) }}年级</el-tag>
+          <el-tag v-if="calcGrade(row)" size="small" disable-transitions
+            >{{ calcGrade(row) }}年级</el-tag
+          >
           <span v-else>-</span>
         </template>
       </el-table-column>
       <el-table-column label="状态" min-width="80">
         <template #default="{ row }">
-          <el-tag :type="getStatusType(row.status)">
+          <el-tag :type="getStatusType(row.status)" disable-transitions>
             {{ getStatusText(row.status) }}
           </el-tag>
         </template>
@@ -56,7 +58,7 @@
             placement="top"
             effect="light"
           >
-            <el-tag class="combined-tag" size="small">
+            <el-tag class="combined-tag" size="small" disable-transitions>
               <el-icon class="combined-tag-icon"><Connection /></el-icon>
               {{ row.partnerClassNames ? '合班' : '合班(无伙伴)' }}
             </el-tag>
@@ -66,7 +68,7 @@
       </el-table-column>
       <el-table-column label="关联类型" min-width="90">
         <template #default="{ row }">
-          <el-tag :type="getRelationTypeTag(row)" size="small">
+          <el-tag :type="getRelationTypeTag(row)" size="small" disable-transitions>
             {{ getRelationTypeText(row) }}
           </el-tag>
         </template>
@@ -75,13 +77,13 @@
         <template #default="{ row }">
           <div v-if="row.planMatchWarning" class="plan-warning">
             <el-tooltip :content="row.planMatchWarning" placement="top" effect="light">
-              <el-tag type="warning" size="small">
+              <el-tag type="warning" size="small" disable-transitions>
                 <el-icon><Warning /></el-icon>
                 {{ getCurrentPlanName(row) }}
               </el-tag>
             </el-tooltip>
           </div>
-          <el-tag v-else :type="getPlanTagType(row)" size="small">
+          <el-tag v-else :type="getPlanTagType(row)" size="small" disable-transitions>
             {{ getCurrentPlanName(row) }}
           </el-tag>
         </template>

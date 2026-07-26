@@ -79,6 +79,7 @@
               v-if="row.category"
               :type="row.category === '技工' ? 'primary' : 'info'"
               size="small"
+              disable-transitions
             >
               {{ row.category }}
             </el-tag>
@@ -87,7 +88,7 @@
         </el-table-column>
         <el-table-column label="状态" min-width="65">
           <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'info'" size="small">
+            <el-tag :type="row.isActive ? 'success' : 'info'" size="small" disable-transitions>
               {{ row.isActive ? '启用' : '停用' }}
             </el-tag>
           </template>

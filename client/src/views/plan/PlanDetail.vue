@@ -2,8 +2,10 @@
   <div class="plan-detail">
     <PageHeader :title="plan?.name || '方案明细'" subtitle="培养方案" back-route="/plans">
       <template #tags>
-        <el-tag v-if="plan?.majors?.name" size="small">{{ plan.majors.name }}</el-tag>
-        <el-tag v-if="plan?.trainingLevels?.name" type="warning" size="small">{{
+        <el-tag v-if="plan?.majors?.name" size="small" disable-transitions>{{
+          plan.majors.name
+        }}</el-tag>
+        <el-tag v-if="plan?.trainingLevels?.name" type="warning" size="small" disable-transitions>{{
           plan.trainingLevels.name
         }}</el-tag>
       </template>

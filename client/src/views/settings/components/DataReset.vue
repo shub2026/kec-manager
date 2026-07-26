@@ -16,7 +16,9 @@
       <div class="reset-item">
         <div class="reset-item-header">
           <h4>系统重置</h4>
-          <el-tag size="small" type="warning" effect="plain">恢复初始状态</el-tag>
+          <el-tag size="small" type="warning" effect="plain" disable-transitions
+            >恢复初始状态</el-tag
+          >
           <span class="header-spacer"></span>
           <el-button type="danger" :loading="resetting" @click="$emit('reset', 'settings')">
             <el-icon><Delete /></el-icon>
@@ -32,7 +34,7 @@
       <div class="reset-item">
         <div class="reset-item-header">
           <h4>清空操作日志</h4>
-          <el-tag size="small" type="warning" effect="plain">日常维护</el-tag>
+          <el-tag size="small" type="warning" effect="plain" disable-transitions>日常维护</el-tag>
           <span class="header-spacer"></span>
           <el-button
             type="warning"

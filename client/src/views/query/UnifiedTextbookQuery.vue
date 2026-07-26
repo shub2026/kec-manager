@@ -145,10 +145,16 @@
             </el-table-column>
             <el-table-column label="是否必订" min-width="110" align="center">
               <template #default="{ row }">
-                <el-tag v-if="row.isConsecutive" type="warning" size="small">选定</el-tag>
-                <el-tag v-else :type="row.isRequired ? 'danger' : 'info'" size="small">{{
-                  row.isRequired ? '必订' : '选修'
-                }}</el-tag>
+                <el-tag v-if="row.isConsecutive" type="warning" size="small" disable-transitions
+                  >选定</el-tag
+                >
+                <el-tag
+                  v-else
+                  :type="row.isRequired ? 'danger' : 'info'"
+                  size="small"
+                  disable-transitions
+                  >{{ row.isRequired ? '必订' : '选修' }}</el-tag
+                >
               </template>
             </el-table-column>
           </el-table>

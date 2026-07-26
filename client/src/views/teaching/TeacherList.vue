@@ -125,16 +125,21 @@
         </el-table-column>
         <el-table-column label="人员类别" min-width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="personnelTagType(row.personnelType)" size="small">
+            <el-tag :type="personnelTagType(row.personnelType)" size="small" disable-transitions>
               {{ personnelLabel(row.personnelType) }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="学科" min-width="160">
           <template #default="{ row }">
-            <el-tag v-for="c in row.courseList" :key="c.id" size="small" class="tag-item">{{
-              c.name
-            }}</el-tag>
+            <el-tag
+              v-for="c in row.courseList"
+              :key="c.id"
+              size="small"
+              class="tag-item"
+              disable-transitions
+              >{{ c.name }}</el-tag
+            >
             <span v-if="!row.courseList?.length" class="text-muted">-</span>
           </template>
         </el-table-column>
@@ -146,6 +151,7 @@
               size="small"
               type="info"
               class="tag-item"
+              disable-transitions
               >{{ c.name }}</el-tag
             >
             <span v-if="!row.collegeList?.length" class="text-muted">-</span>
@@ -159,6 +165,7 @@
               size="small"
               type="warning"
               class="tag-item"
+              disable-transitions
               >{{ l.name }}</el-tag
             >
             <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>

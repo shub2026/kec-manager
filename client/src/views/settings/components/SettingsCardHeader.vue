@@ -2,7 +2,9 @@
   <div class="card-title-row">
     <span class="card-dot" :style="{ backgroundColor: dotColor }"></span>
     <span class="card-title-text"><slot /></span>
-    <el-tag v-if="tag" size="small" :type="tagType" effect="plain">{{ tag }}</el-tag>
+    <el-tag v-if="tag" size="small" :type="tagType" effect="plain" disable-transitions>{{
+      tag
+    }}</el-tag>
   </div>
 </template>
 

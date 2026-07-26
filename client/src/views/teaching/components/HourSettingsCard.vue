@@ -6,7 +6,7 @@
           ><el-icon><Setting /></el-icon> 教学安排设置</span
         >
         <div class="card-header-actions">
-          <el-tag type="info">{{ currentSemesterLabel }}</el-tag>
+          <el-tag type="info" disable-transitions>{{ currentSemesterLabel }}</el-tag>
           <el-select
             :model-value="selectedCourseId"
             placeholder="请选择课程"

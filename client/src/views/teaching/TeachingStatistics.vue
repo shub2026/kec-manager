@@ -92,11 +92,10 @@
           stripe
           row-key="teacherId"
           class="stats-table"
-          @expand-change="handleExpandChange"
         >
           <el-table-column type="expand">
             <template #default="{ row }">
-              <div v-loading="row._expanding" class="expand-content">
+              <div class="expand-content">
                 <div v-for="detail in row.details" :key="detail.course.id" class="course-detail">
                   <h4>{{ detail.course.name }}（周课时：{{ detail.weeklyHours }}）</h4>
                   <el-table
@@ -109,24 +108,37 @@
                     <el-table-column label="班级" min-width="150">
                       <template #default="{ row: cls }">
                         <span>{{ cls.className }}</span>
-                        <el-tag v-if="cls.isCombined" size="small" type="success" class="tag-item"
+                        <el-tag
+                          v-if="cls.isCombined"
+                          size="small"
+                          type="success"
+                          class="tag-item"
+                          disable-transitions
                           >合班</el-tag
                         >
                       </template>
                     </el-table-column>
                     <el-table-column label="学院" min-width="100">
                       <template #default="{ row: cls }">
-                        <el-tag v-if="cls.collegeName" size="small" type="info">{{
-                          cls.collegeName
-                        }}</el-tag>
+                        <el-tag
+                          v-if="cls.collegeName"
+                          size="small"
+                          type="info"
+                          disable-transitions
+                          >{{ cls.collegeName }}</el-tag
+                        >
                         <span v-else class="text-muted">-</span>
                       </template>
                     </el-table-column>
                     <el-table-column label="层次" min-width="80">
                       <template #default="{ row: cls }">
-                        <el-tag v-if="cls.trainingLevelName" size="small" type="warning">{{
-                          cls.trainingLevelName
-                        }}</el-tag>
+                        <el-tag
+                          v-if="cls.trainingLevelName"
+                          size="small"
+                          type="warning"
+                          disable-transitions
+                          >{{ cls.trainingLevelName }}</el-tag
+                        >
                         <span v-else class="text-muted">-</span>
                       </template>
                     </el-table-column>
@@ -138,7 +150,11 @@
                     />
                     <el-table-column label="安排方式" min-width="100" align="center">
                       <template #default="{ row: cls }">
-                        <el-tag :type="cls.isAuto ? 'info' : 'primary'" size="small">
+                        <el-tag
+                          :type="cls.isAuto ? 'info' : 'primary'"
+                          size="small"
+                          disable-transitions
+                        >
                           {{ cls.isAuto ? '自动' : '手动' }}
                         </el-tag>
                       </template>
@@ -163,16 +179,21 @@
           </el-table-column>
           <el-table-column label="人员类别" width="90" align="center">
             <template #default="{ row }">
-              <el-tag :type="personnelTagType(row.personnelType)" size="small">
+              <el-tag :type="personnelTagType(row.personnelType)" size="small" disable-transitions>
                 {{ personnelLabel(row.personnelType) }}
               </el-tag>
             </template>
           </el-table-column>
           <el-table-column label="任教科目" width="150" cell-class-name="wrap-cell">
             <template #default="{ row }">
-              <el-tag v-for="d in row.details" :key="d.course.id" size="small" class="tag-item">{{
-                d.course.name
-              }}</el-tag>
+              <el-tag
+                v-for="d in row.details"
+                :key="d.course.id"
+                size="small"
+                class="tag-item"
+                disable-transitions
+                >{{ d.course.name }}</el-tag
+              >
             </template>
           </el-table-column>
           <el-table-column label="任课层次" min-width="110" cell-class-name="wrap-cell">
@@ -183,6 +204,7 @@
                 size="small"
                 type="warning"
                 class="tag-item"
+                disable-transitions
                 >{{ l.name }}</el-tag
               >
               <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
@@ -196,6 +218,7 @@
                 size="small"
                 type="info"
                 class="tag-item"
+                disable-transitions
                 >{{ c.name }}</el-tag
               >
               <span v-if="!row.collegeList?.length" class="text-muted">-</span>
@@ -209,7 +232,7 @@
                 :content="`含 ${combinedUnitsOf(row)} 个合班教学单元`"
                 placement="top"
               >
-                <el-tag size="small" type="primary" class="combined-tag"
+                <el-tag size="small" type="primary" class="combined-tag" disable-transitions
                   >合{{ combinedUnitsOf(row) }}</el-tag
                 >
               </el-tooltip>
@@ -355,16 +378,6 @@ const pagedTeachers = computed(() => {
 watch(filteredTeachers, () => {
   currentPage.value = 1;
 });
-
-function handleExpandChange(row, expandedRows) {
-  // 展开时为行添加 loading 标记（数据已预加载，仅用于视觉反馈）
-  if (expandedRows.includes(row)) {
-    row._expanding = true;
-    setTimeout(() => {
-      row._expanding = false;
-    }, 100);
-  }
-}
 
 const filteredSummary = computed(() => {
   const list = filteredTeachers.value;

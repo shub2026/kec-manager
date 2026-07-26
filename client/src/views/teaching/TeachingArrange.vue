@@ -213,7 +213,7 @@
         <el-table-column label="周课时" min-width="70" align="center">
           <template #default="{ row }">{{ row.weeklyHours }}</template>
         </el-table-column>
-        <el-table-column label="教材" min-width="160">
+        <el-table-column label="教材" min-width="160" class-name="textbook-col">
           <template #default="{ row }">
             <div v-if="row.textbooks?.length" class="textbook-tags">
               <el-tag
@@ -222,6 +222,7 @@
                 size="small"
                 type="info"
                 class="tag-item"
+                disable-transitions
                 >{{ tb.title }}</el-tag
               >
             </div>
@@ -246,6 +247,7 @@
                   "
                   size="small"
                   :closable="!historicalReadOnly"
+                  disable-transitions
                   @close.stop="handleRemoveAssignment(row)"
                 >
                   <el-icon v-if="row.assignment.isLocked" class="locked-icon" :size="12"
@@ -757,8 +759,12 @@ async function onCourseChange(courseId) {
   await loadData();
 }
 
+// 请求序号守卫：快速连续切换课程时，丢弃过期响应，避免旧课程数据覆盖最新选择
+let loadDataSeq = 0;
+
 async function loadData() {
   if (!selectedCourseId.value || !selectedSemester.value) return;
+  const seq = ++loadDataSeq;
   tableLoading.value = true;
   try {
     const [classesRes, teachersRes] = await Promise.all([
@@ -768,6 +774,8 @@ async function loadData() {
         semester: selectedSemester.value,
       }),
     ]);
+    // 期间又发起了新的加载，当前响应已过期，直接丢弃
+    if (seq !== loadDataSeq) return;
     const classData = classesRes.data || {};
     classList.value = classData.classes || [];
     summary.value = classData.summary || {
@@ -781,12 +789,16 @@ async function loadData() {
     };
     teacherList.value = teachersRes.data || [];
   } catch (e) {
+    if (seq !== loadDataSeq) return;
     ElMessage.error('加载数据失败');
     if (import.meta.env.DEV) {
       console.error('加载数据失败:', e);
     }
   } finally {
-    tableLoading.value = false;
+    // 仅由最新一次加载关闭 loading，避免旧请求提前结束加载态
+    if (seq === loadDataSeq) {
+      tableLoading.value = false;
+    }
   }
 }
 
@@ -1038,8 +1050,20 @@ onMounted(async () => {
   color: var(--text-placeholder);
   font-size: 12px;
 }
+.textbook-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
 .tag-item {
-  margin: 2px;
+  /* 单个长书名超出列宽时省略显示 */
+  max-width: 100%;
+  overflow: hidden;
+}
+.tag-item :deep(.el-tag__content) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 :deep(.unassigned-row) {
   background-color: var(--brand-danger-soft) !important;
@@ -1049,6 +1073,10 @@ onMounted(async () => {
 }
 .adaptive-table :deep(.el-table__body td .cell) {
   white-space: nowrap;
+}
+/* 教材列允许多 TAG 换行（覆盖上方 nowrap，需更高优先级选择器） */
+.adaptive-table :deep(.el-table__body td.textbook-col .cell) {
+  white-space: normal;
 }
 /* 卡片头部筛选器宽度 */
 .header-filter.filter-xs {

@@ -18,6 +18,7 @@
                 type="warning"
                 effect="plain"
                 class="unsaved-tag"
+                disable-transitions
                 >未保存</el-tag
               >
             </label>
@@ -59,6 +60,7 @@
                 type="warning"
                 effect="plain"
                 class="unsaved-tag"
+                disable-transitions
                 >未保存</el-tag
               >
             </label>

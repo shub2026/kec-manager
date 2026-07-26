@@ -30,6 +30,7 @@
                 size="small"
                 :type="group.type === 'public' ? 'success' : 'warning'"
                 class="course-type-tag"
+                disable-transitions
               >
                 {{ group.type === 'public' ? '公共' : '专业' }}
               </el-tag>
@@ -169,7 +170,7 @@
       <span class="footer-hint">统一应用于所有学期</span>
     </div>
     <div class="footer-summary">
-      <el-tag type="info" size="large">
+      <el-tag type="info" size="large" disable-transitions>
         方案总课时：<strong>{{ totalAllHours }}</strong>
       </el-tag>
     </div>

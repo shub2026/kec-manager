@@ -30,14 +30,14 @@
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
         <el-table-column label="角色" min-width="120" align="center">
           <template #default="{ row }">
-            <el-tag :type="getRoleType(row.role)" size="small">
+            <el-tag :type="getRoleType(row.role)" size="small" disable-transitions>
               {{ getRoleLabel(row.role) }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" min-width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">
+            <el-tag :type="row.isActive ? 'success' : 'danger'" size="small" disable-transitions>
               {{ row.isActive ? '激活' : '禁用' }}
             </el-tag>
           </template>

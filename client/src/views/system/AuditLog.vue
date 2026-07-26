@@ -79,7 +79,7 @@
         </el-table-column>
         <el-table-column label="操作类型" min-width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="getActionTagType(row.action)" size="small">
+            <el-tag :type="getActionTagType(row.action)" size="small" disable-transitions>
               {{ getActionLabel(row.action) }}
             </el-tag>
           </template>
@@ -90,6 +90,7 @@
               :type="row.result === 'success' ? 'success' : 'danger'"
               size="small"
               effect="light"
+              disable-transitions
             >
               {{ row.result === 'success' ? '成功' : '失败' }}
             </el-tag>
@@ -97,7 +98,7 @@
         </el-table-column>
         <el-table-column label="模块" min-width="140" align="center">
           <template #default="{ row }">
-            <el-tag type="info" size="small" effect="plain">{{
+            <el-tag type="info" size="small" effect="plain" disable-transitions>{{
               getModuleLabel(row.module)
             }}</el-tag>
           </template>

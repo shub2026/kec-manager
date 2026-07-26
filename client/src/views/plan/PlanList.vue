@@ -41,8 +41,12 @@
         </el-table-column>
         <el-table-column label="关联类型" min-width="90">
           <template #default="{ row }">
-            <el-tag v-if="row.majorId" type="success" size="small">按专业</el-tag>
-            <el-tag v-else-if="row.trainingLevelId" type="primary" size="small">按层次</el-tag>
+            <el-tag v-if="row.majorId" type="success" size="small" disable-transitions
+              >按专业</el-tag
+            >
+            <el-tag v-else-if="row.trainingLevelId" type="primary" size="small" disable-transitions
+              >按层次</el-tag
+            >
           </template>
         </el-table-column>
         <el-table-column label="专业" min-width="120">

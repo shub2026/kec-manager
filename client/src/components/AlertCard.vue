@@ -6,7 +6,9 @@
           <el-icon><Warning /></el-icon>
           异常提醒
         </span>
-        <el-tag v-if="totalCount > 0" type="warning" size="small" round>{{ totalCount }}</el-tag>
+        <el-tag v-if="totalCount > 0" type="warning" size="small" round disable-transitions>{{
+          totalCount
+        }}</el-tag>
       </div>
     </template>
 

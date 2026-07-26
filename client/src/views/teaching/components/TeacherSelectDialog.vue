@@ -56,9 +56,14 @@
       </el-table-column>
       <el-table-column label="学科" min-width="3">
         <template #default="{ row }">
-          <el-tag v-for="c in row.courseList" :key="c.id" size="small" class="tag-item">{{
-            c.name
-          }}</el-tag>
+          <el-tag
+            v-for="c in row.courseList"
+            :key="c.id"
+            size="small"
+            class="tag-item"
+            disable-transitions
+            >{{ c.name }}</el-tag
+          >
         </template>
       </el-table-column>
       <el-table-column v-if="!isMobile" label="任课学院" min-width="4">
@@ -69,6 +74,7 @@
             size="small"
             type="info"
             class="tag-item"
+            disable-transitions
             >{{ c.name }}</el-tag
           >
         </template>
@@ -81,6 +87,7 @@
             size="small"
             type="warning"
             class="tag-item"
+            disable-transitions
             >{{ l.name }}</el-tag
           >
         </template>
@@ -94,6 +101,7 @@
               size="small"
               type="info"
               class="tag-item"
+              disable-transitions
               >{{ tb.title }}</el-tag
             >
           </template>
@@ -284,6 +292,14 @@ defineExpose({ open, close });
 }
 .tag-item {
   margin: 2px;
+  /* 单个长书名超出列宽时省略显示 */
+  max-width: 100%;
+  overflow: hidden;
+}
+.tag-item :deep(.el-tag__content) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── 响应式 ─── */

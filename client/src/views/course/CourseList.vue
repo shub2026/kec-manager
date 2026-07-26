@@ -47,7 +47,7 @@
         <el-table-column prop="code" label="编码" min-width="120" />
         <el-table-column label="类型" min-width="120">
           <template #default="{ row }">
-            <el-tag :type="row.type === 'public' ? 'success' : 'warning'">
+            <el-tag :type="row.type === 'public' ? 'success' : 'warning'" disable-transitions>
               {{ row.type === 'public' ? '公共基础课' : '专业课' }}
             </el-tag>
           </template>

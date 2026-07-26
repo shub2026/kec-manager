@@ -30,6 +30,7 @@
                   size="small"
                   :type="sem.value.includes('-1') ? 'warning' : 'success'"
                   effect="plain"
+                  disable-transitions
                 >
                   {{ sem.value.includes('-1') ? '秋季' : '春季' }}
                 </el-tag>
@@ -72,6 +73,7 @@
               effect="dark"
               size="large"
               round
+              disable-transitions
             >
               {{ currentSemesterPreview.season }}
             </el-tag>

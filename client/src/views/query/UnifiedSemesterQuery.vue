@@ -122,17 +122,10 @@
         </el-alert>
 
         <ListErrorState v-if="error" :message="error" @retry="load" />
-        <el-table
-          v-else
-          v-loading="loading"
-          :data="data"
-          stripe
-          row-key="classId"
-          @expand-change="handleExpandChange"
-        >
+        <el-table v-else v-loading="loading" :data="data" stripe row-key="classId">
           <el-table-column type="expand">
             <template #default="{ row }">
-              <div v-loading="row._expanding" class="expand-content">
+              <div class="expand-content">
                 <el-table
                   :data="row.courses"
                   size="small"
@@ -151,6 +144,7 @@
                       <el-tag
                         size="small"
                         :type="c.courseType === 'public' ? 'success' : 'warning'"
+                        disable-transitions
                       >
                         {{ c.courseType === 'public' ? '公共基础课' : '专业课' }}
                       </el-tag>
@@ -167,8 +161,16 @@
                       <div v-if="c.textbooks?.length">
                         <div v-for="tb in c.textbooks" :key="tb.id">
                           {{ tb.title }}
-                          <el-tag v-if="tb.isConsecutive" type="warning" size="small">选定</el-tag>
-                          <el-tag v-else-if="tb.isRequired" size="small">必订</el-tag>
+                          <el-tag
+                            v-if="tb.isConsecutive"
+                            type="warning"
+                            size="small"
+                            disable-transitions
+                            >选定</el-tag
+                          >
+                          <el-tag v-else-if="tb.isRequired" size="small" disable-transitions
+                            >必订</el-tag
+                          >
                         </div>
                       </div>
                       <span v-else class="no-textbook">未指定</span>
@@ -465,16 +467,6 @@ async function goToCurrentSemester() {
   filterLevel.value = null;
   filterEnrollmentYear.value = null;
   filterGrade.value = null;
-}
-
-// 展开行时添加 loading 反馈（数据已预加载，仅用于视觉提示）
-function handleExpandChange(row, expandedRows) {
-  if (expandedRows.includes(row)) {
-    row._expanding = true;
-    setTimeout(() => {
-      row._expanding = false;
-    }, 100);
-  }
 }
 
 function resetFilters() {
