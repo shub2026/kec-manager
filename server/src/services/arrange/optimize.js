@@ -3,48 +3,69 @@
  * 对当前学期所有已排课的教师进行全局优化，提升排课质量
  */
 
-import prisma from '../../config/database.js';
-import { logger } from '../../utils/logger.js';
-import { AppError } from '../../utils/AppError.js';
+import { prisma } from '../../lib/prisma.js';
+import logger from '../../utils/logger.js';
+import { DEFAULT_HOUR_SETTINGS, TEXTBOOK_COHESION } from '../../constants/index.js';
 import { tabuOptimize } from './tabu-search.js';
+import { calcMatchScore } from './auto-arrange.js';
 import { createAuditLog } from '../../middleware/audit.middleware.js';
 
 /**
  * 检查是否满足最小改进阈值
- * @param {Object} before - 优化前指标
- * @param {Object} after - 优化后指标
- * @returns {boolean} 是否满足阈值
  */
 function meetsMinimumThreshold(before, after) {
   const changesCount = after.changesCount || 0;
   const scoreImprovement = before.score > 0
-    ? ((before.score - after.score) / before.score) * 100
+    ? ((after.score - before.score) / Math.abs(before.score)) * 100
     : 0;
 
-  // 至少需要3个班级变更且分数改进>5%
   return changesCount >= 3 && scoreImprovement > 5;
 }
 
 /**
- * 计算排课质量指标
+ * 计算排课质量指标 - 使用 calcMatchScore 统一评分
  */
-function calculateMetrics(allAssignments, teacherConstraints, mode) {
+function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
+  const teacherMap = new Map(teacherConstraints.map((t) => [t.id, t]));
+
   // 1. 计算教师负载状态
   const teacherStates = new Map();
   for (const t of teacherConstraints) {
     teacherStates.set(t.id, {
       assignedHours: 0,
       textbooks: new Set(),
+      colleges: new Set(),
       classes: [],
     });
   }
 
+  // 计算总匹配分数
+  let totalMatchScore = 0;
+  let matchCount = 0;
+
   for (const a of allAssignments) {
     const state = teacherStates.get(a.teacher_id);
+    const cls = classMap.get(a.class_id);
     if (state) {
       state.assignedHours += a.weekly_hours || 0;
-      if (a.textbook_id) state.textbooks.add(a.textbook_id);
       state.classes.push(a.class_id);
+      if (cls) {
+        for (const tid of cls.textbookIds || []) state.textbooks.add(tid);
+        if (cls.collegeId != null) state.colleges.add(cls.collegeId);
+      }
+    }
+
+    // 使用 calcMatchScore 计算实际匹配分数
+    const teacher = teacherMap.get(a.teacher_id);
+    if (teacher && cls) {
+      const proxy = {
+        ...teacher,
+        assignedTextbookIds: state?.textbooks || new Set(),
+        assignedCollegeIds: state?.colleges || new Set(),
+        assignedHours: state?.assignedHours || 0,
+      };
+      totalMatchScore += calcMatchScore(proxy, cls);
+      matchCount++;
     }
   }
 
@@ -68,65 +89,129 @@ function calculateMetrics(allAssignments, teacherConstraints, mode) {
     : 0;
 
   // 3. 计算教材内聚度
-  const teacherTextbookCounts = new Map();
-  for (const state of teacherStates.values()) {
-    teacherTextbookCounts.set(state.textbooks.size, (teacherTextbookCounts.get(state.textbooks.size) || 0) + 1);
+  let cohesionSum = 0;
+  let teacherCount = 0;
+  for (const [tid, state] of teacherStates) {
+    if (state.classes.length === 0) continue;
+    const tbSize = state.textbooks.size;
+    const classCount = state.classes.length;
+    const cohesion = classCount > 0 ? Math.max(0, 1 - (tbSize - 1) / classCount) : 1;
+    cohesionSum += cohesion;
+    teacherCount++;
   }
 
-  const totalTeachers = teacherStates.size;
-  const singleTextbookTeachers = teacherTextbookCounts.get(1) || 0;
-  const cohesionScore = totalTeachers > 0 ? singleTextbookTeachers / totalTeachers : 0;
+  const textbookCohesionRate = teacherCount > 0
+    ? Math.round((cohesionSum / teacherCount) * 100)
+    : 100;
 
-  // 4. 综合评分（越低越好）
-  const score = loadVariance * 100 + (1 - cohesionScore) * 50;
+  // 4. 综合评分 = 总匹配分数（越高越好）
+  const score = Math.round(totalMatchScore * 100) / 100;
 
   return {
-    score: Math.round(score * 100) / 100,
+    score,
+    avgMatchScore: matchCount > 0 ? Math.round((totalMatchScore / matchCount) * 100) / 100 : 0,
     loadVariance: Math.round(loadVariance * 10000) / 10000,
     avgLoadRate: Math.round(avgLoadRate * 100) / 100,
-    cohesionScore: Math.round(cohesionScore * 100) / 100,
+    textbookCohesionRate,
     totalAssignments: allAssignments.length,
     affectedTeachers: teacherConstraints.length,
   };
 }
 
 /**
- * 构建教师约束对象
+ * 构建教师约束对象 - 与 auto-arrange.js 的 buildTeacherConstraints 对齐
+ * 确保包含 calcMatchScore、canAccept、buildTeacherStates 所需的全部字段
  */
-function buildTeacherConstraints(teachers, classes, mode) {
-  const constraints = [];
-  const classMap = new Map(classes.map((c) => [c.id, c]));
+function buildTeacherConstraints(teachers, allAssignments, classMap, mode) {
+  // 构建教师现有分配统计
+  const teacherHoursMap = new Map();
+  const teacherTextbookMap = new Map();
+  const teacherCollegeMap = new Map();
 
-  for (const t of teachers) {
-    const baseHours = t.default_weekly_hours || 16;
-    const standardCap = mode === 'standard' ? baseHours : baseHours * 1.2;
-    const fullCap = baseHours * 1.5;
+  for (const a of allAssignments) {
+    const tid = a.teacher_id;
+    teacherHoursMap.set(tid, (teacherHoursMap.get(tid) || 0) + (a.weekly_hours || 0));
 
-    constraints.push({
+    const cls = classMap.get(a.class_id);
+    if (cls) {
+      if (!teacherTextbookMap.has(tid)) teacherTextbookMap.set(tid, new Set());
+      for (const tbId of cls.textbookIds || []) {
+        teacherTextbookMap.get(tid).add(tbId);
+      }
+      if (!teacherCollegeMap.has(tid)) teacherCollegeMap.set(tid, new Set());
+      if (cls.collegeId != null) teacherCollegeMap.get(tid).add(cls.collegeId);
+    }
+  }
+
+  return teachers.map((t) => {
+    const personnelType = t.personnel_type || 'full_time';
+    const setting = DEFAULT_HOUR_SETTINGS[personnelType] || DEFAULT_HOUR_SETTINGS.full_time;
+
+    const existingHours = teacherHoursMap.get(t.id) || 0;
+    const baseHours = t.default_weekly_hours || setting.standard;
+
+    // 容量计算：与 auto-arrange 对齐
+    const teacherHourCap = t.default_weekly_hours != null
+      ? Math.max(0, t.default_weekly_hours - existingHours)
+      : null;
+    const rawStandardCap = teacherHourCap != null
+      ? Math.min(teacherHourCap, Math.max(0, setting.standard - existingHours))
+      : Math.max(0, setting.standard - existingHours);
+    const rawFullCap = teacherHourCap != null
+      ? Math.min(teacherHourCap, Math.max(0, setting.max - existingHours))
+      : Math.max(0, setting.max - existingHours);
+
+    const standardCap = Math.floor(rawStandardCap);
+    const fullCap = Math.floor(rawFullCap);
+
+    // 提取 schedulingCollegeIds 和 schedulingLevelIds
+    const schedulingCollegeIds = (t.scheduling_colleges || []).map((sc) => sc.college_id);
+    const schedulingLevelIds = (t.scheduling_levels || []).map((sl) => sl.training_level?.id).filter(Boolean);
+
+    // 已分配教材和学院（从现有排课记录）
+    const assignedTextbookIds = teacherTextbookMap.get(t.id) || new Set();
+    const assignedCollegeIds = teacherCollegeMap.get(t.id) || new Set();
+
+    // 固有教材快照（与 auto-arrange 的 P1-A 修复对齐）
+    const inherentTextbookIds = [...assignedTextbookIds];
+
+    return {
+      // 展开保留所有教师字段（与 auto-arrange 一致）
       id: t.id,
       name: t.name,
-      personnelType: t.personnel_type,
+      personnelType,
+      defaultWeeklyHours: t.default_weekly_hours,
+      gender: t.gender,
+
+      // 意向约束 - 关键字段
+      schedulingCollegeIds,
+      schedulingLevelIds,
+
+      // 教材相关 - 关键字段
+      inherentTextbookIds,
+      textbookIds: [...inherentTextbookIds],
+      assignedTextbookIds: new Set(assignedTextbookIds),
+      assignedCollegeIds: new Set(assignedCollegeIds),
+
+      // 容量
+      standardHours: setting.standard,
+      maxHours: setting.max,
       standardCap,
       fullCap,
-      assignedHours: 0,
-      assignedTextbookIds: new Set(),
-      assignedCollegeIds: new Set(),
+      teacherHourCap,
+      effectiveTotal: existingHours,
+      assignedHours: 0, // tabuOptimize 会从 assignments 重建
+
+      // 偏好
       preferences: new Map(
         (t.teacher_textbook_preferences || []).map((p) => [p.textbook_id, p.preference_level])
       ),
-    });
-  }
-
-  return constraints;
+    };
+  });
 }
 
 /**
  * 运行排课优化（预览模式）
- * @param {number} semesterId - 学期ID
- * @param {string} mode - 排课模式 'standard' | 'full'
- * @param {Object} options - 选项
- * @param {Function} [options.onProgress] - 进度回调函数
- * @returns {Object} 优化预览结果
  */
 export async function runOptimizeSchedule(semesterId, mode = 'standard', options = {}) {
   const onProgress = options.onProgress || null;
@@ -155,6 +240,8 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
             textbook_id: true,
             class_name: true,
             weekly_hours: true,
+            college_id: true,
+            training_level_id: true,
           },
         },
         teachers: {
@@ -169,7 +256,7 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
     });
 
     if (currentAssignments.length === 0) {
-      throw new AppError('没有可优化的自动排课记录', 400);
+      throw new Error('没有可优化的自动排课记录');
     }
 
     progress('init', `已加载${currentAssignments.length}条排课记录`, 10);
@@ -194,18 +281,22 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
 
     progress('init', `涉及${courseMap.size}门课程`, 15);
 
-    // 3. 收集所有涉及的教师
+    // 3. 收集所有涉及的教师和班级
     const allTeacherIds = new Set();
+    const allClassIds = new Set();
     for (const course of courseMap.values()) {
-      for (const tid of course.teacherIds) {
-        allTeacherIds.add(tid);
-      }
+      for (const tid of course.teacherIds) allTeacherIds.add(tid);
+      for (const cid of course.classIds) allClassIds.add(cid);
     }
 
-    // 4. 加载教师完整信息
+    // 4. 加载教师完整信息（含 scheduling_colleges、scheduling_levels）
     const teachers = await prisma.teachers.findMany({
       where: { id: { in: [...allTeacherIds] } },
       include: {
+        scheduling_colleges: { select: { college_id: true } },
+        scheduling_levels: {
+          include: { training_level: { select: { id: true, name: true } } },
+        },
         teacher_textbook_preferences: {
           select: { textbook_id: true, preference_level: true },
         },
@@ -213,13 +304,6 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
     });
 
     // 5. 加载所有相关班级
-    const allClassIds = new Set();
-    for (const course of courseMap.values()) {
-      for (const cid of course.classIds) {
-        allClassIds.add(cid);
-      }
-    }
-
     const classes = await prisma.course_classes.findMany({
       where: { id: { in: [...allClassIds] } },
       select: {
@@ -235,17 +319,40 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
 
     progress('prepare', '正在构建约束条件...', 25);
 
-    // 6. 构建全局教师约束（跨课程共享）
-    const teacherConstraints = buildTeacherConstraints(teachers, classes, mode);
+    // 6. 构建全局班级映射（含 textbookIds 数组）
+    const globalClassMap = new Map();
+    for (const cls of classes) {
+      globalClassMap.set(cls.id, {
+        classId: cls.id,
+        className: cls.class_name || `班级${cls.id}`,
+        weeklyHours: cls.weekly_hours,
+        textbookIds: cls.textbook_id ? [cls.textbook_id] : [],
+        collegeId: cls.college_id,
+        trainingLevelId: cls.training_level_id,
+      });
+    }
 
-    // 7. 计算优化前指标
-    const beforeMetrics = calculateMetrics(currentAssignments, teacherConstraints, mode);
+    // 7. 构建全局教师约束（含完整字段）
+    const teacherConstraints = buildTeacherConstraints(
+      teachers,
+      currentAssignments,
+      globalClassMap,
+      mode
+    );
+
+    // 8. 计算优化前指标（使用 calcMatchScore）
+    const beforeMetrics = calculateMetrics(
+      currentAssignments,
+      teacherConstraints,
+      globalClassMap,
+      mode
+    );
     beforeMetrics.changesCount = 0;
 
-    // 8. 准备学期字符串
+    // 9. 准备学期字符串
     const semesterStr = `${semesterId}`;
 
-    // 9. 逐课程运行禁忌搜索（共享教师约束）
+    // 10. 逐课程运行禁忌搜索（共享教师约束）
     progress('optimize', '正在运行全局优化算法...', 35);
 
     let totalIterations = 0;
@@ -263,17 +370,8 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       // 构建该课程的班级映射
       const classMap = new Map();
       for (const classId of course.classIds) {
-        const cls = classes.find((c) => c.id === classId);
-        if (cls) {
-          classMap.set(classId, {
-            classId: cls.id,
-            className: cls.class_name || `班级${cls.id}`,
-            weeklyHours: cls.weekly_hours,
-            textbookIds: cls.textbook_id ? [cls.textbook_id] : [],
-            collegeId: cls.college_id,
-            trainingLevelId: cls.training_level_id,
-          });
-        }
+        const cls = globalClassMap.get(classId);
+        if (cls) classMap.set(classId, cls);
       }
 
       // 构建该课程的 assignments 数组
@@ -289,10 +387,8 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         memberClassIds: null,
       }));
 
-      // unassigned 为空（所有班级都已排课）
       const courseUnassigned = [];
 
-      // 运行禁忌搜索（会原地修改 assignments、unassigned 和 teacherConstraints）
       try {
         const tsResult = tabuOptimize(
           courseAssignments,
@@ -323,7 +419,7 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
           );
         }
 
-        // 将优化后的 assignments 写回 course.assignments（用于后续指标计算）
+        // 将优化后的 assignments 写回 course.assignments
         course.assignments = courseAssignments.map((a, idx) => ({
           ...course.assignments[idx],
           teacher_id: a.teacher_id,
@@ -335,40 +431,44 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
 
     progress('validate', '正在验证优化结果...', 80);
 
-    // 10. 构建优化后的全局排课方案
+    // 11. 构建优化后的全局排课方案
     const optimizedAssignments = [];
     for (const course of courseMap.values()) {
       for (const a of course.assignments) {
         optimizedAssignments.push({
           teacher_id: a.teacher_id,
           class_id: a.class_id,
-          textbook_id: a.course_classes.textbook_id,
           weekly_hours: a.weekly_hours || a.course_classes.weekly_hours,
         });
       }
     }
 
-    // 11. 计算优化后指标
-    const afterMetrics = calculateMetrics(optimizedAssignments, teacherConstraints, mode);
+    // 12. 计算优化后指标
+    const afterMetrics = calculateMetrics(
+      optimizedAssignments,
+      teacherConstraints,
+      globalClassMap,
+      mode
+    );
     afterMetrics.changesCount = totalIterations;
 
-    // 12. 计算改进幅度
+    // 13. 计算改进幅度
     const improvements = {
-      scoreImprovement: beforeMetrics.score > 0
-        ? Math.round(((beforeMetrics.score - afterMetrics.score) / beforeMetrics.score) * 10000) / 100
+      scoreImprovement: beforeMetrics.score !== 0
+        ? Math.round(((afterMetrics.score - beforeMetrics.score) / Math.abs(beforeMetrics.score)) * 10000) / 100
         : 0,
       loadVarianceImprovement: beforeMetrics.loadVariance > 0
         ? Math.round(((beforeMetrics.loadVariance - afterMetrics.loadVariance) / beforeMetrics.loadVariance) * 10000) / 100
         : 0,
-      cohesionImprovement: beforeMetrics.cohesionScore > 0
-        ? Math.round(((afterMetrics.cohesionScore - beforeMetrics.cohesionScore) / beforeMetrics.cohesionScore) * 10000) / 100
+      cohesionImprovement: beforeMetrics.textbookCohesionRate > 0
+        ? Math.round(((afterMetrics.textbookCohesionRate - beforeMetrics.textbookCohesionRate) / beforeMetrics.textbookCohesionRate) * 10000) / 100
         : 0,
     };
 
-    // 13. 检查是否满足最小改进阈值
+    // 14. 检查是否满足最小改进阈值
     const meetsThreshold = meetsMinimumThreshold(beforeMetrics, afterMetrics);
 
-    // 14. 构建变更详情
+    // 15. 构建变更详情
     const changes = [];
     for (const original of currentAssignments) {
       const optimized = optimizedAssignments.find((a) => a.class_id === original.class_id);
@@ -419,7 +519,6 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
  */
 export async function applyOptimizeResult(semesterId, changes, userId) {
   try {
-    // 使用事务批量更新
     await prisma.$transaction(async (tx) => {
       for (const change of changes) {
         await tx.teaching_assignments.updateMany({
@@ -437,7 +536,6 @@ export async function applyOptimizeResult(semesterId, changes, userId) {
       }
     });
 
-    // 记录审计日志
     await createAuditLog({
       userId,
       action: 'optimize_schedule',
@@ -454,6 +552,6 @@ export async function applyOptimizeResult(semesterId, changes, userId) {
     };
   } catch (error) {
     logger.error('应用优化结果失败:', error);
-    throw new AppError('应用优化结果失败', 500);
+    throw new Error('应用优化结果失败');
   }
 }

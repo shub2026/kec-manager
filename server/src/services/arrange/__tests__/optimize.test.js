@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { runOptimizeSchedule, applyOptimizeResult } from '../optimize.js';
 
 // Mock dependencies
-vi.mock('../../database.js', () => ({
-  default: {
+vi.mock('../../../lib/prisma.js', () => ({
+  prisma: {
     teaching_assignments: {
       findMany: vi.fn(),
       updateMany: vi.fn(),
@@ -18,11 +18,12 @@ vi.mock('../../database.js', () => ({
   },
 }));
 
-vi.mock('../../utils/logger.js', () => ({
-  logger: {
+vi.mock('../../../utils/logger.js', () => ({
+  default: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    isDebugEnabled: vi.fn(() => false),
   },
 }));
 
@@ -30,9 +31,65 @@ vi.mock('../tabu-search.js', () => ({
   tabuOptimize: vi.fn(),
 }));
 
-vi.mock('../../middleware/audit.middleware.js', () => ({
+vi.mock('../auto-arrange.js', () => ({
+  calcMatchScore: vi.fn(() => 10),
+}));
+
+vi.mock('../../../middleware/audit.middleware.js', () => ({
   createAuditLog: vi.fn(),
 }));
+
+function mockTeacher(id, name, overrides = {}) {
+  return {
+    id,
+    name,
+    personnel_type: 'full_time',
+    default_weekly_hours: 16,
+    gender: 'male',
+    scheduling_colleges: overrides.scheduling_colleges || [],
+    scheduling_levels: overrides.scheduling_levels || [],
+    teacher_textbook_preferences: overrides.teacher_textbook_preferences || [],
+    ...overrides,
+  };
+}
+
+function mockAssignment(classId, teacherId, courseId, overrides = {}) {
+  return {
+    class_id: classId,
+    teacher_id: teacherId,
+    weekly_hours: 4,
+    is_auto: true,
+    is_locked: false,
+    course_classes: {
+      course_id: courseId,
+      textbook_id: 1,
+      class_name: `Class ${classId}`,
+      weekly_hours: 4,
+      college_id: 1,
+      training_level_id: 1,
+    },
+    teachers: {
+      id: teacherId,
+      name: `Teacher ${teacherId}`,
+      personnel_type: 'full_time',
+      default_weekly_hours: 16,
+    },
+    ...overrides,
+  };
+}
+
+function mockClass(id, courseId, overrides = {}) {
+  return {
+    id,
+    course_id: courseId,
+    textbook_id: 1,
+    weekly_hours: 4,
+    class_name: `Class ${id}`,
+    college_id: 1,
+    training_level_id: 1,
+    ...overrides,
+  };
+}
 
 describe('Optimize Service', () => {
   beforeEach(() => {
@@ -41,7 +98,7 @@ describe('Optimize Service', () => {
 
   describe('runOptimizeSchedule', () => {
     it('should throw error when no assignments found', async () => {
-      const { default: prisma } = await import('../../database.js');
+      const { prisma } = await import('../../../lib/prisma.js');
       prisma.teaching_assignments.findMany.mockResolvedValue([]);
 
       await expect(runOptimizeSchedule(1, 'standard')).rejects.toThrow(
@@ -50,129 +107,36 @@ describe('Optimize Service', () => {
     });
 
     it('should run optimization and return before/after metrics', async () => {
-      const { default: prisma } = await import('../../database.js');
+      const { prisma } = await import('../../../lib/prisma.js');
       const { tabuOptimize } = await import('../tabu-search.js');
 
-      // Mock assignments data
       const mockAssignments = [
-        {
-          class_id: 1,
-          teacher_id: 1,
-          weekly_hours: 4,
-          is_auto: true,
-          is_locked: false,
-          course_classes: {
-            course_id: 1,
-            textbook_id: 1,
-            class_name: 'Class A',
-            weekly_hours: 4,
-          },
-          teachers: {
-            id: 1,
-            name: 'Teacher 1',
-            personnel_type: 'full_time',
-            default_weekly_hours: 16,
-          },
-        },
-        {
-          class_id: 2,
-          teacher_id: 1,
-          weekly_hours: 4,
-          is_auto: true,
-          is_locked: false,
-          course_classes: {
-            course_id: 1,
-            textbook_id: 1,
-            class_name: 'Class B',
-            weekly_hours: 4,
-          },
-          teachers: {
-            id: 1,
-            name: 'Teacher 1',
-            personnel_type: 'full_time',
-            default_weekly_hours: 16,
-          },
-        },
-        {
-          class_id: 3,
-          teacher_id: 2,
-          weekly_hours: 4,
-          is_auto: true,
-          is_locked: false,
-          course_classes: {
-            course_id: 1,
-            textbook_id: 1,
-            class_name: 'Class C',
-            weekly_hours: 4,
-          },
-          teachers: {
-            id: 2,
-            name: 'Teacher 2',
-            personnel_type: 'full_time',
-            default_weekly_hours: 16,
-          },
-        },
+        mockAssignment(1, 1, 1),
+        mockAssignment(2, 1, 1),
+        mockAssignment(3, 2, 1),
       ];
 
       prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
       prisma.teachers.findMany.mockResolvedValue([
-        {
-          id: 1,
-          name: 'Teacher 1',
-          personnel_type: 'full_time',
-          default_weekly_hours: 16,
-          teacher_textbook_preferences: [],
-        },
-        {
-          id: 2,
-          name: 'Teacher 2',
-          personnel_type: 'full_time',
-          default_weekly_hours: 16,
-          teacher_textbook_preferences: [],
-        },
+        mockTeacher(1, 'Teacher 1'),
+        mockTeacher(2, 'Teacher 2'),
       ]);
       prisma.course_classes.findMany.mockResolvedValue([
-        {
-          id: 1,
-          course_id: 1,
-          textbook_id: 1,
-          weekly_hours: 4,
-          class_name: 'Class A',
-          college_id: 1,
-          training_level_id: 1,
-        },
-        {
-          id: 2,
-          course_id: 1,
-          textbook_id: 1,
-          weekly_hours: 4,
-          class_name: 'Class B',
-          college_id: 1,
-          training_level_id: 1,
-        },
-        {
-          id: 3,
-          course_id: 1,
-          textbook_id: 1,
-          weekly_hours: 4,
-          class_name: 'Class C',
-          college_id: 1,
-          training_level_id: 1,
-        },
+        mockClass(1, 1),
+        mockClass(2, 1),
+        mockClass(3, 1),
       ]);
 
-      // Mock tabuOptimize to simulate optimization
       tabuOptimize.mockImplementation((assignments, unassigned, teacherConstraints) => {
-        // Simulate optimization: swap one assignment
         const firstAssignment = assignments[0];
         if (firstAssignment) {
-          firstAssignment.teacher_id = 2; // Swap to teacher 2
+          firstAssignment.teacher_id = 2;
         }
         return {
           improved: true,
           iterations: 10,
           scoreBefore: 50,
-          scoreAfter: 40,
+          scoreAfter: 60,
           delta: 10,
           elapsed: 100,
         };
@@ -193,52 +157,14 @@ describe('Optimize Service', () => {
     });
 
     it('should call progress callback when provided', async () => {
-      const { default: prisma } = await import('../../database.js');
+      const { prisma } = await import('../../../lib/prisma.js');
       const { tabuOptimize } = await import('../tabu-search.js');
 
-      const mockAssignments = [
-        {
-          class_id: 1,
-          teacher_id: 1,
-          weekly_hours: 4,
-          is_auto: true,
-          is_locked: false,
-          course_classes: {
-            course_id: 1,
-            textbook_id: 1,
-            class_name: 'Class A',
-            weekly_hours: 4,
-          },
-          teachers: {
-            id: 1,
-            name: 'Teacher 1',
-            personnel_type: 'full_time',
-            default_weekly_hours: 16,
-          },
-        },
-      ];
+      const mockAssignments = [mockAssignment(1, 1, 1)];
 
       prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
-      prisma.teachers.findMany.mockResolvedValue([
-        {
-          id: 1,
-          name: 'Teacher 1',
-          personnel_type: 'full_time',
-          default_weekly_hours: 16,
-          teacher_textbook_preferences: [],
-        },
-      ]);
-      prisma.course_classes.findMany.mockResolvedValue([
-        {
-          id: 1,
-          course_id: 1,
-          textbook_id: 1,
-          weekly_hours: 4,
-          class_name: 'Class A',
-          college_id: 1,
-          training_level_id: 1,
-        },
-      ]);
+      prisma.teachers.findMany.mockResolvedValue([mockTeacher(1, 'Teacher 1')]);
+      prisma.course_classes.findMany.mockResolvedValue([mockClass(1, 1)]);
 
       tabuOptimize.mockReturnValue({
         improved: false,
@@ -254,8 +180,7 @@ describe('Optimize Service', () => {
 
       expect(progressCallback).toHaveBeenCalled();
       expect(progressCallback.mock.calls.length).toBeGreaterThan(0);
-      
-      // Check that progress was called with correct structure
+
       const firstCall = progressCallback.mock.calls[0][0];
       expect(firstCall).toHaveProperty('phase');
       expect(firstCall).toHaveProperty('message');
@@ -263,71 +188,71 @@ describe('Optimize Service', () => {
     });
 
     it('should handle tabuOptimize errors gracefully', async () => {
-      const { default: prisma } = await import('../../database.js');
+      const { prisma } = await import('../../../lib/prisma.js');
       const { tabuOptimize } = await import('../tabu-search.js');
 
-      const mockAssignments = [
-        {
-          class_id: 1,
-          teacher_id: 1,
-          weekly_hours: 4,
-          is_auto: true,
-          is_locked: false,
-          course_classes: {
-            course_id: 1,
-            textbook_id: 1,
-            class_name: 'Class A',
-            weekly_hours: 4,
-          },
-          teachers: {
-            id: 1,
-            name: 'Teacher 1',
-            personnel_type: 'full_time',
-            default_weekly_hours: 16,
-          },
-        },
-      ];
+      const mockAssignments = [mockAssignment(1, 1, 1)];
 
       prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
-      prisma.teachers.findMany.mockResolvedValue([
-        {
-          id: 1,
-          name: 'Teacher 1',
-          personnel_type: 'full_time',
-          default_weekly_hours: 16,
-          teacher_textbook_preferences: [],
-        },
-      ]);
-      prisma.course_classes.findMany.mockResolvedValue([
-        {
-          id: 1,
-          course_id: 1,
-          textbook_id: 1,
-          weekly_hours: 4,
-          class_name: 'Class A',
-          college_id: 1,
-          training_level_id: 1,
-        },
-      ]);
+      prisma.teachers.findMany.mockResolvedValue([mockTeacher(1, 'Teacher 1')]);
+      prisma.course_classes.findMany.mockResolvedValue([mockClass(1, 1)]);
 
       tabuOptimize.mockImplementation(() => {
         throw new Error('Tabu optimization failed');
       });
 
-      // Should not throw, but log warning and continue
       const result = await runOptimizeSchedule(1, 'standard');
 
       expect(result).toBeDefined();
       expect(result.summary.totalClasses).toBe(1);
-      // Since tabu failed, no changes should be made
       expect(result.changes).toHaveLength(0);
+    });
+
+    it('should include scheduling college/level IDs in teacher constraints', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+
+      const mockAssignments = [mockAssignment(1, 1, 1)];
+
+      prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'Teacher 1', {
+          scheduling_colleges: [{ college_id: 1 }, { college_id: 2 }],
+          scheduling_levels: [{ training_level: { id: 1, name: '本科' } }],
+        }),
+      ]);
+      prisma.course_classes.findMany.mockResolvedValue([mockClass(1, 1)]);
+
+      let capturedConstraints = null;
+      tabuOptimize.mockImplementation((assignments, unassigned, teacherConstraints) => {
+        capturedConstraints = teacherConstraints;
+        return {
+          improved: false,
+          iterations: 0,
+          scoreBefore: 0,
+          scoreAfter: 0,
+          delta: 0,
+          elapsed: 10,
+        };
+      });
+
+      await runOptimizeSchedule(1, 'standard');
+
+      expect(capturedConstraints).not.toBeNull();
+      const teacher = capturedConstraints.find((t) => t.id === 1);
+      expect(teacher).toBeDefined();
+      expect(teacher.schedulingCollegeIds).toEqual([1, 2]);
+      expect(teacher.schedulingLevelIds).toEqual([1]);
+      expect(teacher.assignedTextbookIds).toBeInstanceOf(Set);
+      expect(teacher.assignedCollegeIds).toBeInstanceOf(Set);
+      expect(teacher.inherentTextbookIds).toBeDefined();
     });
   });
 
   describe('applyOptimizeResult', () => {
     it('should apply changes and create audit log', async () => {
-      const { default: prisma } = await import('../../database.js');
-      const { createAuditLog } = await import('../../middleware/audit.middleware.js');
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { createAuditLog } = await import('../../../middleware/audit.middleware.js');
 
       const changes = [
         {
@@ -367,7 +292,7 @@ describe('Optimize Service', () => {
     });
 
     it('should throw error when transaction fails', async () => {
-      const { default: prisma } = await import('../../database.js');
+      const { prisma } = await import('../../../lib/prisma.js');
 
       const changes = [
         {
@@ -387,69 +312,40 @@ describe('Optimize Service', () => {
 
   describe('meetsMinimumThreshold', () => {
     it('should return true when changes >= 3 and improvement > 5%', async () => {
-      const { default: prisma } = await import('../../database.js');
+      const { prisma } = await import('../../../lib/prisma.js');
       const { tabuOptimize } = await import('../tabu-search.js');
 
-      // Create 4 assignments that will all be changed
-      const mockAssignments = Array.from({ length: 4 }, (_, i) => ({
-        class_id: i + 1,
-        teacher_id: 1,
-        weekly_hours: 4,
-        is_auto: true,
-        is_locked: false,
-        course_classes: {
-          course_id: 1,
-          textbook_id: 1,
-          class_name: `Class ${i + 1}`,
-          weekly_hours: 4,
-        },
-        teachers: {
-          id: 1,
-          name: 'Teacher 1',
-          personnel_type: 'full_time',
-          default_weekly_hours: 16,
-        },
-      }));
+      const mockAssignments = Array.from({ length: 4 }, (_, i) =>
+        mockAssignment(i + 1, 1, 1)
+      );
 
       prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
       prisma.teachers.findMany.mockResolvedValue([
-        {
-          id: 1,
-          name: 'Teacher 1',
-          personnel_type: 'full_time',
-          default_weekly_hours: 16,
-          teacher_textbook_preferences: [],
-        },
-        {
-          id: 2,
-          name: 'Teacher 2',
-          personnel_type: 'full_time',
-          default_weekly_hours: 16,
-          teacher_textbook_preferences: [],
-        },
+        mockTeacher(1, 'Teacher 1'),
+        mockTeacher(2, 'Teacher 2'),
       ]);
       prisma.course_classes.findMany.mockResolvedValue(
-        mockAssignments.map((a, i) => ({
-          id: i + 1,
-          course_id: 1,
-          textbook_id: 1,
-          weekly_hours: 4,
-          class_name: `Class ${i + 1}`,
-          college_id: 1,
-          training_level_id: 1,
-        }))
+        mockAssignments.map((a, i) => mockClass(i + 1, 1))
       );
 
-      // Simulate optimization that changes all assignments
+      const { calcMatchScore } = await import('../auto-arrange.js');
+      // Simulate optimization improving scores
+      let callCount = 0;
+      calcMatchScore.mockImplementation(() => {
+        callCount++;
+        // Before metrics (first 4 calls): low score; after metrics (next 4 calls): high score
+        return callCount <= 4 ? 5 : 15;
+      });
+
       tabuOptimize.mockImplementation((assignments) => {
         assignments.forEach((a) => {
-          a.teacher_id = 2; // Change all to teacher 2
+          a.teacher_id = 2;
         });
         return {
           improved: true,
           iterations: 20,
           scoreBefore: 100,
-          scoreAfter: 80,
+          scoreAfter: 120,
           delta: 20,
           elapsed: 150,
         };
@@ -463,80 +359,19 @@ describe('Optimize Service', () => {
     });
 
     it('should return false when changes < 3', async () => {
-      const { default: prisma } = await import('../../database.js');
+      const { prisma } = await import('../../../lib/prisma.js');
       const { tabuOptimize } = await import('../tabu-search.js');
 
-      // Create 2 assignments
       const mockAssignments = [
-        {
-          class_id: 1,
-          teacher_id: 1,
-          weekly_hours: 4,
-          is_auto: true,
-          is_locked: false,
-          course_classes: {
-            course_id: 1,
-            textbook_id: 1,
-            class_name: 'Class A',
-            weekly_hours: 4,
-          },
-          teachers: {
-            id: 1,
-            name: 'Teacher 1',
-            personnel_type: 'full_time',
-            default_weekly_hours: 16,
-          },
-        },
-        {
-          class_id: 2,
-          teacher_id: 1,
-          weekly_hours: 4,
-          is_auto: true,
-          is_locked: false,
-          course_classes: {
-            course_id: 1,
-            textbook_id: 1,
-            class_name: 'Class B',
-            weekly_hours: 4,
-          },
-          teachers: {
-            id: 1,
-            name: 'Teacher 1',
-            personnel_type: 'full_time',
-            default_weekly_hours: 16,
-          },
-        },
+        mockAssignment(1, 1, 1),
+        mockAssignment(2, 1, 1),
       ];
 
       prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
-      prisma.teachers.findMany.mockResolvedValue([
-        {
-          id: 1,
-          name: 'Teacher 1',
-          personnel_type: 'full_time',
-          default_weekly_hours: 16,
-          teacher_textbook_preferences: [],
-        },
-      ]);
+      prisma.teachers.findMany.mockResolvedValue([mockTeacher(1, 'Teacher 1')]);
       prisma.course_classes.findMany.mockResolvedValue([
-        {
-          id: 1,
-          course_id: 1,
-          textbook_id: 1,
-          weekly_hours: 4,
-          class_name: 'Class A',
-          college_id: 1,
-          training_level_id: 1,
-        },
-        {
-          id: 2,
-          course_id: 1,
-          textbook_id: 1,
-          weekly_hours: 4,
-          class_name: 'Class B',
-          college_id: 1,
-          training_level_id: 1,
-        },
+        mockClass(1, 1),
+        mockClass(2, 1),
       ]);
 
       tabuOptimize.mockReturnValue({
