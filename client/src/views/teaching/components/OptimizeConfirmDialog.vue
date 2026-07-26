@@ -2,7 +2,8 @@
   <el-dialog
     :model-value="modelValue"
     title="排课优化确认"
-    width="var(--dialog-width-md)"
+    width="var(--dialog-width)"
+    align-center
     destroy-on-close
     class="optimize-confirm-dialog"
     @update:model-value="emit('update:modelValue', $event)"

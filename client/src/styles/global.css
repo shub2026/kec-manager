@@ -522,9 +522,11 @@ a:focus-visible,
     margin-left: 0 !important;
   }
 
-  /* 弹窗内容区缩减内边距 */
+  /* 弹窗内容区缩减内边距 + 高内容弹窗滚动兜底（平板横屏 footer 遮挡防护） */
   .el-dialog__body {
     padding: 16px 16px !important;
+    max-height: calc(90vh - 140px);
+    overflow-y: auto;
   }
 
   /* 展开行缩减内边距 */
@@ -541,12 +543,19 @@ a:focus-visible,
   }
 
   /* 弹窗几乎全屏 */
-  .el-dialog {
+  .el-dialog:not(.is-align-center) {
     margin: 5vh auto !important;
+  }
+
+  /* 高内容弹窗兜底：允许 body 滚动，避免 footer 被裁出视口 */
+  .el-dialog {
+    max-height: 90vh;
   }
 
   .el-dialog__body {
     padding: 12px 12px !important;
+    max-height: calc(90vh - 140px);
+    overflow-y: auto;
   }
 }
 

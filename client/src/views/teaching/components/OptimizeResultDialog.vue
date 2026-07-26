@@ -3,9 +3,9 @@
     :model-value="modelValue"
     title="排课优化结果"
     width="var(--dialog-width-xl)"
+    align-center
     destroy-on-close
     class="optimize-result-dialog"
-    top="6vh"
     @update:model-value="emit('update:modelValue', $event)"
     @close="emit('close')"
   >
@@ -156,6 +156,9 @@ const emit = defineEmits(['update:modelValue', 'apply', 'close']);
 <style scoped>
 :deep(.optimize-result-dialog) .el-dialog__body {
   padding: var(--space-4) 20px;
+  /* 移动端兜底：高内容弹窗允许 body 滚动，避免 footer 被裁出视口 */
+  max-height: calc(90vh - 140px);
+  overflow-y: auto;
 }
 
 .optimize-summary {
@@ -287,7 +290,7 @@ const emit = defineEmits(['update:modelValue', 'apply', 'close']);
 }
 
 .changes-list {
-  max-height: 320px;
+  max-height: min(320px, 40vh);
   overflow-y: auto;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
@@ -363,5 +366,25 @@ const emit = defineEmits(['update:modelValue', 'apply', 'close']);
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
+}
+
+/* 移动端响应式：网格重排 + footer 按钮等宽 */
+@media (max-width: 480px) {
+  .optimize-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .improvement-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialog-footer {
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .dialog-footer .el-button {
+    flex: 1;
+  }
 }
 </style>
