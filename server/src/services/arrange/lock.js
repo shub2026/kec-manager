@@ -67,8 +67,9 @@ export async function releaseLock(lockKey) {
       `;
       lockOwners.delete(lockKey);
     } else {
-      // 兜底：无 owner 记录时仍按 lock_key 删除（向后兼容）
-      await prisma.$executeRaw`DELETE FROM arrange_locks WHERE lock_key = ${lockKey}`;
+      // F9 修复：无 owner 记录时（如进程重启后内存丢失），仅清理 owner 为空的遗留锁，
+      // 绝不删除其他实例持有的带 owner 锁，避免 F9 描述的"误删他人锁"问题。
+      await prisma.$executeRaw`DELETE FROM arrange_locks WHERE lock_key = ${lockKey} AND (owner IS NULL OR owner = '')`;
     }
   } catch (e) {
     logger.warn(`[Lock] releaseLock error for ${lockKey}: ${e.message}`);

@@ -359,56 +359,53 @@ function findBestMove(
       const savedCollegeB = new Set(stateB.assignedCollegeIds);
 
       // 模拟交换后评分（临时修改状态）
-      removeFromTeacher(teacherIdA, classIdA, clsA, teacherStates);
-      addToTeacher(teacherIdA, classIdB, clsB, teacherStates);
-      removeFromTeacher(teacherIdB, classIdB, clsB, teacherStates);
-      addToTeacher(teacherIdB, classIdA, clsA, teacherStates);
+      // try/finally 保证：无论正常完成、continue 提前跳过、还是异常，
+      // 状态都必定还原，避免污染后续所有候选评估
+      try {
+        removeFromTeacher(teacherIdA, classIdA, clsA, teacherStates);
+        addToTeacher(teacherIdA, classIdB, clsB, teacherStates);
+        removeFromTeacher(teacherIdB, classIdB, clsB, teacherStates);
+        addToTeacher(teacherIdB, classIdA, clsA, teacherStates);
 
-      // 模拟后硬约束检查：预检公式基于投影估算，此处用实际状态兜底
-      if (TEXTBOOK_COHESION.ENABLED && maxTb > 0) {
-        if (stateA.assignedTextbookIds.size > maxTb || stateB.assignedTextbookIds.size > maxTb) {
-          // 还原状态后跳过此交换对
-          removeFromTeacher(teacherIdA, classIdB, clsB, teacherStates);
-          addToTeacher(teacherIdA, classIdA, clsA, teacherStates);
-          removeFromTeacher(teacherIdB, classIdA, clsA, teacherStates);
-          addToTeacher(teacherIdB, classIdB, clsB, teacherStates);
-          stateA.assignedCollegeIds = savedCollegeA;
-          stateB.assignedCollegeIds = savedCollegeB;
-          continue;
+        // 模拟后硬约束检查：预检公式基于投影估算，此处用实际状态兜底
+        if (TEXTBOOK_COHESION.ENABLED && maxTb > 0) {
+          if (stateA.assignedTextbookIds.size > maxTb || stateB.assignedTextbookIds.size > maxTb) {
+            continue; // finally 会还原状态
+          }
         }
+
+        const proxyANew = buildScoringProxy(tA, stateA);
+        const proxyBNew = buildScoringProxy(tB, stateB);
+        const scoreANew = calcMatchScore(proxyANew, clsB);
+        const scoreBNew = calcMatchScore(proxyBNew, clsA);
+
+        const delta = scoreANew + scoreBNew - scoreAOld - scoreBOld;
+
+        if (delta <= bestDelta) continue;
+
+        // 禁忌检查：检查交换后的新配对（防止回弹），而非旧配对
+        const tabuA = isTabu(tabuList, classIdA, teacherIdB, iter);
+        const tabuB = isTabu(tabuList, classIdB, teacherIdA, iter);
+        if ((tabuA || tabuB) && currentScore + delta <= bestScore) continue;
+
+        bestDelta = delta;
+        bestMove = {
+          type: 'swap',
+          classIdA,
+          teacherIdA,
+          classIdB,
+          teacherIdB,
+          delta,
+        };
+      } finally {
+        // 还原状态（含学院集合恢复，防止只增不减的累积污染）
+        removeFromTeacher(teacherIdA, classIdB, clsB, teacherStates);
+        addToTeacher(teacherIdA, classIdA, clsA, teacherStates);
+        removeFromTeacher(teacherIdB, classIdA, clsA, teacherStates);
+        addToTeacher(teacherIdB, classIdB, clsB, teacherStates);
+        stateA.assignedCollegeIds = savedCollegeA;
+        stateB.assignedCollegeIds = savedCollegeB;
       }
-
-      const proxyANew = buildScoringProxy(tA, stateA);
-      const proxyBNew = buildScoringProxy(tB, stateB);
-      const scoreANew = calcMatchScore(proxyANew, clsB);
-      const scoreBNew = calcMatchScore(proxyBNew, clsA);
-
-      // 还原状态（含学院集合恢复，防止只增不减的累积污染）
-      removeFromTeacher(teacherIdA, classIdB, clsB, teacherStates);
-      addToTeacher(teacherIdA, classIdA, clsA, teacherStates);
-      removeFromTeacher(teacherIdB, classIdA, clsA, teacherStates);
-      addToTeacher(teacherIdB, classIdB, clsB, teacherStates);
-      stateA.assignedCollegeIds = savedCollegeA;
-      stateB.assignedCollegeIds = savedCollegeB;
-
-      const delta = scoreANew + scoreBNew - scoreAOld - scoreBOld;
-
-      if (delta <= bestDelta) continue;
-
-      // 禁忌检查：检查交换后的新配对（防止回弹），而非旧配对
-      const tabuA = isTabu(tabuList, classIdA, teacherIdB, iter);
-      const tabuB = isTabu(tabuList, classIdB, teacherIdA, iter);
-      if ((tabuA || tabuB) && currentScore + delta <= bestScore) continue;
-
-      bestDelta = delta;
-      bestMove = {
-        type: 'swap',
-        classIdA,
-        teacherIdA,
-        classIdB,
-        teacherIdB,
-        delta,
-      };
     }
   }
 
@@ -464,6 +461,10 @@ function applyMove(
 }
 
 // ── 目标函数 ──
+// 注意：参数名必须为 `mode`（非 `_mode`），因为函数体 L506 负载方差分支引用了 `mode`。
+// computeObjective 是模块顶层函数，无法通过闭包访问 tabuOptimize 的 mode 参数；
+// 若命名为 `_mode`（约定"未使用"），L506 的 `mode` 将成为未声明标识符，
+// 在 ES module 严格模式下抛 ReferenceError，致禁忌搜索层静默失效（F15 修复）。
 
 function computeObjective(
   assignments,
@@ -472,7 +473,7 @@ function computeObjective(
   teacherStates,
   classMap,
   teacherMap,
-  _mode
+  mode
 ) {
   let score = 0;
   for (const [classId, teacherId] of assignments) {

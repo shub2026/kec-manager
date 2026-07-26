@@ -1118,6 +1118,13 @@ function trySwapOne(
         for (const tid of vUniqueToT) t.assignedTextbookIds.delete(tid);
         for (const tid of u.textbookIds || []) t.assignedTextbookIds.add(tid);
         for (const tid of vTextbookIds) t2.assignedTextbookIds.add(tid);
+        // F4 修复：维护学院内聚追踪。T 接管 U、T'' 接管 V 后，需将对应学院加入各自集合，
+        // 否则后续 calcMatchScore 的 +3 学院内聚奖励与 takeClassesForTeacher 的学院排序失真。
+        // （placeClassOnTeacher/recordAssignment 已维护，但 trySwapOne 直接操作状态，此前遗漏）
+        // 可选链守卫：外部调用（如测试）可能传入不完整 teacher 对象，与 L1015/L1067 风格一致
+        const uInfoForCollege = classInfoMap?.get(u.classId);
+        if (uInfoForCollege?.collegeId != null) t.assignedCollegeIds?.add(uInfoForCollege.collegeId);
+        if (vInfo?.collegeId != null) t2.assignedCollegeIds?.add(vInfo.collegeId);
         // 5. 维护 assignmentsByTeacher
         assignmentsByTeacher.set(
           t.id,
@@ -1793,8 +1800,9 @@ export async function autoArrange(
 
     // ================================================================
     // 第三阶段：所有教师追加同教材班级（不增加教材数）
-    // 注意：`__no_textbook__` 组（textbookIds=[]）时，"已持有此教材"过滤恒为 false，
-    // 无教材班级会被跳过（留给阶段5兜底），避免此阶段对全体教师的无意义遍历
+    // 注意：`__no_textbook__` 组（textbookIds=[]）时，过滤条件
+    // `textbookIds.length === 0 || textbookIds.some(...)` 恒为 true，
+    // 即无教材班级在此阶段会被全体已持教材教师处理（不占教材名额，可安全追加）。
     // ================================================================
     logger.info('[阶段3] 所有教师追加同教材班级');
     if (onProgress)
@@ -1834,58 +1842,34 @@ export async function autoArrange(
 
     // ================================================================
     // 第四阶段：所有教师拿第二本教材（如果还有容量）
-    // 定位：兜底阶段1+3 遗漏的教师-组组合。有意向教师在阶段1已被 takeGroupsForTeacher
-    // 处理过（理论上已拿完可拿的组），无意向教师在阶段2同理。因此阶段4只处理
-    // "阶段1/2/3 都未覆盖到的剩余班级"，作用有限但不多余（确保教材名额用尽）。
+    // F2 修复：改为教师视角选组（与阶段1/2一致），复用 takeGroupsForTeacher。
+    // 原实现按 groupAvailable 全局需求降序遍历组、组内教师吃满，存在"零头组烧教材名额"
+    // 风险（教师先拿小组消耗第2本教材名额，大组无法接管）。
+    // takeGroupsForTeacher 的 tier 分级（已持有教材组 tier 0 优先）+ matchHours 最大化，
+    // 确保教师优先拿本人可教课时最多的组，避免名额浪费。
     // ================================================================
-    logger.info('[阶段4] 所有教师拿第二本教材');
+    logger.info('[阶段4] 所有教师拿第二本教材（教师视角选组）');
     if (onProgress)
       try {
         onProgress({ phase: 4, phaseName: '第二本教材分配', total: 5 });
       } catch (_) {}
 
-    for (const [tbKey, available] of groupAvailable) {
-      if (available.length === 0) continue;
+    const stage4Teachers = [...teacherConstraints]
+      .filter((t) => maxCapFn(t) - t.assignedHours > 0)
+      .sort((a, b) => maxCapFn(b) - b.assignedHours - (maxCapFn(a) - a.assignedHours));
 
-      const textbookIds = tbKey === '__no_textbook__' ? [] : tbKey.split(',').map(Number);
-
-      // 筛选：未持有此教材且有容量的教师
-      const eligibleTeachers = [...teacherConstraints]
-        .filter((t) => {
-          // 跳过已持有此教材的教师（已在阶段3处理）
-          if (textbookIds.some((tid) => t.assignedTextbookIds.has(tid))) return false;
-          // 检查是否有剩余容量
-          if (maxCapFn(t) - t.assignedHours <= 0) return false;
-          // P1-2 修复：教材硬上限校验
-          // 阶段4教师未持有此组任何教材（上方 filter 已保证），新增教材数 = textbookIds.length
-          if (
-            TEXTBOOK_COHESION.ENABLED &&
-            TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER > 0 &&
-            textbookIds.length > 0 &&
-            t.assignedTextbookIds.size + textbookIds.length >
-              TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER
-          ) {
-            return false;
-          }
-          return true;
-        })
-        .sort((a, b) => maxCapFn(b) - b.assignedHours - (maxCapFn(a) - a.assignedHours));
-
-      for (const teacher of eligibleTeachers) {
-        if (available.length === 0) break;
-
-        const matchingClasses = available.filter((cls) => isPrefMatch(teacher, cls));
-        if (matchingClasses.length === 0) continue;
-
-        const taken = takeClassesForTeacher(teacher, matchingClasses, true);
-        for (const cls of taken) {
-          recordAssignment(teacher, cls);
-          const idx = available.findIndex((c) => c.classId === cls.classId);
-          if (idx >= 0) available.splice(idx, 1);
+    for (const teacher of stage4Teachers) {
+      // 早退：所有组已空
+      let anyLeft = false;
+      for (const [, available] of groupAvailable) {
+        if (available.length > 0) {
+          anyLeft = true;
+          break;
         }
       }
+      if (!anyLeft) break;
 
-      logger.debug(`  [阶段4] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
+      takeGroupsForTeacher(teacher, groupAvailable, true);
     }
 
     // ================================================================
@@ -1950,6 +1934,19 @@ export async function autoArrange(
       }
     }
     if (tabuEnabled) {
+      // tabuOptimize 会原地修改 assignments/unassigned/teacherConstraints（writeback 段）。
+      // 若中途抛错（如历史 F15 的 ReferenceError），会留下半修改的脏状态污染后续流程。
+      // 此处快照核心状态，异常时回滚到贪心+置换回溯的稳定解（原子性保证）。
+      const tabuSnapshot = {
+        assignments: assignments.slice(),
+        unassigned: unassigned.slice(),
+        teachers: teacherConstraints.map((t) => ({
+          id: t.id,
+          assignedHours: t.assignedHours,
+          assignedTextbookIds: new Set(t.assignedTextbookIds),
+          assignedCollegeIds: new Set(t.assignedCollegeIds),
+        })),
+      };
       try {
         const tsClassMap = new Map(mergedDemands.map((c) => [c.classId, c]));
         const tsResult = tabuOptimize(
@@ -1973,7 +1970,20 @@ export async function autoArrange(
           );
         }
       } catch (tsErr) {
-        logger.warn(`[禁忌搜索] 优化异常，已跳过: ${tsErr.message}`);
+        // 回滚到 tabu 前的贪心稳定状态，避免半修改的脏数据污染后续跨课程累计
+        assignments.length = 0;
+        assignments.push(...tabuSnapshot.assignments);
+        unassigned.length = 0;
+        unassigned.push(...tabuSnapshot.unassigned);
+        for (const s of tabuSnapshot.teachers) {
+          const t = teacherConstraints.find((tc) => tc.id === s.id);
+          if (t) {
+            t.assignedHours = s.assignedHours;
+            t.assignedTextbookIds = new Set(s.assignedTextbookIds);
+            t.assignedCollegeIds = new Set(s.assignedCollegeIds);
+          }
+        }
+        logger.warn(`[禁忌搜索] 优化异常，已跳过并回滚教师状态: ${tsErr.message}`);
       }
     }
 
