@@ -178,10 +178,8 @@ describe('getDashboardStats', () => {
       { teacher_id: 1, _sum: { weekly_hours: 12 } },
       { teacher_id: 2, _sum: { weekly_hours: 8 } },
     ]);
-    // BIZ-M3: 已排课总周课时（与 groupBy 同源，12 + 8 = 20）
-    mockPrisma.teaching_assignments.aggregate.mockResolvedValue({
-      _sum: { weekly_hours: 20 },
-    });
+    // BIZ-M3: 已排课记录明细（默认无记录，合班去重后求和为 0）
+    mockPrisma.teaching_assignments.findMany.mockResolvedValue([]);
   });
 
   it('无学期参数 → 返回错误', async () => {
@@ -594,6 +592,40 @@ describe('getDashboardStats', () => {
     });
   });
 
+  it('assignedWeeklyHours 合班去重：同组合同课同教师只计一次课时', async () => {
+    // 两行同组合(99)、同课程、同教师 → 只计 4；另一独立班 2 → 合计 6（而非 10）
+    mockPrisma.teaching_assignments.findMany.mockResolvedValue([
+      {
+        weekly_hours: 4,
+        course_id: 10,
+        teacher_id: 1,
+        class_id: 1,
+        class: { combination_id: 99 },
+      },
+      {
+        weekly_hours: 4,
+        course_id: 10,
+        teacher_id: 1,
+        class_id: 2,
+        class: { combination_id: 99 },
+      },
+      {
+        weekly_hours: 2,
+        course_id: 20,
+        teacher_id: 1,
+        class_id: 3,
+        class: { combination_id: null },
+      },
+    ]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardStats(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.assignedWeeklyHours).toBe(6);
+  });
+
   it('异常时传递给 next', async () => {
     mockPrisma.majors.count.mockRejectedValue(new Error('DB error'));
 
@@ -620,6 +652,10 @@ describe('getDashboardInsights', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getSemesterInfoFromRequest.mockResolvedValue(semesterInfo);
+    // computeOfferedCourses 依赖：默认无在读班级/方案 → 应开课程为空集
+    getActiveClassFilter.mockResolvedValue({});
+    mockPrisma.classes.findMany.mockResolvedValue([]);
+    mockPrisma.training_plans.findMany.mockResolvedValue([]);
   });
 
   it('合班教学应去重：课时只计 1 次、逻辑教学班=1（不虚高）', async () => {
@@ -658,7 +694,30 @@ describe('getDashboardInsights', () => {
       },
     ];
 
-    mockPrisma.courses.count.mockResolvedValue(5);
+    // 应开课程：一个班级匹配含数学(10)/英语(20)的方案，使 completion 口径有意义
+    mockPrisma.classes.findMany.mockResolvedValue([
+      {
+        id: 1,
+        student_count: 40,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
+    ]);
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      makePlan(1, {
+        training_level_id: 2,
+        plan_courses: [
+          makePlanCourse(10, 1, 6, 4, [{ semester: 4, weekly_hours: 4 }]),
+          makePlanCourse(20, 3, 5, 2, [{ semester: 4, weekly_hours: 2 }]),
+        ],
+      }),
+    ]);
+    mockCalcClassSemester.mockReturnValue({ grade: 2, currentSemesterNum: 4 });
+    mockFindBestMatchPlan.mockImplementation((cls, plans) => plans[0] || null);
     // 第一次 findMany：已排课课程（去重）
     mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce([
       { course_id: 10 },
@@ -693,6 +752,68 @@ describe('getDashboardInsights', () => {
 
     // 王五总课时去重后为 6，未超 default_weekly_hours(10)
     expect(data.alerts.overloadedTeachers).toHaveLength(0);
+
+    // 完成度按应开口径：应开 2 门（数学/英语）且均已排 → 100%
+    expect(data.completion.totalCourses).toBe(2);
+    expect(data.completion.assignedCourses).toBe(2);
+    expect(data.completion.rate).toBe(100);
+  });
+
+  it('完成度与未排课提醒按"本学期应开课程"口径，不开设的课程不计入也不误报', async () => {
+    // 应开 3 门：10/20/30；课程库另有本学期不开的 99
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      makePlan(1, {
+        training_level_id: 2,
+        plan_courses: [
+          makePlanCourse(10, 1, 6, 4, [{ semester: 4, weekly_hours: 4 }]),
+          makePlanCourse(20, 3, 5, 2, [{ semester: 4, weekly_hours: 2 }]),
+          makePlanCourse(30, 3, 5, 2, [{ semester: 4, weekly_hours: 2 }]),
+        ],
+      }),
+    ]);
+    mockPrisma.classes.findMany.mockResolvedValue([
+      {
+        id: 1,
+        student_count: 40,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
+    ]);
+    mockCalcClassSemester.mockReturnValue({ grade: 2, currentSemesterNum: 4 });
+    mockFindBestMatchPlan.mockImplementation((cls, plans) => plans[0] || null);
+
+    // 已排 2 门（10/20）
+    mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce([
+      { course_id: 10 },
+      { course_id: 20 },
+    ]);
+    mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce([]);
+    mockPrisma.colleges.findMany.mockResolvedValue([]);
+    mockPrisma.courses.findMany.mockResolvedValue([
+      { id: 10, name: '数学' },
+      { id: 20, name: '英语' },
+      { id: 30, name: '化学' },
+      { id: 99, name: '体育' }, // 本学期不开设
+    ]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardInsights(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+
+    // 分母=应开 3 门（而非课程库 4 门），分子=已排∩应开 2 门
+    expect(data.completion.totalCourses).toBe(3);
+    expect(data.completion.assignedCourses).toBe(2);
+    expect(data.completion.rate).toBe(67);
+
+    // 未排课提醒只含应开未排的化学，不含本学期不开的体育
+    expect(data.alerts.unassignedCourses).toHaveLength(1);
+    expect(data.alerts.unassignedCourses[0].name).toBe('化学');
   });
 
   it('无学期参数 → 返回错误', async () => {

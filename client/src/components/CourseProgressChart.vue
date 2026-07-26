@@ -65,6 +65,8 @@ const props = defineProps({
     default: () => ({ totalCourses: 0, assignedCourses: 0, rate: 0 }),
   },
   totalHours: { type: Number, default: 0 },
+  // 真实已排周课时（后端合班去重值）；缺省时回退按课程门数比例估算
+  assignedHours: { type: Number, default: null },
 });
 
 const total = computed(() => props.data?.totalCourses || 0);
@@ -77,12 +79,18 @@ const rate = computed(() => {
 
 const AVG_HOURS_PER_COURSE = 16;
 const assignedHours = computed(() => {
+  if (props.assignedHours != null) {
+    return Math.round(props.assignedHours);
+  }
   if (props.totalHours > 0 && total.value > 0) {
     return Math.round(props.totalHours * (assigned.value / total.value));
   }
   return assigned.value * AVG_HOURS_PER_COURSE;
 });
 const remainingHours = computed(() => {
+  if (props.assignedHours != null) {
+    return Math.max(0, Math.round(props.totalHours - props.assignedHours));
+  }
   if (props.totalHours > 0 && total.value > 0) {
     return Math.round(props.totalHours * (remaining.value / total.value));
   }

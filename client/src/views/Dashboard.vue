@@ -44,7 +44,11 @@
     <!-- 洞察区域：CSS Grid 非对称布局（左 60% 右 40%） -->
     <div class="insights-grid">
       <div class="insight-main">
-        <CourseProgressChart :data="insights.completion" :total-hours="stats.totalWeeklyHours" />
+        <CourseProgressChart
+          :data="insights.completion"
+          :total-hours="stats.totalWeeklyHours"
+          :assigned-hours="stats.assignedWeeklyHours"
+        />
       </div>
       <div class="insight-side">
         <AlertCard :data="insights.alerts" />
@@ -127,6 +131,7 @@ const stats = ref({
   totalStudents: 0,
   teachingTeachers: 0,
   totalWeeklyHours: 0,
+  assignedWeeklyHours: null,
 });
 
 // 为每个指标创建独立 ref 和 countup
@@ -185,6 +190,7 @@ async function fetchStats() {
       stats.value.totalStudents = d.totalStudents || 0;
       stats.value.teachingTeachers = d.teachingTeachers || 0;
       stats.value.totalWeeklyHours = d.totalWeeklyHours || 0;
+      stats.value.assignedWeeklyHours = d.assignedWeeklyHours ?? null;
       syncMetricRefs();
     }
   } catch (e) {
