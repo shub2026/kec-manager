@@ -125,4 +125,44 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
   justify-content: center;
   gap: var(--space-2);
 }
+
+/* 移动端响应式：紧凑布局 + footer 按钮等宽（与 OptimizeResultDialog 风格统一） */
+@media (max-width: 480px) {
+  .confirm-content {
+    padding: var(--space-3) var(--space-1);
+  }
+
+  .confirm-icon {
+    font-size: 36px;
+    margin-bottom: var(--space-2);
+  }
+
+  .confirm-title {
+    font-size: 16px;
+    margin-bottom: var(--space-2);
+  }
+
+  .confirm-description {
+    font-size: 13px;
+    margin-bottom: var(--space-3);
+  }
+
+  .confirm-features {
+    gap: var(--space-1);
+    margin-bottom: var(--space-3);
+  }
+
+  .feature-item {
+    font-size: 13px;
+  }
+
+  .dialog-footer {
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .dialog-footer .el-button {
+    flex: 1;
+  }
+}
 </style>
