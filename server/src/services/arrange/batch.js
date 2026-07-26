@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma.js';
-import { DEFAULT_HOUR_SETTINGS } from '../../constants/index.js';
+import { BATCH_CONFIG, DEFAULT_HOUR_SETTINGS } from '../../constants/index.js';
 import { validateHourSettings } from './validate.js';
 import { autoArrange, batchLocks } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
@@ -60,6 +60,20 @@ export async function batchAutoArrange(
     });
     const teacherCountMap = new Map(teacherCounts.map((r) => [r.course_id, r._count.teacher_id]));
 
+    // P0-2 深化：预留只对"后续课程还会用到该教师"时有意义。
+    // 拉取教师-课程关系，用于计算每门课程中"不出现在任何后续课程"的教师，
+    // 这些教师（典型如只教一门课的教师、最后一门课的全部教师）不打预留折扣，
+    // 避免"容量未满却欠分配"的预留浪费。
+    const teacherCourseRows = await prisma.teacher_courses.findMany({
+      where: { teacher: { status: 'active' }, course_id: { in: courses.map((c) => c.id) } },
+      select: { teacher_id: true, course_id: true },
+    });
+    const courseTeacherMap = new Map();
+    for (const row of teacherCourseRows) {
+      if (!courseTeacherMap.has(row.course_id)) courseTeacherMap.set(row.course_id, []);
+      courseTeacherMap.get(row.course_id).push(row.teacher_id);
+    }
+
     const courseHourDemands = await prisma.plan_course_semesters.groupBy({
       by: ['plan_course_id'],
       where: { plan_courses: { course_id: { in: courses.map((c) => c.id) } } },
@@ -100,6 +114,19 @@ export async function batchAutoArrange(
 
     coursePriorities.sort((a, b) => b.priority - a.priority);
 
+    // P0-2 深化：预计算每个位置之后（仅计有课时需求的课程）出现的教师集合，
+    // 用于判断当前课程的每位教师是否还需要为后续课程预留容量
+    const laterTeacherSets = new Array(coursePriorities.length);
+    let laterAcc = new Set();
+    for (let i = coursePriorities.length - 1; i >= 0; i--) {
+      laterTeacherSets[i] = laterAcc;
+      const cid = coursePriorities[i].courseId;
+      if ((courseDemandMap.get(cid) || 0) > 0) {
+        laterAcc = new Set(laterAcc);
+        for (const tid of courseTeacherMap.get(cid) || []) laterAcc.add(tid);
+      }
+    }
+
     const results = [];
     let totalAssigned = 0;
     let totalUnassigned = 0;
@@ -132,6 +159,10 @@ export async function batchAutoArrange(
           : null;
       }
       try {
+        // P0-2 深化：不出现在任何后续课程的教师免预留（预留对其无保护对象，纯属浪费）
+        const reserveExemptTeacherIds = new Set(
+          (courseTeacherMap.get(courseId) || []).filter((tid) => !laterTeacherSets[idx].has(tid))
+        );
         const result = await autoArrange(
           courseId,
           semesterStr,
@@ -142,6 +173,9 @@ export async function batchAutoArrange(
             ...options,
             extraTeacherHours: virtualTeacherHours,
             globalTextbookMap,
+            // P0-2 修复：批量排课传容量预留比例，每门课程最多用教师剩余容量的 85%，为后续课程预留空间
+            capacityReserveRatio: BATCH_CONFIG.RESERVE_RATIO,
+            reserveExemptTeacherIds,
             // P1-12 修复：批量内部调用绕过 batchLocks 检查，由 batch.js 持有学期锁
             skipBatchLockCheck: true,
           }
@@ -206,6 +240,104 @@ export async function batchAutoArrange(
           });
         } catch (_) {
           /* 回调失败不影响主流程 */
+        }
+      }
+    }
+
+    // ── P0-2 深化：补漏轮 ──
+    // 主轮结束后，各教师被预留但未被后续课程用掉的容量应回收：
+    // 对仍有未分配班级的课程按原优先级用全量容量（不预留）重排一次，
+    // 避免"教师容量未满却欠分配"。重排容量只增不减，结果理论上不劣于主轮。
+    const rebuildPreviewState = (excludeCourseId) => {
+      if (!options.preview) return;
+      virtualTeacherHours.clear();
+      globalTextbookMap.clear();
+      for (const r of results) {
+        if (r.error || r.courseId === excludeCourseId) continue;
+        for (const a of r.assigned || []) {
+          virtualTeacherHours.set(
+            a.teacher_id,
+            (virtualTeacherHours.get(a.teacher_id) || 0) + a.weekly_hours
+          );
+          if (r.classTextbookMap) {
+            if (!globalTextbookMap.has(a.teacher_id))
+              globalTextbookMap.set(a.teacher_id, new Set());
+            const tbs = r.classTextbookMap.get(a.class_id) || [];
+            for (const tid of tbs) globalTextbookMap.get(a.teacher_id).add(tid);
+          }
+        }
+      }
+    };
+
+    if (!timeoutReached) {
+      for (const { courseId, courseName } of coursePriorities) {
+        const prevIdx = results.findIndex((r) => r.courseId === courseId);
+        if (prevIdx < 0) continue;
+        const prev = results[prevIdx];
+        if (prev.error || !(prev.unassignedCount > 0)) continue;
+        if (Date.now() - startTime > BATCH_TIMEOUT_MS) {
+          logger.warn(`[批量排课][补漏轮] 超时，停止补漏`);
+          timeoutReached = true;
+          break;
+        }
+        // 预览模式：先从累计状态中扣除本课程主轮贡献，避免自身课时被重复计入
+        rebuildPreviewState(courseId);
+        try {
+          const refill = await autoArrange(
+            courseId,
+            semesterStr,
+            mode,
+            hourSettings,
+            scheduleConditions,
+            {
+              ...options,
+              extraTeacherHours: virtualTeacherHours,
+              globalTextbookMap,
+              capacityReserveRatio: 1.0,
+              skipBatchLockCheck: true,
+            }
+          );
+          if (refill.autoCount < prev.autoCount) {
+            // 容量放宽后理论上不应回退，如实记录以便排查
+            logger.warn(
+              `[批量排课][补漏轮] 课程 ${courseId}(${courseName}) 重排回退：${prev.autoCount} → ${refill.autoCount}`
+            );
+            if (options.preview) {
+              // 预览未落库，保留更优的主轮结果；非预览已写库，如实采纳重排结果
+              rebuildPreviewState(null);
+              continue;
+            }
+          } else if (refill.autoCount > prev.autoCount) {
+            logger.info(
+              `[批量排课][补漏轮] 课程 ${courseId}(${courseName}) 安排 ${prev.autoCount} → ${refill.autoCount}`
+            );
+          }
+          totalAssigned += refill.autoCount - prev.autoCount;
+          totalUnassigned += refill.unassignedCount - prev.unassignedCount;
+          totalWarnings += (refill.warnings?.length || 0) - (prev.warnings?.length || 0);
+          results[prevIdx] = { courseId, courseName, ...refill };
+        } catch (e) {
+          // 补漏轮失败保留主轮结果，不影响整体
+          logger.error(`[批量排课][补漏轮] 课程 ${courseId}(${courseName}) 失败：${e.message}`);
+        } finally {
+          // 以最新 results 重建累计状态（成功含新结果，失败回填主轮贡献）
+          rebuildPreviewState(null);
+        }
+        if (onProgress) {
+          try {
+            onProgress({
+              processed: coursePriorities.length,
+              total: coursePriorities.length,
+              currentCourseId: courseId,
+              currentCourseName: `${courseName}（补漏）`,
+              currentResult: results[prevIdx],
+              cumulativeAssigned: totalAssigned,
+              cumulativeUnassigned: totalUnassigned,
+              fillRound: true,
+            });
+          } catch (_) {
+            /* 回调失败不影响主流程 */
+          }
         }
       }
     }

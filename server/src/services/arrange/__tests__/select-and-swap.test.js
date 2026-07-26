@@ -286,6 +286,83 @@ describe('trySwapOne', () => {
       // 无其他 T2 → 置换失败
       expect(result).toBe(false);
     });
+
+    it('B-03 对齐：U 班级无培养层次时，有层次约束的教师不可接管 U', () => {
+      // T1 有层次约束且已满，T2 无约束可接管 V —— 若无守卫置换本可成功
+      const t1 = makeTeacher(1, {
+        schedulingLevelIds: [20],
+        assignedHours: 16,
+        standardCap: 16,
+      });
+      const t2 = makeTeacher(2, { assignedHours: 0 });
+
+      const assignments = [makeAssignment(1, 100, 4, 'T1')];
+      const classTextbookMap = new Map([[100, [300]]]);
+      const classInfoMap = new Map([
+        [100, { collegeId: 10, trainingLevelId: 20 }],
+        [200, { collegeId: 10, trainingLevelId: null }], // U 无培养层次
+      ]);
+
+      const u = makeUnassigned(200, { trainingLevelId: null, weeklyHours: 4 });
+      const teacherMap = new Map([
+        [1, t1],
+        [2, t2],
+      ]);
+      const assignmentsByTeacher = new Map([[1, assignments]]);
+
+      const result = trySwapOne(
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1, t2],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
+      );
+      // U 无 trainingLevelId，T1 有层次约束 → 守卫拒绝 T1 接管 U → 置换失败
+      expect(result).toBe(false);
+    });
+
+    it('对照：U 班级层次匹配时同样场景置换应成功（守卫不误伤）', () => {
+      const t1 = makeTeacher(1, {
+        schedulingLevelIds: [20],
+        assignedHours: 16,
+        standardCap: 16,
+      });
+      const t2 = makeTeacher(2, { assignedHours: 0 });
+
+      const assignments = [makeAssignment(1, 100, 4, 'T1')];
+      const classTextbookMap = new Map([[100, [300]]]);
+      const classInfoMap = new Map([
+        [100, { collegeId: 10, trainingLevelId: 20 }],
+        [200, { collegeId: 10, trainingLevelId: 20 }], // U 层次匹配 T1 约束
+      ]);
+
+      const u = makeUnassigned(200, { trainingLevelId: 20, weeklyHours: 4 });
+      const teacherMap = new Map([
+        [1, t1],
+        [2, t2],
+      ]);
+      const assignmentsByTeacher = new Map([[1, assignments]]);
+
+      const result = trySwapOne(
+        u,
+        assignments,
+        assignmentsByTeacher,
+        teacherMap,
+        [t1, t2],
+        'standard',
+        1,
+        '2025-2026-1',
+        classTextbookMap,
+        classInfoMap
+      );
+      // T1 移除 V(4h) 后 12h + U(4h) = 16 ≤ 16，T2 接管 V → 置换成功
+      expect(result).toBe(true);
+    });
   });
 
   describe('容量约束', () => {

@@ -14,6 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const {
   coursesFindMany,
   teacherCoursesGroupBy,
+  teacherCoursesFindMany,
   planCourseSemestersGroupBy,
   planCoursesFindMany,
   autoArrangeFn,
@@ -22,6 +23,7 @@ const {
 } = vi.hoisted(() => ({
   coursesFindMany: vi.fn().mockResolvedValue([]),
   teacherCoursesGroupBy: vi.fn().mockResolvedValue([]),
+  teacherCoursesFindMany: vi.fn().mockResolvedValue([]),
   planCourseSemestersGroupBy: vi.fn().mockResolvedValue([]),
   planCoursesFindMany: vi.fn().mockResolvedValue([]),
   autoArrangeFn: vi.fn(),
@@ -46,7 +48,7 @@ vi.mock('../../../utils/logger.js', () => ({
 vi.mock('../../../lib/prisma.js', () => {
   const prismaObj = {
     courses: { findMany: coursesFindMany },
-    teacher_courses: { groupBy: teacherCoursesGroupBy },
+    teacher_courses: { groupBy: teacherCoursesGroupBy, findMany: teacherCoursesFindMany },
     plan_course_semesters: { groupBy: planCourseSemestersGroupBy },
     plan_courses: { findMany: planCoursesFindMany },
   };
@@ -87,6 +89,12 @@ function setupTeacherCounts(counts) {
     counts.map(([cid, cnt]) => ({ course_id: cid, _count: { teacher_id: cnt } }))
   );
 }
+// P0-2 深化：教师-课程关系（用于预留豁免计算）
+function setupTeacherCourses(rows) {
+  teacherCoursesFindMany.mockResolvedValue(
+    rows.map(([tid, cid]) => ({ teacher_id: tid, course_id: cid }))
+  );
+}
 function setupDemands(demands) {
   planCourseSemestersGroupBy.mockResolvedValue(
     demands.map(([pcId, hrs]) => ({ plan_course_id: pcId, _sum: { weekly_hours: hrs } }))
@@ -112,6 +120,7 @@ beforeEach(() => {
   validateFn.mockImplementation(() => {});
   coursesFindMany.mockResolvedValue([]);
   teacherCoursesGroupBy.mockResolvedValue([]);
+  teacherCoursesFindMany.mockResolvedValue([]);
   planCourseSemestersGroupBy.mockResolvedValue([]);
   planCoursesFindMany.mockResolvedValue([]);
 });
@@ -287,6 +296,9 @@ describe('batchAutoArrange', () => {
       ]);
       autoArrangeFn
         .mockResolvedValueOnce(makeResult({ autoCount: 5, unassignedCount: 1, warnings: ['W1'] }))
+        .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 2 }))
+        // 补漏轮：两门课均有未分配，会各重排一次（此处返回与主轮相同，汇总不变）
+        .mockResolvedValueOnce(makeResult({ autoCount: 5, unassignedCount: 1, warnings: ['W1'] }))
         .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 2 }));
 
       const r = await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
@@ -307,6 +319,17 @@ describe('batchAutoArrange', () => {
 
       await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
       expect(autoArrangeFn.mock.calls[0][5].skipBatchLockCheck).toBe(true);
+    });
+
+    it('传递 capacityReserveRatio=0.85（P0-2 容量预留）', async () => {
+      setupCourses([{ id: 1, name: 'C1', code: 'A' }]);
+      setupTeacherCounts([[1, 2]]);
+      setupPlanMapping([[10, 1]]);
+      setupDemands([[10, 8]]);
+      autoArrangeFn.mockResolvedValue(makeResult());
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      expect(autoArrangeFn.mock.calls[0][5].capacityReserveRatio).toBe(0.85);
     });
 
     it('传递 mode 和 conditions', async () => {
@@ -509,6 +532,143 @@ describe('batchAutoArrange', () => {
 
       const r = await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
       expect(r.summary.skippedCourses).toBeUndefined();
+    });
+  });
+
+  describe('P0-2 深化：预留豁免（reserveExemptTeacherIds）', () => {
+    it('不出现在后续课程的教师应被豁免，共享教师不豁免', async () => {
+      // 课程1优先（供需比高）：T101 只教课程1，T102 同时教课程1和课程2
+      setupCourses([
+        { id: 1, name: 'C1', code: 'A' },
+        { id: 2, name: 'C2', code: 'B' },
+      ]);
+      setupTeacherCounts([
+        [1, 1],
+        [2, 5],
+      ]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
+      setupDemands([
+        [10, 20],
+        [20, 8],
+      ]);
+      setupTeacherCourses([
+        [101, 1],
+        [102, 1],
+        [102, 2],
+      ]);
+      autoArrangeFn.mockResolvedValue(makeResult());
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      // 课程1先处理：T101 无后续课程→豁免；T102 还要教课程2→不豁免
+      const exempt1 = autoArrangeFn.mock.calls[0][5].reserveExemptTeacherIds;
+      expect(autoArrangeFn.mock.calls[0][0]).toBe(1);
+      expect(exempt1.has(101)).toBe(true);
+      expect(exempt1.has(102)).toBe(false);
+      // 课程2是最后一门：全部教师豁免
+      const exempt2 = autoArrangeFn.mock.calls[1][5].reserveExemptTeacherIds;
+      expect(autoArrangeFn.mock.calls[1][0]).toBe(2);
+      expect(exempt2.has(102)).toBe(true);
+    });
+
+    it('后续课程无课时需求时不算"后续"，共享教师也豁免', async () => {
+      setupCourses([
+        { id: 1, name: 'C1', code: 'A' },
+        { id: 2, name: 'C2无需求', code: 'B' },
+      ]);
+      setupTeacherCounts([
+        [1, 1],
+        [2, 5],
+      ]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
+      setupDemands([[10, 20]]); // 课程2 无课时需求
+      setupTeacherCourses([
+        [102, 1],
+        [102, 2],
+      ]);
+      autoArrangeFn.mockResolvedValue(makeResult());
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      const call1 = autoArrangeFn.mock.calls.find((c) => c[0] === 1);
+      // 课程2虽在后续但无需求，T102 的容量不会被它用到 → 豁免
+      expect(call1[5].reserveExemptTeacherIds.has(102)).toBe(true);
+    });
+  });
+
+  describe('P0-2 深化：补漏轮（回收预留容量）', () => {
+    it('有未分配班级的课程应用 capacityReserveRatio=1.0 重排并采纳更优结果', async () => {
+      setupCourses([{ id: 1, name: 'C1', code: 'A' }]);
+      setupTeacherCounts([[1, 1]]);
+      setupPlanMapping([[10, 1]]);
+      setupDemands([[10, 16]]);
+      setupTeacherCourses([[101, 1]]);
+      autoArrangeFn
+        .mockResolvedValueOnce(makeResult({ autoCount: 1, unassignedCount: 2 })) // 主轮
+        .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 0 })); // 补漏轮
+
+      const r = await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      expect(autoArrangeFn).toHaveBeenCalledTimes(2);
+      expect(autoArrangeFn.mock.calls[0][5].capacityReserveRatio).toBe(0.85);
+      expect(autoArrangeFn.mock.calls[1][5].capacityReserveRatio).toBe(1.0);
+      expect(r.summary.totalAssigned).toBe(3);
+      expect(r.summary.totalUnassigned).toBe(0);
+      expect(r.courseResults[0].autoCount).toBe(3);
+    });
+
+    it('全部分配完成时不触发补漏轮', async () => {
+      setupCourses([{ id: 1, name: 'C1', code: 'A' }]);
+      setupTeacherCounts([[1, 1]]);
+      setupPlanMapping([[10, 1]]);
+      setupDemands([[10, 8]]);
+      autoArrangeFn.mockResolvedValue(makeResult({ autoCount: 2, unassignedCount: 0 }));
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      expect(autoArrangeFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('补漏轮失败时保留主轮结果', async () => {
+      setupCourses([{ id: 1, name: 'C1', code: 'A' }]);
+      setupTeacherCounts([[1, 1]]);
+      setupPlanMapping([[10, 1]]);
+      setupDemands([[10, 16]]);
+      autoArrangeFn
+        .mockResolvedValueOnce(makeResult({ autoCount: 1, unassignedCount: 2 }))
+        .mockRejectedValueOnce(new Error('补漏崩溃'));
+
+      const r = await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      expect(r.summary.totalAssigned).toBe(1);
+      expect(r.summary.totalUnassigned).toBe(2);
+      expect(r.courseResults[0].autoCount).toBe(1);
+      expect(r.summary.errorCount).toBe(0); // 主轮成功，补漏失败不计错
+    });
+
+    it('预览模式补漏重排时不重复计入自身主轮课时', async () => {
+      setupCourses([{ id: 1, name: 'C1', code: 'A' }]);
+      setupTeacherCounts([[1, 1]]);
+      setupPlanMapping([[10, 1]]);
+      setupDemands([[10, 16]]);
+      let refillExtraHours;
+      autoArrangeFn
+        .mockResolvedValueOnce(
+          makeResult({
+            assigned: [{ teacher_id: 'T1', weekly_hours: 4, class_id: 100 }],
+            autoCount: 1,
+            unassignedCount: 2,
+          })
+        )
+        .mockImplementationOnce(async (courseId, sem, mode, hs, cond, opts) => {
+          refillExtraHours = opts.extraTeacherHours?.get('T1');
+          return makeResult({ autoCount: 3, unassignedCount: 0 });
+        });
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {}, { preview: true });
+      // 重排前应先扣除本课程主轮的 4 小时，否则自身占用会压缩重排容量
+      expect(refillExtraHours).toBeUndefined();
     });
   });
 });

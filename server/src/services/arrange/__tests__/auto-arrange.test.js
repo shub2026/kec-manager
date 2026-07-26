@@ -42,6 +42,7 @@ vi.mock('../../lib/prisma.js', () => ({ prisma: {} }));
 const {
   calcMatchScore,
   isTeacherEligible,
+  isPrefMatch,
   calcAllMatchRates,
   diagnoseFailure,
   selectBestTeacher,
@@ -321,6 +322,66 @@ describe('isTeacherEligible', () => {
     const c = baseClass();
     c.textbookIds = [300];
     expect(isTeacherEligible(t, c, mode)).toBe(true);
+  });
+});
+
+// ──────────────────────────────────────────────
+// isPrefMatch（五阶段主分配的严格意向匹配）
+// ──────────────────────────────────────────────
+describe('isPrefMatch', () => {
+  it('无任何意向限制时应返回 true', () => {
+    const t = baseTeacher();
+    const c = baseClass();
+    expect(isPrefMatch(t, c)).toBe(true);
+  });
+
+  it('学院意向不匹配时应返回 false', () => {
+    const t = baseTeacher();
+    t.schedulingCollegeIds = [99];
+    const c = baseClass(); // collegeId: 10
+    expect(isPrefMatch(t, c)).toBe(false);
+  });
+
+  it('层次意向不匹配时应返回 false', () => {
+    const t = baseTeacher();
+    t.schedulingLevelIds = [99];
+    const c = baseClass(); // trainingLevelId: 20
+    expect(isPrefMatch(t, c)).toBe(false);
+  });
+
+  it('学院与层次意向均匹配时应返回 true', () => {
+    const t = baseTeacher();
+    t.schedulingCollegeIds = [10];
+    t.schedulingLevelIds = [20];
+    const c = baseClass();
+    expect(isPrefMatch(t, c)).toBe(true);
+  });
+
+  it('B-03 对齐：班级无培养层次时，有层次约束的教师应返回 false', () => {
+    const t = baseTeacher();
+    t.schedulingLevelIds = [20];
+    const c = baseClass();
+    c.trainingLevelId = null; // 班级无培养层次
+    expect(isPrefMatch(t, c)).toBe(false);
+  });
+
+  it('对照：班级无培养层次但教师无层次约束时应返回 true（守卫不误伤）', () => {
+    const t = baseTeacher();
+    t.schedulingLevelIds = [];
+    const c = baseClass();
+    c.trainingLevelId = null;
+    expect(isPrefMatch(t, c)).toBe(true);
+  });
+
+  it('与 isTeacherEligible 语义一致：无层次班级 + 有层次约束教师两者均拒绝', () => {
+    const t = baseTeacher();
+    t.schedulingLevelIds = [20];
+    t.standardCap = 16;
+    t.fullCap = 20;
+    const c = baseClass();
+    c.trainingLevelId = null;
+    expect(isPrefMatch(t, c)).toBe(false);
+    expect(isTeacherEligible(t, c, 'standard')).toBe(false);
   });
 });
 

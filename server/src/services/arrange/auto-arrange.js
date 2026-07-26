@@ -167,13 +167,42 @@ function isTeacherEligible(t, cls, mode) {
   return true;
 }
 
+/**
+ * 检查教师意向是否匹配某个班级（严格约束，供五阶段主分配使用）
+ * 导出以便单测覆盖 B-03 无层次班级守卫
+ */
+export function isPrefMatch(teacher, cls) {
+  // 有指定意向学院的教师，只能拿匹配的学院
+  if (
+    teacher.schedulingCollegeIds?.length > 0 &&
+    !teacher.schedulingCollegeIds.includes(cls.collegeId)
+  ) {
+    return false;
+  }
+  // 有指定意向层次的教师，只能拿匹配的层次
+  if (
+    teacher.schedulingLevelIds?.length > 0 &&
+    cls.trainingLevelId &&
+    !teacher.schedulingLevelIds.includes(cls.trainingLevelId)
+  ) {
+    return false;
+  }
+  // B-03 语义对齐：班级无培养层次时，有层次约束的教师不可拿取
+  // 与 isTeacherEligible / tryPlaceClass / canAccept 保持一致，避免主阶段产生后续阶段视为非法的分配
+  if (!cls.trainingLevelId && teacher.schedulingLevelIds?.length > 0) {
+    return false;
+  }
+  return true;
+}
+
 function buildTeacherConstraints(
   teachers,
   hourSettings,
   autoHoursMap,
   mode,
   extraTeacherHours = null,
-  capacityReserveRatio = 1.0
+  capacityReserveRatio = 1.0,
+  reserveExemptTeacherIds = null
 ) {
   return teachers.map((t) => {
     const personnelType = t.personnelType || 'full_time';
@@ -195,6 +224,9 @@ function buildTeacherConstraints(
 
     // P0-2 修复：capacityReserveRatio < 1 时缩减容量上限，为后续课程预留空间
     // 批量排课时传入 RESERVE_RATIO=0.85，使每门课程最多使用教师剩余容量的 85%
+    // P0-2 深化：预留只对"后续课程还会用到该教师"时有意义，
+    // reserveExemptTeacherIds 中的教师（无任何后续课程）不打折，避免容量未满却欠分配
+    const effectiveRatio = reserveExemptTeacherIds?.has(t.id) ? 1.0 : capacityReserveRatio;
     const rawStandardCap =
       teacherHourCap != null
         ? Math.min(teacherHourCap, Math.max(0, setting.standard - effectiveTotal))
@@ -209,8 +241,8 @@ function buildTeacherConstraints(
       standardHours: setting.standard,
       maxHours: setting.max,
       effectiveTotal,
-      standardCap: Math.floor(rawStandardCap * capacityReserveRatio),
-      fullCap: Math.floor(rawFullCap * capacityReserveRatio),
+      standardCap: Math.floor(rawStandardCap * effectiveRatio),
+      fullCap: Math.floor(rawFullCap * effectiveRatio),
       teacherHourCap,
       assignedHours: 0,
       // P1-A 修复：固化固有教材快照，运行时累加不污染匹配判断
@@ -899,6 +931,8 @@ function trySwapOne(
           !t.schedulingLevelIds.includes(uInfo.trainingLevelId)
         )
           continue;
+        // B-03 语义对齐：班级无培养层次时，有层次约束的教师不可接管 U（与下方 V 班级的守卫对称）
+        if (!uInfo.trainingLevelId && t.schedulingLevelIds?.length > 0) continue;
       }
     }
 
@@ -1023,6 +1057,7 @@ function trySwapOne(
  * @param {object} [options] - 可选参数
  * @param {boolean} [options.preview=false] - 预览模式（只计算不写库）
  * @param {number} [options.capacityReserveRatio=1.0] - 容量预留比例（批量排课传入 <1 为后续课程预留空间）
+ * @param {Set<number>} [options.reserveExemptTeacherIds] - 免预留的教师 ID 集合（批量中无后续课程的教师）
  */
 export async function autoArrange(
   courseId,
@@ -1037,6 +1072,7 @@ export async function autoArrange(
     extraTeacherHours = null,
     globalTextbookMap = null,
     capacityReserveRatio = 1.0,
+    reserveExemptTeacherIds = null,
   } = options;
   const onProgress = options.onProgress;
   const _arrangeStart = Date.now();
@@ -1069,7 +1105,7 @@ export async function autoArrange(
       const manualCount = await prisma.teaching_assignments.count({
         where: { course_id: Number(courseId), semester: semesterStr, is_auto: false },
       });
-      return buildResult([], [], [], manualCount, '该课程没有可用教师', preview);
+      return buildResult([], [], [], manualCount, '该课程没有可用教师', preview, [], null, mode);
     }
 
     const classes = await getClassesWithCourse(courseId, semesterStr);
@@ -1077,7 +1113,17 @@ export async function autoArrange(
       const manualCount = await prisma.teaching_assignments.count({
         where: { course_id: Number(courseId), semester: semesterStr, is_auto: false },
       });
-      return buildResult([], [], [], manualCount, '当前学期没有开设该课程的班级', preview);
+      return buildResult(
+        [],
+        [],
+        [],
+        manualCount,
+        '当前学期没有开设该课程的班级',
+        preview,
+        [],
+        null,
+        mode
+      );
     }
 
     const manualAssignments = await prisma.teaching_assignments.findMany({
@@ -1144,7 +1190,8 @@ export async function autoArrange(
       autoHoursMap,
       mode,
       extraTeacherHours,
-      capacityReserveRatio
+      capacityReserveRatio,
+      reserveExemptTeacherIds
     );
 
     // S-13 修复：预览模式下从前序课程累计教材负载
@@ -1342,26 +1389,6 @@ export async function autoArrange(
     logger.debug(
       `[手动排课追踪] ${protectedAssignments.length} 条受保护安排（手动${manualAssignments.length}+锁定${lockedAssignments.length}），教师教材已更新`
     );
-
-    // --- 辅助函数：检查教师意向是否匹配某个班级（严格约束）---
-    function isPrefMatch(teacher, cls) {
-      // 有指定意向学院的教师，只能拿匹配的学院
-      if (
-        teacher.schedulingCollegeIds?.length > 0 &&
-        !teacher.schedulingCollegeIds.includes(cls.collegeId)
-      ) {
-        return false;
-      }
-      // 有指定意向层次的教师，只能拿匹配的层次
-      if (
-        teacher.schedulingLevelIds?.length > 0 &&
-        cls.trainingLevelId &&
-        !teacher.schedulingLevelIds.includes(cls.trainingLevelId)
-      ) {
-        return false;
-      }
-      return true;
-    }
 
     // --- 辅助函数：记录分配 ---
     function recordAssignment(teacher, cls) {
