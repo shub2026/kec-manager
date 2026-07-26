@@ -1540,6 +1540,13 @@ export async function autoArrange(
       });
     }
 
+    // --- 辅助函数：检查班级教材是否可放入投影集合（不超限） ---
+    function canFitTextbook(clsTextbookIds, projectedTextbooks, maxTb) {
+      if (!clsTextbookIds?.length) return true;
+      const newTbs = clsTextbookIds.filter((tid) => !projectedTextbooks.has(tid));
+      return projectedTextbooks.size + newTbs.length <= maxTb;
+    }
+
     // --- 辅助函数：教师从可用班级中拿取，直到课时满 ---
     function takeClassesForTeacher(teacher, availableClasses, strictPrefCheck = true) {
       const cap = maxCapFn(teacher);
@@ -1591,12 +1598,7 @@ export async function autoArrange(
             !takenIds.has(cls.classId) &&
             cls.weeklyHours === gap &&
             (!strictPrefCheck || isPrefMatch(teacher, cls)) &&
-            (!useTbLimit ||
-              !cls.textbookIds?.length ||
-              (() => {
-                const newTbs = cls.textbookIds.filter((tid) => !projectedTextbooks.has(tid));
-                return projectedTextbooks.size + newTbs.length <= takeMaxTb;
-              })())
+            (!useTbLimit || canFitTextbook(cls.textbookIds, projectedTextbooks, takeMaxTb))
         );
         if (filler) {
           taken.push(filler);
@@ -1613,12 +1615,7 @@ export async function autoArrange(
                 !takenIds.has(cls.classId) &&
                 cls.weeklyHours === targetHours &&
                 (!strictPrefCheck || isPrefMatch(teacher, cls)) &&
-                (!useTbLimit ||
-                  !cls.textbookIds?.length ||
-                  (() => {
-                    const newTbs = cls.textbookIds.filter((tid) => !projectedTextbooks.has(tid));
-                    return projectedTextbooks.size + newTbs.length <= takeMaxTb;
-                  })())
+                (!useTbLimit || canFitTextbook(cls.textbookIds, projectedTextbooks, takeMaxTb))
             );
             if (y) {
               const idx = taken.indexOf(x);
@@ -1796,6 +1793,8 @@ export async function autoArrange(
 
     // ================================================================
     // 第三阶段：所有教师追加同教材班级（不增加教材数）
+    // 注意：`__no_textbook__` 组（textbookIds=[]）时，"已持有此教材"过滤恒为 false，
+    // 无教材班级会被跳过（留给阶段5兜底），避免此阶段对全体教师的无意义遍历
     // ================================================================
     logger.info('[阶段3] 所有教师追加同教材班级');
     if (onProgress)
@@ -1835,6 +1834,9 @@ export async function autoArrange(
 
     // ================================================================
     // 第四阶段：所有教师拿第二本教材（如果还有容量）
+    // 定位：兜底阶段1+3 遗漏的教师-组组合。有意向教师在阶段1已被 takeGroupsForTeacher
+    // 处理过（理论上已拿完可拿的组），无意向教师在阶段2同理。因此阶段4只处理
+    // "阶段1/2/3 都未覆盖到的剩余班级"，作用有限但不多余（确保教材名额用尽）。
     // ================================================================
     logger.info('[阶段4] 所有教师拿第二本教材');
     if (onProgress)

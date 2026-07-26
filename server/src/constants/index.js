@@ -125,6 +125,7 @@ export const TABU_SEARCH = {
   UNASSIGNED_PENALTY: 500, // 每个未分配班级的惩罚分值
   // F15 修复：目标函数增强——欠分配缺口惩罚与可复现随机种子
   UNDER_ASSIGNMENT_PENALTY: 5, // 每单位欠分配课时的惩罚分值（α 系数）
+  LOAD_VARIANCE_WEIGHT: 2, // 负载方差惩罚权重（β 系数），促进教师间工作量均衡
   RANDOM_SEED: 42, // 固定种子伪随机（保证同输入结果可复现；0=使用 Math.random）
 };
 

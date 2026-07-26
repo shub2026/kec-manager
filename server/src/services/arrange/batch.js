@@ -110,21 +110,70 @@ export async function batchAutoArrange(
       }
     }
 
-    const defaultStandard =
-      hourSettings.full_time?.standard || DEFAULT_HOUR_SETTINGS.full_time.standard;
+    // F7 完整修复：供给侧测算改为实际剩余容量估算（考虑教师类型差异与既有负载）
+    // 原实现：teacherCount × defaultStandard（未考虑人员类型差异与既有负载）
+    // 新实现：复用 courseTeacherMap 收集所有相关教师 ID，一次性查询教师信息与当前学期已排课时，
+    // 按教师实际剩余 capacity 估算各课程的供给量，更准确反映供给能力。
+    const allTeacherIds = new Set();
+    for (const tids of courseTeacherMap.values()) for (const tid of tids) allTeacherIds.add(tid);
+
+    // 一次性拉取所有相关教师的类型、自定义课时上限、本学期已排课时
+    const teacherInfoRows = allTeacherIds.size > 0
+      ? await prisma.teachers.findMany({
+          where: { id: { in: [...allTeacherIds] } },
+          select: {
+            id: true,
+            personnel_type: true,
+            default_weekly_hours: true,
+          },
+        })
+      : [];
+    const teacherInfoMap = new Map(teacherInfoRows.map((t) => [t.id, t]));
+
+    // 按教师聚合本学期已排课时（跨课程，去重合班）
+    const workloadByTeacher = await prisma.teaching_assignments.groupBy({
+      by: ['teacher_id'],
+      where: { semester: semesterStr, teacher_id: { in: [...allTeacherIds] } },
+      _sum: { weekly_hours: true },
+    });
+    const workloadMap = new Map(workloadByTeacher.map((r) => [r.teacher_id, r._sum.weekly_hours || 0]));
+
+    // 预计算每位教师的实际剩余 standardCap（考虑 personnelType / defaultWeeklyHours / 既有负载）
+    const teacherRemainingCap = new Map();
+    for (const [tid, info] of teacherInfoMap) {
+      const setting =
+        hourSettings[info.personnel_type] ||
+        DEFAULT_HOUR_SETTINGS[info.personnel_type] ||
+        DEFAULT_HOUR_SETTINGS.full_time;
+      const effectiveTotal = Math.max(0, workloadMap.get(tid) || 0);
+      const teacherHourCap =
+        info.default_weekly_hours != null
+          ? Math.max(0, info.default_weekly_hours - effectiveTotal)
+          : null;
+      const rawStandardCap =
+        teacherHourCap != null
+          ? Math.min(teacherHourCap, Math.max(0, setting.standard - effectiveTotal))
+          : Math.max(0, setting.standard - effectiveTotal);
+      teacherRemainingCap.set(tid, rawStandardCap);
+    }
+
+    // 按课程聚合每位教师的实际剩余容量（复用 courseTeacherMap，避免重复查询）
+    const courseSupplyMap = new Map();
+    for (const course of courses) {
+      const tids = courseTeacherMap.get(course.id) || [];
+      let totalSupply = 0;
+      for (const tid of tids) totalSupply += teacherRemainingCap.get(tid) || 0;
+      courseSupplyMap.set(course.id, totalSupply);
+    }
 
     const coursePriorities = courses.map((course) => {
-      const teacherCount = teacherCountMap.get(course.id) || 0;
       const demand = courseDemandMap.get(course.id) || 0;
-      const supplyCapacity = teacherCount * defaultStandard;
-      const supplyDemandRatio =
-        teacherCount === 0
+      const supplyCapacity = courseSupplyMap.get(course.id) || 0;
+      const supplyDemandRatio = supplyCapacity > 0
+        ? demand / supplyCapacity
+        : demand > 0
           ? Number.MAX_SAFE_INTEGER
-          : supplyCapacity > 0
-            ? demand / supplyCapacity
-            : demand > 0
-              ? Number.MAX_SAFE_INTEGER
-              : 0;
+          : 0;
       return { courseId: course.id, courseName: course.name, priority: supplyDemandRatio };
     });
 

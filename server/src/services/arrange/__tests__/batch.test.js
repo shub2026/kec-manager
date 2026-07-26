@@ -17,6 +17,8 @@ const {
   teacherCoursesFindMany,
   planCourseSemestersGroupBy,
   planCoursesFindMany,
+  teachersFindMany,
+  teachingAssignmentsGroupBy,
   autoArrangeFn,
   batchLocksSet,
   validateFn,
@@ -26,6 +28,8 @@ const {
   teacherCoursesFindMany: vi.fn().mockResolvedValue([]),
   planCourseSemestersGroupBy: vi.fn().mockResolvedValue([]),
   planCoursesFindMany: vi.fn().mockResolvedValue([]),
+  teachersFindMany: vi.fn().mockResolvedValue([]),
+  teachingAssignmentsGroupBy: vi.fn().mockResolvedValue([]),
   autoArrangeFn: vi.fn(),
   batchLocksSet: new Set(),
   validateFn: vi.fn(),
@@ -51,6 +55,8 @@ vi.mock('../../../lib/prisma.js', () => {
     teacher_courses: { groupBy: teacherCoursesGroupBy, findMany: teacherCoursesFindMany },
     plan_course_semesters: { groupBy: planCourseSemestersGroupBy },
     plan_courses: { findMany: planCoursesFindMany },
+    teachers: { findMany: teachersFindMany },
+    teaching_assignments: { groupBy: teachingAssignmentsGroupBy },
   };
   return { prisma: prismaObj };
 });
@@ -123,6 +129,8 @@ beforeEach(() => {
   teacherCoursesFindMany.mockResolvedValue([]);
   planCourseSemestersGroupBy.mockResolvedValue([]);
   planCoursesFindMany.mockResolvedValue([]);
+  teachersFindMany.mockResolvedValue([]);
+  teachingAssignmentsGroupBy.mockResolvedValue([]);
 });
 
 // ══════════════════════════════════════════════
@@ -212,36 +220,16 @@ describe('batchAutoArrange', () => {
   });
 
   describe('优先级排序', () => {
-    it('教师少的课程优先', async () => {
+    it('供给紧张的课程优先（供需比高）', async () => {
+      // 课程1有4个教师（供给充足），课程2只有1个教师（供给紧张），需求相同 → 课程2优先
       setupCourses([
         { id: 1, name: '多教师', code: 'A' },
         { id: 2, name: '少教师', code: 'B' },
       ]);
       setupTeacherCounts([
-        [1, 5],
+        [1, 4],
         [2, 1],
       ]);
-      setupPlanMapping([
-        [10, 1],
-        [20, 2],
-      ]);
-      setupDemands([
-        [10, 20],
-        [20, 20],
-      ]);
-      autoArrangeFn.mockResolvedValue(makeResult());
-
-      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
-      expect(autoArrangeFn.mock.calls[0][0]).toBe(2);
-      expect(autoArrangeFn.mock.calls[1][0]).toBe(1);
-    });
-
-    it('无教师的课程最优先', async () => {
-      setupCourses([
-        { id: 1, name: '有教师', code: 'A' },
-        { id: 2, name: '无教师', code: 'B' },
-      ]);
-      setupTeacherCounts([[1, 3]]);
       setupPlanMapping([
         [10, 1],
         [20, 2],
@@ -250,29 +238,85 @@ describe('batchAutoArrange', () => {
         [10, 10],
         [20, 10],
       ]);
+      setupTeacherCourses([
+        [101, 1], [102, 1], [103, 1], [104, 1],
+        [201, 2],
+      ]);
+      teachersFindMany.mockResolvedValue([
+        { id: 101, personnel_type: 'full_time', default_weekly_hours: null },
+        { id: 102, personnel_type: 'full_time', default_weekly_hours: null },
+        { id: 103, personnel_type: 'full_time', default_weekly_hours: null },
+        { id: 104, personnel_type: 'full_time', default_weekly_hours: null },
+        { id: 201, personnel_type: 'full_time', default_weekly_hours: null },
+      ]);
       autoArrangeFn.mockResolvedValue(makeResult());
 
       await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      // 课程1供给=4*16=64，优先级=10/64=0.156
+      // 课程2供给=1*16=16，优先级=10/16=0.625 → 课程2先处理
       expect(autoArrangeFn.mock.calls[0][0]).toBe(2);
+      expect(autoArrangeFn.mock.calls[1][0]).toBe(1);
     });
 
-    it('无需求无教师 → 优先级为 MAX_SAFE_INTEGER（高于有教师的课程）', async () => {
+    it('无教师的课程最优先（正需求+零供给 → MAX_SAFE_INTEGER）', async () => {
+      // 课程1有3个教师，课程2有0个教师，需求相同 → 课程2（正需求零供给）最优先
       setupCourses([
-        { id: 1, name: '无教师', code: 'A' },
-        { id: 2, name: '有教师', code: 'B' },
+        { id: 1, name: '有教师', code: 'A' },
+        { id: 2, name: '无教师', code: 'B' },
       ]);
-      setupTeacherCounts([[2, 1]]); // 课程2有1个教师，课程1无记录=0
+      setupTeacherCounts([
+        [1, 3],
+        [2, 0],
+      ]);
       setupPlanMapping([
         [10, 1],
         [20, 2],
       ]);
-      setupDemands([[20, 16]]); // 只有课程2有需求
+      setupDemands([
+        [10, 10],
+        [20, 10],
+      ]);
+      setupTeacherCourses([
+        [101, 1], [102, 1], [103, 1],
+      ]);
+      teachersFindMany.mockResolvedValue([
+        { id: 101, personnel_type: 'full_time', default_weekly_hours: null },
+        { id: 102, personnel_type: 'full_time', default_weekly_hours: null },
+        { id: 103, personnel_type: 'full_time', default_weekly_hours: null },
+      ]);
       autoArrangeFn.mockResolvedValue(makeResult());
 
       await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
-      // 课程1 teacherCount=0 → ratio=MAX_SAFE_INTEGER → 优先于课程2(ratio=1)
-      expect(autoArrangeFn.mock.calls[0][0]).toBe(1);
-      expect(autoArrangeFn.mock.calls[1][0]).toBe(2);
+      // 课程2：正需求+零供给 → MAX_SAFE_INTEGER → 最优先
+      expect(autoArrangeFn.mock.calls[0][0]).toBe(2);
+    });
+
+    it('无需求的课程优先级为 0', async () => {
+      // 课程1有0个教师但无需求，课程2有1个教师也无需求
+      setupCourses([
+        { id: 1, name: '无需求无教师', code: 'A' },
+        { id: 2, name: '无需求有教师', code: 'B' },
+      ]);
+      setupTeacherCounts([
+        [1, 0],
+        [2, 1],
+      ]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
+      setupDemands([]);
+      setupTeacherCourses([
+        [201, 2],
+      ]);
+      teachersFindMany.mockResolvedValue([
+        { id: 201, personnel_type: 'full_time', default_weekly_hours: null },
+      ]);
+      autoArrangeFn.mockResolvedValue(makeResult());
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      // 两课程需求均为 0 → 优先级均为 0 → 按原始顺序处理
+      expect(autoArrangeFn).toHaveBeenCalledTimes(2);
     });
   });
 

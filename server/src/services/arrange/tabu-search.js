@@ -496,6 +496,22 @@ function computeObjective(
       score -= alpha * gap;
     }
   }
+  // 负载方差惩罚：教师间工作量差异过大时扣分，促进均衡分配
+  const beta = TABU_SEARCH.LOAD_VARIANCE_WEIGHT || 0;
+  if (beta > 0 && teacherConstraints.length > 1) {
+    const loadRates = [];
+    for (const t of teacherConstraints) {
+      const state = teacherStates.get(t.id);
+      if (!state) continue;
+      const cap = mode === 'standard' ? t.standardCap : t.fullCap;
+      if (cap > 0) loadRates.push(state.assignedHours / cap);
+    }
+    if (loadRates.length > 1) {
+      const mean = loadRates.reduce((s, r) => s + r, 0) / loadRates.length;
+      const variance = loadRates.reduce((s, r) => s + (r - mean) ** 2, 0) / loadRates.length;
+      score -= beta * variance * 100; // ×100 使方差项与评分量级匹配
+    }
+  }
   return score;
 }
 
