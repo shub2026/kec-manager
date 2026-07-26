@@ -66,7 +66,7 @@
           >
         </template>
       </el-table-column>
-      <el-table-column v-if="!isMobile" label="任课学院" min-width="4">
+      <el-table-column v-if="!isMobile" label="任课学院" min-width="5">
         <template #default="{ row }">
           <el-tag
             v-for="c in row.collegeList"
@@ -92,7 +92,7 @@
           >
         </template>
       </el-table-column>
-      <el-table-column v-if="!isTablet" label="已用教材" min-width="8">
+      <el-table-column v-if="!isTablet" label="已用教材" min-width="7">
         <template #default="{ row }">
           <template v-if="uniqueTextbooks(row.assignedTextbooks).length">
             <el-tag

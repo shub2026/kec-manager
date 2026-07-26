@@ -52,6 +52,7 @@ const {
   placeClassOnTeacher,
   tryPlaceClass,
   trySwapUnassigned,
+  buildGroupAvailable,
 } = await import('../auto-arrange.js');
 
 const C = {
@@ -1500,5 +1501,53 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       expect(units[0].weeklyHours).toBe(4);
       expect(units[0].memberClassIds).toEqual([601, 602]);
     });
+  });
+});
+
+describe('buildGroupAvailable - 教材组按需求量降序遍历', () => {
+  const mkClass = (classId, weeklyHours) => ({ classId, weeklyHours, collegeId: 10 });
+
+  it('大组（总周课时高）应排在小组之前，与 Map 插入序无关', () => {
+    // 小组先插入（1 个班 4h），大组后插入（6 个班 24h）
+    const textbookGroups = new Map();
+    textbookGroups.set('small', [mkClass(1, 4)]);
+    textbookGroups.set(
+      'big',
+      [mkClass(2, 4), mkClass(3, 4), mkClass(4, 4), mkClass(5, 4), mkClass(6, 4), mkClass(7, 4)]
+    );
+
+    const groupAvailable = buildGroupAvailable(textbookGroups);
+    const keys = [...groupAvailable.keys()];
+
+    // 0 本教师按 groupAvailable 顺序遍历，优先锁定需求量大的教材组
+    expect(keys).toEqual(['big', 'small']);
+  });
+
+  it('每组应为拷贝的可变数组，修改不影响原始分组', () => {
+    const original = [mkClass(1, 4), mkClass(2, 4)];
+    const textbookGroups = new Map([['g1', original]]);
+
+    const groupAvailable = buildGroupAvailable(textbookGroups);
+    const available = groupAvailable.get('g1');
+
+    expect(available).toEqual(original);
+    expect(available).not.toBe(original);
+
+    // 模拟阶段分配中 splice 消耗班级
+    available.splice(0, 1);
+    expect(available.length).toBe(1);
+    expect(original.length).toBe(2);
+  });
+
+  it('总周课时相同时保持稳定，缺失 weeklyHours 按 0 计', () => {
+    const textbookGroups = new Map();
+    textbookGroups.set('noHours', [{ classId: 1, collegeId: 10 }]); // 无 weeklyHours → 0
+    textbookGroups.set('a', [mkClass(2, 6)]);
+    textbookGroups.set('b', [mkClass(3, 6)]);
+
+    const keys = [...buildGroupAvailable(textbookGroups).keys()];
+
+    // a/b 需求相同保持插入相对顺序，0 需求组垫底
+    expect(keys).toEqual(['a', 'b', 'noHours']);
   });
 });

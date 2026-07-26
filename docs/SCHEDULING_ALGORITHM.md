@@ -414,8 +414,8 @@ for (const ma of manualAssignments) {
 | 固有教材匹配   |     +`INHERENT_WEIGHT`（4）      | constants  | 教师固有教材与班级教材有交集（`isTextbookMatch`）                      |
 | 新增教材惩罚   | -`PENALTY_PER_NEW` × N（10 × N） | constants  | 接此班需新增 N 本教材                                                  |
 | 0 本教材奖励   |   +`ZERO_TEXTBOOK_BONUS`（30）   | constants  | 教师尚未持有任何教材                                                   |
-| 同教材追加奖励 |               +10                | **硬编码** | 教师已持有 1 本教材且此班级教材无新增                                  |
-| 新增教材硬淘汰 |          score - 10000           | **硬编码** | 教师已达 `MAX_TEXTBOOKS_PER_TEACHER` 且需新增教材，或 1 本教师接新教材 |
+| 同教材追加奖励 |    +`TEXTBOOK_COUNT_BONUS_1_SAME`（10）    | constants  | 教师已持有 1 本教材且此班级教材无新增                                  |
+| 新增教材强惩罚 | -`TEXTBOOK_COUNT_PENALTY_1_NEW`（300） | constants  | 教师已达 `MAX_TEXTBOOKS_PER_TEACHER` 且需新增教材，或 1 本教师接新教材 |
 
 ### 9.2 教材数量分级奖惩（二轮优化）
 
@@ -424,13 +424,13 @@ for (const ma of manualAssignments) {
 | 教师已有教材数                         | 班级是否新增教材 | 结果                                           |
 | -------------------------------------- | ---------------- | ---------------------------------------------- |
 | 0 本                                   | 任意             | `score += 30`（ZERO_TEXTBOOK_BONUS）           |
-| 1 本                                   | 不新增（同教材） | `score += 10`                                  |
-| 1 本                                   | 新增             | `return score - 10000`（实质禁止）             |
-| ≥ `MAX_TEXTBOOKS_PER_TEACHER`（即 ≥2） | 新增             | `return score - 10000`（实质禁止）             |
+| 1 本                                   | 不新增（同教材） | `score += 10`（TEXTBOOK_COUNT_BONUS_1_SAME）   |
+| 1 本                                   | 新增             | `return score - 300`（软性强惩罚，兜底无其他候选时仍可分配） |
+| ≥ `MAX_TEXTBOOKS_PER_TEACHER`（即 ≥2） | 新增             | `return score - 300`（软性强惩罚；另在 assignRound 候选过滤中被硬排除） |
 | ≥2（不可达分支，仅当调高上限时生效）   | —                | `score -= TEXTBOOK_COUNT_PENALTY_2`（20）      |
 | ≥3（不可达分支）                       | —                | `score -= TEXTBOOK_COUNT_PENALTY_3PLUS`（150） |
 
-> 注：`TEXTBOOK_COUNT_PENALTY_1_NEW` 与 `TEXTBOOK_COUNT_BONUS_1_SAME` 虽在 constants 中定义，但 `calcMatchScore` 实际未使用——同教材奖励与新增教材惩罚均为硬编码值（+10 与 -10000）。
+> 注：同教材奖励与新增教材惩罚均引用 constants 配置（`TEXTBOOK_COUNT_BONUS_1_SAME=10`、`TEXTBOOK_COUNT_PENALTY_1_NEW=300`），早期版本的硬编码 +10 / -10000 已在 P1-4 修复中移除。-300 为软性强惩罚（≈ 理论最大正分 57 的 5.3 倍），非实质禁止：兜底阶段无其他候选时仍可分配。
 
 ### 9.3 教师选择（`selectBestTeacher`）
 
@@ -755,8 +755,8 @@ export const TEXTBOOK_COHESION = {
   INHERENT_WEIGHT: 4, // 固有教材权重
   PENALTY_PER_NEW: 10, // 新增教材每本扣分
   ZERO_TEXTBOOK_BONUS: 30, // 0本教师加分
-  TEXTBOOK_COUNT_PENALTY_1_NEW: 200, // 未使用：代码用硬编码 -10000
-  TEXTBOOK_COUNT_BONUS_1_SAME: 8, // 未使用：代码用硬编码 +10
+  TEXTBOOK_COUNT_PENALTY_1_NEW: 300, // 1本教师接不同教材强力惩罚
+  TEXTBOOK_COUNT_BONUS_1_SAME: 10, // 1本教师接同类加分
   TEXTBOOK_COUNT_PENALTY_2: 20, // 不可达：MAX_TEXTBOOKS_PER_TEACHER=2
   TEXTBOOK_COUNT_PENALTY_3PLUS: 150, // 不可达：同上
   MAX_TEXTBOOKS_PER_TEACHER: 2, // 硬上限
@@ -778,8 +778,8 @@ export const TEXTBOOK_COHESION = {
 | `INHERENT_WEIGHT`              |   4    |    ✅    | calcMatchScore 固有教材        |
 | `PENALTY_PER_NEW`              |   10   |    ✅    | calcMatchScore 新增教材惩罚    |
 | `ZERO_TEXTBOOK_BONUS`          |   30   |    ✅    | calcMatchScore 0本教师加分     |
-| `TEXTBOOK_COUNT_PENALTY_1_NEW` |  200   |    ❌    | calcMatchScore 用硬编码 -10000 |
-| `TEXTBOOK_COUNT_BONUS_1_SAME`  |   8    |    ❌    | calcMatchScore 用硬编码 +10    |
+| `TEXTBOOK_COUNT_PENALTY_1_NEW` |  300   |    ✅    | calcMatchScore 1本教师接新教材强惩罚 |
+| `TEXTBOOK_COUNT_BONUS_1_SAME`  |   10   |    ✅    | calcMatchScore 1本教师接同教材奖励 |
 | `TEXTBOOK_COUNT_PENALTY_2`     |   20   |    ❌    | maxTb=2 时不可达               |
 | `TEXTBOOK_COUNT_PENALTY_3PLUS` |  150   |    ❌    | maxTb=2 时不可达               |
 | `MAX_TEXTBOOKS_PER_TEACHER`    |   2    |    ✅    | 多处硬上限校验                 |
@@ -788,7 +788,7 @@ export const TEXTBOOK_COHESION = {
 | `FALLBACK_EMPTY`               |  true  |    ✅    | 兜底教材推导                   |
 | `SCATTERED_THRESHOLD`          |   3    |    ✅    | 内聚度统计                     |
 
-> 注：`TEXTBOOK_COUNT_PENALTY_1_NEW`、`TEXTBOOK_COUNT_BONUS_1_SAME` 等配置项虽在 constants 中定义，但 `calcMatchScore` 实际使用硬编码值。调整这些配置项不会影响实际评分。
+> 注：`TEXTBOOK_COUNT_PENALTY_2`、`TEXTBOOK_COUNT_PENALTY_3PLUS` 仅在 `MAX_TEXTBOOKS_PER_TEACHER ≥ 3` 时可达，当前默认值为 2，调整这两项不会影响实际评分。
 
 ### 16.5 批量排课
 
@@ -1072,4 +1072,4 @@ v2.21.0 已实现禁忌搜索作为局部搜索优化层。未来可以考虑：
 
 ---
 
-_文档版本：v1.3.0 | 最后更新：2026-07-23_
+_文档版本：v1.3.1 | 最后更新：2026-07-26_

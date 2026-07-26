@@ -195,6 +195,23 @@ export function isPrefMatch(teacher, cls) {
   return true;
 }
 
+/**
+ * 构建教材组可用班级池（每组拷贝为可变数组）
+ * 按组内总周课时降序排序：需求量大的教材组优先分配，
+ * 使 0 本教师优先锁定大组，避免小组先占用教师导致大组供给不足
+ */
+function buildGroupAvailable(textbookGroups) {
+  const groupDemand = (group) => group.reduce((sum, cls) => sum + (cls.weeklyHours || 0), 0);
+  const sortedGroupEntries = [...textbookGroups.entries()].sort(
+    (a, b) => groupDemand(b[1]) - groupDemand(a[1])
+  );
+  const groupAvailable = new Map();
+  for (const [key, group] of sortedGroupEntries) {
+    groupAvailable.set(key, [...group]);
+  }
+  return groupAvailable;
+}
+
 function buildTeacherConstraints(
   teachers,
   hourSettings,
@@ -1480,11 +1497,8 @@ export async function autoArrange(
       logger.debug(`  教材组 ${key}: ${group.length} 个班级`);
     }
 
-    // 跟踪每个教材组的可用班级（可变数组）
-    const groupAvailable = new Map();
-    for (const [key, group] of textbookGroups) {
-      groupAvailable.set(key, [...group]);
-    }
+    // 跟踪每个教材组的可用班级（可变数组），按需求量降序遍历
+    const groupAvailable = buildGroupAvailable(textbookGroups);
 
     // ================================================================
     // 第一阶段：处理有指定意向的教师（严格按意向分配）
@@ -1962,4 +1976,5 @@ export {
   placeClassOnTeacher,
   tryPlaceClass,
   trySwapUnassigned,
+  buildGroupAvailable,
 };
