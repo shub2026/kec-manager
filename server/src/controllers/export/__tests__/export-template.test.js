@@ -75,8 +75,17 @@ describe('downloadTemplate', () => {
       const headers = mocks.createTemplateWorkbook.mock.calls[0][0];
       const sample = mocks.createTemplateWorkbook.mock.calls[0][1];
 
-      // 验证表头
-      expect(headers.length).toBe(8);
+      // 验证表头：列顺序与前端班级管理列表一致
+      expect(headers.map((h) => h.label)).toEqual([
+        '班级名称',
+        '二级学院',
+        '专业类别',
+        '培养层次',
+        '入学年份',
+        '学制(年)',
+        '班级人数',
+        '状态',
+      ]);
       expect(headers[0]).toEqual(
         expect.objectContaining({ label: '班级名称', key: 'name', required: true })
       );
@@ -153,7 +162,20 @@ describe('downloadTemplate', () => {
       expect(mocks.createTemplateWorkbook).toHaveBeenCalled();
       const headers = mocks.createTemplateWorkbook.mock.calls[0][0];
 
-      expect(headers.length).toBe(11);
+      // 验证表头：列顺序与前端教师信息列表一致
+      expect(headers.map((h) => h.label)).toEqual([
+        '教师姓名',
+        '性别',
+        '出生年月',
+        '教师资格类型',
+        '归属学院',
+        '人员类别',
+        '学科',
+        '任课学院',
+        '任课层次',
+        '自定义课时',
+        '状态',
+      ]);
       expect(headers[0]).toEqual(expect.objectContaining({ label: '教师姓名', required: true }));
       expect(res.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',

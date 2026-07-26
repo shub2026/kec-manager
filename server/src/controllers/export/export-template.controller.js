@@ -13,23 +13,24 @@ export async function downloadTemplate(req, res, next) {
 
     switch (type) {
       case 'classes':
+        // 列顺序与前端班级管理列表保持一致：名称→学院→专业→层次→年份→学制→人数→状态
         headers = [
           { label: '班级名称', key: 'name', width: 25, required: true },
+          { label: '二级学院', key: 'college', width: 20 },
+          { label: '专业类别', key: 'major', width: 20 },
+          { label: '培养层次', key: 'trainingLevel', width: 15, required: true },
           { label: '入学年份', key: 'year', width: 12, required: true },
           { label: '学制(年)', key: 'duration', width: 10, required: true },
-          { label: '专业类别', key: 'major', width: 20 },
-          { label: '二级学院', key: 'college', width: 20 },
-          { label: '培养层次', key: 'trainingLevel', width: 15, required: true },
           { label: '班级人数', key: 'count', width: 10 },
           { label: '状态', key: 'status', width: 10 },
         ];
         sample = {
           班级名称: '2024级学前1班',
+          二级学院: '教育学院',
+          专业类别: '学前教育',
+          培养层次: '大专',
           入学年份: 2024,
           '学制(年)': 3,
-          专业类别: '学前教育',
-          二级学院: '教育学院',
-          培养层次: '大专',
           班级人数: 45,
           状态: '在读',
         };
@@ -76,31 +77,32 @@ export async function downloadTemplate(req, res, next) {
         filename = '教材导入模板.xlsx';
         break;
       case 'teachers':
+        // 列顺序与前端教师信息列表保持一致：姓名→性别→出生年月→资格→归属学院→人员类别→学科→任课学院→任课层次→自定义课时→状态
         headers = [
           { label: '教师姓名', key: 'name', width: 15, required: true },
           { label: '性别', key: 'gender', width: 8 },
           { label: '出生年月', key: 'birth_date', width: 12 },
-          { label: '人员类别', key: 'personnel_type', width: 12, required: true },
-          { label: '状态', key: 'status', width: 8 },
           { label: '教师资格类型', key: 'qualification_type', width: 15 },
           { label: '归属学院', key: 'affiliated_college', width: 15 },
-          { label: '自定义课时', key: 'default_weekly_hours', width: 12 },
+          { label: '人员类别', key: 'personnel_type', width: 12, required: true },
           { label: '学科', key: 'courses', width: 25 },
           { label: '任课学院', key: 'colleges', width: 25 },
           { label: '任课层次', key: 'levels', width: 20 },
+          { label: '自定义课时', key: 'default_weekly_hours', width: 12 },
+          { label: '状态', key: 'status', width: 8 },
         ];
         sample = {
           教师姓名: '张三',
           性别: '男',
           出生年月: '1990-01',
-          人员类别: '专职',
-          状态: '启用',
           教师资格类型: '高中语文',
           归属学院: '教育学院',
-          自定义课时: 16,
+          人员类别: '专职',
           学科: '语文,数学',
           任课学院: '教育学院,艺术学院',
           任课层次: '大专,中专',
+          自定义课时: 16,
+          状态: '启用',
         };
         filename = '教师导入模板.xlsx';
         break;
