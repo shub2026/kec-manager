@@ -106,9 +106,7 @@ export const TEXTBOOK_COHESION = {
   TEXTBOOK_COUNT_PENALTY_2: 20, // 已有2本教材扣分（提高）
   TEXTBOOK_COUNT_PENALTY_3PLUS: 150, // 已有3+本教材惩戒（实质禁止）
   MAX_TEXTBOOKS_PER_TEACHER: 2, // 硬上限：教师最多同时教几本教材（0=不限制）
-  // 阶段链
-  COHESION_PHASE_ENABLED: true, // 是否启用 phase2.5 内聚优先阶段
-  PHASE0_ENABLED: false, // 关闭旧 Phase 0，改用教材分组优先
+  // F14 修复：移除 COHESION_PHASE_ENABLED / PHASE0_ENABLED（v2 重写后无生产代码引用）
   // 兜底推导
   FALLBACK_EMPTY: true, // true=无排课记录教师教材为空集合；false=保留全量并集兜底
   // 统计
@@ -125,6 +123,9 @@ export const TABU_SEARCH = {
   NO_IMPROVEMENT_LIMIT: 80, // 连续无改进轮数，达到后提前终止
   SINGLE_COURSE_TIMEOUT_MS: 15000, // 单课程超时上限（毫秒）
   UNASSIGNED_PENALTY: 500, // 每个未分配班级的惩罚分值
+  // F15 修复：目标函数增强——欠分配缺口惩罚与可复现随机种子
+  UNDER_ASSIGNMENT_PENALTY: 5, // 每单位欠分配课时的惩罚分值（α 系数）
+  RANDOM_SEED: 42, // 固定种子伪随机（保证同输入结果可复现；0=使用 Math.random）
 };
 
 // P0-1 修复：置换回溯递归深度限制

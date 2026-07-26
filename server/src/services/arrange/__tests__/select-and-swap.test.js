@@ -46,6 +46,17 @@ vi.mock('../../../constants/index.js', () => ({
     FALLBACK_EMPTY: true,
     SCATTERED_THRESHOLD: 3,
   },
+  TABU_SEARCH: {
+    ENABLED: false,
+    MAX_ITERATIONS: 500,
+    TABU_TENURE: 10,
+    NO_IMPROVEMENT_LIMIT: 80,
+    SINGLE_COURSE_TIMEOUT_MS: 15000,
+    UNASSIGNED_PENALTY: 500,
+    UNDER_ASSIGNMENT_PENALTY: 5,
+    RANDOM_SEED: 42,
+  },
+  SWAP_CONFIG: { MAX_DEPTH: 3, MAX_UNASSIGNED: 30 },
 }));
 
 vi.mock('../../lib/prisma.js', () => ({ prisma: {} }));

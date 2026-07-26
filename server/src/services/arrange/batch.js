@@ -5,6 +5,8 @@ import { autoArrange, batchLocks } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
 // B-01 修复：基于数据库的排课并发锁，支持多进程/多实例部署
 import { acquireLock, releaseLock } from './lock.js';
+// F7 修复：导入 parseSemester 用于供需测算的学期过滤
+import { parseSemester } from './queries.js';
 
 // M-13: 批量排课超时上限（5分钟）
 const BATCH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -74,9 +76,23 @@ export async function batchAutoArrange(
       courseTeacherMap.get(row.course_id).push(row.teacher_id);
     }
 
+    // F7 修复：需求测算过滤当前学期，避免跨学期 weekly_hours 求和导致优先级失真
+    const semesterInfo = parseSemester(semesterStr);
     const courseHourDemands = await prisma.plan_course_semesters.groupBy({
       by: ['plan_course_id'],
-      where: { plan_courses: { course_id: { in: courses.map((c) => c.id) } } },
+      where: {
+        plan_courses: {
+          course_id: { in: courses.map((c) => c.id) },
+          // 仅统计当前学期有效的课时记录（含 start/end 范围校验）
+          ...(semesterInfo
+            ? {
+                start_semester: { lte: semesterInfo.semester },
+                end_semester: { gte: semesterInfo.semester },
+              }
+            : {}),
+        },
+        ...(semesterInfo ? { semester: semesterInfo.semester } : {}),
+      },
       _sum: { weekly_hours: true },
     });
     const planCourseToCourse = await prisma.plan_courses.findMany({
@@ -133,9 +149,13 @@ export async function batchAutoArrange(
     let totalWarnings = 0;
     let timeoutReached = false;
 
+    // F1 修复：globalTextbookMap 预览与非预览均启用（Set.add 幂等，不产生双重计算），
+    // 保证批量内跨课程教材累计与预览路径行为完全一致。
+    // virtualTeacherHours 仍仅预览模式启用：非预览模式下 DB 在每门课程落库后已更新，
+    // getTeachersForCourse 的 totalWeeklyHours 已含前序课程课时，若再叠加会加法翻倍。
     const virtualTeacherHours = options.preview ? new Map() : null;
-    // S-13 修复：预览模式下跨课程累计教材负载
-    const globalTextbookMap = options.preview ? new Map() : null;
+    // S-13 + F1 修复：跨课程累计教材负载（预览与非预览均启用）
+    const globalTextbookMap = new Map();
 
     for (let idx = 0; idx < coursePriorities.length; idx++) {
       const { courseId, courseName } = coursePriorities[idx];
@@ -150,14 +170,13 @@ export async function batchAutoArrange(
 
       const courseStart = Date.now();
       // B-03 修复：预览模式下，单课程失败时回滚累积的虚拟工时和教材状态
+      // F1 修复：教材快照不再限于预览模式（globalTextbookMap 双模式启用）
       let snapshotTeacherHours = null;
       let snapshotTextbookMap = null;
       if (options.preview) {
         snapshotTeacherHours = virtualTeacherHours ? new Map(virtualTeacherHours) : null;
-        snapshotTextbookMap = globalTextbookMap
-          ? new Map([...globalTextbookMap].map(([k, v]) => [k, new Set(v)]))
-          : null;
       }
+      snapshotTextbookMap = new Map([...globalTextbookMap].map(([k, v]) => [k, new Set(v)]));
       try {
         // P0-2 深化：不出现在任何后续课程的教师免预留（预留对其无保护对象，纯属浪费）
         const reserveExemptTeacherIds = new Set(
@@ -187,14 +206,14 @@ export async function batchAutoArrange(
               (virtualTeacherHours.get(a.teacher_id) || 0) + a.weekly_hours
             );
           }
-          // S-13 修复：累计每位教师的教材 ID 集合
-          if (result.classTextbookMap) {
-            for (const a of result.assigned) {
-              if (!globalTextbookMap.has(a.teacher_id))
-                globalTextbookMap.set(a.teacher_id, new Set());
-              const tbs = result.classTextbookMap.get(a.class_id) || [];
-              for (const tid of tbs) globalTextbookMap.get(a.teacher_id).add(tid);
-            }
+        }
+        // S-13 + F1 修复：累计每位教师的教材 ID 集合（预览与非预览均执行）
+        if (result.classTextbookMap) {
+          for (const a of result.assigned) {
+            if (!globalTextbookMap.has(a.teacher_id))
+              globalTextbookMap.set(a.teacher_id, new Set());
+            const tbs = result.classTextbookMap.get(a.class_id) || [];
+            for (const tid of tbs) globalTextbookMap.get(a.teacher_id).add(tid);
           }
         }
         results.push({ courseId, courseName, ...result });
@@ -210,7 +229,8 @@ export async function batchAutoArrange(
           virtualTeacherHours.clear();
           for (const [k, v] of snapshotTeacherHours) virtualTeacherHours.set(k, v);
         }
-        if (options.preview && snapshotTextbookMap) {
+        // F1 修复：教材回滚不再限于预览模式
+        if (snapshotTextbookMap) {
           globalTextbookMap.clear();
           for (const [k, v] of snapshotTextbookMap) globalTextbookMap.set(k, new Set(v));
         }
@@ -249,16 +269,19 @@ export async function batchAutoArrange(
     // 对仍有未分配班级的课程按原优先级用全量容量（不预留）重排一次，
     // 避免"教师容量未满却欠分配"。重排容量只增不减，结果理论上不劣于主轮。
     const rebuildPreviewState = (excludeCourseId) => {
-      if (!options.preview) return;
-      virtualTeacherHours.clear();
+      // F1 修复：globalTextbookMap 双模式均需重建（补漏轮 autoArrange 依赖它做教材上限检查）
+      // virtualTeacherHours 仅预览模式重建（非预览 DB 已含前序课时）
+      if (options.preview && virtualTeacherHours) virtualTeacherHours.clear();
       globalTextbookMap.clear();
       for (const r of results) {
         if (r.error || r.courseId === excludeCourseId) continue;
         for (const a of r.assigned || []) {
-          virtualTeacherHours.set(
-            a.teacher_id,
-            (virtualTeacherHours.get(a.teacher_id) || 0) + a.weekly_hours
-          );
+          if (options.preview && virtualTeacherHours) {
+            virtualTeacherHours.set(
+              a.teacher_id,
+              (virtualTeacherHours.get(a.teacher_id) || 0) + a.weekly_hours
+            );
+          }
           if (r.classTextbookMap) {
             if (!globalTextbookMap.has(a.teacher_id))
               globalTextbookMap.set(a.teacher_id, new Set());
@@ -283,6 +306,33 @@ export async function batchAutoArrange(
         // 预览模式：先从累计状态中扣除本课程主轮贡献，避免自身课时被重复计入
         rebuildPreviewState(courseId);
         try {
+          // F8 修复：非预览补漏轮先跑一次 preview 评估，仅当不劣于主轮才执行真实重排。
+          // 成本为多一次内存计算，换来"补漏只增不减"的落库保证。
+          if (!options.preview) {
+            const previewRefill = await autoArrange(
+              courseId,
+              semesterStr,
+              mode,
+              hourSettings,
+              scheduleConditions,
+              {
+                ...options,
+                preview: true,
+                extraTeacherHours: virtualTeacherHours,
+                globalTextbookMap,
+                capacityReserveRatio: 1.0,
+                skipBatchLockCheck: true,
+              }
+            );
+            if (previewRefill.autoCount < prev.autoCount) {
+              logger.warn(
+                `[批量排课][补漏轮] 课程 ${courseId}(${courseName}) 预览回退 ${prev.autoCount} → ${previewRefill.autoCount}，跳过非预览重排`
+              );
+              rebuildPreviewState(null);
+              continue;
+            }
+          }
+
           const refill = await autoArrange(
             courseId,
             semesterStr,
@@ -303,7 +353,7 @@ export async function batchAutoArrange(
               `[批量排课][补漏轮] 课程 ${courseId}(${courseName}) 重排回退：${prev.autoCount} → ${refill.autoCount}`
             );
             if (options.preview) {
-              // 预览未落库，保留更优的主轮结果；非预览已写库，如实采纳重排结果
+              // 预览未落库，保留更优的主轮结果
               rebuildPreviewState(null);
               continue;
             }

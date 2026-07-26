@@ -15,6 +15,21 @@ import { TEXTBOOK_COHESION, TABU_SEARCH } from '../../constants/index.js';
 import { calcMatchScore } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
 
+// F15 修复：固定种子伪随机数生成器（mulberry32），保证同输入结果可复现
+// 原 Math.random() 导致开启禁忌搜索后排课结果不可复现，不利于调试和 A/B 对比
+function mulberry32(seed) {
+  let s = seed | 0;
+  return function () {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// 模块级随机函数：seed > 0 时使用固定种子，seed = 0 时退化为 Math.random
+const _random = TABU_SEARCH.RANDOM_SEED > 0 ? mulberry32(TABU_SEARCH.RANDOM_SEED) : Math.random;
+
 // ── 教材引用计数管理 ──
 
 function addTextbookRef(refCountMap, assignedSet, tid) {
@@ -264,13 +279,13 @@ function findBestMove(
   const maxSwapChecks = Math.min(totalAssignments, 50);
 
   for (let a = 0; a < maxSwapChecks; a++) {
-    const i = Math.floor(Math.random() * totalAssignments);
+    const i = Math.floor(_random() * totalAssignments);
     const [classIdA, teacherIdA] = assignmentEntries[i];
     const clsA = classMap.get(classIdA);
     if (!clsA || !clsA.weeklyHours || clsA.weeklyHours <= 0) continue;
 
     for (let b = 0; b < maxSwapChecks; b++) {
-      const j = Math.floor(Math.random() * totalAssignments);
+      const j = Math.floor(_random() * totalAssignments);
       if (i === j) continue;
       const [classIdB, teacherIdB] = assignmentEntries[j];
       if (teacherIdA === teacherIdB) continue;
@@ -470,6 +485,17 @@ function computeObjective(
   }
   // 未分配惩罚
   score -= unassignedSet.size * TABU_SEARCH.UNASSIGNED_PENALTY;
+  // F15 修复：欠分配缺口惩罚——教师课时未达标准容量时扣分，
+  // 使搜索主动将班级分配给欠分配教师（而非只关注评分最大化）
+  const alpha = TABU_SEARCH.UNDER_ASSIGNMENT_PENALTY || 0;
+  if (alpha > 0) {
+    for (const t of teacherConstraints) {
+      const state = teacherStates.get(t.id);
+      if (!state) continue;
+      const gap = Math.max(0, t.standardCap - state.assignedHours);
+      score -= alpha * gap;
+    }
+  }
   return score;
 }
 

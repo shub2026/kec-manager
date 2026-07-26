@@ -297,9 +297,11 @@ describe('batchAutoArrange', () => {
       autoArrangeFn
         .mockResolvedValueOnce(makeResult({ autoCount: 5, unassignedCount: 1, warnings: ['W1'] }))
         .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 2 }))
-        // 补漏轮：两门课均有未分配，会各重排一次（此处返回与主轮相同，汇总不变）
-        .mockResolvedValueOnce(makeResult({ autoCount: 5, unassignedCount: 1, warnings: ['W1'] }))
-        .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 2 }));
+        // F8：非预览补漏轮先跑 preview 评估，再跑真实重排（每门课各多一次调用）
+        .mockResolvedValueOnce(makeResult({ autoCount: 5, unassignedCount: 1, warnings: ['W1'] })) // 课程1 preview
+        .mockResolvedValueOnce(makeResult({ autoCount: 5, unassignedCount: 1, warnings: ['W1'] })) // 课程1 重排
+        .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 2 })) // 课程2 preview
+        .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 2 })); // 课程2 重排
 
       const r = await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
       expect(r.summary.totalCourses).toBe(2);
@@ -609,12 +611,15 @@ describe('batchAutoArrange', () => {
       setupTeacherCourses([[101, 1]]);
       autoArrangeFn
         .mockResolvedValueOnce(makeResult({ autoCount: 1, unassignedCount: 2 })) // 主轮
+        .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 0 })) // F8 preview 评估
         .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 0 })); // 补漏轮
 
       const r = await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
-      expect(autoArrangeFn).toHaveBeenCalledTimes(2);
+      expect(autoArrangeFn).toHaveBeenCalledTimes(3);
       expect(autoArrangeFn.mock.calls[0][5].capacityReserveRatio).toBe(0.85);
       expect(autoArrangeFn.mock.calls[1][5].capacityReserveRatio).toBe(1.0);
+      expect(autoArrangeFn.mock.calls[1][5].preview).toBe(true); // F8 preview 评估
+      expect(autoArrangeFn.mock.calls[2][5].capacityReserveRatio).toBe(1.0);
       expect(r.summary.totalAssigned).toBe(3);
       expect(r.summary.totalUnassigned).toBe(0);
       expect(r.courseResults[0].autoCount).toBe(3);

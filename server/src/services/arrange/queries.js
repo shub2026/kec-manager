@@ -455,7 +455,11 @@ export async function getTeachersForCourse(courseId, semesterStr) {
       textbookIds: [...inherentTextbookIds],
       inherentTextbookIds,
       assignedTextbooks,
-      assignedTextbookIds: new Set(),
+      // F1 修复：以 DB 已落库安排（assignedOnlyTextbookMap）作为种子，
+      // 使 H4 教材硬上限从排课开始即计入跨课程教材，对齐全学期累计口径。
+      // 预览批量模式下 globalTextbookMap 会在 autoArrange 内覆盖此值（含前序课程虚拟累计）；
+      // 非预览批量模式下 DB 已在每门课程落库后更新，种子天然生效。
+      assignedTextbookIds: new Set(assignedOnlyTextbookMap.get(t.id) || []),
       assignedCollegeIds: new Set(),
       totalWeeklyHours: workloadMap.get(t.id) || 0,
       totalClassCount: classCountMap.get(t.id) || 0,
