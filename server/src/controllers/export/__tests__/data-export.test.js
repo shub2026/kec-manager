@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   trainingPlansFindMany: vi.fn().mockResolvedValue([]),
   teachingAssignmentsGroupBy: vi.fn().mockResolvedValue([]),
   teachingAssignmentsFindMany: vi.fn().mockResolvedValue([]),
+  planCoursesFindMany: vi.fn().mockResolvedValue([]),
   coursesFindUnique: vi.fn().mockResolvedValue(null),
   // services
   createAuditLog: vi.fn().mockResolvedValue(undefined),
@@ -32,6 +33,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentSemesterInfo: vi.fn().mockResolvedValue(null),
   getActiveClassFilter: vi.fn().mockResolvedValue({ is_left_school: false }),
   calcClassSemester: vi.fn().mockReturnValue(null),
+  parseSemester: vi.fn().mockReturnValue(null),
   buildConsecutiveTextbookMap: vi.fn().mockResolvedValue(new Map()),
   isClassMatchPlan: vi.fn().mockReturnValue(false),
   findBestMatchPlan: vi.fn().mockReturnValue(null),
@@ -74,6 +76,9 @@ vi.mock('../../../lib/prisma.js', () => ({
       groupBy: mocks.teachingAssignmentsGroupBy,
       findMany: mocks.teachingAssignmentsFindMany,
     },
+    plan_courses: {
+      findMany: mocks.planCoursesFindMany,
+    },
   },
 }));
 
@@ -93,6 +98,7 @@ vi.mock('../../../services/class.service.js', () => ({
 vi.mock('../../../services/semester.service.js', () => ({
   calcClassSemester: mocks.calcClassSemester,
   buildConsecutiveTextbookMap: mocks.buildConsecutiveTextbookMap,
+  parseSemester: mocks.parseSemester,
 }));
 
 vi.mock('../../../services/plan.service.js', () => ({
@@ -646,10 +652,13 @@ describe('exportStatistics', () => {
     expect(rows[0]['人员类别']).toBe('专职');
     expect(rows[0]['总周课时']).toBe(12);
     expect(rows[0]['班级数']).toBe(3);
+    // 教材解析 mock 为空 → 教材数 0；合计行不汇总教材数
+    expect(rows[0]['教材数']).toBe(0);
     // 合计行
     expect(rows[1]['姓名']).toBe('合计');
     expect(rows[1]['总周课时']).toBe(12);
     expect(rows[1]['班级数']).toBe(3);
+    expect(rows[1]['教材数']).toBe('');
     expect(rows[1]['课程明细']).toBe('1位教师');
     expect(res.send).toHaveBeenCalled();
   });
@@ -698,6 +707,7 @@ describe('exportStatistics', () => {
       '任教科目',
       '任课层次',
       '任课学院',
+      '教材数',
       '班级数',
       '总周课时',
       '课程明细',

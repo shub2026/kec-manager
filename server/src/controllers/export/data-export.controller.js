@@ -7,7 +7,11 @@ import {
 } from '../../services/settings.service.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getActiveClassFilter } from '../../services/class.service.js';
-import { calcClassSemester, buildConsecutiveTextbookMap } from '../../services/semester.service.js';
+import {
+  calcClassSemester,
+  buildConsecutiveTextbookMap,
+  parseSemester,
+} from '../../services/semester.service.js';
 import { isClassMatchPlan, findBestMatchPlan } from '../../services/plan.service.js';
 import { buildClassFilter } from '../../services/class-filter.service.js';
 import { getClassesWithCourse } from '../../services/teaching-arrange.service.js';
@@ -15,7 +19,11 @@ import {
   buildCombinationMemberMap,
   formatPartnerNames,
 } from '../../services/class-combination.service.js';
-import { dedupeTeachingUnits, isCombinedUnit } from '../../services/teaching-statistics.service.js';
+import {
+  dedupeTeachingUnits,
+  isCombinedUnit,
+  resolveClassCourseTextbooks,
+} from '../../services/teaching-statistics.service.js';
 
 /**
  * 分批查询防止 OOM：每批 500 条用 skip/take 分页累积到数组
@@ -645,14 +653,21 @@ export async function exportStatistics(req, res, next) {
     });
     const teacherMap = new Map(teachers.map((t) => [t.id, t]));
 
-    // 获取每个教师的安排明细（含班级学院信息，用于推导任课学院；分批加载防止 OOM）
+    // 获取每个教师的安排明细（含班级学院与方案匹配字段，用于推导任课学院/解析教材；分批加载防止 OOM）
     const allAssignments = await batchFindMany(prisma.teaching_assignments, {
       where: { semester, teacher_id: { in: teacherIds } },
       include: {
         class: {
           select: {
+            id: true,
             name: true,
             combination_id: true,
+            college_id: true,
+            major_id: true,
+            training_level_id: true,
+            custom_plan_id: true,
+            enrollment_year: true,
+            duration_years: true,
             colleges: { select: { id: true, name: true } },
             training_levels: { select: { name: true } },
           },
@@ -664,6 +679,13 @@ export async function exportStatistics(req, res, next) {
 
     // 合班去重：将成员班行归并为逻辑教学单元，避免课时/班级数虚高
     const allUnits = dedupeTeachingUnits(allAssignments);
+
+    // 教材解析：与课时统计页 getStatistics 同一共享链路，用于"教材数"列
+    const semesterInfo = parseSemester(semester);
+    const { idsMap: classCourseTextbookMap } = await resolveClassCourseTextbooks(
+      allAssignments,
+      semesterInfo
+    );
 
     const unitsByTeacher = new Map();
     for (const u of allUnits) {
@@ -681,9 +703,17 @@ export async function exportStatistics(req, res, next) {
 
       // 按课程分组（合班单元课时仅计 1 次）
       const byCourse = new Map();
+      // 教材去重统计：合班取代表班，与前端"教材数"列口径一致
+      const textbookIdSet = new Set();
       for (const u of units) {
         totalHours += u.weeklyHours;
         classCount += 1; // 合班=1 个逻辑教学班；非合班=1 个班级
+
+        const unitTextbookIds =
+          classCourseTextbookMap.get(
+            `${u.representative.class_id}:${u.representative.course_id}`
+          ) || [];
+        for (const tid of unitTextbookIds) textbookIdSet.add(tid);
 
         const courseName = u.representative.course.name;
         if (!byCourse.has(u.representative.course_id)) {
@@ -728,6 +758,7 @@ export async function exportStatistics(req, res, next) {
         任教科目: teacher?.courses.map((tc) => tc.course.name).join('、') || '-',
         任课层次: trainingLevels,
         任课学院: teachingColleges,
+        教材数: textbookIdSet.size,
         班级数: classCount,
         总周课时: totalHours,
         课程明细: courseDetail || '-',
@@ -748,6 +779,7 @@ export async function exportStatistics(req, res, next) {
       归属学院: '',
       任课层次: '',
       任课学院: '',
+      教材数: '',
       班级数: totalClasses,
       总周课时: totalWeeklyHours,
       课程明细: `${totalTeachers}位教师`,
@@ -760,6 +792,7 @@ export async function exportStatistics(req, res, next) {
       { label: '任教科目', key: '任教科目', width: 25 },
       { label: '任课层次', key: '任课层次', width: 15 },
       { label: '任课学院', key: '任课学院', width: 25 },
+      { label: '教材数', key: '教材数', width: 10 },
       { label: '班级数', key: '班级数', width: 10 },
       { label: '总周课时', key: '总周课时', width: 10 },
       { label: '课程明细', key: '课程明细', width: 50 },

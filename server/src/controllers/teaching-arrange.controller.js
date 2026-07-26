@@ -13,7 +13,11 @@ import {
   validateHourSettings,
 } from '../services/teaching-arrange.service.js';
 import { calcClassSemester } from '../services/semester.service.js';
-import { dedupeTeachingUnits, isCombinedUnit } from '../services/teaching-statistics.service.js';
+import {
+  dedupeTeachingUnits,
+  isCombinedUnit,
+  resolveClassCourseTextbooks,
+} from '../services/teaching-statistics.service.js';
 import { initSSE, sendSSEEvent, isSSERequest } from '../utils/sse.js';
 import {
   buildCombinationMemberMap,
@@ -689,93 +693,10 @@ export async function getStatistics(req, res, next) {
       globalLevelMap = new Map(allLevels.map((l) => [l.id, l]));
     }
 
-    // 教材解析：批量查询培养方案教材，避免 N+1
+    // 教材解析：批量查询培养方案教材（共享函数，与课时统计导出同一链路，避免 N+1）
     const semesterInfo = parseSemester(semester);
-    const uniqueCourseIds = [...new Set(rawAssignments.map((a) => a.course_id))];
-
-    // 一次查询：所有相关 plan_courses + 方案 + 学期 + 教材
-    const allPlanCourses = await prisma.plan_courses.findMany({
-      where: { course_id: { in: uniqueCourseIds } },
-      include: {
-        training_plans: { select: { id: true, major_id: true, training_level_id: true } },
-        plan_course_semesters: {
-          include: {
-            plan_textbooks: { select: { textbook_id: true } },
-          },
-        },
-      },
-      orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
-    });
-
-    const planCoursesByCourse = new Map();
-    for (const pc of allPlanCourses) {
-      if (!planCoursesByCourse.has(pc.course_id)) {
-        planCoursesByCourse.set(pc.course_id, []);
-      }
-      planCoursesByCourse.get(pc.course_id).push(pc);
-    }
-
-    // 按 (class_id, course_id) 对匹配教材（覆盖所有成员班行）
-    const classInfoMap = new Map(rawAssignments.map((a) => [a.class.id, a.class]));
-    const classCourseTextbookMap = new Map();
-    const allTextbookIds = new Set();
-
-    for (const a of rawAssignments) {
-      const key = `${a.class_id}:${a.course_id}`;
-      if (classCourseTextbookMap.has(key)) continue;
-
-      const cls = classInfoMap.get(a.class_id);
-      if (!cls) {
-        classCourseTextbookMap.set(key, []);
-        continue;
-      }
-
-      const pcs = planCoursesByCourse.get(a.course_id) || [];
-      if (!pcs.length) {
-        classCourseTextbookMap.set(key, []);
-        continue;
-      }
-
-      const candidatePlans = pcs.map((pc) => pc.training_plans).filter(Boolean);
-      const bestPlan = findBestMatchPlan(cls, candidatePlans);
-      if (!bestPlan) {
-        classCourseTextbookMap.set(key, []);
-        continue;
-      }
-
-      const semCalc = calcClassSemester(cls, semesterInfo);
-      if (!semCalc) {
-        classCourseTextbookMap.set(key, []);
-        continue;
-      }
-
-      const textbookIds = new Set();
-      for (const pc of pcs) {
-        if (pc.training_plans.id !== bestPlan.id) continue;
-        for (const sem of pc.plan_course_semesters) {
-          if (sem.semester !== semCalc.currentSemesterNum) continue;
-          for (const pt of sem.plan_textbooks) {
-            textbookIds.add(pt.textbook_id);
-          }
-        }
-      }
-
-      const ids = [...textbookIds];
-      ids.forEach((id) => allTextbookIds.add(id));
-      classCourseTextbookMap.set(key, ids);
-    }
-
-    // 批量查教材标题
-    const textbookTitleMap = new Map();
-    if (allTextbookIds.size > 0) {
-      const textbookRows = await prisma.textbooks.findMany({
-        where: { id: { in: [...allTextbookIds] } },
-        select: { id: true, title: true },
-      });
-      for (const t of textbookRows) {
-        textbookTitleMap.set(t.id, t.title);
-      }
-    }
+    const { idsMap: classCourseTextbookMap, titleMap: textbookTitleMap } =
+      await resolveClassCourseTextbooks(rawAssignments, semesterInfo);
 
     // 将 textbookId 列表转为可读名称字符串
     const classCourseTextbookNameMap = new Map();
@@ -817,9 +738,17 @@ export async function getStatistics(req, res, next) {
       const byCourse = new Map();
       let totalWeeklyHours = 0;
       let totalClassCount = 0;
+      // 教材去重统计：汇总该教师所有教学单元解析出的教材（合班取代表班，与"当前教材"列口径一致）
+      const textbookIdSet = new Set();
       for (const u of units) {
         totalWeeklyHours += u.weeklyHours;
         totalClassCount += 1; // 合班=1 个逻辑教学班；非合班=1 个班级
+
+        const unitTextbookIds =
+          classCourseTextbookMap.get(
+            `${u.representative.class_id}:${u.representative.course_id}`
+          ) || [];
+        for (const tid of unitTextbookIds) textbookIdSet.add(tid);
 
         if (!byCourse.has(u.representative.course_id)) {
           byCourse.set(u.representative.course_id, {
@@ -864,6 +793,8 @@ export async function getStatistics(req, res, next) {
         courseList: teacher?.courses?.map((tc) => tc.course) ?? [],
         totalWeeklyHours,
         totalClassCount,
+        textbookCount: textbookIdSet.size,
+        textbookNames: [...textbookIdSet].map((id) => textbookTitleMap.get(id)).filter(Boolean),
         details: Array.from(byCourse.values()),
       };
     });

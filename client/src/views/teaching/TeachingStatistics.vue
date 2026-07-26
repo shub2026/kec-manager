@@ -224,6 +224,18 @@
               <span v-if="!row.collegeList?.length" class="text-muted">-</span>
             </template>
           </el-table-column>
+          <el-table-column label="教材数" width="90" align="center">
+            <template #default="{ row }">
+              <el-tooltip
+                v-if="row.textbookNames?.length"
+                :content="row.textbookNames.join('、')"
+                placement="top"
+              >
+                <span class="textbook-count">{{ row.textbookCount }}</span>
+              </el-tooltip>
+              <span v-else>{{ row.textbookCount || 0 }}</span>
+            </template>
+          </el-table-column>
           <el-table-column label="班级数" width="100" align="center">
             <template #default="{ row }">
               <span>{{ row.totalClassCount }}</span>
@@ -501,6 +513,9 @@ onMounted(async () => {
 .combined-tag {
   margin-left: var(--space-1);
   vertical-align: middle;
+  cursor: default;
+}
+.textbook-count {
   cursor: default;
 }
 /* 标签密集列允许换行，避免学院/科目名称被单元格 nowrap 裁切 */

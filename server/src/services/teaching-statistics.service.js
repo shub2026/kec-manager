@@ -1,3 +1,7 @@
+import { prisma } from '../lib/prisma.js';
+import { findBestMatchPlan } from './plan.service.js';
+import { calcClassSemester } from './semester.service.js';
+
 /**
  * 课时统计合班去重工具
  *
@@ -57,4 +61,111 @@ export function dedupeTeachingUnits(assignments) {
  */
 export function isCombinedUnit(unit) {
   return unit.memberClassIds.length > 1;
+}
+
+/**
+ * 批量解析“班级 × 课程”当前学期使用的教材（培养方案 → 学期匹配 → plan_textbooks）
+ *
+ * 自 getStatistics 内联逻辑提取，供课时统计接口与课时统计导出共用，
+ * 避免两处各自维护同一套“最佳方案匹配 + 学期换算”链路。
+ *
+ * @param {Array<Object>} rawAssignments 教学安排行，每行需含 class_id、course_id 及
+ *   class 对象（含方案匹配字段 major_id / training_level_id / custom_plan_id /
+ *   enrollment_year / duration_years 等，供 findBestMatchPlan 与 calcClassSemester 使用）
+ * @param {Object} semesterInfo 调用方 parseSemester(semester) 的解析结果
+ * @returns {Promise<{idsMap: Map<string, number[]>, titleMap: Map<number, string>}>}
+ *   idsMap 键为 `${classId}:${courseId}`，值为教材 ID 数组；titleMap 为教材 ID → 标题
+ */
+export async function resolveClassCourseTextbooks(rawAssignments, semesterInfo) {
+  const idsMap = new Map();
+  const titleMap = new Map();
+
+  const uniqueCourseIds = [...new Set(rawAssignments.map((a) => a.course_id))];
+  if (uniqueCourseIds.length === 0 || !semesterInfo) {
+    return { idsMap, titleMap };
+  }
+
+  // 一次查询：所有相关 plan_courses + 方案 + 学期 + 教材（避免 N+1）
+  const allPlanCourses = await prisma.plan_courses.findMany({
+    where: { course_id: { in: uniqueCourseIds } },
+    include: {
+      training_plans: { select: { id: true, major_id: true, training_level_id: true } },
+      plan_course_semesters: {
+        include: {
+          plan_textbooks: { select: { textbook_id: true } },
+        },
+      },
+    },
+    orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
+  });
+
+  const planCoursesByCourse = new Map();
+  for (const pc of allPlanCourses) {
+    if (!planCoursesByCourse.has(pc.course_id)) {
+      planCoursesByCourse.set(pc.course_id, []);
+    }
+    planCoursesByCourse.get(pc.course_id).push(pc);
+  }
+
+  // 按 (class_id, course_id) 对匹配教材（覆盖所有成员班行）
+  const classInfoMap = new Map(rawAssignments.map((a) => [a.class.id, a.class]));
+  const allTextbookIds = new Set();
+
+  for (const a of rawAssignments) {
+    const key = `${a.class_id}:${a.course_id}`;
+    if (idsMap.has(key)) continue;
+
+    const cls = classInfoMap.get(a.class_id);
+    if (!cls) {
+      idsMap.set(key, []);
+      continue;
+    }
+
+    const pcs = planCoursesByCourse.get(a.course_id) || [];
+    if (!pcs.length) {
+      idsMap.set(key, []);
+      continue;
+    }
+
+    const candidatePlans = pcs.map((pc) => pc.training_plans).filter(Boolean);
+    const bestPlan = findBestMatchPlan(cls, candidatePlans);
+    if (!bestPlan) {
+      idsMap.set(key, []);
+      continue;
+    }
+
+    const semCalc = calcClassSemester(cls, semesterInfo);
+    if (!semCalc) {
+      idsMap.set(key, []);
+      continue;
+    }
+
+    const textbookIds = new Set();
+    for (const pc of pcs) {
+      if (pc.training_plans.id !== bestPlan.id) continue;
+      for (const sem of pc.plan_course_semesters) {
+        if (sem.semester !== semCalc.currentSemesterNum) continue;
+        for (const pt of sem.plan_textbooks) {
+          textbookIds.add(pt.textbook_id);
+        }
+      }
+    }
+
+    const ids = [...textbookIds];
+    ids.forEach((id) => allTextbookIds.add(id));
+    idsMap.set(key, ids);
+  }
+
+  // 批量查教材标题
+  if (allTextbookIds.size > 0) {
+    const textbookRows = await prisma.textbooks.findMany({
+      where: { id: { in: [...allTextbookIds] } },
+      select: { id: true, title: true },
+    });
+    for (const t of textbookRows) {
+      titleMap.set(t.id, t.title);
+    }
+  }
+
+  return { idsMap, titleMap };
 }
