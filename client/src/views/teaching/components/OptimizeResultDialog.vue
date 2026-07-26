@@ -48,8 +48,11 @@
             <el-icon class="arrow-icon"><ArrowRight /></el-icon>
             <span class="value-after">{{ result.after?.score || 0 }}</span>
           </div>
-          <div class="improvement-delta" :class="result.improvements?.scoreImprovement > 0 ? 'is-positive' : 'is-negative'">
-            {{ result.improvements?.scoreImprovement > 0 ? '↓' : '↑' }}
+          <div
+            class="improvement-delta"
+            :class="result.improvements?.scoreImprovement > 0 ? 'is-positive' : 'is-negative'"
+          >
+            {{ result.improvements?.scoreImprovement > 0 ? '↑' : '↓' }}
             {{ Math.abs(result.improvements?.scoreImprovement || 0).toFixed(1) }}%
           </div>
         </div>
@@ -61,7 +64,12 @@
             <el-icon class="arrow-icon"><ArrowRight /></el-icon>
             <span class="value-after">{{ (result.after?.loadVariance || 0).toFixed(4) }}</span>
           </div>
-          <div class="improvement-delta" :class="result.improvements?.loadVarianceImprovement > 0 ? 'is-positive' : 'is-negative'">
+          <div
+            class="improvement-delta"
+            :class="
+              result.improvements?.loadVarianceImprovement > 0 ? 'is-positive' : 'is-negative'
+            "
+          >
             {{ result.improvements?.loadVarianceImprovement > 0 ? '↓' : '↑' }}
             {{ Math.abs(result.improvements?.loadVarianceImprovement || 0).toFixed(1) }}%
           </div>
@@ -70,11 +78,18 @@
         <div class="improvement-item">
           <div class="improvement-label">教材内聚度</div>
           <div class="improvement-values">
-            <span class="value-before">{{ (result.before?.cohesionScore || 0).toFixed(2) }}</span>
+            <span class="value-before">{{
+              (result.before?.textbookCohesionRate || 0).toFixed(2)
+            }}</span>
             <el-icon class="arrow-icon"><ArrowRight /></el-icon>
-            <span class="value-after">{{ (result.after?.cohesionScore || 0).toFixed(2) }}</span>
+            <span class="value-after">{{
+              (result.after?.textbookCohesionRate || 0).toFixed(2)
+            }}</span>
           </div>
-          <div class="improvement-delta" :class="result.improvements?.cohesionImprovement > 0 ? 'is-positive' : 'is-negative'">
+          <div
+            class="improvement-delta"
+            :class="result.improvements?.cohesionImprovement > 0 ? 'is-positive' : 'is-negative'"
+          >
             {{ result.improvements?.cohesionImprovement > 0 ? '↑' : '↓' }}
             {{ Math.abs(result.improvements?.cohesionImprovement || 0).toFixed(1) }}%
           </div>
@@ -106,9 +121,9 @@
           <div class="change-content">
             <div class="change-class">{{ change.className }}</div>
             <div class="change-teachers">
-              <span class="teacher-from">{{ change.fromTeacherName }}</span>
+              <span class="teacher-from">{{ change.fromTeacher?.name }}</span>
               <el-icon class="change-arrow"><Right /></el-icon>
-              <span class="teacher-to">{{ change.toTeacherName }}</span>
+              <span class="teacher-to">{{ change.toTeacher?.name }}</span>
             </div>
           </div>
         </div>

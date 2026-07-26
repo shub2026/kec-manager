@@ -1198,10 +1198,10 @@ export async function applyOptimizeResult(req, res, next) {
       details: {
         semester,
         changesCount: changes.length,
-        improvedCourses: result.improvedCourses,
+        appliedChanges: result.appliedChanges,
       },
       result: 'success',
-      message: `应用排课优化：${result.improvedCourses}门课程，变更${changes.length}个班级`,
+      message: `应用排课优化：变更${result.appliedChanges}个班级`,
     });
 
     success(res, result, `优化已应用：变更${changes.length}个班级`);

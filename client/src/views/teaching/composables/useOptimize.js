@@ -8,6 +8,11 @@ import {
 /**
  * 排课优化逻辑 composable
  * 封装排课优化的状态管理和进度控制
+ *
+ * 进度反馈说明：
+ * 排课优化走 SSE 推送进度，但弹窗体系（ArrangeProgressDialog）字段为排课设计，
+ * 优化阶段不产生 processed/total 等批量进度数据。为避免误导，优化期间仅通过
+ * 按钮文字展示 progressMessage，不弹出统一进度弹窗。
  */
 export function useOptimize({ selectedSemester, loadData, confirmHistoricalEdit }) {
   const optimizing = ref(false);
@@ -15,19 +20,8 @@ export function useOptimize({ selectedSemester, loadData, confirmHistoricalEdit 
   const optimizeResultVisible = ref(false);
   const optimizeResult = ref(null);
 
-  // 进度状态
-  const progressVisible = ref(false);
+  // 进度消息（用于按钮文字展示，统一进度弹窗不接入）
   const progressMessage = ref('');
-  const progressPercent = ref(0);
-  const progressPhase = ref('');
-  const progressFinished = ref(false);
-
-  function resetProgress() {
-    progressMessage.value = '';
-    progressPercent.value = 0;
-    progressPhase.value = '';
-    progressFinished.value = false;
-  }
 
   function handleOptimize() {
     optimizeConfirmVisible.value = true;
@@ -37,8 +31,7 @@ export function useOptimize({ selectedSemester, loadData, confirmHistoricalEdit 
     if (!(await confirmHistoricalEdit())) return;
 
     optimizing.value = true;
-    resetProgress();
-    progressVisible.value = true;
+    progressMessage.value = '';
 
     try {
       const result = await runOptimizeScheduleWithProgress(
@@ -47,13 +40,9 @@ export function useOptimize({ selectedSemester, loadData, confirmHistoricalEdit 
           mode: 'standard',
         },
         (progress) => {
-          progressPhase.value = progress.phase || '';
           progressMessage.value = progress.message || '';
-          progressPercent.value = progress.percent || 0;
         }
       );
-
-      progressFinished.value = true;
 
       if (result.success && result.data) {
         optimizeResult.value = result.data;
@@ -68,7 +57,7 @@ export function useOptimize({ selectedSemester, loadData, confirmHistoricalEdit 
       }
     } finally {
       optimizing.value = false;
-      progressVisible.value = false;
+      progressMessage.value = '';
     }
   }
 
@@ -116,11 +105,7 @@ export function useOptimize({ selectedSemester, loadData, confirmHistoricalEdit 
     optimizeConfirmVisible,
     optimizeResultVisible,
     optimizeResult,
-    progressVisible,
     progressMessage,
-    progressPercent,
-    progressPhase,
-    progressFinished,
     handleOptimize,
     doOptimize,
     applyOptimizeResult,

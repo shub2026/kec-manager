@@ -35,7 +35,7 @@ vi.mock('../auto-arrange.js', () => ({
   calcMatchScore: vi.fn(() => 10),
 }));
 
-vi.mock('../../../middleware/audit.middleware.js', () => ({
+vi.mock('../../../services/audit.service.js', () => ({
   createAuditLog: vi.fn(),
 }));
 
@@ -94,6 +94,23 @@ function mockClass(id, courseId, overrides = {}) {
 describe('Optimize Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  // 回归 BUG 1：optimize.js 不能从 audit.middleware.js 导入不存在的 createAuditLog
+  // （ESM 模块加载期 SyntaxError 会让整个服务模块完全无法加载，两个优化端点 100% 失败）
+  it('should load the module without import errors (createAuditLog source)', async () => {
+    let loaded = false;
+    let err = null;
+    try {
+      // 不带 vi.mock 的真实导入路径——vi.mock 已在文件顶部全局生效，
+      // 这里仅验证“被 mock 后能解析到 createAuditLog 导出”，避免源码指向错误模块
+      const mod = await import('../optimize.js');
+      loaded = !!mod.runOptimizeSchedule;
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeNull();
+    expect(loaded).toBe(true);
   });
 
   describe('runOptimizeSchedule', () => {
@@ -252,7 +269,7 @@ describe('Optimize Service', () => {
   describe('applyOptimizeResult', () => {
     it('should apply changes and create audit log', async () => {
       const { prisma } = await import('../../../lib/prisma.js');
-      const { createAuditLog } = await import('../../../middleware/audit.middleware.js');
+      const { createAuditLog } = await import('../../../services/audit.service.js');
 
       const changes = [
         {
@@ -387,6 +404,49 @@ describe('Optimize Service', () => {
 
       expect(result.meetsThreshold).toBe(false);
       expect(result.changes.length).toBeLessThan(3);
+    });
+
+    // 回归 BUG 3：changesCount 应基于真实变更班级数，而非迭代次数
+    it('should set after.changesCount to real change count, not iterations', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+
+      const mockAssignments = [
+        mockAssignment(1, 1, 1),
+        mockAssignment(2, 1, 1),
+      ];
+
+      prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'Teacher 1'),
+        mockTeacher(2, 'Teacher 2'),
+      ]);
+      prisma.course_classes.findMany.mockResolvedValue([mockClass(1, 1), mockClass(2, 1)]);
+
+      // 仅变更 1 个班级，但迭代 100 次——若用 iterations 冒充 changesCount 会误判达阈值
+      tabuOptimize.mockImplementation((assignments) => {
+        if (assignments[0]) assignments[0].teacher_id = 2;
+        return {
+          improved: true,
+          iterations: 100,
+          scoreBefore: 30,
+          scoreAfter: 40,
+          delta: 10,
+          elapsed: 50,
+        };
+      });
+
+      const result = await runOptimizeSchedule(1, 'standard');
+
+      expect(result.changes.length).toBe(1);
+      expect(result.after.changesCount).toBe(1);
+      expect(result.meetsThreshold).toBe(false); // changes < 3
+
+      // 回归 BUG 4：changes 应携带 className 以便前端展示
+      expect(result.changes[0].className).toBeDefined();
+      expect(result.changes[0].className).toBe('Class 1');
+      expect(result.changes[0].fromTeacher.name).toBe('Teacher 1');
+      expect(result.changes[0].toTeacher.name).toBe('Teacher 2');
     });
   });
 });

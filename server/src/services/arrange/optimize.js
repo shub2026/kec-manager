@@ -8,7 +8,7 @@ import logger from '../../utils/logger.js';
 import { DEFAULT_HOUR_SETTINGS, TEXTBOOK_COHESION } from '../../constants/index.js';
 import { tabuOptimize } from './tabu-search.js';
 import { calcMatchScore } from './auto-arrange.js';
-import { createAuditLog } from '../../middleware/audit.middleware.js';
+import { createAuditLog } from '../../services/audit.service.js';
 
 /**
  * 检查是否满足最小改进阈值
@@ -450,9 +450,31 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       globalClassMap,
       mode
     );
-    afterMetrics.changesCount = totalIterations;
 
-    // 13. 计算改进幅度
+    // 13. 构建变更详情（先于阈值判定，changesCount 需基于真实变更数）
+    const changes = [];
+    for (const original of currentAssignments) {
+      const optimized = optimizedAssignments.find((a) => a.class_id === original.class_id);
+      if (optimized && optimized.teacher_id !== original.teacher_id) {
+        const clsInfo = globalClassMap.get(original.class_id);
+        changes.push({
+          classId: original.class_id,
+          courseId: original.course_classes.course_id,
+          className: clsInfo?.className || original.course_classes.class_name || `班级${original.class_id}`,
+          fromTeacher: {
+            id: original.teacher_id,
+            name: original.teachers.name,
+          },
+          toTeacher: {
+            id: optimized.teacher_id,
+            name: teachers.find((t) => t.id === optimized.teacher_id)?.name || '未知',
+          },
+        });
+      }
+    }
+    afterMetrics.changesCount = changes.length;
+
+    // 14. 计算改进幅度
     const improvements = {
       scoreImprovement: beforeMetrics.score !== 0
         ? Math.round(((afterMetrics.score - beforeMetrics.score) / Math.abs(beforeMetrics.score)) * 10000) / 100
@@ -465,28 +487,8 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         : 0,
     };
 
-    // 14. 检查是否满足最小改进阈值
+    // 15. 检查是否满足最小改进阈值
     const meetsThreshold = meetsMinimumThreshold(beforeMetrics, afterMetrics);
-
-    // 15. 构建变更详情
-    const changes = [];
-    for (const original of currentAssignments) {
-      const optimized = optimizedAssignments.find((a) => a.class_id === original.class_id);
-      if (optimized && optimized.teacher_id !== original.teacher_id) {
-        changes.push({
-          classId: original.class_id,
-          courseId: original.course_classes.course_id,
-          fromTeacher: {
-            id: original.teacher_id,
-            name: original.teachers.name,
-          },
-          toTeacher: {
-            id: optimized.teacher_id,
-            name: teachers.find((t) => t.id === optimized.teacher_id)?.name || '未知',
-          },
-        });
-      }
-    }
 
     progress('complete', '优化分析完成', 100);
 
@@ -552,6 +554,6 @@ export async function applyOptimizeResult(semesterId, changes, userId) {
     };
   } catch (error) {
     logger.error('应用优化结果失败:', error);
-    throw new Error('应用优化结果失败');
+    throw new Error('应用优化结果失败', { cause: error });
   }
 }
