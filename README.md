@@ -2,7 +2,7 @@
 
 > 面向大中专职业院校教学管理人员的轻量级教学管理系统
 
-**版本** v1.3.7 · **技术栈** Vue 3 + Express 5 + Prisma 6 · **数据库** SQLite WAL
+**版本** v1.3.8 · **技术栈** Vue 3 + Express 5 + Prisma 6 · **数据库** SQLite WAL
 
 KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心功能，采用前后端分离架构，基于 PM2 + Nginx 部署。
 
@@ -95,9 +95,9 @@ npm run dev:server       # 仅后端
 npm run dev:client       # 仅前端
 npm run db:migrate       # 数据库迁移
 npm run db:generate      # 生成 Prisma Client
-npm run version:patch    # 补丁版本 1.3.7 → 1.3.8
-npm run version:minor    # 次版本   1.3.7 → 1.4.0
-npm run version:major    # 主版本   1.3.7 → 2.0.0
+npm run version:patch    # 补丁版本 1.3.8 → 1.3.9
+npm run version:minor    # 次版本   1.3.8 → 1.4.0
+npm run version:major    # 主版本   1.3.8 → 2.0.0
 ```
 
 ### server/
