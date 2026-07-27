@@ -4,7 +4,11 @@
       title="课时统计"
       subtitle="教学安排"
       description="查看本学期各教师的课时分配情况和教学统计"
-    />
+    >
+      <template #extra>
+        <SemesterSelect v-model="semester" @change="loadStats" />
+      </template>
+    </PageHeader>
     <el-card>
       <!-- 汇总统计 -->
       <div v-if="statsData" class="summary-section">
@@ -28,7 +32,6 @@
 
       <!-- 筛选器 -->
       <div class="page-toolbar">
-        <SemesterSelect v-model="semester" @change="loadStats" />
         <el-input v-model="filterName" placeholder="姓名" clearable class="filter-md" />
         <el-select v-model="filterType" placeholder="类别" clearable class="filter-sm">
           <el-option label="专职" value="full_time" />
@@ -71,9 +74,11 @@
         >
           <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
         </el-select>
-        <el-button :loading="exporting" :disabled="!statsData" @click="handleExport"
-          >数据导出</el-button
-        >
+        <div class="action-buttons">
+          <el-button :loading="exporting" :disabled="!statsData" @click="handleExport"
+            >数据导出</el-button
+          >
+        </div>
       </div>
 
       <!-- 错误状态 -->

@@ -6,7 +6,7 @@
     <el-select
       :model-value="modelValue"
       placeholder="选择学期"
-      class="filter-2xl"
+      class="semester-select-input"
       @change="onChange"
     >
       <el-option
@@ -58,6 +58,13 @@ function onChange(val) {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+/* 提升特异性压过 Element Plus .el-select 的 width:100%，避免在页头等非 page-toolbar 上下文中被挤变形 */
+.semester-select .semester-select-input {
+  width: 200px;
+  flex-shrink: 0;
 }
 </style>

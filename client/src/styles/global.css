@@ -573,9 +573,9 @@ a:focus-visible,
 
 /* 小屏手机（≤480px）：进一步紧凑 */
 @media (max-width: 480px) {
-  /* 主内容区缩减左右间距 */
+  /* 主内容区缩减左右间距；顶部需保留固定移动端顶栏（56px）的避让空间，否则内容被遮挡 */
   .layout-main {
-    padding: 12px 8px !important;
+    padding: calc(56px + 12px) 8px 12px !important;
   }
 
   /* 弹窗几乎全屏 */

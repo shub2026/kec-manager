@@ -55,7 +55,6 @@
           <span>教学安排</span>
           <ArrangeToolbar
             v-model:filters="filters"
-            v-model:preview-mode="previewMode"
             :class-list="classList"
             :arranging="arranging"
             :batch-arranging="batchArranging"
@@ -95,19 +94,10 @@
       v-model="arrangeResultVisible"
       :result="arrangeResult"
       :mode="arrangeResultMode"
-      :preview-mode="previewMode"
-      :arranging="arranging"
-      @execute="handleExecutePreview"
     />
 
     <!-- 批量排课结果弹窗 -->
-    <BatchResultDialog
-      v-model="batchResultVisible"
-      :result="batchResult"
-      :preview-mode="previewMode"
-      :arranging="batchArranging"
-      @execute="handleBatchExecutePreview"
-    />
+    <BatchResultDialog v-model="batchResultVisible" :result="batchResult" />
 
     <!-- 排课优化确认弹窗 -->
     <OptimizeConfirmDialog
@@ -316,17 +306,14 @@ const {
   arrangeResultVisible,
   arrangeResult,
   arrangeResultMode,
-  previewMode,
   handleAutoArrange,
   doAutoArrange,
-  handleExecutePreview,
 } = autoArrange;
 
 // 使用批量排课 composable
 const batchArrange = useBatchArrange({
   selectedSemester,
   hourSettingsRef,
-  previewMode,
   loadData,
   confirmHistoricalEdit,
 });
@@ -338,7 +325,6 @@ const {
   batchResult,
   handleBatchAutoArrange,
   doBatchAutoArrange,
-  handleBatchExecutePreview,
 } = batchArrange;
 
 // 使用排课优化 composable
@@ -681,10 +667,6 @@ onMounted(async () => {
   max-width: 560px;
   width: 100%;
   margin: 0 0 var(--space-4) 0;
-}
-:deep(.semester-select) {
-  flex-wrap: nowrap;
-  white-space: nowrap;
 }
 .reset-text {
   margin: 0;

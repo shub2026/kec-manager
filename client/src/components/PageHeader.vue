@@ -123,13 +123,31 @@ defineProps({
     font-size: 20px;
   }
 
-  .page-header-main {
+  /* 窄屏堆叠顺序：标题 → 描述 → 操作区（extra）。
+     描述在 DOM 上位于 main 之外，用 display:contents 拍平 main 后以 order 重排，
+     避免操作按钮把标题与描述隔开 */
+  .page-header {
+    display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-2);
   }
 
+  .page-header-main {
+    display: contents;
+  }
+
+  .page-header-left {
+    order: 1;
+  }
+
+  .page-header-desc {
+    order: 2;
+    margin: 0;
+  }
+
   .page-header-right {
+    order: 3;
     width: 100%;
   }
 }

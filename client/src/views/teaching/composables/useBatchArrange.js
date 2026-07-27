@@ -9,7 +9,6 @@ import { runBatchAutoArrangeWithProgress } from '../../../api/teachingArrange';
 export function useBatchArrange({
   selectedSemester,
   hourSettingsRef,
-  previewMode,
   loadData,
   confirmHistoricalEdit,
 }) {
@@ -18,7 +17,6 @@ export function useBatchArrange({
   const batchConfirmData = ref({ title: '', mode: '', message: '', confirmText: '确定批量排课' });
   const batchResultVisible = ref(false);
   const batchResult = ref({});
-  const batchArrangeResultMode = ref('');
 
   // 进度状态
   const progressVisible = ref(false);
@@ -46,14 +44,11 @@ export function useBatchArrange({
 
   function handleBatchAutoArrange(mode) {
     const modeLabel = mode === 'full' ? '全量模式' : '标准模式';
-    const isPreview = previewMode.value;
     batchConfirmData.value = {
-      title: isPreview ? `预览批量排课 - ${modeLabel}` : `批量排课 - ${modeLabel}`,
+      title: `批量排课 - ${modeLabel}`,
       mode: modeLabel,
-      message: isPreview
-        ? '将以预览模式运行所有课程的批量排课，结果不会写入数据库。预览满意后可在结果弹窗中点击"执行排课"按钮应用结果。'
-        : '这会覆盖所有课程的自动安排（手动安排和已锁定的安排不受影响）。确定继续？',
-      confirmText: isPreview ? '开始预览' : '确定批量排课',
+      message: '这会覆盖所有课程的自动安排（手动安排和已锁定的安排不受影响）。确定继续？',
+      confirmText: '确定批量排课',
     };
     pendingBatchMode = mode;
     batchConfirmVisible.value = true;
@@ -69,7 +64,6 @@ export function useBatchArrange({
     resetProgress();
     progressType.value = 'batch';
     progressModeLabel.value = batchConfirmData.value.mode;
-    batchArrangeResultMode.value = batchConfirmData.value.mode;
     progressVisible.value = true;
 
     try {
@@ -78,7 +72,6 @@ export function useBatchArrange({
           semester: selectedSemester.value,
           mode,
           hourSettings: hourSettingsRef.value,
-          preview: previewMode.value,
         },
         (progress) => {
           if (progress.processed != null) {
@@ -96,9 +89,7 @@ export function useBatchArrange({
 
       batchResult.value = data;
 
-      if (!previewMode.value) {
-        await loadData();
-      }
+      await loadData();
     } catch (e) {
       progressVisible.value = false;
       ElMessage.error('批量排课失败');
@@ -110,62 +101,12 @@ export function useBatchArrange({
     }
   }
 
-  async function handleBatchExecutePreview() {
-    if (!(await confirmHistoricalEdit())) return;
-    const wasPreview = previewMode.value;
-    previewMode.value = false;
-
-    const mode = batchArrangeResultMode.value === '全量模式' ? 'full' : 'standard';
-
-    batchArranging.value = true;
-    resetProgress();
-    progressType.value = 'batch';
-    progressModeLabel.value = batchArrangeResultMode.value;
-    progressVisible.value = true;
-
-    try {
-      await runBatchAutoArrangeWithProgress(
-        {
-          semester: selectedSemester.value,
-          mode,
-          hourSettings: hourSettingsRef.value,
-          preview: false,
-        },
-        (progress) => {
-          if (progress.processed != null) {
-            progressProcessed.value = progress.processed;
-            progressTotal.value = progress.total;
-            progressCurrentCourseName.value = progress.currentCourseName || '';
-            progressCumulativeAssigned.value = progress.cumulativeAssigned || 0;
-            progressCumulativeUnassigned.value = progress.cumulativeUnassigned || 0;
-          }
-        }
-      );
-
-      await loadData();
-      progressFinished.value = true;
-      progressMessage.value = '批量排课已执行，可关闭此弹窗';
-      batchResultVisible.value = false;
-      batchResult.value = {};
-    } catch (e) {
-      progressVisible.value = false;
-      ElMessage.error('执行批量排课失败');
-      if (import.meta.env.DEV) {
-        console.error('执行批量排课失败:', e);
-      }
-    } finally {
-      batchArranging.value = false;
-      previewMode.value = wasPreview;
-    }
-  }
-
   return {
     batchArranging,
     batchConfirmVisible,
     batchConfirmData,
     batchResultVisible,
     batchResult,
-    batchArrangeResultMode,
     progressVisible,
     progressType,
     progressModeLabel,
@@ -178,7 +119,6 @@ export function useBatchArrange({
     progressMessage,
     handleBatchAutoArrange,
     doBatchAutoArrange,
-    handleBatchExecutePreview,
     resetProgress,
   };
 }

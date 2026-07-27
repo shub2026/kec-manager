@@ -45,7 +45,6 @@
     >
       <el-option v-for="v in filterOptions.textbooks" :key="v" :label="v" :value="v" />
     </el-select>
-    <el-checkbox v-model="localPreviewMode" class="preview-checkbox">预览</el-checkbox>
     <el-button
       type="warning"
       :loading="arranging"
@@ -138,10 +137,6 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  previewMode: {
-    type: Boolean,
-    default: false,
-  },
   arranging: {
     type: Boolean,
     default: false,
@@ -166,7 +161,6 @@ const props = defineProps({
 
 const emit = defineEmits([
   'update:filters',
-  'update:previewMode',
   'auto-arrange',
   'batch-arrange',
   'optimize',
@@ -179,11 +173,6 @@ const emit = defineEmits([
 const localFilters = computed({
   get: () => props.filters,
   set: (val) => emit('update:filters', val),
-});
-
-const localPreviewMode = computed({
-  get: () => props.previewMode,
-  set: (val) => emit('update:previewMode', val),
 });
 
 // 使用通用联动Hook
@@ -264,9 +253,6 @@ function handleTrainingLevelFilterChange() {
 }
 .arrange-header .header-filter.filter-xl {
   width: 140px;
-}
-.preview-checkbox {
-  margin-left: var(--space-2);
 }
 .dropdown-gap {
   margin-left: var(--space-1);

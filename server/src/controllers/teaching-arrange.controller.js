@@ -466,7 +466,6 @@ export async function runAutoArrange(req, res, next) {
     const mode = req.body.mode;
     const hourSettings = req.body.hour_settings;
     const scheduleConditions = req.body.schedule_conditions;
-    const preview = req.body.preview;
 
     if (!courseId || !semester) return fail(res, '缺少课程或学期参数');
     if (!['full', 'standard'].includes(mode)) return fail(res, '排课模式必须是full或standard');
@@ -510,35 +509,33 @@ export async function runAutoArrange(req, res, next) {
       req.on('close', onClose);
 
       try {
+        // preview 为算法内部 dry-run 选项（F8 补漏轮评估用），API 层不再暴露，默认直接落库
         const result = await autoArrange(courseId, semester, mode, finalHourSettings, conditions, {
-          preview: !!preview,
           onProgress: (progress) => {
             sendSSEEvent(res, 'progress', progress);
           },
         });
 
-        if (!preview) {
-          await createAuditLog({
-            action: 'update',
-            module: 'teachingArrange',
-            userId: req.user?.id,
-            ip: req.ip,
-            details: {
-              course_id: courseId,
-              semester,
-              mode,
-              autoCount: result.autoCount,
-              unassignedCount: result.unassignedCount,
-            },
-            result: 'success',
-            message: `自动排课(${mode === 'full' ? '全量' : '标准'})：安排${result.autoCount}个班级，${result.unassignedCount}个未安排`,
-          });
-        }
+        await createAuditLog({
+          action: 'update',
+          module: 'teachingArrange',
+          userId: req.user?.id,
+          ip: req.ip,
+          details: {
+            course_id: courseId,
+            semester,
+            mode,
+            autoCount: result.autoCount,
+            unassignedCount: result.unassignedCount,
+          },
+          result: 'success',
+          message: `自动排课(${mode === 'full' ? '全量' : '标准'})：安排${result.autoCount}个班级，${result.unassignedCount}个未安排`,
+        });
 
         sendSSEEvent(res, 'complete', {
           success: true,
           data: result,
-          message: preview ? '预览完成（未写入）' : `自动排课完成：安排${result.autoCount}个班级`,
+          message: `自动排课完成：安排${result.autoCount}个班级`,
         });
         res.end();
       } catch (e) {
@@ -551,33 +548,25 @@ export async function runAutoArrange(req, res, next) {
     }
 
     // 非 SSE 模式：保持原有 JSON 响应
-    const result = await autoArrange(courseId, semester, mode, finalHourSettings, conditions, {
-      preview: !!preview,
+    const result = await autoArrange(courseId, semester, mode, finalHourSettings, conditions, {});
+
+    await createAuditLog({
+      action: 'update',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        course_id: courseId,
+        semester,
+        mode,
+        autoCount: result.autoCount,
+        unassignedCount: result.unassignedCount,
+      },
+      result: 'success',
+      message: `自动排课(${mode === 'full' ? '全量' : '标准'})：安排${result.autoCount}个班级，${result.unassignedCount}个未安排`,
     });
 
-    if (!preview) {
-      await createAuditLog({
-        action: 'update',
-        module: 'teachingArrange',
-        userId: req.user?.id,
-        ip: req.ip,
-        details: {
-          course_id: courseId,
-          semester,
-          mode,
-          autoCount: result.autoCount,
-          unassignedCount: result.unassignedCount,
-        },
-        result: 'success',
-        message: `自动排课(${mode === 'full' ? '全量' : '标准'})：安排${result.autoCount}个班级，${result.unassignedCount}个未安排`,
-      });
-    }
-
-    success(
-      res,
-      result,
-      preview ? '预览完成（未写入）' : `自动排课完成：安排${result.autoCount}个班级`
-    );
+    success(res, result, `自动排课完成：安排${result.autoCount}个班级`);
   } catch (e) {
     // P1-13 修复：补失败审计日志（catch 块重新从 req 提取参数）
     const _courseId = req.body?.course_id;
@@ -1004,7 +993,6 @@ export async function runBatchAutoArrange(req, res, next) {
     const mode = req.body.mode;
     const hourSettings = req.body.hour_settings;
     const scheduleConditions = req.body.schedule_conditions;
-    const preview = req.body.preview;
 
     if (!semester) return fail(res, '缺少学期参数');
     if (!['full', 'standard'].includes(mode)) return fail(res, '排课模式必须是full或standard');
@@ -1039,36 +1027,32 @@ export async function runBatchAutoArrange(req, res, next) {
       req.on('close', onClose);
 
       try {
+        // preview 为算法内部 dry-run 选项（F8 补漏轮评估用），API 层不再暴露，默认直接落库
         const result = await batchAutoArrange(semester, mode, finalHourSettings, conditions, {
-          preview: !!preview,
           onProgress: (progress) => {
             sendSSEEvent(res, 'progress', progress);
           },
         });
 
-        if (!preview) {
-          await createAuditLog({
-            action: 'update',
-            module: 'teachingArrange',
-            userId: req.user?.id,
-            ip: req.ip,
-            details: {
-              semester,
-              mode,
-              totalAssigned: result.summary.totalAssigned,
-              totalUnassigned: result.summary.totalUnassigned,
-            },
-            result: 'success',
-            message: `批量排课(${mode === 'full' ? '全量' : '标准'})：${result.summary.totalCourses}门课程，安排${result.summary.totalAssigned}个班级`,
-          });
-        }
+        await createAuditLog({
+          action: 'update',
+          module: 'teachingArrange',
+          userId: req.user?.id,
+          ip: req.ip,
+          details: {
+            semester,
+            mode,
+            totalAssigned: result.summary.totalAssigned,
+            totalUnassigned: result.summary.totalUnassigned,
+          },
+          result: 'success',
+          message: `批量排课(${mode === 'full' ? '全量' : '标准'})：${result.summary.totalCourses}门课程，安排${result.summary.totalAssigned}个班级`,
+        });
 
         sendSSEEvent(res, 'complete', {
           success: true,
           data: result,
-          message: preview
-            ? '批量预览完成（未写入）'
-            : `批量排课完成：安排${result.summary.totalAssigned}个班级`,
+          message: `批量排课完成：安排${result.summary.totalAssigned}个班级`,
         });
         res.end();
       } catch (e) {
@@ -1081,32 +1065,24 @@ export async function runBatchAutoArrange(req, res, next) {
     }
 
     // 非 SSE 模式：保持原有 JSON 响应
-    const result = await batchAutoArrange(semester, mode, finalHourSettings, conditions, {
-      preview: !!preview,
+    const result = await batchAutoArrange(semester, mode, finalHourSettings, conditions, {});
+
+    await createAuditLog({
+      action: 'update',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        semester,
+        mode,
+        totalAssigned: result.summary.totalAssigned,
+        totalUnassigned: result.summary.totalUnassigned,
+      },
+      result: 'success',
+      message: `批量排课(${mode === 'full' ? '全量' : '标准'})：${result.summary.totalCourses}门课程，安排${result.summary.totalAssigned}个班级`,
     });
 
-    if (!preview) {
-      await createAuditLog({
-        action: 'update',
-        module: 'teachingArrange',
-        userId: req.user?.id,
-        ip: req.ip,
-        details: {
-          semester,
-          mode,
-          totalAssigned: result.summary.totalAssigned,
-          totalUnassigned: result.summary.totalUnassigned,
-        },
-        result: 'success',
-        message: `批量排课(${mode === 'full' ? '全量' : '标准'})：${result.summary.totalCourses}门课程，安排${result.summary.totalAssigned}个班级`,
-      });
-    }
-
-    success(
-      res,
-      result,
-      preview ? '批量预览完成（未写入）' : `批量排课完成：安排${result.summary.totalAssigned}个班级`
-    );
+    success(res, result, `批量排课完成：安排${result.summary.totalAssigned}个班级`);
   } catch (e) {
     // H-2 修复：补 .catch(() => {})，与其他端点（assignTeacher/deleteAssignment/runAutoArrange）保持一致
     // 避免审计日志写入失败时覆盖原始排课错误信息

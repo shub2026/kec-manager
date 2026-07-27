@@ -128,25 +128,19 @@
 
     <template #footer>
       <el-button @click="emit('update:modelValue', false)">关闭</el-button>
-      <el-button v-if="previewMode" type="primary" :loading="arranging" @click="emit('execute')">
-        <el-icon><Check /></el-icon> 执行排课
-      </el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Check } from '@element-plus/icons-vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   result: { type: Object, default: () => ({}) },
-  previewMode: { type: Boolean, default: false },
-  arranging: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:modelValue', 'execute']);
+const emit = defineEmits(['update:modelValue']);
 
 const batchResultFilter = ref('all');
 const expandedCourses = ref(new Set());

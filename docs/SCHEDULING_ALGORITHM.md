@@ -544,9 +544,11 @@ supplyDemandRatio = demand / supplyCapacity   (teacherCount=0 时为 MAX_SAFE_IN
 
 ## 十二、预览模式
 
+> 说明：预览现仅作为算法内部 dry-run 机制使用（批量排课补漏轮 F8 落库前评估、单元测试驱动算法主流程），前端排课预览入口与 API 层 `preview` 请求参数已移除。
+
 ### 12.1 行为
 
-当请求参数 `preview = true` 时：
+当内部选项 `options.preview = true` 时：
 
 - 算法完整执行（所有计算、匹配、评分、置换）
 - **跳过数据库事务**——不删除、不插入

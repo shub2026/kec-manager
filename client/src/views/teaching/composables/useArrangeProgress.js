@@ -38,15 +38,17 @@ export function useArrangeProgress({ auto, batch, arrangeResultVisible, batchRes
   const progressCumulativeUnassigned = computed(() => batch.progressCumulativeUnassigned.value);
   const progressMessage = computed(() => auto.progressMessage.value || batch.progressMessage.value);
 
-  // 进度弹窗关闭处理
+  // 进度弹窗关闭处理（弹出结果后复位 finished 标志，避免残留状态干扰下一次分支判断）
   function handleProgressClose() {
     auto.progressVisible.value = false;
     batch.progressVisible.value = false;
 
     if (auto.progressType.value === 'single' && auto.progressFinished.value) {
       arrangeResultVisible.value = true;
+      auto.progressFinished.value = false;
     } else if (batch.progressType.value === 'batch' && batch.progressFinished.value) {
       batchResultVisible.value = true;
+      batch.progressFinished.value = false;
     }
   }
 
