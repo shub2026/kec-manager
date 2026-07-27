@@ -18,17 +18,13 @@ export default defineConfig({
     Components({
       resolvers: [ElementPlusResolver()],
     }),
-    // 预压缩：同时生成 .gz 与 .br，Nginx 直接发送预压缩文件，省去实时压缩 CPU 开销
+    // 预压缩：仅生成 .gz（gzip_static）
+    // 不生成 .br：1Panel OpenResty 默认未编译 brotli 模块，
+    // 保留 .br 文件会导致 gzip_static 行为异常，部分客户端收到无法解码的响应
     viteCompression({
       algorithm: 'gzip',
       ext: '.gz',
       threshold: 10240, // 仅压缩 >10KB 的文件
-      deleteOriginFile: false,
-    }),
-    viteCompression({
-      algorithm: 'brotliCompress',
-      ext: '.br',
-      threshold: 10240,
       deleteOriginFile: false,
     }),
   ],

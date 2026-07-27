@@ -327,6 +327,10 @@ if ! execute "cd ${PROJECT_DIR}/client && npm run build"; then
     fi
 fi
 echo "✓ 前端构建完成"
+# 清理 .br 文件：1Panel OpenResty 默认不支持 brotli，
+# .br 文件残留会导致 gzip_static 异常、部分客户端白屏
+execute "find ${PROJECT_DIR}/client/dist -name '*.br' -delete 2>/dev/null || true"
+echo "✓ 已清理 .br 预压缩文件"
 # 不再执行 npm prune --production：保留 devDependencies 以便下次部署直接构建
 # 下次更新若 package*.json 未变化，可跳过 npm ci，从 ~60s 降到 ~0s
 # 代价：磁盘多占约 200MB，换来显著的部署加速
