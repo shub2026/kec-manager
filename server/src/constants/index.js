@@ -34,6 +34,10 @@ export const DEFAULT_TEXTBOOK_CATEGORY = '技工';
 // 避免硬编码时间相关值导致不同环境学期不一致
 export const DEFAULT_SEMESTER = process.env.DEFAULT_SEMESTER || '2025-2026-2';
 
+// 培养方案课程学期硬上限（方案无学制字段，矩阵动态扩列，按 6 年学制 12 学期做边界校验，
+// 防止写入下游矩阵/排课查不到的“幽灵学期”）
+export const MAX_PLAN_SEMESTER = 12;
+
 // 密码策略
 export const PASSWORD_POLICY = {
   MIN_LENGTH: 8,

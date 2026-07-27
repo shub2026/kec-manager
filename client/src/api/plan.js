@@ -63,15 +63,6 @@ export const addPlanCourse = (id, data) => request.post(`/plans/${id}/courses`, 
 export const updatePlanCourse = (id, data) => request.put(`/plans/courses/${id}`, data);
 
 /**
- * 更新方案课程排序
- * @param {number} id - 方案课程 ID
- * @param {number} sortOrder
- * @returns {Promise<import('./types').ApiResponse<void>>}
- */
-export const updatePlanCourseSortOrder = (id, sortOrder) =>
-  request.patch(`/plans/courses/${id}/sort-order`, { sortOrder });
-
-/**
  * 删除方案课程
  * @param {number} id - 方案课程 ID
  * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗
@@ -117,7 +108,7 @@ export const batchUpdateSemesterWeeks = (ids, weeksCount) =>
 
 /**
  * H-7 修复：批量更新课程排序（单事务）
- * @param {Array<{id: number, sort_order: number}>} items
+ * @param {Array<{id: number, sortOrder: number}>} items - 载荷 camelCase，由后端命名中间件转 snake_case
  */
 export const batchUpdateCourseSortOrder = (items) =>
   request.patch('/plans/courses/batch-sort', { items });
@@ -140,10 +131,3 @@ export const setSemesterTextbook = (semesterId, data) =>
  */
 export const removeSemesterTextbook = (semesterId) =>
   request.delete(`/plans/semesters/${semesterId}/textbooks`);
-
-// 兼容旧 API
-
-/**
- * @deprecated 使用 removeSemesterTextbook 代替
- */
-export const deletePlanTextbook = (id) => request.delete(`/plans/textbooks/${id}`);

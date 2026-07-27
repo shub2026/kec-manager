@@ -9,12 +9,6 @@ import './types';
 export const getClasses = (params) => request.get('/classes', { params });
 
 /**
- * 获取班级统计
- * @returns {Promise<import('./types').ApiResponse<{totalClasses: number, totalStudents: number}>>}
- */
-export const getClassStats = () => request.get('/classes/stats');
-
-/**
  * 创建班级
  * @param {import('./types').ClassInput} data
  * @returns {Promise<import('./types').ApiResponse<import('./types').Class>>}

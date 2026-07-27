@@ -22,6 +22,8 @@
 共 17 项发现：**P1 × 4、P2 × 9、P3 × 4**，详见第四节。
 
 > **修复跟踪（2026-07-27，v1.3.11 优化批次）**：本批次聚焦排课优化层（`optimize.js`），已修复 **F15**——`calculateMetrics` 综合评分补齐欠分配惩罚（`α × 缺口`）与负载方差惩罚（`β × 方差 × 100`），与 `tabu-search.js` 的 `computeObjective` 对齐，消除 UI 展示评分与算法目标函数的口径矛盾。同批次另修复优化层 **N+1 查询**（逐班 `findUnique` → 批量 `findMany`）与**跨课程状态回写**（`courseTeacherConstraints` → 共享 `teacherConstraints`，教材集合替换、学院集合只增不减），对应三阶段深度审计的 P0 项，不在本审计 F 编号内。其余 F1–F4、F5–F14、F16–F17 仍待排期处理。
+>
+> **修复跟踪（后续批次）**：**F1**（`globalTextbookMap` 预览/非预览双模式启用 + DB 种子并集合并）、**F2**（“教师视角选组”共享函数推广至阶段 2/4）、**F8**（非预览补漏轮先跑 preview 评估，不劣于主轮才真实重排）、**F10**（诊断日志包 debug 级别守卫 + 预建计数 Map）、**F11**（`assignRound` 排序前预计算 eligibleCount Map）均已修复，代码中有对应 `F1/F2/F8/F10/F11 修复` 标记。尚待排期：F3–F7、F9、F12–F14、F16–F17。
 
 ---
 
@@ -99,7 +101,7 @@ fullCap        = floor(min(teacherHourCap, max(0, max − effectiveTotal)) × re
 
 ### P1 —— 口径与正确性
 
-#### F1. 非预览批量/单课程排课中，教材硬上限（全学期 2 本口径）跨课程失效
+#### F1. 非预览批量/单课程排课中，教材硬上限（全学期 2 本口径）跨课程失效 【已修复】
 
 > 业务口径已确认（2026-07-26）：**上限为全学期累计 2 本**，非单课程 2 本。预览批量路径的行为是正确基准，其余路径需对齐。
 
@@ -112,7 +114,7 @@ fullCap        = floor(min(teacherHourCap, max(0, max − effectiveTotal)) × re
   4. 回归验证：同一教师跨两门课程排课后教材总数 ≤2 的用例（预览/非预览各一）。
 - **涉及**：`batch.js` L136-138、`queries.js` L458、`auto-arrange.js` S-13 段与事务校验段。
 
-#### F2. 阶段 2/4 仍存在"零头组烧教材名额"模式（阶段 1 同款问题未推广修复）
+#### F2. 阶段 2/4 仍存在“零头组烧教材名额”模式（阶段 1 同款问题未推广修复） 【已修复】
 
 - **现状**：阶段 2/4 按 `groupAvailable` 全局需求降序遍历组、组内教师吃满。当大组已被拿得只剩零头时，0 本教师会先接零头（占 1 个教材名额），阶段 4 再接第二个零头组后名额耗尽，供给充足的其他组无法再接。这正是阶段 1 已修复的"蒋梅缺陷"在无意向教师上的翻版，只是无意向教师可跨学院拿满大组、触发概率较低。
 - **影响**：课时充足时个别无意向教师欠分配、未分配班级增多（部分由置换回溯挽回，但置换不保证成功）。
@@ -153,7 +155,7 @@ fullCap        = floor(min(teacherHourCap, max(0, max − effectiveTotal)) × re
 - **建议**：需求改为 `getClassesWithCourse(courseId, semester)` 结果的 `Σ weeklyHours`（可缓存复用，主轮排课本来就要查）；供给按 `Σ min(personnelType.standard − totalWeeklyHours, defaultWeeklyHours 余量)` 估算。
 - **涉及**：`batch.js` L77-115。
 
-#### F8. 补漏轮非预览模式"先落库后发现回退"不可恢复
+#### F8. 补漏轮非预览模式“先落库后发现回退”不可恢复 【已修复】
 
 - **现状**：补漏轮直接以 `capacityReserveRatio=1.0` 重跑非预览 `autoArrange`（删旧写新）。若重排结果劣于主轮（日志已见 `重排回退` 告警路径），预览模式可保留主轮结果，**非预览只能如实采纳劣化结果**。
 - **建议**：非预览补漏轮先跑一次 `preview:true` 评估（利用 `extraTeacherHours` 复原语义），仅当 `autoCount` 不劣于主轮才执行真实重排；成本为多一次内存计算，换来"补漏只增不减"的落库保证。
@@ -165,13 +167,13 @@ fullCap        = floor(min(teacherHourCap, max(0, max − effectiveTotal)) × re
 - **建议**：`arrange_locks` 增加 `owner` 列（进程内生成 uuid），`acquireLock` 写入、`releaseLock` 带 `AND owner = ?` 条件删除。
 - **涉及**：`lock.js`。
 
-#### F10. 诊断日志在 ENABLED 下无条件构建大字符串
+#### F10. 诊断日志在 ENABLED 下无条件构建大字符串 【已修复】
 
 - **现状**：`TEXTBOOK_COHESION.ENABLED=true` 时每次排课都会为全部教师、全部班级构建 debug 字符串（教材分布、教师初始状态、最终分布），即使日志级别为 info，模板字符串求值也照常发生；`L1832` 还对每位教师做一次 `assignments.filter` 全扫描（O(T×A)）。
 - **建议**：诊断段整体包一层 `if (logger.isDebugEnabled?.() ?? logger.level === 'debug')` 守卫；教师班级计数改为一次遍历预建 Map。
 - **涉及**：`auto-arrange.js` L1229-1254、L1824-1841。
 
-#### F11. `assignRound` 排序时 `countEligibleTeachers` 重复计算
+#### F11. `assignRound` 排序时 `countEligibleTeachers` 重复计算 【已修复】
 
 - **现状**：sort 比较器内每次调用都全量扫描教师（O(C log C × 2T)），且 `isTeacherEligible` 含多层判断。百班级 × 数十教师规模尚可，但批量 60+ 课程叠加后可感知。
 - **建议**：排序前预计算 `Map<classId, eligibleCount>` 一次（O(C×T)），比较器查表。

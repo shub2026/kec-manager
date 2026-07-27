@@ -16,10 +16,3 @@ export const getSemesterQuery = (params) => request.get('/query/semester', { par
  */
 export const getTextbookQuery = (id, params = {}) =>
   request.get(`/query/textbook/${id}`, { params });
-
-/**
- * 教材总览查询
- * @param {import('./types').TextbooksOverviewParams} [params]
- * @returns {Promise<import('./types').ApiResponse<Object[]>>}
- */
-export const getTextbooksOverview = (params = {}) => request.get('/query/textbooks', { params });

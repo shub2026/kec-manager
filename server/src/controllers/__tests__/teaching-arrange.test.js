@@ -46,6 +46,9 @@ const mockPrisma = {
   plan_courses: {
     findMany: vi.fn(),
   },
+  system_settings: {
+    findUnique: vi.fn(),
+  },
 };
 
 vi.mock('../../lib/prisma.js', () => ({
@@ -364,8 +367,9 @@ describe('assignTeacher — 手动安排教师', () => {
   // 6. 工作量超限警告
   // ──────────────────────────────────────────────
   it('教师工作量超限时应在响应中包含 workloadWarning', async () => {
-    // 优化5：工作量检查改用 findMany + dedupeTeachingUnits（合班去重）
-    // 模拟总课时超过 full_time 的 max (20)：3 个非合班单元，各 9 课时 = 27 > 20
+    // 审计修复：预警阈值改为 default_weekly_hours ?? 配置 standard ?? 默认 standard（full_time=16）
+    // 无全局配置、教师无个人标准 → 阈值 16；3 个非合班单元各 9 课时 = 27 > 16
+    mockPrisma.system_settings.findUnique.mockResolvedValue(null);
     mockPrisma.teaching_assignments.findMany.mockResolvedValue([
       {
         teacher_id: 5,
@@ -407,7 +411,7 @@ describe('assignTeacher — 手动安排教师', () => {
       expect.objectContaining({
         success: true,
         data: expect.objectContaining({
-          workloadWarning: expect.stringContaining('超过建议上限'),
+          workloadWarning: expect.stringContaining('超过标准课时上限'),
         }),
       })
     );

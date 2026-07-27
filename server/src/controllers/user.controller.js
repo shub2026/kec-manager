@@ -11,7 +11,7 @@ import { invalidateUserStatusCache } from '../middleware/auth.middleware.js';
  */
 export async function listUsers(req, res, next) {
   try {
-    const { page, page_size } = req.query;
+    const { page, page_size, keyword } = req.query;
     const currentPage = Number(page) || 1;
     const pageSize = Math.min(Math.max(Number(page_size) || 20, 1), 100);
     const skip = (currentPage - 1) * pageSize;
@@ -19,6 +19,16 @@ export async function listUsers(req, res, next) {
     const where = {};
     if (req.user.role === 'admin') {
       where.role = 'viewer';
+    }
+    // 审计修复：前端一直传 keyword 但后端未读取，跨页搜索失效；
+    // 对用户名/姓名/邮箱做 contains 模糊匹配（SQLite 无 mode 参数，默认大小写不敏感）
+    const kw = typeof keyword === 'string' ? keyword.trim() : '';
+    if (kw) {
+      where.OR = [
+        { username: { contains: kw } },
+        { real_name: { contains: kw } },
+        { email: { contains: kw } },
+      ];
     }
 
     const selectFields = {

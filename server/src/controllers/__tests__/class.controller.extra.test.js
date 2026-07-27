@@ -1,5 +1,5 @@
 /**
- * class.controller.js — getClassStats, batchDeleteClasses, batchUpdateClasses 单元测试
+ * class.controller.js — batchDeleteClasses, batchUpdateClasses 单元测试
  *
  * 补充覆盖现有测试文件未涉及的导出函数。
  */
@@ -74,7 +74,7 @@ vi.mock('../../utils/logger.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块
 // ──────────────────────────────────────────────
-const { getClassStats, batchDeleteClasses, batchUpdateClasses } =
+const { batchDeleteClasses, batchUpdateClasses } =
   await import('../class.controller.js');
 const { getActiveClassFilter, invalidateDurationCache } =
   await import('../../services/class.service.js');
@@ -100,90 +100,6 @@ function mockRes() {
   res.json = vi.fn();
   return res;
 }
-
-// ════════════════════════════════════════════════
-// getClassStats
-// ════════════════════════════════════════════════
-describe('getClassStats', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('应返回在读班级总数和在读学生总数', async () => {
-    getActiveClassFilter.mockResolvedValue({ is_left_school: false });
-    mockPrisma.classes.findMany.mockResolvedValue([
-      { student_count: 40 },
-      { student_count: 35 },
-      { student_count: 50 },
-    ]);
-
-    const req = { user: { id: 1 }, ip: '127.0.0.1' };
-    const res = mockRes();
-    const next = vi.fn();
-
-    await getClassStats(req, res, next);
-
-    expect(next).not.toHaveBeenCalled();
-    expect(getActiveClassFilter).toHaveBeenCalled();
-    expect(mockPrisma.classes.findMany).toHaveBeenCalledWith({
-      where: { is_left_school: false },
-      select: { student_count: true },
-    });
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        success: true,
-        data: { totalClasses: 3, totalStudents: 125 },
-      })
-    );
-  });
-
-  it('无在读班级时应返回 0/0', async () => {
-    getActiveClassFilter.mockResolvedValue({ is_left_school: false });
-    mockPrisma.classes.findMany.mockResolvedValue([]);
-
-    const req = { user: { id: 1 }, ip: '127.0.0.1' };
-    const res = mockRes();
-    const next = vi.fn();
-
-    await getClassStats(req, res, next);
-
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { totalClasses: 0, totalStudents: 0 },
-      })
-    );
-  });
-
-  it('student_count 为 null 时应视为 0', async () => {
-    getActiveClassFilter.mockResolvedValue({ is_left_school: false });
-    mockPrisma.classes.findMany.mockResolvedValue([{ student_count: null }, { student_count: 30 }]);
-
-    const req = { user: { id: 1 }, ip: '127.0.0.1' };
-    const res = mockRes();
-    const next = vi.fn();
-
-    await getClassStats(req, res, next);
-
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { totalClasses: 2, totalStudents: 30 },
-      })
-    );
-  });
-
-  it('数据库异常时应通过 next(e) 传递', async () => {
-    const error = new Error('DB error');
-    getActiveClassFilter.mockRejectedValue(error);
-
-    const req = { user: { id: 1 }, ip: '127.0.0.1' };
-    const res = mockRes();
-    const next = vi.fn();
-
-    await getClassStats(req, res, next);
-
-    expect(next).toHaveBeenCalledWith(error);
-  });
-});
 
 // ════════════════════════════════════════════════
 // batchDeleteClasses

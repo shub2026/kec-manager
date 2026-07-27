@@ -688,7 +688,7 @@ describe('getTeachersForCourse - 基础功能', () => {
     setupTeacherMocks([teacher], {
       // B1 修复后工作量统计来自 teaching_assignments.findMany 全量 + dedupeTeachingUnits，
       // 不再使用 groupBy 的 workloadStats/courseAssignments。
-      // 构造：目标课程 1 节(weekly=4, 1 班) + 其他课程合班 1 节(weekly=12, 2 班) → 合计 16/3，课程 4/1
+      // 构造：目标课程 1 节(weekly=4, 1 班) + 其他课程合班 1 节(weekly=12, 2 班) → 合计 16/2 个逻辑教学班，课程 4/1
       allSemesterAssignments: [
         {
           teacher_id: 1,
@@ -720,7 +720,8 @@ describe('getTeachersForCourse - 基础功能', () => {
     const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
 
     expect(result[0].totalWeeklyHours).toBe(16);
-    expect(result[0].totalClassCount).toBe(3);
+    // 审计修复：逻辑教学班口径，合班(2个成员班)计 1 → 共 2
+    expect(result[0].totalClassCount).toBe(2);
     expect(result[0].courseHours).toBe(4);
     expect(result[0].courseClassCount).toBe(1);
   });

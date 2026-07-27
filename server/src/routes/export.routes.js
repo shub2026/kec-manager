@@ -39,6 +39,8 @@ router.use(exportLimiter);
 // SEC-M2修复：签发一次性下载票据
 // 前端调用导出接口前先 POST 此端点获取 ticket，再用 ?ticket=<hex> 通过 window.open 下载
 // 票据 30s 过期且单次消费，避免 JWT 进入 URL/日志/Referer
+// 审计结论修正（保留，非死代码）：auth.middleware.js 的票据鉴权分支明确以此为
+// 导出鉴权迁移目标端点，前端将逐步从 ?token= 切换到票据模式
 router.post('/issue-ticket', (req, res) => {
   if (!req.user) {
     return res.status(401).json({ success: false, message: '未授权' });

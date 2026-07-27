@@ -38,6 +38,7 @@ export function useSemesters(options = {}) {
   });
 
   /** 根据当前日期计算当前学期值（本地回退）
+   * 审计修复：1 月属上一学年秋季第 1 学期（docs/SEMESTER-CALCULATION.md：秋季=9月-次年1月）
    * @param {number} [semesterStartMonth=8] - 学期边界月份（秋季学期起始月），默认 8（八月）
    */
   function getCurrentSemester(semesterStartMonth = 8) {
@@ -46,6 +47,9 @@ export function useSemesters(options = {}) {
     const month = now.getMonth() + 1;
     if (month >= semesterStartMonth) {
       return `${year}-${year + 1}-1`;
+    } else if (month === 1) {
+      // 1 月仍处秋季学期末（期末考试周），归上一学年第 1 学期
+      return `${year - 1}-${year}-1`;
     } else {
       return `${year - 1}-${year}-2`;
     }

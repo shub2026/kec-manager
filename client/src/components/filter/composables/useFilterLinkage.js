@@ -4,7 +4,7 @@
  * @param {Object} options - 配置选项
  * @param {Ref} options.filters - 筛选条件响应式对象
  * @param {Object} options.relations - 关联关系数据 { relationName: { parentId: [childId1, childId2] } }
- * @param {Array} options.fields - 筛选项配置数组
+ *   key 命名必须为 `${parentField}${FieldName}Relation`（与 getFilteredOptions 拼接规则一致）
  * @returns {Object} - 包含过滤后的选项和处理函数
  */
 
@@ -13,16 +13,19 @@ import { computed } from 'vue';
 export function useFilterLinkage({ filters, relations = {} }) {
   /**
    * 根据当前筛选条件动态计算某个字段的可用选项
+   * 关联关系 key 按 `${parentField}${FieldName}Relation` 拼接查找（如 collegeId + majorId → collegeIdMajorIdRelation）,
+   * relations 中的 key 必须遵循该规则。
    * @param {String} fieldName - 字段名
    * @param {Array} allOptions - 该字段的所有选项
    * @param {Array} parentFields - 父级字段列表(按优先级排序)
-   * @param {String} relationKey - 关联关系的key前缀 (如: collegeMajorRelation 中的 collegeMajor)
    */
   const getFilteredOptions = computed(
     () =>
-      (fieldName, allOptions, parentFields = [], relationKey = '') => {
-        // 如果没有父级字段或没有选择任何父级,返回所有选项
-        if (!parentFields.length || !relationKey) {
+      (fieldName, allOptions, parentFields = []) => {
+        // 如果没有父级字段,返回所有选项
+        // 审计修复：原第 4 参 relationKey 默认空串且所有调用方均未传,
+        // `!relationKey` 短路导致过滤永远不执行,已移除该参数
+        if (!parentFields.length) {
           return allOptions;
         }
 

@@ -3,7 +3,7 @@ import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { NotFoundError, ValidationError } from '../utils/error.js';
 import { getCurrentSemesterInfo, getSemesterStartMonth } from '../services/settings.service.js';
-import { getActiveClassFilter, invalidateDurationCache } from '../services/class.service.js';
+import { invalidateDurationCache } from '../services/class.service.js';
 import { buildClassFilter } from '../services/class-filter.service.js';
 import { findBestMatchPlan } from '../services/plan.service.js';
 import {
@@ -154,23 +154,6 @@ function calculateClassStatus(
 
   const grade = startYear - enrollmentYear + 1;
   return grade <= durationYears ? 'active' : 'graduated';
-}
-
-export async function getClassStats(req, res, next) {
-  try {
-    const activeFilter = await getActiveClassFilter();
-    const activeClasses = await prisma.classes.findMany({
-      where: activeFilter,
-      select: { student_count: true },
-    });
-
-    const totalClasses = activeClasses.length;
-    const totalStudents = activeClasses.reduce((sum, c) => sum + (c.student_count || 0), 0);
-
-    success(res, { totalClasses, totalStudents });
-  } catch (e) {
-    next(e);
-  }
 }
 
 export async function listClasses(req, res, next) {

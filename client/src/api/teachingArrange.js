@@ -135,25 +135,6 @@ export const assignTeacher = (data) => request.post('/teaching-arrange/assign', 
 export const deleteAssignment = (id) => request.delete(`/teaching-arrange/assignments/${id}`);
 
 /**
- * 自动排课（单课程）
- * P0 修复：排课可能耗时较长（禁忌搜索+置换回溯），单独设置 6 分钟超时
- * 略大于后端批量排课 5 分钟上限，避免前端超时但后端仍在写入
- * @param {import('./types').AutoArrangeInput} data
- * @returns {Promise<import('./types').ApiResponse<Object>>}
- */
-export const runAutoArrange = (data) =>
-  request.post('/teaching-arrange/auto-arrange', data, { timeout: 6 * 60 * 1000 });
-
-/**
- * 批量自动排课（所有课程）
- * P0 修复：同上，单独设置 6 分钟超时
- * @param {import('./types').BatchAutoArrangeInput} data
- * @returns {Promise<import('./types').ApiResponse<Object>>}
- */
-export const runBatchAutoArrange = (data) =>
-  request.post('/teaching-arrange/batch-auto-arrange', data, { timeout: 6 * 60 * 1000 });
-
-/**
  * 自动排课（单课程）- SSE 流式版本
  * 通过 fetch + ReadableStream 读取后端推送的五阶段进度事件
  * @param {import('./types').AutoArrangeInput} data

@@ -177,18 +177,12 @@ const localFilters = computed({
 });
 
 // 使用通用联动Hook（storeToRefs 返回的均为 Ref，useFilterLinkage 内部支持 Ref 访问）
+// relations key 必须匹配 Hook 拼接规则 {parentField}{FieldName}Relation；
+// 其余关系表由下方手写过滤与 getIntersectedOptions 显式传入，不经 Hook 查找
 const { getFilteredOptions, getIntersectedOptions, handleParentChange } = useFilterLinkage({
   filters: localFilters,
   relations: {
-    collegeMajorRelation,
-    collegeLevelRelation,
-    majorLevelRelation,
-    collegeYearRelation,
-    majorYearRelation,
-    levelYearRelation,
-    planCollegeRelation,
-    planMajorRelation,
-    planLevelRelation,
+    collegeIdMajorIdRelation: collegeMajorRelation, // 学院→专业联动（filteredMajors）
   },
 });
 

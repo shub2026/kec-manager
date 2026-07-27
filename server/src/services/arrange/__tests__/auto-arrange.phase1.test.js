@@ -217,6 +217,24 @@ describe('阶段1：意向教师按可拿课时最大的教材组优先（蒋梅
     expect(result.unassignedCount).toBe(8);
   });
 
+  it('审计修复回归：DB 教材种子与 globalTextbookMap 应取并集而非替换', async () => {
+    // DB 已排记录解析出教材 157（assignedTextbookIds 种子）+ 前序课程累计 158，
+    // 并集后已持 2 本达上限 → 不得开 tb161 新组；
+    // 旧替换式合并会丢失 157，误判为仅持 1 本而放行
+    const classes = Array.from({ length: 8 }, (_, i) => makeClass(301 + i, 2, 2, 161));
+    getClassesWithCourseFn.mockResolvedValue(classes);
+    getTeachersForCourseFn.mockResolvedValue([
+      prefTeacher({ assignedTextbookIds: new Set([157]) }),
+    ]);
+
+    const result = await runArrange({
+      globalTextbookMap: new Map([[1, new Set([158])]]),
+    });
+
+    expect(result.assigned.filter((a) => a.teacher_id === 1)).toHaveLength(0);
+    expect(result.unassignedCount).toBe(8);
+  });
+
   it('多位意向教师共享意向学院时不应互相锁死', async () => {
     // 两位意向学院=2 的教师，学院2内 tb161 共 12 个班 24h：
     // 教师A拿满16h后，教师B应能继续拿剩余 8h

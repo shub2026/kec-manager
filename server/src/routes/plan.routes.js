@@ -22,14 +22,12 @@ import {
   listPlanCourses,
   addCourseToPlan,
   updatePlanCourse,
-  updatePlanCourseSortOrder,
   deletePlanCourse,
   upsertSemester,
   updateSemester,
   listPlanSemesters,
   assignTextbookToSemester,
   removeSemesterTextbooks,
-  deletePlanTextbook,
   batchUpdateSemesterWeeks,
   batchUpdateCourseSortOrder,
 } from '../controllers/plan/plan-matrix.controller.js';
@@ -90,15 +88,8 @@ router.put(
   updatePlanCourse
 );
 
-// PATCH /api/plans/courses/:id/sort-order - 仅更新课程排序（admin/super_admin）
-// 严重-1 修复：排序走轻量端点，不触发学期记录重建，避免教材关联丢失
-router.patch(
-  '/courses/:id/sort-order',
-  roleMiddleware('admin', 'super_admin'),
-  validateIdParam,
-  sanitizeBody,
-  updatePlanCourseSortOrder
-);
+// PATCH /api/plans/courses/:id/sort-order 已移除（死代码清理）：
+// 前端拖拽排序已统一走批量端点 PATCH /courses/batch-sort（单事务）
 
 // H-7 修复：批量更新课程排序（单事务，admin/super_admin）
 router.patch(
@@ -172,12 +163,7 @@ router.delete(
   removeSemesterTextbooks
 );
 
-// DELETE /api/plans/textbooks/:id - 删除教材关联记录（admin/super_admin）
-router.delete(
-  '/textbooks/:id',
-  roleMiddleware('admin', 'super_admin'),
-  validateIdParam,
-  deletePlanTextbook
-);
+// DELETE /api/plans/textbooks/:id 已移除（死代码清理）：旧兼容端点，
+// 前端已统一使用 DELETE /plans/semesters/:id/textbooks（removeSemesterTextbooks）
 
 export default router;

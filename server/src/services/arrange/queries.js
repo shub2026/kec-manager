@@ -179,8 +179,9 @@ export async function getTeachersForCourse(courseId, semesterStr) {
   // 若直接对全部行 groupBy 求和，会把同一节合班课计 N 次 → 教师周课时虚高 N 倍，
   // 引发超限告警误报、错误拒绝合理排课，且与 dashboard/导出统计口径打架。
   // 改用 dedupeTeachingUnits 按 (combination_id??class_id, course_id, teacher_id) 去重后再聚合，
-  // 使排课界面与 dashboard/导出对齐。仅 totalWeeklyHours 口径变化（修复虚高），
-  // classCount 按成员班数累加，与原按行计数在数值上一致。
+  // 使排课界面与 dashboard/导出对齐。
+  // 审计修复：classCount 统一为“逻辑教学班”口径（合班计 1），
+  // 与 getArrangeList/教学统计页的 totalClassCount 一致，消除双口径。
   const allSemesterAssignments = await prisma.teaching_assignments.findMany({
     where: { semester: semesterStr },
     select: {
@@ -199,13 +200,13 @@ export async function getTeachersForCourse(courseId, semesterStr) {
   for (const u of dedupedUnits) {
     const tid = u.representative.teacher_id;
     const weekly = u.weeklyHours || 0;
-    const memberClasses = u.memberClassIds.length || 0;
     workloadMap.set(tid, (workloadMap.get(tid) || 0) + weekly);
-    classCountMap.set(tid, (classCountMap.get(tid) || 0) + memberClasses);
+    // 审计修复：每个逻辑教学单元计 1（合班=1 个逻辑教学班），不再按成员班数累加
+    classCountMap.set(tid, (classCountMap.get(tid) || 0) + 1);
     if (u.representative.course_id === targetCourseId) {
       const cur = courseAssignmentMap.get(tid) || { hours: 0, classCount: 0 };
       cur.hours += weekly;
-      cur.classCount += memberClasses;
+      cur.classCount += 1;
       courseAssignmentMap.set(tid, cur);
     }
   }

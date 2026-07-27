@@ -299,15 +299,16 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
+    // 审计修复：查询参数统一 camelCase，由请求中间件自动转 snake_case
     const params = {
       page: currentPage.value,
-      page_size: pageSize.value,
+      pageSize: pageSize.value,
       name: filters.value.name || undefined,
-      course_id: filters.value.courseId || undefined,
-      personnel_type: filters.value.personnelType || undefined,
-      college_id: filters.value.collegeId || undefined,
-      training_level_id: filters.value.trainingLevelId || undefined,
-      affiliated_college_id: filters.value.affiliatedCollegeId || undefined,
+      courseId: filters.value.courseId || undefined,
+      personnelType: filters.value.personnelType || undefined,
+      collegeId: filters.value.collegeId || undefined,
+      trainingLevelId: filters.value.trainingLevelId || undefined,
+      affiliatedCollegeId: filters.value.affiliatedCollegeId || undefined,
       status: filters.value.status || undefined,
     };
     const res = await getTeachers(params);

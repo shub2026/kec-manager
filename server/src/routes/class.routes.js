@@ -4,7 +4,6 @@ import { sanitizeBody } from '../middleware/xss.js';
 import { validatePagination } from '../middleware/pagination.js';
 import { validateIdParam, validateClass, validateClassUpdate } from '../middleware/validation.js';
 import {
-  getClassStats,
   listClasses,
   createClass,
   updateClass,
@@ -14,11 +13,6 @@ import {
 } from '../controllers/class.controller.js';
 
 const router = Router();
-
-/**
- * GET /api/classes/stats - 轻量级统计接口
- */
-router.get('/stats', getClassStats);
 
 /**
  * POST /api/classes/batch-delete - 批量删除班级（须在 /:id 前注册）

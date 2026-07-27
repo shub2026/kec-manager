@@ -23,6 +23,7 @@ const mockPrisma = {
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    count: vi.fn(),
   },
 };
 
@@ -68,7 +69,7 @@ vi.mock('../../middleware/auth.middleware.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { createUser, updateUser, updateUserStatus, resetUserPassword, deleteUser } =
+const { listUsers, createUser, updateUser, updateUserStatus, resetUserPassword, deleteUser } =
   await import('../user.controller.js');
 const { createAuditLog } = await import('../../services/audit.service.js');
 const { invalidateUserStatusCache } = await import('../../middleware/auth.middleware.js');
@@ -1065,6 +1066,99 @@ describe('resetUserPassword', () => {
         module: 'user',
         result: 'success',
         userId: 1,
+      })
+    );
+  });
+});
+
+// ════════════════════════════════════════════
+// listUsers（审计修复：keyword 服务端过滤）
+// ════════════════════════════════════════════
+describe('listUsers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.users.findMany.mockResolvedValue([]);
+    mockPrisma.users.count.mockResolvedValue(0);
+  });
+
+  it('keyword 传入时 where.OR 对用户名/姓名/邮箱做 contains 过滤', async () => {
+    const req = mockReq({
+      query: { page: '1', page_size: '20', keyword: ' 张三 ' },
+      user: { id: 1, role: 'super_admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await listUsers(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    const expectedWhere = {
+      OR: [
+        { username: { contains: '张三' } },
+        { real_name: { contains: '张三' } },
+        { email: { contains: '张三' } },
+      ],
+    };
+    expect(mockPrisma.users.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expectedWhere })
+    );
+    // count 与 findMany 使用同一 where，保证分页 total 与过滤结果一致
+    expect(mockPrisma.users.count).toHaveBeenCalledWith({ where: expectedWhere });
+  });
+
+  it('keyword 为空白时不追加 OR 条件', async () => {
+    const req = mockReq({
+      query: { keyword: '   ' },
+      user: { id: 1, role: 'super_admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await listUsers(req, res, next);
+
+    const where = mockPrisma.users.findMany.mock.calls[0][0].where;
+    expect(where.OR).toBeUndefined();
+  });
+
+  it('admin 角色限定 role=viewer 且与 keyword 过滤共存', async () => {
+    const req = mockReq({
+      query: { keyword: 'test' },
+      user: { id: 2, role: 'admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await listUsers(req, res, next);
+
+    const where = mockPrisma.users.findMany.mock.calls[0][0].where;
+    expect(where.role).toBe('viewer');
+    expect(where.OR).toEqual([
+      { username: { contains: 'test' } },
+      { real_name: { contains: 'test' } },
+      { email: { contains: 'test' } },
+    ]);
+  });
+
+  it('返回分页结构 items/total/page/pageSize', async () => {
+    const rows = [{ id: 1, username: 'u1' }];
+    mockPrisma.users.findMany.mockResolvedValue(rows);
+    mockPrisma.users.count.mockResolvedValue(35);
+    const req = mockReq({
+      query: { page: '2', page_size: '20' },
+      user: { id: 1, role: 'super_admin' },
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await listUsers(req, res, next);
+
+    expect(mockPrisma.users.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 20, take: 20 })
+    );
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: { items: rows, total: 35, page: 2, pageSize: 20 },
       })
     );
   });

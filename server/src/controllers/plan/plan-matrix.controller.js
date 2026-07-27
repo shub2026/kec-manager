@@ -1,6 +1,27 @@
 import { prisma } from '../../lib/prisma.js';
 import { success, fail } from '../../utils/response.js';
 import { createAuditLog } from '../../services/audit.service.js';
+import { MAX_PLAN_SEMESTER } from '../../constants/index.js';
+
+/**
+ * 审计修复：校验学期窗口合法性（整数、start>=1、end<=MAX_PLAN_SEMESTER、start<=end）
+ * @returns {string|null} 错误消息，合法时返回 null
+ */
+function validateSemesterWindow(start, end) {
+  if (!Number.isInteger(start) || !Number.isInteger(end)) {
+    return '开课学期必须为整数';
+  }
+  if (start < 1) {
+    return '开始学期不能小于 1';
+  }
+  if (end > MAX_PLAN_SEMESTER) {
+    return `结束学期不能超过 ${MAX_PLAN_SEMESTER}`;
+  }
+  if (start > end) {
+    return '开始学期不能大于结束学期';
+  }
+  return null;
+}
 
 /**
  * B3 辅助：查找"可能成为孤儿"的教学安排。
@@ -70,8 +91,9 @@ export async function addCourseToPlan(req, res, next) {
     if (!course_id || start_semester === undefined || end_semester === undefined || !weekly_hours) {
       return fail(res, '课程、开课学期、周课时为必填项');
     }
-    if (Number(start_semester) > Number(end_semester)) {
-      return fail(res, '开始学期不能大于结束学期', 400);
+    const semesterError = validateSemesterWindow(Number(start_semester), Number(end_semester));
+    if (semesterError) {
+      return fail(res, semesterError, 400);
     }
     const weeks = weeks_per_semester ? Number(weeks_per_semester) : 18;
 
@@ -168,8 +190,9 @@ export async function updatePlanCourse(req, res, next) {
       weeks_per_semester !== undefined ? Number(weeks_per_semester) : currentPc.weeks_per_semester;
     const newSortOrder = sort_order !== undefined ? Number(sort_order) : currentPc.sort_order;
 
-    if (newStart > newEnd) {
-      return fail(res, '开始学期不能大于结束学期', 400);
+    const semesterWindowError = validateSemesterWindow(newStart, newEnd);
+    if (semesterWindowError) {
+      return fail(res, semesterWindowError, 400);
     }
 
     const pc = await prisma.$transaction(async (tx) => {
@@ -293,52 +316,6 @@ export async function updatePlanCourse(req, res, next) {
       ip: req.ip,
       result: 'failed',
       message: '更新培养方案课程失败',
-      details: { error: e.message },
-    });
-    if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);
-    next(e);
-  }
-}
-
-/**
- * 仅更新课程排序序号（不触发学期记录重建，避免教材关联丢失）
- *
- * 严重-1 修复配套：拖拽排序是高频操作，走轻量端点避免无谓的学期记录 diff。
- */
-export async function updatePlanCourseSortOrder(req, res, next) {
-  try {
-    const { id } = req.params;
-    const { sort_order } = req.body;
-
-    if (sort_order === undefined || sort_order === null) {
-      return fail(res, '排序序号为必填项');
-    }
-
-    const updated = await prisma.plan_courses.update({
-      where: { id: Number(id) },
-      data: { sort_order: Number(sort_order) },
-      select: { id: true, sort_order: true },
-    });
-
-    await createAuditLog({
-      module: 'trainingPlan',
-      action: 'update',
-      userId: req.user?.id,
-      ip: req.ip,
-      result: 'success',
-      message: '更新课程排序',
-      details: { course_id: Number(id), sort_order: Number(sort_order) },
-    });
-
-    success(res, updated, '排序已更新');
-  } catch (e) {
-    await createAuditLog({
-      module: 'trainingPlan',
-      action: 'update',
-      userId: req.user?.id,
-      ip: req.ip,
-      result: 'failed',
-      message: '更新课程排序失败',
       details: { error: e.message },
     });
     if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);
@@ -702,44 +679,6 @@ export async function removeSemesterTextbooks(req, res, next) {
       ip: req.ip,
       result: 'failed',
       message: '删除教材失败',
-      details: { error: e.message },
-    });
-    next(e);
-  }
-}
-
-/**
- * 删除教材关联记录
- */
-export async function deletePlanTextbook(req, res, next) {
-  try {
-    const { id } = req.params;
-    try {
-      await prisma.plan_textbooks.delete({ where: { id: Number(id) } });
-
-      await createAuditLog({
-        module: 'trainingPlan',
-        action: 'delete',
-        userId: req.user?.id,
-        ip: req.ip,
-        result: 'success',
-        message: '删除培养方案教材',
-        details: { id: Number(id) },
-      });
-
-      success(res, null, '取消关联成功');
-    } catch (e) {
-      if (e.code === 'P2025') return fail(res, '教材关联不存在', 404);
-      throw e;
-    }
-  } catch (e) {
-    await createAuditLog({
-      module: 'trainingPlan',
-      action: 'delete',
-      userId: req.user?.id,
-      ip: req.ip,
-      result: 'failed',
-      message: '删除培养方案教材失败',
       details: { error: e.message },
     });
     next(e);

@@ -314,11 +314,23 @@ export async function assignTeacher(req, res, next) {
       });
       const dedupedUnits = dedupeTeachingUnits(teacherAssignments);
       const totalHours = dedupedUnits.reduce((sum, u) => sum + (u.weeklyHours || 0), 0);
-      // H-4 修复：从 DEFAULT_HOUR_SETTINGS 读取人员类别对应的 max 课时，替代硬编码 20
+      // 审计修复：预警口径与前端 TeacherSelectDialog 对齐——
+      // 教师个人标准课时 default_weekly_hours 优先，其次全局课时配置的 standard，
+      // 最后回退 DEFAULT_HOUR_SETTINGS（配置读取与 getHourSettings 同源）
       const personnelType = assignment.teacher?.personnel_type || 'full_time';
-      const hourLimit = DEFAULT_HOUR_SETTINGS[personnelType]?.max || 20;
+      const globalSettings = await prisma.system_settings.findUnique({
+        where: { key: HOUR_SETTINGS_PREFIX },
+      });
+      const configuredSettings = globalSettings
+        ? safeParseJSON(globalSettings.value, DEFAULT_HOUR_SETTINGS)
+        : DEFAULT_HOUR_SETTINGS;
+      const hourLimit =
+        teacher.default_weekly_hours ??
+        configuredSettings[personnelType]?.standard ??
+        DEFAULT_HOUR_SETTINGS[personnelType]?.standard ??
+        DEFAULT_HOUR_SETTINGS.full_time.standard;
       if (totalHours > hourLimit) {
-        workloadWarning = `该教师当前学期周课时已达 ${totalHours}，超过建议上限 ${hourLimit}`;
+        workloadWarning = `该教师当前学期周课时已达 ${totalHours}，超过标准课时上限 ${hourLimit}`;
       }
     } catch (_e) {
       // 工作量查询失败不阻塞主流程

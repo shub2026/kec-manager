@@ -1308,11 +1308,13 @@ export async function autoArrange(
     );
 
     // S-13 修复：预览模式下从前序课程累计教材负载
+    // 审计修复：改为并集合并而非替换，保留 buildTeacherConstraints 从 DB 已排记录
+    // 解析出的教材种子，避免批量第 2 门课起丢失 DB 教材导致 H4 全学期 2 本硬上限失效
     if (globalTextbookMap) {
       for (const t of teacherConstraints) {
         const prevTbs = globalTextbookMap.get(t.id);
         if (prevTbs && prevTbs.size > 0) {
-          t.assignedTextbookIds = new Set(prevTbs);
+          t.assignedTextbookIds = new Set([...(t.assignedTextbookIds || []), ...prevTbs]);
         }
       }
     }
@@ -1615,7 +1617,6 @@ export async function autoArrange(
         );
         if (filler) {
           taken.push(filler);
-          usedHours += filler.weeklyHours;
           if (useTbLimit && filler.textbookIds?.length) {
             for (const tid of filler.textbookIds) projectedTextbooks.add(tid);
           }
@@ -1633,7 +1634,6 @@ export async function autoArrange(
             if (y) {
               const idx = taken.indexOf(x);
               taken[idx] = y;
-              usedHours += y.weeklyHours - x.weeklyHours;
               if (useTbLimit && y.textbookIds?.length) {
                 for (const tid of y.textbookIds) projectedTextbooks.add(tid);
               }

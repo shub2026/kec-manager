@@ -210,6 +210,61 @@ describe('plan-matrix.controller', () => {
       expect(mockTx.plan_course_semesters.create).toHaveBeenCalledTimes(1);
       expect(mockTx.plan_course_semesters.create.mock.calls[0][0].data.semester).toBe(2);
     });
+
+    // 审计修复：学期越界校验
+    it('start_semester = 0 应返回 400：开始学期不能小于 1', async () => {
+      const req = mockReq(
+        { course_id: 1, start_semester: 0, end_semester: 2, weekly_hours: 4 },
+        { id: '1' }
+      );
+      const res = mockRes();
+      const next = vi.fn();
+
+      await addCourseToPlan(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: '开始学期不能小于 1',
+      });
+      expect(mockTx.plan_courses.create).not.toHaveBeenCalled();
+    });
+
+    it('end_semester = 13 应返回 400：结束学期不能超过 12', async () => {
+      const req = mockReq(
+        { course_id: 1, start_semester: 1, end_semester: 13, weekly_hours: 4 },
+        { id: '1' }
+      );
+      const res = mockRes();
+      const next = vi.fn();
+
+      await addCourseToPlan(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: '结束学期不能超过 12',
+      });
+      expect(mockTx.plan_courses.create).not.toHaveBeenCalled();
+    });
+
+    it('非整数学期应返回 400：开课学期必须为整数', async () => {
+      const req = mockReq(
+        { course_id: 1, start_semester: 1.5, end_semester: 3, weekly_hours: 4 },
+        { id: '1' }
+      );
+      const res = mockRes();
+      const next = vi.fn();
+
+      await addCourseToPlan(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: '开课学期必须为整数',
+      });
+      expect(mockTx.plan_courses.create).not.toHaveBeenCalled();
+    });
   });
 
   // ════════════════════════════════════════════
@@ -366,6 +421,32 @@ describe('plan-matrix.controller', () => {
       expect(res.json).toHaveBeenCalledWith({
         success: false,
         message: '开始学期不能大于结束学期',
+      });
+      expect(mockTx.plan_courses.update).not.toHaveBeenCalled();
+    });
+
+    // 审计修复：更新时 end 越界也应拦截
+    it('end 越界（>12）应返回 400', async () => {
+      mockPrisma.plan_courses.findUnique.mockResolvedValue({
+        id: 1,
+        start_semester: 1,
+        end_semester: 3,
+        weekly_hours: 4,
+        weeks_per_semester: 18,
+        sort_order: 1,
+        plan_course_semesters: [],
+      });
+
+      const req = mockReq({ start_semester: 1, end_semester: 20 }, { id: '1' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await updatePlanCourse(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: '结束学期不能超过 12',
       });
       expect(mockTx.plan_courses.update).not.toHaveBeenCalled();
     });

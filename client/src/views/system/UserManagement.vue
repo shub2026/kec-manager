@@ -20,7 +20,7 @@
       </div>
       <!-- 用户列表 -->
       <ListErrorState v-if="error" :message="error" @retry="loadUsers" />
-      <el-table v-else v-loading="loading" :data="displayUsers" stripe row-key="id">
+      <el-table v-else v-loading="loading" :data="users" stripe row-key="id">
         <template #empty>
           <EmptyState type="generic" description="暂无数据" />
         </template>
@@ -98,7 +98,7 @@
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[20, 50, 100]"
-          :total="paginationTotal"
+          :total="total"
           layout="total, sizes, prev, pager, next"
           background
           @size-change="loadUsers"
@@ -141,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { Search } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { ElMessage } from 'element-plus';
@@ -179,25 +179,18 @@ const currentPage = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
 
-// P1-4：补 .page-toolbar 搜索框，对齐基础数据组节奏；客户端过滤已加载用户
+// P1-4：补 .page-toolbar 搜索框，对齐基础数据组节奏
+// 审计修复：keyword 改为服务端过滤（listUsers 已支持），支持跨页搜索，
+// 移除仅对当前页生效的客户端过滤
 const keyword = ref('');
-const displayUsers = computed(() => {
-  const kw = keyword.value.trim().toLowerCase();
-  if (!kw) return users.value;
-  return users.value.filter(
-    (u) =>
-      (u.username && u.username.toLowerCase().includes(kw)) ||
-      (u.realName && u.realName.toLowerCase().includes(kw)) ||
-      (u.email && u.email.toLowerCase().includes(kw))
-  );
-});
-// 搜索时以过滤后数量作为分页总数（仅对当前已加载页生效，跨页全文搜索需后端支持）
-const paginationTotal = computed(() =>
-  keyword.value.trim() ? displayUsers.value.length : total.value
-);
-// 搜索词变化回到第 1 页
+// 搜索词变化：防抖 300ms 后回第 1 页重新拉取
+let keywordTimer = null;
 watch(keyword, () => {
-  currentPage.value = 1;
+  clearTimeout(keywordTimer);
+  keywordTimer = setTimeout(() => {
+    currentPage.value = 1;
+    loadUsers();
+  }, 300);
 });
 
 // 状态切换确认弹窗

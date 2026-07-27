@@ -44,6 +44,8 @@ router.use(authMiddleware, roleMiddleware('super_admin'));
 router.put('/', sanitizeBody, updateSettings);
 
 // POST /api/settings/initialize - 初始化接口
+// 审计结论修正（保留，非死代码）：运维初始化入口，用于新环境部署时
+// 一次性写入默认系统设置（幂等，已存在时跳过），供部署脚本/运维手动调用
 router.post('/initialize', initializeSettings);
 
 // 重置接口 - 需要super_admin权限和确认验证 + 严格速率限制
