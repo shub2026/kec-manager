@@ -182,6 +182,7 @@ function buildTeacherConstraints(teachers, allAssignments, classMap, mode) {
       personnelType,
       defaultWeeklyHours: t.default_weekly_hours,
       gender: t.gender,
+      courses: t.courses || [], // 授课资格关联，用于按课程筛选合格教师
 
       // 意向约束 - 关键字段
       schedulingCollegeIds,
@@ -291,8 +292,9 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       for (const cid of course.classIds) allClassIds.add(cid);
     }
 
-    // 4. 加载教师完整信息（含 scheduling_colleges、scheduling_levels）
+    // 4. 加载教师完整信息（含 scheduling_colleges、scheduling_levels、courses）
     // Schema 对齐修复：teachers 模型无 teacher_textbook_preferences 关系
+    // courses 用于按课程筛选合格教师，防止 tabuOptimize 跨学科变更
     const teachers = await prisma.teachers.findMany({
       where: { id: { in: [...allTeacherIds] } },
       include: {
@@ -300,6 +302,7 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         scheduling_levels: {
           include: { training_level: { select: { id: true, name: true } } },
         },
+        courses: { select: { course_id: true } },
       },
     });
 
@@ -430,11 +433,48 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
 
       const courseUnassigned = [];
 
+      // 筛选具备本课程授课资格的教师（teacher_courses 关联包含该 courseId）
+      // 防止 tabuOptimize 将班级 Shift/Swap 到非本课教师名下，导致跨学科变更
+      const qualifiedTeachers = teacherConstraints.filter((t) =>
+        (t.courses || []).some((tc) => tc.course_id === Number(courseId))
+      );
+
+      // 为每门课创建独立的教师约束副本，防止 tabuOptimize 写回污染共享状态
+      // （writeback 会修改 assignedTextbookIds/assignedCollegeIds Set 和 assignedHours）
+      const courseTeacherConstraints = qualifiedTeachers.map((t) => ({
+        ...t,
+        assignedTextbookIds: new Set(t.assignedTextbookIds),
+        assignedCollegeIds: new Set(t.assignedCollegeIds),
+        preferences: new Map(t.preferences),
+      }));
+
+      // 容量修正：buildTeacherConstraints 的 standardCap/fullCap 用的是全局 existingHours（含所有课程），
+      // 但 tabu-search 的 buildTeacherStates 仅从当前课程 assignments 初始化 assignedHours。
+      // 两者语义不匹配会导致 canAccept 系统性拒绝几乎所有移动：
+      //   standardCap = standard - globalHours（很小）
+      //   assignedHours = courseHours（已经接近 standardCap）
+      //   canAccept: courseHours + newHours > standardCap → REJECTED
+      // 修正：将 standardCap/fullCap 重算为 "排除本课后" 的可用容量，
+      // 与 auto-arrange.js 的 effectiveTotal = totalWeeklyHours - autoHoursForCourse 思路对齐
+      const courseHoursMap = new Map();
+      for (const a of courseAssignments) {
+        courseHoursMap.set(a.teacher_id, (courseHoursMap.get(a.teacher_id) || 0) + (a.weekly_hours || 0));
+      }
+      for (const t of courseTeacherConstraints) {
+        const courseHours = courseHoursMap.get(t.id) || 0;
+        const otherHours = t.effectiveTotal - courseHours;
+        t.standardCap = Math.max(0, Math.floor(t.standardHours - otherHours));
+        t.fullCap = Math.max(0, Math.floor(t.maxHours - otherHours));
+        t.teacherHourCap = t.defaultWeeklyHours != null
+          ? Math.max(0, t.defaultWeeklyHours - otherHours)
+          : null;
+      }
+
       try {
         const tsResult = tabuOptimize(
           courseAssignments,
           courseUnassigned,
-          teacherConstraints,
+          courseTeacherConstraints,
           mode,
           classMap,
           courseId,
@@ -461,9 +501,12 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         }
 
         // 将优化后的 assignments 写回 course.assignments
-        course.assignments = courseAssignments.map((a, idx) => ({
-          ...course.assignments[idx],
-          teacher_id: a.teacher_id,
+        // 用 class_id 匹配而非位置索引：tabuOptimize 可能在 best-solution 还原时
+        // 改变 assignments 数组顺序（Map 迭代序不确定），位置匹配会导致 teacher_id 错位
+        const optimizedTeacherByClass = new Map(courseAssignments.map((a) => [a.class_id, a.teacher_id]));
+        course.assignments = course.assignments.map((orig) => ({
+          ...orig,
+          teacher_id: optimizedTeacherByClass.get(orig.class_id) ?? orig.teacher_id,
         }));
       } catch (tsErr) {
         logger.warn(`[Optimize] 课程${courseId}优化异常，已跳过: ${tsErr.message}`);
@@ -572,16 +615,18 @@ export async function applyOptimizeResult(semesterId, changes, userId) {
       for (const change of changes) {
         // Schema 对齐修复：teaching_assignments 用 semester（非 semester_id）
         // where 同时匹配 class_id + course_id + semester，对齐唯一约束
+        // 注意：全局 convertRequestNaming 中间件已将请求体 camelCase → snake_case，
+        // 故此处用 class_id / course_id / from_teacher / to_teacher
         await tx.teaching_assignments.updateMany({
           where: {
             semester: semesterStr,
-            class_id: change.classId,
-            course_id: change.courseId,
-            teacher_id: change.fromTeacher.id,
+            class_id: change.class_id,
+            course_id: change.course_id,
+            teacher_id: change.from_teacher.id,
             is_locked: false,
           },
           data: {
-            teacher_id: change.toTeacher.id,
+            teacher_id: change.to_teacher.id,
             updated_at: new Date(),
           },
         });

@@ -9,6 +9,7 @@
     @update:model-value="emit('update:modelValue', $event)"
     @close="emit('close')"
   >
+    <template v-if="result">
     <!-- 汇总统计 -->
     <div class="optimize-summary">
       <div class="optimize-stat-card is-primary">
@@ -129,11 +130,12 @@
         </div>
       </div>
     </div>
+    </template>
 
-    <template #footer>
+    <template #footer v-if="result">
       <div class="dialog-footer">
         <el-button @click="emit('close')">取消</el-button>
-        <el-button type="primary" :loading="applying" @click="emit('apply')">
+        <el-button type="primary" :loading="applying" :disabled="!result.changes?.length" @click="emit('apply')">
           应用优化（{{ result.changes?.length || 0 }}个变更）
         </el-button>
       </div>

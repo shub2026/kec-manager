@@ -57,6 +57,7 @@ function mockTeacher(id, name, overrides = {}) {
     gender: 'male',
     scheduling_colleges: overrides.scheduling_colleges || [],
     scheduling_levels: overrides.scheduling_levels || [],
+    courses: overrides.courses || [{ course_id: 1 }], // 默认关联 courseId=1
     // teacher_textbook_preferences 已移除（schema 无此关系）
     ...overrides,
   };
@@ -301,16 +302,16 @@ describe('Optimize Service', () => {
 
       const changes = [
         {
-          classId: 1,
-          courseId: 1,
-          fromTeacher: { id: 1, name: 'Teacher 1' },
-          toTeacher: { id: 2, name: 'Teacher 2' },
+          class_id: 1,
+          course_id: 1,
+          from_teacher: { id: 1, name: 'Teacher 1' },
+          to_teacher: { id: 2, name: 'Teacher 2' },
         },
         {
-          classId: 2,
-          courseId: 1,
-          fromTeacher: { id: 1, name: 'Teacher 1' },
-          toTeacher: { id: 3, name: 'Teacher 3' },
+          class_id: 2,
+          course_id: 1,
+          from_teacher: { id: 1, name: 'Teacher 1' },
+          to_teacher: { id: 3, name: 'Teacher 3' },
         },
       ];
 
@@ -346,10 +347,10 @@ describe('Optimize Service', () => {
 
       const changes = [
         {
-          classId: 1,
-          courseId: 1,
-          fromTeacher: { id: 1, name: 'Teacher 1' },
-          toTeacher: { id: 2, name: 'Teacher 2' },
+          class_id: 1,
+          course_id: 1,
+          from_teacher: { id: 1, name: 'Teacher 1' },
+          to_teacher: { id: 2, name: 'Teacher 2' },
         },
       ];
 

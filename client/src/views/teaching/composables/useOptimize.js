@@ -30,6 +30,7 @@ export function useOptimize({ selectedSemester, loadData, confirmHistoricalEdit 
   async function doOptimize() {
     if (!(await confirmHistoricalEdit())) return;
 
+    optimizeConfirmVisible.value = false;
     optimizing.value = true;
     progressMessage.value = '';
 
@@ -80,7 +81,8 @@ export function useOptimize({ selectedSemester, loadData, confirmHistoricalEdit 
       if (response.success) {
         ElMessage.success(`优化已应用：变更${optimizeResult.value.changes.length}个班级`);
         optimizeResultVisible.value = false;
-        optimizeResult.value = null;
+        // 不立即清空 optimizeResult，等弹窗关闭动画结束后由 closeOptimizeResult 清理，
+        // 避免关闭动画期间模板访问 null.summary 报错
         await loadData();
       } else {
         ElMessage.error(response.message || '应用优化结果失败');
