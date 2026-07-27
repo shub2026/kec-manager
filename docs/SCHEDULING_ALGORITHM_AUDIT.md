@@ -5,7 +5,7 @@
 > （`auto-arrange.js`、`queries.js`、`batch.js`、`tabu-search.js`、`validate.js`、`lock.js`）
 > 及 `server/src/constants/index.js` 中排课相关配置
 > 审计性质：**只读审计**，本文档不伴随任何代码改动
-> 姊妹文档：[SCHEDULING_ALGORITHM.md](./SCHEDULING_ALGORITHM.md)（算法设计说明，v1.3.0）
+> 姊妹文档：[SCHEDULING_ALGORITHM.md](./SCHEDULING_ALGORITHM.md)（算法设计说明，v1.3.11）
 
 ---
 
@@ -20,6 +20,8 @@
 3. **可维护性**：死配置、非严格弱序比较器、诊断日志无级别守卫等。
 
 共 17 项发现：**P1 × 4、P2 × 9、P3 × 4**，详见第四节。
+
+> **修复跟踪（2026-07-27，v1.3.11 优化批次）**：本批次聚焦排课优化层（`optimize.js`），已修复 **F15**——`calculateMetrics` 综合评分补齐欠分配惩罚（`α × 缺口`）与负载方差惩罚（`β × 方差 × 100`），与 `tabu-search.js` 的 `computeObjective` 对齐，消除 UI 展示评分与算法目标函数的口径矛盾。同批次另修复优化层 **N+1 查询**（逐班 `findUnique` → 批量 `findMany`）与**跨课程状态回写**（`courseTeacherConstraints` → 共享 `teacherConstraints`，教材集合替换、学院集合只增不减），对应三阶段深度审计的 P0 项，不在本审计 F 编号内。其余 F1–F4、F5–F14、F16–F17 仍待排期处理。
 
 ---
 
@@ -194,7 +196,7 @@ fullCap        = floor(min(teacherHourCap, max(0, max − effectiveTotal)) × re
 
 - `COHESION_PHASE_ENABLED`、`PHASE0_ENABLED` 仅在常量定义与测试 mock 中出现，生产代码无引用（v2 重写后遗留）；`calcMatchScore` 中 `tbCount >= 3 / >= 2` 分支在 `maxTb=2` 下不可达（源码已注释说明）。建议删除死配置、保留分支注释，避免误导后续调参。
 
-#### F15. 禁忌搜索目标函数缺"教师达标"与"负载均衡"维度
+#### F15. 禁忌搜索目标函数缺"教师达标"与"负载均衡"维度 【已修复 2026-07-27】
 
 - 目标 = Σ匹配评分 − 未分配×500，不含"教师距标准课时缺口"与负载方差项。即使开启，搜索也不会主动把欠课时教师补满（Insert 恒正必然优先，但 Shift/Swap 可能把课时从欠分配教师身上移走而不受罚）。若未来启用禁忌搜索，建议目标函数追加 `−α × Σ max(0, standardCap − assignedHours)`（欠分配缺口惩罚）与轻量负载方差项；同时 Swap 算子的随机采样建议改为固定种子伪随机，保证同输入结果可复现（当前 `Math.random()` 导致开启后排课不可复现）。
 

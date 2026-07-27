@@ -8,6 +8,42 @@
 > **⚠️ 版本基线重置说明（2026-07-13）**：本项目于本日正式将版本基线重置为 **v1.0.0**（首个稳定发布版）。
 > 此前 2026-06-13 ~ 2026-07-06 期间的 `v1.0.0`–`v2.21.0` 为开发期内部迭代，其对应的 Git tag 已清理；下方「历史开发记录」予以保留作为归档。
 
+## [1.3.11] - 2026-07-27
+
+### 修复（排课优化层 P0/P1/P2）
+
+- **P0 跨课程状态回写**：`optimize.js` 在禁忌搜索 `tabuOptimize` 后将 `courseTeacherConstraints` 的增量状态同步回共享 `teacherConstraints`（教材集合替换、学院集合只增不减），修复后续课程基于陈旧状态评估导致的跨课程教材/学院口径漂移
+- **P0 N+1 查询修复**：`runOptimizeSchedule` 将"按课程循环内逐班 `findUnique`"改为"批量 `findMany` + Map 查表"，消除优化层数据库查询放大
+- **P1 目标函数统一**：`calculateMetrics` 综合评分补齐欠分配惩罚（`α × 缺口`）与负载方差惩罚（`β × 方差 × 100`），与 `tabu-search.js` 的 `computeObjective` 对齐，消除 UI 评分与算法目标函数的口径矛盾（对应审计 F15）
+- **P2 阈值逻辑修正**：`meetsMinimumThreshold` 由 `&&` 改为加权 `||` 判定（`scoreImprovement > 5%` 或 `changesCount ≥ 3 且 > 2%`），负分守卫 `> 0` 改为 `!== 0`，避免负分→正分的大幅改进被误判为 0%
+- **P1 线性查找→Map**：`teachers.find` 改为 `teacherNameMap` O(1) 查表
+
+### 前端组件优化（P0/P1/P2）
+
+- **Login.vue**：约 100 处硬编码颜色（SVG/CSS）替换为设计令牌；`card-header` 类名重命名为 `login-card-header`
+- **Dashboard.vue**：`insights-grid` 补充 `role="region"` + `aria-label`
+- **CourseProgressChart / HoursChart**：课时小数精度对齐（保留 1 位）
+- **TeacherSelectDialog**：移除自管 `matchMedia` + `onUnmounted` 内存泄漏，复用 `useResponsive()`；宽度改用 `--dialog-width-xxl` 令牌
+- **TeachingArrange / ClassFormDialog / Layout**：容器类重命名、`gutter` 统一为 16、`#fff`→令牌并移除 fallback 硬编码
+- **6 个列表页**：排序按钮补 `aria-label`
+- **theme.css / global.css**：新增 `--dialog-width-xxl` 与通用 `filter-*` 工具类
+
+### 弹窗修复
+
+- **OptimizeResultDialog**：阈值文案对齐新逻辑；评分负数格式化（`formatScore`）；`deltaClass`/`deltaArrow` 中性态；`score-hint` 标签
+- **ArrangeResultDialog**：分散教师数阈值 `≥3`→`≥2`
+- **BatchResultDialog**：展开/折叠行补 `role="button"` + `tabindex` + 键盘 `@keyup.enter` + `aria-expanded`/`aria-label`
+- **CourseMatrix / PlanDetail**：移除未使用 `allCourses` prop 并同步
+
+### 测试
+
+- `optimize.test.js` 新增 4 个用例（跨课程回写 / 目标函数含惩罚 / 负分守卫 / N+1 批量查询）
+- 服务端 Vitest 用例 1441 → 1445，全部通过
+
+### 文档
+
+- 同步 README / DEPLOYMENT / 算法文档版本号至 v1.3.11；算法审计文档补充修复跟踪（F15 已修复）
+
 ## [1.3.0] - 2026-07-23
 
 ### 新增
