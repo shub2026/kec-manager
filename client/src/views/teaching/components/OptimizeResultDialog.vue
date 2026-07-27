@@ -10,25 +10,25 @@
     @close="emit('close')"
   >
     <template v-if="result">
-    <!-- 汇总统�? -->
+    <!-- 汇总统计 -->
     <div class="optimize-summary">
       <div class="optimize-stat-card is-primary">
         <div class="optimize-stat-num text-brand">
           {{ result.summary?.changedClasses || 0 }}
         </div>
-        <div class="optimize-stat-label">优化班级�?</div>
+        <div class="optimize-stat-label">优化班级数</div>
       </div>
       <div class="optimize-stat-card is-success">
         <div class="optimize-stat-num text-success">
           {{ result.summary?.improvedCourses || 0 }}
         </div>
-        <div class="optimize-stat-label">改善课程�?</div>
+        <div class="optimize-stat-label">改善课程数</div>
       </div>
       <div class="optimize-stat-card">
         <div class="optimize-stat-num">
           {{ result.summary?.affectedTeachers || 0 }}
         </div>
-        <div class="optimize-stat-label">涉及教师�?</div>
+        <div class="optimize-stat-label">涉及教师数</div>
       </div>
       <div class="optimize-stat-card">
         <div class="optimize-stat-num">
@@ -43,7 +43,7 @@
       <div class="section-title">优化效果</div>
       <div class="improvement-grid">
         <div class="improvement-item">
-          <div class="improvement-label">综合评分<span class="score-hint">（含惩罚项，可能为负�?</span></div>
+          <div class="improvement-label">综合评分<span class="score-hint">（含惩罚项，可能为负）</span></div>
           <div class="improvement-values">
             <span class="value-before">{{ formatScore(result.before?.score) }}</span>
             <el-icon class="arrow-icon"><ArrowRight /></el-icon>
@@ -59,7 +59,7 @@
         </div>
 
         <div class="improvement-item">
-          <div class="improvement-label">负载均衡�?</div>
+          <div class="improvement-label">负载均衡度</div>
           <div class="improvement-values">
             <span class="value-before">{{ (result.before?.loadVariance || 0).toFixed(4) }}</span>
             <el-icon class="arrow-icon"><ArrowRight /></el-icon>
@@ -75,7 +75,7 @@
         </div>
 
         <div class="improvement-item">
-          <div class="improvement-label">教材内聚�?</div>
+          <div class="improvement-label">教材内聚度</div>
           <div class="improvement-values">
             <span class="value-before">{{
               (result.before?.textbookCohesionRate || 0).toFixed(2)
@@ -96,7 +96,7 @@
       </div>
     </div>
 
-    <!-- 阈值警�? -->
+    <!-- 阈值警告 -->
     <el-alert
       v-if="!result.meetsThreshold"
       type="warning"
@@ -104,10 +104,10 @@
       show-icon
       class="threshold-warning"
     >
-      <template #title>优化效果未达到阈�?</template>
+      <template #title>优化效果未达到阈值</template>
       <div>
-        当前优化未达到最小改进阈值（评分改进&gt;5%，或3+个班级变更且改进&gt;2%），建议保持现有排课方案�?
-        如果仍要应用，请点击下方"应用优化"按钮�?
+        当前优化未达到最小改进阈值（评分改进&gt;5%，或3+个班级变更且改进&gt;2%），建议保持现有排课方案。
+        如果仍要应用，请点击下方"应用优化"按钮。
       </div>
     </el-alert>
 
@@ -152,7 +152,7 @@ defineProps({
 
 const emit = defineEmits(['update:modelValue', 'apply', 'close']);
 
-// 评分格式化：��留一位小数，负数加前缀便于辨识
+// 评分格式化：保留一位小数，负数加前缀便于辨识
 function formatScore(score) {
   if (score == null) return '0';
   const n = Number(score);
@@ -160,8 +160,8 @@ function formatScore(score) {
   return n.toFixed(1);
 }
 
-// �Ľ�������ʽ�ࣺ��ֵ��is-positive����ֵ��is-negative��0��is-neutral
-// inverse=true ��ʾ"����Ϊ��"���縺�ط������=���棩
+// 改进幅度样式类：正值→is-positive，负值→is-negative，0→is-neutral
+// inverse=true 表示"降低为好"（如负载方差：降低=正面）
 function deltaClass(val, inverse = false) {
   const n = Number(val) || 0;
   if (n === 0) return 'is-neutral';
@@ -169,19 +169,19 @@ function deltaClass(val, inverse = false) {
   return positive ? 'is-positive' : 'is-negative';
 }
 
-// �Ľ����ȼ�ͷ����������������0����
+// 改进幅度箭头：正面↑，负面↓，0→—
 function deltaArrow(val, inverse = false) {
   const n = Number(val) || 0;
-  if (n === 0) return '��';
+  if (n === 0) return '—';
   const positive = inverse ? n < 0 : n > 0;
-  return positive ? '��' : '��';
+  return positive ? '↑' : '↓';
 }
 </script>
 
 <style scoped>
 :deep(.optimize-result-dialog) .el-dialog__body {
   padding: var(--space-4) 20px;
-  /* 移动端兜底：高内容弹窗允�? body 滚动，避�? footer 被裁出视�? */
+  /* 移动端兜底：高内容弹窗允许 body 滚动，避免 footer 被裁出视口 */
   max-height: calc(90vh - 140px);
   overflow-y: auto;
 }
@@ -405,7 +405,7 @@ function deltaArrow(val, inverse = false) {
   gap: var(--space-2);
 }
 
-/* 移动端响应式：网格重�? + footer 按钮等宽 */
+/* 移动端响应式：网格重排 + footer 按钮等宽 */
 @media (max-width: 480px) {
   .optimize-summary {
     grid-template-columns: repeat(2, 1fr);

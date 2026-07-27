@@ -174,7 +174,7 @@ function isTeacherEligible(t, cls, mode) {
  *
  * 注意：本函数仅检查学院意向和层次意向，不检查教材上限和容量约束。
  * 教材上限由 takeClassesForTeacher 内部的 useTbLimit 检查兜底，
- * 容量约束由 takeClassesForTeacher ��� remainingCap 检查兜底。
+ * 容量约束由 takeClassesForTeacher 的 remainingCap 检查兜底。
  * isTeacherEligible 是更完整的约束检查（含教材+容量），供 assignRound 兜底使用。
  */
 export function isPrefMatch(teacher, cls) {

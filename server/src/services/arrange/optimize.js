@@ -14,7 +14,7 @@ import { createAuditLog } from '../../services/audit.service.js';
  * 检查是否满足最小改进阈值
  * P2 修复：原 && 关系导致 2 个班级的有效 Swap 被丢弃，改为加权判定
  * - scoreImprovement > 5% 即可（不论变更数）
- * - 或 changesCount >= 3 且 scoreImprovement > 2%（小改进但多变更��
+ * - 或 changesCount >= 3 且 scoreImprovement > 2%（小改进但多变更）
  * 注意：新目标函数含惩罚项，before.score 可能为负数，
  * 需用 !== 0 而非 > 0 守卫，否则负分→正分的巨大改进会被误判为 0%。
  */
@@ -333,7 +333,7 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
     // 5. 批量加载所有相关班级信息（修复 N+1 查询：原实现按课程循环内逐班 findUnique）
     // Schema 对齐修复：classes 模型无 textbook_id/weekly_hours/class_name 字段，
     // 教材需通过 plan_courses → plan_course_semesters → plan_textbooks 关联获取。
-    // 课时取�� teaching_assignments.weekly_hours（已落库）。
+    // 课时取自 teaching_assignments.weekly_hours（已落库）。
     const allClassIdsList = [...allClassIds];
     const allClassData = await prisma.classes.findMany({
       where: { id: { in: allClassIdsList } },
