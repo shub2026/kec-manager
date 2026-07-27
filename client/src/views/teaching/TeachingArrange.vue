@@ -99,7 +99,7 @@
             >
               <el-option v-for="v in textbookOptions" :key="v" :label="v" :value="v" />
             </el-select>
-            <el-checkbox v-model="previewMode" class="preview-checkbox">预览模式</el-checkbox>
+            <el-checkbox v-model="previewMode" class="preview-checkbox">预览</el-checkbox>
             <el-button
               type="warning"
               :loading="arranging"
@@ -349,7 +349,13 @@
     />
 
     <!-- 批量排课结果弹窗 -->
-    <BatchResultDialog v-model="batchResultVisible" :result="batchResult" />
+    <BatchResultDialog
+      v-model="batchResultVisible"
+      :result="batchResult"
+      :preview-mode="previewMode"
+      :arranging="batchArranging"
+      @execute="handleBatchExecutePreview"
+    />
 
     <!-- 排课优化确认弹窗 -->
     <OptimizeConfirmDialog
@@ -656,9 +662,11 @@ const {
   progressMessage: batchProgressMessage,
   handleBatchAutoArrange,
   doBatchAutoArrange,
+  handleBatchExecutePreview,
 } = useBatchArrange({
   selectedSemester,
   hourSettingsRef,
+  previewMode,
   loadData,
   confirmHistoricalEdit,
 });
