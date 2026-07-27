@@ -52,7 +52,12 @@
     <MatrixLegend class="plan-legend" />
 
     <!-- 开课学期设置对话框 -->
-    <el-dialog v-model="showSemesterDialog" title="设置开课学期" width="var(--dialog-width)">
+    <el-dialog
+      v-model="showSemesterDialog"
+      title="设置开课学期"
+      width="var(--dialog-width)"
+      :fullscreen="isMobile"
+    >
       <el-form :model="semesterForm" label-width="100px">
         <el-form-item label="选择课程" required>
           <el-select
@@ -96,24 +101,15 @@
       </template>
     </el-dialog>
 
-    <!-- 课程删除确认弹窗 -->
-    <el-dialog
+    <!-- 课程删除确认弹窗：复用全局 DeleteConfirmDialog 组件，与列表页保持一致 -->
+    <DeleteConfirmDialog
       v-model="deleteCourseConfirmVisible"
-      title="确认删除"
-      width="var(--dialog-width)"
-      align-center
+      :loading="courseDeleting"
+      @confirm="confirmDeleteCourse"
     >
-      <BaseConfirmBody icon-color="var(--brand-danger)">
-        <p class="confirm-text">{{ deleteCourseConfirmMessage }}</p>
-        <p class="confirm-hint">此操作不可撤销。</p>
-      </BaseConfirmBody>
-      <template #footer>
-        <el-button @click="deleteCourseConfirmVisible = false">取消</el-button>
-        <el-button type="danger" :loading="courseDeleting" @click="confirmDeleteCourse"
-          >确定删除</el-button
-        >
-      </template>
-    </el-dialog>
+      <p class="confirm-text">{{ deleteCourseConfirmMessage }}</p>
+      <p class="confirm-hint">此操作不可撤销。</p>
+    </DeleteConfirmDialog>
   </div>
 </template>
 
@@ -125,14 +121,17 @@ import { Plus } from '@element-plus/icons-vue';
 import { getPlanById, addPlanCourse, deletePlanCourse } from '../../api/plan';
 import { getCourses } from '../../api/course';
 import { getTextbooks } from '../../api/textbook';
+import { useResponsive } from '../../composables/useResponsive';
 import CourseMatrix from '../../components/CourseMatrix.vue';
 import MatrixLegend from '../../components/MatrixLegend.vue';
 import PageHeader from '../../components/PageHeader.vue';
-import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import DeleteConfirmDialog from '../../components/DeleteConfirmDialog.vue';
 
 defineOptions({ name: 'PlanDetail' });
 
 const route = useRoute();
+// 移动端表单弹窗全屏，统一各模块弹窗在窄屏下的展示策略
+const { isMobile } = useResponsive();
 // M-3 修复：使用 computed 使 planId 响应式，支持路由参数变化时自动更新
 const planId = computed(() => Number(route.params.id));
 const courseMatrixRef = ref(null);

@@ -63,6 +63,7 @@
       width="var(--dialog-width-lg)"
       :close-on-click-modal="false"
       :show-close="false"
+      :fullscreen="isMobile"
     >
       <div class="progress-container">
         <el-progress :percentage="progressPercent" :status="progressStatus" :stroke-width="20" />
@@ -79,46 +80,31 @@
       </div>
     </el-dialog>
 
-    <!-- 单个删除确认弹窗 -->
-    <el-dialog
+    <!-- 单个删除确认弹窗：复用全局 DeleteConfirmDialog，与列表页保持一致 -->
+    <DeleteConfirmDialog
       v-model="deleteConfirmVisible"
-      title="确认删除"
-      width="var(--dialog-width)"
-      align-center
+      :loading="deleting"
+      @confirm="confirmDelete"
     >
-      <BaseConfirmBody icon-color="var(--brand-danger)"
-        >确定要删除此班级吗？此操作不可撤销。</BaseConfirmBody
-      >
-      <template #footer>
-        <el-button @click="deleteConfirmVisible = false">取消</el-button>
-        <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
-      </template>
-    </el-dialog>
+      确定要删除此班级吗？此操作不可撤销。
+    </DeleteConfirmDialog>
 
     <!-- 批量删除确认弹窗 -->
-    <el-dialog
+    <DeleteConfirmDialog
       v-model="batchDeleteConfirmVisible"
-      title="批量删除"
-      width="var(--dialog-width)"
-      align-center
+      :loading="batchDeleting"
+      @confirm="confirmBatchDelete"
     >
-      <BaseConfirmBody icon-color="var(--brand-danger)">{{
-        batchDeleteConfirmMessage
-      }}</BaseConfirmBody>
-      <template #footer>
-        <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
-        <el-button type="danger" :loading="batchDeleting" @click="confirmBatchDelete"
-          >确定删除</el-button
-        >
-      </template>
-    </el-dialog>
+      {{ batchDeleteConfirmMessage }}
+    </DeleteConfirmDialog>
 
-    <!-- 批量离校确认弹窗 -->
+    <!-- 批量离校确认弹窗（warning 语义，使用 warning 按钮） -->
     <el-dialog
       v-model="leftSchoolConfirmVisible"
       title="确认批量离校"
       width="var(--dialog-width)"
       align-center
+      :fullscreen="isMobile"
     >
       <BaseConfirmBody>{{ leftSchoolConfirmMessage }}</BaseConfirmBody>
       <template #footer>
@@ -132,7 +118,6 @@
 <script setup>
 import { ref, onMounted, computed, onActivated, onUnmounted, watch } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
-import 'element-plus/es/components/notification/style/css';
 import {
   getClasses,
   createClass,
@@ -145,7 +130,10 @@ import { useSettingsStore } from '../../stores/settings';
 import { useClassDataStore } from '../../stores/classData';
 import { useExport } from '../../composables/useExport';
 import { showImportResultCard } from '../../composables/useImport';
+import { useResponsive } from '../../composables/useResponsive';
+import { useDebounceFn } from '../../composables/useDebounce';
 import PageHeader from '../../components/PageHeader.vue';
+import DeleteConfirmDialog from '../../components/DeleteConfirmDialog.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 import ListErrorState from '../../components/ListErrorState.vue';
 import ClassFilterBar from './components/ClassFilterBar.vue';
@@ -153,6 +141,9 @@ import ClassTable from './components/ClassTable.vue';
 import ClassFormDialog from './components/ClassFormDialog.vue';
 
 defineOptions({ name: 'ClassList' });
+
+// 移动端表单/确认弹窗全屏，统一各模块弹窗在窄屏下的展示策略
+const { isMobile } = useResponsive();
 
 const list = ref([]);
 const loading = ref(false);
@@ -300,17 +291,12 @@ function resetPaginationAndLoad() {
 }
 
 // 名称输入防抖搜索：输入停顿 300ms 后自动触发查询，无需按回车
-let _nameTimer = null;
-watch(
-  () => filters.value.name,
-  () => {
-    clearTimeout(_nameTimer);
-    _nameTimer = setTimeout(() => {
-      pagination.value.page = 1;
-      load();
-    }, 300);
-  }
-);
+// 使用项目通用 useDebounceFn，组件卸载时自动清理定时器
+const debouncedSearch = useDebounceFn(() => {
+  pagination.value.page = 1;
+  load();
+}, 300);
+watch(() => filters.value.name, debouncedSearch);
 
 function handlePageChange(page) {
   pagination.value.page = page;
@@ -333,6 +319,8 @@ async function openDialog(row = null) {
   } else {
     resetForm();
   }
+  // 先开弹窗：让用户立即看到表单，options 异步加载后再回填，避免点击后明显延迟
+  dialogVisible.value = true;
   if (!_allClassOptionsLoaded) {
     try {
       const res = await getClasses({ page: 1, pageSize: 100 });
@@ -346,7 +334,6 @@ async function openDialog(row = null) {
       allClassOptions.value = [];
     }
   }
-  dialogVisible.value = true;
 }
 
 function resetForm() {
@@ -717,7 +704,6 @@ onActivated(() => {
 });
 
 onUnmounted(() => {
-  clearTimeout(_nameTimer);
   if (_leftSchoolResolve) {
     _leftSchoolResolve(false);
     _leftSchoolResolve = null;

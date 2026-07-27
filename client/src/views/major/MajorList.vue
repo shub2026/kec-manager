@@ -81,6 +81,7 @@
       v-model="dialogVisible"
       :title="form.id ? '编辑专业' : '新增专业'"
       width="var(--dialog-width-lg)"
+      :fullscreen="isMobile"
       destroy-on-close
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
@@ -122,12 +123,16 @@ import { ref, computed, watch } from 'vue';
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
 import { getMajors, createMajor, updateMajor, deleteMajor } from '../../api/major';
 import { useCrudList } from '../../composables/useCrudList';
+import { useResponsive } from '../../composables/useResponsive';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import DeleteConfirmDialog from '../../components/DeleteConfirmDialog.vue';
 import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'MajorList' });
+
+// 移动端表单弹窗全屏，统一各模块弹窗在窄屏下的展示策略
+const { isMobile } = useResponsive();
 
 const formRef = ref(null);
 const rules = {

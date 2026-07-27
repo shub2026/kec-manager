@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue';
 import AutoImport from 'unplugin-auto-import/vite';
 import Components from 'unplugin-vue-components/vite';
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
+import viteCompression from 'vite-plugin-compression';
 import { fileURLToPath, URL } from 'url';
 import pkg from '../package.json';
 
@@ -16,6 +17,19 @@ export default defineConfig({
     }),
     Components({
       resolvers: [ElementPlusResolver()],
+    }),
+    // 预压缩：同时生成 .gz 与 .br，Nginx 直接发送预压缩文件，省去实时压缩 CPU 开销
+    viteCompression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 10240, // 仅压缩 >10KB 的文件
+      deleteOriginFile: false,
+    }),
+    viteCompression({
+      algorithm: 'brotliCompress',
+      ext: '.br',
+      threshold: 10240,
+      deleteOriginFile: false,
     }),
   ],
   resolve: {
@@ -32,38 +46,53 @@ export default defineConfig({
       drop: ['console'],
     },
     chunkSizeWarningLimit: 800,
+    // 模块预加载：hover/visible 时预取即将进入的路由 chunk，减少点击后等待
+    modulePreload: {
+      polyfill: true,
+    },
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            // Element Plus icons — must be checked before element-plus (path contains 'element-plus')
-            if (id.includes('@element-plus/icons-vue')) {
-              return 'element-icons';
-            }
-            // Element Plus — split large table/pagination components into a separate chunk
-            if (id.includes('element-plus')) {
-              if (
-                id.includes('/components/table/') ||
-                id.includes('/components/table-column/') ||
-                id.includes('/components/table-v2/') ||
-                id.includes('/components/pagination/')
-              ) {
-                return 'element-table';
-              }
-              return 'element-plus';
-            }
-            // Vue core ecosystem
-            if (id.includes('/vue/') || id.includes('/vue-router/') || id.includes('/pinia/')) {
-              return 'vue-vendor';
-            }
-            // HTTP client
-            if (id.includes('/axios/')) {
-              return 'axios';
-            }
-            // 审计修复：其余 node_modules 统一进入 vendor chunk，
-            // 避免未显式列出的库挤入默认 chunk（含 nprogress 等）
-            return 'vendor';
+          if (!id.includes('node_modules')) return undefined;
+
+          // Element Plus icons — 单独成块（路径需在 element-plus 之前判断）
+          if (id.includes('@element-plus/icons-vue')) {
+            return 'element-icons';
           }
+
+          // Vue 核心生态
+          if (id.includes('/vue/') || id.includes('/vue-router/') || id.includes('/pinia/')) {
+            return 'vue-vendor';
+          }
+
+          // HTTP 客户端
+          if (id.includes('/axios/')) {
+            return 'axios';
+          }
+
+          // nprogress 等小工具单独成块，避免挤入默认 chunk
+          if (id.includes('/nprogress/')) {
+            return 'nprogress';
+          }
+
+          // Element Plus：交给 Vite 默认分包策略，让各组件按需进入各自 chunk，
+          // 避免此前把所有 EP 组件强制合并成单个 649KB 巨块。
+          // 仅把体积较大的 table/pagination 系列单独成块，便于列表页复用
+          if (id.includes('element-plus')) {
+            if (
+              id.includes('/components/table/') ||
+              id.includes('/components/table-column/') ||
+              id.includes('/components/table-v2/') ||
+              id.includes('/components/pagination/')
+            ) {
+              return 'element-table';
+            }
+            // 其余 EP 组件不再强制合并，返回 undefined 由 Rollup 按需拆分
+            return undefined;
+          }
+
+          // 其余 node_modules 统一进入 vendor chunk
+          return 'vendor';
         },
       },
     },

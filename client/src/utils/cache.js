@@ -114,8 +114,9 @@ export function stopCleanupTimer() {
 if (typeof window !== 'undefined') {
   startCleanupTimer();
 
-  // 页面卸载时清理（SPA应用中可能不会触发，但保留以防万一）
-  window.addEventListener('beforeunload', () => {
-    stopCleanupTimer();
-  });
+  // 页面卸载时清理定时器。优先使用 pagehide（覆盖 bfcache 场景，比 beforeunload 更可靠），
+  // beforeunload 作为兜底（部分旧浏览器）。两者都监听以最大化兼容性。
+  const _onHide = () => stopCleanupTimer();
+  window.addEventListener('pagehide', _onHide);
+  window.addEventListener('beforeunload', _onHide);
 }
