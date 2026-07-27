@@ -56,6 +56,22 @@ export default defineConfig({
             return 'element-icons';
           }
 
+          // Element Plus：必须在 /vue/ 判断之前！
+          // element-plus/es/utils/vue/ 下的工具文件路径包含 /vue/，
+          // 如果先匹配 /vue/ 会误入 vue-vendor chunk，造成循环依赖和 TDZ 错误
+          if (id.includes('element-plus')) {
+            if (
+              id.includes('/components/table/') ||
+              id.includes('/components/table-column/') ||
+              id.includes('/components/table-v2/') ||
+              id.includes('/components/pagination/')
+            ) {
+              return 'element-table';
+            }
+            // 其余 EP 组件不再强制合并，返回 undefined 由 Rollup 按需拆分
+            return undefined;
+          }
+
           // Vue 核心生态
           if (id.includes('/vue/') || id.includes('/vue-router/') || id.includes('/pinia/')) {
             return 'vue-vendor';
@@ -69,22 +85,6 @@ export default defineConfig({
           // nprogress 等小工具单独成块，避免挤入默认 chunk
           if (id.includes('/nprogress/')) {
             return 'nprogress';
-          }
-
-          // Element Plus：交给 Vite 默认分包策略，让各组件按需进入各自 chunk，
-          // 避免此前把所有 EP 组件强制合并成单个 649KB 巨块。
-          // 仅把体积较大的 table/pagination 系列单独成块，便于列表页复用
-          if (id.includes('element-plus')) {
-            if (
-              id.includes('/components/table/') ||
-              id.includes('/components/table-column/') ||
-              id.includes('/components/table-v2/') ||
-              id.includes('/components/pagination/')
-            ) {
-              return 'element-table';
-            }
-            // 其余 EP 组件不再强制合并，返回 undefined 由 Rollup 按需拆分
-            return undefined;
           }
 
           // 其余 node_modules 统一进入 vendor chunk
