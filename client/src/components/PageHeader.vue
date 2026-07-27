@@ -41,19 +41,22 @@ defineProps({
 </script>
 
 <style scoped>
+/* 桌面端：网格两列，右侧操作区相对「标题行 + 描述」整块垂直居中，
+   避免宽屏下按钮悬在右上角与页面内容脱离 */
 .page-header {
   margin-bottom: var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-4);
 }
 
 .page-header-main {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: var(--space-4);
-  flex-wrap: wrap;
+  display: contents;
 }
 
 .page-header-left {
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
@@ -105,6 +108,9 @@ defineProps({
 }
 
 .page-header-right {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -112,6 +118,8 @@ defineProps({
 }
 
 .page-header-desc {
+  grid-column: 1;
+  grid-row: 2;
   margin: 6px 0 0;
   font-size: 13px;
   color: var(--text-secondary);
@@ -149,6 +157,8 @@ defineProps({
   .page-header-right {
     order: 3;
     width: 100%;
+    /* 重置桌面端 grid 居中对齐（align-self 在 flex 下同样生效） */
+    align-self: auto;
   }
 }
 </style>
