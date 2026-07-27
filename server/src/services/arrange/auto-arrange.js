@@ -121,9 +121,10 @@ function calcMatchScore(teacher, classInfo) {
         return score - TEXTBOOK_COHESION.TEXTBOOK_COUNT_PENALTY_1_NEW;
       }
       // 注意：以下分支依赖 maxTb 的值。当前 MAX_TEXTBOOKS_PER_TEACHER=2 时，
-      // tbCount >= maxTb（即 >=2）已在上方捕获，下方 tbCount>=3 / >=2 分支不可达。
-      // 若将 MAX_TEXTBOOKS_PER_TEACHER 调高至 3+，这些分支将生效，
-      // 实现分级惩罚：2 本扣 TEXTBOOK_COUNT_PENALTY_2，3+ 本扣 TEXTBOOK_COUNT_PENALTY_3PLUS。
+      // tbCount >= maxTb（即 >=2）已在上方的 `if (tbCount >= maxTb)` 分支捕获并 return，
+      // 因此下方 tbCount>=3 / >=2 分支在当前配置下不可达。
+      // 仅当 MAX_TEXTBOOKS_PER_TEACHER 调高至 3+ 时，tbCount===2 会落入此区域，
+      // 届时 TEXTBOOK_COUNT_PENALTY_2 / TEXTBOOK_COUNT_PENALTY_3PLUS 才会生效。
     } else if (tbCount >= 3) {
       score -= TEXTBOOK_COHESION.TEXTBOOK_COUNT_PENALTY_3PLUS;
     } else if (tbCount >= 2) {
@@ -170,6 +171,11 @@ function isTeacherEligible(t, cls, mode) {
 /**
  * 检查教师意向是否匹配某个班级（严格约束，供五阶段主分配使用）
  * 导出以便单测覆盖 B-03 无层次班级守卫
+ *
+ * 注意：本函数仅检查学院意向和层次意向，不检查教材上限和容量约束。
+ * 教材上限由 takeClassesForTeacher 内部的 useTbLimit 检查兜底，
+ * 容量约束由 takeClassesForTeacher ��� remainingCap 检查兜底。
+ * isTeacherEligible 是更完整的约束检查（含教材+容量），供 assignRound 兜底使用。
  */
 export function isPrefMatch(teacher, cls) {
   // 有指定意向学院的教师，只能拿匹配的学院
@@ -1918,8 +1924,9 @@ export async function autoArrange(
       classInfoMap
     );
 
-    // === 阶段5：禁忌搜索优化层（可选） ===
-    // 在贪心+置换回溯之后，通过迭代邻域搜索进一步优化排课质量
+    // === 后置优化层：禁忌搜索（可选） ===
+    // 在贪心+置换回溯（阶段1-5）之后，通过迭代邻域搜索进一步优化排课质量
+    // 注意：本步骤是独立的后置优化，不属于 onProgress 上报的 phase 1-5
     // 开关：常量 TABU_SEARCH.ENABLED 为静态默认值（false）；
     //       也可通过 system_settings 表 key='tabu_search_enabled' 动态开启
     let tabuEnabled = TABU_SEARCH.ENABLED;

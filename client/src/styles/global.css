@@ -208,6 +208,26 @@ a:focus-visible,
   width: 200px;
 }
 
+/* 通用宽度工具类（不在 page-toolbar 内时使用，如弹窗内、��片头部） */
+.filter-xs {
+  width: 80px;
+}
+.filter-sm {
+  width: 100px;
+}
+.filter-md {
+  width: 120px;
+}
+.filter-lg {
+  width: 140px;
+}
+.filter-xl {
+  width: 200px;
+}
+.filter-2xl {
+  width: 240px;
+}
+
 /* ----- 排序按钮 ----- */
 .sort-buttons {
   display: flex;

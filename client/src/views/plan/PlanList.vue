@@ -70,7 +70,7 @@
                 :icon="ArrowUp"
                 :disabled="realIndex(row) === 0"
                 circle
-                title="上移"
+                title="上移" aria-label="上移"
                 @click="handleMoveUp(row, realIndex(row))"
               />
               <el-button
@@ -78,7 +78,7 @@
                 :icon="ArrowDown"
                 :disabled="realIndex(row) === filteredList.length - 1"
                 circle
-                title="下移"
+                title="下移" aria-label="下移"
                 @click="handleMoveDown(row, realIndex(row))"
               />
             </div>

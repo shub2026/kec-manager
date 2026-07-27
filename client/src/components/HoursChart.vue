@@ -47,7 +47,8 @@ const maxHours = computed(() => {
 });
 
 const totalHours = computed(() => {
-  return props.data.reduce((sum, d) => sum + d.hours, 0);
+  // 保留一位小数，与 CourseStatsCard / 后端 distribution.hours 精度对齐，避免浮点尾差
+  return Math.round(props.data.reduce((sum, d) => sum + d.hours, 0) * 10) / 10;
 });
 
 function barWidth(hours) {

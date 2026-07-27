@@ -43,7 +43,6 @@
     <CourseMatrix
       ref="courseMatrixRef"
       :plan-id="planId"
-      :all-courses="allCourses"
       :all-textbooks="allTextbooks"
       @delete-course="handleDeleteCourse"
     />

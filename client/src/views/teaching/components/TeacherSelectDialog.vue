@@ -2,8 +2,8 @@
   <el-dialog
     v-model="visible"
     title="选择任课教师"
-    :width="isMobile ? '95%' : '80%'"
-    :style="{ maxWidth: isMobile ? 'none' : '1400px' }"
+    :width="isMobile ? '95%' : undefined"
+    :style="{ maxWidth: isMobile ? 'none' : 'var(--dialog-width-xxl)' }"
     top="8vh"
     destroy-on-close
     class="teacher-dialog"
@@ -130,33 +130,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 import { personnelLabel } from '../../../utils/personnel';
+import { useResponsive } from '../../../composables/useResponsive';
 
-/* 响应式断点 */
-const isMobile = ref(false);
-const isTablet = ref(false);
-let mqlMobile, mqlTablet;
-
-onMounted(() => {
-  mqlMobile = window.matchMedia('(max-width: 768px)');
-  mqlTablet = window.matchMedia('(max-width: 992px)');
-  isMobile.value = mqlMobile.matches;
-  isTablet.value = mqlTablet.matches;
-  mqlMobile.addEventListener('change', (e) => {
-    isMobile.value = e.matches;
-  });
-  mqlTablet.addEventListener('change', (e) => {
-    isTablet.value = e.matches;
-  });
-});
-
-onUnmounted(() => {
-  mqlMobile?.removeEventListener('change', () => {});
-  mqlTablet?.removeEventListener('change', () => {});
-});
+/* 响应式断点：复用全局共享实例，避免重复监听 + 内存泄漏 */
+const { isMobile, isTablet } = useResponsive();
 
 const props = defineProps({
   teacherList: { type: Array, default: () => [] },

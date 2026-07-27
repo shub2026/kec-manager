@@ -333,7 +333,7 @@
             :step="1"
             placeholder="不填使用课时要求"
             controls-position="right"
-            style="width: 200px"
+            class="filter-xl"
           />
         </el-form-item>
       </el-form>

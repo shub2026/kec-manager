@@ -5,21 +5,26 @@
 
 import { prisma } from '../../lib/prisma.js';
 import logger from '../../utils/logger.js';
-import { DEFAULT_HOUR_SETTINGS, TEXTBOOK_COHESION } from '../../constants/index.js';
+import { DEFAULT_HOUR_SETTINGS, TEXTBOOK_COHESION, TABU_SEARCH } from '../../constants/index.js';
 import { tabuOptimize } from './tabu-search.js';
 import { calcMatchScore } from './auto-arrange.js';
 import { createAuditLog } from '../../services/audit.service.js';
 
 /**
  * 检查是否满足最小改进阈值
+ * P2 修复：原 && 关系导致 2 个班级的有效 Swap 被丢弃，改为加权判定
+ * - scoreImprovement > 5% 即可（不论变更数）
+ * - 或 changesCount >= 3 且 scoreImprovement > 2%（小改进但多变更��
+ * 注意：新目标函数含惩罚项，before.score 可能为负数，
+ * 需用 !== 0 而非 > 0 守卫，否则负分→正分的巨大改进会被误判为 0%。
  */
 function meetsMinimumThreshold(before, after) {
   const changesCount = after.changesCount || 0;
-  const scoreImprovement = before.score > 0
+  const scoreImprovement = before.score !== 0
     ? ((after.score - before.score) / Math.abs(before.score)) * 100
     : 0;
 
-  return changesCount >= 3 && scoreImprovement > 5;
+  return scoreImprovement > 5 || (changesCount >= 3 && scoreImprovement > 2);
 }
 
 /**
@@ -104,8 +109,27 @@ function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
     ? Math.round((cohesionSum / teacherCount) * 100)
     : 100;
 
-  // 4. 综合评分 = 总匹配分数（越高越好）
-  const score = Math.round(totalMatchScore * 100) / 100;
+  // 4. 综合评分 = 总匹配分数 - 欠分配惩罚 - 负载方差惩罚
+  // P1 修复：与 tabu-search.js 的 computeObjective 对齐，避免 UI 显示与算法结果矛盾
+  const alpha = TABU_SEARCH.UNDER_ASSIGNMENT_PENALTY || 0;
+  const beta = TABU_SEARCH.LOAD_VARIANCE_WEIGHT || 0;
+
+  // 欠分配惩罚：每位教师低于 cap 的课时缺口 × α
+  let underAssignmentPenalty = 0;
+  for (const t of teacherConstraints) {
+    const state = teacherStates.get(t.id);
+    if (!state) continue;
+    const cap = mode === 'standard' ? t.standardCap : t.fullCap;
+    if (cap > 0) {
+      const gap = Math.max(0, cap - state.assignedHours);
+      underAssignmentPenalty += alpha * gap;
+    }
+  }
+
+  // 负载方差惩罚：β × loadVariance × 100（与 computeObjective 的量级对齐）
+  const loadVariancePenalty = beta * loadVariance * 100;
+
+  const score = Math.round((totalMatchScore - underAssignmentPenalty - loadVariancePenalty) * 100) / 100;
 
   return {
     score,
@@ -306,40 +330,53 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       },
     });
 
-    // 5. 加载所有相关班级的教材信息
+    // 5. 批量加载所有相关班级信息（修复 N+1 查询：原实现按课程循环内逐班 findUnique）
     // Schema 对齐修复：classes 模型无 textbook_id/weekly_hours/class_name 字段，
     // 教材需通过 plan_courses → plan_course_semesters → plan_textbooks 关联获取。
-    // 课时取自 teaching_assignments.weekly_hours（已落库）。
-    // 按 courseId 分组查询每门课程的教材映射（一个 courseId 可能对应多个 plan_course + semester 记录）。
-    const courseTextbookMap = new Map(); // courseId → Map(classId → textbookIds[])
-    for (const [courseId] of courseMap) {
-      const planCourses = await prisma.plan_courses.findMany({
-        where: { course_id: courseId },
-        include: {
-          training_plans: { select: { id: true, sort_order: true } },
-          plan_course_semesters: {
-            include: {
-              plan_textbooks: { include: { textbooks: { select: { id: true } } } },
-            },
+    // 课时取�� teaching_assignments.weekly_hours（已落库）。
+    const allClassIdsList = [...allClassIds];
+    const allClassData = await prisma.classes.findMany({
+      where: { id: { in: allClassIdsList } },
+      select: {
+        id: true,
+        major_id: true,
+        training_level_id: true,
+        enrollment_year: true,
+        custom_plan_id: true,
+      },
+    });
+    const classDataMap = new Map(allClassData.map((c) => [c.id, c]));
+
+    // 批量加载所有课程对应的 plan_courses（含教材关联）
+    const allCourseIds = [...courseMap.keys()];
+    const allPlanCourses = await prisma.plan_courses.findMany({
+      where: { course_id: { in: allCourseIds.map(Number) } },
+      include: {
+        training_plans: { select: { id: true, major_id: true, training_level_id: true, sort_order: true } },
+        plan_course_semesters: {
+          include: {
+            plan_textbooks: { include: { textbooks: { select: { id: true } } } },
           },
         },
-        orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
-      });
+      },
+      orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
+    });
+    // 按 courseId 分组
+    const planCoursesByCourse = new Map();
+    for (const pc of allPlanCourses) {
+      if (!planCoursesByCourse.has(pc.course_id)) {
+        planCoursesByCourse.set(pc.course_id, []);
+      }
+      planCoursesByCourse.get(pc.course_id).push(pc);
+    }
 
-      // 为该课程的每个班级匹配教材（取首个匹配方案的教材，与 getClassesWithCourse 的简化版）
-      // 优化场景只需教材 ID 用于内聚评分，不需课时（课时已从 assignments 获取）
+    // 为每个课程的每个班级匹配教材
+    const courseTextbookMap = new Map(); // courseId → Map(classId → textbookIds[])
+    for (const [courseId] of courseMap) {
+      const planCourses = planCoursesByCourse.get(Number(courseId)) || [];
       const classTbMap = new Map();
       for (const cls of currentAssignments.filter((a) => a.course_id === courseId)) {
-        const clsData = await prisma.classes.findUnique({
-          where: { id: cls.class_id },
-          select: {
-            id: true,
-            major_id: true,
-            training_level_id: true,
-            enrollment_year: true,
-            custom_plan_id: true,
-          },
-        });
+        const clsData = classDataMap.get(cls.class_id);
         if (!clsData) continue;
 
         // 找匹配的 plan_course（按 major/training_level 简化匹配）
@@ -508,6 +545,26 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
           ...orig,
           teacher_id: optimizedTeacherByClass.get(orig.class_id) ?? orig.teacher_id,
         }));
+
+        // P0 修复：跨课程状态同步
+        // tabuOptimize 的 writeback 已把状态写到 courseTeacherConstraints（副本），
+        // 但共享的 teacherConstraints 未被更新，导致后续课程基于陈旧状态评估。
+        // 将 courseTeacherConstraints 的增量状态同步回 teacherConstraints：
+        // - assignedTextbookIds：用 courseTeacherConstraints 的最终值替换
+        // - assignedCollegeIds：只增不减（保守策略，与 tabu-search writeback 一致）
+        // - assignedHours：由 calculateMetrics 从 assignments 重建，无需同步
+        // - standardCap/fullCap/teacherHourCap：基于 effectiveTotal 重算，下轮循环会重新修正
+        const courseConstraintMap = new Map(courseTeacherConstraints.map((t) => [t.id, t]));
+        for (const sharedT of qualifiedTeachers) {
+          const courseT = courseConstraintMap.get(sharedT.id);
+          if (!courseT) continue;
+          // 教材集合：直接替换为优化后的值
+          sharedT.assignedTextbookIds = new Set(courseT.assignedTextbookIds);
+          // 学院集合：只增不减
+          for (const cid of courseT.assignedCollegeIds) {
+            sharedT.assignedCollegeIds.add(cid);
+          }
+        }
       } catch (tsErr) {
         logger.warn(`[Optimize] 课程${courseId}优化异常，已跳过: ${tsErr.message}`);
       }
@@ -539,6 +596,8 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
     // 13. 构建变更详情（先于阈值判定，changesCount 需基于真实变更数）
     // Schema 对齐修复：courseId 取自 original.course_id（非 original.course_classes.course_id）
     // 匹配同时校验 class_id + course_id，避免跨课程误配（teaching_assignments 唯一约束为 [class_id, course_id, semester]）
+    // P3 修复：构建 teacherId → name 的 Map，避免 O(T) 线性查找
+    const teacherNameMap = new Map(teachers.map((t) => [t.id, t.name]));
     const changes = [];
     for (const original of currentAssignments) {
       const optimized = optimizedAssignments.find(
@@ -556,7 +615,7 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
           },
           toTeacher: {
             id: optimized.teacher_id,
-            name: teachers.find((t) => t.id === optimized.teacher_id)?.name || '未知',
+            name: teacherNameMap.get(optimized.teacher_id) || '未知',
           },
         });
       }

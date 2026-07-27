@@ -98,6 +98,7 @@
   --dialog-width: min(480px, 90vw); /* 确认 / 小型弹窗 */
   --dialog-width-lg: min(640px, 92vw); /* 标准表单 / 内容弹窗 */
   --dialog-width-xl: min(900px, 95vw); /* 大内容弹窗（批量结果等） */
+  --dialog-width-xxl: min(1200px, 95vw); /* 超大弹窗（教师选择器等宽表格场景） */
 
   /* —— 圆角:从 4px → 6/10/16 三档 —— */
   --radius-sm: 6px;

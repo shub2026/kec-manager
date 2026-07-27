@@ -21,44 +21,44 @@
           <svg viewBox="0 0 520 380" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="k-top" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#7fc1ff"/>
-                <stop offset="100%" stop-color="#5aa3ff"/>
+                <stop offset="0%" stop-color="var(--brand-primary-lighter)"/>
+                <stop offset="100%" stop-color="var(--brand-primary-hover)"/>
               </linearGradient>
               <linearGradient id="k-front" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#4a9af5"/>
-                <stop offset="100%" stop-color="#1c82f5"/>
+                <stop offset="0%" stop-color="var(--brand-primary-hover)"/>
+                <stop offset="100%" stop-color="var(--brand-primary)"/>
               </linearGradient>
               <linearGradient id="k-side" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#1470d8"/>
-                <stop offset="100%" stop-color="#0d5cb5"/>
+                <stop offset="0%" stop-color="var(--brand-primary-active)"/>
+                <stop offset="100%" stop-color="var(--brand-primary-active)"/>
               </linearGradient>
               <linearGradient id="cloud-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#ffffff"/>
-                <stop offset="100%" stop-color="#d6eaff"/>
+                <stop offset="0%" stop-color="var(--bg-card)"/>
+                <stop offset="100%" stop-color="var(--brand-primary-lighter)"/>
               </linearGradient>
               <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#1c82f5" flood-opacity="0.10"/>
+                <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="var(--brand-primary)" flood-opacity="0.10"/>
               </filter>
               <filter id="card-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1c82f5" flood-opacity="0.12"/>
+                <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="var(--brand-primary)" flood-opacity="0.12"/>
               </filter>
             </defs>
 
             <!-- 柔和背景光斑 -->
-            <ellipse cx="260" cy="220" rx="220" ry="120" fill="#e8f3ff" opacity="0.6"/>
+            <ellipse cx="260" cy="220" rx="220" ry="120" fill="var(--brand-primary-soft)" opacity="0.6"/>
 
             <!-- 底座平台 -->
             <g transform="translate(110, 260)">
-              <path d="M0,20 L150,0 L300,20 L150,40 Z" fill="#ffffff"/>
-              <path d="M0,20 L150,40 L150,56 L0,36 Z" fill="#dbeafe"/>
-              <path d="M150,40 L300,20 L300,36 L150,56 Z" fill="#bfdbfe"/>
+              <path d="M0,20 L150,0 L300,20 L150,40 Z" fill="var(--bg-card)"/>
+              <path d="M0,20 L150,40 L150,56 L0,36 Z" fill="var(--brand-primary-soft)"/>
+              <path d="M150,40 L300,20 L300,36 L150,56 Z" fill="var(--brand-primary-lighter)"/>
             </g>
 
             <!-- 立体 K -->
             <g transform="translate(190, 140)" filter="url(#soft-shadow)">
               <!-- 厚度 -->
               <path d="M10,10 L50,10 L50,130 L10,130 Z" fill="url(#k-side)"/>
-              <path d="M10,130 L50,130 L58,138 L18,138 Z" fill="#0a4a8a"/>
+              <path d="M10,130 L50,130 L58,138 L18,138 Z" fill="var(--brand-primary-active)"/>
               <!-- 主体 -->
               <path d="M10,10 L50,10 L50,50 L80,10 L120,10 L70,70 L120,130 L80,130 L50,90 L50,130 L10,130 Z" fill="url(#k-front)"/>
               <!-- 顶面 -->
@@ -74,60 +74,60 @@
 
             <!-- 左侧课程卡 -->
             <g class="ill-card ill-card--left" transform="translate(60, 160)" filter="url(#card-shadow)">
-              <rect x="0" y="0" width="90" height="70" rx="10" fill="white" fill-opacity="0.95" stroke="#e1effe" stroke-width="1"/>
-              <rect x="0" y="0" width="90" height="18" rx="10" fill="#eaf5ff"/>
-              <rect x="0" y="0" width="90" height="18" rx="0" fill="#eaf5ff"/>
-              <circle cx="12" cy="9" r="3" fill="#1c82f5" opacity="0.5"/>
-              <rect x="22" y="7" width="40" height="4" rx="2" fill="#1c82f5" opacity="0.25"/>
-              <rect x="12" y="28" width="66" height="5" rx="2.5" fill="#1c82f5" opacity="0.15"/>
-              <rect x="12" y="38" width="52" height="5" rx="2.5" fill="#1c82f5" opacity="0.12"/>
-              <rect x="12" y="48" width="60" height="5" rx="2.5" fill="#1c82f5" opacity="0.12"/>
+              <rect x="0" y="0" width="90" height="70" rx="10" fill="var(--bg-card)" fill-opacity="0.95" stroke="var(--brand-primary-soft)" stroke-width="1"/>
+              <rect x="0" y="0" width="90" height="18" rx="10" fill="var(--brand-primary-soft)"/>
+              <rect x="0" y="0" width="90" height="18" rx="0" fill="var(--brand-primary-soft)"/>
+              <circle cx="12" cy="9" r="3" fill="var(--brand-primary)" opacity="0.5"/>
+              <rect x="22" y="7" width="40" height="4" rx="2" fill="var(--brand-primary)" opacity="0.25"/>
+              <rect x="12" y="28" width="66" height="5" rx="2.5" fill="var(--brand-primary)" opacity="0.15"/>
+              <rect x="12" y="38" width="52" height="5" rx="2.5" fill="var(--brand-primary)" opacity="0.12"/>
+              <rect x="12" y="48" width="60" height="5" rx="2.5" fill="var(--brand-primary)" opacity="0.12"/>
             </g>
 
             <!-- 右侧统计卡 -->
             <g class="ill-card ill-card--right" transform="translate(360, 150)" filter="url(#card-shadow)">
-              <rect x="0" y="0" width="90" height="80" rx="10" fill="white" fill-opacity="0.95" stroke="#e1effe" stroke-width="1"/>
-              <rect x="12" y="12" width="28" height="4" rx="2" fill="#1c82f5" opacity="0.3"/>
-              <rect x="12" y="22" width="48" height="8" rx="2" fill="#1c82f5" opacity="0.12"/>
-              <rect x="12" y="38" width="10" height="28" rx="3" fill="#1c82f5" opacity="0.18"/>
-              <rect x="26" y="46" width="10" height="20" rx="3" fill="#1c82f5" opacity="0.28"/>
-              <rect x="40" y="38" width="10" height="28" rx="3" fill="#1c82f5" opacity="0.22"/>
-              <rect x="54" y="50" width="10" height="16" rx="3" fill="#1c82f5" opacity="0.35"/>
-              <rect x="68" y="42" width="10" height="24" rx="3" fill="#1c82f5" opacity="0.25"/>
+              <rect x="0" y="0" width="90" height="80" rx="10" fill="var(--bg-card)" fill-opacity="0.95" stroke="var(--brand-primary-soft)" stroke-width="1"/>
+              <rect x="12" y="12" width="28" height="4" rx="2" fill="var(--brand-primary)" opacity="0.3"/>
+              <rect x="12" y="22" width="48" height="8" rx="2" fill="var(--brand-primary)" opacity="0.12"/>
+              <rect x="12" y="38" width="10" height="28" rx="3" fill="var(--brand-primary)" opacity="0.18"/>
+              <rect x="26" y="46" width="10" height="20" rx="3" fill="var(--brand-primary)" opacity="0.28"/>
+              <rect x="40" y="38" width="10" height="28" rx="3" fill="var(--brand-primary)" opacity="0.22"/>
+              <rect x="54" y="50" width="10" height="16" rx="3" fill="var(--brand-primary)" opacity="0.35"/>
+              <rect x="68" y="42" width="10" height="24" rx="3" fill="var(--brand-primary)" opacity="0.25"/>
             </g>
 
             <!-- 云 -->
             <g class="ill-cloud" transform="translate(360, 60)" filter="url(#card-shadow)">
-              <path d="M20,30 Q25,10 45,15 Q55,0 80,10 Q100,5 110,25 Q130,25 125,45 Q135,60 115,65 L35,65 Q10,60 20,30 Z" fill="url(#cloud-grad)" fill-opacity="0.95" stroke="#e1effe" stroke-width="1"/>
-              <circle cx="55" cy="42" r="3" fill="#1c82f5" opacity="0.3"/>
-              <circle cx="68" cy="42" r="3" fill="#1c82f5" opacity="0.3"/>
-              <circle cx="81" cy="42" r="3" fill="#1c82f5" opacity="0.3"/>
-              <line x1="55" y1="50" x2="81" y2="50" stroke="#1c82f5" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+              <path d="M20,30 Q25,10 45,15 Q55,0 80,10 Q100,5 110,25 Q130,25 125,45 Q135,60 115,65 L35,65 Q10,60 20,30 Z" fill="url(#cloud-grad)" fill-opacity="0.95" stroke="var(--brand-primary-soft)" stroke-width="1"/>
+              <circle cx="55" cy="42" r="3" fill="var(--brand-primary)" opacity="0.3"/>
+              <circle cx="68" cy="42" r="3" fill="var(--brand-primary)" opacity="0.3"/>
+              <circle cx="81" cy="42" r="3" fill="var(--brand-primary)" opacity="0.3"/>
+              <line x1="55" y1="50" x2="81" y2="50" stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
             </g>
 
             <!-- 完成徽章 -->
             <g class="ill-badge" transform="translate(390, 270)" filter="url(#card-shadow)">
-              <circle cx="20" cy="20" r="20" fill="white" fill-opacity="0.95" stroke="#e1effe" stroke-width="1"/>
+              <circle cx="20" cy="20" r="20" fill="var(--bg-card)" fill-opacity="0.95" stroke="var(--brand-primary-soft)" stroke-width="1"/>
               <circle cx="20" cy="20" r="20" fill="url(#k-front)" opacity="0.1"/>
-              <path d="M12,20 L18,26 L29,14" stroke="#1c82f5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M12,20 L18,26 L29,14" stroke="var(--brand-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
             </g>
 
             <!-- 装饰元素 -->
-            <circle cx="40" cy="80" r="6" fill="#ffffff" stroke="#d6eaff" stroke-width="1.5"/>
-            <circle cx="460" cy="110" r="5" fill="#d6eaff"/>
-            <circle cx="80" cy="310" r="4" fill="#bfdbfe"/>
-            <circle cx="430" cy="320" r="7" fill="#ffffff" stroke="#d6eaff" stroke-width="1.5"/>
+            <circle cx="40" cy="80" r="6" fill="var(--bg-card)" stroke="var(--brand-primary-lighter)" stroke-width="1.5"/>
+            <circle cx="460" cy="110" r="5" fill="var(--brand-primary-lighter)"/>
+            <circle cx="80" cy="310" r="4" fill="var(--brand-primary-lighter)"/>
+            <circle cx="430" cy="320" r="7" fill="var(--bg-card)" stroke="var(--brand-primary-lighter)" stroke-width="1.5"/>
             <g transform="translate(450, 70)" opacity="0.4">
-              <line x1="0" y1="5" x2="10" y2="5" stroke="#1c82f5" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="5" y1="0" x2="5" y2="10" stroke="#1c82f5" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="0" y1="5" x2="10" y2="5" stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="5" y1="0" x2="5" y2="10" stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round"/>
             </g>
             <g transform="translate(60, 110)" opacity="0.35">
-              <line x1="0" y1="4" x2="8" y2="4" stroke="#1c82f5" stroke-width="1.2" stroke-linecap="round"/>
-              <line x1="4" y1="0" x2="4" y2="8" stroke="#1c82f5" stroke-width="1.2" stroke-linecap="round"/>
+              <line x1="0" y1="4" x2="8" y2="4" stroke="var(--brand-primary)" stroke-width="1.2" stroke-linecap="round"/>
+              <line x1="4" y1="0" x2="4" y2="8" stroke="var(--brand-primary)" stroke-width="1.2" stroke-linecap="round"/>
             </g>
             <!-- 连接虚线 -->
-            <path d="M160,200 Q210,180 260,200" stroke="#1c82f5" stroke-width="1" fill="none" stroke-dasharray="4 4" opacity="0.2"/>
-            <path d="M280,200 Q330,220 370,200" stroke="#1c82f5" stroke-width="1" fill="none" stroke-dasharray="4 4" opacity="0.2"/>
+            <path d="M160,200 Q210,180 260,200" stroke="var(--brand-primary)" stroke-width="1" fill="none" stroke-dasharray="4 4" opacity="0.2"/>
+            <path d="M280,200 Q330,220 370,200" stroke="var(--brand-primary)" stroke-width="1" fill="none" stroke-dasharray="4 4" opacity="0.2"/>
           </svg>
         </div>
       </div>
@@ -137,7 +137,7 @@
     <main class="login-main">
       <div class="login-container">
         <div class="login-card">
-          <div class="card-header">
+          <div class="login-card-header">
             <h2 class="form-title">{{ organizationName }}</h2>
             <p class="form-subtitle">登录进入 KEC 课程管理平台</p>
           </div>
@@ -312,7 +312,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 58fr 42fr;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--bg-card);
 }
 
 /* ==================== 左侧品牌/插画区 ==================== */
@@ -323,9 +323,9 @@ onMounted(() => {
   justify-content: center;
   overflow: hidden;
   background:
-    radial-gradient(circle at 20% 20%, rgba(225, 239, 254, 0.9), transparent 45%),
-    radial-gradient(circle at 85% 80%, rgba(214, 234, 255, 0.8), transparent 45%),
-    linear-gradient(150deg, #ffffff 0%, #f7fbff 45%, #e8f3ff 100%);
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--brand-primary-soft) 90%, transparent), transparent 45%),
+    radial-gradient(circle at 85% 80%, color-mix(in srgb, var(--brand-primary-lighter) 80%, transparent), transparent 45%),
+    linear-gradient(150deg, var(--bg-card) 0%, color-mix(in srgb, var(--bg-card) 97%, var(--brand-primary-soft)) 45%, var(--brand-primary-soft) 100%);
 }
 
 .brand-bg {
@@ -343,7 +343,7 @@ onMounted(() => {
 .blob-1 {
   width: 420px;
   height: 420px;
-  background: #e1effe;
+  background: var(--brand-primary-soft);
   top: -120px;
   left: -120px;
   opacity: 0.7;
@@ -351,7 +351,7 @@ onMounted(() => {
 .blob-2 {
   width: 320px;
   height: 320px;
-  background: #d6eaff;
+  background: var(--brand-primary-lighter);
   bottom: -60px;
   right: 40px;
   opacity: 0.6;
@@ -359,7 +359,7 @@ onMounted(() => {
 .blob-3 {
   width: 220px;
   height: 220px;
-  background: #bfdbfe;
+  background: var(--brand-primary-lighter);
   top: 45%;
   left: 38%;
   opacity: 0.35;
@@ -395,15 +395,15 @@ onMounted(() => {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(145deg, var(--brand-primary), #4a9af5);
+  background: linear-gradient(145deg, var(--brand-primary), var(--brand-primary-hover));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--bg-card);
   font-size: 22px;
   font-weight: 800;
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  box-shadow: 0 8px 22px rgba(28, 130, 245, 0.25);
+  box-shadow: 0 8px 22px var(--brand-primary-shadow);
 }
 
 .brand-text {
@@ -413,7 +413,7 @@ onMounted(() => {
 
 .brand-name {
   margin: 0;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 26px;
   font-weight: 800;
   letter-spacing: 1px;
@@ -426,7 +426,7 @@ onMounted(() => {
 
 .brand-slogan {
   margin: 12px 0 0;
-  color: #64748b;
+  color: var(--text-regular);
   font-size: 14px;
   line-height: 1.7;
   letter-spacing: 0.3px;
@@ -486,7 +486,7 @@ onMounted(() => {
   justify-content: center;
   position: relative;
   padding: 40px 32px;
-  background: #ffffff;
+  background: var(--bg-card);
   overflow: hidden;
 }
 
@@ -497,7 +497,7 @@ onMounted(() => {
   right: -200px;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(225, 239, 254, 0.7), transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--brand-primary-soft) 70%, transparent), transparent 70%);
   filter: blur(40px);
   pointer-events: none;
 }
@@ -522,24 +522,24 @@ onMounted(() => {
 /* ==================== 登录卡片 ==================== */
 .login-card {
   width: 100%;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(225, 239, 254, 0.8);
+  background: color-mix(in srgb, var(--bg-card) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-primary-soft) 80%, transparent);
   border-radius: 22px;
   padding: 44px;
   box-shadow:
-    0 24px 70px rgba(28, 130, 245, 0.10),
+    0 24px 70px var(--brand-primary-shadow),
     0 8px 24px rgba(15, 23, 42, 0.04);
   transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
 }
 .login-card:hover {
   box-shadow:
-    0 28px 80px rgba(28, 130, 245, 0.14),
+    0 28px 80px color-mix(in srgb, var(--brand-primary) 14%, transparent),
     0 10px 28px rgba(15, 23, 42, 0.05);
   transform: translateY(-2px);
 }
 
 /* ==================== 卡片头部 ==================== */
-.card-header {
+.login-card-header {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -551,7 +551,7 @@ onMounted(() => {
   margin: 0;
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text-primary);
   text-align: center;
   letter-spacing: 0.01em;
 }
@@ -559,7 +559,7 @@ onMounted(() => {
 .form-subtitle {
   margin: 8px 0 0;
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-regular);
   text-align: center;
 }
 
@@ -570,7 +570,7 @@ onMounted(() => {
 
 .login-form :deep(.el-input__wrapper) {
   border-radius: 12px;
-  background: #f3f6fb;
+  background: var(--bg-subtle);
   box-shadow: none;
   padding: 10px 18px;
   height: 52px;
@@ -578,16 +578,16 @@ onMounted(() => {
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
-  background: #eef2f8;
+  background: var(--bg-subtle);
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  background: #ffffff;
-  box-shadow: 0 0 0 2px rgba(28, 130, 245, 0.15);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 2px var(--brand-primary-shadow);
 }
 
 .login-form :deep(.el-input__prefix .el-icon) {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 16px;
   margin-right: 4px;
 }
@@ -602,15 +602,15 @@ onMounted(() => {
   letter-spacing: 4px;
   text-indent: 4px;
   margin-top: 4px;
-  background: linear-gradient(135deg, var(--brand-primary), #4a9af5);
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-hover));
   border: none;
-  color: #ffffff;
+  color: var(--bg-card);
   box-shadow: 0 8px 20px rgba(28, 130, 245, 0.25);
   transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
 .login-btn:hover,
 .login-btn:focus {
-  box-shadow: 0 12px 28px rgba(28, 130, 245, 0.35);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--brand-primary) 35%, transparent);
   transform: translateY(-1px);
 }
 .login-btn:active {
@@ -619,7 +619,7 @@ onMounted(() => {
 
 /* ==================== 账号提示 ==================== */
 .account-hint {
-  border-top: 1px solid #eef2f8;
+  border-top: 1px solid var(--border-light);
   padding-top: 12px;
   margin-top: 8px;
 }
@@ -630,7 +630,7 @@ onMounted(() => {
 
 .account-hint :deep(.el-collapse-item__header) {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-regular);
   border: none;
   height: 28px;
   line-height: 28px;
@@ -656,7 +656,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #475569;
+  color: var(--text-regular);
 }
 
 .hint-row code {
@@ -671,7 +671,7 @@ onMounted(() => {
 .page-footer {
   margin-top: 22px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 12px;
   letter-spacing: 0.02em;
 }

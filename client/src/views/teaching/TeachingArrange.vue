@@ -53,7 +53,7 @@
       <template #header>
         <div class="card-header">
           <span>教学安排</span>
-          <div class="card-header-actions">
+          <div class="card-header-actions arrange-header">
             <el-select
               v-model="filterCollege"
               placeholder="学院"
@@ -1136,20 +1136,20 @@ onMounted(async () => {
 .adaptive-table :deep(.el-table__body td.textbook-col .cell) {
   white-space: normal;
 }
-/* 卡片头部筛选器宽度 */
-.header-filter.filter-xs {
+/* 卡片头部筛选器宽度（scoped 已隔离，加前缀提升可读性） */
+.arrange-header .header-filter.filter-xs {
   width: 80px;
 }
-.header-filter.filter-sm {
+.arrange-header .header-filter.filter-sm {
   width: 100px;
 }
-.header-filter.filter-md {
+.arrange-header .header-filter.filter-md {
   width: 120px;
 }
-.header-filter.filter-lg {
+.arrange-header .header-filter.filter-lg {
   width: 130px;
 }
-.header-filter.filter-xl {
+.arrange-header .header-filter.filter-xl {
   width: 140px;
 }
 .preview-checkbox {

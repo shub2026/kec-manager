@@ -211,9 +211,9 @@ const drawerVisible = ref(false);
 function _readVar(name, fallback) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
-const sidebarBg = computed(() => _readVar('--sidebar-bg', '#1E293B'));
-const sidebarText = computed(() => _readVar('--sidebar-text', '#94A3B8'));
-const sidebarActive = computed(() => _readVar('--sidebar-active', '#FFFFFF'));
+const sidebarBg = computed(() => _readVar('--sidebar-bg'));
+const sidebarText = computed(() => _readVar('--sidebar-text'));
+const sidebarActive = computed(() => _readVar('--sidebar-active'));
 
 // keep-alive 缓存的列表页组件名（需与各列表组件 defineOptions({ name }) 一致）
 const cachedViews = [
@@ -345,7 +345,7 @@ function handlePasswordChangeSuccess() {
   height: 34px;
   border-radius: var(--radius-sm);
   background: var(--brand-primary);
-  color: #fff;
+  color: var(--bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -508,7 +508,7 @@ function handlePasswordChangeSuccess() {
   height: 34px;
   border-radius: var(--radius-sm);
   background: var(--brand-primary);
-  color: #fff;
+  color: var(--bg-card);
   display: flex;
   align-items: center;
   justify-content: center;

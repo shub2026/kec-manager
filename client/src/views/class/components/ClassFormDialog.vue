@@ -124,7 +124,7 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row v-if="localForm.isCombinedClass" :gutter="20">
+        <el-row v-if="localForm.isCombinedClass" :gutter="16">
           <el-col :span="24">
             <el-form-item label="合班伙伴">
               <el-select

@@ -56,7 +56,7 @@
           <span class="cohesion-label">分散教师数</span>
         </div>
       </div>
-      <div class="cohesion-hint">内聚率越高表示教师教材越集中；分散教师数指教材数≥3 的教师</div>
+      <div class="cohesion-hint">内聚率越高表示教师教材越集中；分散教师数指教材数≥2 的教师</div>
     </div>
 
     <!-- 警告信息 -->

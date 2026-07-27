@@ -64,7 +64,15 @@
         class="batch-course-item"
         :class="{ 'has-error': r.error, 'has-unassigned': r.unassignedCount > 0 }"
       >
-        <div class="course-item-header" @click="toggleCourseDetail(r.courseId)">
+        <div
+          class="course-item-header"
+          role="button"
+          :tabindex="0"
+          :aria-expanded="expandedCourses.has(r.courseId)"
+          :aria-label="`${r.courseName} 排课结果${r.unassignedCount > 0 ? '，' + r.unassignedCount + '个未分配' : '，已完成'}`"
+          @click="toggleCourseDetail(r.courseId)"
+          @keyup.enter="toggleCourseDetail(r.courseId)"
+        >
           <div class="course-item-left">
             <el-icon class="expand-icon" :class="{ expanded: expandedCourses.has(r.courseId) }"
               ><ArrowRight
@@ -261,6 +269,11 @@ function courseRate(r) {
   cursor: pointer;
   user-select: none;
   transition: background 0.15s;
+}
+
+.course-item-header:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -2px;
 }
 .course-item-header:hover {
   background: var(--bg-subtle);

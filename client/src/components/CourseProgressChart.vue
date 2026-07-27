@@ -77,22 +77,29 @@ const rate = computed(() => {
   return Math.round((assigned.value / total.value) * 100);
 });
 
+// 课时回退估算的每门课平均周课时（仅在无后端实际值时使用）
 const AVG_HOURS_PER_COURSE = 16;
+
+// 统一保留一位小数，与后端 assignedWeeklyHours/totalWeeklyHours 精度对齐
+function round1(n) {
+  return Math.round(n * 10) / 10;
+}
+
 const assignedHours = computed(() => {
   if (props.assignedHours != null) {
-    return Math.round(props.assignedHours);
+    return round1(props.assignedHours);
   }
   if (props.totalHours > 0 && total.value > 0) {
-    return Math.round(props.totalHours * (assigned.value / total.value));
+    return round1(props.totalHours * (assigned.value / total.value));
   }
   return assigned.value * AVG_HOURS_PER_COURSE;
 });
 const remainingHours = computed(() => {
   if (props.assignedHours != null) {
-    return Math.max(0, Math.round(props.totalHours - props.assignedHours));
+    return Math.max(0, round1(props.totalHours - props.assignedHours));
   }
   if (props.totalHours > 0 && total.value > 0) {
-    return Math.round(props.totalHours * (remaining.value / total.value));
+    return round1(props.totalHours * (remaining.value / total.value));
   }
   return remaining.value * AVG_HOURS_PER_COURSE;
 });

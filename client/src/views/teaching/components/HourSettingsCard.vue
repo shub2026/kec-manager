@@ -38,7 +38,7 @@
             :step="1"
             controls-position="right"
             size="small"
-            style="width: 80px"
+            class="filter-xs"
           />
         </span>
         <span class="setting-field">
@@ -50,7 +50,7 @@
             :step="1"
             controls-position="right"
             size="small"
-            style="width: 80px"
+            class="filter-xs"
           />
         </span>
       </div>

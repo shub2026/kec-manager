@@ -46,7 +46,6 @@ import { useCourseMatrixEditing } from '../composables/useCourseMatrixEditing';
 
 const props = defineProps({
   planId: { type: Number, required: true },
-  allCourses: { type: Array, default: () => [] },
   allTextbooks: { type: Array, default: () => [] },
 });
 

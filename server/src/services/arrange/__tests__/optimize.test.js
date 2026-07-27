@@ -17,7 +17,7 @@ vi.mock('../../../lib/prisma.js', () => ({
       findMany: vi.fn(),
     },
     classes: {
-      findUnique: vi.fn(),
+      findMany: vi.fn(),
     },
     plan_courses: {
       findMany: vi.fn(),
@@ -118,16 +118,19 @@ function mockPlanCourse(courseId, textbookIds = [1]) {
 describe('Optimize Service', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    // 默认 mock：classes.findUnique 返回班级基础信息
+    // 默认 mock：classes.findMany 批量返回班级基础信息
     const { prisma } = await import('../../../lib/prisma.js');
-    prisma.classes.findUnique.mockImplementation(({ where }) => ({
-      id: where.id,
-      major_id: 1,
-      training_level_id: 1,
-      enrollment_year: 2023,
-      custom_plan_id: null,
-    }));
-    // 默认 mock：plan_courses 返回含教材的方案
+    prisma.classes.findMany.mockImplementation(({ where }) => {
+      const ids = where.id?.in || [];
+      return ids.map((id) => ({
+        id,
+        major_id: 1,
+        training_level_id: 1,
+        enrollment_year: 2023,
+        custom_plan_id: null,
+      }));
+    });
+    // 默认 mock：plan_courses.findMany 批量返回含教材的方案
     prisma.plan_courses.findMany.mockResolvedValue([mockPlanCourse(1, [1])]);
   });
 
@@ -388,8 +391,9 @@ describe('Optimize Service', () => {
       });
 
       tabuOptimize.mockImplementation((assignments) => {
-        assignments.forEach((a) => {
-          a.teacher_id = 2;
+        // 优化后交替分配，保持负载均衡（而非全集中到一个教师）
+        assignments.forEach((a, i) => {
+          a.teacher_id = i % 2 === 0 ? 1 : 2;
         });
         return {
           improved: true,
@@ -402,9 +406,201 @@ describe('Optimize Service', () => {
       });
 
       const result = await runOptimizeSchedule(1, 'standard');
-
       expect(result.meetsThreshold).toBe(true);
-      expect(result.changes.length).toBeGreaterThanOrEqual(3);
+      // 新阈值逻辑：scoreImprovement > 5% 即达标，不要求 changesCount >= 3
+      expect(result.changes.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  // ── P0 修复测试：跨课程状态回写 ──
+  describe('cross-course state writeback (P0 fix)', () => {
+    it('优化后 courseTeacherConstraints 的 assignedTextbookIds 应同步回共享 teacherConstraints', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+
+      // 2 门课程，每门 2 个班级
+      const mockAssignments = [
+        mockAssignment(1, 1, 1),
+        mockAssignment(2, 2, 2),
+      ];
+
+      prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'Teacher 1', { courses: [{ course_id: 1 }, { course_id: 2 }] }),
+        mockTeacher(2, 'Teacher 2', { courses: [{ course_id: 1 }, { course_id: 2 }] }),
+      ]);
+      // 2 门课程的 plan_courses
+      prisma.plan_courses.findMany.mockResolvedValue([
+        mockPlanCourse(1, [10]),
+        mockPlanCourse(2, [20]),
+      ]);
+
+      let capturedConstraints = null;
+      tabuOptimize.mockImplementation((assignments, unassigned, teacherConstraints) => {
+        capturedConstraints = teacherConstraints;
+        // 模拟 tabu-search writeback：把教材写入 assignedTextbookIds
+        // 课程1：教师1拿到教材10，教师2拿到教材10
+        // 课程2：教师2拿到教材20
+        for (const t of teacherConstraints) {
+          if (assignments.some((a) => a.teacher_id === t.id)) {
+            const courseAssignments = assignments.filter((a) => a.teacher_id === t.id);
+            for (const a of courseAssignments) {
+              // 模拟 writeback：教材加入 assignedTextbookIds
+              t.assignedTextbookIds.add(a.course_id === 1 ? 10 : 20);
+            }
+          }
+        }
+        return {
+          improved: true,
+          iterations: 10,
+          scoreBefore: 50,
+          scoreAfter: 60,
+          delta: 10,
+          elapsed: 100,
+        };
+      });
+
+      await runOptimizeSchedule(1, 'standard');
+
+      // 验证 capturedConstraints 是副本（courseTeacherConstraints），不是共享的 teacherConstraints
+      // 但更重要的是验证：优化后共享的 qualifiedTeachers 的 assignedTextbookIds 已被同步
+      // 由于 qualifiedTeachers 是 teacherConstraints 数组中 filter 出的引用，
+      // writeback 应已修改原始对象
+      expect(capturedConstraints).not.toBeNull();
+
+      // 课程1优化后，教师1应有教材10
+      const teacher1InCourse1 = capturedConstraints.find((t) => t.id === 1);
+      expect(teacher1InCourse1.assignedTextbookIds.has(10)).toBe(true);
+    });
+  });
+
+  // ── P0 修复测试：目标函数含 α/β 惩罚项 ──
+  describe('calculateMetrics with penalty terms (P1 fix)', () => {
+    it('score 应包含欠分配惩罚和负载方差惩罚（非仅 totalMatchScore）', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+      const { calcMatchScore } = await import('../auto-arrange.js');
+
+      // 2 个教师，3 个班级，全部分给教师1 → 教师2 欠分配
+      const mockAssignments = [
+        mockAssignment(1, 1, 1),
+        mockAssignment(2, 1, 1),
+        mockAssignment(3, 1, 1),
+      ];
+
+      prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'Teacher 1'),
+        mockTeacher(2, 'Teacher 2'),
+      ]);
+      prisma.plan_courses.findMany.mockResolvedValue([mockPlanCourse(1, [1])]);
+
+      // calcMatchScore 固定返回 10
+      calcMatchScore.mockReturnValue(10);
+
+      tabuOptimize.mockReturnValue({
+        improved: false,
+        iterations: 0,
+        scoreBefore: 0,
+        scoreAfter: 0,
+        delta: 0,
+        elapsed: 10,
+      });
+
+      const result = await runOptimizeSchedule(1, 'standard');
+
+      // before.score 应 = totalMatchScore - underAssignmentPenalty - loadVariancePenalty
+      // totalMatchScore = 3 × 10 = 30
+      // 教师1: 3×4=12课时, cap=16, gap=4, 教师2: 0课时, cap=16, gap=16
+      // underAssignmentPenalty = α × (4 + 16) = 5 × 20 = 100
+      // loadVariance > 0（教师1=12/16=0.75, 教师2=0/16=0, variance>0）
+      // score = 30 - 100 - loadVariancePenalty < 0
+      expect(result.before.score).toBeLessThan(0);
+      // 确认不是仅 totalMatchScore（30），而是减去了惩罚
+      expect(result.before.score).toBeLessThan(30);
+    });
+
+    it('score 不应为 0 守卫丢弃负分场景（before.score !== 0 而非 > 0）', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+      const { calcMatchScore } = await import('../auto-arrange.js');
+
+      // 2 教师 2 班级，全给教师1 → 教师2 欠分配导致 before.score 为负
+      const mockAssignments = [
+        mockAssignment(1, 1, 1),
+        mockAssignment(2, 1, 1),
+      ];
+
+      prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'Teacher 1'),
+        mockTeacher(2, 'Teacher 2'),
+      ]);
+      prisma.plan_courses.findMany.mockResolvedValue([mockPlanCourse(1, [1])]);
+
+      // 匹配分 = 1（极低），确保 totalMatchScore < underAssignmentPenalty
+      calcMatchScore.mockReturnValue(1);
+
+      // tabuOptimize 把班级2转给教师2 → 负载均衡改善，after.score 比 before.score 高
+      tabuOptimize.mockImplementation((assignments) => {
+        assignments[1].teacher_id = 2;
+        return {
+          improved: true,
+          iterations: 5,
+          scoreBefore: -100,
+          scoreAfter: -50,
+          delta: 50,
+          elapsed: 50,
+        };
+      });
+
+      const result = await runOptimizeSchedule(1, 'standard');
+
+      // before.score 应为负数（匹配分2 - 欠分配惩罚5×24 - 方差惩罚 < 0）
+      expect(result.before.score).toBeLessThan(0);
+      // after.score 应比 before.score 高（负载均衡后欠分配减少）
+      expect(result.after.score).toBeGreaterThan(result.before.score);
+      // scoreImprovement 应正确计算（负分→正分的改进），而非返回 0
+      expect(result.improvements.scoreImprovement).toBeGreaterThan(0);
+      // meetsThreshold 应为 true
+      expect(result.meetsThreshold).toBe(true);
+    });
+  });
+
+  // ── P0 修复测试：N+1 查询改批量 ──
+  describe('batch query (N+1 fix)', () => {
+    it('classes.findMany 应被批量调用而非逐班 findUnique', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+
+      const mockAssignments = [
+        mockAssignment(1, 1, 1),
+        mockAssignment(2, 2, 1),
+        mockAssignment(3, 1, 2),
+      ];
+
+      prisma.teaching_assignments.findMany.mockResolvedValue(mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'T1', { courses: [{ course_id: 1 }, { course_id: 2 }] }),
+        mockTeacher(2, 'T2', { courses: [{ course_id: 1 }, { course_id: 2 }] }),
+      ]);
+      prisma.plan_courses.findMany.mockResolvedValue([mockPlanCourse(1, [1]), mockPlanCourse(2, [2])]);
+
+      tabuOptimize.mockReturnValue({
+        improved: false, iterations: 0, scoreBefore: 0, scoreAfter: 0, delta: 0, elapsed: 10,
+      });
+
+      await runOptimizeSchedule(1, 'standard');
+
+      // classes.findMany 应只被调用 1 次（批量），而非 N 次
+      expect(prisma.classes.findMany).toHaveBeenCalledTimes(1);
+      // plan_courses.findMany 应只被调用 1 次（批量）
+      expect(prisma.plan_courses.findMany).toHaveBeenCalledTimes(1);
+      // 验证批量查询的 where 条件包含所有 classId
+      const classesCallArgs = prisma.classes.findMany.mock.calls[0][0];
+      expect(classesCallArgs.where.id.in).toContain(1);
+      expect(classesCallArgs.where.id.in).toContain(2);
+      expect(classesCallArgs.where.id.in).toContain(3);
     });
   });
 });

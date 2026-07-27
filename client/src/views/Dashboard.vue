@@ -42,7 +42,7 @@
     </div>
 
     <!-- 洞察区域：CSS Grid 非对称布局（左 60% 右 40%） -->
-    <div class="insights-grid">
+    <section class="insights-grid" role="region" aria-label="教学洞察">
       <div class="insight-main">
         <CourseProgressChart
           :data="insights.completion"
@@ -59,7 +59,7 @@
       <div class="insight-side">
         <HoursChart :data="insights.distribution" />
       </div>
-    </div>
+    </section>
 
     <!-- 底部版权 -->
     <div class="dashboard-footer">
