@@ -321,6 +321,144 @@ certbot renew --dry-run
 nginx -t && nginx -s reload
 ```
 
+### 静态资源预压缩（1Panel / OpenResty）
+
+前端构建已通过 `vite-plugin-compression` 生成 `.gz` 与 `.br` 预压缩文件（见 `client/dist/assets/`）。配置 Nginx 直接发送预压缩文件，可省去每请求的实时压缩 CPU 开销，首屏传输体积从 ~330KB 降至 ~57KB（gzip）或 ~50KB（brotli）。
+
+> **能力差异**：OpenResty 默认内置 `gzip` / `gzip_static` 模块；`brotli` 需额外编译 `ngx_brotli` 模块。**推荐先用方案 A 立即上线**，br 作为可选优化。
+
+#### 方案 A：gzip + gzip_static（推荐，零额外编译）
+
+**第 1 步：配置 OpenResty 主配置（http 块全局生效）**
+
+1Panel 面板 → **网站** → 顶部 **OpenResty** → **设置** → **配置修改**，在 `http {` 块内加入：
+
+```nginx
+# ============ 预压缩与动态压缩 ============
+# 优先发送构建阶段生成的 .gz 预压缩文件，省去实时压缩 CPU 开销
+gzip_static on;
+
+# 动态压缩兜底：对没有预压缩文件的响应（如 /api 的 JSON、index.html）实时压缩
+gzip on;
+gzip_comp_level 6;
+gzip_min_length 1024;
+gzip_vary on;
+gzip_proxied any;
+gzip_types
+    text/plain
+    text/css
+    text/xml
+    text/javascript
+    application/javascript
+    application/json
+    application/xml
+    application/xml+rss
+    image/svg+xml
+    font/ttf
+    font/otf
+    font/woff
+    font/woff2;
+```
+
+点击 **保存** → 回到 OpenResty 设置页点 **重载**。
+
+**第 2 步：验证**
+
+```bash
+# 1. 确认 .gz 文件存在
+ls /opt/1panel/www/sites/kec/index/kec-manager/client/dist/assets/*.gz | head -3
+
+# 2. 请求一个 JS 文件，验证返回 Content-Encoding: gzip
+curl -sI -H "Accept-Encoding: gzip" https://你的域名/assets/index-xxxx.js | grep -iE "content-encoding|content-length"
+# 期望输出：content-encoding: gzip
+
+# 3. 对比传输体积（应远小于原文件）
+curl -sI -H "Accept-Encoding: gzip" https://你的域名/assets/index-xxxx.js | grep content-length
+```
+
+预期：首屏 `index.js` 从 ~87KB 降至 ~30KB（gzip）。
+
+#### 方案 B：启用 brotli（可选，追求极致）
+
+br 比 gz 再小约 15%。仅当你愿意承担编译风险时执行。
+
+**第 1 步：编译 ngx_brotli 模块**
+
+1Panel 面板 → **网站** → **OpenResty** → **设置** → **模块** → **创建**：
+
+- 模块名称：`ngx_brotli`
+- 构建脚本（参考，需替换为你 OpenResty 实际版本）：
+
+```bash
+# 1. 下载源码到 /tmp（1Panel 要求路径必须是 /tmp）
+cd /tmp
+git clone --depth=1 -b openresty https://github.com/eustas/ngx_brotli.git
+cd ngx_brotli
+git submodule update --init --recursive
+
+# 2. 编译参数（追加到 1Panel 现有编译参数后）
+--add-module=/tmp/ngx_brotli
+```
+
+> ⚠️ **版本匹配**：OpenResty 1.21.x 用 `openresty` 分支，1.25.x 用 `master` 分支，混用会 `make` 失败。先在 1Panel 的 OpenResty 状态页确认版本。
+
+点击 **构建**（耗时 5-10 分钟，构建完会自动重启 OpenResty）。
+
+**第 2 步：启用 brotli 配置**
+
+构建成功后，回到 **OpenResty → 设置 → 配置修改**，在 http 块内（gzip 配置下方）追加：
+
+```nginx
+# ============ Brotli 预压缩（需已编译 ngx_brotli 模块）============
+brotli on;
+brotli_comp_level 6;
+brotli_min_length 1024;
+brotli_types
+    text/plain
+    text/css
+    text/xml
+    text/javascript
+    application/javascript
+    application/json
+    application/xml
+    image/svg+xml
+    font/ttf
+    font/otf
+    font/woff
+    font/woff2;
+
+# 优先发送 .br 预压缩文件；不存在时回退到 .gz（gzip_static on 已配）
+brotli_static on;
+```
+
+**重载** OpenResty。
+
+**第 3 步：验证**
+
+```bash
+# 1. 确认模块已加载
+nginx -V 2>&1 | grep brotli
+# 期望输出包含 --add-module=...ngx_brotli
+
+# 2. 请求 JS 文件，验证返回 br
+curl -sI -H "Accept-Encoding: br" https://你的域名/assets/index-xxxx.js | grep -i content-encoding
+# 期望输出：content-encoding: br
+```
+
+#### 方案对比
+
+| 方案 | 首屏体积 | 操作复杂度 | 风险 | 建议 |
+| ---- | -------- | ---------- | ---- | ---- |
+| A（gzip_static） | ~57KB (gz) | 低，改配置即可 | 零 | 立即上线 |
+| B（brotli_static） | ~50KB (br) | 高，需编译模块 | 中（版本匹配） | 可选，后续优化 |
+
+#### 注意事项
+
+- **`gzip_static on` 是"静默失败"型**：若 `.gz` 文件权限不是 644 或路径不对，Nginx 不会报错，会走未压缩路径。部署后务必用 curl 验证 `content-encoding`。
+- **不要在 `/api` location 开 `gzip_static`**：API 响应是动态的，没有预压缩文件；`gzip on` 已覆盖动态压缩。
+- **1Panel 配置覆盖风险**：1Panel 升级或重建 OpenResty 可能重置主配置。建议把 gzip 配置块截图保存，或在 1Panel 的"配置修改"里编辑（1Panel 会保留用户改动）。
+- **deploy.sh 不会自动配置 Nginx**：压缩配置是一次性操作，配好即可。
+
 ---
 
 ## 六、环境变量说明
