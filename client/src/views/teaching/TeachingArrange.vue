@@ -53,281 +53,33 @@
       <template #header>
         <div class="card-header">
           <span>教学安排</span>
-          <div class="card-header-actions arrange-header">
-            <el-select
-              v-model="filterCollege"
-              placeholder="学院"
-              clearable
-              class="header-filter filter-md"
-              @change="handleCollegeFilterChange"
-            >
-              <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
-            </el-select>
-            <el-select
-              v-model="filterMajor"
-              placeholder="专业"
-              clearable
-              filterable
-              class="header-filter filter-lg"
-              @change="handleMajorFilterChange"
-            >
-              <el-option v-for="v in majorOptions" :key="v" :label="v" :value="v" />
-            </el-select>
-            <el-select
-              v-model="filterTrainingLevel"
-              placeholder="层次"
-              clearable
-              class="header-filter filter-sm"
-              @change="handleTrainingLevelFilterChange"
-            >
-              <el-option v-for="v in trainingLevelOptions" :key="v" :label="v" :value="v" />
-            </el-select>
-            <el-select
-              v-model="filterGrade"
-              placeholder="年级"
-              clearable
-              class="header-filter filter-xs"
-            >
-              <el-option v-for="v in gradeOptions" :key="v" :label="v + '年级'" :value="v" />
-            </el-select>
-            <el-select
-              v-model="filterTextbook"
-              placeholder="教材"
-              clearable
-              filterable
-              class="header-filter filter-xl"
-            >
-              <el-option v-for="v in textbookOptions" :key="v" :label="v" :value="v" />
-            </el-select>
-            <el-checkbox v-model="previewMode" class="preview-checkbox">预览</el-checkbox>
-            <el-button
-              type="warning"
-              :loading="arranging"
-              :disabled="historicalReadOnly"
-              @click="handleAutoArrange('full')"
-            >
-              <el-icon><MagicStick /></el-icon> 全量模式
-            </el-button>
-            <el-button
-              type="success"
-              :loading="arranging"
-              :disabled="historicalReadOnly"
-              @click="handleAutoArrange('standard')"
-            >
-              <el-icon><SetUp /></el-icon> 标准模式
-            </el-button>
-            <el-dropdown
-              :disabled="batchArranging || historicalReadOnly"
-              class="dropdown-gap"
-              @command="handleBatchAutoArrange"
-            >
-              <el-button type="primary" :loading="batchArranging">
-                批量排课<el-icon class="el-icon--right"><ArrowDown /></el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="full">全量模式（所有课程）</el-dropdown-item>
-                  <el-dropdown-item command="standard">标准模式（所有课程）</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            <el-button
-              type="info"
-              :loading="optimizing"
-              :disabled="historicalReadOnly"
-              class="dropdown-gap"
-              @click="handleOptimize"
-            >
-              <el-icon><DataAnalysis /></el-icon>
-              {{ optimizing && optimizeProgressMessage ? optimizeProgressMessage : '排课优化' }}
-            </el-button>
-            <el-dropdown class="dropdown-gap" @command="handleResetCommand">
-              <el-button type="danger" :disabled="historicalReadOnly">
-                <el-icon><RefreshRight /></el-icon> 重置<el-icon class="el-icon--right"
-                  ><ArrowDown
-                /></el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="current">重置当前科目</el-dropdown-item>
-                  <el-dropdown-item command="all">重置全部科目</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            <el-button
-              type="success"
-              plain
-              :disabled="historicalReadOnly"
-              class="lock-btn"
-              @click="handleBatchLockAll"
-            >
-              <el-icon><Lock /></el-icon> 锁定
-            </el-button>
-            <el-button
-              type="warning"
-              plain
-              :disabled="historicalReadOnly"
-              class="lock-btn"
-              @click="handleBatchUnlockAll"
-            >
-              <el-icon><Unlock /></el-icon> 解锁
-            </el-button>
-          </div>
+          <ArrangeToolbar
+            v-model:filters="filters"
+            v-model:preview-mode="previewMode"
+            :class-list="classList"
+            :arranging="arranging"
+            :batch-arranging="batchArranging"
+            :optimizing="optimizing"
+            :optimize-progress-message="optimizeProgressMessage"
+            :historical-read-only="historicalReadOnly"
+            @auto-arrange="handleAutoArrange"
+            @batch-arrange="handleBatchAutoArrange"
+            @optimize="handleOptimize"
+            @reset="handleResetCommand"
+            @lock-all="handleBatchLockAll"
+            @unlock-all="handleBatchUnlockAll"
+          />
         </div>
       </template>
 
-      <el-table
-        v-loading="tableLoading"
-        :data="paginatedClassList"
-        stripe
-        row-key="classId"
-        :row-class-name="tableRowClassName"
-        class="adaptive-table"
-      >
-        <el-table-column type="index" label="#" width="50" />
-        <el-table-column prop="className" label="班级名称" min-width="160" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span>{{ row.className }}</span>
-            <el-tooltip
-              v-if="row.combinationId != null"
-              :content="
-                row.partnerClassNames ? `合班伙伴：${row.partnerClassNames}` : '已标记合班教学'
-              "
-              placement="top"
-              effect="light"
-            >
-              <el-icon class="combined-icon" :size="16"><Connection /></el-icon>
-            </el-tooltip>
-          </template>
-        </el-table-column>
-        <el-table-column prop="collegeName" label="学院" min-width="100" show-overflow-tooltip />
-        <el-table-column prop="majorName" label="专业" min-width="100" show-overflow-tooltip />
-        <el-table-column
-          prop="trainingLevelName"
-          label="培养层次"
-          min-width="80"
-          show-overflow-tooltip
-        />
-        <el-table-column label="入学年份" min-width="80" align="center">
-          <template #default="{ row }">{{ row.enrollmentYear }}</template>
-        </el-table-column>
-        <el-table-column label="年级" min-width="60" align="center">
-          <template #default="{ row }">{{ row.grade }}</template>
-        </el-table-column>
-        <el-table-column label="在读学期" min-width="80" align="center">
-          <template #default="{ row }">第{{ row.currentSemester }}学期</template>
-        </el-table-column>
-        <el-table-column label="人数" min-width="60" align="center">
-          <template #default="{ row }">{{ row.studentCount }}</template>
-        </el-table-column>
-        <el-table-column label="周课时" min-width="70" align="center">
-          <template #default="{ row }">{{ row.weeklyHours }}</template>
-        </el-table-column>
-        <el-table-column label="教材" min-width="160" class-name="textbook-col">
-          <template #default="{ row }">
-            <div v-if="row.textbooks?.length" class="textbook-tags">
-              <el-tag
-                v-for="tb in row.textbooks"
-                :key="tb.id"
-                size="small"
-                type="info"
-                class="tag-item"
-                disable-transitions
-                >{{ tb.title }}</el-tag
-              >
-            </div>
-            <span v-else class="text-muted">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="任课教师" min-width="160">
-          <template #default="{ row }">
-            <div
-              class="teacher-cell"
-              :class="{
-                'has-teacher': row.assignment,
-                'no-teacher': !row.assignment,
-                'is-readonly': historicalReadOnly,
-              }"
-              @click="openTeacherSelect(row)"
-            >
-              <template v-if="row.assignment">
-                <el-tag
-                  :type="
-                    row.assignment.isLocked ? 'success' : row.assignment.isAuto ? 'info' : 'primary'
-                  "
-                  size="small"
-                  :closable="!historicalReadOnly"
-                  disable-transitions
-                  @close.stop="handleRemoveAssignment(row)"
-                >
-                  <el-icon v-if="row.assignment.isLocked" class="locked-icon" :size="12"
-                    ><Lock
-                  /></el-icon>
-                  {{ row.assignment.teacherName }}
-                </el-tag>
-                <!-- 锁定/解锁按钮：仅自动安排显示 -->
-                <el-tooltip
-                  v-if="row.assignment.isAuto && !historicalReadOnly"
-                  :content="
-                    row.assignment.isLocked
-                      ? '点击解锁（解锁后重新排课可覆盖）'
-                      : '点击锁定（锁定后重新排课不受影响）'
-                  "
-                  placement="top"
-                  effect="light"
-                >
-                  <el-icon
-                    class="lock-toggle-icon"
-                    :class="{ 'is-locked': row.assignment.isLocked }"
-                    :size="14"
-                    @click.stop="handleToggleLock(row)"
-                  >
-                    <Lock v-if="row.assignment.isLocked" />
-                    <Unlock v-else />
-                  </el-icon>
-                </el-tooltip>
-                <span v-if="!historicalReadOnly && !row.assignment.isLocked" class="replace-hint">
-                  <el-icon :size="12"><EditPen /></el-icon>
-                  更换
-                </span>
-                <span
-                  v-else-if="!historicalReadOnly && row.assignment.isLocked"
-                  class="locked-hint"
-                >
-                  已锁定
-                </span>
-                <span v-else class="readonly-hint">
-                  <el-icon :size="12"><Lock /></el-icon>
-                  只读
-                </span>
-              </template>
-              <template v-else>
-                <template v-if="historicalReadOnly">
-                  <el-icon :size="14" class="cell-hint-icon"><Lock /></el-icon>
-                  <span class="text-muted">只读</span>
-                </template>
-                <template v-else>
-                  <el-icon :size="14" class="cell-hint-icon"><Plus /></el-icon>
-                  <span class="text-placeholder">点击安排</span>
-                </template>
-              </template>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div class="pagination-container">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[20, 50, 100]"
-          :total="filteredClassList.length"
-          layout="total, sizes, prev, pager, next"
-          background
-          @size-change="handlePageChange"
-          @current-change="handlePageChange"
-        />
-      </div>
+      <ArrangeClassTable
+        :class-list="filteredClassList"
+        :loading="tableLoading"
+        :historical-read-only="historicalReadOnly"
+        @select-teacher="openTeacherSelect"
+        @remove-assignment="handleRemoveAssignment"
+        @toggle-lock="handleToggleLock"
+      />
     </el-card>
 
     <!-- 教师选择弹窗 -->
@@ -437,10 +189,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue';
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Connection, Lock, Unlock, DataAnalysis } from '@element-plus/icons-vue';
-import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
 import { exportTeachingArrange } from '../../api/export';
@@ -457,9 +207,12 @@ import {
 import { useAutoArrange } from './composables/useAutoArrange';
 import { useBatchArrange } from './composables/useBatchArrange';
 import { useOptimize } from './composables/useOptimize';
+import { useArrangeProgress } from './composables/useArrangeProgress';
 
 import HourSettingsCard from './components/HourSettingsCard.vue';
 import CoursePreviewCard from './components/CoursePreviewCard.vue';
+import ArrangeToolbar from './components/ArrangeToolbar.vue';
+import ArrangeClassTable from './components/ArrangeClassTable.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 import SemesterSelect from '../../components/SemesterSelect.vue';
@@ -512,98 +265,29 @@ const summary = ref({
   remainingHours: 0,
 });
 
-// 筛选器
-const filterCollege = ref('');
-const filterMajor = ref('');
-const filterGrade = ref('');
-const filterTrainingLevel = ref('');
-const filterTextbook = ref('');
-
-// 使用通用联动Hook
-const filters = computed(() => ({
-  college: filterCollege.value,
-  major: filterMajor.value,
-  trainingLevel: filterTrainingLevel.value,
-}));
-
-const { handleParentChange } = useFilterLinkage({
-  filters,
-  relations: {},
+// 筛选器（选项计算与联动逻辑已下沉至 ArrangeToolbar）
+const filters = ref({
+  college: '',
+  major: '',
+  trainingLevel: '',
+  grade: '',
+  textbook: '',
 });
-
-// 合并 5 个筛选 computed 为单次遍历
-const filterOptions = computed(() => {
-  const colleges = new Set();
-  const majors = new Set();
-  const grades = new Set();
-  const trainingLevels = new Set();
-  const textbooks = new Set();
-
-  const fCollege = filterCollege.value;
-  const fMajor = filterMajor.value;
-
-  for (const c of classList.value) {
-    if (c.collegeName) colleges.add(c.collegeName);
-
-    const matchCollege = !fCollege || c.collegeName === fCollege;
-    const matchCollegeMajor = matchCollege && (!fMajor || c.majorName === fMajor);
-
-    if (c.majorName && matchCollege) majors.add(c.majorName);
-    if (c.grade && matchCollegeMajor) grades.add(c.grade);
-    if (c.trainingLevelName && matchCollegeMajor) trainingLevels.add(c.trainingLevelName);
-    if (c.textbooks) {
-      for (const tb of c.textbooks) {
-        if (tb.title) textbooks.add(tb.title);
-      }
-    }
-  }
-
-  return {
-    colleges: [...colleges].sort(),
-    majors: [...majors].sort(),
-    grades: [...grades].sort((a, b) => a - b),
-    trainingLevels: [...trainingLevels].sort(),
-    textbooks: [...textbooks].sort(),
-  };
-});
-
-const collegeOptions = computed(() => filterOptions.value.colleges);
-const majorOptions = computed(() => filterOptions.value.majors);
-const gradeOptions = computed(() => filterOptions.value.grades);
-const trainingLevelOptions = computed(() => filterOptions.value.trainingLevels);
-const textbookOptions = computed(() => filterOptions.value.textbooks);
 
 const filteredClassList = computed(() => {
+  const f = filters.value;
   return classList.value.filter((c) => {
-    if (filterCollege.value && c.collegeName !== filterCollege.value) return false;
-    if (filterMajor.value && c.majorName !== filterMajor.value) return false;
-    if (filterGrade.value && c.grade !== filterGrade.value) return false;
-    if (filterTrainingLevel.value && c.trainingLevelName !== filterTrainingLevel.value)
-      return false;
-    if (filterTextbook.value) {
+    if (f.college && c.collegeName !== f.college) return false;
+    if (f.major && c.majorName !== f.major) return false;
+    if (f.grade && c.grade !== f.grade) return false;
+    if (f.trainingLevel && c.trainingLevelName !== f.trainingLevel) return false;
+    if (f.textbook) {
       const titles = (c.textbooks || []).map((tb) => tb.title);
-      if (!titles.includes(filterTextbook.value)) return false;
+      if (!titles.includes(f.textbook)) return false;
     }
     return true;
   });
 });
-
-// P-04: 客户端分页
-const currentPage = ref(1);
-const pageSize = ref(20);
-
-const paginatedClassList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredClassList.value.slice(start, start + pageSize.value);
-});
-
-watch(filteredClassList, () => {
-  currentPage.value = 1;
-});
-
-function handlePageChange() {
-  // 分页变化时自动触发（el-pagination 事件）
-}
 
 // 自动排课状态
 const exporting = ref(false);
@@ -616,7 +300,15 @@ const resetConfirmVisible = ref(false);
 const resetting = ref(false);
 const resetScope = ref('current');
 
-// 使用自动排课 composable
+// 使用自动排课 composable（进度状态整体交给 useArrangeProgress 合并代理）
+const autoArrange = useAutoArrange({
+  selectedCourseId,
+  selectedSemester,
+  courseInfo,
+  hourSettingsRef,
+  loadData,
+  confirmHistoricalEdit,
+});
 const {
   arranging,
   arrangeConfirmVisible,
@@ -625,51 +317,29 @@ const {
   arrangeResult,
   arrangeResultMode,
   previewMode,
-  progressVisible: autoProgressVisible,
-  progressType: autoProgressType,
-  progressModeLabel: autoProgressModeLabel,
-  progressFinished: autoProgressFinished,
-  progressCurrentPhase: autoProgressCurrentPhase,
-  progressMessage: autoProgressMessage,
   handleAutoArrange,
   doAutoArrange,
   handleExecutePreview,
-} = useAutoArrange({
-  selectedCourseId,
-  selectedSemester,
-  courseInfo,
-  hourSettingsRef,
-  loadData,
-  confirmHistoricalEdit,
-});
+} = autoArrange;
 
 // 使用批量排课 composable
-const {
-  batchArranging,
-  batchConfirmVisible,
-  batchConfirmData,
-  batchResultVisible,
-  batchResult,
-  progressVisible: batchProgressVisible,
-  progressType: batchProgressType,
-  progressModeLabel: batchProgressModeLabel,
-  progressFinished: batchProgressFinished,
-  progressProcessed: batchProgressProcessed,
-  progressTotal: batchProgressTotal,
-  progressCurrentCourseName: batchProgressCurrentCourseName,
-  progressCumulativeAssigned: batchProgressCumulativeAssigned,
-  progressCumulativeUnassigned: batchProgressCumulativeUnassigned,
-  progressMessage: batchProgressMessage,
-  handleBatchAutoArrange,
-  doBatchAutoArrange,
-  handleBatchExecutePreview,
-} = useBatchArrange({
+const batchArrange = useBatchArrange({
   selectedSemester,
   hourSettingsRef,
   previewMode,
   loadData,
   confirmHistoricalEdit,
 });
+const {
+  batchArranging,
+  batchConfirmVisible,
+  batchConfirmData,
+  batchResultVisible,
+  batchResult,
+  handleBatchAutoArrange,
+  doBatchAutoArrange,
+  handleBatchExecutePreview,
+} = batchArrange;
 
 // 使用排课优化 composable
 const {
@@ -688,31 +358,26 @@ const {
   confirmHistoricalEdit,
 });
 
-// 统一的进度弹窗状态（委托给当前活动的 composable）
-const progressVisible = computed({
-  get: () => autoProgressVisible.value || batchProgressVisible.value,
-  set: (val) => {
-    if (autoProgressVisible.value) autoProgressVisible.value = val;
-    if (batchProgressVisible.value) batchProgressVisible.value = val;
-  },
+// 统一的进度弹窗状态（合并 auto/batch 两组进度，见 useArrangeProgress）
+const {
+  progressVisible,
+  progressType,
+  progressModeLabel,
+  progressFinished,
+  progressCurrentPhase,
+  progressProcessed,
+  progressTotal,
+  progressCurrentCourseName,
+  progressCumulativeAssigned,
+  progressCumulativeUnassigned,
+  progressMessage,
+  handleProgressClose,
+} = useArrangeProgress({
+  auto: autoArrange,
+  batch: batchArrange,
+  arrangeResultVisible,
+  batchResultVisible,
 });
-
-const progressType = computed(() => autoProgressType.value || batchProgressType.value);
-const progressModeLabel = computed(
-  () => autoProgressModeLabel.value || batchProgressModeLabel.value
-);
-const progressFinished = computed(() => autoProgressFinished.value || batchProgressFinished.value);
-const progressCurrentPhase = computed(() => autoProgressCurrentPhase.value);
-const progressProcessed = computed(() => batchProgressProcessed.value);
-const progressTotal = computed(() => batchProgressTotal.value);
-const progressCurrentCourseName = computed(() => batchProgressCurrentCourseName.value);
-const progressCumulativeAssigned = computed(() => batchProgressCumulativeAssigned.value);
-const progressCumulativeUnassigned = computed(() => batchProgressCumulativeUnassigned.value);
-const progressMessage = computed(() => autoProgressMessage.value || batchProgressMessage.value);
-
-function tableRowClassName({ row }) {
-  return row.assignment ? '' : 'unassigned-row';
-}
 
 // --- 学期与课程 ---
 const settingsStore = useSettingsStore();
@@ -802,11 +467,7 @@ async function loadCourses() {
 }
 
 async function onCourseChange(courseId) {
-  filterCollege.value = '';
-  filterMajor.value = '';
-  filterGrade.value = '';
-  filterTrainingLevel.value = '';
-  filterTextbook.value = '';
+  filters.value = { college: '', major: '', trainingLevel: '', grade: '', textbook: '' };
   if (!courseId) {
     classList.value = [];
     teacherList.value = [];
@@ -945,17 +606,7 @@ async function handleBatchUnlockAll() {
   }
 }
 
-// 进度弹窗关闭处理
-function handleProgressClose() {
-  autoProgressVisible.value = false;
-  batchProgressVisible.value = false;
-
-  if (autoProgressType.value === 'single' && autoProgressFinished.value) {
-    arrangeResultVisible.value = true;
-  } else if (batchProgressType.value === 'batch' && batchProgressFinished.value) {
-    batchResultVisible.value = true;
-  }
-}
+// 进度弹窗关闭处理已移至 useArrangeProgress
 
 // --- 重置 ---
 function handleResetCommand(command) {
@@ -992,11 +643,12 @@ async function handleExportArrange() {
       semester: selectedSemester.value,
     };
 
-    if (filterCollege.value) params.college = filterCollege.value;
-    if (filterMajor.value) params.major = filterMajor.value;
-    if (filterTrainingLevel.value) params.trainingLevel = filterTrainingLevel.value;
-    if (filterGrade.value) params.grade = filterGrade.value;
-    if (filterTextbook.value) params.textbook = filterTextbook.value;
+    const f = filters.value;
+    if (f.college) params.college = f.college;
+    if (f.major) params.major = f.major;
+    if (f.trainingLevel) params.trainingLevel = f.trainingLevel;
+    if (f.grade) params.grade = f.grade;
+    if (f.textbook) params.textbook = f.textbook;
 
     const response = await exportTeachingArrange(params);
     downloadBlob(
@@ -1012,26 +664,6 @@ async function handleExportArrange() {
   } finally {
     exporting.value = false;
   }
-}
-
-// --- 筛选器处理 ---
-function handleCollegeFilterChange() {
-  handleParentChange('college', ['major', 'trainingLevel'], () => {
-    filterGrade.value = '';
-    filterTextbook.value = '';
-  });
-}
-
-function handleMajorFilterChange() {
-  handleParentChange('major', ['trainingLevel'], () => {
-    filterGrade.value = '';
-    filterTextbook.value = '';
-  });
-}
-
-function handleTrainingLevelFilterChange() {
-  filterGrade.value = '';
-  filterTextbook.value = '';
 }
 
 // H-6 修复：串行加载，确保学期数据就绪后再加载课程列表，避免竞态导致空表格
@@ -1054,114 +686,6 @@ onMounted(async () => {
   flex-wrap: nowrap;
   white-space: nowrap;
 }
-.combined-icon {
-  margin-left: var(--space-1);
-  vertical-align: middle;
-  color: var(--brand-indigo);
-  cursor: help;
-}
-.teacher-cell {
-  cursor: pointer;
-  min-height: 32px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  /* flex:1 撑满父级 .cell（flex容器），负边距消除父级 padding 点击死区 */
-  flex: 1;
-  margin: -4px -10px;
-  padding: var(--space-1) 10px;
-  border-radius: var(--radius-sm);
-  transition: background-color 0.15s ease;
-}
-.teacher-cell:hover {
-  background-color: var(--el-color-primary-light-9, #e8f3fe);
-}
-.teacher-cell.no-teacher:hover .text-placeholder {
-  color: var(--el-color-primary);
-}
-.teacher-cell.is-readonly {
-  cursor: not-allowed;
-}
-.teacher-cell.is-readonly:hover {
-  background-color: transparent;
-}
-.readonly-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-.replace-hint {
-  display: none;
-  align-items: center;
-  gap: 2px;
-  font-size: 12px;
-  color: var(--el-color-primary);
-  white-space: nowrap;
-}
-.teacher-cell.has-teacher:hover .replace-hint {
-  display: inline-flex;
-}
-.text-placeholder {
-  color: var(--text-placeholder);
-  font-size: 12px;
-}
-.textbook-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.tag-item {
-  /* 单个长书名超出列宽时省略显示 */
-  max-width: 100%;
-  overflow: hidden;
-}
-.tag-item :deep(.el-tag__content) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-:deep(.unassigned-row) {
-  background-color: var(--brand-danger-soft) !important;
-}
-.adaptive-table :deep(.el-table__header th .cell) {
-  white-space: nowrap;
-}
-.adaptive-table :deep(.el-table__body td .cell) {
-  white-space: nowrap;
-}
-/* 教材列允许多 TAG 换行（覆盖上方 nowrap，需更高优先级选择器） */
-.adaptive-table :deep(.el-table__body td.textbook-col .cell) {
-  white-space: normal;
-}
-/* 卡片头部筛选器宽度（scoped 已隔离，加前缀提升可读性） */
-.arrange-header .header-filter.filter-xs {
-  width: 80px;
-}
-.arrange-header .header-filter.filter-sm {
-  width: 100px;
-}
-.arrange-header .header-filter.filter-md {
-  width: 120px;
-}
-.arrange-header .header-filter.filter-lg {
-  width: 130px;
-}
-.arrange-header .header-filter.filter-xl {
-  width: 140px;
-}
-.preview-checkbox {
-  margin-left: var(--space-2);
-}
-.dropdown-gap {
-  margin-left: var(--space-1);
-}
-.cell-hint-icon {
-  margin-right: 4px;
-  opacity: 0.5;
-}
 .reset-text {
   margin: 0;
 }
@@ -1169,34 +693,5 @@ onMounted(async () => {
   margin: 8px 0 0;
   color: var(--brand-danger-text);
   font-size: 13px;
-}
-.lock-toggle-icon {
-  cursor: pointer;
-  color: var(--text-placeholder);
-  transition: color 0.15s ease;
-  flex-shrink: 0;
-}
-.lock-toggle-icon:hover {
-  color: var(--el-color-primary);
-}
-.lock-toggle-icon.is-locked {
-  color: var(--el-color-success);
-}
-.lock-toggle-icon.is-locked:hover {
-  color: var(--el-color-warning);
-}
-.locked-icon {
-  margin-right: 2px;
-  vertical-align: -1px;
-}
-.locked-hint {
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px;
-  color: var(--el-color-success);
-  white-space: nowrap;
-}
-.lock-btn {
-  margin-left: var(--space-1);
 }
 </style>

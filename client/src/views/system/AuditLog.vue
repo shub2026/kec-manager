@@ -2,7 +2,7 @@
   <div class="audit-log">
     <PageHeader title="操作日志" subtitle="系统管理" description="查看系统操作记录和变更历史">
       <template #extra>
-        <el-button type="danger" size="small" :loading="clearing" @click="showClearDialog">
+        <el-button type="danger" :loading="clearing" @click="showClearDialog">
           <el-icon><Delete /></el-icon> 清空日志
         </el-button>
       </template>
@@ -62,7 +62,9 @@
         </el-button>
       </div>
 
+      <ListErrorState v-if="error" :message="error" @retry="loadLogs" />
       <el-table
+        v-else
         v-loading="loading"
         :data="logs"
         stripe
@@ -191,11 +193,14 @@ import { getAuditLogs } from '../../api/audit';
 import { resetAuditLogs } from '../../api/settings';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'AuditLog' });
 
 const logs = ref([]);
 const loading = ref(false);
+// 列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 const filterAction = ref(null);
 const filterModule = ref(null);
 const filterResult = ref(null);
@@ -374,6 +379,7 @@ async function handleClearLogs() {
 
 async function loadLogs() {
   loading.value = true;
+  error.value = null;
   try {
     const params = {
       page: currentPage.value,
@@ -388,6 +394,7 @@ async function loadLogs() {
     logs.value = res.data.logs;
     total.value = res.data.total;
   } catch (e) {
+    error.value = e?.response?.data?.message || '操作日志加载失败，请稍后重试';
     if (import.meta.env.DEV) {
       console.error('加载操作日志失败:', e);
     }

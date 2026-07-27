@@ -71,7 +71,7 @@
           <el-descriptions
             :column="descColumn"
             border
-            :label-width="'90px'"
+            :label-width="'100px'"
             class="textbook-descriptions"
           >
             <el-descriptions-item label="书名">

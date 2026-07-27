@@ -36,7 +36,8 @@
                 :icon="ArrowUp"
                 :disabled="realIndex(row) === 0"
                 circle
-                title="上移" aria-label="上移"
+                title="上移"
+                aria-label="上移"
                 @click="handleMoveUp(row, realIndex(row))"
               />
               <el-button
@@ -44,7 +45,8 @@
                 :icon="ArrowDown"
                 :disabled="realIndex(row) === filteredList.length - 1"
                 circle
-                title="下移" aria-label="下移"
+                title="下移"
+                aria-label="下移"
                 @click="handleMoveDown(row, realIndex(row))"
               />
             </div>
@@ -52,19 +54,28 @@
         </el-table-column>
         <el-table-column label="操作" width="100" align="center">
           <template #default="{ row }">
-            <el-button size="small" :icon="Edit" circle @click="openDialog(row)" />
+            <el-button
+              size="small"
+              :icon="Edit"
+              circle
+              title="编辑"
+              aria-label="编辑"
+              @click="openDialog(row)"
+            />
             <el-button
               size="small"
               type="danger"
               :icon="Delete"
               circle
+              title="删除"
+              aria-label="删除"
               @click="handleDelete(row.id)"
             />
           </template>
         </el-table-column>
       </el-table>
 
-      <div v-if="filteredList.length > pageSize" class="pagination-container">
+      <div class="pagination-container">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"

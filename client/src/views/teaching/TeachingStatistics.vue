@@ -76,8 +76,10 @@
         >
       </div>
 
+      <!-- 错误状态 -->
+      <ListErrorState v-if="error" :message="error" @retry="loadStats" />
       <!-- 空状态 -->
-      <EmptyState v-if="!loading && !statsData" type="generic" description="暂无数据" />
+      <EmptyState v-else-if="!loading && !statsData" type="generic" description="暂无数据" />
       <EmptyState
         v-else-if="!loading && statsData && filteredTeachers.length === 0"
         type="generic"
@@ -290,6 +292,7 @@ import { personnelLabel, personnelTagType } from '../../utils/personnel';
 import { useDebounceFn } from '../../composables/useDebounce';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 import SemesterSelect from '../../components/SemesterSelect.vue';
 
 defineOptions({ name: 'TeachingStatistics' });
@@ -298,6 +301,8 @@ const settingsStore = useSettingsStore();
 const semester = ref('');
 const statsData = ref(null);
 const loading = ref(false);
+// 列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 const exporting = ref(false);
 
 // 筛选器
@@ -429,11 +434,12 @@ async function loadSemester() {
 async function loadStats() {
   if (!semester.value) return;
   loading.value = true;
+  error.value = null;
   try {
     const res = await getTeachingStatistics({ semester: semester.value });
     statsData.value = res.data || null;
   } catch (e) {
-    ElMessage.error('加载统计数据失败');
+    error.value = e?.response?.data?.message || '统计数据加载失败，请稍后重试';
     if (import.meta.env.DEV) {
       console.error('加载统计数据失败:', e);
     }

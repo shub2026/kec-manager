@@ -10,130 +10,137 @@
     @close="emit('close')"
   >
     <template v-if="result">
-    <!-- 汇总统计 -->
-    <div class="optimize-summary">
-      <div class="optimize-stat-card is-primary">
-        <div class="optimize-stat-num text-brand">
-          {{ result.summary?.changedClasses || 0 }}
+      <!-- 汇总统计 -->
+      <div class="optimize-summary">
+        <div class="optimize-stat-card is-primary">
+          <div class="optimize-stat-num text-brand">
+            {{ result.summary?.changedClasses || 0 }}
+          </div>
+          <div class="optimize-stat-label">优化班级数</div>
         </div>
-        <div class="optimize-stat-label">优化班级数</div>
-      </div>
-      <div class="optimize-stat-card is-success">
-        <div class="optimize-stat-num text-success">
-          {{ result.summary?.improvedCourses || 0 }}
+        <div class="optimize-stat-card is-success">
+          <div class="optimize-stat-num text-success">
+            {{ result.summary?.improvedCourses || 0 }}
+          </div>
+          <div class="optimize-stat-label">改善课程数</div>
         </div>
-        <div class="optimize-stat-label">改善课程数</div>
-      </div>
-      <div class="optimize-stat-card">
-        <div class="optimize-stat-num">
-          {{ result.summary?.affectedTeachers || 0 }}
+        <div class="optimize-stat-card">
+          <div class="optimize-stat-num">
+            {{ result.summary?.affectedTeachers || 0 }}
+          </div>
+          <div class="optimize-stat-label">涉及教师数</div>
         </div>
-        <div class="optimize-stat-label">涉及教师数</div>
-      </div>
-      <div class="optimize-stat-card">
-        <div class="optimize-stat-num">
-          {{ result.summary?.totalIterations || 0 }}
+        <div class="optimize-stat-card">
+          <div class="optimize-stat-num">
+            {{ result.summary?.totalIterations || 0 }}
+          </div>
+          <div class="optimize-stat-label">优化迭代次数</div>
         </div>
-        <div class="optimize-stat-label">优化迭代次数</div>
       </div>
-    </div>
 
-    <!-- 改进幅度 -->
-    <div class="improvement-section">
-      <div class="section-title">优化效果</div>
-      <div class="improvement-grid">
-        <div class="improvement-item">
-          <div class="improvement-label">综合评分<span class="score-hint">（含惩罚项，可能为负）</span></div>
-          <div class="improvement-values">
-            <span class="value-before">{{ formatScore(result.before?.score) }}</span>
-            <el-icon class="arrow-icon"><ArrowRight /></el-icon>
-            <span class="value-after">{{ formatScore(result.after?.score) }}</span>
+      <!-- 改进幅度 -->
+      <div class="improvement-section">
+        <div class="section-title">优化效果</div>
+        <div class="improvement-grid">
+          <div class="improvement-item">
+            <div class="improvement-label">
+              综合评分<span class="score-hint">（含惩罚项，可能为负）</span>
+            </div>
+            <div class="improvement-values">
+              <span class="value-before">{{ formatScore(result.before?.score) }}</span>
+              <el-icon class="arrow-icon"><ArrowRight /></el-icon>
+              <span class="value-after">{{ formatScore(result.after?.score) }}</span>
+            </div>
+            <div
+              class="improvement-delta"
+              :class="deltaClass(result.improvements?.scoreImprovement)"
+            >
+              {{ deltaArrow(result.improvements?.scoreImprovement) }}
+              {{ Math.abs(result.improvements?.scoreImprovement || 0).toFixed(1) }}%
+            </div>
           </div>
-          <div
-            class="improvement-delta"
-            :class="deltaClass(result.improvements?.scoreImprovement)"
-          >
-            {{ deltaArrow(result.improvements?.scoreImprovement) }}
-            {{ Math.abs(result.improvements?.scoreImprovement || 0).toFixed(1) }}%
-          </div>
-        </div>
 
-        <div class="improvement-item">
-          <div class="improvement-label">负载均衡度</div>
-          <div class="improvement-values">
-            <span class="value-before">{{ (result.before?.loadVariance || 0).toFixed(4) }}</span>
-            <el-icon class="arrow-icon"><ArrowRight /></el-icon>
-            <span class="value-after">{{ (result.after?.loadVariance || 0).toFixed(4) }}</span>
+          <div class="improvement-item">
+            <div class="improvement-label">负载均衡度</div>
+            <div class="improvement-values">
+              <span class="value-before">{{ (result.before?.loadVariance || 0).toFixed(4) }}</span>
+              <el-icon class="arrow-icon"><ArrowRight /></el-icon>
+              <span class="value-after">{{ (result.after?.loadVariance || 0).toFixed(4) }}</span>
+            </div>
+            <div
+              class="improvement-delta"
+              :class="deltaClass(result.improvements?.loadVarianceImprovement, true)"
+            >
+              {{ deltaArrow(result.improvements?.loadVarianceImprovement, true) }}
+              {{ Math.abs(result.improvements?.loadVarianceImprovement || 0).toFixed(1) }}%
+            </div>
           </div>
-          <div
-            class="improvement-delta"
-            :class="deltaClass(result.improvements?.loadVarianceImprovement, true)"
-          >
-            {{ deltaArrow(result.improvements?.loadVarianceImprovement, true) }}
-            {{ Math.abs(result.improvements?.loadVarianceImprovement || 0).toFixed(1) }}%
-          </div>
-        </div>
 
-        <div class="improvement-item">
-          <div class="improvement-label">教材内聚度</div>
-          <div class="improvement-values">
-            <span class="value-before">{{
-              (result.before?.textbookCohesionRate || 0).toFixed(2)
-            }}</span>
-            <el-icon class="arrow-icon"><ArrowRight /></el-icon>
-            <span class="value-after">{{
-              (result.after?.textbookCohesionRate || 0).toFixed(2)
-            }}</span>
-          </div>
-          <div
-            class="improvement-delta"
-            :class="deltaClass(result.improvements?.cohesionImprovement)"
-          >
-            {{ deltaArrow(result.improvements?.cohesionImprovement) }}
-            {{ Math.abs(result.improvements?.cohesionImprovement || 0).toFixed(1) }}%
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 阈值警告 -->
-    <el-alert
-      v-if="!result.meetsThreshold"
-      type="warning"
-      :closable="false"
-      show-icon
-      class="threshold-warning"
-    >
-      <template #title>优化效果未达到阈值</template>
-      <div>
-        当前优化未达到最小改进阈值（评分改进&gt;5%，或3+个班级变更且改进&gt;2%），建议保持现有排课方案。
-        如果仍要应用，请点击下方"应用优化"按钮。
-      </div>
-    </el-alert>
-
-    <!-- 变更详情 -->
-    <div v-if="result.changes?.length > 0" class="changes-section">
-      <div class="section-title">变更详情（{{ result.changes.length }}项）</div>
-      <div class="changes-list">
-        <div v-for="(change, index) in result.changes" :key="index" class="change-item">
-          <div class="change-index">{{ index + 1 }}</div>
-          <div class="change-content">
-            <div class="change-class">{{ change.className }}</div>
-            <div class="change-teachers">
-              <span class="teacher-from">{{ change.fromTeacher?.name }}</span>
-              <el-icon class="change-arrow"><Right /></el-icon>
-              <span class="teacher-to">{{ change.toTeacher?.name }}</span>
+          <div class="improvement-item">
+            <div class="improvement-label">教材内聚度</div>
+            <div class="improvement-values">
+              <span class="value-before">{{
+                (result.before?.textbookCohesionRate || 0).toFixed(2)
+              }}</span>
+              <el-icon class="arrow-icon"><ArrowRight /></el-icon>
+              <span class="value-after">{{
+                (result.after?.textbookCohesionRate || 0).toFixed(2)
+              }}</span>
+            </div>
+            <div
+              class="improvement-delta"
+              :class="deltaClass(result.improvements?.cohesionImprovement)"
+            >
+              {{ deltaArrow(result.improvements?.cohesionImprovement) }}
+              {{ Math.abs(result.improvements?.cohesionImprovement || 0).toFixed(1) }}%
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <!-- 阈值警告 -->
+      <el-alert
+        v-if="!result.meetsThreshold"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="threshold-warning"
+      >
+        <template #title>优化效果未达到阈值</template>
+        <div>
+          当前优化未达到最小改进阈值（评分改进&gt;5%，或3+个班级变更且改进&gt;2%），建议保持现有排课方案。
+          如果仍要应用，请点击下方"应用优化"按钮。
+        </div>
+      </el-alert>
+
+      <!-- 变更详情 -->
+      <div v-if="result.changes?.length > 0" class="changes-section">
+        <div class="section-title">变更详情（{{ result.changes.length }}项）</div>
+        <div class="changes-list">
+          <div v-for="(change, index) in result.changes" :key="index" class="change-item">
+            <div class="change-index">{{ index + 1 }}</div>
+            <div class="change-content">
+              <div class="change-class">{{ change.className }}</div>
+              <div class="change-teachers">
+                <span class="teacher-from">{{ change.fromTeacher?.name }}</span>
+                <el-icon class="change-arrow"><Right /></el-icon>
+                <span class="teacher-to">{{ change.toTeacher?.name }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </template>
 
-    <template #footer v-if="result">
+    <template v-if="result" #footer>
       <div class="dialog-footer">
         <el-button @click="emit('close')">取消</el-button>
-        <el-button type="primary" :loading="applying" :disabled="!result.changes?.length" @click="emit('apply')">
+        <el-button
+          type="primary"
+          :loading="applying"
+          :disabled="!result.changes?.length"
+          @click="emit('apply')"
+        >
           应用优化（{{ result.changes?.length || 0 }}个变更）
         </el-button>
       </div>

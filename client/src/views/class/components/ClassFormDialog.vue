@@ -162,6 +162,7 @@
       v-model="batchVisible"
       :title="batchDialogTitle"
       width="var(--dialog-width-lg)"
+      :fullscreen="isMobile"
       destroy-on-close
       @close="$emit('batch-close')"
     >

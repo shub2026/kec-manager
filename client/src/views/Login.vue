@@ -21,113 +21,341 @@
           <svg viewBox="0 0 520 380" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="k-top" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="var(--brand-primary-lighter)"/>
-                <stop offset="100%" stop-color="var(--brand-primary-hover)"/>
+                <stop offset="0%" stop-color="var(--brand-primary-lighter)" />
+                <stop offset="100%" stop-color="var(--brand-primary-hover)" />
               </linearGradient>
               <linearGradient id="k-front" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="var(--brand-primary-hover)"/>
-                <stop offset="100%" stop-color="var(--brand-primary)"/>
+                <stop offset="0%" stop-color="var(--brand-primary-hover)" />
+                <stop offset="100%" stop-color="var(--brand-primary)" />
               </linearGradient>
               <linearGradient id="k-side" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="var(--brand-primary-active)"/>
-                <stop offset="100%" stop-color="var(--brand-primary-active)"/>
+                <stop offset="0%" stop-color="var(--brand-primary-active)" />
+                <stop offset="100%" stop-color="var(--brand-primary-active)" />
               </linearGradient>
               <linearGradient id="cloud-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="var(--bg-card)"/>
-                <stop offset="100%" stop-color="var(--brand-primary-lighter)"/>
+                <stop offset="0%" stop-color="var(--bg-card)" />
+                <stop offset="100%" stop-color="var(--brand-primary-lighter)" />
               </linearGradient>
               <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="var(--brand-primary)" flood-opacity="0.10"/>
+                <feDropShadow
+                  dx="0"
+                  dy="12"
+                  stdDeviation="14"
+                  flood-color="var(--brand-primary)"
+                  flood-opacity="0.10"
+                />
               </filter>
               <filter id="card-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="var(--brand-primary)" flood-opacity="0.12"/>
+                <feDropShadow
+                  dx="0"
+                  dy="8"
+                  stdDeviation="12"
+                  flood-color="var(--brand-primary)"
+                  flood-opacity="0.12"
+                />
               </filter>
             </defs>
 
             <!-- 柔和背景光斑 -->
-            <ellipse cx="260" cy="220" rx="220" ry="120" fill="var(--brand-primary-soft)" opacity="0.6"/>
+            <ellipse
+              cx="260"
+              cy="220"
+              rx="220"
+              ry="120"
+              fill="var(--brand-primary-soft)"
+              opacity="0.6"
+            />
 
             <!-- 底座平台 -->
             <g transform="translate(110, 260)">
-              <path d="M0,20 L150,0 L300,20 L150,40 Z" fill="var(--bg-card)"/>
-              <path d="M0,20 L150,40 L150,56 L0,36 Z" fill="var(--brand-primary-soft)"/>
-              <path d="M150,40 L300,20 L300,36 L150,56 Z" fill="var(--brand-primary-lighter)"/>
+              <path d="M0,20 L150,0 L300,20 L150,40 Z" fill="var(--bg-card)" />
+              <path d="M0,20 L150,40 L150,56 L0,36 Z" fill="var(--brand-primary-soft)" />
+              <path d="M150,40 L300,20 L300,36 L150,56 Z" fill="var(--brand-primary-lighter)" />
             </g>
 
             <!-- 立体 K -->
             <g transform="translate(190, 140)" filter="url(#soft-shadow)">
               <!-- 厚度 -->
-              <path d="M10,10 L50,10 L50,130 L10,130 Z" fill="url(#k-side)"/>
-              <path d="M10,130 L50,130 L58,138 L18,138 Z" fill="var(--brand-primary-active)"/>
+              <path d="M10,10 L50,10 L50,130 L10,130 Z" fill="url(#k-side)" />
+              <path d="M10,130 L50,130 L58,138 L18,138 Z" fill="var(--brand-primary-active)" />
               <!-- 主体 -->
-              <path d="M10,10 L50,10 L50,50 L80,10 L120,10 L70,70 L120,130 L80,130 L50,90 L50,130 L10,130 Z" fill="url(#k-front)"/>
+              <path
+                d="M10,10 L50,10 L50,50 L80,10 L120,10 L70,70 L120,130 L80,130 L50,90 L50,130 L10,130 Z"
+                fill="url(#k-front)"
+              />
               <!-- 顶面 -->
-              <path d="M10,10 L14,6 L54,6 L50,10 Z" fill="url(#k-top)"/>
-              <path d="M50,10 L54,6 L84,6 L80,10 Z" fill="url(#k-top)"/>
-              <path d="M80,10 L84,6 L124,6 L120,10 Z" fill="url(#k-top)"/>
-              <path d="M50,50 L54,46 L84,46 L80,50 Z" fill="url(#k-top)"/>
-              <path d="M50,90 L54,86 L84,86 L80,90 Z" fill="url(#k-top)"/>
+              <path d="M10,10 L14,6 L54,6 L50,10 Z" fill="url(#k-top)" />
+              <path d="M50,10 L54,6 L84,6 L80,10 Z" fill="url(#k-top)" />
+              <path d="M80,10 L84,6 L124,6 L120,10 Z" fill="url(#k-top)" />
+              <path d="M50,50 L54,46 L84,46 L80,50 Z" fill="url(#k-top)" />
+              <path d="M50,90 L54,86 L84,86 L80,90 Z" fill="url(#k-top)" />
               <!-- 右侧厚度 -->
-              <path d="M120,10 L124,6 L124,126 L120,130 Z" fill="url(#k-side)"/>
-              <path d="M80,10 L84,6 L84,86 L80,90 Z" fill="url(#k-side)"/>
+              <path d="M120,10 L124,6 L124,126 L120,130 Z" fill="url(#k-side)" />
+              <path d="M80,10 L84,6 L84,86 L80,90 Z" fill="url(#k-side)" />
             </g>
 
             <!-- 左侧课程卡 -->
-            <g class="ill-card ill-card--left" transform="translate(60, 160)" filter="url(#card-shadow)">
-              <rect x="0" y="0" width="90" height="70" rx="10" fill="var(--bg-card)" fill-opacity="0.95" stroke="var(--brand-primary-soft)" stroke-width="1"/>
-              <rect x="0" y="0" width="90" height="18" rx="10" fill="var(--brand-primary-soft)"/>
-              <rect x="0" y="0" width="90" height="18" rx="0" fill="var(--brand-primary-soft)"/>
-              <circle cx="12" cy="9" r="3" fill="var(--brand-primary)" opacity="0.5"/>
-              <rect x="22" y="7" width="40" height="4" rx="2" fill="var(--brand-primary)" opacity="0.25"/>
-              <rect x="12" y="28" width="66" height="5" rx="2.5" fill="var(--brand-primary)" opacity="0.15"/>
-              <rect x="12" y="38" width="52" height="5" rx="2.5" fill="var(--brand-primary)" opacity="0.12"/>
-              <rect x="12" y="48" width="60" height="5" rx="2.5" fill="var(--brand-primary)" opacity="0.12"/>
+            <g
+              class="ill-card ill-card--left"
+              transform="translate(60, 160)"
+              filter="url(#card-shadow)"
+            >
+              <rect
+                x="0"
+                y="0"
+                width="90"
+                height="70"
+                rx="10"
+                fill="var(--bg-card)"
+                fill-opacity="0.95"
+                stroke="var(--brand-primary-soft)"
+                stroke-width="1"
+              />
+              <rect x="0" y="0" width="90" height="18" rx="10" fill="var(--brand-primary-soft)" />
+              <rect x="0" y="0" width="90" height="18" rx="0" fill="var(--brand-primary-soft)" />
+              <circle cx="12" cy="9" r="3" fill="var(--brand-primary)" opacity="0.5" />
+              <rect
+                x="22"
+                y="7"
+                width="40"
+                height="4"
+                rx="2"
+                fill="var(--brand-primary)"
+                opacity="0.25"
+              />
+              <rect
+                x="12"
+                y="28"
+                width="66"
+                height="5"
+                rx="2.5"
+                fill="var(--brand-primary)"
+                opacity="0.15"
+              />
+              <rect
+                x="12"
+                y="38"
+                width="52"
+                height="5"
+                rx="2.5"
+                fill="var(--brand-primary)"
+                opacity="0.12"
+              />
+              <rect
+                x="12"
+                y="48"
+                width="60"
+                height="5"
+                rx="2.5"
+                fill="var(--brand-primary)"
+                opacity="0.12"
+              />
             </g>
 
             <!-- 右侧统计卡 -->
-            <g class="ill-card ill-card--right" transform="translate(360, 150)" filter="url(#card-shadow)">
-              <rect x="0" y="0" width="90" height="80" rx="10" fill="var(--bg-card)" fill-opacity="0.95" stroke="var(--brand-primary-soft)" stroke-width="1"/>
-              <rect x="12" y="12" width="28" height="4" rx="2" fill="var(--brand-primary)" opacity="0.3"/>
-              <rect x="12" y="22" width="48" height="8" rx="2" fill="var(--brand-primary)" opacity="0.12"/>
-              <rect x="12" y="38" width="10" height="28" rx="3" fill="var(--brand-primary)" opacity="0.18"/>
-              <rect x="26" y="46" width="10" height="20" rx="3" fill="var(--brand-primary)" opacity="0.28"/>
-              <rect x="40" y="38" width="10" height="28" rx="3" fill="var(--brand-primary)" opacity="0.22"/>
-              <rect x="54" y="50" width="10" height="16" rx="3" fill="var(--brand-primary)" opacity="0.35"/>
-              <rect x="68" y="42" width="10" height="24" rx="3" fill="var(--brand-primary)" opacity="0.25"/>
+            <g
+              class="ill-card ill-card--right"
+              transform="translate(360, 150)"
+              filter="url(#card-shadow)"
+            >
+              <rect
+                x="0"
+                y="0"
+                width="90"
+                height="80"
+                rx="10"
+                fill="var(--bg-card)"
+                fill-opacity="0.95"
+                stroke="var(--brand-primary-soft)"
+                stroke-width="1"
+              />
+              <rect
+                x="12"
+                y="12"
+                width="28"
+                height="4"
+                rx="2"
+                fill="var(--brand-primary)"
+                opacity="0.3"
+              />
+              <rect
+                x="12"
+                y="22"
+                width="48"
+                height="8"
+                rx="2"
+                fill="var(--brand-primary)"
+                opacity="0.12"
+              />
+              <rect
+                x="12"
+                y="38"
+                width="10"
+                height="28"
+                rx="3"
+                fill="var(--brand-primary)"
+                opacity="0.18"
+              />
+              <rect
+                x="26"
+                y="46"
+                width="10"
+                height="20"
+                rx="3"
+                fill="var(--brand-primary)"
+                opacity="0.28"
+              />
+              <rect
+                x="40"
+                y="38"
+                width="10"
+                height="28"
+                rx="3"
+                fill="var(--brand-primary)"
+                opacity="0.22"
+              />
+              <rect
+                x="54"
+                y="50"
+                width="10"
+                height="16"
+                rx="3"
+                fill="var(--brand-primary)"
+                opacity="0.35"
+              />
+              <rect
+                x="68"
+                y="42"
+                width="10"
+                height="24"
+                rx="3"
+                fill="var(--brand-primary)"
+                opacity="0.25"
+              />
             </g>
 
             <!-- 云 -->
             <g class="ill-cloud" transform="translate(360, 60)" filter="url(#card-shadow)">
-              <path d="M20,30 Q25,10 45,15 Q55,0 80,10 Q100,5 110,25 Q130,25 125,45 Q135,60 115,65 L35,65 Q10,60 20,30 Z" fill="url(#cloud-grad)" fill-opacity="0.95" stroke="var(--brand-primary-soft)" stroke-width="1"/>
-              <circle cx="55" cy="42" r="3" fill="var(--brand-primary)" opacity="0.3"/>
-              <circle cx="68" cy="42" r="3" fill="var(--brand-primary)" opacity="0.3"/>
-              <circle cx="81" cy="42" r="3" fill="var(--brand-primary)" opacity="0.3"/>
-              <line x1="55" y1="50" x2="81" y2="50" stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+              <path
+                d="M20,30 Q25,10 45,15 Q55,0 80,10 Q100,5 110,25 Q130,25 125,45 Q135,60 115,65 L35,65 Q10,60 20,30 Z"
+                fill="url(#cloud-grad)"
+                fill-opacity="0.95"
+                stroke="var(--brand-primary-soft)"
+                stroke-width="1"
+              />
+              <circle cx="55" cy="42" r="3" fill="var(--brand-primary)" opacity="0.3" />
+              <circle cx="68" cy="42" r="3" fill="var(--brand-primary)" opacity="0.3" />
+              <circle cx="81" cy="42" r="3" fill="var(--brand-primary)" opacity="0.3" />
+              <line
+                x1="55"
+                y1="50"
+                x2="81"
+                y2="50"
+                stroke="var(--brand-primary)"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                opacity="0.4"
+              />
             </g>
 
             <!-- 完成徽章 -->
             <g class="ill-badge" transform="translate(390, 270)" filter="url(#card-shadow)">
-              <circle cx="20" cy="20" r="20" fill="var(--bg-card)" fill-opacity="0.95" stroke="var(--brand-primary-soft)" stroke-width="1"/>
-              <circle cx="20" cy="20" r="20" fill="url(#k-front)" opacity="0.1"/>
-              <path d="M12,20 L18,26 L29,14" stroke="var(--brand-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <circle
+                cx="20"
+                cy="20"
+                r="20"
+                fill="var(--bg-card)"
+                fill-opacity="0.95"
+                stroke="var(--brand-primary-soft)"
+                stroke-width="1"
+              />
+              <circle cx="20" cy="20" r="20" fill="url(#k-front)" opacity="0.1" />
+              <path
+                d="M12,20 L18,26 L29,14"
+                stroke="var(--brand-primary)"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+              />
             </g>
 
             <!-- 装饰元素 -->
-            <circle cx="40" cy="80" r="6" fill="var(--bg-card)" stroke="var(--brand-primary-lighter)" stroke-width="1.5"/>
-            <circle cx="460" cy="110" r="5" fill="var(--brand-primary-lighter)"/>
-            <circle cx="80" cy="310" r="4" fill="var(--brand-primary-lighter)"/>
-            <circle cx="430" cy="320" r="7" fill="var(--bg-card)" stroke="var(--brand-primary-lighter)" stroke-width="1.5"/>
+            <circle
+              cx="40"
+              cy="80"
+              r="6"
+              fill="var(--bg-card)"
+              stroke="var(--brand-primary-lighter)"
+              stroke-width="1.5"
+            />
+            <circle cx="460" cy="110" r="5" fill="var(--brand-primary-lighter)" />
+            <circle cx="80" cy="310" r="4" fill="var(--brand-primary-lighter)" />
+            <circle
+              cx="430"
+              cy="320"
+              r="7"
+              fill="var(--bg-card)"
+              stroke="var(--brand-primary-lighter)"
+              stroke-width="1.5"
+            />
             <g transform="translate(450, 70)" opacity="0.4">
-              <line x1="0" y1="5" x2="10" y2="5" stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round"/>
-              <line x1="5" y1="0" x2="5" y2="10" stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round"/>
+              <line
+                x1="0"
+                y1="5"
+                x2="10"
+                y2="5"
+                stroke="var(--brand-primary)"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              />
+              <line
+                x1="5"
+                y1="0"
+                x2="5"
+                y2="10"
+                stroke="var(--brand-primary)"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              />
             </g>
             <g transform="translate(60, 110)" opacity="0.35">
-              <line x1="0" y1="4" x2="8" y2="4" stroke="var(--brand-primary)" stroke-width="1.2" stroke-linecap="round"/>
-              <line x1="4" y1="0" x2="4" y2="8" stroke="var(--brand-primary)" stroke-width="1.2" stroke-linecap="round"/>
+              <line
+                x1="0"
+                y1="4"
+                x2="8"
+                y2="4"
+                stroke="var(--brand-primary)"
+                stroke-width="1.2"
+                stroke-linecap="round"
+              />
+              <line
+                x1="4"
+                y1="0"
+                x2="4"
+                y2="8"
+                stroke="var(--brand-primary)"
+                stroke-width="1.2"
+                stroke-linecap="round"
+              />
             </g>
             <!-- 连接虚线 -->
-            <path d="M160,200 Q210,180 260,200" stroke="var(--brand-primary)" stroke-width="1" fill="none" stroke-dasharray="4 4" opacity="0.2"/>
-            <path d="M280,200 Q330,220 370,200" stroke="var(--brand-primary)" stroke-width="1" fill="none" stroke-dasharray="4 4" opacity="0.2"/>
+            <path
+              d="M160,200 Q210,180 260,200"
+              stroke="var(--brand-primary)"
+              stroke-width="1"
+              fill="none"
+              stroke-dasharray="4 4"
+              opacity="0.2"
+            />
+            <path
+              d="M280,200 Q330,220 370,200"
+              stroke="var(--brand-primary)"
+              stroke-width="1"
+              fill="none"
+              stroke-dasharray="4 4"
+              opacity="0.2"
+            />
           </svg>
         </div>
       </div>
@@ -323,9 +551,22 @@ onMounted(() => {
   justify-content: center;
   overflow: hidden;
   background:
-    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--brand-primary-soft) 90%, transparent), transparent 45%),
-    radial-gradient(circle at 85% 80%, color-mix(in srgb, var(--brand-primary-lighter) 80%, transparent), transparent 45%),
-    linear-gradient(150deg, var(--bg-card) 0%, color-mix(in srgb, var(--bg-card) 97%, var(--brand-primary-soft)) 45%, var(--brand-primary-soft) 100%);
+    radial-gradient(
+      circle at 20% 20%,
+      color-mix(in srgb, var(--brand-primary-soft) 90%, transparent),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 85% 80%,
+      color-mix(in srgb, var(--brand-primary-lighter) 80%, transparent),
+      transparent 45%
+    ),
+    linear-gradient(
+      150deg,
+      var(--bg-card) 0%,
+      color-mix(in srgb, var(--bg-card) 97%, var(--brand-primary-soft)) 45%,
+      var(--brand-primary-soft) 100%
+    );
 }
 
 .brand-bg {
@@ -377,8 +618,14 @@ onMounted(() => {
 }
 
 @keyframes brand-in {
-  from { opacity: 0; transform: translateX(-12px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* 品牌标识 (左上角) */
@@ -457,8 +704,12 @@ onMounted(() => {
   transform-origin: center;
   animation: float 6s var(--ease-in-out) infinite;
 }
-.ill-card--left { animation-delay: 0s; }
-.ill-card--right { animation-delay: -2s; }
+.ill-card--left {
+  animation-delay: 0s;
+}
+.ill-card--right {
+  animation-delay: -2s;
+}
 
 .ill-cloud {
   transform-box: fill-box;
@@ -475,8 +726,13 @@ onMounted(() => {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 /* ==================== 右侧表单区 ==================== */
@@ -497,7 +753,11 @@ onMounted(() => {
   right: -200px;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--brand-primary-soft) 70%, transparent), transparent 70%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--brand-primary-soft) 70%, transparent),
+    transparent 70%
+  );
   filter: blur(40px);
   pointer-events: none;
 }
@@ -515,8 +775,14 @@ onMounted(() => {
 }
 
 @keyframes form-in {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ==================== 登录卡片 ==================== */
@@ -529,7 +795,9 @@ onMounted(() => {
   box-shadow:
     0 24px 70px var(--brand-primary-shadow),
     0 8px 24px rgba(15, 23, 42, 0.04);
-  transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+  transition:
+    box-shadow var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
 }
 .login-card:hover {
   box-shadow:
@@ -574,7 +842,9 @@ onMounted(() => {
   box-shadow: none;
   padding: 10px 18px;
   height: 52px;
-  transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
@@ -606,7 +876,9 @@ onMounted(() => {
   border: none;
   color: var(--bg-card);
   box-shadow: 0 8px 20px rgba(28, 130, 245, 0.25);
-  transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  transition:
+    box-shadow var(--dur-base) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 .login-btn:hover,
 .login-btn:focus {

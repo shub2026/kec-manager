@@ -107,65 +107,11 @@
       </div>
     </el-card>
 
-    <!-- 创建/编辑用户对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="isEdit ? '编辑用户' : '创建用户'"
-      width="var(--dialog-width-lg)"
-    >
-      <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="formData.username" placeholder="请输入用户名" :disabled="isEdit" />
-        </el-form-item>
+    <!-- 创建/编辑用户对话框组件 -->
+    <UserFormDialog ref="formDialogRef" :submitting="submitting" @save="handleSubmit" />
 
-        <el-form-item v-if="!isEdit" label="密码" prop="password">
-          <el-input
-            v-model="formData.password"
-            type="password"
-            show-password
-            placeholder="请输入密码（至少8位）"
-          />
-        </el-form-item>
-
-        <el-form-item label="姓名" prop="realName">
-          <el-input v-model="formData.realName" placeholder="请输入姓名" />
-        </el-form-item>
-
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="formData.email" placeholder="请输入邮箱" />
-        </el-form-item>
-
-        <el-form-item label="角色" prop="role">
-          <el-select v-model="formData.role" placeholder="请选择角色" style="width: 100%">
-            <!-- 本页仅超级管理员可见，可创建管理员和访客 -->
-            <el-option label="管理员" value="admin">
-              <span>管理员</span>
-              <span class="role-hint">基础数据和培养方案维护</span>
-            </el-option>
-            <el-option label="访客" value="viewer">
-              <span>访客</span>
-              <span class="role-hint">仅查询权限</span>
-            </el-option>
-          </el-select>
-        </el-form-item>
-
-        <el-alert v-if="!isEdit" title="角色说明" type="info" :closable="false" class="role-alert">
-          <p>
-            <strong>管理员（二级管理员）：</strong
-            >可以维护基础数据（专业、学院、课程等）、培养方案和教学安排，但不能访问系统管理（用户管理、系统设置、操作日志）
-          </p>
-          <p><strong>访客：</strong>只能访问查询页面，适合需要查看数据但不需要修改的用户</p>
-          <p class="danger-hint">
-            <strong>注意：</strong>超级管理员是系统唯一角色，不能通过此界面创建。
-          </p>
-        </el-alert>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
-      </template>
-    </el-dialog>
+    <!-- 重置密码对话框组件（自包含 API 调用） -->
+    <ResetPasswordDialog ref="resetPwdDialogRef" />
 
     <!-- 用户状态切换确认弹窗 -->
     <el-dialog
@@ -184,69 +130,13 @@
     </el-dialog>
 
     <!-- 用户删除确认弹窗 -->
-    <el-dialog
+    <DeleteConfirmDialog
       v-model="deleteConfirmVisible"
-      title="确认删除"
-      width="var(--dialog-width)"
-      align-center
+      :loading="userDeleting"
+      @confirm="confirmDeleteUser"
     >
-      <BaseConfirmBody icon-color="var(--brand-danger)">{{ deleteConfirmMessage }}</BaseConfirmBody>
-      <template #footer>
-        <el-button @click="deleteConfirmVisible = false">取消</el-button>
-        <el-button type="danger" :loading="userDeleting" @click="confirmDeleteUser"
-          >确定删除</el-button
-        >
-      </template>
-    </el-dialog>
-
-    <!-- 重置密码对话框 -->
-    <el-dialog
-      v-model="resetPwdVisible"
-      title="重置密码"
-      width="var(--dialog-width-lg)"
-      destroy-on-close
-    >
-      <el-alert
-        :title="`将重置用户“${resetPwdUser?.username}”的密码，重置后该用户下次登录必须修改密码`"
-        type="warning"
-        :closable="false"
-        show-icon
-        class="reset-pwd-alert"
-      />
-      <el-form
-        ref="resetPwdFormRef"
-        :model="resetPwdForm"
-        :rules="resetPwdRules"
-        label-width="100px"
-      >
-        <el-form-item label="新密码" prop="newPassword">
-          <el-input
-            v-model="resetPwdForm.newPassword"
-            type="password"
-            show-password
-            placeholder="至少8位，包含两种字符类型（字母/数字/符号）"
-          >
-            <template #append>
-              <el-button @click="fillRandomPassword">随机生成</el-button>
-            </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input
-            v-model="resetPwdForm.confirmPassword"
-            type="password"
-            show-password
-            placeholder="请再次输入新密码"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="resetPwdVisible = false">取消</el-button>
-        <el-button type="warning" :loading="resetPwdSubmitting" @click="handleResetPassword"
-          >确定重置</el-button
-        >
-      </template>
-    </el-dialog>
+      {{ deleteConfirmMessage }}
+    </DeleteConfirmDialog>
   </div>
 </template>
 
@@ -261,12 +151,14 @@ import {
   updateUser,
   deleteUser as apiDeleteUser,
   toggleUserStatus as apiToggleUserStatus,
-  resetUserPassword,
 } from '../../api/user';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import DeleteConfirmDialog from '../../components/DeleteConfirmDialog.vue';
 import ListErrorState from '../../components/ListErrorState.vue';
+import UserFormDialog from './components/UserFormDialog.vue';
+import ResetPasswordDialog from './components/ResetPasswordDialog.vue';
 
 defineOptions({ name: 'UserManagement' });
 
@@ -276,10 +168,11 @@ const users = ref([]);
 const loading = ref(false);
 // P0 修复：列表加载错误状态，供 ListErrorState 占位
 const error = ref(null);
-const dialogVisible = ref(false);
-const isEdit = ref(false);
 const submitting = ref(false);
-const formRef = ref(null);
+
+// 弹窗组件引用
+const formDialogRef = ref(null);
+const resetPwdDialogRef = ref(null);
 
 // 分页
 const currentPage = ref(1);
@@ -318,75 +211,6 @@ const deleteConfirmVisible = ref(false);
 const deleteConfirmMessage = ref('');
 const userDeleting = ref(false);
 const pendingDeleteUser = ref(null);
-
-// 重置密码对话框
-const resetPwdVisible = ref(false);
-const resetPwdUser = ref(null);
-const resetPwdFormRef = ref(null);
-const resetPwdSubmitting = ref(false);
-const resetPwdForm = ref({
-  newPassword: '',
-  confirmPassword: '',
-});
-
-const formData = ref({
-  username: '',
-  password: '',
-  realName: '',
-  email: '',
-  role: 'admin',
-});
-
-const rules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用户名长度3-20个字符', trigger: 'blur' },
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 8, message: '密码长度至少8位', trigger: 'blur' },
-  ],
-  email: [{ type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }],
-  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
-};
-
-// 重置密码校验规则（强度规则与 ChangePasswordDialog / 后端保持一致）
-const validateResetConfirm = (rule, value, callback) => {
-  if (value !== resetPwdForm.value.newPassword) {
-    callback(new Error('两次输入的密码不一致'));
-  } else {
-    callback();
-  }
-};
-
-const resetPwdRules = {
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 8, max: 128, message: '密码长度必须在8-128位之间', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        if (!value) return callback();
-        let types = 0;
-        if (/[a-z]/.test(value)) types++;
-        if (/[A-Z]/.test(value)) types++;
-        if (/\d/.test(value)) types++;
-        if (/[^a-zA-Z\d]/.test(value)) types++;
-        if (types < 2) {
-          callback(
-            new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）')
-          );
-        } else {
-          callback();
-        }
-      },
-      trigger: 'blur',
-    },
-  ],
-  confirmPassword: [
-    { required: true, message: '请确认新密码', trigger: 'blur' },
-    { validator: validateResetConfirm, trigger: 'blur' },
-  ],
-};
 
 async function loadUsers() {
   loading.value = true;
@@ -435,62 +259,26 @@ async function silentReload() {
 }
 
 function showCreateDialog() {
-  isEdit.value = false;
-  formData.value = {
-    username: '',
-    password: '',
-    realName: '',
-    email: '',
-    role: 'admin',
-  };
-  dialogVisible.value = true;
+  formDialogRef.value?.open();
 }
 
 function showEditDialog(user) {
-  isEdit.value = true;
-  formData.value = {
-    id: user.id,
-    username: user.username,
-    realName: user.realName,
-    email: user.email,
-    role: user.role,
-    isActive: user.isActive,
-  };
-  dialogVisible.value = true;
+  formDialogRef.value?.open(user);
 }
 
-async function handleSubmit() {
-  if (!formRef.value) return;
-
-  try {
-    await formRef.value.validate();
-  } catch {
-    return;
-  }
-
+async function handleSubmit({ isEdit, id, data }) {
   submitting.value = true;
 
   try {
-    if (isEdit.value) {
-      await updateUser(formData.value.id, {
-        realName: formData.value.realName,
-        email: formData.value.email,
-        role: formData.value.role,
-      });
+    if (isEdit) {
+      await updateUser(id, data);
       ElMessage.success('更新成功');
     } else {
-      const userData = {
-        username: formData.value.username,
-        password: formData.value.password,
-        realName: formData.value.realName || undefined,
-        email: formData.value.email || undefined,
-        role: formData.value.role,
-      };
-      await createUser(userData);
+      await createUser(data);
       ElMessage.success('创建成功');
     }
 
-    dialogVisible.value = false;
+    formDialogRef.value?.close();
     await silentReload();
   } catch (error) {
     // 提取服务端验证详情（422 响应 data.details 数组）
@@ -561,68 +349,7 @@ async function confirmDeleteUser() {
 }
 
 function openResetPwdDialog(user) {
-  resetPwdUser.value = user;
-  resetPwdForm.value = { newPassword: '', confirmPassword: '' };
-  resetPwdVisible.value = true;
-}
-
-// 生成随机密码：保证同时包含小写、大写、数字、特殊字符（满足强度校验），
-// 并剔除易混淆字符（l/O/0/1）
-function generateRandomPassword(length = 12) {
-  const lower = 'abcdefghijkmnopqrstuvwxyz';
-  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const digits = '23456789';
-  const symbols = '!@#$%^&*';
-  const all = lower + upper + digits + symbols;
-  const rand = new Uint32Array(length);
-  crypto.getRandomValues(rand);
-  const chars = [
-    lower[rand[0] % lower.length],
-    upper[rand[1] % upper.length],
-    digits[rand[2] % digits.length],
-    symbols[rand[3] % symbols.length],
-  ];
-  for (let i = 4; i < length; i++) {
-    chars.push(all[rand[i] % all.length]);
-  }
-  // Fisher-Yates 洗牌，打散前四位的固定类型顺序
-  for (let i = chars.length - 1; i > 0; i--) {
-    const j = rand[i] % (i + 1);
-    [chars[i], chars[j]] = [chars[j], chars[i]];
-  }
-  return chars.join('');
-}
-
-function fillRandomPassword() {
-  const pwd = generateRandomPassword();
-  resetPwdForm.value.newPassword = pwd;
-  resetPwdForm.value.confirmPassword = pwd;
-  resetPwdFormRef.value?.clearValidate();
-}
-
-async function handleResetPassword() {
-  if (!resetPwdFormRef.value) return;
-
-  try {
-    await resetPwdFormRef.value.validate();
-  } catch {
-    return;
-  }
-
-  resetPwdSubmitting.value = true;
-  try {
-    await resetUserPassword(resetPwdUser.value.id, {
-      newPassword: resetPwdForm.value.newPassword,
-    });
-    ElMessage.success('密码重置成功，该用户下次登录须修改密码');
-    resetPwdVisible.value = false;
-  } catch (error) {
-    ElMessage.error(
-      '密码重置失败：' + (error.response?.data?.message || error.message || '未知错误')
-    );
-  } finally {
-    resetPwdSubmitting.value = false;
-  }
+  resetPwdDialogRef.value?.open(user);
 }
 
 function getRoleType(role) {
@@ -651,21 +378,3 @@ onMounted(() => {
   loadUsers();
 });
 </script>
-
-<style scoped>
-.role-hint {
-  color: var(--text-secondary);
-  font-size: 12px;
-  margin-left: 10px;
-}
-.role-alert {
-  margin-top: 10px;
-}
-.danger-hint {
-  margin-top: 8px;
-  color: var(--brand-danger-text);
-}
-.reset-pwd-alert {
-  margin-bottom: var(--space-4);
-}
-</style>

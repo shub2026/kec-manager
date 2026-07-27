@@ -90,13 +90,21 @@
       </el-table-column>
       <el-table-column label="操作" width="100" align="center">
         <template #default="{ row }">
-          <el-button size="small" :icon="Edit" circle title="编辑" @click="$emit('edit', row)" />
+          <el-button
+            size="small"
+            :icon="Edit"
+            circle
+            title="编辑"
+            aria-label="编辑"
+            @click="$emit('edit', row)"
+          />
           <el-button
             size="small"
             :icon="Delete"
             type="danger"
             circle
             title="删除"
+            aria-label="删除"
             @click="$emit('delete', row.id)"
           />
         </template>
@@ -130,7 +138,7 @@
     </div>
 
     <!-- 分页 -->
-    <div v-if="pagination.total > 0" class="pagination-container">
+    <div class="pagination-container">
       <el-pagination
         :current-page="pagination.page"
         :page-size="pagination.pageSize"

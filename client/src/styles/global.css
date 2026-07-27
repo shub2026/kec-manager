@@ -255,7 +255,13 @@ a:focus-visible,
    - 工具条：筛选控件直接放 .page-toolbar，操作按钮包 .action-buttons
      （margin-left:auto 推右，A1 已落地"筛选居左 / 操作居右"）。
    - 表单 dialog：统一 label-width="100px"（B5）；多列 el-row :gutter="16"（B6）。
-   - 确认弹窗：复用 BaseConfirmBody.vue（C10），不再内联"图标+文字"结构。
+   - 确认弹窗：复用 BaseConfirmBody.vue（C10），不再内联“图标+文字”结构；
+     删除确认统一使用 DeleteConfirmDialog.vue，不再手写 el-dialog。
+   - 操作列：编辑/删除等用圆形图标按钮（size="small" circle + title + aria-label，
+     删除为 type="danger"）；语义不适合图标的操作（停用/启用、重置密码等）
+     保留文字按钮。
+   - 分页容器始终显示（不加 v-if），规格统一 page-sizes=[20,50,100]、
+     layout="total, sizes, prev, pager, next"、background。
    - 页面外层容器：以 Layout 的 .layout-main + el-card 为准，不强制额外 .page-container / .page-card 包裹（P1-3 落地下沉）。
    下方 .page-pagination / .toolbar-filters / .toolbar-actions 为规范的同义 / 扩展
    别名，供后续页面或需要显式分区时选用；既有页面无需改动即可生效。
@@ -515,9 +521,19 @@ a:focus-visible,
     width: 100%;
   }
 
-  /* 分页居中 */
+  /* 分页居中 + 窄屏防溢出：允许换行并隐藏每页条数选择器 */
   .pagination-container {
     justify-content: center;
+  }
+
+  .pagination-container .el-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 8px;
+  }
+
+  .pagination-container .el-pagination .el-pagination__sizes {
+    display: none;
   }
 
   /* 批量操作栏纵向排列 */
@@ -580,41 +596,17 @@ a:focus-visible,
 }
 
 /* ----- 操作列 hover 浮现效果：减少视觉噪音，hover 时才完全显示 ----- */
-.op-buttons .el-button,
-.el-table__body-wrapper .el-table__row td:last-child .el-button {
-  opacity: 0.65;
-  transition:
-    opacity var(--dur-fast) var(--ease-out),
-    transform var(--dur-fast) var(--ease-out),
-    box-shadow var(--dur-fast) var(--ease-out);
-}
-
-.el-table__body-wrapper .el-table__row:hover td:last-child .el-button,
-.el-table__body-wrapper .el-table__row:hover .op-buttons .el-button {
-  opacity: 1;
-}
-
-/* 窄屏下拉菜单始终完全可见，不受 dim 效果影响 */
-.op-dropdown .el-button,
-.op-dropdown .el-dropdown {
-  opacity: 1 !important;
-}
-
-/* ----- 操作列响应式：桌面显示按钮行，窄屏显示下拉菜单 ----- */
-.op-buttons {
-  display: inline-flex;
-  gap: 4px;
-  white-space: nowrap;
-}
-.op-dropdown {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .op-buttons {
-    display: none;
+/* 仅限支持 hover 的设备（鼠标）；触屏设备无 hover，按钮保持完全不透明 */
+@media (hover: hover) {
+  .el-table__body-wrapper .el-table__row td:last-child .el-button {
+    opacity: 0.65;
+    transition:
+      opacity var(--dur-fast) var(--ease-out),
+      transform var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
   }
-  .op-dropdown {
-    display: inline-block;
+
+  .el-table__body-wrapper .el-table__row:hover td:last-child .el-button {
+    opacity: 1;
   }
 }

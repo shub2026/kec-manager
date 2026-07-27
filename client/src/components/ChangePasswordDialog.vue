@@ -3,6 +3,7 @@
     v-model="dialogVisible"
     title="修改密码"
     width="var(--dialog-width-lg)"
+    :fullscreen="isMobile"
     :close-on-click-modal="!forced"
     :close-on-press-escape="!forced"
     :show-close="!forced"
@@ -52,6 +53,7 @@
 <script setup>
 import { ref, reactive, computed, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { useResponsive } from '../composables/useResponsive';
 import { ElMessage } from 'element-plus';
 
 const props = defineProps({
@@ -68,6 +70,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'success']);
 
 const authStore = useAuthStore();
+const { isMobile } = useResponsive();
 const formRef = ref(null);
 const loading = ref(false);
 

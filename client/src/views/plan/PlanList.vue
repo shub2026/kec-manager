@@ -70,7 +70,8 @@
                 :icon="ArrowUp"
                 :disabled="realIndex(row) === 0"
                 circle
-                title="上移" aria-label="上移"
+                title="上移"
+                aria-label="上移"
                 @click="handleMoveUp(row, realIndex(row))"
               />
               <el-button
@@ -78,7 +79,8 @@
                 :icon="ArrowDown"
                 :disabled="realIndex(row) === filteredList.length - 1"
                 circle
-                title="下移" aria-label="下移"
+                title="下移"
+                aria-label="下移"
                 @click="handleMoveDown(row, realIndex(row))"
               />
             </div>
@@ -94,17 +96,28 @@
             >
               <el-icon><Edit /></el-icon>编辑明细
             </el-button>
-            <el-button size="small" title="编辑信息" @click="openDialog(row)">
-              <el-icon><Edit /></el-icon>
-            </el-button>
-            <el-button size="small" type="danger" title="删除" @click="handleDelete(row)">
-              <el-icon><Delete /></el-icon>
-            </el-button>
+            <el-button
+              size="small"
+              :icon="Edit"
+              circle
+              title="编辑信息"
+              aria-label="编辑信息"
+              @click="openDialog(row)"
+            />
+            <el-button
+              size="small"
+              type="danger"
+              :icon="Delete"
+              circle
+              title="删除"
+              aria-label="删除"
+              @click="handleDelete(row)"
+            />
           </template>
         </el-table-column>
       </el-table>
 
-      <div v-if="filteredList.length > pageSize" class="pagination-container">
+      <div class="pagination-container">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -121,6 +134,7 @@
       v-model="dialogVisible"
       :title="form.id ? '编辑方案' : '新增方案'"
       width="var(--dialog-width-lg)"
+      :fullscreen="isMobile"
       destroy-on-close
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
@@ -198,20 +212,15 @@
     </el-dialog>
 
     <!-- 删除确认弹窗 -->
-    <el-dialog
+    <DeleteConfirmDialog
       v-model="deleteConfirmVisible"
-      title="确认删除"
-      width="var(--dialog-width)"
-      align-center
+      :loading="deleting"
+      :warning="deleteWarning"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
     >
-      <BaseConfirmBody icon-color="var(--brand-danger)" :warning="deleteWarning">
-        确定要删除此培养方案吗？此操作不可撤销。
-      </BaseConfirmBody>
-      <template #footer>
-        <el-button @click="cancelDelete">取消</el-button>
-        <el-button type="danger" :loading="deleting" @click="confirmDelete">确定删除</el-button>
-      </template>
-    </el-dialog>
+      确定要删除此培养方案吗？此操作不可撤销。
+    </DeleteConfirmDialog>
   </div>
 </template>
 
@@ -224,12 +233,15 @@ import { getMajors } from '../../api/major';
 import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
 import { useSortable } from '../../composables/useSortable';
+import { useResponsive } from '../../composables/useResponsive';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
-import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import DeleteConfirmDialog from '../../components/DeleteConfirmDialog.vue';
 import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'PlanList' });
+
+const { isMobile } = useResponsive();
 
 const list = ref([]);
 const loading = ref(false);

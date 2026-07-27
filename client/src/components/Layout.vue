@@ -25,11 +25,7 @@
     </header>
 
     <!-- 桌面侧边栏：固定 + 折叠模式 -->
-    <el-aside
-      v-if="!isMobile"
-      :width="isCollapse ? '64px' : '220px'"
-      class="layout-aside"
-    >
+    <el-aside v-if="!isMobile" :width="isCollapse ? '64px' : '220px'" class="layout-aside">
       <div class="layout-logo">
         <img src="/icons.svg" alt="Logo" class="logo-icon" />
         <span v-if="!isCollapse" class="logo-text">KEC课程管理平台</span>
@@ -68,11 +64,7 @@
           :teleported="true"
           @command="handleCommand"
         >
-          <div
-            class="sidebar-user"
-            :class="{ 'is-collapse': isCollapse }"
-            aria-label="用户菜单"
-          >
+          <div class="sidebar-user" :class="{ 'is-collapse': isCollapse }" aria-label="用户菜单">
             <span class="user-avatar">{{ avatarChar }}</span>
             <div v-if="!isCollapse" class="user-meta">
               <span class="user-name">{{ authStore.realName || authStore.username }}</span>

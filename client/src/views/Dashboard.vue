@@ -243,6 +243,7 @@ onMounted(async () => {
 
 <style scoped>
 .dashboard {
+  /* 首页看板有意限宽居中，区别于其他页面的全宽布局 */
   max-width: 1440px;
   margin: 0 auto;
   min-height: calc(100vh - 60px - var(--space-5) * 2);

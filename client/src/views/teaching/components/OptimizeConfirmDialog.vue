@@ -30,12 +30,7 @@
           <span>预览模式：先查看优化效果再决定是否应用</span>
         </div>
       </div>
-      <el-alert
-        type="info"
-        :closable="false"
-        show-icon
-        class="confirm-alert"
-      >
+      <el-alert type="info" :closable="false" show-icon class="confirm-alert">
         <template #title>温馨提示</template>
         手动安排和已锁定的排课不会被优化，仅自动排课且未锁定的记录会被调整。
       </el-alert>

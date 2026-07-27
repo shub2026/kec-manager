@@ -16,3 +16,4 @@ server/prisma/data/
 client/.prodcheck/
 client/dist-verify/
 server/src/utils/__tmp_*
+logs/
