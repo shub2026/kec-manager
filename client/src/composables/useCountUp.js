@@ -15,6 +15,11 @@ export function useCountUp(targetRef, options = {}) {
   let startTime = null;
   let fromValue = 0;
 
+  // 系统开启“减弱动态效果”时跳过动画，直接落到目标值（a11y 降级）
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
   const easingFns = {
     easeOutCubic: (t) => 1 - Math.pow(1 - t, 3),
     easeOutExpo: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
@@ -40,6 +45,10 @@ export function useCountUp(targetRef, options = {}) {
     startTime = null;
     displayValue.value = 0;
     if (targetRef.value === 0) return;
+    if (prefersReducedMotion) {
+      displayValue.value = targetRef.value;
+      return;
+    }
     rafId = requestAnimationFrame(animate);
   }
 

@@ -97,8 +97,12 @@
     </el-select>
 
     <div class="action-buttons">
-      <el-button @click="$emit('export')">数据导出</el-button>
-      <el-button @click="$emit('download-template')">下载模板</el-button>
+      <el-button @click="$emit('export')"
+        ><el-icon><Download /></el-icon> 导出Excel</el-button
+      >
+      <el-button @click="$emit('download-template')"
+        ><el-icon><Document /></el-icon> 下载模板</el-button
+      >
       <el-upload
         :show-file-list="false"
         accept=".xlsx,.xls"
@@ -109,7 +113,9 @@
         :on-error="(err) => $emit('import-error', err)"
         :before-upload="(file) => $emit('before-upload', file)"
       >
-        <el-button>导入Excel</el-button>
+        <el-button
+          ><el-icon><Upload /></el-icon> 导入Excel</el-button
+        >
       </el-upload>
     </div>
   </div>

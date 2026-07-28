@@ -228,6 +228,27 @@ a:focus-visible,
   width: 240px;
 }
 
+/* ================================================================
+   TAG 用色规则（项目规范，新增页面须遵循）
+   - 状态类（启用/停用/出错/未分配等）：语义色 success/warning/danger，默认 light 效果（有底色块，醒目）。
+   - 分类类（层次/学院/课程类型等）：非语义色 primary/info + effect="plain"（描边，安静）；
+     需要第三色相区分时用 .tag-indigo，禁止再引入色板外的新色相。
+   - 既定例外：人员类别（专职/兼职/外聘）全站统一用语义色 success/warning/info + light
+     效果（产品定稿，映射集中在 utils/personnel.js，不得在页面内自行指定颜色）。
+   ================================================================ */
+
+/* 分类 TAG 第二色相（靛蓝）：soft 底 + 深 indigo 文字 + lighter 描边，
+   显式覆盖 EP type 变量，可与任意 type 共存。
+   叠加 .is-plain 选择器提升特异性至 (0,3,0)，确保胜过按需注入的
+   .el-tag--primary.is-plain (0,2,0)，不受样式加载顺序影响 */
+.el-tag.tag-indigo,
+.el-tag.tag-indigo.is-plain {
+  --el-tag-bg-color: var(--brand-indigo-soft);
+  --el-tag-border-color: var(--brand-indigo-lighter);
+  --el-tag-text-color: var(--brand-indigo-text);
+  --el-tag-hover-color: var(--brand-indigo);
+}
+
 /* ----- 排序按钮 ----- */
 .sort-buttons {
   display: flex;
@@ -608,5 +629,21 @@ a:focus-visible,
 
   .el-table__body-wrapper .el-table__row:hover td:last-child .el-button {
     opacity: 1;
+  }
+}
+
+/* ================================================================
+   动效降级：系统"减弱动态效果"下全局关闭过渡/动画
+   （!important 为 a11y 兜底惯例，属规范允许的例外；
+   数字 countup 降级在 useCountUp.js 内处理）
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

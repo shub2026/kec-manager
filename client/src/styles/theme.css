@@ -24,10 +24,11 @@
   --brand-danger-text: #dc2626; /* 深 red,白底正文 */
 
   /* —— 分类/数据可视化调色板：与品牌同饱和度的 400 档，避免高饱和冲突 —— */
-  /* 仅用于需要额外区分色的场景（如空状态插画）；靛蓝为官方认可的"第二色相"，需多样性时唯一备用 */
+  /* 靛蓝为官方认可的"第二色相"：除空状态插画外，也用于分类 TAG（.tag-indigo）需区分时的唯一备用 */
   --brand-indigo: #818cf8;
   --brand-indigo-soft: #eef2ff;
   --brand-indigo-lighter: #c7d2fe;
+  --brand-indigo-text: #4f46e5; /* 深 indigo,浅底 TAG 文字达标对比度(与语义色 -text 同模式) */
 
   /* —— 薄荷绿:低饱和第三色相,与主蓝形成蓝绿冷色互补,用于首页资源/成果维度 —— */
   /* 与语义 success 同 emerald 色相但更柔和,饱和度更低,高级感而非"成功"功能含义 */
@@ -71,6 +72,7 @@
   --sidebar-bg: #1e293b; /* Slate-800,比旧 #304156 更深更现代 */
   --sidebar-bg-deep: #0f172a; /* Slate-900,用于底部渐变 */
   --sidebar-text: #94a3b8; /* Slate-400,与深色底对比更柔和 */
+  --sidebar-text-strong: #e2e8f0; /* Slate-200,深色底上的高层级文字(用户名等) */
   --sidebar-active: #ffffff; /* 纯白活跃文字,搭配左侧色条指示器 */
   --sidebar-border: #334155; /* Slate-700 */
   --sidebar-scrollbar: #475569; /* Slate-600 */
@@ -128,11 +130,14 @@
   --dur-base: 240ms;
   --dur-slow: 360ms;
 
-  /* —— 字体层级 —— */
-  --font-display: 600 22px/1.3 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-title: 600 16px/1.4 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-body: 400 14px/1.6 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-caption: 400 12px/1.5 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  /* —— 字体层级：五档字阶，标题/大数字角色统一消费此处令牌 ——
+     display: 页面级标题 / 弹窗统计大数字  h2: 区块标题  h3: 卡片/弹窗标题
+     大数字配套：font-variant-numeric: tabular-nums + letter-spacing: -0.02em */
+  --font-size-display: 24px;
+  --font-size-h2: 20px;
+  --font-size-h3: 16px;
+  --font-size-body: 14px;
+  --font-size-caption: 12px;
 
   /* —— 覆盖 ElementPlus 主题变量,影响所有 el-* 组件 —— */
   --el-color-primary: var(--brand-primary);

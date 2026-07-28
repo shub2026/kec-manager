@@ -141,11 +141,12 @@ const cohesionRateClass = computed(() => {
   border-color: var(--brand-primary-lighter);
 }
 .arrange-stat-num {
-  font-size: 22px;
+  font-size: var(--font-size-display);
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 .arrange-stat-num.text-success {
   color: var(--brand-success-text);
@@ -185,10 +186,11 @@ const cohesionRateClass = computed(() => {
   align-items: flex-start;
 }
 .cohesion-num {
-  font-size: 20px;
+  font-size: var(--font-size-h2);
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 .cohesion-num.text-success {
   color: var(--brand-success-text);

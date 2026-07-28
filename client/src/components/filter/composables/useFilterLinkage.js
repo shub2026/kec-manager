@@ -19,57 +19,54 @@ export function useFilterLinkage({ filters, relations = {} }) {
    * @param {Array} allOptions - 该字段的所有选项
    * @param {Array} parentFields - 父级字段列表(按优先级排序)
    */
-  const getFilteredOptions = computed(
-    () =>
-      (fieldName, allOptions, parentFields = []) => {
-        // 如果没有父级字段,返回所有选项
-        // 审计修复：原第 4 参 relationKey 默认空串且所有调用方均未传,
-        // `!relationKey` 短路导致过滤永远不执行,已移除该参数
-        if (!parentFields.length) {
-          return allOptions;
-        }
+  const getFilteredOptions = computed(() => (fieldName, allOptions, parentFields = []) => {
+    // 如果没有父级字段,返回所有选项
+    // 审计修复：原第 4 参 relationKey 默认空串且所有调用方均未传,
+    // `!relationKey` 短路导致过滤永远不执行,已移除该参数
+    if (!parentFields.length) {
+      return allOptions;
+    }
 
-        // 从后往前查找第一个有值的父级字段(优先级: 最近的父级 > 远的父级)
-        let selectedParentValue = null;
-        let selectedParentField = null;
+    // 从后往前查找第一个有值的父级字段(优先级: 最近的父级 > 远的父级)
+    let selectedParentValue = null;
+    let selectedParentField = null;
 
-        for (let i = parentFields.length - 1; i >= 0; i--) {
-          const parentField = parentFields[i];
-          const value = filters.value[parentField];
-          if (value && value !== 'none') {
-            selectedParentValue = value;
-            selectedParentField = parentField;
-            break;
-          }
-        }
-
-        // 如果没有选中的父级,返回所有选项
-        if (!selectedParentValue) {
-          return allOptions;
-        }
-
-        // 构建关联关系的key
-        // 例: college + Major + Relation = collegeMajorRelation
-        const relationKeyName = `${selectedParentField}${capitalizeFirst(fieldName)}Relation`;
-
-        // 支持ref和普通对象两种类型
-        const relationData = relations[relationKeyName]?.value ?? relations[relationKeyName];
-
-        if (!relationData) {
-          return allOptions;
-        }
-
-        // 获取该父级值对应的子级ID列表
-        const allowedIds = relationData[String(selectedParentValue)] || [];
-
-        if (allowedIds.length === 0) {
-          return [];
-        }
-
-        // 过滤选项
-        return allOptions.filter((option) => allowedIds.includes(option.id));
+    for (let i = parentFields.length - 1; i >= 0; i--) {
+      const parentField = parentFields[i];
+      const value = filters.value[parentField];
+      if (value && value !== 'none') {
+        selectedParentValue = value;
+        selectedParentField = parentField;
+        break;
       }
-  );
+    }
+
+    // 如果没有选中的父级,返回所有选项
+    if (!selectedParentValue) {
+      return allOptions;
+    }
+
+    // 构建关联关系的key
+    // 例: college + Major + Relation = collegeMajorRelation
+    const relationKeyName = `${selectedParentField}${capitalizeFirst(fieldName)}Relation`;
+
+    // 支持ref和普通对象两种类型
+    const relationData = relations[relationKeyName]?.value ?? relations[relationKeyName];
+
+    if (!relationData) {
+      return allOptions;
+    }
+
+    // 获取该父级值对应的子级ID列表
+    const allowedIds = relationData[String(selectedParentValue)] || [];
+
+    if (allowedIds.length === 0) {
+      return [];
+    }
+
+    // 过滤选项
+    return allOptions.filter((option) => allowedIds.includes(option.id));
+  });
 
   /**
    * 首字母大写辅助函数

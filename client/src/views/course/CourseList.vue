@@ -15,8 +15,12 @@
       <div class="page-toolbar">
         <el-input v-model="filterName" clearable placeholder="搜索课程名称" class="filter-2xl" />
         <div class="action-buttons">
-          <el-button @click="exportData">数据导出</el-button>
-          <el-button @click="downloadTemplate">下载模板</el-button>
+          <el-button @click="exportData"
+            ><el-icon><Download /></el-icon> 导出Excel</el-button
+          >
+          <el-button @click="downloadTemplate"
+            ><el-icon><Document /></el-icon> 下载模板</el-button
+          >
           <el-upload
             :show-file-list="false"
             accept=".xlsx,.xls"
@@ -27,7 +31,9 @@
             :on-error="onImportError"
             :before-upload="beforeImport"
           >
-            <el-button>导入Excel</el-button>
+            <el-button
+              ><el-icon><Upload /></el-icon> 导入Excel</el-button
+            >
           </el-upload>
         </div>
       </div>
@@ -168,7 +174,7 @@
       <BaseConfirmBody>{{ confirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="cancelImport">取消</el-button>
-        <el-button type="warning" :loading="importing" @click="confirmImport">确定导入</el-button>
+        <el-button type="primary" :loading="importing" @click="confirmImport">确定导入</el-button>
       </template>
     </el-dialog>
   </div>

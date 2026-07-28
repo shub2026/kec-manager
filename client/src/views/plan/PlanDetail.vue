@@ -5,9 +5,13 @@
         <el-tag v-if="plan?.majors?.name" size="small" disable-transitions>{{
           plan.majors.name
         }}</el-tag>
-        <el-tag v-if="plan?.trainingLevels?.name" type="warning" size="small" disable-transitions>{{
-          plan.trainingLevels.name
-        }}</el-tag>
+        <el-tag
+          v-if="plan?.trainingLevels?.name"
+          class="tag-indigo"
+          size="small"
+          disable-transitions
+          >{{ plan.trainingLevels.name }}</el-tag
+        >
       </template>
     </PageHeader>
 

@@ -172,7 +172,7 @@
     </div>
     <template #footer>
       <el-button @click="logoutDialogVisible = false">取消</el-button>
-      <el-button type="warning" @click="confirmLogout">确认退出</el-button>
+      <el-button type="primary" @click="confirmLogout">确认退出</el-button>
     </template>
   </el-dialog>
 </template>
@@ -518,7 +518,7 @@ function handlePasswordChangeSuccess() {
 
 .user-meta .user-name {
   font-size: 13px;
-  color: #e2e8f0;
+  color: var(--sidebar-text-strong);
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;

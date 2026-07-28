@@ -298,11 +298,12 @@ function handleSave() {
 }
 
 .preview-year {
-  font-size: 24px;
+  font-size: var(--font-size-display);
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: var(--space-5);
-  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .preview-detail {

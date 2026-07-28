@@ -270,7 +270,7 @@ onMounted(async () => {
 
 .welcome-title {
   margin: 0 0 8px 0;
-  font-size: 22px;
+  font-size: var(--font-size-display);
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -351,7 +351,7 @@ onMounted(async () => {
 }
 
 .metric-value {
-  font-size: 24px;
+  font-size: var(--font-size-display);
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;

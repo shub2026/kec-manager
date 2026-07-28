@@ -248,10 +248,11 @@ const progressStatus = computed(() => {
 }
 
 .progress-percent {
-  font-size: 26px;
+  font-size: var(--font-size-display);
   font-weight: 700;
   color: var(--brand-primary);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
   flex-shrink: 0;
   transition: color var(--dur-base) var(--ease-out);
 }
@@ -336,7 +337,7 @@ const progressStatus = computed(() => {
 }
 
 .stat-value {
-  font-size: 20px;
+  font-size: var(--font-size-h2);
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;

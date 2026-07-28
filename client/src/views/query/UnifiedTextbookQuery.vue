@@ -42,7 +42,6 @@
           </el-button>
           <el-button
             v-if="authStore.isAdmin"
-            type="success"
             :disabled="!selectedTextbook || !selectedSemester"
             @click="exportExcel"
           >

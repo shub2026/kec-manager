@@ -556,7 +556,7 @@ function cellClass(course, semester) {
 .matrix-grand-total-row td {
   background: rgba(28, 130, 245, 0.04);
   border: 1px solid var(--border-light);
-  border-top: 2px solid #5ba3f5;
+  border-top: 2px solid var(--el-color-primary-light-5);
   border-bottom: none;
   font-weight: 700;
   color: var(--text-primary);

@@ -96,7 +96,7 @@
             >
               <el-icon><Refresh /></el-icon> 重置
             </el-button>
-            <el-button v-if="authStore.isAdmin" type="success" @click="exportExcel">
+            <el-button v-if="authStore.isAdmin" @click="exportExcel">
               <el-icon><Download /></el-icon> 导出Excel
             </el-button>
           </div>

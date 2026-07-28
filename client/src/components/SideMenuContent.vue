@@ -2,7 +2,7 @@
   <!-- 侧边栏菜单内容（桌面 aside 与窄屏抽屉复用同一份） -->
   <!-- 首页概览（所有用户可见） -->
   <el-menu-item index="/dashboard">
-    <el-icon><HomeFilled /></el-icon>
+    <el-icon><House /></el-icon>
     <template #title>首页概览</template>
   </el-menu-item>
 
@@ -48,7 +48,7 @@
           <template #title>系统设置</template>
         </el-menu-item>
         <el-menu-item index="/users">
-          <el-icon><UserFilled /></el-icon>
+          <el-icon><User /></el-icon>
           <template #title>用户管理</template>
         </el-menu-item>
         <el-menu-item index="/audit-logs">

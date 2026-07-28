@@ -36,7 +36,7 @@ import {
   Fold,
   Grid,
   Histogram,
-  HomeFilled,
+  House,
   InfoFilled,
   Lightning,
   Loading,
@@ -57,7 +57,6 @@ import {
   Tools,
   Upload,
   User,
-  UserFilled,
   Warning,
   WarningFilled,
 } from '@element-plus/icons-vue';
@@ -124,7 +123,7 @@ const icons = {
   Fold,
   Grid,
   Histogram,
-  HomeFilled,
+  House,
   InfoFilled,
   Lightning,
   Loading,
@@ -145,7 +144,6 @@ const icons = {
   Tools,
   Upload,
   User,
-  UserFilled,
   Warning,
   WarningFilled,
 };

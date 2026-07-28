@@ -207,11 +207,12 @@ function courseRate(r) {
   border-color: var(--brand-danger-lighter);
 }
 .batch-stat-num {
-  font-size: 24px;
+  font-size: var(--font-size-display);
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 .batch-stat-num.text-brand {
   color: var(--brand-primary);

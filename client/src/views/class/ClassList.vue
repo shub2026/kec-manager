@@ -109,7 +109,7 @@
       <BaseConfirmBody>{{ leftSchoolConfirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="cancelLeftSchoolConfirm">取消</el-button>
-        <el-button type="warning" @click="confirmLeftSchool">确定</el-button>
+        <el-button type="primary" @click="confirmLeftSchool">确定</el-button>
       </template>
     </el-dialog>
   </div>

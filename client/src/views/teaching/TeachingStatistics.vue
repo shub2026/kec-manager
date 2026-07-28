@@ -10,23 +10,23 @@
       </template>
     </PageHeader>
     <el-card>
-      <!-- 汇总统计 -->
+      <!-- 汇总统计：等分网格 + 竖线分隔（对齐 Dashboard 指标条视觉） -->
       <div v-if="statsData" class="summary-section">
-        <el-row :gutter="16">
-          <el-col :span="8" :xs="24" :sm="12" :md="8">
+        <div class="summary-grid">
+          <div class="summary-item">
             <el-statistic title="参与教师" :value="filteredSummary.totalTeachers" suffix="人" />
-          </el-col>
-          <el-col :span="8" :xs="24" :sm="12" :md="8">
+          </div>
+          <div class="summary-item">
             <el-statistic
               title="总周课时"
               :value="filteredSummary.totalWeeklyHours"
               suffix="课时"
             />
-          </el-col>
-          <el-col :span="8" :xs="24" :sm="12" :md="8">
+          </div>
+          <div class="summary-item">
             <el-statistic title="总安排班级数" :value="filteredSummary.totalClasses" suffix="个" />
-          </el-col>
-        </el-row>
+          </div>
+        </div>
         <el-divider />
       </div>
 
@@ -76,7 +76,7 @@
         </el-select>
         <div class="action-buttons">
           <el-button :loading="exporting" :disabled="!statsData" @click="handleExport"
-            >数据导出</el-button
+            ><el-icon><Download /></el-icon> 导出Excel</el-button
           >
         </div>
       </div>
@@ -118,7 +118,7 @@
                         <el-tag
                           v-if="cls.isCombined"
                           size="small"
-                          type="success"
+                          effect="plain"
                           class="tag-item"
                           disable-transitions
                           >合班</el-tag
@@ -131,6 +131,7 @@
                           v-if="cls.collegeName"
                           size="small"
                           type="info"
+                          effect="plain"
                           disable-transitions
                           >{{ cls.collegeName }}</el-tag
                         >
@@ -142,7 +143,7 @@
                         <el-tag
                           v-if="cls.trainingLevelName"
                           size="small"
-                          type="warning"
+                          class="tag-indigo"
                           disable-transitions
                           >{{ cls.trainingLevelName }}</el-tag
                         >
@@ -160,6 +161,7 @@
                         <el-tag
                           :type="cls.isAuto ? 'info' : 'primary'"
                           size="small"
+                          effect="plain"
                           disable-transitions
                         >
                           {{ cls.isAuto ? '自动' : '手动' }}
@@ -197,6 +199,7 @@
                 v-for="d in row.details"
                 :key="d.course.id"
                 size="small"
+                effect="plain"
                 class="tag-item"
                 disable-transitions
                 >{{ d.course.name }}</el-tag
@@ -209,8 +212,7 @@
                 v-for="l in row.trainingLevelList"
                 :key="l.id"
                 size="small"
-                type="warning"
-                class="tag-item"
+                class="tag-item tag-indigo"
                 disable-transitions
                 >{{ l.name }}</el-tag
               >
@@ -224,6 +226,7 @@
                 :key="c.id"
                 size="small"
                 type="info"
+                effect="plain"
                 class="tag-item"
                 disable-transitions
                 >{{ c.name }}</el-tag
@@ -489,6 +492,35 @@ onMounted(async () => {
 <style scoped>
 .summary-section {
   margin-bottom: var(--space-2);
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.summary-item {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-1) var(--space-4);
+}
+/* 指标间的竖线分隔符 */
+.summary-item + .summary-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 1px;
+  background: var(--border-light);
+}
+@media (max-width: 576px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+    row-gap: var(--space-3);
+  }
+  .summary-item + .summary-item::before {
+    display: none;
+  }
 }
 .expand-content {
   padding: var(--space-2) var(--space-4);

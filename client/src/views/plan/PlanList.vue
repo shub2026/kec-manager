@@ -44,7 +44,11 @@
             <el-tag v-if="row.majorId" type="success" size="small" disable-transitions
               >按专业</el-tag
             >
-            <el-tag v-else-if="row.trainingLevelId" type="primary" size="small" disable-transitions
+            <el-tag
+              v-else-if="row.trainingLevelId"
+              size="small"
+              class="tag-indigo"
+              disable-transitions
               >按层次</el-tag
             >
           </template>

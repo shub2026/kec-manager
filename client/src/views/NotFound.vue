@@ -9,7 +9,7 @@
       <p class="not-found-desc">抱歉，您访问的页面不存在或已被移除。</p>
       <div class="not-found-actions">
         <el-button type="primary" size="large" @click="goHome">
-          <el-icon><HomeFilled /></el-icon> 返回首页
+          <el-icon><House /></el-icon> 返回首页
         </el-button>
         <el-button size="large" @click="$router.back()">
           <el-icon><ArrowLeft /></el-icon> 返回上一页
@@ -22,7 +22,7 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import { Warning, HomeFilled, ArrowLeft } from '@element-plus/icons-vue';
+import { Warning, House, ArrowLeft } from '@element-plus/icons-vue';
 
 defineOptions({ name: 'NotFound' });
 

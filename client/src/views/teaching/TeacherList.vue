@@ -79,6 +79,7 @@
               v-for="c in row.courseList"
               :key="c.id"
               size="small"
+              effect="plain"
               class="tag-item"
               disable-transitions
               >{{ c.name }}</el-tag
@@ -93,6 +94,7 @@
               :key="c.id"
               size="small"
               type="info"
+              effect="plain"
               class="tag-item"
               disable-transitions
               >{{ c.name }}</el-tag
@@ -106,8 +108,7 @@
               v-for="l in row.trainingLevelList"
               :key="l.id"
               size="small"
-              type="warning"
-              class="tag-item"
+              class="tag-item tag-indigo"
               disable-transitions
               >{{ l.name }}</el-tag
             >
@@ -198,7 +199,7 @@
       <BaseConfirmBody>{{ confirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="cancelImport">取消</el-button>
-        <el-button type="warning" :loading="importing" @click="confirmImport">确定导入</el-button>
+        <el-button type="primary" :loading="importing" @click="confirmImport">确定导入</el-button>
       </template>
     </el-dialog>
   </div>

@@ -7,7 +7,7 @@
           <el-tag size="small" disable-transitions>{{ courseTypeLabel(courseInfo.type) }}</el-tag>
         </div>
         <el-button v-if="teacherCount" type="primary" :loading="exporting" @click="emit('export')">
-          <el-icon><Download /></el-icon> 数据导出
+          <el-icon><Download /></el-icon> 导出Excel
         </el-button>
       </div>
     </template>
@@ -102,9 +102,10 @@ function courseTypeLabel(type) {
   color: var(--text-secondary);
 }
 .stat-value {
-  font-size: 20px;
+  font-size: var(--font-size-h2);
   font-weight: 600;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 .stat-value small {
   font-size: 12px;

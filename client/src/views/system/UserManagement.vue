@@ -30,7 +30,13 @@
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
         <el-table-column label="角色" min-width="120" align="center">
           <template #default="{ row }">
-            <el-tag :type="getRoleType(row.role)" size="small" disable-transitions>
+            <el-tag
+              :type="getRoleType(row.role)"
+              :class="getRoleClass(row.role)"
+              size="small"
+              effect="plain"
+              disable-transitions
+            >
               {{ getRoleLabel(row.role) }}
             </el-tag>
           </template>
@@ -123,7 +129,7 @@
       <BaseConfirmBody>{{ statusConfirmMessage }}</BaseConfirmBody>
       <template #footer>
         <el-button @click="statusConfirmVisible = false">取消</el-button>
-        <el-button type="warning" :loading="statusChanging" @click="confirmToggleStatus"
+        <el-button type="primary" :loading="statusChanging" @click="confirmToggleStatus"
           >确定</el-button
         >
       </template>
@@ -346,12 +352,18 @@ function openResetPwdDialog(user) {
 }
 
 function getRoleType(role) {
+  // 角色为分类信息（非状态），按 TAG 用色规则用非语义色 + plain 效果
   const types = {
-    super_admin: 'danger',
-    admin: 'warning',
+    super_admin: 'primary',
+    admin: 'primary',
     viewer: 'info',
   };
   return types[role] || 'info';
+}
+
+function getRoleClass(role) {
+  // admin 用第二色相与 super_admin 区分（见 global.css TAG 用色规则）
+  return role === 'admin' ? 'tag-indigo' : '';
 }
 
 function getRoleLabel(role) {

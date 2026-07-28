@@ -61,6 +61,7 @@
             v-for="c in row.courseList"
             :key="c.id"
             size="small"
+            effect="plain"
             class="tag-item"
             disable-transitions
             >{{ c.name }}</el-tag
@@ -74,6 +75,7 @@
             :key="c.id"
             size="small"
             type="info"
+            effect="plain"
             class="tag-item"
             disable-transitions
             >{{ c.name }}</el-tag
@@ -86,8 +88,7 @@
             v-for="l in row.trainingLevelList"
             :key="l.id"
             size="small"
-            type="warning"
-            class="tag-item"
+            class="tag-item tag-indigo"
             disable-transitions
             >{{ l.name }}</el-tag
           >
@@ -101,6 +102,7 @@
               :key="tb.id"
               size="small"
               type="info"
+              effect="plain"
               class="tag-item"
               disable-transitions
               >{{ tb.title }}</el-tag
