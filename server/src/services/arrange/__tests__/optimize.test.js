@@ -495,6 +495,99 @@ describe('Optimize Service', () => {
       const teacher1InCourse1 = capturedConstraints.find((t) => t.id === 1);
       expect(teacher1InCourse1.assignedTextbookIds.has(10)).toBe(true);
     });
+
+    // ── OL5 修复测试：跨课程课时基线同步 ──
+    it('课程优化后 effectiveTotal 同步，后续课程容量修正基于真实剩余（防超课时/欠课时）', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+
+      // 2 门课程×2 个班级（各 4h）：两位教师初始各教 2 个班（各 8h）
+      const mockAssignments = [
+        mockAssignment(1, 1, 1), // class1 course1 → t1
+        mockAssignment(2, 2, 1), // class2 course1 → t2
+        mockAssignment(3, 1, 2), // class3 course2 → t1
+        mockAssignment(4, 2, 2), // class4 course2 → t2
+      ];
+      mockAssignmentQueries(prisma, mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'Teacher 1', { courses: [{ course_id: 1 }, { course_id: 2 }] }),
+        mockTeacher(2, 'Teacher 2', { courses: [{ course_id: 1 }, { course_id: 2 }] }),
+      ]);
+
+      // 记录每次 tabuOptimize 调用时各教师的 standardCap 快照
+      const capByCall = [];
+      tabuOptimize.mockImplementation(
+        (assignments, unassigned, teacherConstraints, mode, classMap, courseId) => {
+          capByCall.push({
+            courseId: Number(courseId),
+            caps: new Map(teacherConstraints.map((t) => [t.id, t.standardCap])),
+          });
+          // 课程1：把 class2 从 t2 挪到 t1（t1 课程1 变 8h，t2 变 0h）
+          if (Number(courseId) === 1) {
+            for (const a of assignments) {
+              if (a.class_id === 2) a.teacher_id = 1;
+            }
+            return { improved: true, iterations: 5, scoreBefore: 0, scoreAfter: 10, delta: 10, elapsed: 10 };
+          }
+          return { improved: false, iterations: 0, scoreBefore: 0, scoreAfter: 0, delta: 0, elapsed: 10 };
+        }
+      );
+
+      await runOptimizeSchedule(1, 'standard');
+
+      const course2Call = capByCall.find((c) => c.courseId === 2);
+      expect(course2Call).toBeDefined();
+      // 默认 full_time 标准课时 16：
+      // t1 课程1 优化后升至 8h → 课程2 可用容量 = 16 - 8 = 8
+      // （修复前 effectiveTotal 陈旧，会错算为 16 - 4 = 12，导致 t1 可被加到总课时 20h 超标）
+      expect(course2Call.caps.get(1)).toBe(8);
+      // t2 课程1 优化后降至 0h → 课程2 可用容量 = 16 - 0 = 16
+      // （修复前会错算为 12，导致 t2 拿不到足额课时而欠分配）
+      expect(course2Call.caps.get(2)).toBe(16);
+    });
+
+    // ── OL6 修复测试：容量修正段丢失个人周课时上限折算 ──
+    it('容量修正段应折算教师个人周课时上限（default_weekly_hours）', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+
+      // t1 个人周课时上限 10h（低于全局标准 16h），教 2 门课各 1 班（各 4h）
+      const mockAssignments = [
+        mockAssignment(1, 1, 1), // class1 course1 → t1
+        mockAssignment(3, 1, 2), // class3 course2 → t1
+      ];
+      mockAssignmentQueries(prisma, mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'Teacher 1', {
+          default_weekly_hours: 10,
+          courses: [{ course_id: 1 }, { course_id: 2 }],
+        }),
+        mockTeacher(2, 'Teacher 2', { courses: [{ course_id: 1 }, { course_id: 2 }] }),
+      ]);
+
+      const capByCall = [];
+      tabuOptimize.mockImplementation(
+        (assignments, unassigned, teacherConstraints, mode, classMap, courseId) => {
+          capByCall.push({
+            courseId: Number(courseId),
+            caps: new Map(teacherConstraints.map((t) => [t.id, t.standardCap])),
+          });
+          return { improved: false, iterations: 0, scoreBefore: 0, scoreAfter: 0, delta: 0, elapsed: 10 };
+        }
+      );
+
+      await runOptimizeSchedule(1, 'standard');
+
+      // 课程1 容量修正：otherHours = 8 - 4 = 4，
+      // 个人剩余 = 10 - 4 = 6，standardCap = min(16 - 4, 6) = 6
+      // （修复前丢失 min() 折算，错算为 16 - 4 = 12，
+      //   导致 t1 可被加课至超出个人 10h 约束）
+      const course1Call = capByCall.find((c) => c.courseId === 1);
+      expect(course1Call).toBeDefined();
+      expect(course1Call.caps.get(1)).toBe(6);
+      // t2 无个人上限限制之外的变化：standardCap = min(16, 16 - 0) = 16
+      expect(course1Call.caps.get(2)).toBe(16);
+    });
   });
 
   // ── P0 修复测试：目标函数含 α/β 惩罚项 ──

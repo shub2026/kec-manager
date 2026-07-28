@@ -494,11 +494,19 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       for (const t of courseTeacherConstraints) {
         const courseHours = courseHoursMap.get(t.id) || 0;
         const otherHours = t.effectiveTotal - courseHours;
-        t.standardCap = Math.max(0, Math.floor(t.standardHours - otherHours));
-        t.fullCap = Math.max(0, Math.floor(t.maxHours - otherHours));
+        // OL6 修复：与 buildTeacherConstraints 口径一致，教师个人周课时上限
+        // （default_weekly_hours）必须 min() 折入 standardCap/fullCap。
+        // canAccept 只检查这两个 cap，不看 teacherHourCap，原实现重算时丢失折算，
+        // 导致个人上限低于全局标准/上限的教师被加课超出个人约束
         t.teacherHourCap = t.defaultWeeklyHours != null
           ? Math.max(0, t.defaultWeeklyHours - otherHours)
           : null;
+        const personalRemain = t.teacherHourCap != null ? t.teacherHourCap : Infinity;
+        t.standardCap = Math.max(
+          0,
+          Math.floor(Math.min(t.standardHours - otherHours, personalRemain))
+        );
+        t.fullCap = Math.max(0, Math.floor(Math.min(t.maxHours - otherHours, personalRemain)));
       }
 
       try {
@@ -557,6 +565,30 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
           // 学院集合：只增不减
           for (const cid of courseT.assignedCollegeIds) {
             sharedT.assignedCollegeIds.add(cid);
+          }
+        }
+
+        // OL5 修复：跨课程课时基线同步。
+        // effectiveTotal 在 buildTeacherConstraints 时按初始全课程课时算定，此后固定不变，
+        // 但每门课优化会在教师间重新分配课时。若不同步，后续课程的容量修正
+        //   otherHours = effectiveTotal - 本课课时；cap = 标准/上限课时 - otherHours
+        // 会基于陈旧的 effectiveTotal：本轮增课的教师 otherHours 偏低 → cap 偏高 →
+        // 被后续课程继续加课直至超课时；本轮减课的教师 otherHours 偏高 → cap 偏低 →
+        // 后续课程拿不到课直至欠课时。这正是"部分教师超课时、部分教师欠课时"的根因。
+        // 修正：用本课优化前后的课时差增量更新 effectiveTotal，
+        // 使下一门课的容量修正基于真实剩余量（standardCap/fullCap 在下轮循环开头据此重算）。
+        const newCourseHoursMap = new Map();
+        for (const a of course.assignments) {
+          newCourseHoursMap.set(
+            a.teacher_id,
+            (newCourseHoursMap.get(a.teacher_id) || 0) + (a.weekly_hours || 0)
+          );
+        }
+        for (const sharedT of qualifiedTeachers) {
+          const beforeHours = courseHoursMap.get(sharedT.id) || 0;
+          const afterHours = newCourseHoursMap.get(sharedT.id) || 0;
+          if (beforeHours !== afterHours) {
+            sharedT.effectiveTotal += afterHours - beforeHours;
           }
         }
       } catch (tsErr) {

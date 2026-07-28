@@ -559,3 +559,53 @@ describe('tabuOptimize — F15 负载方差分支回归', () => {
     expect(typeof result.scoreBefore).toBe('number');
   });
 });
+
+// ─────────────────────────────────────────────
+// OL7 回归测试：候选移动 delta 必须含 α/β 惩罚增量
+// 修复前 findBestMove 的 delta 只算 calcMatchScore 变化，
+// 两位评分相同的教师之间的均衡移动 delta=0，currentScore 从不超过
+// bestScore，最终回溯到初始解 → 欠课时教师永远拿不到课。
+// 修复后 β 负载方差增量使均衡 Shift 的 delta > 0，搜索主动纠正苦乐不均。
+// ─────────────────────────────────────────────
+describe('tabuOptimize — OL7 候选评估含惩罚增量回归', () => {
+  it('评分相同时，满载教师的课应被移给欠课时教师（负载均衡驱动）', () => {
+    // 两位教师学院/教材完全相同 → calcMatchScore 对两人评分相同（纯评分 delta=0）
+    const t1 = makeTeacher({
+      id: 1,
+      name: 'T1',
+      standardCap: 8,
+      fullCap: 8,
+      assignedTextbookIds: new Set([1]),
+      assignedCollegeIds: new Set([10]),
+    });
+    const t2 = makeTeacher({
+      id: 2,
+      name: 'T2',
+      standardCap: 8,
+      fullCap: 8,
+      assignedTextbookIds: new Set([1]),
+      assignedCollegeIds: new Set([10]),
+    });
+
+    // t1 满载（2 班×4h = 8h = standardCap），t2 欠课时（0h，gap=8）
+    const cls1 = makeClass({ classId: 100, collegeId: 10, textbookIds: [1], weeklyHours: 4 });
+    const cls2 = makeClass({ classId: 101, collegeId: 10, textbookIds: [1], weeklyHours: 4 });
+    const assignments = [makeAssignment(t1, cls1), makeAssignment(t1, cls2)];
+    const classMap = new Map([
+      [100, cls1],
+      [101, cls2],
+    ]);
+
+    const result = tabuOptimize(assignments, [], [t1, t2], 'standard', classMap, 1, '2025-2026-2');
+
+    // 修复后：均衡 Shift 的 β 增量 = -2×(0-0.25)×100 = +50 > 0 → 被采纳为更优解
+    // （修复前纯评分 delta=0，best 解回溯至初始状态，t2 仍为 0h）
+    expect(result.improved).toBe(true);
+    const t1Classes = assignments.filter((a) => a.teacher_id === 1);
+    const t2Classes = assignments.filter((a) => a.teacher_id === 2);
+    expect(t1Classes.length).toBe(1);
+    expect(t2Classes.length).toBe(1);
+    expect(t1.assignedHours).toBe(4);
+    expect(t2.assignedHours).toBe(4);
+  });
+});

@@ -5,7 +5,8 @@
  * 核心策略：
  *   - 三种邻域移动算子：Insert（插入未分配）、Shift（转移已分配）、Swap（交换分配）
  *   - 禁忌表防止短期回溯，aspiration criterion 允许突破禁忌
- *   - 全局目标函数：所有分配的 calcMatchScore 总和 - 未分配惩罚
+ *   - 全局目标函数：所有分配的 calcMatchScore 总和 - 未分配惩罚 - α欠分配惩罚 - β负载方差惩罚
+ *   - 邻域移动的增量评价与目标函数同口径（OL7 修复：含 α/β 惩罚增量）
  *   - 硬约束（容量、教材上限、意向）在邻域生成时即过滤，不可行解不参与搜索
  *
  * @module arrange/tabu-search
@@ -159,6 +160,81 @@ function canAccept(teacher, cls, state, mode) {
   return true;
 }
 
+// ── 惩罚项增量评价（OL7 修复）──
+// 原实现中候选移动的 delta 只算 calcMatchScore 变化，而 computeObjective 含
+// α 欠分配惩罚与 β 负载方差惩罚，两者口径不一致导致：
+// 1. 搜索选步完全无视均衡目标——欠课时教师的课被移走不扣分、均衡改善不加分，
+//    优化反而可能加剧苦乐不均（部分教师超课时、部分欠课时）；
+// 2. currentScore（含惩罚的初始分）+= 纯评分 delta 逐步漂移，
+//    aspiration 判据与 best 解回溯基于失真分数。
+// 修正：每轮 findBestMove 预置惩罚上下文，候选评估时 O(1) 增量计算 α/β 惩罚变化。
+
+/**
+ * 构建惩罚增量评价上下文（每轮迭代重建一次，O(T)）
+ * sum/sumSq/n 维护负载率的一阶/二阶矩，方差 = sumSq/n - (sum/n)^2，
+ * 与 computeObjective 的总体方差口径一致
+ */
+function buildPenaltyContext(teacherConstraints, teacherStates, mode) {
+  const alpha = TABU_SEARCH.UNDER_ASSIGNMENT_PENALTY || 0;
+  const beta = TABU_SEARCH.LOAD_VARIANCE_WEIGHT || 0;
+  let sum = 0;
+  let sumSq = 0;
+  let n = 0;
+  const capOf = new Map();
+  if (beta > 0 && teacherConstraints.length > 1) {
+    for (const t of teacherConstraints) {
+      const state = teacherStates.get(t.id);
+      if (!state) continue;
+      const cap = mode === 'standard' ? t.standardCap : t.fullCap;
+      if (cap > 0) {
+        const r = state.assignedHours / cap;
+        sum += r;
+        sumSq += r * r;
+        n++;
+        capOf.set(t.id, cap);
+      }
+    }
+  }
+  return { alpha, beta, sum, sumSq, n, capOf };
+}
+
+/**
+ * 计算一组教师课时变化带来的惩罚项目标增量（正值=惩罚减少，可直接加到 delta）
+ * 必须在状态未被临时修改前调用（即 state.assignedHours 为移动前的值）
+ * @param {Array<[object, number]>} changes - [教师约束对象, 课时增量] 列表
+ */
+function hoursPenaltyDelta(ctx, teacherStates, changes) {
+  let delta = 0;
+  // α 欠分配缺口变化（与 computeObjective 一致，达标口径恒用 standardCap）
+  if (ctx.alpha > 0) {
+    for (const [t, dh] of changes) {
+      const state = teacherStates.get(t.id);
+      if (!state) continue;
+      const gapOld = Math.max(0, t.standardCap - state.assignedHours);
+      const gapNew = Math.max(0, t.standardCap - (state.assignedHours + dh));
+      delta -= ctx.alpha * (gapNew - gapOld);
+    }
+  }
+  // β 负载方差变化（增量维护 sum/sumSq，×100 与 computeObjective 量级对齐）
+  if (ctx.beta > 0 && ctx.n > 1) {
+    let sum = ctx.sum;
+    let sumSq = ctx.sumSq;
+    for (const [t, dh] of changes) {
+      const cap = ctx.capOf.get(t.id);
+      if (!cap) continue;
+      const state = teacherStates.get(t.id);
+      const rOld = state.assignedHours / cap;
+      const rNew = (state.assignedHours + dh) / cap;
+      sum += rNew - rOld;
+      sumSq += rNew * rNew - rOld * rOld;
+    }
+    const varOld = ctx.sumSq / ctx.n - (ctx.sum / ctx.n) ** 2;
+    const varNew = sumSq / ctx.n - (sum / ctx.n) ** 2;
+    delta -= ctx.beta * (varNew - varOld) * 100;
+  }
+  return delta;
+}
+
 // ── 禁忌表操作 ──
 
 function tabuKey(classId, teacherId) {
@@ -202,6 +278,10 @@ function findBestMove(
   let bestMove = null;
   let bestDelta = -Infinity;
 
+  // OL7 修复：预置惩罚上下文，候选 delta 统一并入 α/β 惩罚增量，
+  // 与 computeObjective 口径一致，防止 currentScore 漂移与均衡目标失效
+  const ctx = buildPenaltyContext(teacherConstraints, teacherStates, mode);
+
   // --- Insert：未分配班级 → 某教师 ---
   for (const classId of unassignedSet) {
     const cls = classMap.get(classId);
@@ -213,7 +293,11 @@ function findBestMove(
 
       const proxy = buildScoringProxy(t, state);
       const score = calcMatchScore(proxy, cls);
-      const delta = score + TABU_SEARCH.UNASSIGNED_PENALTY; // 消除未分配惩罚 + 新增评分
+      // 消除未分配惩罚 + 新增评分 + α/β 惩罚增量（OL7）
+      const delta =
+        score +
+        TABU_SEARCH.UNASSIGNED_PENALTY +
+        hoursPenaltyDelta(ctx, teacherStates, [[t, cls.weeklyHours || 0]]);
 
       if (delta <= bestDelta) continue;
 
@@ -249,7 +333,14 @@ function findBestMove(
 
       const toProxy = buildScoringProxy(t, toState);
       const toScore = calcMatchScore(toProxy, cls);
-      const delta = toScore - fromScore;
+      // 转移评分差 + α/β 惩罚增量（OL7）：欠课时教师被移走课时会被正确扣分
+      const delta =
+        toScore -
+        fromScore +
+        hoursPenaltyDelta(ctx, teacherStates, [
+          [fromTeacher, -(cls.weeklyHours || 0)],
+          [t, cls.weeklyHours || 0],
+        ]);
 
       if (delta <= bestDelta) continue;
 
@@ -354,6 +445,12 @@ function findBestMove(
       const scoreAOld = calcMatchScore(proxyAOld, clsA);
       const scoreBOld = calcMatchScore(proxyBOld, clsB);
 
+      // α/β 惩罚增量（OL7）：必须在状态被临时修改前计算
+      const penaltyDelta = hoursPenaltyDelta(ctx, teacherStates, [
+        [tA, deltaHoursA],
+        [tB, deltaHoursB],
+      ]);
+
       // 保存学院集合快照（防止模拟评估污染状态）
       const savedCollegeA = new Set(stateA.assignedCollegeIds);
       const savedCollegeB = new Set(stateB.assignedCollegeIds);
@@ -379,7 +476,7 @@ function findBestMove(
         const scoreANew = calcMatchScore(proxyANew, clsB);
         const scoreBNew = calcMatchScore(proxyBNew, clsA);
 
-        const delta = scoreANew + scoreBNew - scoreAOld - scoreBOld;
+        const delta = scoreANew + scoreBNew - scoreAOld - scoreBOld + penaltyDelta;
 
         if (delta <= bestDelta) continue;
 
