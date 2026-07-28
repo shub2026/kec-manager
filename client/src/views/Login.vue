@@ -792,17 +792,20 @@ onMounted(() => {
   border: 1px solid color-mix(in srgb, var(--brand-primary-soft) 80%, transparent);
   border-radius: 22px;
   padding: 44px;
+  /* 三层阴影:贴边描边感 + 中景品牌色晕染 + 远景弥散,静止态保持轻盈 */
   box-shadow:
-    0 24px 70px var(--brand-primary-shadow),
-    0 8px 24px rgba(15, 23, 42, 0.04);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 10px 28px color-mix(in srgb, var(--brand-primary) 8%, transparent),
+    0 24px 64px color-mix(in srgb, var(--brand-primary) 6%, transparent);
   transition:
     box-shadow var(--dur-base) var(--ease-out),
     transform var(--dur-base) var(--ease-out);
 }
 .login-card:hover {
   box-shadow:
-    0 28px 80px color-mix(in srgb, var(--brand-primary) 14%, transparent),
-    0 10px 28px rgba(15, 23, 42, 0.05);
+    0 1px 3px rgba(15, 23, 42, 0.05),
+    0 14px 34px color-mix(in srgb, var(--brand-primary) 12%, transparent),
+    0 30px 76px color-mix(in srgb, var(--brand-primary) 9%, transparent);
   transform: translateY(-2px);
 }
 
