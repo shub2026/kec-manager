@@ -1,4 +1,5 @@
 import request, { buildAuthHeaders } from '../utils/request';
+import { useAuthStore } from '../stores/auth';
 import './types';
 
 /**
@@ -17,28 +18,59 @@ import './types';
  * @returns {Promise<{success: boolean, data: object, message: string}>} 最终结果
  */
 async function fetchArrangeSSE(url, body, onProgress, options = {}) {
-  // 复用拦截器同源的认证头构造，避免认证逻辑漂移
-  const headers = {
-    'Content-Type': 'application/json',
-    Accept: 'text/event-stream',
-    ...buildAuthHeaders(),
-  };
-
   // SSE 流式响应不设 HTTP 超时（后端 batch.js 自带 5 分钟业务超时）
   // 但设置一个兜底超时避免无限等待
   const controller = new AbortController();
   const timeoutMs = options.timeout || 7 * 60 * 1000; // 7 分钟，略大于后端上限
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  let response;
-  try {
-    response = await fetch(`/api${url}`, {
+  // 每次发送时重新构造认证头（复用拦截器同源逻辑），重试时才能拿到刷新后的新凭证
+  const sendRequest = () =>
+    fetch(`/api${url}`, {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        ...buildAuthHeaders(),
+      },
       body: JSON.stringify(body),
       credentials: 'include',
       signal: controller.signal,
     });
+
+  let response;
+  try {
+    response = await sendRequest();
+
+    // 自愈重试：fetch 不走 axios 拦截器，需自行处理凭证失效，每类各允许一次：
+    // - 401：访问令牌过期 → 刷新令牌后重试（长会话中排课前未触发过 axios 刷新时会遇到）
+    // - 403 CSRF：cookie 轮换竞态/服务端重启导致签名失效 → 重取 csrf-token 后重试
+    // 循环允许 403→401 等组合（如服务端重启后两类凭证同时失效）
+    let healed401 = false;
+    let healed403 = false;
+    for (;;) {
+      if (response.status === 401 && !healed401) {
+        healed401 = true;
+        const refreshed = await useAuthStore().refreshAccessToken();
+        if (!refreshed) break;
+        response = await sendRequest();
+        continue;
+      }
+      if (response.status === 403 && !healed403) {
+        let errMsg = '';
+        try {
+          errMsg = (await response.clone().json())?.message || '';
+        } catch (_) {
+          /* 非 JSON 响应忽略 */
+        }
+        if (!errMsg.includes('CSRF')) break;
+        healed403 = true;
+        await fetch('/api/auth/csrf-token', { credentials: 'include' });
+        response = await sendRequest();
+        continue;
+      }
+      break;
+    }
   } catch (fetchErr) {
     clearTimeout(timeoutId);
     if (fetchErr.name === 'AbortError') {

@@ -104,8 +104,21 @@ request.interceptors.response.use(
       if (resCode === 'MUST_CHANGE_PASSWORD') {
         return Promise.reject(error);
       }
+      // CSRF-RACE修复：CSRF token 失效（cookie 轮换竞态/服务端重启导致签名失效）时自愈：
+      // 重新获取 csrf-token（刷新 XSRF-TOKEN cookie）后重试一次，重试时请求拦截器会从新 cookie 重建请求头
+      const resMsg = error.response.data?.message || '';
+      if (resMsg.includes('CSRF') && !originalRequest._csrfRetry) {
+        originalRequest._csrfRetry = true;
+        try {
+          await request.get('/auth/csrf-token');
+          return request(originalRequest);
+        } catch (_) {
+          /* 获取失败则继续走原错误提示 */
+        }
+      }
       ElMessage({
-        message: '权限不足，无法执行此操作',
+        // CSRF 失败提示后端原始消息（含"请刷新页面"指引），其余 403 保持权限提示
+        message: resMsg.includes('CSRF') ? resMsg : '权限不足，无法执行此操作',
         type: 'error',
         duration: 5000,
         showClose: true,

@@ -75,9 +75,21 @@ export const useSettingsStore = defineStore('settings', () => {
     // 先标记 pending，避免 await 动态 import 期间另一个调用者重复进入主分支
     _pendingPromise = (async () => {
       const { getSettings: apiGetSettings } = await getSettingsApi();
-      const res = await apiGetSettings();
-      settings.value = res.data || {};
-      _lastLoadTime = Date.now();
+      let data = (await apiGetSettings()).data || {};
+      // 会话恢复竞态修复：已登录但 access-token cookie 过期时，getSettings 属"可选认证"接口，
+      // 返回 200 匿名裁剪结果（缺 currentSemester）而非 401，不会触发拦截器自动刷新，
+      // 导致前端回退到本地日期计算的历史学期。此处主动刷新令牌后重试一次，
+      // 仍降级则不写缓存时间，后续调用可重新拉取完整设置
+      const isDegraded = () => !data.currentSemester && localStorage.getItem('loggedIn') === 'true';
+      if (isDegraded()) {
+        const { useAuthStore } = await import('./auth');
+        const refreshed = await useAuthStore().refreshAccessToken();
+        if (refreshed) {
+          data = (await apiGetSettings()).data || data;
+        }
+      }
+      settings.value = data;
+      _lastLoadTime = isDegraded() ? 0 : Date.now();
       _parseSemesterLabel(settings.value.currentSemester);
     })().catch((e) => {
       if (import.meta.env.DEV) console.error('加载系统设置失败:', e);

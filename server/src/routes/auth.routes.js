@@ -194,14 +194,16 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
       // 旧token已过期或无效，无需黑名单
     }
 
-    const csrfToken = generateSignedCsrfToken();
+    // CSRF-RACE修复：refresh 不再轮换 XSRF-TOKEN cookie。
+    // 静默刷新与并发写请求存在竞态：写请求携带旧 header token，refresh 响应先落地新 cookie，
+    // 服务端 Double Submit 校验必然失败（偶发 403）。CSRF token 与访问令牌生命周期无关，
+    // 登录时轮换（见 /login）已足够。
     setAuthCookies(res, {
       token: result.token,
       refreshToken: result.refreshToken,
-      csrfToken,
     });
 
-    success(res, { ...result, csrfToken });
+    success(res, result);
   } catch (error) {
     next(error);
   }
