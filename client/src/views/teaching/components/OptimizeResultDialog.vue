@@ -69,9 +69,9 @@
             </div>
             <div
               class="improvement-delta"
-              :class="deltaClass(result.improvements?.loadVarianceImprovement, true)"
+              :class="deltaClass(result.improvements?.loadVarianceImprovement)"
             >
-              {{ deltaArrow(result.improvements?.loadVarianceImprovement, true) }}
+              {{ deltaArrow(result.improvements?.loadVarianceImprovement) }}
               {{ Math.abs(result.improvements?.loadVarianceImprovement || 0).toFixed(1) }}%
             </div>
           </div>
@@ -168,7 +168,8 @@ function formatScore(score) {
 }
 
 // 改进幅度样式类：正值→is-positive，负值→is-negative，0→is-neutral
-// inverse=true 表示"降低为好"（如负载方差：降低=正面）
+// inverse=true 表示"降低为好"（预留参数）。注意：后端 improvements 各项
+// 已统一为"正值=改善"口径（含负载方差：降低时为正），调用方不应再传 inverse
 function deltaClass(val, inverse = false) {
   const n = Number(val) || 0;
   if (n === 0) return 'is-neutral';

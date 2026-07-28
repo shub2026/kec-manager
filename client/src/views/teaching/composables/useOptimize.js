@@ -79,7 +79,16 @@ export function useOptimize({ selectedSemester, loadData, confirmHistoricalEdit 
       });
 
       if (response.success) {
-        ElMessage.success(`优化已应用：变更${optimizeResult.value.changes.length}个班级`);
+        // 后端返回实际更新数（appliedChanges），预览与应用之间数据变动时可能小于请求数
+        const requested = response.data?.requestedChanges ?? optimizeResult.value.changes.length;
+        const applied = response.data?.appliedChanges ?? requested;
+        if (applied < requested) {
+          ElMessage.warning(
+            `优化已应用：实际变更${applied}个班级（${requested - applied}项因数据变动被跳过）`
+          );
+        } else {
+          ElMessage.success(`优化已应用：变更${applied}个班级`);
+        }
         optimizeResultVisible.value = false;
         // 不立即清空 optimizeResult，等弹窗关闭动画结束后由 closeOptimizeResult 清理，
         // 避免关闭动画期间模板访问 null.summary 报错
