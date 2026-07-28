@@ -138,6 +138,7 @@ export const TABU_SEARCH = {
 export const SWAP_CONFIG = {
   MAX_DEPTH: 3, // 最大递归深度
   MAX_UNASSIGNED: 30, // 未分配数超过此值时跳过递归（性能保护）
+  MAX_SINGLE_SWAP: 200, // 未分配数超过此值时连单轮置换也跳过（最坏 O(U×T×A×T)，校级规模远不会触发）
 };
 
 // 批量排课容量策略

@@ -9,13 +9,7 @@ import {
 import logger from '../../utils/logger.js';
 import { validateHourSettings } from './validate.js';
 import { dedupeTeachingUnits } from '../teaching-statistics.service.js';
-import {
-  getClassesWithCourse,
-  getTeachersForCourse,
-  isTextbookMatch,
-  isCollegeEligible,
-  isLevelEligible,
-} from './queries.js';
+import { getClassesWithCourse, getTeachersForCourse, isTextbookMatch } from './queries.js';
 import { tabuOptimize } from './tabu-search.js';
 // B-01 修复：基于数据库的排课并发锁，支持多进程/多实例部署
 import { acquireLock, releaseLock } from './lock.js';
@@ -24,6 +18,10 @@ import { acquireLock, releaseLock } from './lock.js';
 // B-01 修复：保留进程内存 Set 作为单进程快速路径（防止同进程内重复进入），
 // 跨进程互斥由 lock.js 数据库锁（acquireLock / releaseLock）保证
 const arrangeLocks = new Set();
+
+// L3 修复：选组学院内聚临界比例。同 tier 下两组可拿课时之比 ≥ 此值时视为"接近"，
+// 此时优先选已分配学院课时更多的组（学院内聚软目标，不牺牲明显更大的可拿课时）
+const GROUP_PROXIMITY_RATIO = 0.8;
 
 // M-12 / P1-12: 批量排课并发锁（按学期维度），防止单课程排课与批量排课并发
 // 批量进行中，对同 semester 的单课程 autoArrange 调用直接拒绝，
@@ -246,7 +244,7 @@ function buildTeacherConstraints(
       t.defaultWeeklyHours != null ? Math.max(0, t.defaultWeeklyHours - effectiveTotal) : null;
 
     // P0-2 修复：capacityReserveRatio < 1 时缩减容量上限，为后续课程预留空间
-    // 批量排课时传入 RESERVE_RATIO=0.85，使每门课程最多使用教师剩余容量的 85%
+    // 当前 BATCH_CONFIG.RESERVE_RATIO=1.0（不预留，批量已按供需比排序优先级），比例保留为可配置项
     // P0-2 深化：预留只对"后续课程还会用到该教师"时有意义，
     // reserveExemptTeacherIds 中的教师（无任何后续课程）不打折，避免容量未满却欠分配
     const effectiveRatio = reserveExemptTeacherIds?.has(t.id) ? 1.0 : capacityReserveRatio;
@@ -666,6 +664,10 @@ function trySwapUnassigned(
 ) {
   if (!unassigned.length || !assignments.length) return;
 
+  // P3 修复：大规模欠配时单轮置换同样跳过（trySwapOne 最坏 O(U×T×A×T)，性能保护）
+  // ?? Infinity 兜底：旧配置/测试桩未定义该字段时保持原行为
+  if (unassigned.length > (SWAP_CONFIG.MAX_SINGLE_SWAP ?? Infinity)) return;
+
   const teacherMap = new Map(teacherConstraints.map((t) => [t.id, t]));
   // 按教师分组已分配记录，便于查找可置换的班级
   const assignmentsByTeacher = new Map();
@@ -872,9 +874,11 @@ function tryPlaceClass(
     trainingLevelId: clsInfo?.trainingLevelId,
     textbookIds: clsTextbookIds,
   };
+  // P2 性能修复：排序前预计算评分，避免比较器内 O(T log T) 次重复调用 calcMatchScore
+  const scoreById = new Map(teacherConstraints.map((t) => [t.id, calcMatchScore(t, scoringCls)]));
   const sortedTeachers = [...teacherConstraints].sort((a, b) => {
-    const sa = calcMatchScore(a, scoringCls);
-    const sb = calcMatchScore(b, scoringCls);
+    const sa = scoreById.get(a.id);
+    const sb = scoreById.get(b.id);
     if (sb !== sa) return sb - sa;
     const capA = mode === 'standard' ? a.standardCap : a.fullCap;
     const capB = mode === 'standard' ? b.standardCap : b.fullCap;
@@ -1056,10 +1060,12 @@ function trySwapOne(
         trainingLevelId: vInfo?.trainingLevelId,
         textbookIds: vTextbookIds,
       };
+      // P2 性能修复：排序前预计算评分，避免比较器内重复调用 calcMatchScore
+      const scoreV = new Map(teacherConstraints.map((tc) => [tc.id, calcMatchScore(tc, scoringV)]));
       const sortedT2 = [...teacherConstraints].sort((a, b) => {
         if (a.id === t.id) return 1;
         if (b.id === t.id) return -1;
-        return calcMatchScore(b, scoringV) - calcMatchScore(a, scoringV);
+        return scoreV.get(b.id) - scoreV.get(a.id);
       });
 
       // 找接管 V 的教师 T''
@@ -1364,21 +1370,6 @@ export async function autoArrange(
       );
     }
 
-    // 预计算每个班级的"学院+教材"和"层次+教材"匹配教师数量，优化二次筛选
-    const collegeTextbookMatchCount = new Map();
-    const levelTextbookMatchCount = new Map();
-
-    for (const cls of mergedDemands) {
-      let collegeTextbookCount = 0;
-      let levelTextbookCount = 0;
-      for (const t of teacherConstraints) {
-        if (isCollegeEligible(t, cls) && isTextbookMatch(t, cls)) collegeTextbookCount++;
-        if (isLevelEligible(t, cls) && isTextbookMatch(t, cls)) levelTextbookCount++;
-      }
-      collegeTextbookMatchCount.set(cls.classId, collegeTextbookCount);
-      levelTextbookMatchCount.set(cls.classId, levelTextbookCount);
-    }
-
     /**
      * 选择最佳教师（综合评分制）
      * 综合考虑：优先级分数（高优）+ 负载率（低优）
@@ -1652,7 +1643,7 @@ export async function autoArrange(
     //   strictPref=false → 阶段2（无意向教师，isPrefMatch 对所有教师返回 true）
     // 每位教师连续拿组（天然满足"先拿完第一本，再拿第二本"），
     // 直到容量不足、教材名额用尽或无可拿组。
-    function takeGroupsForTeacher(teacher, groupAvailable, strictPref) {
+    function takeGroupsForTeacher(teacher, groupAvailable, strictPref, tierZeroOnly = false) {
       const useTbLimit = TEXTBOOK_COHESION.ENABLED && TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER > 0;
       const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
 
@@ -1669,6 +1660,9 @@ export async function autoArrange(
             textbookIds.length > 0 &&
             textbookIds.some((tid) => teacher.assignedTextbookIds.has(tid));
 
+          // 种子续接轮：仅允许拿取已持有教材的组，不开新教材
+          if (tierZeroOnly && !holdsGroupTb) continue;
+
           // 教材上限预检
           if (useTbLimit && textbookIds.length > 0) {
             const newTbCount = textbookIds.filter(
@@ -1680,25 +1674,42 @@ export async function autoArrange(
           // 本人可拿课时（strictPref 控制意向过滤）
           let matchHours = 0;
           let groupDemand = 0;
+          let collegeMatchHours = 0; // L3：可拿课时中属于教师已分配学院的部分
           for (const cls of available) {
             groupDemand += cls.weeklyHours || 0;
             if ((cls.weeklyHours || 0) <= remainingCap && (!strictPref || isPrefMatch(teacher, cls))) {
               matchHours += cls.weeklyHours || 0;
+              if (teacher.assignedCollegeIds?.has(cls.collegeId)) {
+                collegeMatchHours += cls.weeklyHours || 0;
+              }
             }
           }
           if (matchHours <= 0) continue;
 
           const tier = holdsGroupTb ? 0 : 1;
-          if (
-            !best ||
-            tier < best.tier ||
-            (tier === best.tier &&
-              (matchHours > best.matchHours ||
-                (matchHours === best.matchHours &&
-                  (groupDemand > best.groupDemand ||
-                    (groupDemand === best.groupDemand && tbKey < best.tbKey)))))
-          ) {
-            best = { tbKey, available, matchHours, groupDemand, tier };
+          // L3 修复：同 tier 且可拿课时接近（≥另一方的 GROUP_PROXIMITY_RATIO）时，
+          // 优先选已分配学院课时更多的组（学院内聚软目标），否则仍按 matchHours 最大化
+          let better = false;
+          if (!best) {
+            better = true;
+          } else if (tier !== best.tier) {
+            better = tier < best.tier;
+          } else {
+            const close =
+              Math.min(matchHours, best.matchHours) >=
+              Math.max(matchHours, best.matchHours) * GROUP_PROXIMITY_RATIO;
+            if (close && collegeMatchHours !== best.collegeMatchHours) {
+              better = collegeMatchHours > best.collegeMatchHours;
+            } else if (matchHours !== best.matchHours) {
+              better = matchHours > best.matchHours;
+            } else if (groupDemand !== best.groupDemand) {
+              better = groupDemand > best.groupDemand;
+            } else {
+              better = tbKey < best.tbKey;
+            }
+          }
+          if (better) {
+            best = { tbKey, available, matchHours, groupDemand, tier, collegeMatchHours };
           }
         }
         if (!best) break;
@@ -1789,6 +1800,20 @@ export async function autoArrange(
     const teachersWithoutPref = teacherConstraints.filter(
       (t) => !t.schedulingCollegeIds?.length && !t.schedulingLevelIds?.length
     );
+
+    // L1 修复（种子续接轮）：已持有教材（手动排课/跨课程 DB 种子）的无意向教师
+    // 先行续接本人已持教材组。阶段2按剩余容量降序处理，种子教师容量被扣减后
+    // 排序靠后，其教材组可能被大容量空闲教师整组抢走，迫使种子教师开第二本教材。
+    // 此轮仅允许拿取已持有教材的组（tierZeroOnly=true），不占用新教材名额。
+    const seededTeachers = teachersWithoutPref
+      .filter((t) => t.assignedTextbookIds.size > 0)
+      .sort((a, b) => maxCapFn(b) - b.assignedHours - (maxCapFn(a) - a.assignedHours));
+    for (const teacher of seededTeachers) {
+      takeGroupsForTeacher(teacher, groupAvailable, false, true);
+    }
+    if (seededTeachers.length > 0) {
+      logger.debug(`[阶段2-种子续接] ${seededTeachers.length} 位已持教材教师优先续接本人教材组`);
+    }
 
     // 按剩余容量降序处理（与阶段1口径一致）
     const noPrefSorted = [...teachersWithoutPref].sort(

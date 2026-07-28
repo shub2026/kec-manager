@@ -241,7 +241,8 @@ export async function batchAutoArrange(
             ...options,
             extraTeacherHours: virtualTeacherHours,
             globalTextbookMap,
-            // P0-2 修复：批量排课传容量预留比例，每门课程最多用教师剩余容量的 85%，为后续课程预留空间
+            // P0-2 修复：批量排课传容量预留比例（当前 RESERVE_RATIO=1.0 不预留，
+            // 批量已按供需比排序优先级；比例 < 1 时可为后续课程预留容量）
             capacityReserveRatio: BATCH_CONFIG.RESERVE_RATIO,
             reserveExemptTeacherIds,
             // P1-12 修复：批量内部调用绕过 batchLocks 检查，由 batch.js 持有学期锁
