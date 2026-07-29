@@ -33,11 +33,17 @@
             class="metric-inner metric-clickable"
           >
             <span class="metric-value">{{ m.displayValue }}</span>
-            <span class="metric-label">{{ m.label }}</span>
+            <span class="metric-label">
+              <el-icon :size="13"><component :is="m.icon" /></el-icon>
+              {{ m.label }}
+            </span>
           </router-link>
           <div v-else class="metric-inner">
             <span class="metric-value">{{ m.displayValue }}</span>
-            <span class="metric-label">{{ m.label }}</span>
+            <span class="metric-label">
+              <el-icon :size="13"><component :is="m.icon" /></el-icon>
+              {{ m.label }}
+            </span>
           </div>
         </div>
       </div>
@@ -125,13 +131,14 @@ const greeting = computed(() => {
 });
 
 // ─── 指标配置与 countup ───
+// icon 用全局注册的 EP 图标名，与侧边栏菜单符号保持一致（培养方案=Document 等）
 const metricConfigs = [
-  { key: 'totalWeeklyHours', label: '总周课时', route: '/teaching/arrange' },
-  { key: 'teachingTeachers', label: '参与教师', route: '/teaching/arrange' },
-  { key: 'courses', label: '课程数量', route: '/courses' },
-  { key: 'classes', label: '班级数量', route: '/classes' },
-  { key: 'totalStudents', label: '在读学生', route: '' },
-  { key: 'plans', label: '培养方案', route: '/plans' },
+  { key: 'totalWeeklyHours', label: '总周课时', route: '/teaching/arrange', icon: 'Clock' },
+  { key: 'teachingTeachers', label: '参与教师', route: '/teaching/arrange', icon: 'User' },
+  { key: 'courses', label: '课程数量', route: '/courses', icon: 'Reading' },
+  { key: 'classes', label: '班级数量', route: '/classes', icon: 'School' },
+  { key: 'totalStudents', label: '在读学生', route: '', icon: 'Avatar' },
+  { key: 'plans', label: '培养方案', route: '/plans', icon: 'Document' },
 ];
 
 const stats = ref({
@@ -388,6 +395,10 @@ onMounted(async () => {
   color: var(--text-secondary);
   font-weight: 500;
   letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  /* 图标不另设色：继承标签的 --text-secondary，形状锚点与文字同灰同权重，不抢数字注意力 */
 }
 
 /* ─── 洞察网格：非对称 3fr 2fr ─── */
