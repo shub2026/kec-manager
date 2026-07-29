@@ -10,8 +10,10 @@
       </template>
     </PageHeader>
     <el-card>
-      <!-- 汇总统计：等分网格 + 竖线分隔（对齐 Dashboard 指标条视觉） -->
-      <div v-if="statsData" class="summary-section">
+      <!-- 汇总统计：等分网格 + 竖线分隔（对齐 Dashboard 指标条视觉）
+           页面重新挂载时 statsData 为 null，若用 v-if="statsData" 会在接口返回后才插入整块区域，
+           把下方内容往下顶出跳动；改为加载期即占位（0 值同高渲染），仅错误态隐藏 -->
+      <div v-if="!error" class="summary-section">
         <div class="summary-grid">
           <div class="summary-item">
             <el-statistic title="参与教师" :value="filteredSummary.totalTeachers" suffix="人" />
@@ -308,7 +310,9 @@ defineOptions({ name: 'TeachingStatistics' });
 const settingsStore = useSettingsStore();
 const semester = ref('');
 const statsData = ref(null);
-const loading = ref(false);
+// 初始即为加载态：挂载后到 loadStats 置 true 之间隔着异步的 loadSemester，
+// 若初始 false，这几帧内 !loading && !statsData 成立，空状态会闪现一下
+const loading = ref(true);
 // 列表加载错误状态，供 ListErrorState 占位
 const error = ref(null);
 const exporting = ref(false);
@@ -440,7 +444,11 @@ async function loadSemester() {
 }
 
 async function loadStats() {
-  if (!semester.value) return;
+  // 无可用学期时退出加载态，否则初始 loading=true 会永久挂住
+  if (!semester.value) {
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   error.value = null;
   try {

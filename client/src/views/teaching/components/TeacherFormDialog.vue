@@ -7,10 +7,12 @@
     destroy-on-close
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-      <el-form-item label="教师姓名" prop="name" required>
-        <el-input v-model="form.name" placeholder="请输入教师姓名" maxlength="50" />
-      </el-form-item>
       <el-row :gutter="16">
+        <el-col :span="12" :xs="24" :sm="12">
+          <el-form-item label="姓名" prop="name" required>
+            <el-input v-model="form.name" placeholder="请输入姓名" maxlength="50" />
+          </el-form-item>
+        </el-col>
         <el-col :span="12" :xs="24" :sm="12">
           <el-form-item label="性别">
             <el-select v-model="form.gender" placeholder="请选择" clearable style="width: 100%">
@@ -19,6 +21,8 @@
             </el-select>
           </el-form-item>
         </el-col>
+      </el-row>
+      <el-row :gutter="16">
         <el-col :span="12" :xs="24" :sm="12">
           <el-form-item label="出生年月">
             <el-date-picker
@@ -31,8 +35,6 @@
             />
           </el-form-item>
         </el-col>
-      </el-row>
-      <el-row :gutter="16">
         <el-col :span="12" :xs="24" :sm="12">
           <el-form-item label="归属学院">
             <el-select
@@ -67,7 +69,12 @@
         </el-col>
       </el-row>
       <el-form-item label="教师资格类型">
-        <el-input v-model="form.qualificationType" placeholder="如：高中语文" clearable />
+        <el-input
+          v-model="form.qualificationType"
+          placeholder="如：高中语文"
+          clearable
+          class="field-limited"
+        />
       </el-form-item>
       <el-form-item label="学科（课程）">
         <el-select
@@ -75,7 +82,7 @@
           multiple
           filterable
           placeholder="选择可教授的课程"
-          style="width: 100%"
+          class="field-limited"
         >
           <el-option v-for="c in allCourses" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
@@ -86,7 +93,7 @@
           multiple
           filterable
           placeholder="选择优先指定学院"
-          style="width: 100%"
+          class="field-limited"
         >
           <el-option v-for="c in availableColleges" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
@@ -97,7 +104,7 @@
           multiple
           filterable
           placeholder="选择优先指定层次"
-          style="width: 100%"
+          class="field-limited"
         >
           <el-option
             v-for="l in availableTrainingLevels"
@@ -162,7 +169,7 @@ const visible = ref(false);
 const formRef = ref(null);
 const rules = {
   name: [
-    { required: true, message: '请输入教师姓名', trigger: 'blur' },
+    { required: true, message: '请输入姓名', trigger: 'blur' },
     { min: 2, max: 50, message: '姓名长度应在 2-50 个字符之间', trigger: 'blur' },
   ],
 };
@@ -254,3 +261,13 @@ async function handleSave() {
 
 defineExpose({ open, close });
 </script>
+
+<style scoped>
+/* 教师资格类型与学科/意向学院/意向层次统一限宽：多选弹层与输入框同宽，
+   满宽时展开会盖住右下角取消/保存按钮，收窄后弹层左对齐展开，
+   右侧按钮区始终可见可点；资格类型输入框同宽保持纵向视觉对齐 */
+.field-limited {
+  width: 100%;
+  max-width: 320px;
+}
+</style>
