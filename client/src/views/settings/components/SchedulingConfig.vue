@@ -66,6 +66,7 @@
             </label>
             <p class="switch-desc">
               默认关闭：历史（非当前）学期在教学安排页为<strong>只读状态</strong>，禁止任何排课写操作，避免误改已结课数据。
+              <br />
               开启后：历史学期可编辑，但在自动排课 / 手动安排 / 重置 /
               执行预览等写操作保存前，会弹出二次确认弹窗，确认后方可执行。
             </p>
@@ -219,7 +220,8 @@ onMounted(() => {
   gap: 8px;
   margin-top: var(--space-4);
   font-size: 13px;
-  color: var(--brand-success, #34d399);
+  /* 白底小字需 -text 深阶达标对比度，400 档仅用于图形/图标 */
+  color: var(--brand-success-text, #047857);
 }
 
 .enabled-hint.off {
@@ -239,7 +241,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: var(--el-color-warning, #fbbf24);
+  color: var(--el-color-warning, #ff6b1a);
 }
 
 .unsaved-tag {

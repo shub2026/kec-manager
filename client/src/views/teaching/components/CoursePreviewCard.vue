@@ -6,7 +6,7 @@
           <span class="course-name">{{ courseInfo.name }}</span>
           <el-tag size="small" disable-transitions>{{ courseTypeLabel(courseInfo.type) }}</el-tag>
         </div>
-        <el-button v-if="teacherCount" type="primary" :loading="exporting" @click="emit('export')">
+        <el-button v-if="teacherCount" :loading="exporting" @click="emit('export')">
           <el-icon><Download /></el-icon> 导出Excel
         </el-button>
       </div>

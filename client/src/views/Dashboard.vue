@@ -25,40 +25,50 @@
       <!-- 内联指标条：一行纵览,紧凑高效 -->
       <el-skeleton v-if="loading" :rows="2" animated class="loading-skeleton" />
       <div v-else class="metrics-strip" role="list" aria-label="核心指标">
-        <div
-          v-for="m in metrics"
-          :key="m.key"
-          class="metric-item"
-          :class="{ 'metric-clickable': isAdmin && m.route }"
-          role="listitem"
-          :tabindex="isAdmin && m.route ? 0 : -1"
-          @click="isAdmin && m.route && navigateTo(m.route)"
-          @keyup.enter="isAdmin && m.route && navigateTo(m.route)"
-        >
-          <span class="metric-value">{{ m.displayValue }}</span>
-          <span class="metric-label">{{ m.label }}</span>
+        <div v-for="m in metrics" :key="m.key" class="metric-item" role="listitem">
+          <!-- 可点击指标用 router-link 承载链接语义：屏幕阅读器可感知、键盘原生激活 -->
+          <router-link
+            v-if="isAdmin && m.route"
+            :to="m.route"
+            class="metric-inner metric-clickable"
+          >
+            <span class="metric-value">{{ m.displayValue }}</span>
+            <span class="metric-label">{{ m.label }}</span>
+          </router-link>
+          <div v-else class="metric-inner">
+            <span class="metric-value">{{ m.displayValue }}</span>
+            <span class="metric-label">{{ m.label }}</span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 洞察区域：CSS Grid 非对称布局（左 60% 右 40%） -->
     <section class="insights-grid" role="region" aria-label="教学洞察">
-      <div class="insight-main">
-        <CourseProgressChart
-          :data="insights.completion"
-          :total-hours="stats.totalWeeklyHours"
-          :assigned-hours="stats.assignedWeeklyHours"
-        />
-      </div>
-      <div class="insight-side">
-        <AlertCard :data="insights.alerts" />
-      </div>
-      <div class="insight-main">
-        <CourseStatsCard :data="insights.courseStats" />
-      </div>
-      <div class="insight-side">
-        <HoursChart :data="insights.distribution" />
-      </div>
+      <!-- 加载中先占位，避免闪现“暂无数据”空态（同内嵌表格假加载闪烁问题的反向场景） -->
+      <template v-if="insightsLoading">
+        <div v-for="i in 4" :key="i" class="insight-skeleton">
+          <el-skeleton :rows="4" animated />
+        </div>
+      </template>
+      <template v-else>
+        <div class="insight-main">
+          <CourseProgressChart
+            :data="insights.completion"
+            :total-hours="stats.totalWeeklyHours"
+            :assigned-hours="stats.assignedWeeklyHours"
+          />
+        </div>
+        <div class="insight-side">
+          <AlertCard :data="insights.alerts" />
+        </div>
+        <div class="insight-main">
+          <CourseStatsCard :data="insights.courseStats" />
+        </div>
+        <div class="insight-side">
+          <HoursChart :data="insights.distribution" />
+        </div>
+      </template>
     </section>
 
     <!-- 底部版权 -->
@@ -96,6 +106,8 @@ const settingsStore = useSettingsStore();
 
 const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
 const loading = ref(false);
+// 初始为 true：首次渲染即展示骨架屏，避免数据返回前闪现空态文案
+const insightsLoading = ref(true);
 
 const userName = computed(() => authStore.userInfo?.realName || '用户');
 const isAdmin = computed(() => authStore.isAdmin);
@@ -206,6 +218,7 @@ function navigateTo(path) {
 }
 
 async function fetchInsights() {
+  insightsLoading.value = true;
   try {
     let semester = settingsStore.settings?.currentSemester?.value;
     if (!semester) return;
@@ -227,12 +240,15 @@ async function fetchInsights() {
   } catch (e) {
     if (import.meta.env.DEV) console.error('Dashboard 洞察加载失败:', e);
     ElMessage.error('洞察数据加载失败');
+  } finally {
+    insightsLoading.value = false;
   }
 }
 
 onMounted(async () => {
   // SEC-H2: 强制改密期间跳过 API 调用，避免触发 403 MUST_CHANGE_PASSWORD
   if (authStore.mustChangePassword) {
+    insightsLoading.value = false;
     return;
   }
   loading.value = true;
@@ -306,7 +322,7 @@ onMounted(async () => {
   display: flex;
   align-items: stretch;
   margin-top: 0;
-  padding: 22px 28px;
+  padding: var(--space-5) var(--space-6);
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
@@ -317,13 +333,21 @@ onMounted(async () => {
 .metric-item {
   flex: 1;
   display: flex;
+  position: relative;
+}
+
+/* 指标内容层：可点击时为 router-link(a 标签)，需重置链接默认样式 */
+.metric-inner {
+  flex: 1;
+  display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   padding: 6px 16px;
   border-radius: var(--radius-sm);
   transition: background var(--dur-fast) var(--ease-out);
-  position: relative;
+  color: inherit;
+  text-decoration: none;
 }
 
 /* 指标间的竖线分隔符 */
@@ -360,7 +384,7 @@ onMounted(async () => {
 }
 
 .metric-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -370,8 +394,8 @@ onMounted(async () => {
 .insights-grid {
   display: grid;
   grid-template-columns: 3fr 2fr;
-  gap: 16px;
-  margin-top: 20px;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
 }
 
 .insights-grid > div {
@@ -400,6 +424,15 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
+/* 洞察卡片加载骨架：复用卡片容器视觉，避免加载完成时布局跳变 */
+.insight-skeleton {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4) 18px;
+}
+
 /* 卡片标题：左侧圆点色块，去掉下边框 */
 .insights-grid :deep(.card-title) {
   font-size: 14px;
@@ -420,9 +453,10 @@ onMounted(async () => {
 .dashboard-footer {
   margin-top: auto;
   text-align: center;
-  padding: 40px 0 12px;
-  font-size: 11px;
-  color: var(--text-placeholder);
+  padding: var(--space-6) 0 var(--space-3);
+  /* 版本号是排障信息，需保证可读性：caption 字阶 + secondary 色 */
+  font-size: var(--font-size-caption);
+  color: var(--text-secondary);
   flex-shrink: 0;
   letter-spacing: 0.02em;
 }
@@ -477,6 +511,9 @@ onMounted(async () => {
 
   .metric-item {
     flex: 0 0 calc(100% / 3);
+  }
+
+  .metric-inner {
     padding: 10px 8px;
   }
 

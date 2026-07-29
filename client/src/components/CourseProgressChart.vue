@@ -128,9 +128,10 @@ const remainingHours = computed(() => {
 }
 
 .summary-percent {
-  font-size: 32px;
+  font-size: var(--font-size-display-lg);
   font-weight: 700;
-  color: var(--brand-success);
+  /* 白底大数字需 600 档语义色达标对比度(3:1)，400 档仅用于图形填充 */
+  color: var(--brand-success-text);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;

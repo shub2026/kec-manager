@@ -511,10 +511,10 @@ function cellClass(course, semester) {
   font-size: 14px;
 }
 
-/* 操作列 */
+/* 操作列（与 .matrix-cell 同特异性且定义在后，天然覆盖 cursor:pointer） */
 .matrix-action-cell {
   text-align: center;
-  cursor: default !important;
+  cursor: default;
 }
 
 .action-buttons {
@@ -552,7 +552,7 @@ function cellClass(course, semester) {
 .matrix-subtotal-cell {
   font-weight: 500;
   color: var(--text-regular);
-  cursor: default !important;
+  cursor: default;
 }
 
 /* 总计行（tfoot，与上方 tbody 共享列宽，天然对齐） */
@@ -565,7 +565,7 @@ function cellClass(course, semester) {
   color: var(--text-primary);
   padding: 8px 6px 14px;
   text-align: center;
-  cursor: default !important;
+  cursor: default;
 }
 
 .matrix-grand-total-label {
@@ -751,9 +751,10 @@ function cellClass(course, semester) {
   rgba(255,255,255,x) 是刻意保持的——深色 popper 上无对应 CSS 变量可用。
 -->
 <style>
-.textbook-tooltip {
+.el-popper.textbook-tooltip {
   max-width: 280px;
-  padding: 10px 14px !important;
+  /* 叠加 .el-popper 提升特异性覆盖 EP 默认内边距，不依赖样式加载顺序，无需 !important */
+  padding: 10px 14px;
   line-height: 1.6;
 }
 

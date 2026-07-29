@@ -16,7 +16,7 @@
     </div>
 
     <template #footer>
-      <el-button @click="emit('update:modelValue', false)">{{ cancelText }}</el-button>
+      <el-button @click="handleCancel">{{ cancelText }}</el-button>
       <el-button :type="confirmType" :loading="loading" @click="emit('confirm')">
         {{ confirmText }}
       </el-button>
@@ -37,7 +37,14 @@ defineProps({
   closeOnClickModal: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:modelValue', 'confirm']);
+const emit = defineEmits(['update:modelValue', 'confirm', 'cancel']);
+
+// 取消按钮：关闭弹窗并通知外部执行清理逻辑。
+// 不挂在 @close 上，避免 confirm 流程关闭弹窗时误触发 cancel 清理
+function handleCancel() {
+  emit('update:modelValue', false);
+  emit('cancel');
+}
 </script>
 
 <style scoped>

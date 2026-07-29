@@ -60,45 +60,35 @@
       </template>
     </el-dialog>
 
-    <!-- 清空操作日志确认弹窗（简单确认） -->
-    <el-dialog
+    <!-- 清空操作日志确认弹窗：复用全局 BaseConfirmDialog -->
+    <BaseConfirmDialog
       v-model="simpleDialogVisible"
       title="清空操作日志"
       width="var(--dialog-width-lg)"
-      :close-on-click-modal="false"
-      destroy-on-close
+      confirm-type="danger"
+      confirm-text="确认清空"
+      :loading="resetting"
+      @confirm="$emit('confirm-simple')"
     >
       <el-alert title="此操作不可恢复！" type="error" :closable="false" show-icon />
       <p class="confirm-text">确定要清空所有操作日志吗？此操作将永久删除所有日志记录。</p>
-      <template #footer>
-        <el-button @click="simpleDialogVisible = false">取消</el-button>
-        <el-button type="danger" :loading="resetting" @click="$emit('confirm-simple')">
-          确认清空
-        </el-button>
-      </template>
-    </el-dialog>
+    </BaseConfirmDialog>
 
-    <!-- 保存设置确认弹窗 -->
-    <el-dialog
+    <!-- 保存设置确认弹窗：复用全局 BaseConfirmDialog -->
+    <BaseConfirmDialog
       v-model="saveDialogVisible"
       title="确认保存"
-      width="var(--dialog-width)"
-      :close-on-click-modal="false"
-      destroy-on-close
-    >
-      <p class="confirm-text">确定要保存当前配置吗？这将更新学期设置和系统标识。</p>
-      <template #footer>
-        <el-button @click="saveDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="$emit('confirm-save')">
-          确认保存
-        </el-button>
-      </template>
-    </el-dialog>
+      message="确定要保存当前配置吗？这将更新学期设置和系统标识。"
+      confirm-text="确认保存"
+      :loading="saving"
+      @confirm="$emit('confirm-save')"
+    />
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import BaseConfirmDialog from '@/components/BaseConfirmDialog.vue';
 
 const props = defineProps({
   dialogVisible: {
@@ -218,7 +208,7 @@ function handleConfirm() {
 }
 
 .confirm-text {
-  margin: 20px 0;
+  margin: 20px 0 0;
   font-size: 14px;
   color: var(--text-regular);
   line-height: 1.6;

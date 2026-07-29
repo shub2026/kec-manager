@@ -30,10 +30,10 @@
     <div class="legend-group">
       <span class="legend-group-label">教材状态</span>
       <span class="legend-item">
-        <i class="legend-dot" :style="{ background: 'var(--brand-success, #34D399)' }"></i>正常启用
+        <i class="legend-dot" :style="{ background: 'var(--brand-success, #10B981)' }"></i>正常启用
       </span>
       <span class="legend-item">
-        <i class="legend-dot" :style="{ background: 'var(--brand-warning, #FBBF24)' }"></i>未指定
+        <i class="legend-dot" :style="{ background: 'var(--brand-warning, #FF6B1A)' }"></i>未指定
       </span>
       <span class="legend-item">
         <i class="legend-dot" :style="{ background: 'var(--brand-danger, #F87171)' }"></i>已停用
@@ -113,13 +113,13 @@ function swatch(key) {
 }
 
 .legend-tag--public {
-  background: var(--brand-success-soft, #d1fae5);
-  color: var(--brand-success-text, #059669);
+  background: var(--brand-success-soft, #e7f8f2);
+  color: var(--brand-success-text, #047857);
 }
 
 .legend-tag--pro {
-  background: var(--brand-warning-soft, #fef3c7);
-  color: var(--brand-warning-text, #b45309);
+  background: var(--brand-warning-soft, #fff0e8);
+  color: var(--brand-warning-text, #c2410c);
 }
 
 /* 课时热力色块 */

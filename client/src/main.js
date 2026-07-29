@@ -57,6 +57,7 @@ import {
   Tools,
   Upload,
   User,
+  UserFilled,
   Warning,
   WarningFilled,
 } from '@element-plus/icons-vue';
@@ -95,7 +96,7 @@ const pinia = createPinia();
 app.use(pinia);
 app.use(router);
 
-// 注册实际使用的图标（49个），替代全量注册（280+个）
+// 注册实际使用的图标（50个），替代全量注册（280+个）
 // ElementPlus 组件本身通过 unplugin-vue-components 按需引入
 const icons = {
   ArrowDown,
@@ -144,6 +145,7 @@ const icons = {
   Tools,
   Upload,
   User,
+  UserFilled,
   Warning,
   WarningFilled,
 };

@@ -442,14 +442,14 @@ defineProps({
 .empty-class,
 .empty-college,
 .empty-major {
-  --illust-bg: var(--brand-warning-soft, #fef3c7);
-  --illust-main: var(--brand-warning, #fbbf24);
+  --illust-bg: var(--brand-warning-soft, #fff0e8);
+  --illust-main: var(--brand-warning, #ff6b1a);
   --illust-dot: var(--brand-warning-lighter);
 }
 
 .empty-teacher {
-  --illust-bg: var(--brand-success-soft, #d1fae5);
-  --illust-main: var(--brand-success, #34d399);
+  --illust-bg: var(--brand-success-soft, #e7f8f2);
+  --illust-main: var(--brand-success, #10b981);
   --illust-dot: var(--brand-success-lighter);
 }
 

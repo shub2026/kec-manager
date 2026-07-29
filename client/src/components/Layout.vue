@@ -10,7 +10,9 @@
         <span class="mobile-title">KEC课程管理平台</span>
       </div>
       <el-dropdown trigger="click" :teleported="true" @command="handleCommand">
-        <span class="mobile-avatar" aria-label="用户菜单">{{ avatarChar }}</span>
+        <span class="mobile-avatar" aria-label="用户菜单">
+          <el-icon :size="18"><UserFilled /></el-icon>
+        </span>
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item command="password">
@@ -65,7 +67,9 @@
           @command="handleCommand"
         >
           <div class="sidebar-user" :class="{ 'is-collapse': isCollapse }" aria-label="用户菜单">
-            <span class="user-avatar">{{ avatarChar }}</span>
+            <span class="user-avatar">
+              <el-icon :size="18"><UserFilled /></el-icon>
+            </span>
             <div v-if="!isCollapse" class="user-meta">
               <span class="user-name">{{ authStore.realName || authStore.username }}</span>
               <span class="user-role">{{ authStore.isAdmin ? '管理员' : '访客' }}</span>
@@ -126,7 +130,9 @@
             }}</el-tag>
           </div>
           <div class="sidebar-user">
-            <span class="user-avatar">{{ avatarChar }}</span>
+            <span class="user-avatar">
+              <el-icon :size="18"><UserFilled /></el-icon>
+            </span>
             <div class="user-meta">
               <span class="user-name">{{ authStore.realName || authStore.username }}</span>
               <span class="user-role">{{ authStore.isAdmin ? '管理员' : '访客' }}</span>
@@ -232,10 +238,6 @@ const logoutDialogVisible = ref(false);
 
 const activeMenu = computed(() => route.path);
 const semesterLabel = computed(() => settingsStore.semesterLabel);
-const avatarChar = computed(() => {
-  const name = authStore.realName || authStore.username || '';
-  return name.charAt(0).toUpperCase();
-});
 
 onMounted(async () => {
   await settingsStore.load();
@@ -336,8 +338,10 @@ function handlePasswordChangeSuccess() {
   width: 34px;
   height: 34px;
   border-radius: var(--radius-sm);
-  background: var(--brand-primary);
-  color: var(--bg-card);
+  /* 玻璃灰中性风的浅色顶栏对应版：白底上玻璃白会消失，改中性浅灰底+细描边(镜像桌面端结构)，深灰图标对比度≈7.9:1 */
+  background: var(--bg-subtle);
+  box-shadow: inset 0 0 0 1px var(--border-light);
+  color: var(--text-regular);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -443,9 +447,9 @@ function handlePasswordChangeSuccess() {
   transition: height var(--dur-fast) var(--ease-out);
 }
 
-/* 活跃菜单项添加微弱背景 */
+/* 活跃菜单项添加微弱背景（scoped 高特异性覆盖 EP 基础规则，无需 !important） */
 .layout-aside :deep(.el-menu-item.is-active) {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: var(--sidebar-active-bg);
 }
 
 /* 侧边栏底部 */
@@ -499,8 +503,10 @@ function handlePasswordChangeSuccess() {
   width: 34px;
   height: 34px;
   border-radius: var(--radius-sm);
-  background: var(--brand-primary);
-  color: var(--bg-card);
+  /* 玻璃灰中性风：与侧边栏 hover/激活态同一白透明材质语言，白图标对比度≈13:1；细描边提轮廓防“禁用态”观感 */
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  color: var(--sidebar-active);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -652,7 +658,7 @@ function handlePasswordChangeSuccess() {
 }
 
 .drawer-aside .el-menu-item.is-active {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: var(--sidebar-active-bg);
 }
 
 .drawer-aside .sidebar-user {

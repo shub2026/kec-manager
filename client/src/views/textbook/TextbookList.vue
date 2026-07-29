@@ -184,19 +184,16 @@
       确定要删除此教材吗？此操作不可撤销。
     </DeleteConfirmDialog>
 
-    <!-- 导入确认弹窗 -->
-    <el-dialog
+    <!-- 导入确认弹窗：复用全局 BaseConfirmDialog，避免手写 el-dialog + footer -->
+    <BaseConfirmDialog
       v-model="importConfirmVisible"
       title="导入确认"
-      width="var(--dialog-width)"
-      align-center
-    >
-      <BaseConfirmBody>{{ confirmMessage }}</BaseConfirmBody>
-      <template #footer>
-        <el-button @click="cancelImport">取消</el-button>
-        <el-button type="primary" :loading="importing" @click="confirmImport">确定导入</el-button>
-      </template>
-    </el-dialog>
+      :message="confirmMessage"
+      confirm-text="确定导入"
+      :loading="importing"
+      @confirm="confirmImport"
+      @cancel="cancelImport"
+    />
   </div>
 </template>
 
@@ -220,7 +217,7 @@ import { useSortable } from '../../composables/useSortable';
 import { useDebounceFn } from '../../composables/useDebounce';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
-import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
+import BaseConfirmDialog from '../../components/BaseConfirmDialog.vue';
 import DeleteConfirmDialog from '../../components/DeleteConfirmDialog.vue';
 import ListErrorState from '../../components/ListErrorState.vue';
 import TextbookFormDialog from './components/TextbookFormDialog.vue';

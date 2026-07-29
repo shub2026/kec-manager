@@ -29,7 +29,7 @@ const props = defineProps({
 
 const colorMap = {
   blue: 'var(--brand-primary)',
-  green: 'var(--brand-success, #34d399)',
+  green: 'var(--brand-success, #10b981)',
   red: 'var(--brand-danger)',
 };
 

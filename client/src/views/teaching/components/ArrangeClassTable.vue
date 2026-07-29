@@ -264,8 +264,9 @@ function tableRowClassName({ row }) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-:deep(.unassigned-row) {
-  background-color: var(--brand-danger-soft) !important;
+/* 未分配行红底：覆盖 EP 表格自身 CSS 变量，无需 !important 对抗背景规则 */
+:deep(.el-table__body .unassigned-row) {
+  --el-table-tr-bg-color: var(--brand-danger-soft);
 }
 .adaptive-table :deep(.el-table__header th .cell) {
   white-space: nowrap;

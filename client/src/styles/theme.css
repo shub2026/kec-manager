@@ -12,15 +12,15 @@
   --brand-primary-soft: #e8f3fe; /* 主色极浅背景(对应 light-9) */
   --brand-primary-lighter: #b5d6fc; /* 主色浅阶,渐变过渡(对应 light-7) */
   --brand-primary-shadow: rgba(28, 130, 245, 0.32); /* 主色投影,按钮hover/glow用 */
-  --brand-success: #34d399;
-  --brand-success-soft: #d1fae5;
-  --brand-warning: #fbbf24;
-  --brand-warning-soft: #fef3c7;
+  --brand-success: #10b981; /* 翡翠绿 emerald-500：与活力橙同量级饱和度,填充对比度 1.9→2.5 */
+  --brand-success-soft: #e7f8f2; /* 翡翠绿 10% 混白(对应 light-9) */
+  --brand-warning: #ff6b1a; /* 活力橙 rgb(255,107,26) */
+  --brand-warning-soft: #fff0e8; /* 活力橙 10% 混白(对应 light-9) */
   --brand-danger: #f87171;
   --brand-danger-soft: #fee2e2;
   /* 语义色"正文"专用深阶:400 档语义色作白底正文时对比度不足(<2:1),需下沉到 600 档达标 */
-  --brand-success-text: #059669; /* 深 emerald,白底正文 */
-  --brand-warning-text: #b45309; /* 深 amber,白底正文 */
+  --brand-success-text: #047857; /* 深 emerald,白底正文(对比度≈5.5:1,与 warning-text 同档) */
+  --brand-warning-text: #c2410c; /* 深 orange,白底正文(对比度≈5.2:1) */
   --brand-danger-text: #dc2626; /* 深 red,白底正文 */
 
   /* —— 分类/数据可视化调色板：与品牌同饱和度的 400 档，避免高饱和冲突 —— */
@@ -36,12 +36,13 @@
   --brand-mint-soft: #e6f5f0;
   --brand-mint-lighter: #bfdfd2;
 
-  /* —— 图表单色阶:主色按透明度分级,多系列图表复用,避免引入新色相 —— */
+  /* —— 图表单色阶:主色按透明度分级,多系列图表复用,避免引入新色相
+     尾档下限 0.30:再低会与 --bg-subtle 轨道几乎无法区分(与 danger 色阶同规则) —— */
   --chart-1: var(--brand-primary);
-  --chart-2: rgba(28, 130, 245, 0.72);
-  --chart-3: rgba(28, 130, 245, 0.48);
-  --chart-4: rgba(28, 130, 245, 0.3);
-  --chart-5: rgba(28, 130, 245, 0.16);
+  --chart-2: rgba(28, 130, 245, 0.78);
+  --chart-3: rgba(28, 130, 245, 0.58);
+  --chart-4: rgba(28, 130, 245, 0.42);
+  --chart-5: rgba(28, 130, 245, 0.3);
 
   /* —— 图表语义色阶(danger):暖珊瑚红单色阶,与主蓝互补,用于对比型图表 —— */
   --chart-danger-1: var(--brand-danger);
@@ -51,14 +52,15 @@
   --chart-danger-5: rgba(248, 113, 113, 0.28);
 
   /* —— 语义色浅阶(lighter):第三档浅色,用于空状态插画点缀等场景 —— */
-  --brand-success-lighter: #a7f3d0;
-  --brand-warning-lighter: #fde68a;
+  --brand-success-lighter: #b7ead9; /* 翡翠绿 30% 混白(对应 light-7) */
+  --brand-warning-lighter: #ffd3ba; /* 活力橙 30% 混白(对应 light-7) */
   --brand-danger-lighter: #fecaca;
 
-  /* —— 中性色阶(替换散落的 #303133 / #606266 / #909399) —— */
+  /* —— 中性色阶(替换散落的 #303133 / #606266 / #909399) ——
+     secondary 由 slate-400 下沉至 slate-500:12-13px 小字白底对比度 2.6→4.8:1 达标 AA */
   --text-primary: #1e293b;
   --text-regular: #475569;
-  --text-secondary: #94a3b8;
+  --text-secondary: #64748b;
   --text-placeholder: #cbd5e1;
 
   /* —— 背景与边框 —— */
@@ -74,6 +76,7 @@
   --sidebar-text: #94a3b8; /* Slate-400,与深色底对比更柔和 */
   --sidebar-text-strong: #e2e8f0; /* Slate-200,深色底上的高层级文字(用户名等) */
   --sidebar-active: #ffffff; /* 纯白活跃文字,搭配左侧色条指示器 */
+  --sidebar-active-bg: rgba(255, 255, 255, 0.06); /* 活跃菜单项微弱高亮背景 */
   --sidebar-border: #334155; /* Slate-700 */
   --sidebar-scrollbar: #475569; /* Slate-600 */
   --sidebar-scrollbar-hover: #64748b; /* Slate-500 */
@@ -134,6 +137,7 @@
      display: 页面级标题 / 弹窗统计大数字  h2: 区块标题  h3: 卡片/弹窗标题
      大数字配套：font-variant-numeric: tabular-nums + letter-spacing: -0.02em */
   --font-size-display: 24px;
+  --font-size-display-lg: 32px; /* 卡片/弹窗统计特大数字(如排课占比百分比) */
   --font-size-h2: 20px;
   --font-size-h3: 16px;
   --font-size-body: 14px;
@@ -161,4 +165,20 @@
   --el-color-primary-light-8: #cfe4fd;
   --el-color-primary-light-9: var(--brand-primary-soft);
   --el-color-primary-dark-2: var(--brand-primary-active);
+
+  /* —— ElementPlus success 色阶:随翡翠绿 #10B981 同步,否则 el-tag/el-button 的 light 底色仍是 EP 默认黄绿色相 #67C23A 衍生值 —— */
+  --el-color-success-light-3: #58cea7;
+  --el-color-success-light-5: #88dcc0;
+  --el-color-success-light-7: var(--brand-success-lighter);
+  --el-color-success-light-8: #cff1e6;
+  --el-color-success-light-9: var(--brand-success-soft);
+  --el-color-success-dark-2: #0d9467;
+
+  /* —— ElementPlus warning 色阶:随活力橙 #FF6B1A 同步,否则 el-tag/el-button 的 light 底色仍是 EP 默认 amber 色相 —— */
+  --el-color-warning-light-3: #ff975f;
+  --el-color-warning-light-5: #ffb58d;
+  --el-color-warning-light-7: var(--brand-warning-lighter);
+  --el-color-warning-light-8: #ffe1d1;
+  --el-color-warning-light-9: var(--brand-warning-soft);
+  --el-color-warning-dark-2: #cc5615;
 }
