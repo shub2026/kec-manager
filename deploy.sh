@@ -39,7 +39,9 @@ execute() {
     fi
 }
 
-# 函数：在本地或远程执行命令（不分配 TTY，用于不需要实时输出的场景）
+# 函数：在本地或远程执行命令并捕获输出（不分配 TTY）
+# 注意：所有 $(...) 捕获输出的场景必须用本函数，
+# execute 的 ssh -tt 会在输出行尾混入 \r，导致字符串比较、git 参数解析出错
 execute_silent() {
     if [ -z "$SERVER" ]; then
         bash -c "$1" 2>/dev/null
@@ -58,15 +60,16 @@ copy_file() {
 }
 
 echo -e "${GREEN}[1/10] 检查前置条件...${NC}"
-if command -v git &> /dev/null; then
+# 前置检查必须在部署目标机器上执行（本地部署=本机，远程部署=服务器）
+if execute "command -v git &> /dev/null"; then
     echo "✓ Git 已安装"
 else
-    echo -e "${RED}✗ 请先安装 Git${NC}"
+    echo -e "${RED}✗ 请先在部署目标机器安装 Git${NC}"
     exit 1
 fi
 
-if command -v node &> /dev/null; then
-    NODE_VERSION=$(node -v)
+if execute "command -v node &> /dev/null"; then
+    NODE_VERSION=$(execute_silent "node -v" | tr -d '[:space:]')
     NODE_MAJOR=$(echo "$NODE_VERSION" | sed 's/v//' | cut -d. -f1)
     echo "✓ Node.js 版本: $NODE_VERSION"
     if [ "$NODE_MAJOR" -lt "20" ] 2>/dev/null; then
@@ -74,7 +77,7 @@ if command -v node &> /dev/null; then
         exit 1
     fi
 else
-    echo -e "${RED}✗ 请先安装 Node.js 20+${NC}"
+    echo -e "${RED}✗ 请先在部署目标机器安装 Node.js 20+${NC}"
     exit 1
 fi
 
@@ -98,7 +101,7 @@ NEEDS_INSTALL=false
 if execute "test -d ${PROJECT_DIR}/.git"; then
     echo "更新现有代码..."
     # 记录更新前的 commit，用于 [4/10] 检测依赖是否变化
-    PREV_COMMIT=$(execute "cd ${PROJECT_DIR} && git rev-parse HEAD 2>/dev/null || echo ''")
+    PREV_COMMIT=$(execute_silent "cd ${PROJECT_DIR} && git rev-parse HEAD 2>/dev/null || echo ''")
     # 强制丢弃本地修改（package-lock.json 等由 npm install 产生，应以远程为准）
     execute "cd ${PROJECT_DIR} && git fetch origin && git reset --hard origin/main"
     # 检测 dependencies/devDependencies 是否变化（忽略 version 字段变化）
@@ -106,7 +109,7 @@ if execute "test -d ${PROJECT_DIR}/.git"; then
     if [ -n "$PREV_COMMIT" ]; then
         # git diff 输出 +/- 开头的变更行，过滤掉文件头(++)、version 行、空行
         # 若过滤后仍有内容，说明依赖相关字段变化
-        DEPS_DIFF=$(execute "cd ${PROJECT_DIR} && git diff ${PREV_COMMIT} HEAD -- server/package.json client/package.json | grep -E '^[+-][^+-]' | grep -vE '\"version\"|^$' || echo ''")
+        DEPS_DIFF=$(execute_silent "cd ${PROJECT_DIR} && git diff ${PREV_COMMIT} HEAD -- server/package.json client/package.json | grep -E '^[+-][^+-]' | grep -vE '\"version\"|^$' || echo ''")
         if [ -n "$DEPS_DIFF" ]; then
             NEEDS_INSTALL=true
         fi
@@ -201,9 +204,9 @@ if execute "test -f ${PROJECT_DIR}/server/.env"; then
     echo -e "${YELLOW}   如需重新生成，请先删除 ${PROJECT_DIR}/server/.env${NC}"
 else
     echo "生成安全的 JWT 密钥..."
-    JWT_SECRET=$(execute "node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"")
-    JWT_REFRESH_SECRET=$(execute "node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"")
-    JWT_DOWNLOAD_SECRET=$(execute "node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"")
+    JWT_SECRET=$(execute_silent "node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"")
+    JWT_REFRESH_SECRET=$(execute_silent "node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"")
+    JWT_DOWNLOAD_SECRET=$(execute_silent "node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"")
 
     # 创建 .env 文件
     cat > /tmp/kec-env << EOF
@@ -278,7 +281,7 @@ execute "cd ${PROJECT_DIR}/server && npm run db:seed"
 # 验证迁移状态：查询 _prisma_migrations 表中是否有未完成的迁移
 echo "验证迁移完整性..."
 if execute "command -v sqlite3 &> /dev/null"; then
-    PENDING_MIGRATIONS=$(execute "sqlite3 ${PROJECT_DIR}/server/data/kec.db \"SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NULL OR rolled_back_at IS NOT NULL;\" 2>/dev/null || echo 'unknown'")
+    PENDING_MIGRATIONS=$(execute_silent "sqlite3 ${PROJECT_DIR}/server/data/kec.db \"SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NULL OR rolled_back_at IS NOT NULL;\" 2>/dev/null || echo 'unknown'")
     if [ "$PENDING_MIGRATIONS" = "0" ]; then
         echo "✓ 所有迁移已完成（无未完成/回滚记录）"
     elif [ "$PENDING_MIGRATIONS" = "unknown" ]; then
@@ -291,8 +294,8 @@ fi
 
 # 验证关键表和数据
 echo "验证数据库完整性..."
-TABLE_COUNT=$(execute "sqlite3 ${PROJECT_DIR}/server/data/kec.db \"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='system_settings';\" 2>/dev/null || echo '0'")
-USER_COUNT=$(execute "sqlite3 ${PROJECT_DIR}/server/data/kec.db \"SELECT count(*) FROM users;\" 2>/dev/null || echo '0'")
+TABLE_COUNT=$(execute_silent "sqlite3 ${PROJECT_DIR}/server/data/kec.db \"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='system_settings';\" 2>/dev/null || echo '0'")
+USER_COUNT=$(execute_silent "sqlite3 ${PROJECT_DIR}/server/data/kec.db \"SELECT count(*) FROM users;\" 2>/dev/null || echo '0'")
 if [ "$TABLE_COUNT" = "1" ] && [ "$USER_COUNT" -ge "1" ] 2>/dev/null; then
     echo "✓ 数据库初始化完成（${USER_COUNT} 个用户已创建）"
 else
@@ -344,8 +347,9 @@ if ! execute "command -v pm2 &> /dev/null"; then
 fi
 
 # 启动新服务（旧服务已在 [5/10] 停止，此处无需再清理）
+# 使用根目录 ecosystem.config.cjs 启动，统一运行时配置（内存上限、重启退避等）
 echo "启动服务..."
-execute "cd ${PROJECT_DIR}/server && pm2 start src/server.js --name kec-server"
+execute "cd ${PROJECT_DIR} && pm2 start ecosystem.config.cjs"
 execute "pm2 save"
 execute "pm2 startup"
 
@@ -357,7 +361,7 @@ echo "等待服务启动..."
 sleep 5
 
 # 从 .env 读取 PORT（与服务器实际监听端口一致，避免硬编码 3000）
-APP_PORT=$(execute "grep -E '^PORT=' ${PROJECT_DIR}/server/.env 2>/dev/null | cut -d= -f2 | tr -d '[:space:]' || echo '3000'")
+APP_PORT=$(execute_silent "grep -E '^PORT=' ${PROJECT_DIR}/server/.env 2>/dev/null | cut -d= -f2 | tr -d '[:space:]' || echo '3000'")
 if [ -z "$APP_PORT" ]; then APP_PORT="3000"; fi
 
 # 验证部署结果
@@ -366,21 +370,43 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}部署验证...${NC}"
 echo -e "${GREEN}========================================${NC}"
 
+# 验证失败标记：任一接口异常时置为 true，脚本以非零退出码结束
+VERIFY_FAILED=false
+
 # 测试健康检查
-HEALTH=$(execute "curl -s -o /dev/null -w '%{http_code}' http://localhost:${APP_PORT}/api/health 2>/dev/null || echo '000'")
+HEALTH=$(execute_silent "curl -s -o /dev/null -w '%{http_code}' http://localhost:${APP_PORT}/api/health 2>/dev/null || echo '000'")
 if [ "$HEALTH" = "200" ]; then
     echo -e "✓ 健康检查通过 (HTTP ${HEALTH})"
 else
     echo -e "${RED}✗ 健康检查失败 (HTTP ${HEALTH})${NC}"
     echo -e "${YELLOW}    查看日志：pm2 logs kec-server --lines 50${NC}"
+    VERIFY_FAILED=true
 fi
 
 # 测试 settings 接口
-SETTINGS=$(execute "curl -s -o /dev/null -w '%{http_code}' http://localhost:${APP_PORT}/api/settings 2>/dev/null || echo '000'")
+SETTINGS=$(execute_silent "curl -s -o /dev/null -w '%{http_code}' http://localhost:${APP_PORT}/api/settings 2>/dev/null || echo '000'")
 if [ "$SETTINGS" = "200" ]; then
     echo -e "✓ Settings 接口正常 (HTTP ${SETTINGS})"
 else
     echo -e "${RED}✗ Settings 接口异常 (HTTP ${SETTINGS})${NC}"
+    VERIFY_FAILED=true
+fi
+
+# 验证未通过：如实报告失败并以非零退出码结束（避免 CI/自动化误判部署成功）
+if [ "$VERIFY_FAILED" = "true" ]; then
+    echo ""
+    echo -e "${RED}========================================${NC}"
+    echo -e "${RED}部署已执行完毕，但接口验证未通过！${NC}"
+    echo -e "${RED}========================================${NC}"
+    echo ""
+    echo -e "${GREEN}服务状态：${NC}"
+    execute "pm2 status"
+    echo ""
+    echo -e "${YELLOW}排查步骤：${NC}"
+    echo "  1. 查看日志：pm2 logs kec-server --lines 50"
+    echo "  2. 确认 ${PROJECT_DIR}/server/.env 配置正确"
+    echo "  3. 修复后重新运行部署脚本"
+    exit 1
 fi
 
 echo ""

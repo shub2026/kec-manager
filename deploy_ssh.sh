@@ -313,9 +313,9 @@ restart_service() {
     execute "pm2 stop kec-server 2>/dev/null || true" false
     execute "pm2 delete kec-server 2>/dev/null || true" false
 
-    # 启动新服务
+    # 启动新服务（使用根目录 ecosystem.config.cjs，与 deploy.sh 保持一致）
     echo "启动新服务..."
-    execute "cd ${PROJECT_DIR}/server && pm2 start src/server.js --name kec-server"
+    execute "cd ${PROJECT_DIR} && pm2 start ecosystem.config.cjs"
 
     # 保存PM2配置
     execute "pm2 save" false
