@@ -3,7 +3,7 @@
 > 主代码：`server/src/services/arrange/auto-arrange.js`
 > 优化服务：`server/src/services/arrange/optimize.js`
 > 配置：`server/src/constants/index.js`（`TEXTBOOK_COHESION`、`TABU_SEARCH`）
-> 版本：v1.3.11
+> 版本：v1.3.12
 > 分析对象：`server/src/services/arrange/` 目录（`auto-arrange.js`、`optimize.js`、`queries.js`、`batch.js`、`validate.js`、`tabu-search.js`）
 
 ---
@@ -907,6 +907,10 @@ function meetsMinimumThreshold(before, after) {
 | POST   | `/reset`              | 重置自动排课     | admin+   |
 | PUT    | `/hour-settings`      | 保存课时设置     | admin+   |
 | DELETE | `/assignments/:id`    | 删除排课记录     | admin+   |
+| PATCH  | `/assignments/:id/lock` | 锁定/解锁单条排课 | admin+   |
+| POST   | `/lock-batch`         | 批量锁定/解锁    | admin+   |
+| POST   | `/optimize-schedule`  | 排课优化（试算） | admin+   |
+| POST   | `/apply-optimize`     | 应用优化结果     | admin+   |
 
 ---
 
@@ -1025,7 +1029,7 @@ function meetsMinimumThreshold(before, after) {
 当班级数量超过 100 时，建议：
 
 1. **分批排课**：按学院或层次分批排课，减少单次处理的班级数量
-2. **预览模式**：先用预览模式查看排课结果，确认无误后再正式排课
+2. **锁定关键分配**：对满意的排课结果及时锁定，重新排课时不会被覆盖
 3. **单课程排课**：对于重要课程，单独排课而非批量排课
 
 ### 22.2 日志优化
@@ -1188,4 +1192,4 @@ v2.21.0 已实现禁忌搜索作为局部搜索优化层。未来可以考虑：
 
 ---
 
-_文档版本：v1.3.11 | 最后更新：2026-07-27_
+_文档版本：v1.3.12 | 最后更新：2026-07-29_

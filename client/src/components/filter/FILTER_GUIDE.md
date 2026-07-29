@@ -1,14 +1,13 @@
-# 筛选器联动优化指南
+# 筛选器联动使用指南
 
-> **文档状态**：设计参考文档（v1.0.0）  
-> `useFilterLinkage` composable 已实现并位于 `components/filter/composables/`，各页面可按需集成。  
-> 下方迁移清单中的复选框反映初始规划状态，实际集成进度请以各页面代码为准。
+> **文档状态**：使用指南（与代码同步维护）  
+> `useFilterLinkage` composable 位于 `components/filter/composables/`，已在班级管理、教师信息、教学安排、开课查询四个页面落地。
 
 ## 📋 目录
 
 - [设计理念](#设计理念)
 - [使用方式](#使用方式)
-- [各页面迁移方案](#各页面迁移方案)
+- [各页面集成现状](#各页面集成现状)
 
 ---
 
@@ -110,170 +109,17 @@ const filteredYears = computed(() =>
 
 ---
 
-## 📝 各页面迁移方案
+## 📝 各页面集成现状
 
-### 1. 教师信息页 (TeacherList.vue)
+| 页面 | 集成位置 | 联动能力 |
+| ---- | -------- | -------- |
+| 班级管理 (ClassList) | `views/class/components/ClassFilterBar.vue` | 学院→专业；学院/专业/层次→入学年份交集过滤（`getIntersectedOptions`），作为标准实现参考 |
+| 教师信息 (TeacherList) | `views/teaching/components/TeacherFilterBar.vue` | 意向学院→意向层次过滤（`getFilteredOptions`），父级变化自动清空子级 |
+| 教学安排 (TeachingArrange) | `views/teaching/components/ArrangeToolbar.vue` | 学院→专业等父子级清空联动（`handleParentChange`） |
+| 开课查询 (UnifiedSemesterQuery) | `views/query/UnifiedSemesterQuery.vue` | 父子级清空联动（`handleParentChange`），后端 API 参数过滤 |
+| 课时统计 (TeachingStatistics) | 未集成 | 筛选项相对独立，暂无联动需求；如需集成可参照 ClassFilterBar 模式 |
 
-**当前状态**:
-
-- ❌ 筛选器无联动
-- ✅ 编辑表单有联动
-- 前端computed过滤
-
-**迁移步骤**:
-
-#### Step 1: 后端添加关联数据
-
-```javascript
-// server/src/controllers/teacher.controller.js
-// 在 listTeachers 接口中添加:
-const teacherCourseRelation = {}; // 教师-课程关联
-const teacherCollegeRelation = {}; // 教师-意向学院关联
-const teacherLevelRelation = {}; // 教师-意向层次关联
-```
-
-#### Step 2: 前端接收关联数据
-
-```javascript
-// client/src/views/teaching/TeacherList.vue
-const teacherCourseRelation = ref({});
-const teacherCollegeRelation = ref({});
-const teacherLevelRelation = ref({});
-
-async function load() {
-  const res = await getTeachers(params);
-  if (res?.data?.teacherCourseRelation) {
-    teacherCourseRelation.value = res.data.teacherCourseRelation;
-  }
-  // ... 其他关联数据
-}
-```
-
-#### Step 3: 使用Hook实现联动
-
-```javascript
-import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
-
-const { getFilteredOptions, handleParentChange } = useFilterLinkage({
-  filters,
-  relations: {
-    teacherCollegeRelation: teacherCollegeRelation.value,
-    teacherLevelRelation: teacherLevelRelation.value,
-  },
-});
-
-// 意向层次根据意向学院过滤
-const filteredTrainingLevels = computed(() =>
-  getFilteredOptions.value('trainingLevelId', allTrainingLevels.value, ['collegeId'])
-);
-
-function handleCollegeFilterChange() {
-  handleParentChange('collegeId', ['trainingLevelId'], applyFilters);
-}
-```
-
-**预计工作量**: 2-3小时
-
----
-
-### 2. 教学安排页 (TeachingArrange.vue)
-
-**当前状态**:
-
-- ⚠️ 学院→专业有部分联动
-- ❌ 其他字段无联动
-- 后端API + 前端computed混合
-
-**迁移步骤**:
-
-#### Step 1: 完善后端关联数据
-
-```javascript
-// server/src/controllers/teaching-arrange.controller.js
-// 已有 collegeMajorRelation,需要补充:
-const majorLevelRelation = {}; // 专业-层次
-const collegeLevelRelation = {}; // 学院-层次
-```
-
-#### Step 2: 前端使用Hook重构
-
-```javascript
-const { getFilteredOptions, getIntersectedOptions } = useFilterLinkage({
-  filters: reactive({
-    college: filterCollege,
-    major: filterMajor,
-    trainingLevel: filterTrainingLevel,
-  }),
-  relations: {
-    collegeMajorRelation,
-    majorLevelRelation,
-    collegeLevelRelation,
-  },
-});
-
-// 专业根据学院过滤
-const majorOptions = computed(() =>
-  getFilteredOptions.value('major', allMajors.value, ['college'])
-);
-
-// 层次根据学院和专业取交集
-const trainingLevelOptions = computed(() =>
-  getIntersectedOptions.value('trainingLevel', allLevels.value, {
-    college: collegeLevelRelation.value,
-    major: majorLevelRelation.value,
-  })
-);
-```
-
-**预计工作量**: 2小时
-
----
-
-### 3. 课时统计页 (TeachingStatistics.vue)
-
-**当前状态**:
-
-- ❌ 完全无联动
-- 前端computed过滤
-
-**迁移步骤**:
-
-#### Step 1: 后端添加关联数据
-
-```javascript
-// server/src/controllers/teacher.controller.js (统计数据来自教师表)
-// 添加:
-const teacherTypeRelation = {}; // 类别-教师关联
-const teacherSubjectRelation = {}; // 科目-教师关联
-const teacherCollegeRelation = {}; // 学院-教师关联
-```
-
-#### Step 2: 前端实现联动
-
-```javascript
-const filteredTypes = computed(() => getFilteredOptions.value('type', allTypes.value, []));
-
-const filteredSubjects = computed(() =>
-  getFilteredOptions.value('subject', allSubjects.value, ['type'])
-);
-```
-
-**预计工作量**: 1.5小时
-
----
-
-### 4. 开课查询页 (UnifiedSemesterQuery.vue)
-
-**当前状态**:
-
-- ❌ 完全无联动
-- 后端API参数
-
-**迁移步骤**:
-
-类似班级管理页,需要后端返回完整的关联关系数据。
-
-**预计工作量**: 2小时
+新页面接入时，建议以 `ClassFilterBar.vue` 为参考实现，遵循下方最佳实践。
 
 ---
 
@@ -338,24 +184,3 @@ const resultSet = new Set(years1.filter((y) => years2.includes(y)));
 - 使用computed缓存计算结果
 - 避免在模板中直接调用函数
 - 大数据量时使用Map替代对象
-
----
-
-## 📊 迁移优先级建议
-
-1. **高优先级**: 教学安排页 (已有部分联动,用户频繁使用)
-2. **中优先级**: 教师信息页 (数据量大,筛选需求强)
-3. **中优先级**: 开课查询页 (与班级管理页类似,易迁移)
-4. **低优先级**: 课时统计页 (筛选相对独立)
-
----
-
-## ✅ 验收标准
-
-每个页面迁移完成后应满足:
-
-- [ ] 所有相关筛选项实现联动
-- [ ] 切换父级时自动清空子级
-- [ ] 无可用选项时禁用下拉框
-- [ ] 导出功能应用筛选条件
-- [ ] 性能无明显下降

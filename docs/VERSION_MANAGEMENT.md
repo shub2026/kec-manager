@@ -107,7 +107,7 @@ git push && git push --tags
 **注意**:
 
 - 前端通过 Vite 配置从根目录 `package.json` 读取版本号
-- 数据库中的 `system.version` 需要手动更新或通过系统设置界面修改
+- 运行时代码不读写数据库中的版本号，版本信息以 `package.json` 为唯一来源
 
 ## 💡 最佳实践
 
@@ -193,13 +193,6 @@ npm run version:patch
 ### Q: 为什么不能手动修改package.json?
 
 A: 手动修改容易遗漏某些文件,导致版本号不一致。使用自动化脚本可以确保所有文件同步更新。
-
-### Q: 数据库中的版本号怎么更新?
-
-A: 有两种方式:
-
-1. 通过系统设置界面(推荐)
-2. 运行SQL: `UPDATE system_settings SET value = '1.0.2' WHERE key = 'system.version';`
 
 ### Q: 忘记了上次更新的版本怎么办?
 

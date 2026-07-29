@@ -233,7 +233,7 @@ status = grade <= durationYears ? "active" : "graduated";
 
 **导入计算**:
 
-- 文件: `server/src/routes/import.routes.js`
+- 文件: `server/src/controllers/import/classes.js`
 - 用途: Excel批量导入班级时自动计算状态
 
 ## 培养方案课程匹配

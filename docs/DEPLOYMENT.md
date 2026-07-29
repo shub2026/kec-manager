@@ -1,6 +1,6 @@
 # KEC 课程管理平台 - 部署与运维指南
 
-> **版本**：v1.3.11
+> **版本**：v1.3.12
 > **数据库**：SQLite（启用 WAL 模式）
 > **部署方式**：PM2 + deploy.sh
 > **部署路径**：`/opt/1panel/www/sites/kec/index/kec-manager`
@@ -30,7 +30,7 @@
 | 443  | Nginx HTTPS                          |
 | 3000 | 后端 API（生产环境，内部不对外暴露） |
 
-> **端口说明**：生产环境后端固定监听 **3000**（由 `deploy.sh` 写入 `.env` 的 `PORT=3000`，Nginx 反向代理转发至 3000）。开发环境后端端口由 `server/.env` 的 `PORT` 决定（默认 3000），但 `vite.config.js` 的代理目标当前为 `http://localhost:3002`，本地开发时请将 `.env` 的 `PORT` 设为 `3002` 或同步修改代理目标，使前后端端口一致。
+> **端口说明**：生产环境后端固定监听 **3000**（由 `deploy.sh` 写入 `.env` 的 `PORT=3000`，Nginx 反向代理转发至 3000）。开发环境后端端口由 `server/.env` 的 `PORT` 决定（`.env.example` 默认 `3002`），与 `vite.config.js` 的代理目标 `http://localhost:3002` 一致；如需改用其他端口，请同步修改两处配置。
 
 > **数据库说明**：当前 `schema.prisma` 的 `provider = "sqlite"`，仅支持 SQLite，不推荐 MySQL。
 
@@ -91,7 +91,7 @@ bash deploy.sh root@your-server.com
 | [7/10]  | 初始化数据库    | 清理 WAL 残留 → `prisma migrate deploy` → `prisma generate` → `db:seed` → 完整性验证 |
 | [8/10]  | 初始化系统设置  | `npm run init:settings`                                                              |
 | [9/10]  | 构建前端        | 校验 esbuild → `vite build` → `npm prune --production` 清理 devDependencies          |
-| [10/10] | 启动服务        | `pm2 start src/server.js --name kec-server` + 健康检查                               |
+| [10/10] | 启动服务        | 项目根目录 `pm2 start ecosystem.config.cjs` + `pm2 save` + 健康检查                    |
 
 ### 部署后验证
 
@@ -104,7 +104,7 @@ curl http://localhost:3000/api/settings  # 期望返回 200
 
 ---
 
-### PM2 生态配置（ecosystem.config.cjs，可选）
+### PM2 生态配置（ecosystem.config.cjs）
 
 项目根目录提供 `ecosystem.config.cjs`，封装了生产级 PM2 配置：
 
@@ -113,15 +113,15 @@ curl http://localhost:3000/api/settings  # 期望返回 200
 - **内存限制**：`max_memory_restart: '512M'`，超过自动重启防止内存泄漏拖垮服务
 - **单实例**：`instances: 1`（SQLite 不支持多进程写，必须单实例）
 
-使用方式（替代 `pm2 start src/server.js`）：
+使用方式（在项目根目录执行，配置内 `cwd: './server'` 会自动切到 server 目录）：
 
 ```bash
-cd server
+cd /opt/1panel/www/sites/kec/index/kec-manager
 pm2 start ecosystem.config.cjs
 pm2 save
 ```
 
-> 注意：当前 `deploy.sh` 仍使用 `pm2 start src/server.js --name kec-server` 直接启动，未接入 ecosystem 配置。如需启用，可修改 deploy.sh 的 [10/10] 启动步骤。
+> `deploy.sh` 的 [10/10] 启动步骤已接入 ecosystem 配置（`pm2 start ecosystem.config.cjs`），进程名为 `kec-server`。
 
 ---
 
@@ -235,8 +235,8 @@ npm prune --production
 ### 8. 启动服务
 
 ```bash
-cd ${PROJECT_DIR}/server
-pm2 start src/server.js --name kec-server
+cd ${PROJECT_DIR}
+pm2 start ecosystem.config.cjs
 pm2 save
 pm2 startup
 ```
@@ -627,7 +627,8 @@ cd ${PROJECT_DIR}/server
 npm prune --production
 
 # 7. 启动服务
-pm2 start src/server.js --name kec-server
+cd ${PROJECT_DIR}
+pm2 start ecosystem.config.cjs
 pm2 save
 ```
 
@@ -734,7 +735,7 @@ rm -f ${PROJECT_DIR}/server/data/kec.db-wal ${PROJECT_DIR}/server/data/kec.db-sh
 cp /path/to/backup/env_YYYYMMDD ${PROJECT_DIR}/server/.env
 
 # 4. 重启服务
-cd ${PROJECT_DIR}/server && pm2 start src/server.js --name kec-server
+cd ${PROJECT_DIR} && pm2 start ecosystem.config.cjs
 ```
 
 ---
@@ -756,7 +757,7 @@ cp backups/kec_backup_YYYYMMDD_HHMMSS.db server/data/kec.db
 
 # 4. 重新启动
 pm2 delete kec-server
-cd server && pm2 start src/server.js --name kec-server
+pm2 start ecosystem.config.cjs
 pm2 save
 ```
 
@@ -780,8 +781,8 @@ cd ../client && rm -rf node_modules && npm install && npm run build
 cp backups/kec_backup_20260613.db server/data/kec.db
 
 # 5. 启动服务
-cd ../server
-pm2 start src/server.js --name kec-server
+cd ..
+pm2 start ecosystem.config.cjs
 pm2 save
 
 # 6. 验证
@@ -849,8 +850,8 @@ npx prisma migrate deploy
 ```bash
 pm2 delete kec-api 2>/dev/null || true
 pm2 delete kec-server 2>/dev/null || true
-cd /opt/1panel/www/sites/kec/index/kec-manager/server
-pm2 start src/server.js --name kec-server
+cd /opt/1panel/www/sites/kec/index/kec-manager
+pm2 start ecosystem.config.cjs
 pm2 save
 ```
 

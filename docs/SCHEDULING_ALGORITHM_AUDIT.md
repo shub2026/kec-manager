@@ -5,7 +5,7 @@
 > （`auto-arrange.js`、`queries.js`、`batch.js`、`tabu-search.js`、`validate.js`、`lock.js`）
 > 及 `server/src/constants/index.js` 中排课相关配置
 > 审计性质：**只读审计**，本文档不伴随任何代码改动
-> 姊妹文档：[SCHEDULING_ALGORITHM.md](./SCHEDULING_ALGORITHM.md)（算法设计说明，v1.3.11）
+> 姊妹文档：[SCHEDULING_ALGORITHM.md](./SCHEDULING_ALGORITHM.md)（算法设计说明，v1.3.12）
 
 ---
 

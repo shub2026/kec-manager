@@ -2,7 +2,7 @@
 
 > 面向大中专职业院校教学管理人员的轻量级教学管理系统
 
-**版本** v1.3.11 · **技术栈** Vue 3 + Express 5 + Prisma 6 · **数据库** SQLite WAL
+**版本** v1.3.12 · **技术栈** Vue 3 + Express 5 + Prisma 6 · **数据库** SQLite WAL
 
 KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心功能，采用前后端分离架构，基于 PM2 + Nginx 部署。
 
@@ -15,7 +15,7 @@ KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排�
 | 培养方案     | 按专业/层次制定方案，可视化课程矩阵编辑各学期课时分布，教材关联到学期                                                             |
 | 班级管理     | 班级 CRUD、合班教学组、基于入学年份和学制动态计算年级与在读状态                                                                   |
 | 教师管理     | 教师档案、任课/学院/层次偏好配置、自定义周课时                                                                                    |
-| 自动排课     | 五阶段匹配 + 置换回溯算法，可选禁忌搜索优化；支持预览模式、批量排课、历史学期保护；自动排课结果可锁定，锁定后重置或重新排课不覆盖 |
+| 自动排课     | 五阶段匹配 + 置换回溯算法，可选禁忌搜索优化；支持批量排课、排课优化、历史学期保护；自动排课结果可锁定，锁定后重置或重新排课不覆盖 |
 | 教材管理     | 教材 CRUD、与培养方案学期关联、征订状态跟踪                                                                                       |
 | 数据导入导出 | Excel 批量导入（班级/课程/教材/教师）、模板下载、多维度数据导出                                                                   |
 | 统一查询     | 开课查询、教材查询、方案查询，多维度筛选与级联联动                                                                                |
@@ -34,7 +34,7 @@ KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排�
 | 后端   | Express 5.1 + Prisma 6.19 + Winston 3.19                                                  |
 | 数据库 | SQLite（WAL 模式）                                                                        |
 | 认证   | JWT 双令牌（Access 15 min + Refresh 7 d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt 12 轮 |
-| 测试   | Vitest + Supertest（1445 个用例）                                                         |
+| 测试   | Vitest + Supertest（1461 个用例）                                                         |
 | 部署   | PM2 + Nginx                                                                               |
 
 ---
@@ -95,9 +95,9 @@ npm run dev:server       # 仅后端
 npm run dev:client       # 仅前端
 npm run db:migrate       # 数据库迁移
 npm run db:generate      # 生成 Prisma Client
-npm run version:patch    # 补丁版本 1.3.11 → 1.3.12
-npm run version:minor    # 次版本   1.3.11 → 1.4.0
-npm run version:major    # 主版本   1.3.11 → 2.0.0
+npm run version:patch    # 补丁版本 1.3.12 → 1.3.13
+npm run version:minor    # 次版本   1.3.12 → 1.4.0
+npm run version:major    # 主版本   1.3.12 → 2.0.0
 ```
 
 ### server/
@@ -150,7 +150,7 @@ kec-manager/
 │   ├── src/
 │   │   ├── controllers/             # 请求处理（含 export/、import/、plan/ 子模块）
 │   │   ├── middleware/              # 认证 / CSRF / XSS / 校验 / 分页 / 命名转换
-│   │   ├── routes/                  # 路由定义（18 个模块）
+│   │   ├── routes/                  # 路由定义（17 个模块）
 │   │   ├── services/                # 业务逻辑
 │   │   │   └── arrange/             # 排课算法（五阶段 + 禁忌搜索）
 │   │   ├── constants/               # 应用常量（课时设置、教材内聚、禁忌搜索参数）
@@ -337,6 +337,7 @@ bash deploy_ssh.sh root@your-server.com
 | --------------------------------------------------- | ---------------------------------- |
 | [部署与运维指南](docs/DEPLOYMENT.md)                | 部署、更新、备份恢复、故障排查     |
 | [排课算法说明](docs/SCHEDULING_ALGORITHM.md)        | 五阶段算法、评分机制、教材内聚策略 |
+| [排课算法审计](docs/SCHEDULING_ALGORITHM_AUDIT.md)  | 算法只读审计发现与修复跟踪           |
 | [学期计算说明](docs/SEMESTER-CALCULATION.md)        | 学期状态计算逻辑                   |
 | [代码格式化指南](docs/CODE_FORMATTING.md)           | Prettier + ESLint 配置             |
 | [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) | 前后端命名规范与迁移方案           |
