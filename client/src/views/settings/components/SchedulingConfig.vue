@@ -191,7 +191,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: var(--space-8);
+  /* --space-8 未在令牌中定义（只到 --space-7），会使 gap 失效为 0 */
+  gap: var(--space-7);
 }
 
 .switch-info {

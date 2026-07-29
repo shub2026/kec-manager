@@ -50,7 +50,7 @@
             v-model="localForm.organizationName"
             placeholder="请输入单位名称，如：某某职业技术学院"
             size="large"
-            maxlength="20"
+            maxlength="14"
             show-word-limit
             clearable
             class="organization-input"
@@ -211,7 +211,10 @@ function handleSave() {
 .semester-body {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-8);
+  /* 注意：令牌只定义到 --space-7，之前的 --space-8 未定义导致 gap 失效为 0，
+     预览卡换行后紧贴提示文字、-12px 外扩的"当前设置"徽标直接压到文案；
+     48px 行间距扣除徽标外扩后仍有 36px 净呼吸空间 */
+  gap: var(--space-7);
   padding: var(--space-6) 0 var(--space-4);
   align-items: flex-start;
 }
@@ -243,9 +246,11 @@ function handleSave() {
   letter-spacing: 0.01em;
 }
 
-.semester-select {
+/* 学期下拉与系统标识输入框统一等宽；520px 对选项文本而言过长，收窄后更紧凑美观 */
+.semester-select,
+.organization-input {
   width: 100%;
-  max-width: 520px;
+  max-width: 360px;
 }
 
 .semester-hint {
@@ -258,14 +263,9 @@ function handleSave() {
   line-height: 1.6;
 }
 
-.organization-input {
-  width: 100%;
-  max-width: 520px;
-}
-
-/* 右侧：学期预览 */
+/* 右侧：学期预览（可成长：宽屏并排时分摊剩余空间，中屏换行后撑满整行，均受 max-width 封顶） */
 .semester-preview {
-  flex: 0 0 auto;
+  flex: 1 1 300px;
   min-width: 300px;
   max-width: 440px;
   height: auto;
@@ -375,6 +375,8 @@ function handleSave() {
 @media (max-width: 768px) {
   .semester-body {
     flex-direction: column;
+    /* 窄屏下收紧垂直节奏，32px 扣除徽标外扩后仍留 20px 间距 */
+    gap: var(--space-6);
   }
 
   .config-module,
@@ -385,6 +387,17 @@ function handleSave() {
 
   .config-module {
     min-width: auto;
+  }
+
+  /* 移动端预览卡提前到配置项上方，先展示当前生效状态再进行配置 */
+  .semester-preview {
+    order: -1;
+    /* 列布局下主轴变为垂直，宽屏的 flex-basis 300px 会变成基准高度撑高卡片，
+       重置为按内容自然高度 */
+    flex: 0 0 auto;
+    min-width: auto;
+    /* 预览卡成为首个元素后，预留 -12px 外扩徽标的空间，避免被卡头裁切 */
+    margin-top: var(--space-3);
   }
 }
 </style>
