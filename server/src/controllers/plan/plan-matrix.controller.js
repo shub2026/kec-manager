@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma.js';
 import { success, fail } from '../../utils/response.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { MAX_PLAN_SEMESTER } from '../../constants/index.js';
+import { parseSemester, calcClassSemester } from '../../services/semester.service.js';
 
 /**
  * 审计修复：校验学期窗口合法性（整数、start>=1、end<=MAX_PLAN_SEMESTER、start<=end）
@@ -29,24 +30,35 @@ function validateSemesterWindow(start, end) {
  * 当方案窗口收缩/删除后，落在该课程 [startSemester, endSemester] 窗口之外的安排，
  * 对应的课程在本学期可能不再开课，导致排课清单/导出与方案矩阵不一致。
  * 仅用于「提示」，默认不删除——避免误删仍有效的历史安排（同一课程可能属于多个方案）。
+ * 注意：teaching_assignments.semester 是 "YYYY-YYYY-N" 学年字符串，而方案窗口是相对学期号（第N学期），
+ * 必须结合班级 enrollment_year 换算为相对学期号后再比较，不能直接对字符串做 lt/gt。
  * @param {number} courseId 课程 ID
  * @param {number} startSemester 新窗口起始学期号
  * @param {number} endSemester 新窗口结束学期号
  * @returns {Promise<Array>} 悬空安排列表（含班级/教师信息，最多 200 条）
  */
 async function findDanglingAssignments(courseId, startSemester, endSemester) {
-  return prisma.teaching_assignments.findMany({
-    where: {
-      course_id: courseId,
-      OR: [{ semester: { lt: startSemester } }, { semester: { gt: endSemester } }],
-    },
+  const assignments = await prisma.teaching_assignments.findMany({
+    where: { course_id: courseId },
     include: {
-      class: { select: { id: true, name: true } },
+      class: { select: { id: true, name: true, enrollment_year: true, duration_years: true } },
       teacher: { select: { id: true, name: true } },
     },
     orderBy: [{ class_id: 'asc' }, { semester: 'asc' }],
-    take: 200,
   });
+
+  const dangling = [];
+  for (const a of assignments || []) {
+    const semInfo = parseSemester(a.semester);
+    const calc = calcClassSemester(a.class, semInfo);
+    // 无法换算（学期字符串非法或班级学制信息缺失/越界）时跳过，避免误报
+    if (!calc) continue;
+    if (calc.currentSemesterNum < startSemester || calc.currentSemesterNum > endSemester) {
+      dangling.push(a);
+      if (dangling.length >= 200) break;
+    }
+  }
+  return dangling;
 }
 
 /**
@@ -88,8 +100,19 @@ export async function addCourseToPlan(req, res, next) {
   try {
     const { id } = req.params;
     const { course_id, start_semester, end_semester, weekly_hours, weeks_per_semester } = req.body;
-    if (!course_id || start_semester === undefined || end_semester === undefined || !weekly_hours) {
+    // 校验口径与单元格编辑（upsertSemester）统一：允许 0 课时，仅拒绝缺失与越界
+    if (
+      !course_id ||
+      start_semester === undefined ||
+      end_semester === undefined ||
+      weekly_hours === undefined ||
+      weekly_hours === null
+    ) {
       return fail(res, '课程、开课学期、周课时为必填项');
+    }
+    const whNum = Number(weekly_hours);
+    if (isNaN(whNum) || whNum < 0 || whNum > 100) {
+      return fail(res, '周课时必须在 0~100 之间');
     }
     const semesterError = validateSemesterWindow(Number(start_semester), Number(end_semester));
     if (semesterError) {
@@ -104,22 +127,23 @@ export async function addCourseToPlan(req, res, next) {
           course_id: Number(course_id),
           start_semester: Number(start_semester),
           end_semester: Number(end_semester),
-          weekly_hours: Number(weekly_hours),
+          weekly_hours: whNum,
           weeks_per_semester: weeks,
         },
         include: { courses: true },
       });
 
+      // 批量创建学期记录：createMany 一次插入，替代逐条 create 的 N 次往返
+      const semesterRows = [];
       for (let s = Number(start_semester); s <= Number(end_semester); s++) {
-        await tx.plan_course_semesters.create({
-          data: {
-            plan_course_id: created.id,
-            semester: s,
-            weekly_hours: Number(weekly_hours),
-            weeks_count: weeks,
-          },
+        semesterRows.push({
+          plan_course_id: created.id,
+          semester: s,
+          weekly_hours: whNum,
+          weeks_count: weeks,
         });
       }
+      await tx.plan_course_semesters.createMany({ data: semesterRows });
 
       return created;
     });
@@ -339,7 +363,7 @@ export async function deletePlanCourse(req, res, next) {
         course_id: true,
         start_semester: true,
         end_semester: true,
-        course: { select: { id: true, name: true } },
+        courses: { select: { id: true, name: true } },
       },
     });
 
@@ -356,12 +380,12 @@ export async function deletePlanCourse(req, res, next) {
         userId: req.user?.id,
         ip: req.ip,
         result: 'success',
-        message: `删除培养方案课程：${planCourse.course?.name || planCourse.course_id}`,
+        message: `删除培养方案课程：${planCourse.courses?.name || planCourse.course_id}`,
         // BIZ-M1修复：审计字段同时记录 plan_course_id 与真实 course_id，避免命名混淆
         details: {
           plan_course_id: Number(id),
           course_id: planCourse.course_id,
-          course_name: planCourse.course?.name,
+          course_name: planCourse.courses?.name,
         },
       });
 

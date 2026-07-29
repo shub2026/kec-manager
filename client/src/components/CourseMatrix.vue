@@ -80,8 +80,8 @@ const {
   loadData,
 });
 
-// 暴露刷新方法与汇总数据给方案明细页
-defineExpose({ refresh: loadData, globalWeeks, totalAllHours, rawCourses });
+// 暴露刷新方法、加载态与汇总数据给方案明细页（loading 供概览条避免首屏 0 值闪动）
+defineExpose({ refresh: loadData, loading, globalWeeks, totalAllHours, rawCourses });
 </script>
 
 <style scoped>

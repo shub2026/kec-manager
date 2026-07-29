@@ -14,7 +14,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // ──────────────────────────────────────────────
 const mockTx = {
   plan_courses: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
-  plan_course_semesters: { create: vi.fn(), deleteMany: vi.fn(), updateMany: vi.fn() },
+  plan_course_semesters: {
+    create: vi.fn(),
+    createMany: vi.fn(),
+    deleteMany: vi.fn(),
+    updateMany: vi.fn(),
+  },
   plan_textbooks: { create: vi.fn(), deleteMany: vi.fn() },
 };
 
@@ -105,6 +110,7 @@ describe('plan-matrix.controller', () => {
     mockTx.plan_courses.create.mockResolvedValue({ id: 100, course_id: 1 });
     mockTx.plan_courses.update.mockResolvedValue({ id: 1 });
     mockTx.plan_course_semesters.create.mockResolvedValue({});
+    mockTx.plan_course_semesters.createMany.mockResolvedValue({ count: 0 });
     mockTx.plan_course_semesters.deleteMany.mockResolvedValue({ count: 0 });
     mockTx.plan_course_semesters.updateMany.mockResolvedValue({ count: 0 });
     mockTx.plan_textbooks.create.mockResolvedValue({ id: 200 });
@@ -124,7 +130,7 @@ describe('plan-matrix.controller', () => {
   // addCourseToPlan
   // ════════════════════════════════════════════
   describe('addCourseToPlan', () => {
-    it('正常流程：start=1, end=3 应创建 1 条 plan_courses 和 3 条学期记录', async () => {
+    it('正常流程：start=1, end=3 应创建 1 条 plan_courses 并 createMany 3 条学期记录', async () => {
       const req = mockReq(
         { course_id: 1, start_semester: 1, end_semester: 3, weekly_hours: 4 },
         { id: '1' }
@@ -138,12 +144,12 @@ describe('plan-matrix.controller', () => {
         expect.objectContaining({ success: true, message: '添加成功' })
       );
       expect(mockTx.plan_courses.create).toHaveBeenCalledTimes(1);
-      expect(mockTx.plan_course_semesters.create).toHaveBeenCalledTimes(3);
-      // 三次 create 的 semester 分别为 1, 2, 3
-      const semesters = mockTx.plan_course_semesters.create.mock.calls.map(
-        (c) => c[0].data.semester
-      );
-      expect(semesters).toEqual([1, 2, 3]);
+      // 性能优化：逐条 create 改为 createMany 一次批量插入
+      expect(mockTx.plan_course_semesters.createMany).toHaveBeenCalledTimes(1);
+      const rows = mockTx.plan_course_semesters.createMany.mock.calls[0][0].data;
+      expect(rows).toHaveLength(3);
+      expect(rows.map((r) => r.semester)).toEqual([1, 2, 3]);
+      expect(rows.every((r) => r.plan_course_id === 100 && r.weekly_hours === 4)).toBe(true);
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -163,7 +169,7 @@ describe('plan-matrix.controller', () => {
         message: '开始学期不能大于结束学期',
       });
       expect(mockTx.plan_courses.create).not.toHaveBeenCalled();
-      expect(mockTx.plan_course_semesters.create).not.toHaveBeenCalled();
+      expect(mockTx.plan_course_semesters.createMany).not.toHaveBeenCalled();
     });
 
     it('缺 course_id 应返回必填项错误', async () => {
@@ -194,6 +200,43 @@ describe('plan-matrix.controller', () => {
       });
     });
 
+    // 校验口径统一：单元格编辑允许 0 课时，添加课程不应拒绝 0
+    it('weekly_hours = 0 应添加成功（与 upsertSemester 口径一致）', async () => {
+      const req = mockReq(
+        { course_id: 1, start_semester: 1, end_semester: 2, weekly_hours: 0 },
+        { id: '1' }
+      );
+      const res = mockRes();
+      const next = vi.fn();
+
+      await addCourseToPlan(req, res, next);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: true, message: '添加成功' })
+      );
+      const rows = mockTx.plan_course_semesters.createMany.mock.calls[0][0].data;
+      expect(rows.every((r) => r.weekly_hours === 0)).toBe(true);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('weekly_hours = 101 应返回 400：周课时越界', async () => {
+      const req = mockReq(
+        { course_id: 1, start_semester: 1, end_semester: 2, weekly_hours: 101 },
+        { id: '1' }
+      );
+      const res = mockRes();
+      const next = vi.fn();
+
+      await addCourseToPlan(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: '周课时必须在 0~100 之间',
+      });
+      expect(mockTx.plan_courses.create).not.toHaveBeenCalled();
+    });
+
     it('start == end 应成功并只创建 1 条学期记录', async () => {
       const req = mockReq(
         { course_id: 1, start_semester: 2, end_semester: 2, weekly_hours: 4 },
@@ -207,8 +250,10 @@ describe('plan-matrix.controller', () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ success: true, message: '添加成功' })
       );
-      expect(mockTx.plan_course_semesters.create).toHaveBeenCalledTimes(1);
-      expect(mockTx.plan_course_semesters.create.mock.calls[0][0].data.semester).toBe(2);
+      expect(mockTx.plan_course_semesters.createMany).toHaveBeenCalledTimes(1);
+      const rows = mockTx.plan_course_semesters.createMany.mock.calls[0][0].data;
+      expect(rows).toHaveLength(1);
+      expect(rows[0].semester).toBe(2);
     });
 
     // 审计修复：学期越界校验
@@ -635,7 +680,7 @@ describe('plan-matrix.controller', () => {
         course_id: 100,
         start_semester: 1,
         end_semester: 2,
-        course: { id: 100, name: '测试课程' },
+        courses: { id: 100, name: '测试课程' },
       });
       mockPrisma.plan_courses.delete.mockResolvedValue({ id: 5 });
       mockPrisma.teaching_assignments.findMany.mockResolvedValue([]);
@@ -670,6 +715,114 @@ describe('plan-matrix.controller', () => {
         success: false,
         message: '方案课程不存在',
       });
+    });
+
+    // ── 学期双口径回归测试 ──
+    // teaching_assignments.semester 是 "YYYY-YYYY-N" 学年字符串，方案窗口是相对学期号整数，
+    // findDanglingAssignments 必须按 course_id 全量查询后结合班级入学年份换算，禁止对字符串做 lt/gt
+    function mockPlanCourseForDangling() {
+      mockPrisma.plan_courses.findUnique.mockResolvedValue({
+        id: 5,
+        course_id: 100,
+        start_semester: 1,
+        end_semester: 2,
+        courses: { id: 100, name: '测试课程' },
+      });
+      mockPrisma.plan_courses.delete.mockResolvedValue({ id: 5 });
+    }
+
+    it('悬空检测：查询应仅按 course_id 过滤，不含 semester lt/gt 条件', async () => {
+      mockPlanCourseForDangling();
+      mockPrisma.teaching_assignments.findMany.mockResolvedValue([]);
+
+      const req = mockReq({}, { id: '5' });
+      const res = mockRes();
+
+      await deletePlanCourse(req, res, vi.fn());
+
+      expect(mockPrisma.teaching_assignments.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { course_id: 100 } })
+      );
+      const call = mockPrisma.teaching_assignments.findMany.mock.calls[0][0];
+      expect(call.where.OR).toBeUndefined();
+      // 换算需要班级入学年份与学制
+      expect(call.include.class.select).toMatchObject({
+        enrollment_year: true,
+        duration_years: true,
+      });
+    });
+
+    it('悬空检测：窗口外的安排应返回，窗口内的不返回', async () => {
+      mockPlanCourseForDangling();
+      const cls = { id: 1, name: '测试班', enrollment_year: 2024, duration_years: 4 };
+      const inWindow = {
+        id: 11,
+        class_id: 1,
+        // 2024级在 2024-2025-2 学期：grade=1，相对学期号=2，落在窗口 [1,2] 内
+        semester: '2024-2025-2',
+        class: cls,
+        teacher: { id: 9, name: '张老师' },
+      };
+      const outWindow = {
+        id: 12,
+        class_id: 1,
+        // 2024级在 2025-2026-1 学期：grade=2，相对学期号=3，落在窗口 [1,2] 外
+        semester: '2025-2026-1',
+        class: cls,
+        teacher: { id: 9, name: '张老师' },
+      };
+      mockPrisma.teaching_assignments.findMany.mockResolvedValue([inWindow, outWindow]);
+
+      const req = mockReq({}, { id: '5' });
+      const res = mockRes();
+
+      await deletePlanCourse(req, res, vi.fn());
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: { danglingAssignments: [outWindow] },
+        })
+      );
+    });
+
+    it('悬空检测：学期字符串非法或班级学制缺失/越界时应跳过，不误报', async () => {
+      mockPlanCourseForDangling();
+      mockPrisma.teaching_assignments.findMany.mockResolvedValue([
+        // 学期字符串非法 → parseSemester 返回 null → 跳过
+        {
+          id: 21,
+          semester: 'bad-semester',
+          class: { id: 1, name: '班A', enrollment_year: 2024, duration_years: 4 },
+          teacher: { id: 9, name: '张老师' },
+        },
+        // duration_years 缺失 → calcClassSemester 返回 null → 跳过
+        {
+          id: 22,
+          semester: '2025-2026-1',
+          class: { id: 2, name: '班B', enrollment_year: 2024, duration_years: null },
+          teacher: { id: 9, name: '张老师' },
+        },
+        // grade 超出学制（2030-2031 对 2024 级四年制为第 7 年）→ 跳过
+        {
+          id: 23,
+          semester: '2030-2031-1',
+          class: { id: 3, name: '班C', enrollment_year: 2024, duration_years: 4 },
+          teacher: { id: 9, name: '张老师' },
+        },
+      ]);
+
+      const req = mockReq({}, { id: '5' });
+      const res = mockRes();
+
+      await deletePlanCourse(req, res, vi.fn());
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          data: { danglingAssignments: [] },
+        })
+      );
     });
   });
 

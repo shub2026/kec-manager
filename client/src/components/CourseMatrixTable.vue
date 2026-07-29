@@ -42,7 +42,7 @@
             :key="s"
             class="matrix-cell"
             :class="cellClass(course, s)"
-            @click="!readonly && $emit('edit', course, s)"
+            @click="!readonly && isInRange(course, s) && $emit('edit', course, s)"
           >
             <template v-if="isInRange(course, s)">
               <div class="cell-hours">
@@ -321,7 +321,7 @@ function cellClass(course, semester) {
 }
 
 .matrix-action-header {
-  width: 140px;
+  width: 160px;
   text-align: center;
   background: var(--bg-subtle);
 }
@@ -522,6 +522,9 @@ function cellClass(course, semester) {
   gap: 6px;
   align-items: center;
   justify-content: center;
+  /* 显式 nowrap：覆盖全局 .action-buttons { flex-wrap: wrap }（scoped 特异性更高），
+     避免固定列宽下第 4 个按钮被挤换行形成断裂布局 */
+  flex-wrap: nowrap;
 }
 
 .action-buttons .el-button.is-disabled {
@@ -627,7 +630,7 @@ function cellClass(course, semester) {
   }
 
   .matrix-action-header {
-    width: 110px;
+    width: 136px;
   }
 
   .matrix-cell {
@@ -664,7 +667,7 @@ function cellClass(course, semester) {
   }
 
   .matrix-action-header {
-    width: 96px;
+    width: 116px;
   }
 
   .matrix-cell {
@@ -733,10 +736,11 @@ function cellClass(course, semester) {
     width: 84px;
   }
 
+  /* ≤480px 下恢复 2×2 换行：max-width 取 2 个按钮+间距的宽度，确保每行恰好 2 个 */
   .action-buttons {
     flex-wrap: wrap;
     justify-content: center;
-    max-width: 84px;
+    max-width: 72px;
   }
 }
 </style>

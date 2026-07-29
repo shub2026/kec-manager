@@ -24,15 +24,17 @@
       <div class="ov-divider"></div>
       <div class="ov-item">
         <span class="ov-label">公共/专业</span>
-        <span class="ov-value">{{ publicCount }} / {{ professionalCount }}</span>
+        <span class="ov-value">{{
+          matrixLoading ? '—' : `${publicCount} / ${professionalCount}`
+        }}</span>
       </div>
       <div class="ov-item">
         <span class="ov-label">课程数</span>
-        <span class="ov-value">{{ courseCount }}</span>
+        <span class="ov-value">{{ matrixLoading ? '—' : courseCount }}</span>
       </div>
       <div class="ov-item">
         <span class="ov-label">总课时</span>
-        <span class="ov-value ov-accent">{{ totalHours }}</span>
+        <span class="ov-value ov-accent">{{ matrixLoading ? '—' : totalHours }}</span>
       </div>
       <div class="ov-item">
         <span class="ov-label">学期周数</span>
@@ -153,6 +155,8 @@ const showSemesterDialog = ref(false);
 
 // 从矩阵组件读取当前全局学期周数，未就绪时回退 18
 const currentGlobalWeeks = computed(() => courseMatrixRef.value?.globalWeeks ?? 18);
+// 矩阵加载态：组件未挂载或数据加载中时概览条显示占位符，避免 0 值闪动
+const matrixLoading = computed(() => courseMatrixRef.value?.loading ?? true);
 // 概览条：课程数 / 总课时（矩阵数据就绪前回退 0）
 const courseCount = computed(() => courseMatrixRef.value?.rawCourses?.length ?? 0);
 const totalHours = computed(() => courseMatrixRef.value?.totalAllHours ?? 0);
