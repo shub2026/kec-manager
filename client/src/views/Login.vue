@@ -13,7 +13,7 @@
           <span class="brand-mark">K</span>
           <div class="brand-text">
             <h1 class="brand-name"><span class="brand-name__logo">KEC</span>课程管理平台</h1>
-            <p class="brand-slogan">基础数据管理 · 智能培养方案 · 自动教学排课</p>
+            <p class="brand-slogan">面向职业院校的轻量级教学管理系统</p>
           </div>
         </header>
 
@@ -357,6 +357,8 @@
               opacity="0.2"
             />
           </svg>
+
+          <p class="brand-features">基础数据管理 · 智能培养方案 · 自动教学安排</p>
         </div>
       </div>
     </aside>
@@ -366,8 +368,9 @@
       <div class="login-container">
         <div class="login-card">
           <div class="login-card-header">
+            <span class="card-logo" aria-hidden="true">K</span>
             <h2 class="form-title">{{ organizationName }}</h2>
-            <p class="form-subtitle">登录进入 KEC 课程管理平台</p>
+            <p class="form-subtitle">登录进入 <span class="form-subtitle__logo">KEC</span> 课程管理平台</p>
           </div>
 
           <el-form
@@ -684,6 +687,7 @@ onMounted(() => {
 .brand-illustration {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
@@ -696,6 +700,17 @@ onMounted(() => {
   width: 100%;
   height: auto;
   overflow: visible;
+}
+
+/* 插画下方功能亮点：紧跟插画，与其整体居中 */
+.brand-features {
+  margin: 20px 0 0;
+  text-align: center;
+  color: var(--text-regular);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  line-height: 1.6;
 }
 
 /* 浮动微动效 */
@@ -818,6 +833,23 @@ onMounted(() => {
   padding: 0 0 36px;
 }
 
+/* 卡片LOGO：仅移动端显示，补位左侧隐藏后的品牌标识 */
+.card-logo {
+  display: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, var(--brand-primary), var(--brand-primary-hover));
+  align-items: center;
+  justify-content: center;
+  color: var(--bg-card);
+  font-size: 24px;
+  font-weight: 800;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  box-shadow: 0 8px 22px var(--brand-primary-shadow);
+  margin-bottom: 18px;
+}
+
 .form-title {
   margin: 0;
   font-size: 24px;
@@ -832,6 +864,11 @@ onMounted(() => {
   font-size: 13px;
   color: var(--text-regular);
   text-align: center;
+}
+
+.form-subtitle__logo {
+  color: var(--brand-primary);
+  font-weight: 600;
 }
 
 /* ==================== 表单 ==================== */
@@ -974,6 +1011,9 @@ onMounted(() => {
   .login-card {
     padding: 32px 28px;
   }
+  .card-logo {
+    display: flex;
+  }
 }
 
 @media (max-width: 480px) {
@@ -984,11 +1024,6 @@ onMounted(() => {
   }
   .login-card {
     padding: 28px 22px;
-  }
-  .card-logo {
-    width: 48px;
-    height: 48px;
-    font-size: 24px;
   }
   .form-title {
     font-size: 21px;
