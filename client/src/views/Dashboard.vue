@@ -269,7 +269,9 @@ onMounted(async () => {
   /* 首页看板有意限宽居中，区别于其他页面的全宽布局 */
   max-width: 1440px;
   margin: 0 auto;
-  min-height: calc(100vh - 60px - var(--space-5) * 2);
+  /* layout-main 是 flex 拉伸的确定高度滚动容器，100% 自动扣除各端内边距；
+     旧公式多减了不存在的 60px 顶栏，致页脚 margin-top:auto 只能推到“假底部” */
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   /* 分级间距：欢迎→洞察 24px，洞察→页脚 auto */
@@ -464,7 +466,8 @@ onMounted(async () => {
 .dashboard-footer {
   margin-top: auto;
   text-align: center;
-  padding: var(--space-6) 0 var(--space-3);
+  /* 页面收尾元素：上方留白需比区块间距(24px)大一档才能脱开带投影的洞察卡，下方留足防贴底 */
+  padding: var(--space-7) 0 var(--space-5);
   /* 版本号是排障信息，需保证可读性：caption 字阶 + secondary 色 */
   font-size: var(--font-size-caption);
   color: var(--text-secondary);
