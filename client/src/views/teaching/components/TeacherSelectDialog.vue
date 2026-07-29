@@ -5,7 +5,7 @@
     title="选择任课教师"
     :width="isMobile ? '95%' : '80%'"
     :style="{ maxWidth: isMobile ? 'none' : '1400px' }"
-    top="8vh"
+    align-center
     destroy-on-close
     class="teacher-dialog"
   >
@@ -30,7 +30,13 @@
       size="small"
       @current-change="onTeacherSelect"
     >
-      <el-table-column prop="name" label="姓名" :width="isMobile ? 65 : 80" />
+      <!-- 手机端无弹性列，姓名改用 min-width 吸收剩余宽度，避免右侧留白 -->
+      <el-table-column
+        prop="name"
+        label="姓名"
+        :width="isMobile ? undefined : 80"
+        :min-width="isMobile ? 65 : undefined"
+      />
       <el-table-column label="人员类别" :width="isMobile ? 72 : 88" align="center">
         <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
       </el-table-column>
@@ -55,7 +61,8 @@
       <el-table-column v-if="!isMobile" label="自定义课时" width="92" align="center">
         <template #default="{ row }">{{ row.defaultWeeklyHours ?? '-' }}</template>
       </el-table-column>
-      <el-table-column label="学科" min-width="3">
+      <!-- 学科列手机端宽度不足以展示 TAG，直接隐藏 -->
+      <el-table-column v-if="!isMobile" label="学科" min-width="3">
         <template #default="{ row }">
           <el-tag
             v-for="c in row.courseList"
@@ -94,7 +101,8 @@
           >
         </template>
       </el-table-column>
-      <el-table-column v-if="!isTablet" label="已用教材" min-width="7">
+      <!-- 已用教材仅桌面端显示（isTablet 仅覆盖 768~991px，需叠加 isMobile 才能排除手机端） -->
+      <el-table-column v-if="!isMobile && !isTablet" label="已用教材" min-width="7">
         <template #default="{ row }">
           <template v-if="uniqueTextbooks(row.assignedTextbooks).length">
             <el-tag
@@ -244,9 +252,6 @@ defineExpose({ open, close });
 </script>
 
 <style scoped>
-:deep(.teacher-dialog) .el-dialog__body {
-  overflow-x: hidden;
-}
 .filter-bar {
   display: flex;
   align-items: center;
@@ -300,5 +305,25 @@ defineExpose({ open, close });
   .search-input {
     width: 180px;
   }
+}
+</style>
+
+<!-- 非 scoped：el-dialog 根节点是 Teleport，scope 属性无法附着到弹窗 DOM，
+     scoped 下的 :deep(.teacher-dialog) 永远不命中；用专属类名限定作用范围防泄漏 -->
+<style>
+/* 弹窗垂直居中（align-center），高度按内容自然撑开，上限留 32px 安全边距；
+   常规视口下 15 行/页可完整展示无内部滚动，
+   仅小视口内容超高时才回退为 body 内部滚动，遮罩层永不出整页滚动条 */
+.el-dialog.teacher-dialog {
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+/* 标题与底部按钮固定，仅教师列表区域滚动 */
+.el-dialog.teacher-dialog .el-dialog__body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 </style>
