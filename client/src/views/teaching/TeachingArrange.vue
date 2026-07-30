@@ -35,7 +35,9 @@
       v-model:selected-course-id="selectedCourseId"
       :current-semester-label="selectedSemester"
       :all-courses="allCourses"
+      :exporting="exporting"
       @course-change="onCourseChange"
+      @export="handleExportArrange"
     />
 
     <!-- 预览区 -->
@@ -44,8 +46,6 @@
       :course-info="courseInfo"
       :teacher-count="teacherList.length"
       :summary="summary"
-      :exporting="exporting"
-      @export="handleExportArrange"
     />
 
     <!-- 内容区：矩阵表 -->
@@ -620,27 +620,28 @@ async function handleReset() {
 }
 
 // --- 导出 ---
-async function handleExportArrange() {
-  if (!selectedCourseId.value || !selectedSemester.value) return;
+// scope: 'current' 导出当前科目（携带筛选条件）；'all' 导出全部科目（全量）
+async function handleExportArrange(scope = 'current') {
+  if (!selectedSemester.value) return;
+  if (scope === 'current' && !selectedCourseId.value) return;
   exporting.value = true;
   try {
-    const params = {
-      courseId: selectedCourseId.value,
-      semester: selectedSemester.value,
-    };
+    const params = { semester: selectedSemester.value };
+    let filename = `教学安排_全部科目_${selectedSemester.value}.xlsx`;
 
-    const f = filters.value;
-    if (f.college) params.college = f.college;
-    if (f.major) params.major = f.major;
-    if (f.trainingLevel) params.trainingLevel = f.trainingLevel;
-    if (f.grade) params.grade = f.grade;
-    if (f.textbook) params.textbook = f.textbook;
+    if (scope === 'current') {
+      params.courseId = selectedCourseId.value;
+      const f = filters.value;
+      if (f.college) params.college = f.college;
+      if (f.major) params.major = f.major;
+      if (f.trainingLevel) params.trainingLevel = f.trainingLevel;
+      if (f.grade) params.grade = f.grade;
+      if (f.textbook) params.textbook = f.textbook;
+      filename = `教学安排_${courseInfo.value?.name || ''}_${selectedSemester.value}.xlsx`;
+    }
 
     const response = await exportTeachingArrange(params);
-    downloadBlob(
-      response,
-      `教学安排_${courseInfo.value?.name || ''}_${selectedSemester.value}.xlsx`
-    );
+    downloadBlob(response, filename);
     ElMessage.success('导出成功');
   } catch (e) {
     if (import.meta.env.DEV) {

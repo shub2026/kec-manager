@@ -20,6 +20,21 @@
               <span class="course-code-hint">{{ c.code }}</span>
             </el-option>
           </el-select>
+          <el-dropdown @command="(command) => emit('export', command)">
+            <el-button :loading="exporting">
+              <el-icon><Download /></el-icon> 导出Excel<el-icon class="el-icon--right"
+                ><ArrowDown
+              /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="current" :disabled="!selectedCourseId">
+                  导出当前科目
+                </el-dropdown-item>
+                <el-dropdown-item command="all">导出全部科目</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </div>
     </template>
@@ -71,9 +86,10 @@ const props = defineProps({
   currentSemesterLabel: { type: String, default: '' },
   allCourses: { type: Array, default: () => [] },
   selectedCourseId: { type: [Number, String], default: null },
+  exporting: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:selectedCourseId', 'course-change']);
+const emit = defineEmits(['update:selectedCourseId', 'course-change', 'export']);
 
 const personnelTypes = [
   { key: 'fullTime', label: '专职' },

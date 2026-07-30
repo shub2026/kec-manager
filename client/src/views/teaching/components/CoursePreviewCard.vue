@@ -6,9 +6,6 @@
           <span class="course-name">{{ courseInfo.name }}</span>
           <el-tag size="small" disable-transitions>{{ courseTypeLabel(courseInfo.type) }}</el-tag>
         </div>
-        <el-button v-if="teacherCount" :loading="exporting" @click="emit('export')">
-          <el-icon><Download /></el-icon> 导出Excel
-        </el-button>
       </div>
     </template>
     <div class="preview-stats">
@@ -46,7 +43,6 @@
 </template>
 
 <script setup>
-import { Download } from '@element-plus/icons-vue';
 defineProps({
   courseInfo: { type: Object, default: null },
   teacherCount: { type: Number, default: 0 },
@@ -60,10 +56,7 @@ defineProps({
       remainingHours: 0,
     }),
   },
-  exporting: { type: Boolean, default: false },
 });
-
-const emit = defineEmits(['export']);
 
 function courseTypeLabel(type) {
   return { public: '公共课', professional: '专业课', elective: '选修课' }[type] || type;

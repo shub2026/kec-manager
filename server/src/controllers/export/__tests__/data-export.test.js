@@ -831,17 +831,21 @@ describe('exportStatistics', () => {
 // exportTeachingArrange
 // ══════════════════════════════════════════════
 describe('exportTeachingArrange', () => {
-  it('缺少 course_id 参数时应返回 400', async () => {
-    const req = makeReq({ query: { semester: '2025-2026-1' } });
-    const res = makeRes();
-
-    await exportTeachingArrange(req, res, vi.fn());
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: false, message: '缺少课程或学期参数' })
-    );
-  });
+  const SINGLE_HEADERS = [
+    '班级名称',
+    '学院',
+    '专业',
+    '培养层次',
+    '入学年份',
+    '年级',
+    '在读学期',
+    '人数',
+    '周课时',
+    '教材',
+    '任课教师',
+    '安排方式',
+    '合班教学',
+  ];
 
   it('缺少 semester 参数时应返回 400', async () => {
     const req = makeReq({ query: { course_id: '1' } });
@@ -850,6 +854,21 @@ describe('exportTeachingArrange', () => {
     await exportTeachingArrange(req, res, vi.fn());
 
     expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, message: '缺少学期参数' })
+    );
+  });
+
+  it('仅缺 course_id 时不再 400，应进入全部科目模式并正常导出', async () => {
+    mocks.coursesFindMany.mockResolvedValue([]);
+
+    const req = makeReq({ query: { semester: '2025-2026-1' } });
+    const res = makeRes();
+
+    await exportTeachingArrange(req, res, vi.fn());
+
+    expect(res.status).not.toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalled();
   });
 
   it('课程不存在时应返回 404', async () => {
@@ -904,6 +923,10 @@ describe('exportTeachingArrange', () => {
     expect(rows[0]['安排方式']).toBe('自动');
     expect(rows[0]['教材']).toBe('数学上册');
     expect(res.send).toHaveBeenCalled();
+
+    // 单科目模式回归：13 列表头顺序逐列断言
+    const headers = mocks.createWorkbook.mock.calls[0][0];
+    expect(headers.map((h) => h.label)).toEqual(SINGLE_HEADERS);
   });
 
   it('未安排教师的班级应显示"未安排"', async () => {
@@ -949,6 +972,119 @@ describe('exportTeachingArrange', () => {
     expect(mocks.createAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({ result: 'failed' })
     );
+  });
+
+  describe('全部科目模式（缺省 course_id）', () => {
+    function mockTwoCourses() {
+      mocks.coursesFindMany.mockResolvedValue([
+        { id: 1, name: '数学' },
+        { id: 2, name: '英语' },
+      ]);
+      // 一次性查询该学期全部安排（含 course_id）
+      mocks.teachingAssignmentsFindMany.mockResolvedValue([
+        {
+          course_id: 1,
+          class_id: 10,
+          teacher: { id: 1, name: '王老师', personnel_type: 'full_time' },
+          is_auto: true,
+        },
+        {
+          course_id: 2,
+          class_id: 20,
+          teacher: { id: 2, name: '李老师', personnel_type: 'part_time' },
+          is_auto: false,
+        },
+      ]);
+      mocks.getClassesWithCourse.mockImplementation(async (courseId) =>
+        Number(courseId) === 1
+          ? [
+              {
+                classId: 10,
+                className: '班级A',
+                collegeName: '教育学院',
+                majorName: '学前教育',
+                trainingLevelName: '大专',
+                enrollmentYear: 2024,
+                grade: 2,
+                currentSemester: 2,
+                studentCount: 40,
+                weeklyHours: 4,
+                textbooks: [{ title: '数学上册' }],
+                combinationId: null,
+              },
+            ]
+          : [
+              {
+                classId: 20,
+                className: '班级B',
+                collegeName: '外国语学院',
+                majorName: '商务英语',
+                trainingLevelName: '本科',
+                enrollmentYear: 2023,
+                grade: 3,
+                currentSemester: 5,
+                studentCount: 35,
+                weeklyHours: 2,
+                textbooks: [{ title: '英语精读' }],
+                combinationId: null,
+              },
+            ]
+      );
+      mocks.buildCombinationMemberMap.mockResolvedValue(new Map());
+    }
+
+    it('表头应为 14 列且首列为科目，逐列顺序断言', async () => {
+      mockTwoCourses();
+
+      const req = makeReq({ query: { semester: '2025-2026-1' } });
+      const res = makeRes();
+      await exportTeachingArrange(req, res, vi.fn());
+
+      const headers = mocks.createWorkbook.mock.calls[0][0];
+      expect(headers.map((h) => h.label)).toEqual(['科目', ...SINGLE_HEADERS]);
+    });
+
+    it('应合并多课程数据且每行科目取值正确', async () => {
+      mockTwoCourses();
+
+      const req = makeReq({ query: { semester: '2025-2026-1' } });
+      const res = makeRes();
+      await exportTeachingArrange(req, res, vi.fn());
+
+      const rows = mocks.createWorkbook.mock.calls[0][1];
+      expect(rows).toHaveLength(2);
+      expect(rows[0]['科目']).toBe('数学');
+      expect(rows[0]['班级名称']).toBe('班级A');
+      expect(rows[0]['任课教师']).toBe('王老师');
+      expect(rows[0]['安排方式']).toBe('自动');
+      expect(rows[1]['科目']).toBe('英语');
+      expect(rows[1]['班级名称']).toBe('班级B');
+      expect(rows[1]['任课教师']).toBe('李老师');
+      expect(rows[1]['安排方式']).toBe('手动');
+
+      // 逐课程拉取班级，且不应用筛选条件（全量导出）
+      expect(mocks.getClassesWithCourse).toHaveBeenCalledWith(1, '2025-2026-1', {});
+      expect(mocks.getClassesWithCourse).toHaveBeenCalledWith(2, '2025-2026-1', {});
+    });
+
+    it('文件名应为 教学安排_全部科目_{semester}.xlsx 且审计记录 scope/courseCount', async () => {
+      mockTwoCourses();
+
+      const req = makeReq({ query: { semester: '2025-2026-1' } });
+      const res = makeRes();
+      await exportTeachingArrange(req, res, vi.fn());
+
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        expect.stringContaining(encodeURIComponent('教学安排_全部科目_2025-2026-1.xlsx'))
+      );
+      expect(mocks.createAuditLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          result: 'success',
+          details: expect.objectContaining({ scope: 'all', courseCount: 2, rowCount: 2 }),
+        })
+      );
+    });
   });
 });
 

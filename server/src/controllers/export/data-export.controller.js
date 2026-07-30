@@ -834,109 +834,175 @@ export async function exportStatistics(req, res, next) {
   }
 }
 
+// 教学安排导出基础表头（13 列，顺序须与前端表格列展示顺序严格一致）
+const ARRANGE_EXPORT_HEADERS = [
+  { label: '班级名称', key: '班级名称', width: 25 },
+  { label: '学院', key: '学院', width: 15 },
+  { label: '专业', key: '专业', width: 15 },
+  { label: '培养层次', key: '培养层次', width: 12 },
+  { label: '入学年份', key: '入学年份', width: 10 },
+  { label: '年级', key: '年级', width: 8 },
+  { label: '在读学期', key: '在读学期', width: 10 },
+  { label: '人数', key: '人数', width: 8 },
+  { label: '周课时', key: '周课时', width: 8 },
+  { label: '教材', key: '教材', width: 30 },
+  { label: '任课教师', key: '任课教师', width: 12 },
+  { label: '安排方式', key: '安排方式', width: 10 },
+  { label: '合班教学', key: '合班教学', width: 25 },
+];
+
 /**
- * 导出教学安排数据（某课程某学期的班级-教师安排表）
+ * 拼装某课程的教学安排导出行（单科目与全部科目模式复用）
+ * @param {object} course - 课程记录
+ * @param {string} semester - 学期
+ * @param {object} filters - 班级筛选条件（college/major/training_level/grade）
+ * @param {string|undefined} textbook - 教材名称筛选
+ * @param {Map} assignmentMap - 该课程 class_id → assignment 映射
+ * @returns {Promise<Array<object>>} 13 列导出行
+ */
+async function buildArrangeRows(course, semester, filters, textbook, assignmentMap) {
+  // 获取班级列表（含课时、学院等信息）
+  const classes = await getClassesWithCourse(course.id, semester, filters);
+
+  // 过滤班级数据（包括教材筛选）
+  let filteredClasses = classes;
+  if (textbook) {
+    filteredClasses = classes.filter((c) => c.textbooks?.some((tb) => tb.title === textbook));
+  }
+
+  // 预加载合班成员映射，用于导出合班伙伴名称
+  const combinationIds = filteredClasses.map((c) => c.combinationId).filter((id) => id != null);
+  const combinationMemberMap = await buildCombinationMemberMap(combinationIds);
+
+  return filteredClasses.map((c) => {
+    const a = assignmentMap.get(c.classId);
+    const textbookNames = c.textbooks?.map((tb) => tb.title).join('、') || '-';
+    // 合班伙伴名称（不含自身）
+    const members = combinationMemberMap.get(c.combinationId) || [];
+    const partnerClasses = members.filter((m) => m.id !== c.classId);
+    const combinationText =
+      c.combinationId != null ? formatPartnerNames(partnerClasses) || '是' : '';
+    return {
+      班级名称: c.className,
+      学院: c.collegeName || '-',
+      专业: c.majorName || '-',
+      培养层次: c.trainingLevelName || '-',
+      入学年份: c.enrollmentYear,
+      年级: c.grade,
+      在读学期: `第${c.currentSemester}学期`,
+      人数: Number(c.studentCount) || 0,
+      周课时: c.weeklyHours,
+      教材: textbookNames,
+      任课教师: a?.teacher?.name || '未安排',
+      安排方式: a ? (a.is_auto ? '自动' : '手动') : '-',
+      合班教学: combinationText,
+    };
+  });
+}
+
+/**
+ * 导出教学安排数据（某学期的班级-教师安排表）
+ * course_id 传入时导出单科目（13 列），缺省时导出全部科目（行首增加"科目"列，14 列）
  */
 export async function exportTeachingArrange(req, res, next) {
   try {
     const { course_id, semester, college, major, training_level, grade, textbook } = req.query;
-    if (!course_id || !semester) {
-      return res.status(400).json({ success: false, message: '缺少课程或学期参数' });
+    if (!semester) {
+      return res.status(400).json({ success: false, message: '缺少学期参数' });
     }
 
-    // 获取课程信息
-    const course = await prisma.courses.findUnique({ where: { id: Number(course_id) } });
-    if (!course) return res.status(404).json({ success: false, message: '课程不存在' });
+    let headers;
+    let rows;
+    let filename;
+    let auditDetails;
+    let auditMessage;
 
-    // 构建筛选条件
-    const filters = {};
-    if (college) filters.college = college;
-    if (major) filters.major = major;
-    if (training_level) filters.training_level = training_level;
-    if (grade) filters.grade = grade;
+    if (course_id) {
+      // ── 单科目模式 ──
+      const course = await prisma.courses.findUnique({ where: { id: Number(course_id) } });
+      if (!course) return res.status(404).json({ success: false, message: '课程不存在' });
 
-    // 获取班级列表（含课时、学院等信息）
-    const classes = await getClassesWithCourse(course_id, semester, filters);
+      // 构建筛选条件
+      const filters = {};
+      if (college) filters.college = college;
+      if (major) filters.major = major;
+      if (training_level) filters.training_level = training_level;
+      if (grade) filters.grade = grade;
 
-    // 获取教学安排
-    const assignments = await prisma.teaching_assignments.findMany({
-      where: { course_id: Number(course_id), semester },
-      include: {
-        teacher: { select: { id: true, name: true, personnel_type: true } },
-      },
-    });
-    const assignmentMap = new Map(assignments.map((a) => [a.class_id, a]));
+      // 获取教学安排
+      const assignments = await prisma.teaching_assignments.findMany({
+        where: { course_id: Number(course_id), semester },
+        include: {
+          teacher: { select: { id: true, name: true, personnel_type: true } },
+        },
+      });
+      const assignmentMap = new Map(assignments.map((a) => [a.class_id, a]));
 
-    // 过滤班级数据（包括教材筛选）
-    let filteredClasses = classes;
-    if (textbook) {
-      filteredClasses = classes.filter((c) => c.textbooks?.some((tb) => tb.title === textbook));
-    }
-
-    // 预加载合班成员映射，用于导出合班伙伴名称
-    const teachCombinationIds = filteredClasses
-      .map((c) => c.combinationId)
-      .filter((id) => id != null);
-    const teachCombinationMemberMap = await buildCombinationMemberMap(teachCombinationIds);
-
-    const rows = filteredClasses.map((c) => {
-      const a = assignmentMap.get(c.classId);
-      const textbookNames = c.textbooks?.map((tb) => tb.title).join('、') || '-';
-      // 合班伙伴名称（不含自身）
-      const members = teachCombinationMemberMap.get(c.combinationId) || [];
-      const partnerClasses = members.filter((m) => m.id !== c.classId);
-      const combinationText =
-        c.combinationId != null ? formatPartnerNames(partnerClasses) || '是' : '';
-      return {
-        班级名称: c.className,
-        学院: c.collegeName || '-',
-        专业: c.majorName || '-',
-        培养层次: c.trainingLevelName || '-',
-        入学年份: c.enrollmentYear,
-        年级: c.grade,
-        在读学期: `第${c.currentSemester}学期`,
-        人数: Number(c.studentCount) || 0,
-        周课时: c.weeklyHours,
-        教材: textbookNames,
-        任课教师: a?.teacher?.name || '未安排',
-        安排方式: a ? (a.is_auto ? '自动' : '手动') : '-',
-        合班教学: combinationText,
+      rows = await buildArrangeRows(course, semester, filters, textbook, assignmentMap);
+      headers = ARRANGE_EXPORT_HEADERS;
+      filename = `教学安排_${course.name}_${semester}.xlsx`;
+      auditDetails = {
+        course_id: Number(course_id),
+        course_name: course.name,
+        semester,
+        rowCount: rows.length,
       };
-    });
+      auditMessage = `导出教学安排(${course.name}, ${semester})，共${rows.length}条记录`;
+    } else {
+      // ── 全部科目模式：不应用筛选条件，导出该学期全量数据 ──
+      const courses = await prisma.courses.findMany({ orderBy: { id: 'asc' } });
 
-    const headers = [
-      { label: '班级名称', key: '班级名称', width: 25 },
-      { label: '学院', key: '学院', width: 15 },
-      { label: '专业', key: '专业', width: 15 },
-      { label: '培养层次', key: '培养层次', width: 12 },
-      { label: '入学年份', key: '入学年份', width: 10 },
-      { label: '年级', key: '年级', width: 8 },
-      { label: '在读学期', key: '在读学期', width: 10 },
-      { label: '人数', key: '人数', width: 8 },
-      { label: '周课时', key: '周课时', width: 8 },
-      { label: '教材', key: '教材', width: 30 },
-      { label: '任课教师', key: '任课教师', width: 12 },
-      { label: '安排方式', key: '安排方式', width: 10 },
-      { label: '合班教学', key: '合班教学', width: 25 },
-    ];
+      // 一次性查询该学期全部教学安排，按课程分组建映射，避免逐课程查询
+      const assignments = await prisma.teaching_assignments.findMany({
+        where: { semester },
+        include: {
+          teacher: { select: { id: true, name: true, personnel_type: true } },
+        },
+      });
+      const courseAssignmentMaps = new Map();
+      for (const a of assignments) {
+        if (!courseAssignmentMaps.has(a.course_id)) {
+          courseAssignmentMaps.set(a.course_id, new Map());
+        }
+        courseAssignmentMaps.get(a.course_id).set(a.class_id, a);
+      }
+
+      rows = [];
+      for (const course of courses) {
+        const courseRows = await buildArrangeRows(
+          course,
+          semester,
+          {},
+          undefined,
+          courseAssignmentMaps.get(course.id) || new Map()
+        );
+        for (const row of courseRows) {
+          rows.push({ 科目: course.name, ...row });
+        }
+      }
+
+      headers = [{ label: '科目', key: '科目', width: 20 }, ...ARRANGE_EXPORT_HEADERS];
+      filename = `教学安排_全部科目_${semester}.xlsx`;
+      auditDetails = {
+        scope: 'all',
+        semester,
+        courseCount: courses.length,
+        rowCount: rows.length,
+      };
+      auditMessage = `导出教学安排(全部科目, ${semester})，共${rows.length}条记录`;
+    }
 
     const workbook = await createWorkbook(headers, rows);
     const buffer = await workbookToBuffer(workbook);
-    const filename = `教学安排_${course.name}_${semester}.xlsx`;
 
     await createAuditLog({
       action: 'export',
       module: 'teachingArrange',
       userId: req.user?.id,
       ip: req.ip,
-      details: {
-        course_id: Number(course_id),
-        course_name: course.name,
-        semester,
-        rowCount: rows.length,
-      },
+      details: auditDetails,
       result: 'success',
-      message: `导出教学安排(${course.name}, ${semester})，共${rows.length}条记录`,
+      message: auditMessage,
     });
 
     res.setHeader(
