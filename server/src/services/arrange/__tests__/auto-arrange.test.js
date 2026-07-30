@@ -1305,7 +1305,13 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       const classTextbookMap = new Map();
 
       placeClassOnTeacher(
-        cls, t, assignments, assignmentsByTeacher, 1, '2025-2026-2', classTextbookMap
+        cls,
+        t,
+        assignments,
+        assignmentsByTeacher,
+        1,
+        '2025-2026-2',
+        classTextbookMap
       );
 
       expect(assignments).toHaveLength(1);
@@ -1324,9 +1330,7 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       const assignments = [];
       const assignmentsByTeacher = new Map();
 
-      placeClassOnTeacher(
-        cls, t, assignments, assignmentsByTeacher, 1, '2025-2026-2', new Map()
-      );
+      placeClassOnTeacher(cls, t, assignments, assignmentsByTeacher, 1, '2025-2026-2', new Map());
 
       expect(assignments[0].memberClassIds).toBeNull();
     });
@@ -1341,9 +1345,7 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       const t = makeTeacher();
       const assignments = [];
 
-      placeClassOnTeacher(
-        cls, t, assignments, new Map(), 1, '2025-2026-2', new Map()
-      );
+      placeClassOnTeacher(cls, t, assignments, new Map(), 1, '2025-2026-2', new Map());
 
       // 展开后应得到两条记录（每个成员班一条）
       const expanded = expandCombinedAssignments(assignments);
@@ -1361,35 +1363,49 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       // trySwapOne 失败后进入 tryPlaceClass 递归置换
       // T1 驱逐 A → A 找到 T2 接管 → T1 接纳 U → U 的 memberClassIds 应保留
       const t1 = {
-        id: 1, name: '老师1',
-        totalWeeklyHours: 20, assignedHours: 4,
+        id: 1,
+        name: '老师1',
+        totalWeeklyHours: 20,
+        assignedHours: 4,
         assignedTextbookIds: new Set(),
-        collegeRestrictions: null, levelRestrictions: null,
+        collegeRestrictions: null,
+        levelRestrictions: null,
         maxTextbooks: 2,
       };
       const t2 = {
-        id: 2, name: '老师2',
-        totalWeeklyHours: 20, assignedHours: 0,
+        id: 2,
+        name: '老师2',
+        totalWeeklyHours: 20,
+        assignedHours: 0,
         assignedTextbookIds: new Set(),
-        collegeRestrictions: null, levelRestrictions: null,
+        collegeRestrictions: null,
+        levelRestrictions: null,
         maxTextbooks: 2,
       };
 
       const existingAssign = {
-        teacher_id: 1, teacher_name: '老师1',
-        class_id: 100, class_name: '已分配班',
-        course_id: 1, semester: '2025-2026-2',
-        weekly_hours: 4, is_auto: true,
+        teacher_id: 1,
+        teacher_name: '老师1',
+        class_id: 100,
+        class_name: '已分配班',
+        course_id: 1,
+        semester: '2025-2026-2',
+        weekly_hours: 4,
+        is_auto: true,
       };
 
       const assignments = [existingAssign];
       const teacherConstraints = [t1, t2];
 
-      const unassigned = [{
-        classId: 10, className: '合班A+B',
-        weeklyHours: 4, textbookIds: [],
-        memberClassIds: [10, 11], // 合班
-      }];
+      const unassigned = [
+        {
+          classId: 10,
+          className: '合班A+B',
+          weeklyHours: 4,
+          textbookIds: [],
+          memberClassIds: [10, 11], // 合班
+        },
+      ];
 
       const classTextbookMap = new Map();
       const classInfoMap = new Map([
@@ -1399,13 +1415,19 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       ]);
 
       trySwapUnassigned(
-        unassigned, assignments, teacherConstraints,
-        'full', 1, '2025-2026-2', classTextbookMap, classInfoMap
+        unassigned,
+        assignments,
+        teacherConstraints,
+        'full',
+        1,
+        '2025-2026-2',
+        classTextbookMap,
+        classInfoMap
       );
 
       // 如果递归置换成功，unassigned 应为空（合班被成功分配）
       // 检查 assignments 中合班记录的 memberClassIds
-      const combinedAssigns = assignments.filter(a => a.class_id === 10);
+      const combinedAssigns = assignments.filter((a) => a.class_id === 10);
       if (combinedAssigns.length > 0) {
         expect(combinedAssigns[0].memberClassIds).toEqual([10, 11]);
       }
@@ -1422,26 +1444,53 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       // 场景：1 个教师 cap=10，已分配 2 个班 (4h+4h=8h)，尝试为第 3 个班 (4h) 置换
       // 驱逐 → 递归为被驱逐班级找新家 → 不应放回同一教师（否则容量不变，后续放置会溢出）
       const t1 = {
-        id: 1, name: '唯一教师',
-        assignedHours: 8, standardCap: 10, fullCap: 14,
-        defaultWeeklyHours: null, effectiveTotal: 0,
-        schedulingCollegeIds: null, schedulingLevelIds: null,
+        id: 1,
+        name: '唯一教师',
+        assignedHours: 8,
+        standardCap: 10,
+        fullCap: 14,
+        defaultWeeklyHours: null,
+        effectiveTotal: 0,
+        schedulingCollegeIds: null,
+        schedulingLevelIds: null,
         assignedTextbookIds: new Set([205]),
-        textbookIds: [205], inherentTextbookIds: [205],
+        textbookIds: [205],
+        inherentTextbookIds: [205],
         assignedCollegeIds: new Set([1]),
-        collegeRestrictions: null, levelRestrictions: null,
+        collegeRestrictions: null,
+        levelRestrictions: null,
         maxTextbooks: 2,
       };
 
-      const a1 = { teacher_id: 1, teacher_name: '唯一教师', class_id: 100, class_name: '班A', course_id: 1, semester: 's', weekly_hours: 4, is_auto: true };
-      const a2 = { teacher_id: 1, teacher_name: '唯一教师', class_id: 101, class_name: '班B', course_id: 1, semester: 's', weekly_hours: 4, is_auto: true };
+      const a1 = {
+        teacher_id: 1,
+        teacher_name: '唯一教师',
+        class_id: 100,
+        class_name: '班A',
+        course_id: 1,
+        semester: 's',
+        weekly_hours: 4,
+        is_auto: true,
+      };
+      const a2 = {
+        teacher_id: 1,
+        teacher_name: '唯一教师',
+        class_id: 101,
+        class_name: '班B',
+        course_id: 1,
+        semester: 's',
+        weekly_hours: 4,
+        is_auto: true,
+      };
       const assignments = [a1, a2];
       const assignmentsByTeacher = new Map([[1, [a1, a2]]]);
       const teacherConstraints = [t1];
 
       const newCls = { classId: 200, className: '班C', weeklyHours: 4, textbookIds: [204] };
       const classTextbookMap = new Map([
-        [100, [205]], [101, [205]], [200, [204]],
+        [100, [205]],
+        [101, [205]],
+        [200, [204]],
       ]);
       const classInfoMap = new Map([
         [100, { collegeId: 1, trainingLevelId: 1 }],
@@ -1450,10 +1499,17 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       ]);
 
       const result = tryPlaceClass(
-        newCls, assignments, assignmentsByTeacher,
-        teacherConstraints, 'standard', 1, 's',
-        classTextbookMap, classInfoMap,
-        0, new Set()
+        newCls,
+        assignments,
+        assignmentsByTeacher,
+        teacherConstraints,
+        'standard',
+        1,
+        's',
+        classTextbookMap,
+        classInfoMap,
+        0,
+        new Set()
       );
 
       // 驱逐→放回同一教师不应成功（只有 1 个教师，被驱逐的班级无处可去）
@@ -1477,9 +1533,27 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
 
       // 模拟 currentAutoAssignments 查询结果（含 course_id 和 class_id）
       const assignments = [
-        { teacher_id: 11, course_id: 2, class_id: 500, weekly_hours: 4, class: { combination_id: null } },
-        { teacher_id: 11, course_id: 2, class_id: 574, weekly_hours: 4, class: { combination_id: null } },
-        { teacher_id: 11, course_id: 2, class_id: 535, weekly_hours: 4, class: { combination_id: null } },
+        {
+          teacher_id: 11,
+          course_id: 2,
+          class_id: 500,
+          weekly_hours: 4,
+          class: { combination_id: null },
+        },
+        {
+          teacher_id: 11,
+          course_id: 2,
+          class_id: 574,
+          weekly_hours: 4,
+          class: { combination_id: null },
+        },
+        {
+          teacher_id: 11,
+          course_id: 2,
+          class_id: 535,
+          weekly_hours: 4,
+          class: { combination_id: null },
+        },
       ];
 
       const units = dedupeTeachingUnits(assignments);
@@ -1500,8 +1574,20 @@ describe('合班 memberClassIds 传递（递归置换路径）', () => {
       const { dedupeTeachingUnits } = await import('../../teaching-statistics.service.js');
 
       const assignments = [
-        { teacher_id: 30, course_id: 2, class_id: 601, weekly_hours: 4, class: { combination_id: 10 } },
-        { teacher_id: 30, course_id: 2, class_id: 602, weekly_hours: 4, class: { combination_id: 10 } },
+        {
+          teacher_id: 30,
+          course_id: 2,
+          class_id: 601,
+          weekly_hours: 4,
+          class: { combination_id: 10 },
+        },
+        {
+          teacher_id: 30,
+          course_id: 2,
+          class_id: 602,
+          weekly_hours: 4,
+          class: { combination_id: 10 },
+        },
       ];
 
       const units = dedupeTeachingUnits(assignments);
@@ -1521,10 +1607,14 @@ describe('buildGroupAvailable - 教材组按需求量降序遍历', () => {
     // 小组先插入（1 个班 4h），大组后插入（6 个班 24h）
     const textbookGroups = new Map();
     textbookGroups.set('small', [mkClass(1, 4)]);
-    textbookGroups.set(
-      'big',
-      [mkClass(2, 4), mkClass(3, 4), mkClass(4, 4), mkClass(5, 4), mkClass(6, 4), mkClass(7, 4)]
-    );
+    textbookGroups.set('big', [
+      mkClass(2, 4),
+      mkClass(3, 4),
+      mkClass(4, 4),
+      mkClass(5, 4),
+      mkClass(6, 4),
+      mkClass(7, 4),
+    ]);
 
     const groupAvailable = buildGroupAvailable(textbookGroups);
     const keys = [...groupAvailable.keys()];

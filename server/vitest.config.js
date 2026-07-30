@@ -17,12 +17,12 @@ export default defineConfig({
         'src/utils/logger.js',
       ],
       // 覆盖率门槛：以当前基线设地板值，低于即失败
-      // P1 补测后基线已提升，后续随测试补强逐步抬升
+      // 2026-07 基线 80.95/70.22/79.84/82.55，留少量余量防抖动，随测试补强逐步抬升
       thresholds: {
-        statements: 17,
-        branches: 14,
-        functions: 16,
-        lines: 17,
+        statements: 78,
+        branches: 67,
+        functions: 76,
+        lines: 80,
       },
     },
   },

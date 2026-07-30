@@ -74,8 +74,7 @@ vi.mock('../../utils/logger.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块
 // ──────────────────────────────────────────────
-const { batchDeleteClasses, batchUpdateClasses } =
-  await import('../class.controller.js');
+const { batchDeleteClasses, batchUpdateClasses } = await import('../class.controller.js');
 const { getActiveClassFilter, invalidateDurationCache } =
   await import('../../services/class.service.js');
 const { createAuditLog } = await import('../../services/audit.service.js');

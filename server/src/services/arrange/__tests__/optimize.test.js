@@ -142,9 +142,7 @@ describe('Optimize Service', () => {
       const { prisma } = await import('../../../lib/prisma.js');
       prisma.teaching_assignments.findMany.mockResolvedValue([]);
 
-      await expect(runOptimizeSchedule(1, 'standard')).rejects.toThrow(
-        '没有可优化的自动排课记录'
-      );
+      await expect(runOptimizeSchedule(1, 'standard')).rejects.toThrow('没有可优化的自动排课记录');
     });
 
     it('should run optimization and return before/after metrics', async () => {
@@ -344,9 +342,7 @@ describe('Optimize Service', () => {
 
       prisma.$transaction.mockRejectedValue(new Error('Transaction failed'));
 
-      await expect(applyOptimizeResult(1, changes, 1)).rejects.toThrow(
-        '应用优化结果失败'
-      );
+      await expect(applyOptimizeResult(1, changes, 1)).rejects.toThrow('应用优化结果失败');
     });
 
     // OL4 修复：预览后数据变动时 where 匹配不到，appliedChanges 应报实际更新数而非请求数
@@ -392,9 +388,7 @@ describe('Optimize Service', () => {
       const { prisma } = await import('../../../lib/prisma.js');
       const { tabuOptimize } = await import('../tabu-search.js');
 
-      const mockAssignments = Array.from({ length: 4 }, (_, i) =>
-        mockAssignment(i + 1, 1, 1)
-      );
+      const mockAssignments = Array.from({ length: 4 }, (_, i) => mockAssignment(i + 1, 1, 1));
 
       mockAssignmentQueries(prisma, mockAssignments);
       prisma.teachers.findMany.mockResolvedValue([
@@ -440,10 +434,7 @@ describe('Optimize Service', () => {
       const { tabuOptimize } = await import('../tabu-search.js');
 
       // 2 门课程，每门 2 个班级
-      const mockAssignments = [
-        mockAssignment(1, 1, 1),
-        mockAssignment(2, 2, 2),
-      ];
+      const mockAssignments = [mockAssignment(1, 1, 1), mockAssignment(2, 2, 2)];
 
       mockAssignmentQueries(prisma, mockAssignments);
       prisma.teachers.findMany.mockResolvedValue([
@@ -527,9 +518,23 @@ describe('Optimize Service', () => {
             for (const a of assignments) {
               if (a.class_id === 2) a.teacher_id = 1;
             }
-            return { improved: true, iterations: 5, scoreBefore: 0, scoreAfter: 10, delta: 10, elapsed: 10 };
+            return {
+              improved: true,
+              iterations: 5,
+              scoreBefore: 0,
+              scoreAfter: 10,
+              delta: 10,
+              elapsed: 10,
+            };
           }
-          return { improved: false, iterations: 0, scoreBefore: 0, scoreAfter: 0, delta: 0, elapsed: 10 };
+          return {
+            improved: false,
+            iterations: 0,
+            scoreBefore: 0,
+            scoreAfter: 0,
+            delta: 0,
+            elapsed: 10,
+          };
         }
       );
 
@@ -572,7 +577,14 @@ describe('Optimize Service', () => {
             courseId: Number(courseId),
             caps: new Map(teacherConstraints.map((t) => [t.id, t.standardCap])),
           });
-          return { improved: false, iterations: 0, scoreBefore: 0, scoreAfter: 0, delta: 0, elapsed: 10 };
+          return {
+            improved: false,
+            iterations: 0,
+            scoreBefore: 0,
+            scoreAfter: 0,
+            delta: 0,
+            elapsed: 10,
+          };
         }
       );
 
@@ -641,10 +653,7 @@ describe('Optimize Service', () => {
       const { calcMatchScore } = await import('../auto-arrange.js');
 
       // 2 教师 2 班级，全给教师1 → 教师2 欠分配导致 before.score 为负
-      const mockAssignments = [
-        mockAssignment(1, 1, 1),
-        mockAssignment(2, 1, 1),
-      ];
+      const mockAssignments = [mockAssignment(1, 1, 1), mockAssignment(2, 1, 1)];
 
       mockAssignmentQueries(prisma, mockAssignments);
       prisma.teachers.findMany.mockResolvedValue([
@@ -712,7 +721,12 @@ describe('Optimize Service', () => {
       tabuOptimize.mockImplementation((assignments, unassigned, teacherConstraints) => {
         capturedConstraints = capturedConstraints || teacherConstraints;
         return {
-          improved: false, iterations: 0, scoreBefore: 0, scoreAfter: 0, delta: 0, elapsed: 10,
+          improved: false,
+          iterations: 0,
+          scoreBefore: 0,
+          scoreAfter: 0,
+          delta: 0,
+          elapsed: 10,
         };
       });
 
@@ -754,7 +768,12 @@ describe('Optimize Service', () => {
       tabuOptimize.mockImplementation((assignments, unassigned, teacherConstraints) => {
         capturedConstraints = teacherConstraints;
         return {
-          improved: false, iterations: 0, scoreBefore: 0, scoreAfter: 0, delta: 0, elapsed: 10,
+          improved: false,
+          iterations: 0,
+          scoreBefore: 0,
+          scoreAfter: 0,
+          delta: 0,
+          elapsed: 10,
         };
       });
 
@@ -803,7 +822,12 @@ describe('Optimize Service', () => {
       tabuOptimize.mockImplementation((assignments, unassigned, teacherConstraints) => {
         capturedConstraints = teacherConstraints;
         return {
-          improved: false, iterations: 0, scoreBefore: 0, scoreAfter: 0, delta: 0, elapsed: 10,
+          improved: false,
+          iterations: 0,
+          scoreBefore: 0,
+          scoreAfter: 0,
+          delta: 0,
+          elapsed: 10,
         };
       });
 

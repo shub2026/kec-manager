@@ -239,7 +239,10 @@ describe('batchAutoArrange', () => {
         [20, 10],
       ]);
       setupTeacherCourses([
-        [101, 1], [102, 1], [103, 1], [104, 1],
+        [101, 1],
+        [102, 1],
+        [103, 1],
+        [104, 1],
         [201, 2],
       ]);
       teachersFindMany.mockResolvedValue([
@@ -277,7 +280,9 @@ describe('batchAutoArrange', () => {
         [20, 10],
       ]);
       setupTeacherCourses([
-        [101, 1], [102, 1], [103, 1],
+        [101, 1],
+        [102, 1],
+        [103, 1],
       ]);
       teachersFindMany.mockResolvedValue([
         { id: 101, personnel_type: 'full_time', default_weekly_hours: null },
@@ -306,9 +311,7 @@ describe('batchAutoArrange', () => {
         [20, 2],
       ]);
       setupDemands([]);
-      setupTeacherCourses([
-        [201, 2],
-      ]);
+      setupTeacherCourses([[201, 2]]);
       teachersFindMany.mockResolvedValue([
         { id: 201, personnel_type: 'full_time', default_weekly_hours: null },
       ]);

@@ -370,7 +370,9 @@
           <div class="login-card-header">
             <span class="card-logo" aria-hidden="true">K</span>
             <h2 class="form-title">{{ organizationName }}</h2>
-            <p class="form-subtitle">登录进入 <span class="form-subtitle__logo">KEC</span> 课程管理平台</p>
+            <p class="form-subtitle">
+              登录进入 <span class="form-subtitle__logo">KEC</span> 课程管理平台
+            </p>
           </div>
 
           <el-form

@@ -118,16 +118,17 @@ export async function batchAutoArrange(
     for (const tids of courseTeacherMap.values()) for (const tid of tids) allTeacherIds.add(tid);
 
     // 一次性拉取所有相关教师的类型、自定义课时上限、本学期已排课时
-    const teacherInfoRows = allTeacherIds.size > 0
-      ? await prisma.teachers.findMany({
-          where: { id: { in: [...allTeacherIds] } },
-          select: {
-            id: true,
-            personnel_type: true,
-            default_weekly_hours: true,
-          },
-        })
-      : [];
+    const teacherInfoRows =
+      allTeacherIds.size > 0
+        ? await prisma.teachers.findMany({
+            where: { id: { in: [...allTeacherIds] } },
+            select: {
+              id: true,
+              personnel_type: true,
+              default_weekly_hours: true,
+            },
+          })
+        : [];
     const teacherInfoMap = new Map(teacherInfoRows.map((t) => [t.id, t]));
 
     // 按教师聚合本学期已排课时（跨课程，去重合班）
@@ -136,7 +137,9 @@ export async function batchAutoArrange(
       where: { semester: semesterStr, teacher_id: { in: [...allTeacherIds] } },
       _sum: { weekly_hours: true },
     });
-    const workloadMap = new Map(workloadByTeacher.map((r) => [r.teacher_id, r._sum.weekly_hours || 0]));
+    const workloadMap = new Map(
+      workloadByTeacher.map((r) => [r.teacher_id, r._sum.weekly_hours || 0])
+    );
 
     // 预计算每位教师的实际剩余 standardCap（考虑 personnelType / defaultWeeklyHours / 既有负载）
     const teacherRemainingCap = new Map();
@@ -169,11 +172,8 @@ export async function batchAutoArrange(
     const coursePriorities = courses.map((course) => {
       const demand = courseDemandMap.get(course.id) || 0;
       const supplyCapacity = courseSupplyMap.get(course.id) || 0;
-      const supplyDemandRatio = supplyCapacity > 0
-        ? demand / supplyCapacity
-        : demand > 0
-          ? Number.MAX_SAFE_INTEGER
-          : 0;
+      const supplyDemandRatio =
+        supplyCapacity > 0 ? demand / supplyCapacity : demand > 0 ? Number.MAX_SAFE_INTEGER : 0;
       return { courseId: course.id, courseName: course.name, priority: supplyDemandRatio };
     });
 

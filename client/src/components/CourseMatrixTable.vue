@@ -531,6 +531,12 @@ function cellClass(course, semester) {
   opacity: 0.4;
 }
 
+/* EP 相邻按钮默认 margin-left:12px 会与 flex gap 叠加，
+   窄列换行时行宽计算溢出导致断裂布局，间距统一交给 gap 控制 */
+.action-buttons .el-button + .el-button {
+  margin-left: 0;
+}
+
 .matrix-action-cell .el-button {
   padding: var(--space-1) var(--space-2);
 }
@@ -666,8 +672,18 @@ function cellClass(course, semester) {
     width: 52px;
   }
 
+  /* 操作列:收窄为 2×2 图标网格,减少横向滚动距离且避免按钮溢出断行 */
   .matrix-action-header {
-    width: 116px;
+    width: 72px;
+  }
+
+  .action-buttons {
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: center;
+    /* 2 个按钮 + 间距的宽度,确保每行恰好 2 个 */
+    max-width: 60px;
+    margin: 0 auto;
   }
 
   .matrix-cell {
@@ -692,11 +708,7 @@ function cellClass(course, semester) {
     transform-origin: left center;
   }
 
-  /* 操作列:4 按钮紧凑排列,缩小内边距 */
-  .action-buttons {
-    gap: 3px;
-  }
-
+  /* 操作列按钮缩小内边距 */
   .matrix-action-cell .el-button {
     padding: 3px 6px;
   }
@@ -727,20 +739,6 @@ function cellClass(course, semester) {
   .matrix-grand-total-label {
     padding: var(--space-1) var(--space-2);
     font-size: 12px;
-  }
-}
-
-/* 小屏手机（≤480px）：操作列改为两行两列,避免横向溢出 */
-@media (max-width: 480px) {
-  .matrix-action-header {
-    width: 84px;
-  }
-
-  /* ≤480px 下恢复 2×2 换行：max-width 取 2 个按钮+间距的宽度，确保每行恰好 2 个 */
-  .action-buttons {
-    flex-wrap: wrap;
-    justify-content: center;
-    max-width: 72px;
   }
 }
 </style>

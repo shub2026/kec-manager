@@ -21,9 +21,8 @@ import { createAuditLog } from '../../services/audit.service.js';
  */
 function meetsMinimumThreshold(before, after) {
   const changesCount = after.changesCount || 0;
-  const scoreImprovement = before.score !== 0
-    ? ((after.score - before.score) / Math.abs(before.score)) * 100
-    : 0;
+  const scoreImprovement =
+    before.score !== 0 ? ((after.score - before.score) / Math.abs(before.score)) * 100 : 0;
 
   return scoreImprovement > 5 || (changesCount >= 3 && scoreImprovement > 2);
 }
@@ -86,13 +85,13 @@ function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
     }
   }
 
-  const avgLoadRate = loadRates.length > 0
-    ? loadRates.reduce((s, r) => s + r, 0) / loadRates.length
-    : 0;
+  const avgLoadRate =
+    loadRates.length > 0 ? loadRates.reduce((s, r) => s + r, 0) / loadRates.length : 0;
 
-  const loadVariance = loadRates.length > 1
-    ? loadRates.reduce((s, r) => s + (r - avgLoadRate) ** 2, 0) / loadRates.length
-    : 0;
+  const loadVariance =
+    loadRates.length > 1
+      ? loadRates.reduce((s, r) => s + (r - avgLoadRate) ** 2, 0) / loadRates.length
+      : 0;
 
   // 3. 计算教材内聚度
   let cohesionSum = 0;
@@ -106,9 +105,8 @@ function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
     teacherCount++;
   }
 
-  const textbookCohesionRate = teacherCount > 0
-    ? Math.round((cohesionSum / teacherCount) * 100)
-    : 100;
+  const textbookCohesionRate =
+    teacherCount > 0 ? Math.round((cohesionSum / teacherCount) * 100) : 100;
 
   // 4. 综合评分 = 总匹配分数 - 欠分配惩罚 - 负载方差惩罚
   // P1 修复：与 tabu-search.js 的 computeObjective 对齐，避免 UI 显示与算法结果矛盾
@@ -130,7 +128,8 @@ function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
   // 负载方差惩罚：β × loadVariance × 100（与 computeObjective 的量级对齐）
   const loadVariancePenalty = beta * loadVariance * 100;
 
-  const score = Math.round((totalMatchScore - underAssignmentPenalty - loadVariancePenalty) * 100) / 100;
+  const score =
+    Math.round((totalMatchScore - underAssignmentPenalty - loadVariancePenalty) * 100) / 100;
 
   return {
     score,
@@ -179,22 +178,25 @@ function buildTeacherConstraints(teachers, allAssignments, courseTextbookMap, ho
     const existingHours = teacherHoursMap.get(t.id) || 0;
 
     // 容量计算：与 auto-arrange 对齐
-    const teacherHourCap = t.default_weekly_hours != null
-      ? Math.max(0, t.default_weekly_hours - existingHours)
-      : null;
-    const rawStandardCap = teacherHourCap != null
-      ? Math.min(teacherHourCap, Math.max(0, setting.standard - existingHours))
-      : Math.max(0, setting.standard - existingHours);
-    const rawFullCap = teacherHourCap != null
-      ? Math.min(teacherHourCap, Math.max(0, setting.max - existingHours))
-      : Math.max(0, setting.max - existingHours);
+    const teacherHourCap =
+      t.default_weekly_hours != null ? Math.max(0, t.default_weekly_hours - existingHours) : null;
+    const rawStandardCap =
+      teacherHourCap != null
+        ? Math.min(teacherHourCap, Math.max(0, setting.standard - existingHours))
+        : Math.max(0, setting.standard - existingHours);
+    const rawFullCap =
+      teacherHourCap != null
+        ? Math.min(teacherHourCap, Math.max(0, setting.max - existingHours))
+        : Math.max(0, setting.max - existingHours);
 
     const standardCap = Math.floor(rawStandardCap);
     const fullCap = Math.floor(rawFullCap);
 
     // 提取 schedulingCollegeIds 和 schedulingLevelIds
     const schedulingCollegeIds = (t.scheduling_colleges || []).map((sc) => sc.college_id);
-    const schedulingLevelIds = (t.scheduling_levels || []).map((sl) => sl.training_level?.id).filter(Boolean);
+    const schedulingLevelIds = (t.scheduling_levels || [])
+      .map((sl) => sl.training_level?.id)
+      .filter(Boolean);
 
     // 已分配教材和学院（从现有排课记录）
     const assignedTextbookIds = teacherTextbookMap.get(t.id) || new Set();
@@ -489,7 +491,10 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       // 与 auto-arrange.js 的 effectiveTotal = totalWeeklyHours - autoHoursForCourse 思路对齐
       const courseHoursMap = new Map();
       for (const a of courseAssignments) {
-        courseHoursMap.set(a.teacher_id, (courseHoursMap.get(a.teacher_id) || 0) + (a.weekly_hours || 0));
+        courseHoursMap.set(
+          a.teacher_id,
+          (courseHoursMap.get(a.teacher_id) || 0) + (a.weekly_hours || 0)
+        );
       }
       for (const t of courseTeacherConstraints) {
         const courseHours = courseHoursMap.get(t.id) || 0;
@@ -498,9 +503,8 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         // （default_weekly_hours）必须 min() 折入 standardCap/fullCap。
         // canAccept 只检查这两个 cap，不看 teacherHourCap，原实现重算时丢失折算，
         // 导致个人上限低于全局标准/上限的教师被加课超出个人约束
-        t.teacherHourCap = t.defaultWeeklyHours != null
-          ? Math.max(0, t.defaultWeeklyHours - otherHours)
-          : null;
+        t.teacherHourCap =
+          t.defaultWeeklyHours != null ? Math.max(0, t.defaultWeeklyHours - otherHours) : null;
         const personalRemain = t.teacherHourCap != null ? t.teacherHourCap : Infinity;
         t.standardCap = Math.max(
           0,
@@ -542,7 +546,9 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         // 将优化后的 assignments 写回 course.assignments
         // 用 class_id 匹配而非位置索引：tabuOptimize 可能在 best-solution 还原时
         // 改变 assignments 数组顺序（Map 迭代序不确定），位置匹配会导致 teacher_id 错位
-        const optimizedTeacherByClass = new Map(courseAssignments.map((a) => [a.class_id, a.teacher_id]));
+        const optimizedTeacherByClass = new Map(
+          courseAssignments.map((a) => [a.class_id, a.teacher_id])
+        );
         course.assignments = course.assignments.map((orig) => ({
           ...orig,
           teacher_id: optimizedTeacherByClass.get(orig.class_id) ?? orig.teacher_id,
@@ -652,15 +658,28 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
 
     // 14. 计算改进幅度
     const improvements = {
-      scoreImprovement: beforeMetrics.score !== 0
-        ? Math.round(((afterMetrics.score - beforeMetrics.score) / Math.abs(beforeMetrics.score)) * 10000) / 100
-        : 0,
-      loadVarianceImprovement: beforeMetrics.loadVariance > 0
-        ? Math.round(((beforeMetrics.loadVariance - afterMetrics.loadVariance) / beforeMetrics.loadVariance) * 10000) / 100
-        : 0,
-      cohesionImprovement: beforeMetrics.textbookCohesionRate > 0
-        ? Math.round(((afterMetrics.textbookCohesionRate - beforeMetrics.textbookCohesionRate) / beforeMetrics.textbookCohesionRate) * 10000) / 100
-        : 0,
+      scoreImprovement:
+        beforeMetrics.score !== 0
+          ? Math.round(
+              ((afterMetrics.score - beforeMetrics.score) / Math.abs(beforeMetrics.score)) * 10000
+            ) / 100
+          : 0,
+      loadVarianceImprovement:
+        beforeMetrics.loadVariance > 0
+          ? Math.round(
+              ((beforeMetrics.loadVariance - afterMetrics.loadVariance) /
+                beforeMetrics.loadVariance) *
+                10000
+            ) / 100
+          : 0,
+      cohesionImprovement:
+        beforeMetrics.textbookCohesionRate > 0
+          ? Math.round(
+              ((afterMetrics.textbookCohesionRate - beforeMetrics.textbookCohesionRate) /
+                beforeMetrics.textbookCohesionRate) *
+                10000
+            ) / 100
+          : 0,
     };
 
     // 15. 检查是否满足最小改进阈值

@@ -3,7 +3,7 @@
 > 主代码：`server/src/services/arrange/auto-arrange.js`
 > 优化服务：`server/src/services/arrange/optimize.js`
 > 配置：`server/src/constants/index.js`（`TEXTBOOK_COHESION`、`TABU_SEARCH`）
-> 版本：v1.3.12
+> 版本：v1.0.0（正式发布版，2026-07-30 版本基线重置）
 > 分析对象：`server/src/services/arrange/` 目录（`auto-arrange.js`、`optimize.js`、`queries.js`、`batch.js`、`validate.js`、`tabu-search.js`）
 
 ---
@@ -1192,4 +1192,4 @@ v2.21.0 已实现禁忌搜索作为局部搜索优化层。未来可以考虑：
 
 ---
 
-_文档版本：v1.3.12 | 最后更新：2026-07-29_
+_文档版本：v1.0.0 | 最后更新：2026-07-30_

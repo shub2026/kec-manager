@@ -1,10 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { validateIdParam } from '../middleware/validation.js';
-import {
-  querySemester,
-  queryTextbookUsage,
-} from '../controllers/query.controller.js';
+import { querySemester, queryTextbookUsage } from '../controllers/query.controller.js';
 
 const router = Router();
 

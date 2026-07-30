@@ -1,6 +1,6 @@
 # KEC 课程管理平台 - 部署与运维指南
 
-> **版本**：v1.3.12
+> **版本**：v1.0.0（正式发布版）
 > **数据库**：SQLite（启用 WAL 模式）
 > **部署方式**：PM2 + deploy.sh
 > **部署路径**：`/opt/1panel/www/sites/kec/index/kec-manager`
@@ -1027,4 +1027,5 @@ du -sh server/data/kec.db
 
 | 日期       | 版本    | 变更                                                                                                                   |
 | ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-30 | v1.0.0  | 项目全部功能完成上线，版本基线重置为 v1.0.0 正式发布版                                                            |
 | 2026-07-02 | v2.17.1 | 合并 DEPLOYMENT_GUIDE / PRODUCTION_DEPLOYMENT / CONFIG_UPDATE_GUIDE / UPDATE_OPERATIONS_GUIDE / LOGIN_GUIDE 为统一文档 |

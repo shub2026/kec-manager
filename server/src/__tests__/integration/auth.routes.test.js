@@ -469,9 +469,7 @@ describe('SEC-H2: 首次登录强制改密', () => {
     mockPrismaUsers.findUnique.mockResolvedValue(FORCE_USER);
     const token = makeToken({ ...FORCE_USER });
 
-    const res = await request(app)
-      .get('/api/auth/me')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);

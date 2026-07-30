@@ -2,7 +2,7 @@
 
 > 面向大中专职业院校教学管理人员的轻量级教学管理系统
 
-**版本** v1.3.12 · **技术栈** Vue 3 + Express 5 + Prisma 6 · **数据库** SQLite WAL
+**版本** v1.0.0（正式发布版） · **技术栈** Vue 3 + Express 5 + Prisma 6 · **数据库** SQLite WAL
 
 KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心功能，采用前后端分离架构，基于 PM2 + Nginx 部署。
 
@@ -34,7 +34,7 @@ KEC (Knowledge Education Course) 涵盖培养方案、班级管理、教师排�
 | 后端   | Express 5.1 + Prisma 6.19 + Winston 3.19                                                  |
 | 数据库 | SQLite（WAL 模式）                                                                        |
 | 认证   | JWT 双令牌（Access 15 min + Refresh 7 d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt 12 轮 |
-| 测试   | Vitest + Supertest（1461 个用例）                                                         |
+| 测试   | Vitest + Supertest（后端 1496 + 前端 160 个用例）                                          |
 | 部署   | PM2 + Nginx                                                                               |
 
 ---
@@ -95,9 +95,9 @@ npm run dev:server       # 仅后端
 npm run dev:client       # 仅前端
 npm run db:migrate       # 数据库迁移
 npm run db:generate      # 生成 Prisma Client
-npm run version:patch    # 补丁版本 1.3.12 → 1.3.13
-npm run version:minor    # 次版本   1.3.12 → 1.4.0
-npm run version:major    # 主版本   1.3.12 → 2.0.0
+npm run version:patch    # 补丁版本 1.0.0 → 1.0.1
+npm run version:minor    # 次版本   1.0.0 → 1.1.0
+npm run version:major    # 主版本   1.0.0 → 2.0.0
 ```
 
 ### server/
@@ -111,7 +111,7 @@ npm run db:seed:reset    # 强制重置 + 重新 seed
 npm run db:reset         # 重建数据库
 npm run init:settings    # 初始化系统设置
 npm run diagnose         # 数据一致性诊断
-npm test                 # Vitest（64 个测试文件）
+npm test                 # Vitest（69 个测试文件）
 npm run test:watch       # 监听模式
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
@@ -125,6 +125,8 @@ npm run dev              # Vite 开发服务器，端口 5173
 npm run build            # 生产构建
 npm run preview          # 预览构建产物
 npm run analyze          # 包体积分析
+npm test                 # Vitest（17 个测试文件）
+npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化
 ```

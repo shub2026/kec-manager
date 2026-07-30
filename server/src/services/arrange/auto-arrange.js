@@ -882,7 +882,7 @@ function tryPlaceClass(
     if (sb !== sa) return sb - sa;
     const capA = mode === 'standard' ? a.standardCap : a.fullCap;
     const capB = mode === 'standard' ? b.standardCap : b.fullCap;
-    return (capB - b.assignedHours) - (capA - a.assignedHours);
+    return capB - b.assignedHours - (capA - a.assignedHours);
   });
 
   for (const t of sortedTeachers) {
@@ -890,10 +890,7 @@ function tryPlaceClass(
     if (excludeTeacherId != null && t.id === excludeTeacherId) continue;
     // 资格校验
     if (clsInfo) {
-      if (
-        t.schedulingCollegeIds?.length > 0 &&
-        !t.schedulingCollegeIds.includes(clsInfo.collegeId)
-      )
+      if (t.schedulingCollegeIds?.length > 0 && !t.schedulingCollegeIds.includes(clsInfo.collegeId))
         continue;
       if (
         t.schedulingLevelIds?.length > 0 &&
@@ -1135,7 +1132,8 @@ function trySwapOne(
         // （placeClassOnTeacher/recordAssignment 已维护，但 trySwapOne 直接操作状态，此前遗漏）
         // 可选链守卫：外部调用（如测试）可能传入不完整 teacher 对象，与 L1015/L1067 风格一致
         const uInfoForCollege = classInfoMap?.get(u.classId);
-        if (uInfoForCollege?.collegeId != null) t.assignedCollegeIds?.add(uInfoForCollege.collegeId);
+        if (uInfoForCollege?.collegeId != null)
+          t.assignedCollegeIds?.add(uInfoForCollege.collegeId);
         if (vInfo?.collegeId != null) t2.assignedCollegeIds?.add(vInfo.collegeId);
         // 5. 维护 assignmentsByTeacher
         assignmentsByTeacher.set(
@@ -1493,9 +1491,7 @@ export async function autoArrange(
         if (isPrefMatch(t, cls)) prefSupply += cls.weeklyHours || 0;
       }
       if (prefSupply < cap) {
-        warnings.push(
-          `教师${t.name}意向范围内供给${prefSupply}h < 容量${cap}h，无法排满`
-        );
+        warnings.push(`教师${t.name}意向范围内供给${prefSupply}h < 容量${cap}h，无法排满`);
       }
     }
 
@@ -1644,7 +1640,8 @@ export async function autoArrange(
     // 每位教师连续拿组（天然满足"先拿完第一本，再拿第二本"），
     // 直到容量不足、教材名额用尽或无可拿组。
     function takeGroupsForTeacher(teacher, groupAvailable, strictPref, tierZeroOnly = false) {
-      const useTbLimit = TEXTBOOK_COHESION.ENABLED && TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER > 0;
+      const useTbLimit =
+        TEXTBOOK_COHESION.ENABLED && TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER > 0;
       const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
 
       for (;;) {
@@ -1677,7 +1674,10 @@ export async function autoArrange(
           let collegeMatchHours = 0; // L3：可拿课时中属于教师已分配学院的部分
           for (const cls of available) {
             groupDemand += cls.weeklyHours || 0;
-            if ((cls.weeklyHours || 0) <= remainingCap && (!strictPref || isPrefMatch(teacher, cls))) {
+            if (
+              (cls.weeklyHours || 0) <= remainingCap &&
+              (!strictPref || isPrefMatch(teacher, cls))
+            ) {
               matchHours += cls.weeklyHours || 0;
               if (teacher.assignedCollegeIds?.has(cls.collegeId)) {
                 collegeMatchHours += cls.weeklyHours || 0;
