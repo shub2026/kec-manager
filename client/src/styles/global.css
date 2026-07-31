@@ -595,6 +595,23 @@ a:focus-visible,
     height: 40px;
   }
 
+  /* 全屏弹窗（:fullscreen="isMobile"）：改用弹性布局占满整屏，
+     body 撑满剩余高度内部滚动、footer 恒贴底；
+     否则上方 body 90vh 限高会在全屏模式下浪费约 10vh 底部空间 */
+  .el-dialog.is-fullscreen {
+    display: flex;
+    flex-direction: column;
+    margin: 0 !important;
+    max-height: 100%;
+  }
+
+  .el-dialog.is-fullscreen .el-dialog__body {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+  }
+
   /* 展开行缩减内边距 */
   .expand-content {
     padding: 8px 12px;
@@ -608,13 +625,14 @@ a:focus-visible,
     padding: calc(var(--mobile-header-height) + 12px) 8px 12px !important;
   }
 
-  /* 弹窗几乎全屏 */
-  .el-dialog:not(.is-align-center) {
+  /* 弹窗几乎全屏（全屏弹窗除外，否则 5vh 边距会撑出遮罩层滚动条并压窄弹窗） */
+  .el-dialog:not(.is-align-center):not(.is-fullscreen) {
     margin: 5vh auto !important;
   }
 
-  /* 高内容弹窗兜底：允许 body 滚动，避免 footer 被裁出视口 */
-  .el-dialog {
+  /* 高内容弹窗兜底：允许 body 滚动，避免 footer 被裁出视口
+     （全屏弹窗除外，其高度由弹性布局占满整屏） */
+  .el-dialog:not(.is-fullscreen) {
     max-height: 90vh;
     max-height: 90dvh;
   }

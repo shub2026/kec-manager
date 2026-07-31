@@ -234,7 +234,8 @@ function courseRate(r) {
   justify-content: flex-end;
 }
 .batch-course-list {
-  max-height: 420px;
+  /* 小视口下随视口收缩，避免与弹窗 body 限高叠加产生双层滚动 */
+  max-height: min(420px, 48vh);
   overflow-y: auto;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);

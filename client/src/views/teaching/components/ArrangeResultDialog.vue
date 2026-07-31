@@ -227,7 +227,8 @@ const cohesionRateClass = computed(() => {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   padding: var(--space-3) 14px;
-  max-height: 260px;
+  /* 小视口下随视口收缩，避免与弹窗 body 限高叠加产生双层滚动 */
+  max-height: min(260px, 36vh);
   overflow-y: auto;
 }
 .arrange-unassigned .arrange-section-title {

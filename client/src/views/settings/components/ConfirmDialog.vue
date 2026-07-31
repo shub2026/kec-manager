@@ -5,6 +5,7 @@
       v-model="dialogVisible"
       title="系统重置"
       width="var(--dialog-width)"
+      :fullscreen="isMobile"
       :close-on-click-modal="false"
       destroy-on-close
     >
@@ -62,11 +63,10 @@
       </template>
     </el-dialog>
 
-    <!-- 清空操作日志确认弹窗：复用全局 BaseConfirmDialog -->
+    <!-- 清空操作日志确认弹窗：复用全局 BaseConfirmDialog（确认类小窗，用默认 --dialog-width） -->
     <BaseConfirmDialog
       v-model="simpleDialogVisible"
       title="清空操作日志"
-      width="var(--dialog-width-lg)"
       confirm-type="danger"
       confirm-text="确认清空"
       :loading="resetting"
@@ -91,6 +91,10 @@
 <script setup>
 import { computed } from 'vue';
 import BaseConfirmDialog from '@/components/BaseConfirmDialog.vue';
+import { useResponsive } from '@/composables/useResponsive';
+
+// 系统重置弹窗含确认输入 + 原因文本域，属表单类弹窗，手机端全屏
+const { isMobile } = useResponsive();
 
 const props = defineProps({
   dialogVisible: {

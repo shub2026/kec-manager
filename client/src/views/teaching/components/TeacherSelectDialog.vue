@@ -316,6 +316,8 @@ defineExpose({ open, close });
    仅小视口内容超高时才回退为 body 内部滚动，遮罩层永不出整页滚动条 */
 .el-dialog.teacher-dialog {
   max-height: calc(100vh - 32px);
+  /* dvh 双写：iOS Safari 动态工具栏下 100vh 大于可视区，防 footer 被底栏遮挡 */
+  max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
 }

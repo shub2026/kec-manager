@@ -173,7 +173,7 @@
     <el-dialog
       v-model="clearDialogVisible"
       title="清空操作日志"
-      width="var(--dialog-width-lg)"
+      width="var(--dialog-width)"
       :close-on-click-modal="false"
     >
       <el-alert title="此操作不可恢复！" type="error" :closable="false" show-icon />
@@ -424,7 +424,8 @@ onMounted(() => {
   background-color: var(--el-fill-color-light);
   padding: var(--space-4);
   border-radius: var(--radius-sm);
-  max-height: 400px;
+  /* 小视口下随视口收缩，避免与弹窗 body 限高叠加产生双层滚动 */
+  max-height: min(400px, 55vh);
   overflow: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -434,7 +435,7 @@ onMounted(() => {
 }
 
 .details-table-wrap {
-  max-height: 420px;
+  max-height: min(420px, 55vh);
   overflow: auto;
 }
 
