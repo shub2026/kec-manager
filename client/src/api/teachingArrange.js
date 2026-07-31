@@ -14,7 +14,7 @@ import './types';
  * @param {string} url - API 端点
  * @param {object} body - 请求体
  * @param {(progress: object) => void} onProgress - 进度回调
- * @param {{timeout?: number}} [options] - 超时等配置
+ * @param {{timeout?: number, signal?: AbortSignal}} [options] - 超时/外部取消信号等配置
  * @returns {Promise<{success: boolean, data: object, message: string}>} 最终结果
  */
 async function fetchArrangeSSE(url, body, onProgress, options = {}) {
@@ -23,6 +23,12 @@ async function fetchArrangeSSE(url, body, onProgress, options = {}) {
   const controller = new AbortController();
   const timeoutMs = options.timeout || 7 * 60 * 1000; // 7 分钟，略大于后端上限
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  // 外部取消信号（用户主动中止）联动内部 controller，断开 fetch 与流读取
+  if (options.signal) {
+    if (options.signal.aborted) controller.abort();
+    else options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+  }
 
   // 每次发送时重新构造认证头（复用拦截器同源逻辑），重试时才能拿到刷新后的新凭证
   const sendRequest = () =>
@@ -74,6 +80,12 @@ async function fetchArrangeSSE(url, body, onProgress, options = {}) {
   } catch (fetchErr) {
     clearTimeout(timeoutId);
     if (fetchErr.name === 'AbortError') {
+      // 用户主动取消与兜底超时均表现为 AbortError，按外部信号区分
+      if (options.signal?.aborted) {
+        const cancelErr = new Error('排课已取消', { cause: fetchErr });
+        cancelErr.cancelled = true;
+        throw cancelErr;
+      }
       throw new Error('排课请求超时，请稍后重试', { cause: fetchErr });
     }
     throw fetchErr;
@@ -171,20 +183,22 @@ export const deleteAssignment = (id) => request.delete(`/teaching-arrange/assign
  * 通过 fetch + ReadableStream 读取后端推送的五阶段进度事件
  * @param {import('./types').AutoArrangeInput} data
  * @param {(progress: {phase: number, phaseName: string, total: number}) => void} onProgress
+ * @param {{signal?: AbortSignal}} [options] - 可选取消信号等配置
  * @returns {Promise<{success: boolean, data: object, message: string}>}
  */
-export const runAutoArrangeWithProgress = (data, onProgress) =>
-  fetchArrangeSSE('/teaching-arrange/auto-arrange', data, onProgress);
+export const runAutoArrangeWithProgress = (data, onProgress, options) =>
+  fetchArrangeSSE('/teaching-arrange/auto-arrange', data, onProgress, options);
 
 /**
  * 批量自动排课 - SSE 流式版本
  * 通过 fetch + ReadableStream 读取后端推送的每门课程进度事件
  * @param {import('./types').BatchAutoArrangeInput} data
  * @param {(progress: {processed: number, total: number, currentCourseName: string, cumulativeAssigned: number, cumulativeUnassigned: number}) => void} onProgress
+ * @param {{signal?: AbortSignal}} [options] - 可选取消信号等配置
  * @returns {Promise<{success: boolean, data: object, message: string}>}
  */
-export const runBatchAutoArrangeWithProgress = (data, onProgress) =>
-  fetchArrangeSSE('/teaching-arrange/batch-auto-arrange', data, onProgress);
+export const runBatchAutoArrangeWithProgress = (data, onProgress, options) =>
+  fetchArrangeSSE('/teaching-arrange/batch-auto-arrange', data, onProgress, options);
 
 /**
  * 重置自动安排（清除指定学期的自动安排）

@@ -1,7 +1,7 @@
 <template>
   <el-card class="insight-card">
     <template #header>
-      <span class="card-title">
+      <span class="card-title" role="heading" aria-level="2">
         <el-icon><TrendCharts /></el-icon>
         排课进度
       </span>
@@ -20,8 +20,15 @@
 
       <!-- 进度条 -->
       <div class="progress-bar">
-        <div class="progress-track">
-          <div class="progress-filled" :style="{ width: rate + '%' }" />
+        <div
+          class="progress-track"
+          role="progressbar"
+          :aria-valuenow="rate"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          :aria-label="`已排课占比 ${rate}%`"
+        >
+          <div class="progress-filled" :style="{ transform: `scaleX(${rate / 100})` }" />
         </div>
       </div>
 
@@ -159,10 +166,18 @@ const remainingHours = computed(() => {
 
 .progress-filled {
   height: 100%;
-  background: linear-gradient(90deg, var(--brand-success) 0%, var(--brand-success-soft) 100%);
+  width: 100%;
+  transform-origin: left;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, var(--brand-success) 0%, var(--el-color-success-light-5) 100%);
   border-radius: var(--radius-sm);
-  transition: width 0.6s var(--ease-out);
-  min-width: 4px;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-filled {
+    transition: none;
+  }
 }
 
 /* 图例 */

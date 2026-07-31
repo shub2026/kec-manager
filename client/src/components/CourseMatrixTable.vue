@@ -36,13 +36,17 @@
               </el-tag>
             </div>
           </td>
-          <!-- 学期单元格 -->
+          <!-- 学期单元格（可编辑时支持键盘聚焦 + Enter 触发编辑） -->
           <td
             v-for="s in maxSemester"
             :key="s"
             class="matrix-cell"
             :class="cellClass(course, s)"
-            @click="!readonly && isInRange(course, s) && $emit('edit', course, s)"
+            :tabindex="isEditableCell(course, s) ? 0 : undefined"
+            :role="isEditableCell(course, s) ? 'button' : undefined"
+            :aria-label="isEditableCell(course, s) ? cellAriaLabel(course, s) : undefined"
+            @click="isEditableCell(course, s) && $emit('edit', course, s)"
+            @keyup.enter="isEditableCell(course, s) && $emit('edit', course, s)"
           >
             <template v-if="isInRange(course, s)">
               <div class="cell-hours">
@@ -99,6 +103,7 @@
                 :disabled="isFirstInGroup(course, group)"
                 circle
                 title="上移"
+                :aria-label="'上移 ' + course.courseName"
                 @click="$emit('move-up', course, group)"
               />
               <el-button
@@ -107,19 +112,26 @@
                 :disabled="isLastInGroup(course, group)"
                 circle
                 title="下移"
+                :aria-label="'下移 ' + course.courseName"
                 @click="$emit('move-down', course, group)"
               />
-              <el-button size="small" title="设置学期" @click="$emit('set-semester', course)">
-                <el-icon><Setting /></el-icon>
-              </el-button>
+              <el-button
+                size="small"
+                :icon="Setting"
+                circle
+                title="设置学期"
+                :aria-label="'设置学期 ' + course.courseName"
+                @click="$emit('set-semester', course)"
+              />
               <el-button
                 size="small"
                 type="danger"
+                :icon="Delete"
+                circle
                 title="删除课程"
+                :aria-label="'删除课程 ' + course.courseName"
                 @click="$emit('delete-course', course)"
-              >
-                <el-icon><Delete /></el-icon>
-              </el-button>
+              />
             </div>
           </td>
         </tr>
@@ -179,7 +191,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { ArrowUp, ArrowDown } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown, Setting, Delete } from '@element-plus/icons-vue';
 import { useMatrixCalculations } from '../composables/useMatrixCalculations';
 
 const props = defineProps({
@@ -259,6 +271,18 @@ function cellClass(course, semester) {
   if (hours <= 4) return 'cell-mid';
   return 'cell-high';
 }
+
+// 可编辑单元格判定（只读/超学期范围不可交互，不进入键盘序列）
+function isEditableCell(course, semester) {
+  return !props.readonly && isInRange(course, semester);
+}
+
+// 键盘/读屏可访问性描述：课程名 + 学期 + 课时
+function cellAriaLabel(course, semester) {
+  const hours = getHours(course, semester);
+  const hoursText = hours !== null ? `每周${hours}课时` : '未设置课时';
+  return `${course.courseName} 第${semester}学期 ${hoursText}，按回车编辑`;
+}
 </script>
 
 <style scoped>
@@ -291,7 +315,7 @@ function cellClass(course, semester) {
 .matrix-table thead {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: var(--z-sticky-header);
 }
 
 .matrix-table th {
@@ -330,7 +354,7 @@ function cellClass(course, semester) {
 .matrix-fixed-col {
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: var(--z-sticky-cell);
   background: var(--bg-card);
 }
 
@@ -772,7 +796,7 @@ function cellClass(course, semester) {
 }
 
 .textbook-tooltip .tooltip-label {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   flex-shrink: 0;
   min-width: 36px;
 }

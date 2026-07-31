@@ -5,6 +5,7 @@
     width="var(--dialog-width)"
     align-center
     destroy-on-close
+    :close-on-click-modal="false"
     class="optimize-confirm-dialog"
     @update:model-value="emit('update:modelValue', $event)"
   >
@@ -117,7 +118,7 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 
 .dialog-footer {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   gap: var(--space-2);
 }
 

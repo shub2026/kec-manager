@@ -70,8 +70,8 @@ defineProps({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -129,6 +129,12 @@ defineProps({
 @media (max-width: 768px) {
   .page-header-title {
     font-size: 20px;
+  }
+
+  /* 触控目标：返回钮在窄屏提升至 44×44 */
+  .page-header-back {
+    width: 44px;
+    height: 44px;
   }
 
   /* 窄屏堆叠顺序：标题 → 描述 → 操作区（extra）。

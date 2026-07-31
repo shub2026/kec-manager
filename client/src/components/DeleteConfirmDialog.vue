@@ -9,14 +9,14 @@
     title="确认删除"
     width="var(--dialog-width)"
     align-center
+    :close-on-click-modal="false"
     @update:model-value="emit('update:modelValue', $event)"
-    @close="emit('cancel')"
   >
     <BaseConfirmBody icon-color="var(--brand-danger)" :warning="warning">
       <slot>确定要删除吗？此操作不可撤销。</slot>
     </BaseConfirmBody>
     <template #footer>
-      <el-button @click="emit('update:modelValue', false)">取消</el-button>
+      <el-button @click="handleCancel">取消</el-button>
       <el-button type="danger" :loading="loading" @click="emit('confirm')">确定删除</el-button>
     </template>
   </el-dialog>
@@ -32,4 +32,10 @@ defineProps({
 });
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel']);
+
+// 与 BaseConfirmDialog 对齐：cancel 仅在显式点击取消时触发，不随任意关闭（ESC/关闭钮）重复发射
+function handleCancel() {
+  emit('update:modelValue', false);
+  emit('cancel');
+}
 </script>

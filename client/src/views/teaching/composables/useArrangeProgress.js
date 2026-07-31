@@ -74,6 +74,11 @@ export function useArrangeProgress({ auto, batch, arrangeResultVisible, batchRes
     }
   }
 
+  // 进度弹窗取消排课：路由到当前活动来源的中止函数（弹窗关闭与提示由各自 catch 分支处理）
+  function handleProgressCancel() {
+    active.value.cancelArrange?.();
+  }
+
   return {
     progressVisible,
     progressType,
@@ -87,5 +92,6 @@ export function useArrangeProgress({ auto, batch, arrangeResultVisible, batchRes
     progressCumulativeUnassigned,
     progressMessage,
     handleProgressClose,
+    handleProgressCancel,
   };
 }

@@ -4,6 +4,8 @@
     :title="isEdit ? '编辑用户' : '创建用户'"
     width="var(--dialog-width-lg)"
     :fullscreen="isMobile"
+    :close-on-click-modal="false"
+    destroy-on-close
   >
     <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px">
       <el-form-item label="用户名" prop="username">
@@ -15,7 +17,7 @@
           v-model="formData.password"
           type="password"
           show-password
-          placeholder="请输入密码（至少8位）"
+          placeholder="至少8位，包含两种字符类型（字母/数字/符号）"
         />
       </el-form-item>
 
@@ -63,6 +65,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useResponsive } from '@/composables/useResponsive';
+import { createPasswordRules } from '@/utils/passwordRules';
 
 defineProps({
   submitting: {
@@ -94,7 +97,7 @@ const rules = {
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 8, message: '密码长度至少8位', trigger: 'blur' },
+    ...createPasswordRules({ required: false }),
   ],
   email: [{ type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],

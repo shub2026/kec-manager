@@ -130,6 +130,7 @@
       :message="progressMessage"
       :tabu-enabled="tabuSearchEnabled"
       @close="handleProgressClose"
+      @cancel="handleProgressCancel"
     />
 
     <!-- 自动排课确认弹窗（单课程） -->
@@ -358,6 +359,7 @@ const {
   progressCumulativeUnassigned,
   progressMessage,
   handleProgressClose,
+  handleProgressCancel,
 } = useArrangeProgress({
   auto: autoArrange,
   batch: batchArrange,

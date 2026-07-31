@@ -81,7 +81,8 @@ describe('useAutoArrange', () => {
           mode: 'full',
           hourSettings: { totalHours: 64 },
         },
-        expect.any(Function)
+        expect.any(Function),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
       expect(c.arrangeConfirmVisible.value).toBe(false);
       expect(c.progressVisible.value).toBe(true);

@@ -61,7 +61,7 @@
   --text-primary: #1e293b;
   --text-regular: #475569;
   --text-secondary: #64748b;
-  --text-placeholder: #cbd5e1;
+  --text-placeholder: #94a3b8;
 
   /* —— 背景与边框 —— */
   --bg-page: #f8fafc;
@@ -123,8 +123,12 @@
   --z-sticky-cell: 1; /* sticky 固定列/单元格 */
   --z-sticky-header: 2; /* sticky 表头 */
   --z-toolbar: 10; /* sticky 工具栏 */
+  --z-fixed-header: 100; /* 移动端固定顶栏 */
   --z-toast: 9999; /* 浮层通知(toast) */
   --z-modal-fullscreen: 10000; /* 全屏遮罩 */
+
+  /* —— 移动端布局尺寸:固定顶栏高度,Layout/global.css 避让 calc 共用 —— */
+  --mobile-header-height: 56px;
 
   /* —— 动效曲线:cubic-bezier 让过渡更有弹性 —— */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

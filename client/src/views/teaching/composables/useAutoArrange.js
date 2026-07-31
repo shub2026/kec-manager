@@ -36,6 +36,8 @@ export function useAutoArrange({
   const progressMessage = ref('');
 
   let pendingArrangeMode = null;
+  // 当前排课请求的中止控制器（进度弹窗"取消排课"用）
+  let arrangeAbortController = null;
 
   function resetProgress() {
     progressFinished.value = false;
@@ -68,6 +70,7 @@ export function useAutoArrange({
     progressType.value = 'single';
     progressModeLabel.value = arrangeConfirmData.value.mode;
     progressVisible.value = true;
+    arrangeAbortController = new AbortController();
 
     try {
       const result = await runAutoArrangeWithProgress(
@@ -81,7 +84,8 @@ export function useAutoArrange({
           if (progress.phase) {
             progressCurrentPhase.value = progress.phase;
           }
-        }
+        },
+        { signal: arrangeAbortController.signal }
       );
       const data = result.data || {};
       progressFinished.value = true;
@@ -93,13 +97,24 @@ export function useAutoArrange({
       await loadData();
     } catch (e) {
       progressVisible.value = false;
-      ElMessage.error('自动排课失败');
-      if (import.meta.env.DEV) {
-        console.error('自动排课失败:', e);
+      // 用户主动取消：前端已断流，后端任务可能继续执行，仅提示不报错
+      if (e.cancelled || arrangeAbortController?.signal.aborted) {
+        ElMessage.info('已取消排课，服务端已启动的任务可能继续执行');
+      } else {
+        ElMessage.error('自动排课失败');
+        if (import.meta.env.DEV) {
+          console.error('自动排课失败:', e);
+        }
       }
     } finally {
       arranging.value = false;
+      arrangeAbortController = null;
     }
+  }
+
+  // 中止进行中的排课请求（进度弹窗二次确认后调用）
+  function cancelArrange() {
+    arrangeAbortController?.abort();
   }
 
   return {
@@ -117,6 +132,7 @@ export function useAutoArrange({
     progressMessage,
     handleAutoArrange,
     doAutoArrange,
+    cancelArrange,
     resetProgress,
   };
 }

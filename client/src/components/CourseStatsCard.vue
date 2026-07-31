@@ -1,7 +1,7 @@
 <template>
   <el-card class="insight-card">
     <template #header>
-      <span class="card-title">
+      <span class="card-title" role="heading" aria-level="2">
         <el-icon><Document /></el-icon>
         课时概览
       </span>
@@ -22,7 +22,10 @@
           <span class="hours-bar-wrap">
             <span
               class="hours-bar"
-              :style="{ width: barWidth(item.totalHours) + '%', backgroundColor: barColor(idx) }"
+              :style="{
+                transform: `scaleX(${barWidth(item.totalHours) / 100})`,
+                backgroundColor: barColor(idx),
+              }"
             />
           </span>
           <span class="hours-value">{{ item.totalHours }}</span>
@@ -113,10 +116,6 @@ function barColor(idx) {
   border-bottom: none;
 }
 
-.stats-table:hover .table-row:not(:hover) {
-  opacity: 0.55;
-}
-
 .col-name {
   display: flex;
   align-items: center;
@@ -161,15 +160,29 @@ function barColor(idx) {
 .hours-bar {
   display: block;
   height: 100%;
+  width: 100%;
+  transform-origin: left;
+  transform: scaleX(0);
   border-radius: var(--radius-sm);
   transition:
-    width 0.6s var(--ease-out),
+    transform var(--dur-slow) var(--ease-out),
     filter var(--dur-fast) var(--ease-out);
-  min-width: 3px;
 }
 
-.table-row:hover .hours-bar {
-  filter: brightness(1.12);
+@media (hover: hover) {
+  .stats-table:hover .table-row:not(:hover) {
+    opacity: 0.55;
+  }
+
+  .table-row:hover .hours-bar {
+    filter: brightness(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hours-bar {
+    transition: none;
+  }
 }
 
 .hours-value {

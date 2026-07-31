@@ -4,6 +4,7 @@
     title="重置密码"
     width="var(--dialog-width-lg)"
     :fullscreen="isMobile"
+    :close-on-click-modal="false"
     destroy-on-close
   >
     <el-alert
@@ -49,6 +50,7 @@ import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { resetUserPassword } from '@/api/user';
 import { useResponsive } from '@/composables/useResponsive';
+import { createPasswordRules, createConfirmPasswordValidator } from '@/utils/passwordRules';
 
 const { isMobile } = useResponsive();
 
@@ -62,37 +64,10 @@ const form = ref({
 });
 
 // 重置密码校验规则（强度规则与 ChangePasswordDialog / 后端保持一致）
-const validateResetConfirm = (rule, value, callback) => {
-  if (value !== form.value.newPassword) {
-    callback(new Error('两次输入的密码不一致'));
-  } else {
-    callback();
-  }
-};
+const validateResetConfirm = createConfirmPasswordValidator(() => form.value.newPassword);
 
 const rules = {
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 8, max: 128, message: '密码长度必须在8-128位之间', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        if (!value) return callback();
-        let types = 0;
-        if (/[a-z]/.test(value)) types++;
-        if (/[A-Z]/.test(value)) types++;
-        if (/\d/.test(value)) types++;
-        if (/[^a-zA-Z\d]/.test(value)) types++;
-        if (types < 2) {
-          callback(
-            new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）')
-          );
-        } else {
-          callback();
-        }
-      },
-      trigger: 'blur',
-    },
-  ],
+  newPassword: createPasswordRules(),
   confirmPassword: [
     { required: true, message: '请确认新密码', trigger: 'blur' },
     { validator: validateResetConfirm, trigger: 'blur' },

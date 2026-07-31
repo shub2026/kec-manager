@@ -5,7 +5,7 @@
     width="var(--dialog-width-lg)"
     destroy-on-close
     class="arrange-result-dialog"
-    top="10vh"
+    align-center
     @update:model-value="emit('update:modelValue', $event)"
   >
     <!-- 汇总统计 -->
@@ -111,9 +111,6 @@ const cohesionRateClass = computed(() => {
 </script>
 
 <style scoped>
-:deep(.arrange-result-dialog) .el-dialog__body {
-  padding: var(--space-4) 20px;
-}
 .arrange-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -283,5 +280,20 @@ const cohesionRateClass = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 移动端响应式：统计卡 2 列重排（与 OptimizeResultDialog 同方案） */
+@media (max-width: 480px) {
+  .arrange-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+</style>
+
+<!-- 非 scoped：el-dialog 根节点是 Teleport，scope 属性无法附着到弹窗 DOM，
+     scoped 下的 :deep(.arrange-result-dialog) 永远不命中；用专属类名限定作用范围防泄漏 -->
+<style>
+.el-dialog.arrange-result-dialog .el-dialog__body {
+  padding: var(--space-4) 20px;
 }
 </style>

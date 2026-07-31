@@ -1,6 +1,6 @@
 <template>
   <div class="card-title-row">
-    <span class="card-dot" :style="{ backgroundColor: dotColor }"></span>
+    <span class="card-dot" :style="{ backgroundColor: dotColor }" aria-hidden="true"></span>
     <span class="card-title-text"><slot /></span>
     <el-tag v-if="tag" size="small" :type="tagType" effect="plain" disable-transitions>{{
       tag
@@ -29,7 +29,7 @@ const props = defineProps({
 
 const colorMap = {
   blue: 'var(--brand-primary)',
-  green: 'var(--brand-success, #10b981)',
+  green: 'var(--brand-success)',
   red: 'var(--brand-danger)',
 };
 

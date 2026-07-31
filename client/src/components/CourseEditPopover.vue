@@ -10,7 +10,14 @@
   >
     <template #reference><span style="display: none"></span></template>
     <template #default>
-      <div v-if="editingSemester" class="popover-content">
+      <div
+        v-if="editingSemester"
+        ref="popoverContentRef"
+        class="popover-content"
+        role="dialog"
+        aria-label="编辑周课时与教材"
+        @keydown.esc.stop="$emit('close-popover')"
+      >
         <div class="popover-title">
           {{ editingCourse?.courseName }} — 第{{ editingSemester.semester }}学期
         </div>
@@ -116,8 +123,10 @@
 </template>
 
 <script setup>
+import { ref, watch, nextTick } from 'vue';
+
 // TODO: L-7 - 当前组件有 8 个 emit，建议重构为 v-model + 事件对象模式减少 prop-drilling
-defineProps({
+const props = defineProps({
   popoverVisible: { type: Boolean, default: false },
   semesterDialogVisible: { type: Boolean, default: false },
   editingCourse: { type: Object, default: null },
@@ -142,6 +151,28 @@ defineEmits([
   'update-semester-dialog-visible',
   'update-semester-form',
 ]);
+
+// 焦点管理：popover 打开时将焦点移入首个控件，关闭时归还给触发单元格
+const popoverContentRef = ref(null);
+let triggerEl = null;
+
+watch(
+  () => props.popoverVisible,
+  (visible) => {
+    if (visible) {
+      triggerEl = document.activeElement;
+      nextTick(() => {
+        const first = popoverContentRef.value?.querySelector(
+          'input:not([disabled]), button:not([disabled]), [tabindex]'
+        );
+        first?.focus();
+      });
+    } else if (triggerEl?.isConnected) {
+      triggerEl.focus();
+      triggerEl = null;
+    }
+  }
+);
 </script>
 
 <style scoped>

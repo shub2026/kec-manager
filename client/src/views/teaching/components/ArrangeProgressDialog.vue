@@ -114,13 +114,27 @@
 
     <template #footer>
       <el-button v-if="finished" type="primary" @click="emit('close')">确定</el-button>
-      <el-button v-else disabled>排课进行中，请勿关闭页面</el-button>
+      <template v-else>
+        <el-button text type="danger" @click="cancelConfirmVisible = true">取消排课</el-button>
+        <el-button disabled>排课进行中，请勿关闭页面</el-button>
+      </template>
     </template>
   </el-dialog>
+
+  <!-- 取消排课二次确认 -->
+  <BaseConfirmDialog
+    v-model="cancelConfirmVisible"
+    title="取消排课"
+    message="确定要中止本次排课吗？已完成的分配不会回退，服务端已启动的任务可能继续执行。"
+    confirm-text="中止排课"
+    cancel-text="继续等待"
+    confirm-type="danger"
+    @confirm="handleCancelConfirm"
+  />
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import {
   Loading,
   CircleCheckFilled,
@@ -128,6 +142,7 @@ import {
   Select,
   MagicStick,
 } from '@element-plus/icons-vue';
+import BaseConfirmDialog from '../../../components/BaseConfirmDialog.vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -147,7 +162,15 @@ const props = defineProps({
   tabuEnabled: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:modelValue', 'close']);
+const emit = defineEmits(['update:modelValue', 'close', 'cancel']);
+
+// 取消排课二次确认（进行中状态的逃生通道）
+const cancelConfirmVisible = ref(false);
+
+function handleCancelConfirm() {
+  cancelConfirmVisible.value = false;
+  emit('cancel');
+}
 
 // 五阶段定义
 const phases = [

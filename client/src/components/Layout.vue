@@ -6,13 +6,13 @@
         <el-icon :size="22"><Expand /></el-icon>
       </button>
       <div class="mobile-brand">
-        <img src="/icons.svg" alt="Logo" class="logo-icon" />
+        <img src="/icons.svg" alt="" class="logo-icon" />
         <span class="mobile-title">KEC课程管理平台</span>
       </div>
       <el-dropdown trigger="click" :teleported="true" @command="handleCommand">
-        <span class="mobile-avatar" aria-label="用户菜单">
+        <button type="button" class="mobile-avatar" aria-label="用户菜单">
           <el-icon :size="18"><UserFilled /></el-icon>
-        </span>
+        </button>
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item command="password">
@@ -29,7 +29,7 @@
     <!-- 桌面侧边栏：固定 + 折叠模式 -->
     <el-aside v-if="!isMobile" :width="isCollapse ? '64px' : '220px'" class="layout-aside">
       <div class="layout-logo">
-        <img src="/icons.svg" alt="Logo" class="logo-icon" />
+        <img src="/icons.svg" alt="" class="logo-icon" />
         <span v-if="!isCollapse" class="logo-text">KEC课程管理平台</span>
         <el-icon
           class="collapse-btn"
@@ -99,7 +99,7 @@
     >
       <div class="drawer-aside">
         <div class="layout-logo">
-          <img src="/icons.svg" alt="Logo" class="logo-icon" />
+          <img src="/icons.svg" alt="" class="logo-icon" />
           <span class="logo-text">KEC课程管理平台</span>
           <el-icon
             class="collapse-btn"
@@ -277,6 +277,7 @@ function handlePasswordChangeSuccess() {
 <style scoped>
 .layout-container {
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   display: flex;
 }
@@ -287,8 +288,8 @@ function handlePasswordChangeSuccess() {
   top: 0;
   left: 0;
   right: 0;
-  height: 56px;
-  z-index: 100;
+  height: var(--mobile-header-height);
+  z-index: var(--z-fixed-header);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -302,8 +303,8 @@ function handlePasswordChangeSuccess() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -335,9 +336,10 @@ function handlePasswordChangeSuccess() {
 }
 
 .mobile-avatar {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-sm);
+  padding: 0;
   /* 玻璃灰中性风的浅色顶栏对应版：白底上玻璃白会消失，改中性浅灰底+细描边(镜像桌面端结构)，深灰图标对比度≈7.9:1 */
   background: var(--bg-subtle);
   box-shadow: inset 0 0 0 1px var(--border-light);
@@ -357,6 +359,7 @@ function handlePasswordChangeSuccess() {
   overflow: hidden;
   flex-shrink: 0;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -375,7 +378,7 @@ function handlePasswordChangeSuccess() {
   border-bottom: 1px solid var(--sidebar-border);
   flex-shrink: 0;
   background: transparent;
-  z-index: 10;
+  z-index: var(--z-toolbar);
 }
 
 .logo-text {
@@ -565,12 +568,12 @@ function handlePasswordChangeSuccess() {
 
 /* 窄屏：为固定顶部栏留出空间 */
 .layout-main.has-mobile-header {
-  padding-top: calc(56px + var(--space-3));
+  padding-top: calc(var(--mobile-header-height) + var(--space-3));
 }
 
 @media (max-width: 768px) {
   .layout-main {
-    padding: calc(56px + var(--space-3)) var(--space-3) var(--space-3);
+    padding: calc(var(--mobile-header-height) + var(--space-3)) var(--space-3) var(--space-3);
   }
 }
 

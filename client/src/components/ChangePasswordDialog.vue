@@ -54,6 +54,7 @@
 import { ref, reactive, computed, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useResponsive } from '../composables/useResponsive';
+import { createPasswordRules, createConfirmPasswordValidator } from '../utils/passwordRules';
 import { ElMessage } from 'element-plus';
 
 const props = defineProps({
@@ -80,38 +81,11 @@ const form = reactive({
   confirmPassword: '',
 });
 
-const validateConfirmPassword = (rule, value, callback) => {
-  if (value !== form.newPassword) {
-    callback(new Error('两次输入的密码不一致'));
-  } else {
-    callback();
-  }
-};
+const validateConfirmPassword = createConfirmPasswordValidator(() => form.newPassword);
 
 const rules = {
   oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 8, max: 128, message: '密码长度必须在8-128位之间', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        if (!value) return callback();
-        let types = 0;
-        if (/[a-z]/.test(value)) types++;
-        if (/[A-Z]/.test(value)) types++;
-        if (/\d/.test(value)) types++;
-        if (/[^a-zA-Z\d]/.test(value)) types++;
-        if (types < 2) {
-          callback(
-            new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）')
-          );
-        } else {
-          callback();
-        }
-      },
-      trigger: 'blur',
-    },
-  ],
+  newPassword: createPasswordRules(),
   confirmPassword: [
     { required: true, message: '请确认新密码', trigger: 'blur' },
     { validator: validateConfirmPassword, trigger: 'blur' },

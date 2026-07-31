@@ -6,6 +6,7 @@
       :title="form.id ? '编辑班级' : '新增班级'"
       width="var(--dialog-width-xl)"
       :fullscreen="isMobile"
+      :close-on-click-modal="false"
       destroy-on-close
       @close="$emit('close')"
     >
@@ -48,7 +49,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12" :xs="24" :sm="12">
-            <el-form-item label="培养层次" required>
+            <el-form-item label="培养层次" prop="trainingLevelId" required>
               <el-select
                 v-model="localForm.trainingLevelId"
                 placeholder="请选择"
@@ -163,6 +164,7 @@
       :title="batchDialogTitle"
       width="var(--dialog-width-lg)"
       :fullscreen="isMobile"
+      :close-on-click-modal="false"
       destroy-on-close
       @close="$emit('batch-close')"
     >
@@ -217,7 +219,7 @@
       </el-form>
       <template #footer>
         <el-button @click="batchVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="$emit('batch-save')">确定</el-button>
+        <el-button type="primary" :loading="saving" @click="handleBatchSave">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -225,6 +227,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { ElMessage } from 'element-plus';
 import { storeToRefs } from 'pinia';
 import { useResponsive } from '../../../composables/useResponsive';
 import { useClassDataStore } from '@/stores/classData';
@@ -302,6 +305,7 @@ const batchForm = computed({
 const formRef = ref(null);
 const rules = {
   name: [{ required: true, message: '请输入班级名称', trigger: 'blur' }],
+  trainingLevelId: [{ required: true, message: '请选择培养层次', trigger: 'change' }],
   enrollmentYear: [
     { required: true, message: '请输入入学年份', trigger: 'blur' },
     { type: 'number', message: '入学年份必须为数字', trigger: 'blur' },
@@ -342,6 +346,28 @@ async function handleSave() {
     return;
   }
   emit('save');
+}
+
+// 批量设置提交前校验目标值非空（无 el-form rules，按类型手动判空）
+const batchFieldMap = {
+  major: { key: 'majorId', label: '专业类别' },
+  college: { key: 'collegeId', label: '二级学院' },
+  level: { key: 'trainingLevelId', label: '培养层次' },
+  year: { key: 'enrollmentYear', label: '入学年份' },
+  duration: { key: 'durationYears', label: '学制' },
+  leftSchool: { key: 'isLeftSchool', label: '离校状态' },
+};
+
+function handleBatchSave() {
+  const field = batchFieldMap[props.batchFormType];
+  if (field) {
+    const val = props.batchForm?.[field.key];
+    if (val == null || val === '') {
+      ElMessage.warning(`请选择${field.label}`);
+      return;
+    }
+  }
+  emit('batch-save');
 }
 </script>
 

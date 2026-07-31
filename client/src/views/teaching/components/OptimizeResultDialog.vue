@@ -134,7 +134,7 @@
 
     <template v-if="result" #footer>
       <div class="dialog-footer">
-        <el-button @click="emit('close')">取消</el-button>
+        <el-button @click="emit('close')">放弃优化</el-button>
         <el-button
           type="primary"
           :loading="applying"
@@ -187,13 +187,6 @@ function deltaArrow(val, inverse = false) {
 </script>
 
 <style scoped>
-:deep(.optimize-result-dialog) .el-dialog__body {
-  padding: var(--space-4) 20px;
-  /* 移动端兜底：高内容弹窗允许 body 滚动，避免 footer 被裁出视口 */
-  max-height: calc(90vh - 140px);
-  overflow-y: auto;
-}
-
 .optimize-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -432,5 +425,17 @@ function deltaArrow(val, inverse = false) {
   .dialog-footer .el-button {
     flex: 1;
   }
+}
+</style>
+
+<!-- 非 scoped：el-dialog 根节点是 Teleport，scope 属性无法附着到弹窗 DOM，
+     scoped 下的 :deep(.optimize-result-dialog) 永远不命中；用专属类名限定作用范围防泄漏 -->
+<style>
+.el-dialog.optimize-result-dialog .el-dialog__body {
+  padding: var(--space-4) 20px;
+  /* 移动端兜底：高内容弹窗允许 body 滚动，避免 footer 被裁出视口 */
+  max-height: calc(90vh - 140px);
+  max-height: calc(90dvh - 140px);
+  overflow-y: auto;
 }
 </style>

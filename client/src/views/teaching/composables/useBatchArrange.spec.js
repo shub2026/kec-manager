@@ -72,7 +72,8 @@ describe('useBatchArrange', () => {
         mode: 'standard',
         hourSettings: { totalHours: 48 },
       },
-      expect.any(Function)
+      expect.any(Function),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
     expect(c.progressProcessed.value).toBe(5);
     expect(c.progressTotal.value).toBe(12);

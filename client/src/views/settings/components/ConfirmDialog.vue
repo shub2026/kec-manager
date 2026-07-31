@@ -21,8 +21,9 @@
         </div>
 
         <div class="confirm-input-area">
-          <label>请输入 <strong>系统重置</strong> 以确认操作：</label>
+          <label for="reset-confirm-input">请输入 <strong>系统重置</strong> 以确认操作：</label>
           <el-input
+            id="reset-confirm-input"
             v-model="confirmInput"
             placeholder="请输入：系统重置"
             size="large"
@@ -33,8 +34,9 @@
 
         <!-- 操作原因（可选，需≥10字符） -->
         <div class="reason-area">
-          <label>操作原因（可选，需≥10字符）：</label>
+          <label for="reset-reason-input">操作原因（可选，需≥10字符）：</label>
           <el-input
+            id="reset-reason-input"
             v-model="reasonInput"
             type="textarea"
             :rows="3"

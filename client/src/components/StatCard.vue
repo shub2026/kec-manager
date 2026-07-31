@@ -1,9 +1,10 @@
 <template>
   <div
     class="stat-item"
-    :class="{ 'stat-core': core }"
-    role="button"
-    tabindex="0"
+    :class="{ 'stat-core': core, 'is-clickable': !!route }"
+    :role="route ? 'button' : undefined"
+    :tabindex="route ? 0 : undefined"
+    :aria-label="route ? `${label} ${displayValue}` : undefined"
     @click="route && $router.push(route)"
     @keyup.enter="route && $router.push(route)"
   >
@@ -61,14 +62,18 @@ watch(
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
-  cursor: pointer;
   transition: all var(--dur-base) var(--ease-out);
   height: 100%;
   min-height: 64px;
   position: relative;
 }
 
-.stat-item:hover {
+/* 仅有跳转路由的卡片才可交互（指针态 + hover 跨升） */
+.stat-item.is-clickable {
+  cursor: pointer;
+}
+
+.stat-item.is-clickable:hover {
   border-color: var(--brand-primary-lighter);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
@@ -92,7 +97,7 @@ watch(
   box-shadow: var(--shadow-sm);
 }
 
-.stat-core:hover {
+.stat-core.is-clickable:hover {
   box-shadow: var(--shadow-glow-soft), var(--shadow-md);
   border-color: var(--brand-primary-lighter);
 }

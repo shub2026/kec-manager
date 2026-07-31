@@ -1,7 +1,7 @@
 <template>
   <el-card class="insight-card">
     <template #header>
-      <span class="card-title">
+      <span class="card-title" role="heading" aria-level="2">
         <el-icon><Histogram /></el-icon>
         课时分布
       </span>
@@ -18,7 +18,7 @@
           <div
             class="chart-bar"
             :style="{
-              width: barWidth(item.hours) + '%',
+              transform: `scaleX(${barWidth(item.hours) / 100})`,
               backgroundColor: barColor(item),
             }"
           />
@@ -117,19 +117,29 @@ function barColor(item) {
 
 .chart-bar {
   height: 100%;
+  width: 100%;
+  transform-origin: left;
+  transform: scaleX(0);
   border-radius: var(--radius-sm);
   transition:
-    width 0.6s var(--ease-out),
+    transform var(--dur-slow) var(--ease-out),
     filter var(--dur-fast) var(--ease-out);
-  min-width: 3px;
 }
 
-.chart-row:hover .chart-bar {
-  filter: brightness(1.12);
+@media (hover: hover) {
+  .chart-row:hover .chart-bar {
+    filter: brightness(1.12);
+  }
+
+  .chart-container:hover .chart-row:not(:hover) {
+    opacity: 0.55;
+  }
 }
 
-.chart-container:hover .chart-row:not(:hover) {
-  opacity: 0.55;
+@media (prefers-reduced-motion: reduce) {
+  .chart-bar {
+    transition: none;
+  }
 }
 
 .chart-value {

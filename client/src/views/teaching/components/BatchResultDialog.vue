@@ -5,7 +5,7 @@
     width="var(--dialog-width-xl)"
     destroy-on-close
     class="batch-result-dialog"
-    top="6vh"
+    align-center
     @update:model-value="emit('update:modelValue', $event)"
   >
     <!-- 汇总统计 -->
@@ -173,9 +173,6 @@ function courseRate(r) {
 </script>
 
 <style scoped>
-:deep(.batch-result-dialog) .el-dialog__body {
-  padding: var(--space-4) 20px;
-}
 .batch-summary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -383,5 +380,20 @@ function courseRate(r) {
 .detail-ok {
   color: var(--brand-success-text);
   font-size: 13px;
+}
+
+/* 移动端响应式：统计卡 2 列重排（与 OptimizeResultDialog 同方案） */
+@media (max-width: 480px) {
+  .batch-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+</style>
+
+<!-- 非 scoped：el-dialog 根节点是 Teleport，scope 属性无法附着到弹窗 DOM，
+     scoped 下的 :deep(.batch-result-dialog) 永远不命中；用专属类名限定作用范围防泄漏 -->
+<style>
+.el-dialog.batch-result-dialog .el-dialog__body {
+  padding: var(--space-4) 20px;
 }
 </style>

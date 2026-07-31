@@ -2,7 +2,7 @@
   <el-card class="insight-card">
     <template #header>
       <div class="alert-header">
-        <span class="card-title">
+        <span class="card-title" role="heading" aria-level="2">
           <el-icon><Warning /></el-icon>
           异常提醒
         </span>

@@ -4,6 +4,7 @@
     :title="form.id ? '编辑教材' : '新增教材'"
     :fullscreen="isMobile"
     width="var(--dialog-width-lg)"
+    :close-on-click-modal="false"
     destroy-on-close
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">

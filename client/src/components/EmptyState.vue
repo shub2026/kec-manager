@@ -1,6 +1,6 @@
 <template>
-  <div class="custom-empty" role="status" aria-label="空状态">
-    <div class="empty-illustration" :class="`empty-${type}`">
+  <div class="custom-empty" role="status" :aria-label="description">
+    <div class="empty-illustration" :class="`empty-${type}`" aria-hidden="true">
       <svg
         viewBox="0 0 120 120"
         width="120"

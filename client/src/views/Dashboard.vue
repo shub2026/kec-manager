@@ -30,12 +30,7 @@
           fill="none"
         >
           <defs>
-            <pattern
-              id="welcomeDecorDots"
-              width="16"
-              height="16"
-              patternUnits="userSpaceOnUse"
-            >
+            <pattern id="welcomeDecorDots" width="16" height="16" patternUnits="userSpaceOnUse">
               <circle cx="2" cy="2" r="2" class="decor-dot" />
             </pattern>
             <linearGradient id="welcomeDecorFade" x1="0" y1="0" x2="1" y2="1">
@@ -618,6 +613,7 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .dashboard {
     min-height: calc(100vh - 50px - 24px);
+    min-height: calc(100dvh - 50px - 24px);
   }
 
   .welcome-top {
