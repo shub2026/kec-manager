@@ -22,6 +22,7 @@ export default [
         clearTimeout: 'readonly',
         clearInterval: 'readonly',
         Blob: 'readonly',
+        HTMLAnchorElement: 'readonly',
         URLSearchParams: 'readonly',
         FormData: 'readonly',
         atob: 'readonly',

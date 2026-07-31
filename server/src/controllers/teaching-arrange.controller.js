@@ -229,6 +229,10 @@ export async function assignTeacher(req, res, next) {
     // 目标课时值：显式传入用传入值，否则用上面推导值（已保证 >0）
     const targetWeeklyHours =
       weekly_hours != null && weekly_hours !== '' ? Number(weekly_hours) : createWeeklyHours;
+    // 显式传入路径校验：拦截 0/负数/非数值，防止绕过上面推导值 >0 守卫
+    if (!Number.isFinite(targetWeeklyHours) || targetWeeklyHours <= 0 || targetWeeklyHours > 40) {
+      return fail(res, '周课时必须为大于 0 且不超过 40 的数值', 400);
+    }
 
     // 合班联动：找出同样开设该课程的合班伙伴，准备同步同一教师
     let partnerClassIds = [];

@@ -358,14 +358,20 @@ export async function deleteTeacher(req, res, next) {
   try {
     const { id } = req.params;
 
-    // 检查是否有教学安排
-    const assignmentCount = await prisma.teaching_assignments.count({
-      where: { teacher_id: Number(id) },
-    });
-    if (assignmentCount > 0) return fail(res, '该教师存在教学安排，无法删除');
-
     try {
-      const deleted = await prisma.teachers.delete({ where: { id: Number(id) } });
+      // TOCTOU 修复：前置检查与删除包入同一事务，防止检查后并发写入排课记录导致级联误删
+      const result = await prisma.$transaction(async (tx) => {
+        // 检查是否有教学安排
+        const assignmentCount = await tx.teaching_assignments.count({
+          where: { teacher_id: Number(id) },
+        });
+        if (assignmentCount > 0) return { blocked: '该教师存在教学安排，无法删除' };
+
+        const deleted = await tx.teachers.delete({ where: { id: Number(id) } });
+        return { deleted };
+      });
+      if (result.blocked) return fail(res, result.blocked);
+      const deleted = result.deleted;
 
       await createAuditLog({
         action: 'delete',

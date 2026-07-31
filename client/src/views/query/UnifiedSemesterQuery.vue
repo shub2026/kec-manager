@@ -130,7 +130,7 @@
                   :data="row.courses"
                   size="small"
                   border
-                  row-key="courseName"
+                  row-key="courseId"
                   class="nested-table"
                 >
                   <el-table-column
@@ -241,7 +241,8 @@ import { getMajors } from '../../api/major';
 import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
 import { exportSemester } from '../../api/export';
-import { useSemesters, downloadBlob } from '../../composables/useSemesters';
+import { useSemesters } from '../../composables/useSemesters';
+import { downloadBlob } from '../../utils/download';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import { useAuthStore } from '@/stores/auth';
 import { getWithCache } from '../../utils/cache';

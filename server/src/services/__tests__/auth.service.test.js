@@ -124,7 +124,7 @@ describe('AuthService.verifyToken', () => {
 });
 
 // ──────────────────────────────────────────────
-// generateToken / generateRefreshToken / generateDownloadToken
+// generateToken / generateRefreshToken
 // ──────────────────────────────────────────────
 describe('AuthService token generation', () => {
   it('generateToken 应生成用 jwtSecret 签名的 token', () => {
@@ -156,16 +156,6 @@ describe('AuthService token generation', () => {
     const decoded1 = jwt.verify(token1, TEST_SECRET);
     const decoded2 = jwt.verify(token2, TEST_SECRET);
     expect(decoded1.jti).not.toBe(decoded2.jti);
-  });
-
-  it('verifyDownloadToken 用独立 downloadSecret 验证', () => {
-    const user = { id: 1, username: 'admin', role: 'super_admin' };
-    const token = AuthService.generateDownloadToken(user);
-    const decoded = AuthService.verifyDownloadToken(token);
-    expect(decoded.id).toBe(1);
-
-    // 用 jwtSecret 验证 downloadToken 应失败（独立密钥）
-    expect(() => jwt.verify(token, TEST_SECRET)).toThrow();
   });
 });
 

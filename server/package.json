@@ -1,6 +1,6 @@
 {
   "name": "kec-manager-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "KEC课程管理平台后端",
   "main": "src/server.js",
   "type": "module",
@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "node --watch-path=src src/server.js",
     "start": "node src/server.js",
-    "diagnose": "node scripts/diagnose.js",
+    "diagnose": "node scripts/diagnose-dashboard.js",
     "init:settings": "node scripts/init-settings.js",
     "db:migrate": "npx prisma migrate dev",
     "db:generate": "npx prisma generate",

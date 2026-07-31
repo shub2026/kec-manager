@@ -117,52 +117,6 @@ export async function authMiddleware(req, res, next) {
     });
   }
 
-  // 备选：从查询参数获取短期下载令牌（用于 window.open 等场景，有效期60秒）
-  // SEC-M2: 已废弃，保留向后兼容，建议前端迁移到 /api/export/issue-ticket + ?ticket=
-  if (!token && req.query.download_token) {
-    const decoded = AuthService.verifyDownloadToken(req.query.download_token);
-    if (decoded) {
-      // S-12 修复：下载令牌也需校验用户状态，防止被禁用用户在令牌有效期内绕过
-      try {
-        const status = await getActiveUserStatus(decoded.id);
-        if (!status || !status.is_active) {
-          return res.status(401).json({
-            success: false,
-            message: '账号不存在或已被禁用',
-          });
-        }
-        // SEC-H1: 下载令牌同样校验 token_version
-        if (
-          decoded.v !== undefined &&
-          status.token_version !== null &&
-          decoded.v !== status.token_version
-        ) {
-          return res.status(401).json({
-            success: false,
-            message: '凭证已失效，请重新登录',
-          });
-        }
-        // SEC-H2: 强制改密期间禁止下载（导出敏感数据）
-        if (status.must_change_password) {
-          return res.status(403).json({
-            success: false,
-            code: 'MUST_CHANGE_PASSWORD',
-            message: '请先修改初始密码',
-          });
-        }
-        req.user = { ...decoded, role: status.role };
-      } catch (err) {
-        log.error('下载令牌用户状态校验失败', { message: err.message });
-        return res.status(500).json({ success: false, message: '服务内部错误' });
-      }
-      return next();
-    }
-    return res.status(401).json({
-      success: false,
-      message: '下载令牌无效或已过期',
-    });
-  }
-
   if (!token) {
     return res.status(401).json({
       success: false,

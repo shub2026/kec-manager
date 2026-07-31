@@ -20,12 +20,10 @@ vi.mock('../../lib/prisma.js', () => ({
 // Mock AuthService
 // ──────────────────────────────────────────────
 const mockVerifyToken = vi.fn();
-const mockVerifyDownloadToken = vi.fn();
 const mockIsBlacklisted = vi.fn();
 vi.mock('../../services/auth.service.js', () => ({
   AuthService: {
     verifyToken: (...args) => mockVerifyToken(...args),
-    verifyDownloadToken: (...args) => mockVerifyDownloadToken(...args),
     isBlacklisted: (...args) => mockIsBlacklisted(...args),
   },
 }));
@@ -210,34 +208,7 @@ describe('authMiddleware', () => {
     expect(mockPrismaUsers.findUnique).toHaveBeenCalledTimes(2);
   });
 
-  it('downloadToken 合法且用户激活时应通过', async () => {
-    const req = makeReq({ query: { download_token: 'valid-download' } });
-    const res = makeRes();
-    const next = vi.fn();
-
-    mockVerifyDownloadToken.mockReturnValue({ id: 1, username: 'admin' });
-    mockPrismaUsers.findUnique.mockResolvedValue({
-      id: 1,
-      role: 'super_admin',
-      is_active: true,
-    });
-
-    await authMiddleware(req, res, next);
-    expect(next).toHaveBeenCalled();
-    expect(req.user.id).toBe(1);
-  });
-
-  it('downloadToken 无效时应返回 401', async () => {
-    const req = makeReq({ query: { download_token: 'invalid' } });
-    const res = makeRes();
-    const next = vi.fn();
-
-    mockVerifyDownloadToken.mockReturnValue(null);
-
-    await authMiddleware(req, res, next);
-    expect(res.statusCode).toBe(401);
-    expect(next).not.toHaveBeenCalled();
-  });
+  // 冗余清理：?download_token= 废弃分支已删除，对应用例同步移除
 
   // H2修复：Token黑名单拦截测试
   it('Token 已在黑名单中时应返回 401', async () => {

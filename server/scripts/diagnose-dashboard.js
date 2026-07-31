@@ -6,11 +6,11 @@
  * 2. 用独立口径（逐班级 JS 判定 + 原始查询）重新核算各项指标
  * 3. 逐项比对并输出差异
  */
-import { prisma } from './src/lib/prisma.js';
+import { prisma } from '../src/lib/prisma.js';
 import {
   getDashboardStats,
   getDashboardInsights,
-} from './src/controllers/dashboard.controller.js';
+} from '../src/controllers/dashboard.controller.js';
 
 function mockRes() {
   const res = { payload: null, statusCode: 200 };
@@ -146,9 +146,9 @@ async function main() {
 
   // ── 4. 未排课提醒逐门核对：是否为本学期应开课程 ──
   const { getActiveClassFilter, calcClassSemester, parseSemester } = await import(
-    './src/services/semester.service.js'
+    '../src/services/semester.service.js'
   );
-  const { findBestMatchPlan } = await import('./src/services/plan.service.js');
+  const { findBestMatchPlan } = await import('../src/services/plan.service.js');
   const semInfo = parseSemester(semester);
   const filter = await getActiveClassFilter(semInfo);
   const activeCls = await prisma.classes.findMany({ where: filter });

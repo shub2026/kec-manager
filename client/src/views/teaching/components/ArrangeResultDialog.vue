@@ -61,7 +61,7 @@
 
     <!-- 警告信息 -->
     <div v-if="result.warnings?.length" class="arrange-warnings">
-      <div v-for="(w, i) in result.warnings" :key="i" class="arrange-warning-item">
+      <div v-for="w in result.warnings" :key="w" class="arrange-warning-item">
         <el-icon><Warning /></el-icon> {{ w }}
       </div>
     </div>

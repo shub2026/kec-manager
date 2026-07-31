@@ -125,17 +125,24 @@ export async function deleteMajor(req, res, next) {
     const { id } = req.params;
     const numId = Number(id);
 
-    const classCount = await prisma.classes.count({ where: { major_id: numId } });
-    if (classCount > 0) return fail(res, '该专业下存在班级，无法删除');
-
-    // S-06 修复：检查培养方案关联，防止 onDelete:SetNull 静默破坏方案专业匹配
-    const planCount = await prisma.training_plans.count({ where: { major_id: numId } });
-    if (planCount > 0) {
-      return fail(res, `该专业仍被${planCount}个培养方案引用，请先解除关联`);
-    }
-
     try {
-      const deleted = await prisma.majors.delete({ where: { id: numId } });
+      // TOCTOU 修复：前置检查与删除包入同一事务，防止检查后并发插入班级/方案
+      // 穿透检查触发 onDelete:SetNull 静默置空
+      const result = await prisma.$transaction(async (tx) => {
+        const classCount = await tx.classes.count({ where: { major_id: numId } });
+        if (classCount > 0) return { blocked: '该专业下存在班级，无法删除' };
+
+        // S-06 修复：检查培养方案关联，防止 onDelete:SetNull 静默破坏方案专业匹配
+        const planCount = await tx.training_plans.count({ where: { major_id: numId } });
+        if (planCount > 0) {
+          return { blocked: `该专业仍被${planCount}个培养方案引用，请先解除关联` };
+        }
+
+        const deleted = await tx.majors.delete({ where: { id: numId } });
+        return { deleted };
+      });
+      if (result.blocked) return fail(res, result.blocked);
+      const deleted = result.deleted;
 
       await createAuditLog({
         action: 'delete',

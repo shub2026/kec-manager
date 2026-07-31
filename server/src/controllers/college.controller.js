@@ -158,26 +158,33 @@ export async function deleteCollege(req, res, next) {
     const { id } = req.params;
     const numId = Number(id);
 
-    // 前置检查：班级
-    const classCount = await prisma.classes.count({ where: { college_id: numId } });
-    if (classCount > 0) return fail(res, '该学院下存在班级，无法删除');
-
-    // S-01 修复：检查教师排课偏好、培养方案、教师所属学院关联，防止级联静默清除
-    const [schedulingCount, planCount, affiliatedCount] = await Promise.all([
-      prisma.teacher_scheduling_colleges.count({ where: { college_id: numId } }),
-      prisma.training_plans.count({ where: { college_id: numId } }),
-      prisma.teachers.count({ where: { affiliated_college_id: numId } }),
-    ]);
-    if (schedulingCount > 0 || planCount > 0 || affiliatedCount > 0) {
-      const parts = [];
-      if (schedulingCount > 0) parts.push(`${schedulingCount}位教师排课偏好`);
-      if (planCount > 0) parts.push(`${planCount}个培养方案`);
-      if (affiliatedCount > 0) parts.push(`${affiliatedCount}位教师所属`);
-      return fail(res, `该学院仍被引用（${parts.join('、')}），请先解除关联`);
-    }
-
     try {
-      const deleted = await prisma.colleges.delete({ where: { id: Number(id) } });
+      // TOCTOU 修复：前置检查与删除包入同一事务，避免检查后并发插入班级/方案
+      // 穿透检查触发 onDelete:SetNull 静默置空，产生"无学院班级"准孤儿数据
+      const result = await prisma.$transaction(async (tx) => {
+        // 前置检查：班级
+        const classCount = await tx.classes.count({ where: { college_id: numId } });
+        if (classCount > 0) return { blocked: '该学院下存在班级，无法删除' };
+
+        // S-01 修复：检查教师排课偏好、培养方案、教师所属学院关联，防止级联静默清除
+        const [schedulingCount, planCount, affiliatedCount] = await Promise.all([
+          tx.teacher_scheduling_colleges.count({ where: { college_id: numId } }),
+          tx.training_plans.count({ where: { college_id: numId } }),
+          tx.teachers.count({ where: { affiliated_college_id: numId } }),
+        ]);
+        if (schedulingCount > 0 || planCount > 0 || affiliatedCount > 0) {
+          const parts = [];
+          if (schedulingCount > 0) parts.push(`${schedulingCount}位教师排课偏好`);
+          if (planCount > 0) parts.push(`${planCount}个培养方案`);
+          if (affiliatedCount > 0) parts.push(`${affiliatedCount}位教师所属`);
+          return { blocked: `该学院仍被引用（${parts.join('、')}），请先解除关联` };
+        }
+
+        const deleted = await tx.colleges.delete({ where: { id: numId } });
+        return { deleted };
+      });
+      if (result.blocked) return fail(res, result.blocked);
+      const deleted = result.deleted;
 
       await createAuditLog({
         action: 'delete',

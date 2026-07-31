@@ -302,7 +302,7 @@ export class AuthService {
         v: user.token_version ?? 0, // SEC-H1: 令牌版本号
       },
       authConfig.jwtSecret,
-      { expiresIn: authConfig.jwtExpiresIn }
+      { expiresIn: authConfig.jwtExpiresIn, algorithm: 'HS256' }
     );
   }
 
@@ -315,29 +315,13 @@ export class AuthService {
         v: user.token_version ?? 0, // SEC-H1: 令牌版本号
       },
       authConfig.jwtRefreshSecret, // M10修复：使用独立的Refresh密钥
-      { expiresIn: authConfig.jwtRefreshExpiresIn }
+      { expiresIn: authConfig.jwtRefreshExpiresIn, algorithm: 'HS256' }
     );
   }
 
   static verifyToken(token) {
     try {
       return jwt.verify(token, authConfig.jwtSecret);
-    } catch (error) {
-      return null;
-    }
-  }
-
-  static generateDownloadToken(user) {
-    return jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
-      authConfig.jwtDownloadSecret, // M10修复：使用独立的Download密钥
-      { expiresIn: authConfig.jwtDownloadExpiresIn }
-    );
-  }
-
-  static verifyDownloadToken(token) {
-    try {
-      return jwt.verify(token, authConfig.jwtDownloadSecret); // M10修复：使用独立的Download密钥
     } catch (error) {
       return null;
     }

@@ -1,8 +1,6 @@
 import { computed } from 'vue';
 import { useSettingsStore } from '../stores/settings';
 
-export { downloadBlob } from '../utils/download';
-
 /**
  * 审计修复：严格的学期校验，与后端 parseSemester 验证逻辑一致
  * 格式 YYYY-YYYY-N，且 end === start+1，start 在 2000-2099 范围内

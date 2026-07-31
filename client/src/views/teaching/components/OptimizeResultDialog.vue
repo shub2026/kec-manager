@@ -117,7 +117,11 @@
       <div v-if="result.changes?.length > 0" class="changes-section">
         <div class="section-title">变更详情（{{ result.changes.length }}项）</div>
         <div class="changes-list">
-          <div v-for="(change, index) in result.changes" :key="index" class="change-item">
+          <div
+            v-for="(change, index) in result.changes"
+            :key="`${change.classId}-${change.courseId}`"
+            class="change-item"
+          >
             <div class="change-index">{{ index + 1 }}</div>
             <div class="change-content">
               <div class="change-class">{{ change.className }}</div>

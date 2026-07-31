@@ -189,6 +189,7 @@ export const validateMajor = [
     .isLength({ min: 1, max: 100 })
     .withMessage('专业名称不能为空且不超过100个字符'),
   body('code').optional().trim().isLength({ max: 50 }).withMessage('专业编码不超过50个字符'),
+  body('sort_order').optional().isInt({ min: 0 }).withMessage('排序值必须为非负整数'),
   handleValidationErrors,
 ];
 
@@ -206,6 +207,7 @@ export const validateCourse = [
     .optional()
     .isIn(['public', 'professional', 'elective'])
     .withMessage('课程类型必须是public、professional或elective'),
+  body('sort_order').optional().isInt({ min: 0 }).withMessage('排序值必须为非负整数'),
   handleValidationErrors,
 ];
 
@@ -318,6 +320,7 @@ export const validateCollege = [
     .withMessage('学院名称不能为空且不超过100个字符'),
   body('code').optional().trim().isLength({ max: 50 }).withMessage('学院编码不超过50个字符'),
   body('description').optional().trim().isLength({ max: 500 }).withMessage('描述不超过500个字符'),
+  body('sort_order').optional().isInt({ min: 0 }).withMessage('排序值必须为非负整数'),
   handleValidationErrors,
 ];
 
@@ -451,6 +454,7 @@ export const validateMajorCreate = [
     .isLength({ min: 1, max: 100 })
     .withMessage('专业名称不能为空且不超过100个字符'),
   body('code').optional().trim().isLength({ max: 50 }).withMessage('专业编码不超过50个字符'),
+  body('sort_order').optional().isInt({ min: 0 }).withMessage('排序值必须为非负整数'),
   handleValidationErrors,
 ];
 
@@ -464,6 +468,7 @@ export const validateCollegeCreate = [
     .withMessage('学院名称不能为空且不超过100个字符'),
   body('code').optional().trim().isLength({ max: 50 }).withMessage('学院编码不超过50个字符'),
   body('description').optional().trim().isLength({ max: 500 }).withMessage('描述不超过500个字符'),
+  body('sort_order').optional().isInt({ min: 0 }).withMessage('排序值必须为非负整数'),
   handleValidationErrors,
 ];
 
@@ -480,6 +485,7 @@ export const validateCourseCreate = [
     .optional()
     .isIn(['public', 'professional', 'elective'])
     .withMessage('课程类型必须是public、professional或elective'),
+  body('sort_order').optional().isInt({ min: 0 }).withMessage('排序值必须为非负整数'),
   handleValidationErrors,
 ];
 

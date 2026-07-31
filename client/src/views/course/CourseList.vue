@@ -261,7 +261,9 @@ const pagedList = computed(() => {
 });
 
 // 计算行在 filteredList 中的真实索引（分页后视觉 $index 不再等于真实序）
-const realIndex = (row) => filteredList.value.findIndex((i) => i.id === row.id);
+// 性能优化：预计算 id→index Map，行内取值 O(1)，避免每行 findIndex O(n)
+const realIndexMap = computed(() => new Map(filteredList.value.map((i, idx) => [i.id, idx])));
+const realIndex = (row) => realIndexMap.value.get(row.id) ?? -1;
 
 // 筛选变化或数据缩减后重置/收敛页码，避免停留在空页
 watch(debouncedFilterName, () => {

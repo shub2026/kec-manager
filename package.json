@@ -1,6 +1,6 @@
 {
   "name": "kec-manager",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "KEC课程管理平台",
@@ -17,8 +17,5 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
-  },
-  "dependencies": {
-    "dotenv": "^17.4.2"
   }
 }

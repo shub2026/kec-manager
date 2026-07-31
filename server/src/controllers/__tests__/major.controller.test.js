@@ -22,6 +22,8 @@ const mockPrisma = {
     count: vi.fn().mockResolvedValue(0),
   },
 };
+// TOCTOU 修复后删除走交互式事务，mock 直接把自身作为 tx 客户端传入回调
+mockPrisma.$transaction = vi.fn(async (fn) => fn(mockPrisma));
 
 vi.mock('../../lib/prisma.js', () => ({
   prisma: mockPrisma,
