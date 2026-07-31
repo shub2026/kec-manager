@@ -76,6 +76,7 @@
     :model-value="semesterDialogVisible"
     title="设置开课学期"
     width="var(--dialog-width)"
+    :fullscreen="isMobile"
     @update:model-value="$emit('update-semester-dialog-visible', $event)"
   >
     <el-form label-width="100px">
@@ -124,6 +125,7 @@
 
 <script setup>
 import { ref, watch, nextTick } from 'vue';
+import { useResponsive } from '@/composables/useResponsive';
 
 // TODO: L-7 - 当前组件有 8 个 emit，建议重构为 v-model + 事件对象模式减少 prop-drilling
 const props = defineProps({
@@ -151,6 +153,8 @@ defineEmits([
   'update-semester-dialog-visible',
   'update-semester-form',
 ]);
+
+const { isMobile } = useResponsive();
 
 // 焦点管理：popover 打开时将焦点移入首个控件，关闭时归还给触发单元格
 const popoverContentRef = ref(null);

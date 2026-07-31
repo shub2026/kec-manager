@@ -411,4 +411,11 @@ const progressStatus = computed(() => {
     transform: rotate(360deg);
   }
 }
+
+/* 移动端响应式：统计卡 2 列重排（与 OptimizeResultDialog / BatchResultDialog 同方案） */
+@media (max-width: 480px) {
+  .batch-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 </style>

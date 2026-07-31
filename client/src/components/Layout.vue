@@ -338,6 +338,7 @@ function handlePasswordChangeSuccess() {
 .mobile-avatar {
   width: 40px;
   height: 40px;
+  border: none;
   border-radius: var(--radius-sm);
   padding: 0;
   /* 玻璃灰中性风的浅色顶栏对应版：白底上玻璃白会消失，改中性浅灰底+细描边(镜像桌面端结构)，深灰图标对比度≈7.9:1 */
@@ -351,6 +352,23 @@ function handlePasswordChangeSuccess() {
   font-weight: 600;
   flex-shrink: 0;
   cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.mobile-avatar:hover {
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
+}
+
+.mobile-avatar:active {
+  background: var(--bg-subtle);
+}
+
+.mobile-avatar:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
 }
 
 /* ==================== 桌面侧边栏 ==================== */
