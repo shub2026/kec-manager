@@ -402,11 +402,19 @@ async function confirmDelete() {
 async function handleToggleStatus(row, val) {
   const newStatus = val ? 'active' : 'disabled';
   try {
-    await toggleTeacherStatus(row.id, newStatus);
+    await toggleTeacherStatus(row.id, newStatus, { silent: true });
     ElMessage.success(val ? '已启用' : '已禁用');
     await load();
   } catch (e) {
-    if (import.meta.env.DEV) console.error('状态切换失败:', e);
+    const reason = e?.response?.data?.message || e?.message || '未知错误';
+    ElNotification({
+      title: '无法禁用',
+      message: reason,
+      type: 'warning',
+      duration: 6000,
+    });
+    // 重新拉取列表，使状态开关回滚到操作前的正确视觉状态
+    await load();
   }
 }
 

@@ -47,7 +47,8 @@ export const batchUpdateDefaultHours = (data) => request.put('/teachers/batch/de
  * 切换教师状态
  * @param {number} id
  * @param {string} status - 'active' | 'disabled'
+ * @param {{ silent?: boolean }} [options] - silent=true 时抑制拦截器的错误弹窗
  * @returns {Promise<import('./types').ApiResponse<import('./types').Teacher>>}
  */
-export const toggleTeacherStatus = (id, status) =>
-  request.patch(`/teachers/${id}/status`, { status });
+export const toggleTeacherStatus = (id, status, { silent } = {}) =>
+  request.patch(`/teachers/${id}/status`, { status }, { silentError: silent });

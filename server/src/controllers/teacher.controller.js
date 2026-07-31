@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
+import { getCurrentSemesterInfo } from '../services/semester.service.js';
 import {
   autoFixSortOrder,
   invalidateSortOrderCache,
@@ -466,6 +467,28 @@ export async function toggleTeacherStatus(req, res, next) {
     // M-2修复：禁用教师时不再级联删除历史排课记录，保留历史数据完整性
     // 查询端（dashboard/teaching-arrange）已通过 teacher.status='active' 过滤
     const willDisable = status === 'disabled' && existing.status !== 'disabled';
+
+    // 禁用前置校验：当前学期存在有效课程安排（weekly_hours>0）时阻止禁用，
+    // 避免历史排课记录被查询端静默过滤后从课时统计中消失。
+    if (willDisable) {
+      const semesterInfo = await getCurrentSemesterInfo();
+      if (semesterInfo) {
+        const activeCount = await prisma.teaching_assignments.count({
+          where: {
+            teacher_id: teacherId,
+            semester: semesterInfo.raw,
+            weekly_hours: { gt: 0 },
+          },
+        });
+        if (activeCount > 0) {
+          return fail(
+            res,
+            `该教师在当前学期（${semesterInfo.label}）有 ${activeCount} 条课程安排，无法禁用。请先清空或转移这些安排后再禁用。`,
+            409
+          );
+        }
+      }
+    }
 
     await prisma.teachers.update({
       where: { id: teacherId },

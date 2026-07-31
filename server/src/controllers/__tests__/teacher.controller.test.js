@@ -4,7 +4,7 @@
  * 覆盖函数：
  * - updateTeacher：基本字段更新、关联表重建（courses/colleges/training_levels）、
  *   affiliated_college_id 空值处理、default_weekly_hours 处理、事务回滚、P2025 错误
- * - toggleTeacherStatus：active↔disabled 切换、级联删除教学安排、审计日志
+ * - toggleTeacherStatus：active↔disabled 切换、禁用前置校验（当前学期有安排时阻止）、审计日志
  * - batchUpdateDefaultHours：批量修改自定义课时、空值/数字处理
  *
  * Mock 策略：mock prisma 和依赖服务，直接调用控制器函数验证行为。
@@ -45,6 +45,9 @@ const mockPrisma = {
     update: vi.fn().mockResolvedValue({}),
     updateMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
+  teaching_assignments: {
+    count: vi.fn().mockResolvedValue(0),
+  },
   $transaction: vi.fn(async (fn) => fn(mockTx)),
 };
 
@@ -61,6 +64,11 @@ vi.mock('../../services/audit.service.js', () => ({
 
 vi.mock('../../utils/logger.js', () => ({
   log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+}));
+
+// 学期服务：禁用前置校验依赖 getCurrentSemesterInfo 获取当前学期串
+vi.mock('../../services/semester.service.js', () => ({
+  getCurrentSemesterInfo: vi.fn(),
 }));
 
 // sort.js 中 invalidateSortOrderCache 是同步函数，直接 mock 避免副作用
@@ -86,6 +94,7 @@ const { updateTeacher, toggleTeacherStatus, batchUpdateDefaultHours } =
   await import('../teacher.controller.js');
 const { createAuditLog } = await import('../../services/audit.service.js');
 const { invalidateSortOrderCache } = await import('../../utils/sort.js');
+const { getCurrentSemesterInfo } = await import('../../services/semester.service.js');
 
 // ──────────────────────────────────────────────
 // 工具函数
@@ -719,6 +728,12 @@ describe('toggleTeacherStatus', () => {
       status: 'active',
     });
     mockPrisma.teachers.update.mockResolvedValue({ ...BASE_TEACHER, status: 'disabled' });
+    // 默认：已配置当前学期，且该教师当前学期无有效安排（不阻止禁用）
+    getCurrentSemesterInfo.mockResolvedValue({
+      raw: '2026-2027-1',
+      label: '2026年秋季(第1学期)',
+    });
+    mockPrisma.teaching_assignments.count.mockResolvedValue(0);
   });
 
   // ──────────────────────────────────────────────
@@ -936,6 +951,82 @@ describe('toggleTeacherStatus', () => {
           message: '启用教师：张三',
         })
       );
+    });
+  });
+  // ──────────────────────────────────────────────
+  // 6. 禁用前置校验（当前学期有有效安排时阻止）
+  // ──────────────────────────────────────────────
+  describe('禁用前置校验', () => {
+    it('当前学期存在有效安排时应返回 409 且不调用 update', async () => {
+      mockPrisma.teaching_assignments.count.mockResolvedValue(3);
+
+      const req = mockReq({ id: TEACHER_ID }, { status: 'disabled' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await toggleTeacherStatus(req, res, next);
+
+      // 按当前学期串 + weekly_hours>0 统计
+      expect(mockPrisma.teaching_assignments.count).toHaveBeenCalledWith({
+        where: {
+          teacher_id: TEACHER_ID,
+          semester: '2026-2027-1',
+          weekly_hours: { gt: 0 },
+        },
+      });
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          message: expect.stringContaining('无法禁用'),
+        })
+      );
+      expect(mockPrisma.teachers.update).not.toHaveBeenCalled();
+    });
+
+    it('当前学期无有效安排（count=0）时应正常禁用', async () => {
+      mockPrisma.teaching_assignments.count.mockResolvedValue(0);
+
+      const req = mockReq({ id: TEACHER_ID }, { status: 'disabled' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await toggleTeacherStatus(req, res, next);
+
+      expect(mockPrisma.teachers.update).toHaveBeenCalledWith({
+        where: { id: TEACHER_ID },
+        data: { status: 'disabled' },
+      });
+    });
+
+    it('未配置当前学期时应跳过校验并正常禁用', async () => {
+      getCurrentSemesterInfo.mockResolvedValue(null);
+
+      const req = mockReq({ id: TEACHER_ID }, { status: 'disabled' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await toggleTeacherStatus(req, res, next);
+
+      expect(mockPrisma.teaching_assignments.count).not.toHaveBeenCalled();
+      expect(mockPrisma.teachers.update).toHaveBeenCalled();
+    });
+
+    it('启用操作不应触发安排数校验', async () => {
+      mockPrisma.teachers.findUnique.mockResolvedValue({
+        id: TEACHER_ID,
+        name: '张三',
+        status: 'disabled',
+      });
+
+      const req = mockReq({ id: TEACHER_ID }, { status: 'active' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await toggleTeacherStatus(req, res, next);
+
+      expect(mockPrisma.teaching_assignments.count).not.toHaveBeenCalled();
+      expect(mockPrisma.teachers.update).toHaveBeenCalled();
     });
   });
 });
