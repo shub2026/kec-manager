@@ -71,7 +71,9 @@
         </div>
       </template>
 
+      <ListErrorState v-if="error" :message="error" @retry="loadData" />
       <ArrangeClassTable
+        v-else
         :class-list="filteredClassList"
         :loading="tableLoading"
         :historical-read-only="historicalReadOnly"
@@ -156,6 +158,7 @@
       v-model="resetConfirmVisible"
       title="确认重置"
       width="var(--dialog-width-lg)"
+      :fullscreen="isMobile"
       align-center
     >
       <BaseConfirmBody icon-color="var(--brand-danger)">
@@ -207,8 +210,12 @@ import ArrangeClassTable from './components/ArrangeClassTable.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import BaseConfirmBody from '../../components/BaseConfirmBody.vue';
 import SemesterSelect from '../../components/SemesterSelect.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
+import { useResponsive } from '../../composables/useResponsive';
 
 defineOptions({ name: 'TeachingArrange' });
+
+const { isMobile } = useResponsive();
 
 const TeacherSelectDialog = defineAsyncComponent(
   () => import('./components/TeacherSelectDialog.vue')
@@ -246,6 +253,8 @@ const hourSettingsRef = computed(() => settingsCardRef.value?.hourSettings || {}
 const classList = ref([]);
 const teacherList = ref([]);
 const tableLoading = ref(false);
+// 列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 const summary = ref({
   totalClasses: 0,
   assignedCount: 0,
@@ -473,6 +482,7 @@ async function loadData() {
   if (!selectedCourseId.value || !selectedSemester.value) return;
   const seq = ++loadDataSeq;
   tableLoading.value = true;
+  error.value = null;
   try {
     const [classesRes, teachersRes] = await Promise.all([
       getCourseClasses({ courseId: selectedCourseId.value, semester: selectedSemester.value }),
@@ -497,7 +507,7 @@ async function loadData() {
     teacherList.value = teachersRes.data || [];
   } catch (e) {
     if (seq !== loadDataSeq) return;
-    ElMessage.error('加载数据失败');
+    error.value = '加载数据失败，请稍后重试';
     if (import.meta.env.DEV) {
       console.error('加载数据失败:', e);
     }
@@ -677,6 +687,6 @@ onMounted(async () => {
 .reset-warning {
   margin: 8px 0 0;
   color: var(--brand-danger-text);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
 }
 </style>

@@ -8,7 +8,7 @@
  * - exportTeachers：教师数据导出、错误处理
  * - exportStatistics：课时统计导出（含筛选、合计行）、错误处理
  * - exportTeachingArrange：教学安排导出、参数校验
- * - exportTextbookUsage：教材使用导出、学期校验
+ * - exportTextbookUsage：教材使用导出（单教材/全部教材）、学期校验
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -592,9 +592,6 @@ describe('exportStatistics', () => {
       scheduling_colleges: [{ college: { name: '教育学院' } }],
     };
 
-    mocks.teachingAssignmentsGroupBy.mockResolvedValue([
-      { teacher_id: 1, _sum: { weekly_hours: 12 }, _count: { id: 3 } },
-    ]);
     mocks.teachersFindMany.mockResolvedValue([teacher]);
     mocks.teachingAssignmentsFindMany.mockResolvedValue([
       {
@@ -672,9 +669,6 @@ describe('exportStatistics', () => {
       courses: [{ course: { name: '数学' } }],
       scheduling_colleges: [{ college: { name: '教育学院' } }],
     };
-    mocks.teachingAssignmentsGroupBy.mockResolvedValue([
-      { teacher_id: 1, _sum: { weekly_hours: 12 }, _count: { id: 3 } },
-    ]);
     mocks.teachersFindMany.mockResolvedValue([teacher]);
     mocks.teachingAssignmentsFindMany.mockResolvedValue([
       {
@@ -724,9 +718,6 @@ describe('exportStatistics', () => {
       scheduling_colleges: [{ college: { name: '教育学院' } }],
     };
 
-    mocks.teachingAssignmentsGroupBy.mockResolvedValue([
-      { teacher_id: 1, _sum: { weekly_hours: 8 }, _count: { id: 2 } },
-    ]);
     mocks.teachersFindMany.mockResolvedValue([teacher]);
     // 两个成员班（A、B）同属组合 99，同课程、同教师，各 4 课时：
     // 物理上是一节合班课，应只计 1 次（总周课时 4，班级数 1）
@@ -777,42 +768,148 @@ describe('exportStatistics', () => {
     expect(res.send).toHaveBeenCalled();
   });
 
-  it('应支持教师筛选条件', async () => {
-    mocks.teachingAssignmentsGroupBy.mockResolvedValue([]);
-    mocks.teachersFindMany.mockResolvedValue([]);
-    mocks.teachingAssignmentsFindMany.mockResolvedValue([]);
+  it('取数应与统计页同口径（仅在职教师、排除 0 课时安排）', async () => {
+    const req = makeReq({ query: { semester: '2025-2026-1' } });
+    await exportStatistics(req, makeRes(), vi.fn());
 
-    const req = makeReq({
-      query: {
-        semester: '2025-2026-1',
-        name: '王',
-        type: 'full_time',
-        affiliated_college: '5',
-        subject: '数学',
-        level: '10',
-        college: '3',
-      },
-    });
-    const res = makeRes();
-    await exportStatistics(req, res, vi.fn());
-
-    // 验证 groupBy 被调用，且 where 条件包含教师筛选
-    expect(mocks.teachingAssignmentsGroupBy).toHaveBeenCalledWith(
+    expect(mocks.teachingAssignmentsFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
+        where: {
           semester: '2025-2026-1',
-          class: { college_id: 3 },
-          teacher: expect.objectContaining({
-            name: { contains: '王' },
-            personnel_type: 'full_time',
-          }),
-        }),
+          teacher: { status: 'active' },
+          weekly_hours: { gt: 0 },
+        },
       })
     );
   });
 
+  it('筛选参数应按名称文本过滤，与前端 filteredTeachers 同语义', async () => {
+    const teachers = [
+      {
+        id: 1,
+        name: '王五',
+        personnel_type: 'full_time',
+        affiliated_college: { name: '教育学院' },
+        // 意向科目含“英语”，但实际只教“数学”：科目筛选应按实际授课匹配
+        courses: [{ course: { name: '数学' } }, { course: { name: '英语' } }],
+        scheduling_levels: [],
+      },
+      {
+        id: 2,
+        name: '李四',
+        personnel_type: 'part_time',
+        affiliated_college: { name: '体育学院' },
+        courses: [{ course: { name: '体育' } }],
+        scheduling_levels: [],
+      },
+    ];
+    const assignments = [
+      {
+        teacher_id: 1,
+        class_id: 1,
+        course_id: 10,
+        weekly_hours: 4,
+        class: {
+          id: 1,
+          name: '班级A',
+          combination_id: null,
+          colleges: { id: 1, name: '教育学院' },
+          training_levels: { name: '大专' },
+        },
+        course: { name: '数学' },
+      },
+      {
+        teacher_id: 2,
+        class_id: 2,
+        course_id: 20,
+        weekly_hours: 6,
+        class: {
+          id: 2,
+          name: '班级B',
+          combination_id: null,
+          colleges: { id: 2, name: '体育学院' },
+          training_levels: { name: '中专' },
+        },
+        course: { name: '体育' },
+      },
+    ];
+
+    const runExport = async (query) => {
+      mocks.teachingAssignmentsFindMany.mockResolvedValue(assignments);
+      mocks.teachersFindMany.mockResolvedValue(teachers);
+      await exportStatistics(makeReq({ query }), makeRes(), vi.fn());
+      return mocks.createWorkbook.mock.calls.at(-1)[1];
+    };
+
+    // 任课学院名称筛选（原实现 Number('教育学院')=NaN 会导出空表）
+    let rows = await runExport({ semester: '2025-2026-1', college: '教育学院' });
+    expect(rows).toHaveLength(2); // 1 数据行 + 合计行
+    expect(rows[0]['姓名']).toBe('王五');
+    expect(rows[1]['课程明细']).toBe('1位教师');
+
+    // 任课层次名称筛选（原实现 Number('中专')=NaN 会报 Prisma 校验错误）
+    rows = await runExport({ semester: '2025-2026-1', level: '中专' });
+    expect(rows).toHaveLength(2);
+    expect(rows[0]['姓名']).toBe('李四');
+
+    // 归属学院名称精确匹配（原实现 NaN 会错配无归属学院教师）
+    rows = await runExport({ semester: '2025-2026-1', affiliated_college: '体育学院' });
+    expect(rows).toHaveLength(2);
+    expect(rows[0]['姓名']).toBe('李四');
+
+    // 科目按实际授课精确匹配：意向科目“英语”未实际授课 → 不命中（仅合计行）
+    rows = await runExport({ semester: '2025-2026-1', subject: '英语' });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]['姓名']).toBe('合计');
+    rows = await runExport({ semester: '2025-2026-1', subject: '数学' });
+    expect(rows).toHaveLength(2);
+    expect(rows[0]['姓名']).toBe('王五');
+
+    // 姓名包含 + 类别精确匹配
+    rows = await runExport({ semester: '2025-2026-1', name: '四', type: 'part_time' });
+    expect(rows).toHaveLength(2);
+    expect(rows[0]['姓名']).toBe('李四');
+  });
+
+  it('任课层次为空时应回退教师意向层次（与页面一致）', async () => {
+    mocks.teachersFindMany.mockResolvedValue([
+      {
+        id: 1,
+        name: '王五',
+        personnel_type: 'full_time',
+        affiliated_college: { name: '教育学院' },
+        courses: [{ course: { name: '数学' } }],
+        scheduling_levels: [{ training_level: { name: '五年制' } }],
+      },
+    ]);
+    mocks.teachingAssignmentsFindMany.mockResolvedValue([
+      {
+        teacher_id: 1,
+        class_id: 1,
+        course_id: 10,
+        weekly_hours: 4,
+        class: {
+          id: 1,
+          name: '班级A',
+          combination_id: null,
+          colleges: { id: 1, name: '教育学院' },
+          training_levels: null, // 班级无层次 → 回退意向
+        },
+        course: { name: '数学' },
+      },
+    ]);
+
+    const req = makeReq({ query: { semester: '2025-2026-1', level: '五年制' } });
+    await exportStatistics(req, makeRes(), vi.fn());
+
+    const rows = mocks.createWorkbook.mock.calls[0][1];
+    expect(rows).toHaveLength(2);
+    expect(rows[0]['姓名']).toBe('王五');
+    expect(rows[0]['任课层次']).toBe('五年制');
+  });
+
   it('错误时应调用 next', async () => {
-    mocks.teachingAssignmentsGroupBy.mockRejectedValue(new Error('DB error'));
+    mocks.teachingAssignmentsFindMany.mockRejectedValue(new Error('DB error'));
 
     const req = makeReq({ query: { semester: '2025-2026-1' } });
     const res = makeRes();
@@ -1152,6 +1249,9 @@ describe('exportTextbookUsage', () => {
             semester: 1,
             plan_courses: {
               id: 100,
+              course_id: 1,
+              start_semester: 1,
+              end_semester: 2,
               training_plans: { id: 10, majors: { id: 1 }, training_levels: { id: 1 } },
               courses: { name: '语文' },
             },
@@ -1197,6 +1297,233 @@ describe('exportTextbookUsage', () => {
     expect(mocks.createAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({ result: 'success' })
     );
+  });
+
+  it('无 params.id 时应导出全部启用教材并逐列断言表头顺序', async () => {
+    mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
+
+    const makeTextbook = (id, title, isbn) => ({
+      id,
+      title,
+      isbn,
+      plan_textbooks: [
+        {
+          textbook_id: id,
+          is_required: true,
+          plan_course_semesters: {
+            plan_course_id: 100 + id,
+            semester: 1,
+            plan_courses: {
+              id: 100 + id,
+              course_id: id,
+              start_semester: 1,
+              end_semester: 2,
+              training_plans: { id: 10, majors: { id: 1 }, training_levels: { id: 1 } },
+              courses: { name: `课程${id}` },
+            },
+          },
+        },
+      ],
+    });
+
+    const cls = {
+      id: 1,
+      name: '班级A',
+      enrollment_year: 2024,
+      duration_years: 3,
+      student_count: 40,
+      major_id: 1,
+      training_level_id: 1,
+      colleges: { name: '教育学院' },
+      majors: { name: '学前教育' },
+      training_levels: { name: '大专' },
+    };
+
+    mocks.textbooksFindMany.mockResolvedValue([
+      makeTextbook(1, '大学语文', '978-1'),
+      makeTextbook(2, '高等数学', '978-2'),
+    ]);
+    mocks.classesFindMany.mockResolvedValue([cls]);
+    mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
+    mocks.isClassMatchPlan.mockReturnValue(true);
+    mocks.buildConsecutiveTextbookMap.mockResolvedValue(new Map());
+
+    const req = makeReq({ query: { semester: '2025-2026-1' } });
+    const res = makeRes();
+    await exportTextbookUsage(req, res, vi.fn());
+
+    // 仅导出启用教材，按 sort_order 排序
+    expect(mocks.textbooksFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { is_active: true },
+        orderBy: { sort_order: 'asc' },
+      })
+    );
+
+    // 表头逐列断言完整顺序（与前端教材查询表格一致）
+    const headers = mocks.createWorkbook.mock.calls[0][0];
+    expect(headers.map((h) => h.label)).toEqual([
+      '教材名称',
+      '书号',
+      '使用班级',
+      '学院',
+      '专业',
+      '培养层次',
+      '年级',
+      '课程',
+      '学生人数',
+      '使用学期',
+      '是否必订',
+    ]);
+
+    const rows = mocks.createWorkbook.mock.calls[0][1];
+    // 2 本教材各 1 行 + 1 合计行
+    expect(rows).toHaveLength(3);
+    expect(rows[0]['教材名称']).toBe('大学语文');
+    expect(rows[1]['教材名称']).toBe('高等数学');
+    // 全部教材模式合计行按记录数口径，学生人数累加
+    expect(rows[2]['教材名称']).toBe('合计');
+    expect(rows[2]['使用班级']).toBe('2条记录');
+    expect(rows[2]['学生人数']).toBe(80);
+
+    // 文件名含"全部教材"与学期
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      expect.stringContaining(encodeURIComponent('教材使用_全部教材_2025-2026-1.xlsx'))
+    );
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: 'success',
+        details: expect.objectContaining({ scope: 'all', textbookCount: 2, rowCount: 3 }),
+      })
+    );
+  });
+
+  it('同一班级匹配多个方案的同一课程时应按 (班级,课程) 去重仅计一行', async () => {
+    mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
+
+    // 同一门课程(course_id=1)在两个不同方案的 plan_courses 中都配了本教材
+    const makePlanTextbook = (pcId, planId) => ({
+      textbook_id: 1,
+      is_required: true,
+      plan_course_semesters: {
+        plan_course_id: pcId,
+        semester: 1,
+        plan_courses: {
+          id: pcId,
+          course_id: 1,
+          start_semester: 1,
+          end_semester: 2,
+          training_plans: { id: planId, majors: { id: 1 }, training_levels: { id: 1 } },
+          courses: { name: '语文' },
+        },
+      },
+    });
+    const textbook = {
+      id: 1,
+      title: '大学语文',
+      isbn: '978-1',
+      plan_textbooks: [makePlanTextbook(100, 10), makePlanTextbook(200, 20)],
+    };
+
+    const cls = {
+      id: 1,
+      name: '班级A',
+      enrollment_year: 2024,
+      duration_years: 3,
+      student_count: 40,
+      major_id: 1,
+      training_level_id: 1,
+      colleges: { name: '教育学院' },
+      majors: { name: '学前教育' },
+      training_levels: { name: '大专' },
+    };
+
+    mocks.textbooksFindUnique.mockResolvedValue(textbook);
+    mocks.classesFindMany.mockResolvedValue([cls]);
+    mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
+    mocks.isClassMatchPlan.mockReturnValue(true);
+    mocks.buildConsecutiveTextbookMap.mockResolvedValue(new Map());
+
+    const req = makeReq({ params: { id: '1' } });
+    const res = makeRes();
+    await exportTextbookUsage(req, res, vi.fn());
+
+    const rows = mocks.createWorkbook.mock.calls[0][1];
+    // 与查询接口 B-14 同口径：只计 1 数据行 + 1 合计行，学生人数不重复累加
+    expect(rows).toHaveLength(2);
+    expect(rows[0]['使用班级']).toBe('班级A');
+    expect(rows[1]['教材名称']).toBe('合计');
+    expect(rows[1]['学生人数']).toBe(40);
+  });
+
+  it('教材学期超出方案课程授课范围时不应导出', async () => {
+    mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
+
+    const textbook = {
+      id: 1,
+      title: '大学语文',
+      isbn: '978-1',
+      plan_textbooks: [
+        {
+          textbook_id: 1,
+          is_required: true,
+          plan_course_semesters: {
+            plan_course_id: 100,
+            semester: 1, // 越界：方案课程授课范围为第 2-3 学期
+            plan_courses: {
+              id: 100,
+              course_id: 1,
+              start_semester: 2,
+              end_semester: 3,
+              training_plans: { id: 10, majors: { id: 1 }, training_levels: { id: 1 } },
+              courses: { name: '语文' },
+            },
+          },
+        },
+      ],
+    };
+
+    const cls = {
+      id: 1,
+      name: '班级A',
+      enrollment_year: 2024,
+      duration_years: 3,
+      student_count: 40,
+      major_id: 1,
+      training_level_id: 1,
+      colleges: { name: '教育学院' },
+      majors: { name: '学前教育' },
+      training_levels: { name: '大专' },
+    };
+
+    mocks.textbooksFindUnique.mockResolvedValue(textbook);
+    mocks.classesFindMany.mockResolvedValue([cls]);
+    mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
+    mocks.isClassMatchPlan.mockReturnValue(true);
+    mocks.buildConsecutiveTextbookMap.mockResolvedValue(new Map());
+
+    const req = makeReq({ params: { id: '1' } });
+    const res = makeRes();
+    await exportTextbookUsage(req, res, vi.fn());
+
+    const rows = mocks.createWorkbook.mock.calls[0][1];
+    // 无数据行，仅合计行（与查询接口一致跳过越界条目）
+    expect(rows).toHaveLength(1);
+    expect(rows[0]['教材名称']).toBe('合计');
+    expect(rows[0]['学生人数']).toBe(0);
+  });
+
+  it('全部教材模式无学期信息时应返回 400', async () => {
+    mocks.getSemesterInfoFromRequest.mockResolvedValue(null);
+
+    const req = makeReq();
+    const res = makeRes();
+
+    await exportTextbookUsage(req, res, vi.fn());
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(mocks.textbooksFindMany).not.toHaveBeenCalled();
   });
 
   it('错误时应调用 next', async () => {

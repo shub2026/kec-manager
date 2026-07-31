@@ -428,6 +428,8 @@ defineProps({
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* 与 ListErrorState 一致，消除空/错/加载三态切换时的高度跳变 */
+  min-height: 240px;
   padding: var(--space-7) var(--space-5);
 }
 

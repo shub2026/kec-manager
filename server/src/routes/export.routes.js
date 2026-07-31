@@ -86,6 +86,9 @@ router.get('/teaching-arrange', roleMiddleware('admin', 'super_admin'), exportTe
 
 // ==================== 教材使用导出 ====================
 
+// GET /api/export/textbook-usage - 导出全部教材使用情况（与单教材同控制器，缺省 id 即全量；限 admin+）
+router.get('/textbook-usage', roleMiddleware('admin', 'super_admin'), exportTextbookUsage);
+
 // GET /api/export/textbook/:id - 导出教材使用情况（M-12修复：限制为admin+）
 router.get(
   '/textbook/:id',

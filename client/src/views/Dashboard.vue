@@ -62,7 +62,7 @@
 
       <!-- 内联指标条：一行纵览,紧凑高效 -->
       <el-skeleton v-if="loading" :rows="2" animated class="loading-skeleton" />
-      <div v-else class="metrics-strip" role="list" aria-label="核心指标">
+      <div v-else-if="!error" class="metrics-strip" role="list" aria-label="核心指标">
         <div v-for="m in metrics" :key="m.key" class="metric-item" role="listitem">
           <!-- 可点击指标用 router-link 承载链接语义：屏幕阅读器可感知、键盘原生激活 -->
           <router-link
@@ -88,7 +88,8 @@
     </div>
 
     <!-- 洞察区域：CSS Grid 非对称布局（左 60% 右 40%） -->
-    <section class="insights-grid" role="region" aria-label="教学洞察">
+    <ListErrorState v-if="error" :message="error" @retry="reload" />
+    <section v-else class="insights-grid" role="region" aria-label="教学洞察">
       <!-- 加载中先占位，避免闪现“暂无数据”空态（同内嵌表格假加载闪烁问题的反向场景） -->
       <template v-if="insightsLoading">
         <div v-for="i in 4" :key="i" class="insight-skeleton">
@@ -128,7 +129,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { Calendar, EditPen, Search } from '@element-plus/icons-vue';
 import { useAuthStore } from '../stores/auth';
@@ -141,6 +141,7 @@ import AlertCard from '../components/AlertCard.vue';
 import HoursChart from '../components/HoursChart.vue';
 import CourseProgressChart from '../components/CourseProgressChart.vue';
 import CourseStatsCard from '../components/CourseStatsCard.vue';
+import ListErrorState from '../components/ListErrorState.vue';
 
 defineOptions({ name: 'Dashboard' });
 
@@ -152,6 +153,8 @@ const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 const loading = ref(false);
 // 初始为 true：首次渲染即展示骨架屏，避免数据返回前闪现空态文案
 const insightsLoading = ref(true);
+// 看板数据加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 
 const userName = computed(() => authStore.userInfo?.realName || '用户');
 const isAdmin = computed(() => authStore.isAdmin);
@@ -252,7 +255,7 @@ async function fetchStats() {
     }
   } catch (e) {
     if (import.meta.env.DEV) console.error('Dashboard 统计加载失败:', e);
-    ElMessage.error('统计数据加载失败');
+    error.value = '数据加载失败，请稍后重试';
   } finally {
     loading.value = false;
   }
@@ -260,6 +263,12 @@ async function fetchStats() {
 
 function navigateTo(path) {
   router.push(path);
+}
+
+// 错误重试：清除错误态后并行重拉统计与洞察
+async function reload() {
+  error.value = null;
+  await Promise.all([fetchStats(), fetchInsights()]);
 }
 
 async function fetchInsights() {
@@ -284,7 +293,7 @@ async function fetchInsights() {
     }
   } catch (e) {
     if (import.meta.env.DEV) console.error('Dashboard 洞察加载失败:', e);
-    ElMessage.error('洞察数据加载失败');
+    error.value = '数据加载失败，请稍后重试';
   } finally {
     insightsLoading.value = false;
   }
@@ -334,7 +343,7 @@ onMounted(async () => {
 }
 
 .welcome-title {
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--space-2) 0;
   font-size: var(--font-size-display);
   font-weight: 700;
   color: var(--text-primary);
@@ -344,7 +353,7 @@ onMounted(async () => {
 
 .welcome-subtitle {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -537,6 +546,7 @@ onMounted(async () => {
   box-shadow: var(--shadow-md);
 }
 
+/* 18px 为洞察卡内边距的有意取值，介于 --space-4(16) 与 --space-5(20) 之间，保持卡片呼吸感，不纳入 8px 栅格 */
 .insights-grid :deep(.insight-card .el-card__header) {
   padding: 12px 18px 8px;
   border-bottom: none;
@@ -638,7 +648,7 @@ onMounted(async () => {
   /* 指标条 3×2 网格 */
   .metrics-strip {
     flex-wrap: wrap;
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-card);
     gap: 0;
   }
 
@@ -658,7 +668,7 @@ onMounted(async () => {
   /* 洞察区单列堆叠 */
   .insights-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: var(--space-4);
   }
 
   .insights-grid :deep(.insight-card .el-card__body) {

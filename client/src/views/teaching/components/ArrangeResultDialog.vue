@@ -3,6 +3,7 @@
     :model-value="modelValue"
     :title="`${mode}排课结果`"
     width="var(--dialog-width-lg)"
+    :fullscreen="isMobile"
     destroy-on-close
     class="arrange-result-dialog"
     align-center
@@ -92,6 +93,9 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useResponsive } from '../../../composables/useResponsive';
+
+const { isMobile } = useResponsive();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

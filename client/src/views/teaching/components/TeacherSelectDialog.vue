@@ -40,7 +40,7 @@
       <el-table-column label="人员类别" :width="isMobile ? 72 : 88" align="center">
         <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
       </el-table-column>
-      <el-table-column label="当前总课时" :width="isMobile ? 78 : 92" align="center">
+      <el-table-column label="总课时" :width="isMobile ? 78 : 92" align="center">
         <template #default="{ row }">
           <span
             :class="{

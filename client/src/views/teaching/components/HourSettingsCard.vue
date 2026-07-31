@@ -73,7 +73,7 @@
         <el-icon><Check /></el-icon> 确定
       </el-button>
     </div>
-    <el-empty v-else description="请选择课程查看教学安排" />
+    <EmptyState v-else type="generic" description="请选择课程查看教学安排" />
   </el-card>
 </template>
 
@@ -81,6 +81,7 @@
 import { reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getHourSettings, saveHourSettings } from '../../../api/teachingArrange';
+import EmptyState from '../../../components/EmptyState.vue';
 
 const props = defineProps({
   currentSemesterLabel: { type: String, default: '' },

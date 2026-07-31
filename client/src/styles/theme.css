@@ -145,6 +145,7 @@
   --font-size-h2: 20px;
   --font-size-h3: 16px;
   --font-size-body: 14px;
+  --font-size-body-sm: 13px; /* 正文小字：时间/IP/表单提示等次要正文行 */
   --font-size-caption: 12px;
 
   /* —— 覆盖 ElementPlus 主题变量,影响所有 el-* 组件 —— */

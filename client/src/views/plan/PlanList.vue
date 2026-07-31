@@ -529,7 +529,7 @@ onActivated(() => {
 
 .form-hint {
   margin-top: var(--space-3);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--el-text-color-secondary);
   line-height: 1.5;
 }

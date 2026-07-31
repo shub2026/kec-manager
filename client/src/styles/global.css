@@ -356,6 +356,21 @@ a:focus-visible,
   padding: 12px 24px;
 }
 
+/* 展开行内嵌表格紧凑化：query/统计页展开行内的二级表统一收紧行高与内边距，
+   并抑制内嵌表行 hover（避免与外层表 hover 叠加）。仅这些页面使用 .expand-content，
+   类链特异性高于全局 .el-table 规则，直接命中 EP 生成结构，无需 :deep 或 !important。 */
+.expand-content .el-table .cell {
+  min-height: 26px;
+  padding: 2px var(--space-2);
+}
+.expand-content .el-table th .cell {
+  min-height: 28px;
+  padding: 2px var(--space-2);
+}
+.expand-content .el-table tbody tr:hover > td {
+  background: inherit;
+}
+
 /* ----- 表单提示文字 ----- */
 .form-hint {
   color: var(--text-secondary);

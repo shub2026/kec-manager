@@ -713,11 +713,11 @@ onUnmounted(() => {
 
 <style scoped>
 .progress-container {
-  padding: 20px 0;
+  padding: var(--space-card) 0;
 }
 
 .progress-info {
-  margin-top: 20px;
+  margin-top: var(--space-card);
   text-align: center;
 }
 
@@ -738,8 +738,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  margin-top: 20px;
-  padding-top: 20px;
+  margin-top: var(--space-card);
+  padding-top: var(--space-card);
   border-top: 1px solid var(--border-light);
   color: var(--brand-primary);
   font-size: 14px;

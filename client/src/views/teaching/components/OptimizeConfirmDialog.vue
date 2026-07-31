@@ -3,6 +3,7 @@
     :model-value="modelValue"
     title="排课优化确认"
     width="var(--dialog-width)"
+    :fullscreen="isMobile"
     align-center
     destroy-on-close
     :close-on-click-modal="false"
@@ -50,6 +51,9 @@
 
 <script setup>
 import { DataAnalysis, CircleCheck } from '@element-plus/icons-vue';
+import { useResponsive } from '../../../composables/useResponsive';
+
+const { isMobile } = useResponsive();
 
 defineProps({
   modelValue: { type: Boolean, default: false },

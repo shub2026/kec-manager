@@ -3,6 +3,7 @@
     :model-value="modelValue"
     title="排课进度"
     width="var(--dialog-width-lg)"
+    :fullscreen="isMobile"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     :show-close="false"
@@ -143,6 +144,9 @@ import {
   MagicStick,
 } from '@element-plus/icons-vue';
 import BaseConfirmDialog from '../../../components/BaseConfirmDialog.vue';
+import { useResponsive } from '../../../composables/useResponsive';
+
+const { isMobile } = useResponsive();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

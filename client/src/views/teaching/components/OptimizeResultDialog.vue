@@ -3,6 +3,7 @@
     :model-value="modelValue"
     title="排课优化结果"
     width="var(--dialog-width-xl)"
+    :fullscreen="isMobile"
     align-center
     destroy-on-close
     class="optimize-result-dialog"
@@ -154,6 +155,9 @@
 
 <script setup>
 import { ArrowRight, Right } from '@element-plus/icons-vue';
+import { useResponsive } from '../../../composables/useResponsive';
+
+const { isMobile } = useResponsive();
 
 defineProps({
   modelValue: { type: Boolean, default: false },

@@ -14,7 +14,7 @@
           clearable
           placeholder="操作类型"
           class="filter-lg"
-          @change="loadLogs"
+          @change="handleFilterChange"
         >
           <el-option label="登录" value="login" />
           <el-option label="登出" value="logout" />
@@ -32,7 +32,7 @@
           clearable
           placeholder="所属模块"
           class="filter-lg"
-          @change="loadLogs"
+          @change="handleFilterChange"
         >
           <el-option label="认证" value="auth" />
           <el-option label="用户" value="user" />
@@ -52,7 +52,7 @@
           clearable
           placeholder="执行结果"
           class="filter-md"
-          @change="loadLogs"
+          @change="handleFilterChange"
         >
           <el-option label="成功" value="success" />
           <el-option label="失败" value="failed" />
@@ -144,8 +144,13 @@
     </el-card>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="detailsVisible" title="操作详情" width="var(--dialog-width-lg)">
-      <div class="details-toggle" style="text-align: right; margin-bottom: 8px">
+    <el-dialog
+      v-model="detailsVisible"
+      title="操作详情"
+      width="var(--dialog-width-lg)"
+      :fullscreen="isMobile"
+    >
+      <div class="details-toggle">
         <el-button link type="primary" size="small" @click="showRawJson = !showRawJson">
           {{ showRawJson ? '查看表格' : '查看原始数据' }}
         </el-button>
@@ -174,6 +179,7 @@
       v-model="clearDialogVisible"
       title="清空操作日志"
       width="var(--dialog-width)"
+      :fullscreen="isMobile"
       :close-on-click-modal="false"
     >
       <el-alert title="此操作不可恢复！" type="error" :closable="false" show-icon />
@@ -194,8 +200,11 @@ import { resetAuditLogs } from '../../api/settings';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
 import ListErrorState from '../../components/ListErrorState.vue';
+import { useResponsive } from '../../composables/useResponsive';
 
 defineOptions({ name: 'AuditLog' });
+
+const { isMobile } = useResponsive();
 
 const logs = ref([]);
 const loading = ref(false);
@@ -356,6 +365,12 @@ function resetFilters() {
   loadLogs();
 }
 
+// 筛选变更后回到第 1 页，避免停留在筛选后可能为空的当前页
+function handleFilterChange() {
+  currentPage.value = 1;
+  loadLogs();
+}
+
 function showClearDialog() {
   clearDialogVisible.value = true;
 }
@@ -411,12 +426,12 @@ onMounted(() => {
 <style scoped>
 .time-text {
   color: var(--text-regular);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
 }
 
 .ip-text {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-family: monospace;
 }
 
@@ -430,7 +445,7 @@ onMounted(() => {
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: monospace;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   line-height: 1.6;
 }
 
@@ -456,5 +471,10 @@ onMounted(() => {
 
 .details-btn {
   margin-left: 6px;
+}
+
+.details-toggle {
+  text-align: right;
+  margin-bottom: var(--space-2);
 }
 </style>

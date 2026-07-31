@@ -161,7 +161,7 @@
         </tr>
       </tfoot>
     </table>
-    <el-empty v-else description="暂无课程，请添加课程到方案" />
+    <EmptyState v-else type="course" description="暂无课程，请添加课程到方案" />
   </div>
 
   <!-- 底部控制栏：统一学期周数 -->
@@ -193,6 +193,7 @@
 import { computed } from 'vue';
 import { ArrowUp, ArrowDown, Setting, Delete } from '@element-plus/icons-vue';
 import { useMatrixCalculations } from '../composables/useMatrixCalculations';
+import EmptyState from './EmptyState.vue';
 
 const props = defineProps({
   rawCourses: { type: Array, default: () => [] },

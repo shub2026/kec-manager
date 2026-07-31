@@ -541,22 +541,9 @@ onMounted(async () => {
 :deep(.el-table__header th .cell) {
   white-space: nowrap;
 }
-/* 展开行内嵌表格紧凑化 */
+/* 展开行内嵌表格紧凑化（行高/内边距/hover 抑制）已上提至 global.css 统一维护 */
 .expand-content {
   padding: var(--space-2) var(--space-4);
-}
-.expand-content :deep(.el-table .cell) {
-  min-height: 26px;
-  padding: 2px var(--space-2);
-}
-.expand-content :deep(.el-table th .cell) {
-  min-height: 28px;
-  padding: 2px var(--space-2);
-}
-/* 内嵌表格禁用行hover高亮，避免与外层表格hover效果叠加造成视觉干扰
-   .expand-content 类带来更高特异性，无需 !important 即可覆盖全局规则 */
-.expand-content :deep(.el-table tbody tr:hover > td) {
-  background: inherit;
 }
 .expand-content .no-textbook {
   color: var(--text-secondary);

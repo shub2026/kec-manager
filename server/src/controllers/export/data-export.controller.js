@@ -350,8 +350,124 @@ export async function exportClasses(req, res, next) {
   }
 }
 
+// 教材使用导出表头（11 列，顺序须与前端教材查询表格列展示顺序严格一致）
+const TEXTBOOK_USAGE_HEADERS = [
+  { label: '教材名称', key: '教材名称', width: 30 },
+  { label: '书号', key: '书号', width: 25 },
+  { label: '使用班级', key: '使用班级', width: 25 },
+  { label: '学院', key: '学院', width: 15 },
+  { label: '专业', key: '专业', width: 15 },
+  { label: '培养层次', key: '培养层次', width: 15 },
+  { label: '年级', key: '年级', width: 8 },
+  { label: '课程', key: '课程', width: 20 },
+  { label: '学生人数', key: '学生人数', width: 10 },
+  { label: '使用学期', key: '使用学期', width: 12 },
+  { label: '是否必订', key: '是否必订', width: 10 },
+];
+
+// 教材 → 培养方案课程学期 关联 include（单教材与全部教材模式共用）
+const TEXTBOOK_PLAN_INCLUDE = {
+  plan_textbooks: {
+    include: {
+      plan_course_semesters: {
+        include: {
+          plan_courses: {
+            include: {
+              training_plans: { include: { majors: true, training_levels: true } },
+              courses: true,
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+/**
+ * 拼装单本教材的使用情况数据行（不含合计行，单教材与全部教材模式复用）
+ * 统计口径与查询接口 queryTextbookUsage 保持一致：
+ * - 授课范围边界：教材学期必须落在方案课程 start/end_semester 内
+ * - 去重键：(class_id, course_id)，同一班级同一课程仅计一次（B-14 同源）
+ * @param {object} textbook - 教材记录（含 plan_textbooks 关联）
+ * @param {Array<object>} allClasses - 在读班级列表
+ * @param {object} semesterInfo - 查询学期信息
+ * @param {Map} consecutiveMap - 选定（连续使用）教材映射
+ * @returns {Array<object>} 11 列导出行
+ */
+function buildTextbookUsageRows(textbook, allClasses, semesterInfo, consecutiveMap) {
+  const rows = [];
+  // 审计修复：去重集合，防止同一班级因匹配多个方案而被重复计数
+  const addedClassCoursePairs = new Set();
+
+  for (const pt of textbook.plan_textbooks) {
+    const sem = pt.plan_course_semesters;
+    const pc = sem.plan_courses;
+    const plan = pc.training_plans;
+    // 与查询接口一致：教材学期超出方案课程授课范围时跳过
+    if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
+    const isConsecutive =
+      consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(sem.semester) ?? false;
+
+    for (const cls of allClasses) {
+      // 复用统一 calcClassSemester（含越界检查），替代无边界检查的内联副本
+      const calc = calcClassSemester(cls, semesterInfo);
+      if (!calc) continue;
+      if (calc.currentSemesterNum !== sem.semester) continue;
+
+      if (!isClassMatchPlan(cls, plan)) continue;
+
+      // 与查询接口 B-14 同口径：按 (class_id, course_id) 去重，
+      // 防止同一班级匹配多个方案时同一课程重复计行（pc.id 跨方案不同，不能作去重键）
+      const pairKey = `${cls.id}_${pc.course_id}`;
+      if (addedClassCoursePairs.has(pairKey)) continue;
+      addedClassCoursePairs.add(pairKey);
+
+      rows.push({
+        教材名称: textbook.title,
+        书号: textbook.isbn || '-',
+        使用班级: cls.name,
+        学院: cls.colleges?.name || '-',
+        专业: cls.majors?.name || '-',
+        培养层次: cls.training_levels?.name || '-',
+        年级: calc.grade,
+        课程: pc.courses.name,
+        学生人数: Number(cls.student_count) || 0,
+        使用学期: `第${sem.semester}学期`,
+        是否必订: isConsecutive ? '否' : pt.is_required ? '是' : '否',
+      });
+    }
+  }
+
+  return rows;
+}
+
+/**
+ * 拼装合计行（B-15 注意：必须在数据行全部就绪后调用，避免合计包含自身）
+ * @param {Array<object>} rows - 已拼装完成的数据行
+ * @param {string} classesText - 使用班级列的合计文案
+ * @returns {object} 合计行
+ */
+function buildTextbookUsageSummaryRow(rows, classesText) {
+  const totalStudents = rows.reduce((sum, r) => sum + (Number(r['学生人数']) || 0), 0);
+  return {
+    教材名称: '合计',
+    书号: '',
+    使用班级: classesText,
+    学院: '',
+    专业: '',
+    培养层次: '',
+    年级: '',
+    课程: '',
+    学生人数: totalStudents,
+    使用学期: '',
+    是否必订: '',
+  };
+}
+
 /**
  * 导出教材使用情况
+ * req.params.id 传入时导出单本教材（/export/textbook/:id），
+ * 缺省时导出全部启用教材（/export/textbook-usage，与教材查询页下拉口径一致）
  */
 export async function exportTextbookUsage(req, res, next) {
   try {
@@ -369,126 +485,100 @@ export async function exportTextbookUsage(req, res, next) {
 
     // P1-7 修复：传入查询学期，避免学期错位（替代全局学期）
     const activeFilter = await getActiveClassFilter(semesterInfo);
-    const [textbook, allClasses] = await Promise.all([
-      prisma.textbooks.findUnique({
-        where: { id: Number(id) },
-        include: {
-          plan_textbooks: {
-            include: {
-              plan_course_semesters: {
-                include: {
-                  plan_courses: {
-                    include: {
-                      training_plans: { include: { majors: true, training_levels: true } },
-                      courses: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      }),
-      batchFindMany(prisma.classes, {
-        where: activeFilter,
-        include: { colleges: true, majors: true, training_levels: true },
-        orderBy: { id: 'asc' },
-      }),
-    ]);
 
-    if (!textbook) return res.status(404).json({ success: false, message: '教材不存在' });
+    let rows;
+    let filename;
+    let auditDetails;
+    let auditMessage;
 
-    const consecutiveMap = await buildConsecutiveTextbookMap(
-      textbook.plan_textbooks.map((pt) => ({
-        plan_course_id: pt.plan_course_semesters.plan_course_id,
-        textbook_id: pt.textbook_id,
-        semester: pt.plan_course_semesters.semester,
-      }))
-    );
+    if (id) {
+      // ── 单教材模式 ──
+      const [textbook, allClasses] = await Promise.all([
+        prisma.textbooks.findUnique({
+          where: { id: Number(id) },
+          include: TEXTBOOK_PLAN_INCLUDE,
+        }),
+        batchFindMany(prisma.classes, {
+          where: activeFilter,
+          include: { colleges: true, majors: true, training_levels: true },
+          orderBy: { id: 'asc' },
+        }),
+      ]);
 
-    const rows = [];
-    // 审计修复：去重集合，防止同一班级因匹配多个方案而被重复计数
-    const addedClassCoursePairs = new Set();
+      if (!textbook) return res.status(404).json({ success: false, message: '教材不存在' });
 
-    for (const pt of textbook.plan_textbooks) {
-      const sem = pt.plan_course_semesters;
-      const pc = sem.plan_courses;
-      const plan = pc.training_plans;
-      const isConsecutive =
-        consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(sem.semester) ?? false;
+      const consecutiveMap = await buildConsecutiveTextbookMap(
+        textbook.plan_textbooks.map((pt) => ({
+          plan_course_id: pt.plan_course_semesters.plan_course_id,
+          textbook_id: pt.textbook_id,
+          semester: pt.plan_course_semesters.semester,
+        }))
+      );
 
-      for (const cls of allClasses) {
-        // 复用统一 calcClassSemester（含越界检查），替代无边界检查的内联副本
-        const calc = calcClassSemester(cls, semesterInfo);
-        if (!calc) continue;
-        if (calc.currentSemesterNum !== sem.semester) continue;
+      rows = buildTextbookUsageRows(textbook, allClasses, semesterInfo, consecutiveMap);
+      rows.push(buildTextbookUsageSummaryRow(rows, `${rows.length}个班级`));
 
-        if (!isClassMatchPlan(cls, plan)) continue;
+      filename = `教材使用_${textbook.title}.xlsx`;
+      auditDetails = {
+        textbook_id: Number(id),
+        textbookTitle: textbook.title,
+        rowCount: rows.length,
+      };
+      auditMessage = `导出教材"${textbook.title}"使用情况，共${rows.length}条记录`;
+    } else {
+      // ── 全部教材模式：仅导出启用教材（与教材查询页下拉口径一致） ──
+      const [textbooks, allClasses] = await Promise.all([
+        prisma.textbooks.findMany({
+          where: { is_active: true },
+          include: TEXTBOOK_PLAN_INCLUDE,
+          orderBy: { sort_order: 'asc' },
+        }),
+        batchFindMany(prisma.classes, {
+          where: activeFilter,
+          include: { colleges: true, majors: true, training_levels: true },
+          orderBy: { id: 'asc' },
+        }),
+      ]);
 
-        // 审计修复：按 (class_id, plan_course_id) 去重，防止同一班级因匹配多个方案导致学生人数重复计算
-        const pairKey = `${cls.id}_${pc.id}`;
-        if (addedClassCoursePairs.has(pairKey)) continue;
-        addedClassCoursePairs.add(pairKey);
+      // 一次性构建全部教材的选定映射（key 含 textbook_id，跨教材合并无冲突）
+      const consecutiveMap = await buildConsecutiveTextbookMap(
+        textbooks.flatMap((tb) =>
+          tb.plan_textbooks.map((pt) => ({
+            plan_course_id: pt.plan_course_semesters.plan_course_id,
+            textbook_id: pt.textbook_id,
+            semester: pt.plan_course_semesters.semester,
+          }))
+        )
+      );
 
-        rows.push({
-          教材名称: textbook.title,
-          书号: textbook.isbn || '-',
-          使用班级: cls.name,
-          学院: cls.colleges?.name || '-',
-          专业: cls.majors?.name || '-',
-          培养层次: cls.training_levels?.name || '-',
-          年级: calc.grade,
-          课程: pc.courses.name,
-          学生人数: Number(cls.student_count) || 0,
-          使用学期: `第${sem.semester}学期`,
-          是否必订: isConsecutive ? '否' : pt.is_required ? '是' : '否',
-        });
+      rows = [];
+      for (const textbook of textbooks) {
+        rows.push(...buildTextbookUsageRows(textbook, allClasses, semesterInfo, consecutiveMap));
       }
+      // 全部教材模式下同一班级可能出现在多本教材中，合计文案按记录数口径
+      rows.push(buildTextbookUsageSummaryRow(rows, `${rows.length}条记录`));
+
+      filename = `教材使用_全部教材_${semesterInfo.raw}.xlsx`;
+      auditDetails = {
+        scope: 'all',
+        semester: semesterInfo.raw,
+        textbookCount: textbooks.length,
+        rowCount: rows.length,
+      };
+      auditMessage = `导出教材使用(全部教材, ${semesterInfo.raw})，共${rows.length}条记录`;
     }
 
-    // B-15 注意：以下合计计算依赖执行顺序——必须在 rows.push(合计行) 之前完成，
-    // 否则 rows.length 会包含合计行自身，totalStudents 也会重复累加
-    const totalStudents = rows.reduce((sum, r) => sum + (Number(r['学生人数']) || 0), 0);
-    rows.push({
-      教材名称: '合计',
-      书号: '',
-      使用班级: `${rows.length}个班级`,
-      学院: '',
-      专业: '',
-      培养层次: '',
-      年级: '',
-      课程: '',
-      学生人数: totalStudents,
-      使用学期: '',
-      是否必订: '',
-    });
-
-    const headers = [
-      { label: '教材名称', key: '教材名称', width: 30 },
-      { label: '书号', key: '书号', width: 25 },
-      { label: '使用班级', key: '使用班级', width: 25 },
-      { label: '学院', key: '学院', width: 15 },
-      { label: '专业', key: '专业', width: 15 },
-      { label: '培养层次', key: '培养层次', width: 15 },
-      { label: '年级', key: '年级', width: 8 },
-      { label: '课程', key: '课程', width: 20 },
-      { label: '学生人数', key: '学生人数', width: 10 },
-      { label: '使用学期', key: '使用学期', width: 12 },
-      { label: '是否必订', key: '是否必订', width: 10 },
-    ];
-
-    const workbook = await createWorkbook(headers, rows);
+    const workbook = await createWorkbook(TEXTBOOK_USAGE_HEADERS, rows);
     const buffer = await workbookToBuffer(workbook);
-    const filename = `教材使用_${textbook.title}.xlsx`;
 
     await createAuditLog({
       action: 'export',
       module: 'textbook',
       userId: req.user?.id,
       ip: req.ip,
-      details: { textbook_id: Number(id), textbookTitle: textbook.title, rowCount: rows.length },
+      details: auditDetails,
       result: 'success',
-      message: `导出教材"${textbook.title}"使用情况，共${rows.length}条记录`,
+      message: auditMessage,
     });
 
     res.setHeader(
@@ -506,7 +596,7 @@ export async function exportTextbookUsage(req, res, next) {
       module: 'textbook',
       userId: req.user?.id,
       ip: req.ip,
-      details: { textbook_id: Number(req.params.id) },
+      details: req.params.id ? { textbook_id: Number(req.params.id) } : { scope: 'all' },
       result: 'failed',
       message: `导出教材使用情况失败: ${e.message}`,
     });
@@ -609,53 +699,10 @@ export async function exportStatistics(req, res, next) {
 
     const personnelMap = { full_time: '专职', part_time: '兼职', external: '外聘' };
 
-    // M-20: 构建教师筛选条件
-    const teacherWhere = {};
-    if (name) teacherWhere.name = { contains: name };
-    if (type) teacherWhere.personnel_type = type;
-    if (affiliated_college) teacherWhere.affiliated_college_id = Number(affiliated_college);
-    if (subject) {
-      teacherWhere.courses = {
-        some: { course: { name: { contains: subject } } },
-      };
-    }
-    if (level) {
-      teacherWhere.scheduling_levels = {
-        some: { training_level_id: Number(level) },
-      };
-    }
-
-    // 按教师聚合统计（M-20: 支持筛选条件）
-    const assignmentWhere = { semester };
-    if (college) {
-      assignmentWhere.class = { college_id: Number(college) };
-    }
-    if (Object.keys(teacherWhere).length > 0) {
-      assignmentWhere.teacher = teacherWhere;
-    }
-
-    const stats = await prisma.teaching_assignments.groupBy({
-      by: ['teacher_id'],
-      where: assignmentWhere,
-      _sum: { weekly_hours: true },
-      _count: { id: true },
-    });
-
-    const teacherIds = stats.map((s) => s.teacher_id);
-    const teachers = await batchFindMany(prisma.teachers, {
-      where: { id: { in: teacherIds } },
-      include: {
-        courses: { include: { course: { select: { name: true } } } },
-        scheduling_colleges: { include: { college: { select: { name: true } } } },
-        affiliated_college: { select: { name: true } },
-      },
-      orderBy: { id: 'asc' },
-    });
-    const teacherMap = new Map(teachers.map((t) => [t.id, t]));
-
-    // 获取每个教师的安排明细（含班级学院与方案匹配字段，用于推导任课学院/解析教材；分批加载防止 OOM）
+    // 与统计页 getStatistics 完全同口径取数：仅在职教师、排除 0 课时安排
+    // （筛选不下推 DB：前端筛选器传的是名称文本，改为下方内存中按名称过滤，语义与页面 filteredTeachers 一致）
     const allAssignments = await batchFindMany(prisma.teaching_assignments, {
-      where: { semester, teacher_id: { in: teacherIds } },
+      where: { semester, teacher: { status: 'active' }, weekly_hours: { gt: 0 } },
       include: {
         class: {
           select: {
@@ -680,6 +727,19 @@ export async function exportStatistics(req, res, next) {
     // 合班去重：将成员班行归并为逻辑教学单元，避免课时/班级数虚高
     const allUnits = dedupeTeachingUnits(allAssignments);
 
+    // 涉及的教师（按单元代表行去重，与页面一致）
+    const teacherIds = [...new Set(allUnits.map((u) => u.representative.teacher_id))];
+    const teachers = await batchFindMany(prisma.teachers, {
+      where: { id: { in: teacherIds }, status: 'active' },
+      include: {
+        courses: { include: { course: { select: { name: true } } } },
+        scheduling_levels: { include: { training_level: { select: { name: true } } } },
+        affiliated_college: { select: { name: true } },
+      },
+      orderBy: { id: 'asc' },
+    });
+    const teacherMap = new Map(teachers.map((t) => [t.id, t]));
+
     // 教材解析：与课时统计页 getStatistics 同一共享链路，用于"教材数"列
     const semesterInfo = parseSemester(semester);
     const { idsMap: classCourseTextbookMap } = await resolveClassCourseTextbooks(
@@ -695,9 +755,9 @@ export async function exportStatistics(req, res, next) {
     }
 
     const rows = [];
-    for (const s of stats) {
-      const teacher = teacherMap.get(s.teacher_id);
-      const units = unitsByTeacher.get(s.teacher_id) || [];
+    for (const teacherId of teacherIds) {
+      const teacher = teacherMap.get(teacherId);
+      const units = unitsByTeacher.get(teacherId) || [];
       let totalHours = 0;
       let classCount = 0;
 
@@ -736,7 +796,7 @@ export async function exportStatistics(req, res, next) {
         .map((g) => `${g.course}(${g.hours}课时/${g.classes.length}班)`)
         .join('、');
 
-      // 从实际授课班级中提取任课学院（与前端 getStatistics 逻辑一致）
+      // 从实际授课班级中提取任课学院/层次（与页面 getStatistics 逻辑一致）
       const collegeMap = new Map();
       const levelSet = new Set();
       for (const u of units) {
@@ -748,16 +808,31 @@ export async function exportStatistics(req, res, next) {
           levelSet.add(c.training_levels.name);
         }
       }
-      const teachingColleges = [...collegeMap.values()].map((c) => c.name).join('、') || '-';
-      const trainingLevels = [...levelSet].join('、') || '-';
+      const collegeNames = [...collegeMap.values()].map((c) => c.name);
+      // 与页面一致：实际授课层次优先，为空时回退教师意向层次设置
+      const levelNames =
+        levelSet.size > 0
+          ? [...levelSet]
+          : (teacher?.scheduling_levels ?? []).map((sl) => sl.training_level?.name).filter(Boolean);
+      // 实际授课课程名集合（科目筛选与前端按 details 精确匹配同语义）
+      const taughtCourseNames = new Set(Array.from(byCourse.values(), (g) => g.course));
+
+      // M-20 筛选：与前端 filteredTeachers 同语义的名称筛选（筛选器值均为名称文本，不能 Number 转 ID）
+      const teacherName = teacher?.name || '未知';
+      if (name && !teacherName.includes(name)) continue;
+      if (type && teacher?.personnel_type !== type) continue;
+      if (subject && !taughtCourseNames.has(subject)) continue;
+      if (college && !collegeNames.includes(college)) continue;
+      if (level && !levelNames.includes(level)) continue;
+      if (affiliated_college && teacher?.affiliated_college?.name !== affiliated_college) continue;
 
       rows.push({
-        姓名: teacher?.name || '未知',
+        姓名: teacherName,
         归属学院: teacher?.affiliated_college?.name || '-',
         人员类别: personnelMap[teacher?.personnel_type] || '-',
         任教科目: teacher?.courses.map((tc) => tc.course.name).join('、') || '-',
-        任课层次: trainingLevels,
-        任课学院: teachingColleges,
+        任课层次: levelNames.join('、') || '-',
+        任课学院: collegeNames.join('、') || '-',
         教材数: textbookIdSet.size,
         班级数: classCount,
         总周课时: totalHours,

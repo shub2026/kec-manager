@@ -85,6 +85,8 @@
 
       <!-- 错误状态 -->
       <ListErrorState v-if="error" :message="error" @retry="loadStats" />
+      <!-- 首屏加载：loading 且无数据时先上骨架屏，消除无反馈的空白窗口（与 Dashboard 加载风格一致） -->
+      <el-skeleton v-else-if="loading && !statsData" :rows="4" animated />
       <!-- 空状态 -->
       <EmptyState v-else-if="!loading && !statsData" type="generic" description="暂无数据" />
       <EmptyState
@@ -533,22 +535,9 @@ onMounted(async () => {
 .expand-content {
   padding: var(--space-2) var(--space-4);
 }
-.expand-content :deep(.el-table .cell) {
-  min-height: 26px;
-  padding: 2px var(--space-2);
-}
-.expand-content :deep(.el-table th .cell) {
-  min-height: 28px;
-  padding: 2px var(--space-2);
-}
-/* 内嵌表格禁用行hover高亮，避免与外层表格hover效果叠加造成视觉干扰
-   .expand-content 类带来更高特异性，无需 !important 即可覆盖全局规则 */
-.expand-content :deep(.el-table tbody tr:hover > td) {
-  background: inherit;
-}
 .course-detail h4 {
   margin: 6px 0 2px;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-primary);
 }
 .tag-item {

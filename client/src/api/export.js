@@ -33,3 +33,11 @@ export const exportSemester = (params) =>
  */
 export const exportTextbook = (id, params) =>
   request.get(`/export/textbook/${id}`, { params, responseType: 'blob' });
+
+/**
+ * 导出全部教材使用详情（按学期全量）
+ * @param {import('./types').TextbookQueryParams} [params]
+ * @returns {Promise<Blob>}
+ */
+export const exportAllTextbookUsage = (params) =>
+  request.get('/export/textbook-usage', { params, responseType: 'blob' });

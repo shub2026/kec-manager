@@ -3,6 +3,7 @@
     :model-value="modelValue"
     title="批量排课结果"
     width="var(--dialog-width-xl)"
+    :fullscreen="isMobile"
     destroy-on-close
     class="batch-result-dialog"
     align-center
@@ -123,7 +124,7 @@
           </div>
         </div>
       </div>
-      <el-empty v-if="filteredBatchResults.length === 0" description="暂无数据" :image-size="60" />
+      <EmptyState v-if="filteredBatchResults.length === 0" type="generic" description="暂无数据" />
     </div>
 
     <template #footer>
@@ -134,6 +135,10 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import EmptyState from '../../../components/EmptyState.vue';
+import { useResponsive } from '../../../composables/useResponsive';
+
+const { isMobile } = useResponsive();
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

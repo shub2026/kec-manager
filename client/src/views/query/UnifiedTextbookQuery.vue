@@ -40,13 +40,26 @@
           <el-button :disabled="!selectedSemester && !selectedTextbook" @click="resetFilters">
             <el-icon><Refresh /></el-icon> 重置
           </el-button>
-          <el-button
-            v-if="authStore.isAdmin"
-            :disabled="!selectedTextbook || !selectedSemester"
-            @click="exportExcel"
-          >
-            <el-icon><Download /></el-icon> 导出Excel
-          </el-button>
+          <el-dropdown v-if="authStore.isAdmin" @command="handleExportCommand">
+            <el-button :loading="exporting">
+              <el-icon><Download /></el-icon> 导出Excel<el-icon class="el-icon--right"
+                ><ArrowDown
+              /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  command="current"
+                  :disabled="!selectedTextbook || !selectedSemester"
+                >
+                  导出当前教材
+                </el-dropdown-item>
+                <el-dropdown-item command="all" :disabled="!selectedSemester">
+                  导出全部教材
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </div>
 
@@ -70,7 +83,7 @@
           <el-descriptions
             :column="descColumn"
             border
-            :label-width="'100px'"
+            label-width="100px"
             class="textbook-descriptions"
           >
             <el-descriptions-item label="书名">
@@ -183,7 +196,7 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getTextbooks } from '../../api/textbook';
 import { getTextbookQuery } from '../../api/query';
-import { exportTextbook } from '../../api/export';
+import { exportTextbook, exportAllTextbookUsage } from '../../api/export';
 import { useSemesters } from '../../composables/useSemesters';
 import { downloadBlob } from '../../utils/download';
 import { useResponsive } from '../../composables/useResponsive';
@@ -206,6 +219,8 @@ const detail = ref(null);
 const hasDetail = ref(false);
 // P0 修复：列表加载错误状态，供 ListErrorState 占位
 const error = ref(null);
+// 导出中状态（单教材/全部教材共用，驱动下拉按钮 loading）
+const exporting = ref(false);
 
 // 响应式断点：小屏（<768px）下 descriptions 改单列、表格隐藏次要列、分页简化
 const { isMobile } = useResponsive();
@@ -314,6 +329,7 @@ async function exportExcel() {
     return;
   }
 
+  exporting.value = true;
   try {
     const response = await exportTextbook(selectedTextbook.value, {
       semester: selectedSemester.value,
@@ -327,6 +343,41 @@ async function exportExcel() {
       console.error('导出失败:', error);
     }
     ElMessage.error(error.message || '导出失败，请重试');
+  } finally {
+    exporting.value = false;
+  }
+}
+
+// 导出全部教材：该学期全量教材使用情况（与教学安排页"导出全部科目"同模式）
+async function exportAllExcel() {
+  if (!selectedSemester.value) {
+    ElMessage.warning('请先选择学期');
+    return;
+  }
+
+  exporting.value = true;
+  try {
+    const response = await exportAllTextbookUsage({ semester: selectedSemester.value });
+
+    downloadBlob(response, `教材使用_全部教材_${selectedSemester.value}.xlsx`);
+
+    ElMessage.success('导出成功');
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('导出失败:', error);
+    }
+    ElMessage.error(error.message || '导出失败，请重试');
+  } finally {
+    exporting.value = false;
+  }
+}
+
+// scope: 'current' 导出当前教材；'all' 导出全部教材（全量）
+function handleExportCommand(scope) {
+  if (scope === 'all') {
+    exportAllExcel();
+  } else {
+    exportExcel();
   }
 }
 
@@ -367,7 +418,7 @@ onMounted(async () => {
 }
 
 .textbook-descriptions {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-card);
 }
 
 /* 强制 descriptions 内部表格固定布局，切换教材时列宽不跳动 */

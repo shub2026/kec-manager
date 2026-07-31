@@ -45,16 +45,22 @@
       </el-button>
     </section>
 
-    <!-- 矩阵视图 -->
-    <CourseMatrix
-      ref="courseMatrixRef"
-      :plan-id="planId"
-      :all-textbooks="allTextbooks"
-      @delete-course="handleDeleteCourse"
-    />
+    <!-- 内容区：矩阵视图 + 图例，统一用 el-card 包裹，与其余页面卡片风格一致 -->
+    <el-card class="matrix-card">
+      <ListErrorState v-if="error" :message="error" @retry="init" />
+      <template v-else>
+        <!-- 矩阵视图 -->
+        <CourseMatrix
+          ref="courseMatrixRef"
+          :plan-id="planId"
+          :all-textbooks="allTextbooks"
+          @delete-course="handleDeleteCourse"
+        />
 
-    <!-- 颜色语义图例（置于矩阵表下方） -->
-    <MatrixLegend class="plan-legend" />
+        <!-- 颜色语义图例（置于矩阵表下方） -->
+        <MatrixLegend class="plan-legend" />
+      </template>
+    </el-card>
 
     <!-- 开课学期设置对话框 -->
     <el-dialog
@@ -131,6 +137,7 @@ import CourseMatrix from '../../components/CourseMatrix.vue';
 import MatrixLegend from '../../components/MatrixLegend.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import DeleteConfirmDialog from '../../components/DeleteConfirmDialog.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'PlanDetail' });
 
@@ -152,6 +159,8 @@ const courseDeleting = ref(false);
 const pendingDeleteCourse = ref(null);
 
 const showSemesterDialog = ref(false);
+// 初始化加载错误状态，供 ListErrorState 占位（替代原 toast，避免错误被误当空态）
+const error = ref(null);
 
 // 从矩阵组件读取当前全局学期周数，未就绪时回退 18
 const currentGlobalWeeks = computed(() => courseMatrixRef.value?.globalWeeks ?? 18);
@@ -270,7 +279,8 @@ async function confirmDeleteCourse() {
   }
 }
 
-onMounted(async () => {
+async function init() {
+  error.value = null;
   try {
     const [coursesRes, textbooksRes] = await Promise.all([getCourses(), getTextbooks()]);
     allCourses.value = coursesRes.data || [];
@@ -279,8 +289,12 @@ onMounted(async () => {
     await loadPlan();
   } catch (e) {
     if (import.meta.env.DEV) console.error('[PlanDetail] 初始化加载失败:', e);
-    ElMessage.error('加载数据失败，请刷新页面重试');
+    error.value = '加载数据失败，请稍后重试';
   }
+}
+
+onMounted(() => {
+  init();
 });
 </script>
 
@@ -356,6 +370,21 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
+/* 内容卡片：填满 PageHeader/概览条之下的剩余高度，内部矩阵表滚动 */
+.matrix-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.matrix-card :deep(.el-card__body) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* 图例与矩阵间距 */
 .plan-legend {
   margin-top: var(--space-3);
@@ -373,6 +402,12 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .ov-divider {
     display: none;
+  }
+
+  /* 手机端内容卡片放弃抢高，改为自然高度，与 CourseMatrix 的手机端策略一致 */
+  .matrix-card {
+    flex: none;
+    min-height: auto;
   }
 
   .plan-overview {
@@ -409,6 +444,6 @@ onMounted(async () => {
 .confirm-hint {
   margin: 8px 0 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
 }
 </style>

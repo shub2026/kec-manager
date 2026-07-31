@@ -25,7 +25,8 @@
       </div>
 
       <!-- 矩阵表展示：复用 CourseMatrixTable 只读模式 -->
-      <div v-if="selectedPlanId && planCourses.length > 0" class="matrix-container">
+      <ListErrorState v-if="error" :message="error" @retry="handlePlanChange" />
+      <div v-else-if="selectedPlanId && planCourses.length > 0" class="matrix-container">
         <CourseMatrixTable
           :raw-courses="planCourses"
           :loading="loading"
@@ -51,6 +52,7 @@ import CourseMatrixTable from '../../components/CourseMatrixTable.vue';
 import MatrixLegend from '../../components/MatrixLegend.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import ListErrorState from '../../components/ListErrorState.vue';
 import { useMatrixCalculations } from '../../composables/useMatrixCalculations';
 
 defineOptions({ name: 'PlanQuery' });
@@ -60,6 +62,8 @@ const plans = ref([]);
 const selectedPlanId = ref(null);
 const loading = ref(false);
 const planCourses = ref([]);
+// 列表加载错误状态，供 ListErrorState 占位
+const error = ref(null);
 
 // FE-P2 优化：总课时复用共享 composable，消除与 useMatrixCalculations 的重复实现
 const { totalAllHours } = useMatrixCalculations(planCourses);
@@ -92,16 +96,18 @@ async function loadPlans() {
 async function handlePlanChange() {
   if (!selectedPlanId.value) {
     planCourses.value = [];
+    error.value = null;
     return;
   }
 
   loading.value = true;
+  error.value = null;
   try {
     const res = await getPlanCourses(selectedPlanId.value);
     planCourses.value = res.data || [];
   } catch (e) {
     if (import.meta.env.DEV) console.error(e);
-    ElMessage.error('加载方案课程失败');
+    error.value = '加载方案课程失败，请稍后重试';
     planCourses.value = [];
   } finally {
     loading.value = false;

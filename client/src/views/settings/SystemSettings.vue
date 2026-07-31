@@ -202,9 +202,10 @@ onMounted(() => {
   max-width: 60%;
 }
 
-/* 卡片整体呼吸感 */
+/* 卡片整体呼吸感
+   28px：桌面端卡片内边距，介于 --space-5(24) 与 --space-6(32) 之间无对应令牌，保真保留 */
 .settings-tabs :deep(.el-card__header) {
-  padding: 20px 28px;
+  padding: var(--space-card) 28px;
 }
 
 .settings-tabs :deep(.el-card__body) {
@@ -226,11 +227,11 @@ onMounted(() => {
   }
 
   .settings-tabs :deep(.el-card__header) {
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-card);
   }
 
   .settings-tabs :deep(.el-card__body) {
-    padding: 20px;
+    padding: var(--space-card);
   }
 }
 </style>
