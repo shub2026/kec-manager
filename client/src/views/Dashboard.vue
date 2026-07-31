@@ -20,6 +20,49 @@
             查询开课
           </el-button>
         </div>
+        <!-- 装饰性几何图形：品牌蓝单色相非对称构成，纯装饰不进可访问性树 -->
+        <svg
+          class="welcome-decor"
+          aria-hidden="true"
+          width="320"
+          height="112"
+          viewBox="0 0 320 112"
+          fill="none"
+        >
+          <defs>
+            <pattern
+              id="welcomeDecorDots"
+              width="16"
+              height="16"
+              patternUnits="userSpaceOnUse"
+            >
+              <circle cx="2" cy="2" r="2" class="decor-dot" />
+            </pattern>
+            <linearGradient id="welcomeDecorFade" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#fff" stop-opacity="1" />
+              <stop offset="1" stop-color="#fff" stop-opacity="0" />
+            </linearGradient>
+            <mask id="welcomeDecorMask">
+              <rect x="104" y="16" width="80" height="80" fill="url(#welcomeDecorFade)" />
+            </mask>
+          </defs>
+          <!-- 柔和面片垫底，给线性元素一点体积感 -->
+          <circle cx="284" cy="78" r="18" class="decor-blob" />
+          <!-- 点阵向右下渐隐，避免生硬的方块边界 -->
+          <rect
+            x="104"
+            y="16"
+            width="80"
+            height="80"
+            fill="url(#welcomeDecorDots)"
+            mask="url(#welcomeDecorMask)"
+          />
+          <!-- 双环错位叠放形成轨道感，虚线环缓慢自转 -->
+          <circle cx="252" cy="56" r="46" class="decor-ring" />
+          <circle cx="238" cy="46" r="27" class="decor-ring decor-ring--dashed" />
+          <!-- 轨道点：全图唯一实色重音，落在外环顶点 -->
+          <circle cx="252" cy="10" r="4" class="decor-satellite" />
+        </svg>
       </div>
 
       <!-- 内联指标条：一行纵览,紧凑高效 -->
@@ -285,6 +328,8 @@ onMounted(async () => {
 }
 
 .welcome-top {
+  /* 装饰层的定位上下文 */
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -320,10 +365,68 @@ onMounted(async () => {
   gap: var(--space-2);
   align-items: center;
   flex-shrink: 0;
+  /* 压在装饰图形之上 */
+  position: relative;
+  z-index: 1;
 }
 
 .welcome-actions :deep(.el-button--primary) {
   font-weight: 600;
+}
+
+/* ─── 欢迎区装饰图形：品牌蓝单色相几何组合，似有若无的背景层 ─── */
+.welcome-decor {
+  position: absolute;
+  /* 右侧锚定：外环边缘微叠进按钮组下方形成搭接层次 */
+  right: 170px;
+  top: 50%;
+  transform: translateY(-52%);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.decor-ring {
+  stroke: var(--brand-primary-lighter);
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+/* 虚线环：圆点笔触 + 极缓自转，给静态页面一丝若有若无的生命力 */
+.decor-ring--dashed {
+  stroke-dasharray: 1 8;
+  stroke-linecap: round;
+  stroke-width: 2;
+  opacity: 0.8;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: decor-spin 90s linear infinite;
+}
+
+@keyframes decor-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decor-ring--dashed {
+    animation: none;
+  }
+}
+
+.decor-satellite {
+  fill: var(--brand-primary);
+  opacity: 0.45;
+}
+
+.decor-blob {
+  fill: var(--brand-primary-soft);
+}
+
+.decor-dot {
+  fill: var(--brand-primary-lighter);
+  opacity: 0.7;
 }
 
 /* ─── 内联指标条 ─── */
@@ -390,6 +493,12 @@ onMounted(async () => {
   line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+/* 可点击指标 hover：数字染品牌蓝，比单纯换灰底的反馈更明确 */
+.metric-clickable:hover .metric-value {
+  color: var(--brand-primary);
 }
 
 .metric-label {
@@ -422,6 +531,15 @@ onMounted(async () => {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  /* hover 浮起微交互：建立可感知的前后景深 */
+  transition:
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.insights-grid :deep(.insight-card:hover) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .insights-grid :deep(.insight-card .el-card__header) {
@@ -489,6 +607,11 @@ onMounted(async () => {
 @media (max-width: 992px) {
   .metric-value {
     font-size: 22px;
+  }
+
+  /* 窄屏欢迎区转纵向排列，装饰会与文字/按钮打架 */
+  .welcome-decor {
+    display: none;
   }
 }
 
