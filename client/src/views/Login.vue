@@ -10,7 +10,7 @@
 
       <div class="brand-inner">
         <header class="brand-header">
-          <span class="brand-mark">K</span>
+          <img src="/icons.svg" class="brand-mark" alt="KEC Logo" />
           <div class="brand-text">
             <h1 class="brand-name"><span class="brand-name__logo">KEC</span>课程管理平台</h1>
             <p class="brand-slogan">面向职业院校的轻量级教学管理系统</p>
@@ -368,7 +368,7 @@
       <div class="login-container">
         <div class="login-card">
           <div class="login-card-header">
-            <span class="card-logo" aria-hidden="true">K</span>
+            <img src="/icons.svg" class="card-logo" alt="" aria-hidden="true" />
             <h2 class="form-title">{{ organizationName }}</h2>
             <p class="form-subtitle">
               登录进入 <span class="form-subtitle__logo">KEC</span> 课程管理平台
@@ -646,15 +646,7 @@ onMounted(() => {
   flex-shrink: 0;
   width: 42px;
   height: 42px;
-  border-radius: 12px;
-  background: linear-gradient(145deg, var(--brand-primary), var(--brand-primary-hover));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--bg-card);
-  font-size: 22px;
-  font-weight: 800;
-  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  border-radius: 8px;
   box-shadow: 0 8px 22px var(--brand-primary-shadow);
 }
 
@@ -840,14 +832,7 @@ onMounted(() => {
   display: none;
   width: 48px;
   height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(145deg, var(--brand-primary), var(--brand-primary-hover));
-  align-items: center;
-  justify-content: center;
-  color: var(--bg-card);
-  font-size: 24px;
-  font-weight: 800;
-  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  border-radius: 9px;
   box-shadow: 0 8px 22px var(--brand-primary-shadow);
   margin-bottom: 18px;
 }
@@ -1014,7 +999,7 @@ onMounted(() => {
     padding: 32px 28px;
   }
   .card-logo {
-    display: flex;
+    display: block;
   }
 }
 
