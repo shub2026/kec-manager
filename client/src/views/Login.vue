@@ -644,9 +644,9 @@ onMounted(() => {
 
 .brand-mark {
   flex-shrink: 0;
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  border-radius: 9px;
   box-shadow: 0 8px 22px var(--brand-primary-shadow);
 }
 
