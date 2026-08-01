@@ -12,12 +12,14 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# 项目部署目录
-PROJECT_DIR="/opt/www/sites/kec/index/kec-manager"
+# 项目部署目录（可通过环境变量 PROJECT_DIR 自定义）
+# 默认值为 1Panel 标准路径，也支持任意自定义路径
+PROJECT_DIR="${PROJECT_DIR:-/opt/www/sites/kec/index/kec-manager}"
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}KEC 课程管理平台 - 生产环境部署脚本${NC}"
 echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}部署目录: ${PROJECT_DIR}${NC}"
 echo ""
 
 # 检查参数
@@ -92,7 +94,7 @@ echo ""
 echo -e "${GREEN}[2/10] 创建部署目录...${NC}"
 execute "mkdir -p ${PROJECT_DIR}/server/data"
 execute "mkdir -p ${PROJECT_DIR}/client"
-execute "mkdir -p /opt/www/sites/kec/index/log/kec-manager"
+execute "mkdir -p ${PROJECT_DIR}/logs"
 echo "✓ 目录创建完成"
 
 echo ""

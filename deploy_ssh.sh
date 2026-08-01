@@ -16,8 +16,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 项目部署目录
-PROJECT_DIR="/opt/www/sites/kec/index/kec-manager"
+# 项目部署目录（可通过环境变量 PROJECT_DIR 自定义）
+PROJECT_DIR="${PROJECT_DIR:-/opt/www/sites/kec/index/kec-manager}"
 
 # SSH配置
 SSH_USER=""
