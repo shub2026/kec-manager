@@ -2,7 +2,7 @@
 
 面向大中专职业院校教学管理人员的轻量级教学管理系统，涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心业务。
 
-**版本** v1.0.0 · **架构** 前后端分离 · **部署** PM2 + Nginx
+**版本** v1.0.2 · **架构** 前后端分离 · **部署** Docker / PM2 + Nginx
 
 ---
 
@@ -34,7 +34,7 @@
 | 认证 | JWT 双令牌（Access 15min + Refresh 7d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt |
 | 安全 | Helmet + 速率限制 + XSS 清洗 + 输入校验 + 审计日志 |
 | 测试 | Vitest + Supertest（后端 1496 用例 / 前端 160 用例） |
-| 部署 | PM2 进程管理 + Nginx 反向代理 + 一键部署脚本 |
+| 部署 | Docker（推荐）/ PM2 进程管理 + Nginx 反向代理 + 一键部署脚本 |
 
 ---
 
@@ -44,8 +44,29 @@
 
 - Node.js >= 20
 - npm >= 10
+- （可选）Docker 20.10+ / Docker Compose 2.0+（用于容器化部署）
 
-### 安装与启动
+### 方式一：Docker 部署（推荐生产环境）
+
+```bash
+git clone https://gitee.com/shub77/kec-manager.git
+cd kec-manager
+
+# 配置环境变量（务必替换三个 JWT 密钥）
+cp .env.docker .env
+
+# 构建并启动（自动执行数据库迁移与种子数据）
+docker compose up -d --build
+
+# 查看启动日志
+docker compose logs -f
+```
+
+访问 http://localhost:3000，默认账户 `admin` / `admin@123456`（首次登录强制改密）。
+
+详见 [Docker 部署指南](docs/DOCKER_DEPLOYMENT.md) 与 [Docker 部署检查清单](docs/DOCKER_CHECKLIST.md)。
+
+### 方式二：本地开发启动
 
 ```bash
 # 克隆仓库
@@ -146,7 +167,7 @@ kec-manager/
 │   │   └── utils/                   # Excel / SSE / 排序 / 日志
 │   ├── prisma/
 │   │   ├── schema.prisma            # 21 个数据模型
-│   │   ├── migrations/              # 迁移文件（16 次迭代）
+│   │   ├── migrations/              # 迁移文件（13 次迭代）
 │   │   └── seed.js                  # 种子数据
 │   └── scripts/                     # 运维脚本（密码重置、数据库重建）
 ├── docs/                            # 项目文档
@@ -154,6 +175,10 @@ kec-manager/
 ├── deploy.sh                        # 一键部署（本地/远程）
 ├── deploy_ssh.sh                    # SSH 增量部署
 ├── ecosystem.config.cjs             # PM2 进程配置
+├── Dockerfile                       # Docker 多阶段构建
+├── docker-compose.yml               # Docker Compose 编排
+├── docker-entrypoint.sh             # 容器启动脚本（权限处理）
+├── .env.docker                      # Docker 环境变量模板
 └── package.json                     # 根配置
 ```
 
@@ -245,6 +270,17 @@ kec-manager/
 
 ## 部署
 
+### Docker 部署（推荐）
+
+```bash
+cp .env.docker .env       # 配置环境变量（替换 JWT 密钥）
+docker compose up -d --build
+```
+
+容器启动时自动执行数据库迁移与种子数据，SQLite 数据库、上传文件、日志通过 volume 持久化到宿主机。
+
+### 脚本部署（PM2 + Nginx）
+
 ```bash
 # 本地一键部署
 bash deploy.sh
@@ -252,13 +288,16 @@ bash deploy.sh
 # 远程部署
 bash deploy.sh root@your-server.com
 
+# 自定义部署目录（默认 /opt/www/sites/kec/index/kec-manager）
+PROJECT_DIR=/your/custom/path bash deploy.sh root@your-server.com
+
 # SSH 增量更新
 bash deploy_ssh.sh root@your-server.com
 ```
 
 部署脚本自动完成：环境检查 → 代码拉取 → 依赖安装 → 停止旧服务 → 环境变量 → 数据库迁移 → 前端构建 → PM2 启动 → 健康检查。
 
-详细部署与运维指南见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。
+详细部署与运维指南见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) 与 [docs/DOCKER_DEPLOYMENT.md](docs/DOCKER_DEPLOYMENT.md)。
 
 ### 服务器最低要求
 
@@ -267,7 +306,7 @@ bash deploy_ssh.sh root@your-server.com
 | CPU / 内存 | 1 核 / 2 GB |
 | 磁盘 | 10 GB |
 | 系统 | CentOS 7+ / Ubuntu 18+ / Debian 10+ |
-| 软件 | Node.js 20+, Nginx 1.18+, PM2, Git |
+| 软件 | Node.js 20+, Nginx 1.18+, PM2, Git（Docker 部署仅需 Docker 20.10+） |
 
 ---
 
@@ -298,6 +337,8 @@ bash deploy_ssh.sh root@your-server.com
 | 文档 | 说明 |
 | --- | --- |
 | [部署与运维指南](docs/DEPLOYMENT.md) | 部署、更新、备份恢复、故障排查 |
+| [Docker 部署指南](docs/DOCKER_DEPLOYMENT.md) | Docker 部署、1Panel/OpenResty 集成、更新回滚 |
+| [Docker 部署检查清单](docs/DOCKER_CHECKLIST.md) | Docker 部署验证、故障排查、安全加固 |
 | [排课算法说明](docs/SCHEDULING_ALGORITHM.md) | 五阶段算法、评分机制、教材内聚策略 |
 | [排课算法审计](docs/SCHEDULING_ALGORITHM_AUDIT.md) | 算法审计发现与修复跟踪 |
 | [学期计算说明](docs/semester-calculation.md) | 学期状态计算逻辑 |
