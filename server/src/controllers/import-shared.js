@@ -50,7 +50,9 @@ export async function verifyExcelMagicNumber(filePath) {
 }
 
 export const upload = multer({
-  dest: path.join(os.tmpdir(), 'kec-uploads'),
+  // 支持 UPLOAD_DIR 环境变量，Docker 部署时可指定挂载的持久化目录
+  // 默认使用系统临时目录（开发环境）
+  dest: process.env.UPLOAD_DIR || path.join(os.tmpdir(), 'kec-uploads'),
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: (req, file, cb) => {
     // 检查文件扩展名

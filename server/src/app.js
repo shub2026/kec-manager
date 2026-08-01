@@ -25,6 +25,7 @@ import { convertResponseNaming, convertRequestNaming } from './middleware/naming
 import { sanitizeBody, sanitizeQuery } from './middleware/xss.js';
 import { validateCsrf } from './middleware/csrf.js';
 import { log } from './utils/logger.js'; // L1修复：使用winston logger
+import { serveStaticFiles } from './middleware/static-files.js';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 const app = express();
@@ -198,6 +199,9 @@ app.use('/api/audit', authMiddleware, roleMiddleware('super_admin'), auditRoutes
 
 // 首页概览 - 所有登录用户可访问
 app.use('/api/dashboard', authMiddleware, dashboardRoutes);
+
+// 生产环境：托管前端静态文件（Docker 部署或 PM2+Nginx 单容器方案）
+serveStaticFiles(app);
 
 // 404 catch-all：未匹配的路由返回 JSON（在 errorHandler 之前）
 app.use((req, res) => {
