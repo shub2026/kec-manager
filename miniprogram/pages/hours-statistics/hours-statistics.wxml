@@ -1,0 +1,61 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+
+  <block wx:else>
+    <view class="term-hint" wx:if="{{semester}}">学期：{{semester}}｜合班已去重</view>
+
+    <!-- 整体汇总 -->
+    <view class="card" wx:if="{{summary}}">
+      <view class="card-title">整体汇总</view>
+      <view class="stat-grid">
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{summary.totalTeachers}}</view>
+          <view class="stat-label">任课教师</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{summary.totalWeeklyHours}}</view>
+          <view class="stat-label">总周课时</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{summary.totalClasses}}</view>
+          <view class="stat-label">教学班数</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{summary.totalTeachers}}</view>
+          <view class="stat-label">参与教师</view>
+        </view></view>
+      </view>
+    </view>
+
+    <!-- 学院课时分布 -->
+    <view class="card">
+      <view class="card-title">学院课时分布</view>
+      <view wx:for="{{collegeDist}}" wx:key="name" class="dist-row">
+        <text class="dist-name">{{item.name}}</text>
+        <view class="bar dist-bar"><view class="bar-in" style="width:{{item._pct}}%"></view></view>
+        <text class="dist-num">{{item.hours}}</text>
+      </view>
+      <view wx:if="{{!collegeDist.length}}" class="empty">暂无分布数据</view>
+    </view>
+
+    <!-- 课时 Top 教师 -->
+    <view class="card">
+      <view class="card-title">课时 Top 5 教师</view>
+      <view wx:if="{{topTeachers.length}}">
+        <view wx:for="{{topTeachers}}" wx:key="teacherName" class="top-row">
+          <text class="top-rank">{{index + 1}}</text>
+          <view class="top-main">
+            <text class="top-name">{{item.teacherName}}</text>
+            <text class="top-college">{{item.affiliatedCollege}}</text>
+          </view>
+          <view class="top-hours">
+            <text class="th-num">{{item.totalWeeklyHours}}</text>
+            <text class="th-label">课时/周·{{item.totalClassCount}}班</text>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="empty">暂无教师课时数据</view>
+    </view>
+  </block>
+</view>

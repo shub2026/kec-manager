@@ -1,0 +1,51 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+
+  <block wx:else>
+    <!-- 教材信息 -->
+    <view class="card">
+      <view class="book-title">{{textbook.title}}</view>
+      <view class="book-meta">
+        <view class="bm-row"><text class="label">ISBN</text><text class="value">{{textbook.isbn || '—'}}</text></view>
+        <view class="bm-row"><text class="label">出版社</text><text class="value">{{textbook.publisher || '—'}}</text></view>
+        <view class="bm-row"><text class="label">作者</text><text class="value">{{textbook.author || '—'}}</text></view>
+        <view class="bm-row"><text class="label">出版时间</text><text class="value">{{textbook.publish_date || '—'}}</text></view>
+      </view>
+      <view class="book-tag">
+        <text class="tag">{{totalClasses}} 个班级使用</text>
+        <text class="tag">覆盖 {{totalStudents}} 名学生</text>
+      </view>
+    </view>
+
+    <!-- 使用班级 -->
+    <view class="card">
+      <view class="card-title">使用班级（{{classes.length}}）</view>
+      <view wx:if="{{classes.length}}">
+        <view
+          wx:for="{{classes}}"
+          wx:key="key"
+          class="cls-item"
+        >
+          <view class="cls-head" data-key="{{item.key}}" bindtap="toggle">
+            <view class="cls-name">
+              <text>{{item.className}}</text>
+              <text wx:if="{{item.isRequired}}" class="req">必修</text>
+              <text wx:if="{{item.isConsecutive}}" class="con">连排</text>
+            </view>
+            <text class="arrow">{{expandedId === item.key ? '∨' : '›'}}</text>
+          </view>
+          <view wx:if="{{expandedId === item.key}}" class="cls-detail">
+            <view class="cd-row"><text class="label">课程</text><text class="value">{{item.courseName}}</text></view>
+            <view class="cd-row"><text class="label">学院</text><text class="value">{{item.collegeName}}</text></view>
+            <view class="cd-row"><text class="label">专业</text><text class="value">{{item.majorName}}</text></view>
+            <view class="cd-row"><text class="label">层次</text><text class="value">{{item.trainingLevelName}}</text></view>
+            <view class="cd-row"><text class="label">年级</text><text class="value">{{item.grade}}</text></view>
+            <view class="cd-row"><text class="label">人数</text><text class="value">{{item.studentCount}}</text></view>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="empty">本学期暂无班级使用此教材</view>
+    </view>
+  </block>
+</view>

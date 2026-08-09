@@ -1,0 +1,50 @@
+<view class="page">
+  <view class="toolbar">
+    <view class="term">学期：{{semester || '未设置'}}</view>
+    <view class="toolbar-right">
+      <picker mode="selector" range="{{grades}}" bindchange="onGradeChange">
+        <view class="filter {{grade ? 'active' : ''}}">
+          {{grade ? grade + '年级' : '全部年级'}} ›
+        </view>
+      </picker>
+      <text wx:if="{{grade}}" class="clear" bindtap="clearGrade">重置</text>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+
+  <block wx:else>
+    <view class="count">共 {{total}} 个在读班级</view>
+
+    <view
+      wx:for="{{list}}"
+      wx:key="classId"
+      class="class-card"
+      bindtap="toggle"
+      data-id="{{item.classId}}"
+    >
+      <view class="class-head">
+        <view class="class-name">{{item.className}}</view>
+        <view class="class-meta">{{item.grade}}年级 · {{item.studentCount}}人</view>
+      </view>
+      <view class="class-sub">{{item.majorName || '—'}} / {{item.collegeName || '—'}}</view>
+      <view class="class-plan">方案：{{item.planName || '—'}} · 开课 {{item.courseCount}} 门</view>
+
+      <view wx:if="{{expandedId === item.classId}}" class="course-list">
+        <view wx:for="{{item.courses}}" wx:for-item="co" wx:key="courseName" class="course">
+          <view class="course-top">
+            <text class="course-name">{{co.courseName}}</text>
+            <text class="course-hours">{{co.weeklyHours}} 节/周</text>
+          </view>
+          <view class="course-book">教材：{{co.textbooks}}</view>
+        </view>
+        <view wx:if="{{!item.courses.length}}" class="empty">本学期无开课</view>
+      </view>
+    </view>
+
+    <view wx:if="{{loadingMore}}" class="loading">加载更多…</view>
+    <view wx:elif="{{finished}}" class="empty">没有更多了</view>
+    <view wx:else class="empty">上拉加载更多</view>
+  </block>
+</view>

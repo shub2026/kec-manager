@@ -1,0 +1,92 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 24rpx 8rpx;
+}
+.term {
+  font-size: 26rpx;
+  color: #8a8a8a;
+}
+.filter {
+  font-size: 26rpx;
+  color: #8a8a8a;
+  background: #fff;
+  border: 1rpx solid #e3e6ea;
+  border-radius: 24rpx;
+  padding: 10rpx 24rpx;
+}
+.filter.active {
+  color: #07c160;
+  border-color: #07c160;
+  background: #e8f8ef;
+}
+
+.count {
+  font-size: 24rpx;
+  color: #8a8a8a;
+  padding: 4rpx 28rpx 16rpx;
+}
+
+.class-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin: 0 24rpx 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+.class-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.class-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.class-meta {
+  font-size: 24rpx;
+  color: #8a8a8a;
+}
+.class-sub {
+  font-size: 26rpx;
+  color: #555;
+  margin-top: 8rpx;
+}
+.class-plan {
+  font-size: 24rpx;
+  color: #8a8a8a;
+  margin-top: 6rpx;
+}
+
+.course-list {
+  margin-top: 20rpx;
+  border-top: 1rpx dashed #e8e8e8;
+  padding-top: 16rpx;
+}
+.course {
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f4f4f4;
+}
+.course:last-child {
+  border-bottom: none;
+}
+.course-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.course-name {
+  font-size: 28rpx;
+  color: #1a1a1a;
+}
+.course-hours {
+  font-size: 24rpx;
+  color: #07c160;
+}
+.course-book {
+  font-size: 24rpx;
+  color: #8a8a8a;
+  margin-top: 6rpx;
+}

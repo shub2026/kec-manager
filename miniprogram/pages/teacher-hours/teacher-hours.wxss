@@ -1,0 +1,112 @@
+.term-hint {
+  font-size: 24rpx;
+  color: #8a8a8a;
+  padding: 8rpx 4rpx 16rpx;
+}
+.teacher-card {
+  padding: 0 28rpx;
+}
+.tc-head {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 0;
+}
+.tc-left {
+  flex: 1;
+  min-width: 0;
+}
+.tc-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.pt {
+  font-size: 20rpx;
+  color: #07c160;
+  background: #e8f8ef;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  margin-left: 12rpx;
+  font-weight: 400;
+}
+.tc-sub {
+  font-size: 24rpx;
+  color: #8a8a8a;
+  margin-top: 8rpx;
+}
+.tc-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 16rpx;
+}
+.tc-hours {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #07c160;
+  line-height: 1.1;
+}
+.tc-unit {
+  font-size: 20rpx;
+  color: #8a8a8a;
+}
+.tc-detail {
+  border-top: 1rpx solid #f0f0f0;
+  padding: 20rpx 0 8rpx;
+}
+.td-meta {
+  margin-bottom: 16rpx;
+}
+.course-block {
+  margin-bottom: 20rpx;
+}
+.cb-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
+  border-top: 1rpx dashed #eee;
+}
+.cb-name {
+  font-size: 27rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.cb-hours {
+  font-size: 24rpx;
+  color: #07c160;
+}
+.cb-class {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 8rpx 0;
+  font-size: 24rpx;
+  color: #555;
+}
+.cb-cname {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.cb-comb {
+  font-size: 20rpx;
+  color: #e08a00;
+  background: #fdf3e3;
+  border-radius: 6rpx;
+  padding: 2rpx 8rpx;
+  margin-left: 10rpx;
+}
+.cb-auto {
+  font-size: 20rpx;
+  color: #07c160;
+  background: #e8f8ef;
+  border-radius: 6rpx;
+  padding: 2rpx 8rpx;
+  margin-left: 10rpx;
+}
+.cb-extra {
+  width: 100%;
+  font-size: 22rpx;
+  color: #b0b0b0;
+  margin-top: 4rpx;
+}

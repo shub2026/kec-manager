@@ -1,0 +1,86 @@
+.book-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.4;
+}
+.book-meta {
+  margin-top: 20rpx;
+}
+.bm-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+  font-size: 26rpx;
+}
+.bm-row:last-child {
+  border-bottom: none;
+}
+.bm-row .label {
+  color: #8a8a8a;
+}
+.bm-row .value {
+  color: #1a1a1a;
+  text-align: right;
+  max-width: 70%;
+}
+.book-tag {
+  margin-top: 20rpx;
+}
+
+.cls-item {
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.cls-item:last-child {
+  border-bottom: none;
+}
+.cls-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+}
+.cls-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.req {
+  font-size: 20rpx;
+  color: #fff;
+  background: #07c160;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  margin-left: 12rpx;
+  font-weight: 400;
+}
+.con {
+  font-size: 20rpx;
+  color: #e08a00;
+  background: #fdf3e3;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  margin-left: 8rpx;
+  font-weight: 400;
+}
+.cls-detail {
+  background: #f7faf8;
+  border-radius: 12rpx;
+  padding: 8rpx 20rpx;
+  margin-bottom: 20rpx;
+}
+.cd-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12rpx 0;
+  font-size: 25rpx;
+}
+.cd-row .label {
+  color: #8a8a8a;
+}
+.cd-row .value {
+  color: #1a1a1a;
+  text-align: right;
+  max-width: 70%;
+}

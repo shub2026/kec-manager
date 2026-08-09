@@ -1,0 +1,96 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-term">当前学期：{{semester || '未设置'}}</view>
+    <view class="hero-title">教务概览</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+
+  <block wx:else>
+    <!-- 本学期概览 -->
+    <view class="card">
+      <view class="card-title">本学期概览</view>
+      <view class="stat-grid">
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{stats.totalStudents}}</view>
+          <view class="stat-label">在读学生</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{stats.classes}}</view>
+          <view class="stat-label">在读班级</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{stats.courses}}</view>
+          <view class="stat-label">开设课程</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{stats.teachingTeachers}}</view>
+          <view class="stat-label">任课教师</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{stats.majors}}</view>
+          <view class="stat-label">专业数</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{stats.textbooks}}</view>
+          <view class="stat-label">教材数</view>
+        </view></view>
+      </view>
+      <view class="hours-row">
+        <view class="hours-item">
+          <text class="h-num">{{stats.assignedWeeklyHours}}</text>
+          <text class="h-label">已排周课时</text>
+        </view>
+        <view class="hours-item">
+          <text class="h-num">{{stats.plannedWeeklyHours}}</text>
+          <text class="h-label">计划周课时</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 排课完成度 -->
+    <view class="card">
+      <view class="card-title">排课完成度
+        <text class="more" bindtap="goStatistics">课时统计 ›</text>
+      </view>
+      <view class="bar"><view class="bar-in" style="width:{{insights.completion.rate}}%"></view></view>
+      <view class="completion-text">
+        已排 {{insights.completion.assignedCourses}} / 应排 {{insights.completion.totalCourses}}（{{insights.completion.rate}}%）
+      </view>
+      <view class="alert-row">
+        <view class="alert-item" wx:if="{{insights.alerts.unassignedCourses.length}}">
+          <text class="a-num warn">{{insights.alerts.unassignedCourses.length}}</text>
+          <text class="a-label">未排课课程</text>
+        </view>
+        <view class="alert-item" wx:if="{{insights.alerts.overloadedTeachers.length}}">
+          <text class="a-num warn">{{insights.alerts.overloadedTeachers.length}}</text>
+          <text class="a-label">超课时教师</text>
+        </view>
+        <view class="alert-item empty-alert" wx:if="{{!insights.alerts.unassignedCourses.length && !insights.alerts.overloadedTeachers.length}}">
+          <text class="a-num ok">✓</text>
+          <text class="a-label">暂无异常</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 学院课时分布 -->
+    <view class="card">
+      <view class="card-title">学院课时分布</view>
+      <view wx:for="{{insights.distribution}}" wx:key="name" class="dist-row">
+        <text class="dist-name">{{item.name}}</text>
+        <view class="bar dist-bar"><view class="bar-in" style="width:{{item._pct}}%"></view></view>
+        <text class="dist-num">{{item.hours}}</text>
+      </view>
+      <view wx:if="{{!insights.distribution.length}}" class="empty">暂无分布数据</view>
+    </view>
+
+    <!-- 快捷入口 -->
+    <view class="card">
+      <view class="entry" bindtap="goSemester"><text>开课查询</text><text class="arrow">›</text></view>
+      <view class="entry" bindtap="goTextbook"><text>教材查询</text><text class="arrow">›</text></view>
+      <view class="entry" bindtap="goTeacher"><text>教师课时</text><text class="arrow">›</text></view>
+      <view class="entry" bindtap="goStatistics"><text>课时统计</text><text class="arrow">›</text></view>
+    </view>
+  </block>
+</view>

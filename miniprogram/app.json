@@ -1,0 +1,33 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/home/home",
+    "pages/semester/semester",
+    "pages/textbook/textbook",
+    "pages/textbook-detail/textbook-detail",
+    "pages/teacher-hours/teacher-hours",
+    "pages/hours-statistics/hours-statistics",
+    "pages/profile/profile"
+  ],
+  "window": {
+    "navigationBarTitleText": "KEC 教务",
+    "navigationBarBackgroundColor": "#07c160",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f5f6f8"
+  },
+  "tabBar": {
+    "color": "#8a8a8a",
+    "selectedColor": "#07c160",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/home/home", "text": "首页" },
+      { "pagePath": "pages/semester/semester", "text": "开课查询" },
+      { "pagePath": "pages/textbook/textbook", "text": "教材查询" },
+      { "pagePath": "pages/teacher-hours/teacher-hours", "text": "教师课时" },
+      { "pagePath": "pages/profile/profile", "text": "我的" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

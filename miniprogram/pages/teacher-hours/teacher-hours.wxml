@@ -1,0 +1,63 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+
+  <block wx:else>
+    <view class="term-hint" wx:if="{{semester}}">学期：{{semester}}｜合班已去重</view>
+
+    <view wx:if="{{teachers.length}}">
+      <view
+        wx:for="{{teachers}}"
+        wx:key="teacherId"
+        class="card teacher-card"
+      >
+        <view class="tc-head" data-id="{{item.teacherId}}" bindtap="toggle">
+          <view class="tc-left">
+            <view class="tc-name">
+              {{item.teacherName}}
+              <text wx:if="{{item.personnelType}}" class="pt">{{item.personnelType}}</text>
+            </view>
+            <view class="tc-sub">{{item.affiliatedCollege}}｜{{item.totalClassCount}} 个教学班</view>
+          </view>
+          <view class="tc-right">
+            <text class="tc-hours">{{item.totalWeeklyHours}}</text>
+            <text class="tc-unit">课时/周</text>
+          </view>
+          <text class="arrow">{{expandedId === item.teacherId ? '∨' : '›'}}</text>
+        </view>
+
+        <view wx:if="{{expandedId === item.teacherId}}" class="tc-detail">
+          <view class="td-meta">
+            <text class="tag">层次：{{item.levelNames}}</text>
+            <text class="tag">学院：{{item.collegeNames}}</text>
+            <text class="tag">教材 {{item.textbookCount}} 种</text>
+          </view>
+          <view
+            wx:for="{{item.details}}"
+            wx:for-item="d"
+            wx:key="courseName"
+            class="course-block"
+          >
+            <view class="cb-title">
+              <text class="cb-name">{{d.courseName}}</text>
+              <text class="cb-hours">{{d.weeklyHours}} 课时/周</text>
+            </view>
+            <view
+              wx:for="{{d.classes}}"
+              wx:for-item="c"
+              wx:key="className"
+              class="cb-class"
+            >
+              <text class="cb-cname">{{c.className}}</text>
+              <text wx:if="{{c.isCombined}}" class="cb-comb">合班</text>
+              <text wx:if="{{c.isAuto}}" class="cb-auto">自动</text>
+              <text class="cb-extra">{{c.collegeName}}·{{c.trainingLevelName}}｜教材：{{c.textbookName}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:else class="empty">本学期暂无教师课时数据</view>
+  </block>
+</view>

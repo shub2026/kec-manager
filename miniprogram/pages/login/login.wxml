@@ -1,0 +1,33 @@
+<view class="login">
+  <view class="brand">
+    <image class="logo" src="/assets/logo.png" mode="aspectFit" />
+    <view class="title">KEC课程管理平台</view>
+    <view class="subtitle">微信小程序 · 体验版</view>
+  </view>
+
+  <view class="form card">
+    <view class="field">
+      <input
+        class="input"
+        placeholder="请输入用户名"
+        value="{{username}}"
+        bindinput="onUsername"
+      />
+    </view>
+    <view class="field">
+      <input
+        class="input"
+        placeholder="请输入密码"
+        password
+        value="{{password}}"
+        bindinput="onPassword"
+      />
+    </view>
+
+    <view wx:if="{{error}}" class="errbox">{{error}}</view>
+
+    <button class="btn-primary submit" loading="{{loading}}" bindtap="onSubmit">登录</button>
+  </view>
+
+  <view class="tip">体验版仅供内部测试人员使用</view>
+</view>

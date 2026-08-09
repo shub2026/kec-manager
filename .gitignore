@@ -17,3 +17,6 @@ client/.prodcheck/
 client/dist-verify/
 server/src/utils/__tmp_*
 logs/
+
+# 微信小程序开发者工具本地私有配置（含本机路径，不入库）
+miniprogram/project.private.config.json
