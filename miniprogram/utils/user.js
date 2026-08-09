@@ -11,4 +11,15 @@ function roleLabel(role) {
   return ROLE_LABEL_MAP[role] || role || '—';
 }
 
-module.exports = { roleLabel };
+const ROLE_CLASS_MAP = {
+  super_admin: 'pt-super',
+  admin: 'pt-admin',
+  viewer: 'pt-viewer',
+};
+
+// 角色对应的标签样式类（颜色区分权限等级）
+function roleClass(role) {
+  return ROLE_CLASS_MAP[role] || 'pt-viewer';
+}
+
+module.exports = { roleLabel, roleClass };

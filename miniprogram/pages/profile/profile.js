@@ -1,7 +1,7 @@
 // pages/profile/profile.js
 // 我的：用户信息 + 当前学期 + 退出登录。
 const api = require('../../utils/api.js');
-const { guard, logout, isAdmin } = require('../../utils/auth.js');
+const { guard, logout, isAdmin, isSuperAdmin } = require('../../utils/auth.js');
 const { roleLabel } = require('../../utils/user.js');
 const { formatTime } = require('../../utils/format.js');
 
@@ -48,6 +48,7 @@ Page({
         },
         semester: (app && app.globalData.currentSemester) || '',
         canManage: isAdmin(),
+        canUserManage: isSuperAdmin(),
         loading: false,
       });
     } catch (e) {
@@ -57,6 +58,10 @@ Page({
 
   goTeacherAdmin() {
     wx.navigateTo({ url: '/pages/teacher-admin/teacher-admin' });
+  },
+
+  goUserAdmin() {
+    wx.navigateTo({ url: '/pages/user-admin/user-admin' });
   },
 
   onLogout() {

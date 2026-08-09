@@ -27,6 +27,10 @@
         <text class="label">教师管理</text>
         <text class="value">查询 / 新增</text>
       </view>
+      <view wx:if="{{canUserManage}}" class="row arrow" bindtap="goUserAdmin">
+        <text class="label">用户管理</text>
+        <text class="value">账号 / 权限</text>
+      </view>
     </view>
 
     <!-- 关于 -->

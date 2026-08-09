@@ -8,6 +8,7 @@
     "pages/teacher-hours/teacher-hours",
     "pages/hours-statistics/hours-statistics",
     "pages/teacher-admin/teacher-admin",
+    "pages/user-admin/user-admin",
     "pages/profile/profile"
   ],
   "window": {

@@ -1,0 +1,132 @@
+<view class="page">
+  <!-- Hero -->
+  <view class="hero">
+    <view class="hero-card">
+      <view class="hero-text">
+        <view class="hero-title">用户管理</view>
+        <view class="hero-subtitle">管理系统账号、角色与状态</view>
+        <view class="hero-badge"><text class="hero-badge-text">共 {{total}} 个账号</text></view>
+      </view>
+      <view class="hero-decor"><view class="hero-ring"></view></view>
+    </view>
+  </view>
+
+  <!-- 仅首屏（列表为空）显示全屏遮罩；其余状态筛选栏始终挂载，避免输入时卸载搜索框 -->
+  <view wx:if="{{loading && users.length === 0}}" class="loading">加载中…</view>
+
+  <block wx:else>
+    <!-- 筛选栏 -->
+    <view class="filter-bar">
+      <view class="search-box">
+        <text class="search-icon">🔍</text>
+        <input class="filter-input" value="{{keyword}}" placeholder="搜索用户名 / 姓名 / 邮箱" placeholder-class="placeholder" bindinput="onKeywordInput" />
+      </view>
+      <text wx:if="{{keyword}}" class="filter-clear" bindtap="clearFilters">重置</text>
+    </view>
+
+    <!-- 局部刷新提示（输入/筛选时显示，不遮挡列表） -->
+    <view wx:if="{{refreshing && users.length}}" class="top-loading">
+      <view class="top-loading-bar"></view>
+      <text class="top-loading-text">刷新中…</text>
+    </view>
+
+    <!-- 行内错误提示（不替换筛选栏，避免输入失焦） -->
+    <view wx:if="{{error}}" class="errbox">{{error}}</view>
+
+    <!-- 用户列表 -->
+    <view wx:if="{{users.length}}">
+      <view wx:for="{{users}}" wx:key="id" class="card user-card">
+        <view class="uc-head">
+          <view class="uc-left">
+            <view class="uc-name">
+              {{item.username}}
+              <text class="pt {{item.roleClass}}">{{item.roleLabel}}</text>
+              <text wx:if="{{!item.isActive}}" class="pt pt-disabled">已禁用</text>
+            </view>
+            <view class="uc-sub">
+              <text wx:if="{{item.realName}}">{{item.realName}}</text>
+              <text wx:else class="uc-muted">未设置姓名</text>
+              <text class="uc-divider">|</text>
+              <text class="uc-email">{{item.email}}</text>
+            </view>
+            <view class="uc-foot">最近登录 {{item.lastLoginText}}</view>
+          </view>
+        </view>
+
+        <!-- 操作区：超级管理员账号受后端保护，隐藏写操作 -->
+        <view wx:if="{{item.canEdit || item.canStatus || item.canReset || item.canDelete}}" class="uc-actions">
+          <view wx:if="{{item.canEdit}}" class="uc-act" catchtap="openEdit" data-id="{{item.id}}">编辑</view>
+          <view wx:if="{{item.canStatus}}" class="uc-act {{item.isActive ? 'uc-act-warn' : 'uc-act-ok'}}" catchtap="toggleStatus" data-id="{{item.id}}">{{item.isActive ? '禁用' : '启用'}}</view>
+          <view wx:if="{{item.canReset}}" class="uc-act" catchtap="resetPassword" data-id="{{item.id}}">重置密码</view>
+          <view wx:if="{{item.canDelete}}" class="uc-act uc-act-danger" catchtap="deleteUser" data-id="{{item.id}}">删除</view>
+        </view>
+        <view wx:else class="uc-protected">系统保护账号，不可修改</view>
+      </view>
+
+      <view wx:if="{{finished}}" class="list-end">已显示全部 {{total}} 个账号</view>
+      <view wx:else class="loading">加载更多…</view>
+    </view>
+
+    <view wx:else class="empty">{{keyword ? '未找到匹配的用户' : '暂无用户数据'}}</view>
+  </block>
+
+  <!-- 悬浮新增按钮 -->
+  <view class="fab" bindtap="openAdd">＋ 新增用户</view>
+</view>
+
+<!-- 新增 / 编辑 用户弹层 -->
+<view wx:if="{{showSheet}}" class="mask" bindtap="closeSheet">
+  <view class="sheet" catchtap="noop">
+    <view class="sheet-header">
+      <view class="sheet-handle"></view>
+      <view class="sheet-title">{{sheetTitle}}</view>
+    </view>
+
+    <scroll-view class="sheet-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+      <view class="sheet-form">
+        <view class="form-section form-section-last">
+          <view class="form-section-title">账号信息</view>
+
+          <!-- 用户名：新增可填（必填），编辑只读 -->
+          <view class="form-row {{focusedField === 'username' ? 'form-row-focus' : ''}}">
+            <text class="form-row-label">用户名<text wx:if="{{mode === 'add'}}" class="req">*</text></text>
+            <input wx:if="{{mode === 'add'}}" class="form-row-input {{focusedField === 'username' ? 'form-row-input-focus' : ''}}" value="{{form.username}}" data-field="username" placeholder="登录用户名（唯一）" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+            <view wx:else class="form-row-static">{{form.username}}</view>
+          </view>
+
+          <!-- 新增时填写初始密码 -->
+          <view wx:if="{{mode === 'add'}}" class="form-row {{focusedField === 'password' ? 'form-row-focus' : ''}}">
+            <text class="form-row-label">初始密码<text class="req">*</text></text>
+            <input class="form-row-input {{focusedField === 'password' ? 'form-row-input-focus' : ''}}" password value="{{form.password}}" data-field="password" placeholder="初始登录密码" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+          </view>
+
+          <view class="form-row {{focusedField === 'realName' ? 'form-row-focus' : ''}}">
+            <text class="form-row-label">姓名</text>
+            <input class="form-row-input {{focusedField === 'realName' ? 'form-row-input-focus' : ''}}" value="{{form.realName}}" data-field="realName" placeholder="真实姓名（选填）" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+          </view>
+
+          <view class="form-row {{focusedField === 'email' ? 'form-row-focus' : ''}}">
+            <text class="form-row-label">邮箱</text>
+            <input class="form-row-input {{focusedField === 'email' ? 'form-row-input-focus' : ''}}" value="{{form.email}}" data-field="email" placeholder="邮箱（选填）" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+          </view>
+
+          <!-- 角色：编辑自己时隐藏（后端禁止自改角色） -->
+          <view wx:if="{{mode === 'add' || !isSelf}}" class="form-row">
+            <text class="form-row-label">角色</text>
+            <picker class="form-row-picker" mode="selector" range="{{roleLabels}}" value="{{form.roleIndex}}" bindchange="onRolePick">
+              <view class="form-row-picker-inner">
+                <view class="form-row-picker-text">{{roleLabels[form.roleIndex]}}</view>
+                <view class="picker-arrow"></view>
+              </view>
+            </picker>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="sheet-actions">
+      <button class="btn-ghost sheet-btn" disabled="{{submitting}}" bindtap="closeSheet">取消</button>
+      <button class="btn-primary sheet-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">保存</button>
+    </view>
+  </view>
+</view>

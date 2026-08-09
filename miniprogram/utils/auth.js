@@ -39,6 +39,17 @@ function isAdmin() {
   return role === 'admin' || role === 'super_admin';
 }
 
+// 当前用户是否为超级管理员（super_admin）。
+// 用户管理功能后端用 roleMiddleware('super_admin') 守门，前端须严格对齐。
+function isSuperAdmin() {
+  const app = getApp();
+  const role =
+    (app && app.globalData && app.globalData.role) ||
+    wx.getStorageSync('role') ||
+    '';
+  return role === 'super_admin';
+}
+
 function logout() {
   clearSession();
   const app = getApp();
@@ -56,4 +67,4 @@ function guard() {
   return true;
 }
 
-module.exports = { login, logout, guard, isAdmin };
+module.exports = { login, logout, guard, isAdmin, isSuperAdmin };

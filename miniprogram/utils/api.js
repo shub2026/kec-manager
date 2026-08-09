@@ -103,6 +103,42 @@ const api = {
     const semester = await ensureSemester();
     return request({ url: '/api/teaching-arrange/statistics', data: { semester } });
   },
+
+  // ===== 用户管理（仅超级管理员，后端 roleMiddleware('super_admin') 守门） =====
+  // 列表：分页 + keyword 模糊（用户名 / 姓名 / 邮箱）。
+  // 按项目约定发 camelCase 参数（pageSize / keyword），后端中间件会自动转 snake。
+  listUsers(params = {}) {
+    const data = { page: params.page || 1, pageSize: params.pageSize || 20 };
+    if (params.keyword) data.keyword = params.keyword;
+    return request({ url: '/api/users', data });
+  },
+
+  // 创建用户：username / password 必填，realName / email / role 选填。
+  // CSRF 双提交由 request.js 统一处理（自动带 X-CSRF-Token 头 + cookie）。
+  // 后端 convertRequestNaming 会把 realName → real_name。
+  createUser(payload) {
+    return request({ url: '/api/users', method: 'POST', data: payload });
+  },
+
+  // 更新用户（仅 super_admin）：realName / email / role。
+  updateUser(id, payload) {
+    return request({ url: `/api/users/${id}`, method: 'PUT', data: payload });
+  },
+
+  // 启用 / 禁用账号。isActive 经中间件转 is_active。
+  updateUserStatus(id, isActive) {
+    return request({ url: `/api/users/${id}/status`, method: 'PUT', data: { isActive } });
+  },
+
+  // 重置密码（管理员操作，无需原密码）。newPassword 经中间件转 new_password。
+  resetUserPassword(id, newPassword) {
+    return request({ url: `/api/users/${id}/password`, method: 'PUT', data: { newPassword } });
+  },
+
+  // 删除用户。DELETE 请求层已支持（走 CSRF 双提交分支）。
+  deleteUser(id) {
+    return request({ url: `/api/users/${id}`, method: 'DELETE' });
+  },
 };
 
 module.exports = api;
