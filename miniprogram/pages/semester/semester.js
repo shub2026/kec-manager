@@ -32,10 +32,12 @@ Page({
   },
 
   reload({ showOverlay = false } = {}) {
-    this.setData({ page: 1, list: [], finished: false, error: '' });
+    this.setData({ page: 1, finished: false, error: '' });
     if (showOverlay) {
-      this.setData({ loading: true });
+      // 首屏/下拉刷新：清空列表 + 全屏遮罩
+      this.setData({ loading: true, list: [], total: 0 });
     } else {
+      // 搜索/筛选：保留旧列表，仅顶部细条提示，避免结果区瞬时空白闪烁
       this.setData({ refreshing: true });
     }
     return this.fetch(true);

@@ -20,13 +20,6 @@
       <view class="row"><text class="label">最近登录</text><text class="value">{{me.lastLoginAt}}</text></view>
     </view>
 
-    <!-- 关于 -->
-    <view class="card">
-      <view class="card-title">关于</view>
-      <view class="row"><text class="label">小程序版本</text><text class="value">{{appEnv}} v{{appVersion}}</text></view>
-      <view class="row"><text class="label">主体类型</text><text class="value">个人主体</text></view>
-    </view>
-
     <!-- 管理（仅管理员可见） -->
     <view wx:if="{{canManage}}" class="card">
       <view class="card-title">管理</view>
@@ -34,6 +27,13 @@
         <text class="label">教师管理</text>
         <text class="value">查询 / 新增</text>
       </view>
+    </view>
+
+    <!-- 关于 -->
+    <view class="card">
+      <view class="card-title">关于</view>
+      <view class="row"><text class="label">小程序版本</text><text class="value">{{appEnv}} v{{appVersion}}</text></view>
+      <view class="row"><text class="label">主体类型</text><text class="value">个人主体</text></view>
     </view>
 
     <view class="logout-wrap">
