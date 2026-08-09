@@ -2,6 +2,8 @@
 // 我的：用户信息 + 当前学期 + 退出登录。
 const api = require('../../utils/api.js');
 const { guard, logout } = require('../../utils/auth.js');
+const { roleLabel } = require('../../utils/user.js');
+const { formatTime } = require('../../utils/format.js');
 
 const APP_VERSION = '1.0.2';
 
@@ -27,11 +29,11 @@ Page({
       this.setData({
         me: {
           username: me.username,
-          realName: me.real_name || me.username,
-          avatar: (me.real_name || me.username || '?').charAt(0).toUpperCase(),
-          role: me.role || '—',
+          realName: me.realName || me.username,
+          avatar: (me.realName || me.username || '?').charAt(0).toUpperCase(),
+          role: roleLabel(me.role),
           email: me.email || '—',
-          lastLoginAt: me.last_login_at || '—',
+          lastLoginAt: formatTime(me.lastLoginAt),
         },
         semester: (app && app.globalData.currentSemester) || '',
         loading: false,

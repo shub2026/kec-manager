@@ -8,15 +8,15 @@
   display: flex;
   align-items: center;
   background: #fff;
-  border-radius: 12rpx;
-  padding: 0 20rpx;
+  border-radius: 36rpx;
+  padding: 0 24rpx;
   height: 72rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 .search-ico {
   font-size: 28rpx;
   margin-right: 12rpx;
-  color: #b0b0b0;
+  color: #1C82F5;
 }
 .search-field {
   flex: 1;
@@ -33,7 +33,7 @@
   background: #1C82F5;
   color: #fff;
   font-size: 28rpx;
-  border-radius: 12rpx;
+  border-radius: 36rpx;
   padding: 0 28rpx;
   height: 72rpx;
   line-height: 72rpx;
@@ -79,19 +79,4 @@
   font-size: 22rpx;
   color: #b0b0b0;
   margin-top: 8rpx;
-}
-.tb-usage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 0 16rpx;
-}
-.u-num {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #1C82F5;
-}
-.u-label {
-  font-size: 20rpx;
-  color: #8a8a8a;
 }

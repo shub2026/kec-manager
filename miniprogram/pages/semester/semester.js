@@ -22,6 +22,11 @@ Page({
     if (!this.data.list.length) this.reload();
   },
 
+  // 切走 tab 时重置年级筛选，下次进入显示全量数据
+  onHide() {
+    this.setData({ grade: '', list: [], finished: false });
+  },
+
   async reload() {
     this.setData({ page: 1, list: [], finished: false, error: '' });
     await this.fetch(true);
@@ -43,13 +48,13 @@ Page({
         collegeName: c.collegeName,
         majorName: c.majorName,
         grade: c.grade,
-        studentCount: c.student_count,
+        studentCount: c.studentCount,
         planName: c.planName,
         courseCount: (c.courses || []).length,
         courses: (c.courses || []).map((co) => ({
           courseName: co.courseName,
           courseType: co.courseType,
-          weeklyHours: co.weekly_hours,
+          weeklyHours: co.weeklyHours,
           textbooks: (co.textbooks || []).map((t) => t.title).join('、') || '无',
         })),
       }));

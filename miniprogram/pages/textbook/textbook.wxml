@@ -1,4 +1,15 @@
 <view class="page">
+  <view class="hero">
+    <view class="hero-card">
+      <view class="hero-text">
+        <view class="hero-badge"><text class="hero-badge-text">教材库</text></view>
+        <view class="hero-title">教材查询</view>
+        <view class="hero-subtitle">按需检索本学期教材与使用情况</view>
+      </view>
+      <view class="hero-decor"><view class="hero-ring"></view></view>
+    </view>
+  </view>
+
   <!-- 搜索栏 -->
   <view class="search-bar">
     <view class="search-input">
@@ -36,10 +47,6 @@
           <text class="tb-cat">{{item.category}}</text>
         </view>
         <view class="tb-isbn">ISBN：{{item.isbn}}</view>
-      </view>
-      <view class="tb-usage">
-        <text class="u-num">{{item.usageCount}}</text>
-        <text class="u-label">使用班</text>
       </view>
       <text class="arrow">›</text>
     </view>

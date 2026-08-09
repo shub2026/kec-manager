@@ -47,9 +47,15 @@ Page({
           totalClassCount: t.totalClassCount,
         }));
 
+      // 整体汇总仅 3 个真实字段（totalTeachers/totalWeeklyHours/totalClasses），
+      // 派生「人均周课时」作为第 4 个指标，避免与「任课教师」重复。
+      const s = raw.summary || {};
+      const avgWeeklyHours =
+        s.totalTeachers ? (s.totalWeeklyHours / s.totalTeachers).toFixed(1) : '0';
+
       const app = getApp();
       this.setData({
-        summary: raw.summary || null,
+        summary: Object.assign({}, s, { avgWeeklyHours }),
         collegeDist: dist,
         topTeachers: top,
         semester: (app && app.globalData.currentSemester) || '',

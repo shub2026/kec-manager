@@ -11,8 +11,8 @@
   ],
   "window": {
     "navigationBarTitleText": "KEC 教务",
-    "navigationBarBackgroundColor": "#1C82F5",
-    "navigationBarTextStyle": "white",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
     "backgroundColor": "#f5f6f8"
   },
   "tabBar": {

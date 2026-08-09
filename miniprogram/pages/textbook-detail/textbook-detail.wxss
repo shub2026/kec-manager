@@ -48,8 +48,9 @@
 }
 .req {
   font-size: 20rpx;
-  color: #fff;
-  background: #1C82F5;
+  color: #f87171;
+  background: #fee2e2;
+  border: 1rpx solid #fecaca;
   border-radius: 6rpx;
   padding: 2rpx 10rpx;
   margin-left: 12rpx;
@@ -57,8 +58,9 @@
 }
 .con {
   font-size: 20rpx;
-  color: #e08a00;
-  background: #fdf3e3;
+  color: #ff6b1a;
+  background: #fff0e8;
+  border: 1rpx solid #ffd3ba;
   border-radius: 6rpx;
   padding: 2rpx 10rpx;
   margin-left: 8rpx;

@@ -1,7 +1,72 @@
-.term-hint {
-  font-size: 24rpx;
-  color: #8a8a8a;
-  padding: 8rpx 4rpx 16rpx;
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding-bottom: 16rpx;
+}
+.search-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 72rpx;
+  background: #fff;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 36rpx;
+  padding: 0 24rpx;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-box:focus-within {
+  border-color: #1C82F5;
+  box-shadow: 0 0 0 2rpx rgba(28, 130, 245, 0.12);
+}
+.search-icon {
+  font-size: 28rpx;
+  color: #1C82F5;
+  margin-right: 12rpx;
+}
+.filter-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  font-size: 26rpx;
+  color: #1a1a1a;
+}
+.filter-input .placeholder,
+.filter-input::placeholder {
+  color: #94a3b8;
+  font-size: 26rpx;
+}
+.filter-picker {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 72rpx;
+  padding: 0 24rpx;
+  background: #fff;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 36rpx;
+  font-size: 26rpx;
+  color: #555;
+}
+.filter-picker.active {
+  color: #1C82F5;
+  background: #E8F4FD;
+  border-color: #1C82F5;
+}
+.filter-clear {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 72rpx;
+  padding: 0 24rpx;
+  border: 1rpx solid #1C82F5;
+  border-radius: 36rpx;
+  font-size: 26rpx;
+  color: #1C82F5;
+  background: #fff;
 }
 .teacher-card {
   padding: 0 28rpx;
@@ -22,12 +87,27 @@
 }
 .pt {
   font-size: 20rpx;
-  color: #1C82F5;
-  background: #E8F4FD;
   border-radius: 6rpx;
   padding: 2rpx 10rpx;
   margin-left: 12rpx;
   font-weight: 400;
+  border: 1rpx solid transparent;
+}
+/* 人员类别标签：配色对齐 WEB 端 el-tag 语义色（品牌覆写后的 success/warning/info 浅底效果） */
+.pt-success {
+  color: #10b981;
+  background: #e7f8f2;
+  border-color: #b7ead9;
+}
+.pt-warning {
+  color: #ff6b1a;
+  background: #fff0e8;
+  border-color: #ffd3ba;
+}
+.pt-info {
+  color: #64748b;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
 }
 .tc-sub {
   font-size: 24rpx;
@@ -90,16 +170,18 @@
 }
 .cb-comb {
   font-size: 20rpx;
-  color: #e08a00;
-  background: #fdf3e3;
+  color: #1c82f5;
+  background: #e8f3fe;
+  border: 1rpx solid #cfe4fd;
   border-radius: 6rpx;
   padding: 2rpx 8rpx;
   margin-left: 10rpx;
 }
 .cb-auto {
   font-size: 20rpx;
-  color: #1C82F5;
-  background: #E8F4FD;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1rpx solid #e2e8f0;
   border-radius: 6rpx;
   padding: 2rpx 8rpx;
   margin-left: 10rpx;

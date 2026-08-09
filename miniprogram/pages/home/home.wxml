@@ -1,7 +1,17 @@
 <view class="page">
   <view class="hero">
-    <view class="hero-term">当前学期：{{semester || '未设置'}}</view>
-    <view class="hero-title">教务概览</view>
+    <view class="hero-card">
+      <view class="hero-text">
+        <view class="hero-badge">
+          <text class="hero-badge-text">当前学期：{{semester || '未设置'}}</text>
+        </view>
+        <view class="hero-title">首页概览</view>
+        <view class="hero-subtitle">实时掌握本学期教学运行数据</view>
+      </view>
+      <view class="hero-decor">
+        <view class="hero-ring"></view>
+      </view>
+    </view>
   </view>
 
   <view wx:if="{{loading}}" class="loading">加载中…</view>
@@ -59,15 +69,15 @@
         已排 {{insights.completion.assignedCourses}} / 应排 {{insights.completion.totalCourses}}（{{insights.completion.rate}}%）
       </view>
       <view class="alert-row">
-        <view class="alert-item" wx:if="{{insights.alerts.unassignedCourses.length}}">
+        <view class="alert-item warn-bg" wx:if="{{insights.alerts.unassignedCourses.length}}">
           <text class="a-num warn">{{insights.alerts.unassignedCourses.length}}</text>
           <text class="a-label">未排课课程</text>
         </view>
-        <view class="alert-item" wx:if="{{insights.alerts.overloadedTeachers.length}}">
-          <text class="a-num warn">{{insights.alerts.overloadedTeachers.length}}</text>
+        <view class="alert-item danger-bg" wx:if="{{insights.alerts.overloadedTeachers.length}}">
+          <text class="a-num danger">{{insights.alerts.overloadedTeachers.length}}</text>
           <text class="a-label">超课时教师</text>
         </view>
-        <view class="alert-item empty-alert" wx:if="{{!insights.alerts.unassignedCourses.length && !insights.alerts.overloadedTeachers.length}}">
+        <view class="alert-item ok-bg" wx:if="{{!insights.alerts.unassignedCourses.length && !insights.alerts.overloadedTeachers.length}}">
           <text class="a-num ok">✓</text>
           <text class="a-label">暂无异常</text>
         </view>
@@ -85,12 +95,5 @@
       <view wx:if="{{!insights.distribution.length}}" class="empty">暂无分布数据</view>
     </view>
 
-    <!-- 快捷入口 -->
-    <view class="card">
-      <view class="entry" bindtap="goSemester"><text>开课查询</text><text class="arrow">›</text></view>
-      <view class="entry" bindtap="goTextbook"><text>教材查询</text><text class="arrow">›</text></view>
-      <view class="entry" bindtap="goTeacher"><text>教师课时</text><text class="arrow">›</text></view>
-      <view class="entry" bindtap="goStatistics"><text>课时统计</text><text class="arrow">›</text></view>
-    </view>
   </block>
 </view>

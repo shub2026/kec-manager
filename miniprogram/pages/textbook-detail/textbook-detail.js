@@ -37,11 +37,11 @@ Page({
         collegeName: c.collegeName || '—',
         majorName: c.majorName || '—',
         trainingLevelName: c.trainingLevelName || '—',
-        studentCount: c.student_count || c.studentCount || 0,
+        studentCount: c.studentCount || 0,
         grade: c.grade || '—',
         courseName: c.courseName || '—',
-        isRequired: c.is_required,
-        isConsecutive: c.is_consecutive,
+        isRequired: c.isRequired,
+        isConsecutive: c.isConsecutive,
       }));
 
       const app = getApp();

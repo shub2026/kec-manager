@@ -1,10 +1,19 @@
 <view class="page">
+  <view class="hero">
+    <view class="hero-card">
+      <view class="hero-text">
+        <view class="hero-badge"><text class="hero-badge-text">当前学期：{{semester || '未设置'}}</text></view>
+        <view class="hero-title">课时统计</view>
+        <view class="hero-subtitle">本学期课时分布与工作量排行</view>
+      </view>
+      <view class="hero-decor"><view class="hero-ring"></view></view>
+    </view>
+  </view>
+
   <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:elif="{{error}}" class="errbox">{{error}}</view>
 
   <block wx:else>
-    <view class="term-hint" wx:if="{{semester}}">学期：{{semester}}｜合班已去重</view>
-
     <!-- 整体汇总 -->
     <view class="card" wx:if="{{summary}}">
       <view class="card-title">整体汇总</view>
@@ -22,8 +31,8 @@
           <view class="stat-label">教学班数</view>
         </view></view>
         <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{summary.totalTeachers}}</view>
-          <view class="stat-label">参与教师</view>
+          <view class="stat-num">{{summary.avgWeeklyHours}}</view>
+          <view class="stat-label">人均周课时</view>
         </view></view>
       </view>
     </view>

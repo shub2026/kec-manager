@@ -23,6 +23,84 @@ page {
 }
 .card-title .more { font-size: 24rpx; color: #1C82F5; font-weight: 400; }
 
+/* 页面顶部 Hero 卡片（首页/查询页通用） */
+.hero {
+  padding: 8rpx 0 24rpx;
+}
+.hero-card {
+  background: linear-gradient(135deg, #ffffff 0%, #e8f4fd 100%);
+  border: 1rpx solid #dbeafe;
+  border-radius: 20rpx;
+  padding: 36rpx 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4rpx 16rpx rgba(28, 130, 245, 0.08);
+}
+.hero-text {
+  flex: 1;
+  min-width: 0;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(28, 130, 245, 0.1);
+  border-radius: 24rpx;
+  padding: 8rpx 20rpx;
+  margin-bottom: 16rpx;
+}
+.hero-badge::before {
+  content: "";
+  width: 12rpx;
+  height: 12rpx;
+  background: #1C82F5;
+  border-radius: 50%;
+  margin-right: 10rpx;
+}
+.hero-badge-text {
+  font-size: 24rpx;
+  color: #1C82F5;
+  font-weight: 500;
+}
+.hero-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 10rpx;
+}
+.hero-subtitle {
+  font-size: 24rpx;
+  color: #64748b;
+}
+.hero-decor {
+  width: 120rpx;
+  height: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 20rpx;
+  flex-shrink: 0;
+}
+.hero-ring {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  border: 12rpx solid rgba(28, 130, 245, 0.15);
+  position: relative;
+  box-sizing: border-box;
+}
+.hero-ring::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40rpx;
+  height: 40rpx;
+  background: rgba(28, 130, 245, 0.2);
+  border-radius: 50%;
+}
+
 /* 指标网格 */
 .stat-grid { display: flex; flex-wrap: wrap; margin: -8rpx; }
 .stat-cell {
@@ -65,18 +143,20 @@ page {
 .mt { margin-top: 20rpx; }
 .mb { margin-bottom: 20rpx; }
 
-/* 标签 */
+/* 标签：通用元数据 chip。WEB 端对应字段为纯文本（无彩色标签），
+   故用中性 slate 浅底，不暗示语义状态；.tag.warn 用品牌 warning 橙 */
 .tag {
   display: inline-block;
   font-size: 22rpx;
-  color: #1C82F5;
-  background: #E8F4FD;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1rpx solid #e2e8f0;
   border-radius: 8rpx;
   padding: 4rpx 14rpx;
   margin-right: 10rpx;
   margin-top: 10rpx;
 }
-.tag.warn { color: #e08a00; background: #fdf3e3; }
+.tag.warn { color: #ff6b1a; background: #fff0e8; border-color: #ffd3ba; }
 
 /* 按钮 */
 .btn-primary {

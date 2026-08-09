@@ -1,25 +1,37 @@
 .toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 20rpx 24rpx 8rpx;
-}
-.term {
-  font-size: 26rpx;
-  color: #8a8a8a;
+  justify-content: flex-end;
+  padding: 8rpx 24rpx 8rpx;
 }
 .filter {
   font-size: 26rpx;
   color: #8a8a8a;
   background: #fff;
   border: 1rpx solid #e3e6ea;
-  border-radius: 24rpx;
+  border-radius: 36rpx;
   padding: 10rpx 24rpx;
 }
 .filter.active {
   color: #1C82F5;
   border-color: #1C82F5;
   background: #E8F4FD;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.clear {
+  font-size: 24rpx;
+  color: #1C82F5;
+  background: #fff;
+  border: 1rpx solid #1C82F5;
+  border-radius: 36rpx;
+  padding: 10rpx 22rpx;
 }
 
 .count {

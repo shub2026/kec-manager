@@ -23,6 +23,8 @@ async function login(username, password) {
 
 function logout() {
   clearSession();
+  const app = getApp();
+  if (app) app.globalData.token = '';
   wx.reLaunch({ url: '/pages/login/login' });
 }
 

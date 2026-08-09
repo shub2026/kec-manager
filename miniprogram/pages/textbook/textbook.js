@@ -18,7 +18,17 @@ Page({
 
   onShow() {
     if (!guard()) return;
+    if (this._fromDetail) {
+      this._fromDetail = false;
+      return; // 从详情返回，保留搜索词与列表
+    }
     if (!this.data.list.length) this.reload();
+  },
+
+  // 切走 tab 时重置搜索；从详情返回（navigateTo）不重置
+  onHide() {
+    if (this._fromDetail) return;
+    this.setData({ keyword: '', list: [], finished: false });
   },
 
   async reload() {
@@ -42,7 +52,6 @@ Page({
         isbn: t.isbn || '—',
         publisher: t.publisher || '—',
         category: t.category || '—',
-        usageCount: t.usageCount || 0,
       }));
 
       const merged = reset ? items : this.data.list.concat(items);
@@ -82,6 +91,7 @@ Page({
   },
 
   goDetail(e) {
+    this._fromDetail = true;
     const id = e.currentTarget.dataset.id;
     wx.navigateTo({ url: `/pages/textbook-detail/textbook-detail?id=${id}` });
   },

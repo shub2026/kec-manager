@@ -1,13 +1,35 @@
 <view class="page">
+  <view class="hero">
+    <view class="hero-card">
+      <view class="hero-text">
+        <view class="hero-badge"><text class="hero-badge-text">当前学期：{{semester || '未设置'}}</text></view>
+        <view class="hero-title">教师课时</view>
+        <view class="hero-subtitle">查看教师周课时与任教明细</view>
+      </view>
+      <view class="hero-decor"><view class="hero-ring"></view></view>
+    </view>
+  </view>
+
   <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:elif="{{error}}" class="errbox">{{error}}</view>
 
   <block wx:else>
-    <view class="term-hint" wx:if="{{semester}}">学期：{{semester}}｜合班已去重</view>
+    <view class="filter-bar">
+      <view class="search-box">
+        <text class="search-icon">🔍</text>
+        <input class="filter-input" value="{{filterName}}" placeholder="搜索姓名" placeholder-class="placeholder" bindinput="onNameInput" />
+      </view>
+      <picker mode="selector" range="{{subjectOptions}}" bindchange="onSubjectChange">
+        <view class="filter-picker {{filterSubject ? 'active' : ''}}">
+          {{filterSubject || '选择科目'}} ›
+        </view>
+      </picker>
+      <text wx:if="{{filterName || filterSubject}}" class="filter-clear" bindtap="clearFilters">重置</text>
+    </view>
 
-    <view wx:if="{{teachers.length}}">
+    <view wx:if="{{filteredTeachers.length}}">
       <view
-        wx:for="{{teachers}}"
+        wx:for="{{filteredTeachers}}"
         wx:key="teacherId"
         class="card teacher-card"
       >
@@ -15,7 +37,7 @@
           <view class="tc-left">
             <view class="tc-name">
               {{item.teacherName}}
-              <text wx:if="{{item.personnelType}}" class="pt">{{item.personnelType}}</text>
+              <text wx:if="{{item.personnelType}}" class="pt pt-{{item.personnelClass}}">{{item.personnelType}}</text>
             </view>
             <view class="tc-sub">{{item.affiliatedCollege}}｜{{item.totalClassCount}} 个教学班</view>
           </view>
@@ -58,6 +80,6 @@
       </view>
     </view>
 
-    <view wx:else class="empty">本学期暂无教师课时数据</view>
+    <view wx:else class="empty">{{filterName || filterSubject ? '未找到匹配的教师' : '本学期暂无教师课时数据'}}</view>
   </block>
 </view>
