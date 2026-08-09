@@ -73,6 +73,17 @@ const api = {
     });
   },
 
+  // 新增教师（仅管理员），POST /api/teachers。
+  // CSRF 双提交由 request.js 统一处理（自动带 X-CSRF-Token 头 + cookie）。
+  createTeacher(payload) {
+    return request({ url: '/api/teachers', method: 'POST', data: payload });
+  },
+
+  // 学院列表（所有登录用户可查），用于新增教师时选择归属学院
+  getColleges() {
+    return request({ url: '/api/colleges' });
+  },
+
   // 课时统计（按教师汇总周课时）
   async getStatistics() {
     const semester = await ensureSemester();

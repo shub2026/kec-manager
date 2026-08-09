@@ -1,0 +1,134 @@
+<view class="page">
+  <!-- Hero -->
+  <view class="hero">
+    <view class="hero-card">
+      <view class="hero-text">
+        <view class="hero-title">教师管理</view>
+        <view class="hero-subtitle">查询教师档案，管理员可新增</view>
+        <view class="hero-badge"><text class="hero-badge-text">共 {{total}} 位教师</text></view>
+      </view>
+      <view class="hero-decor"><view class="hero-ring"></view></view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+
+  <block wx:else>
+    <!-- 筛选栏 -->
+    <view class="filter-bar">
+      <view class="search-box">
+        <text class="search-icon">🔍</text>
+        <input class="filter-input" value="{{searchName}}" placeholder="搜索姓名" placeholder-class="placeholder" bindinput="onNameInput" />
+      </view>
+      <picker mode="selector" range="{{personnelOptions}}" bindchange="onPersonnelChange">
+        <view class="filter-picker {{filterPersonnel ? 'active' : ''}}">
+          {{filterPersonnelLabel ? filterPersonnelLabel : '人员类别'}} ›
+        </view>
+      </picker>
+      <text wx:if="{{searchName || filterPersonnel}}" class="filter-clear" bindtap="clearFilters">重置</text>
+    </view>
+
+    <!-- 教师列表 -->
+    <view wx:if="{{teachers.length}}">
+      <view wx:for="{{teachers}}" wx:key="id" class="card teacher-card">
+        <view class="tc-head">
+          <view class="tc-left">
+            <view class="tc-name">
+              {{item.name}}
+              <text wx:if="{{item.personnelType}}" class="pt pt-{{item.personnelClass}}">{{item.personnelType}}</text>
+              <text wx:if="{{item.status === 'disabled'}}" class="pt pt-disabled">已停用</text>
+            </view>
+            <view class="tc-sub">
+              <text>{{item.college}}</text>
+              <text class="tc-divider">|</text>
+              <text>{{item.gender}}</text>
+              <text class="tc-divider">|</text>
+              <text>{{item.birthDate}}</text>
+              <text class="tc-divider">|</text>
+              <text>课时 {{item.defaultWeeklyHours}}</text>
+            </view>
+          </view>
+          <view class="tc-right">
+            <text class="tc-extra">任教 {{item.courseCount}} 门</text>
+          </view>
+        </view>
+        <view class="tc-meta">
+          <text class="tag">资格：{{item.qualification}}</text>
+          <block wx:if="{{item.courseList.length}}">
+            <text wx:for="{{item.courseList}}" wx:key="id" wx:for-item="c" class="tag tag-blue">{{c.name}}</text>
+            <text wx:if="{{item.courseListMore}}" class="tag tag-more">{{item.courseListMore}}</text>
+          </block>
+        </view>
+      </view>
+
+      <view wx:if="{{finished}}" class="list-end">已显示全部 {{total}} 位教师</view>
+      <view wx:else class="loading">加载更多…</view>
+    </view>
+
+    <view wx:else class="empty">{{searchName || filterPersonnel ? '未找到匹配的教师' : '暂无教师数据'}}</view>
+  </block>
+
+  <!-- 管理员：悬浮新增按钮 -->
+  <view wx:if="{{canManage}}" class="fab" bindtap="openAdd">＋ 新增教师</view>
+</view>
+
+<!-- 新增教师弹层 -->
+<view wx:if="{{showAdd}}" class="mask" bindtap="closeAdd">
+  <view class="sheet" catchtap="noop">
+    <view class="sheet-title">新增教师</view>
+
+    <view class="field">
+      <text class="field-label">姓名<text class="req">*</text></text>
+      <input class="field-input" value="{{form.name}}" data-field="name" placeholder="请输入教师姓名" placeholder-class="placeholder" bindinput="onFormInput" />
+    </view>
+
+    <view class="field">
+      <text class="field-label">性别</text>
+      <picker class="field-picker" mode="selector" range="{{genderOptions}}" value="{{form.genderIndex}}" bindchange="onGenderPick">
+        <view class="field-picker-text {{form.genderIndex >= 0 ? '' : 'ph'}}">{{form.genderIndex >= 0 ? genderOptions[form.genderIndex] : '请选择'}}</view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <text class="field-label">人员类别</text>
+      <picker class="field-picker" mode="selector" range="{{personnelLabels}}" value="{{form.personnelIndex}}" bindchange="onPersonnelPick">
+        <view class="field-picker-text {{form.personnelIndex >= 0 ? '' : 'ph'}}">{{form.personnelIndex >= 0 ? personnelLabels[form.personnelIndex] : '请选择'}}</view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <text class="field-label">归属学院</text>
+      <picker class="field-picker" mode="selector" range="{{collegeNames}}" value="{{form.collegeIndex}}" bindchange="onCollegePick">
+        <view class="field-picker-text {{form.collegeIndex >= 0 ? '' : 'ph'}}">{{form.collegeIndex >= 0 ? collegeNames[form.collegeIndex] : '请选择'}}</view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <text class="field-label">状态</text>
+      <picker class="field-picker" mode="selector" range="{{statusLabels}}" value="{{form.statusIndex}}" bindchange="onStatusPick">
+        <view class="field-picker-text">{{statusLabels[form.statusIndex]}}</view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <text class="field-label">出生年月</text>
+      <input class="field-input" value="{{form.birthDate}}" data-field="birthDate" placeholder="YYYY-MM（选填）" placeholder-class="placeholder" bindinput="onFormInput" />
+    </view>
+
+    <view class="field">
+      <text class="field-label">资格类型</text>
+      <input class="field-input" value="{{form.qualification}}" data-field="qualification" placeholder="如：讲师（选填）" placeholder-class="placeholder" bindinput="onFormInput" />
+    </view>
+
+    <view class="field">
+      <text class="field-label">自定义课时</text>
+      <input class="field-input" type="digit" value="{{form.weeklyHours}}" data-field="weeklyHours" placeholder="0-40（选填）" placeholder-class="placeholder" bindinput="onFormInput" />
+    </view>
+
+    <view class="sheet-actions">
+      <button class="btn-ghost sheet-btn" bindtap="closeAdd">取消</button>
+      <button class="btn-primary sheet-btn" loading="{{submitting}}" bindtap="submitAdd">保存</button>
+    </view>
+  </view>
+</view>

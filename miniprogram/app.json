@@ -7,6 +7,7 @@
     "pages/textbook-detail/textbook-detail",
     "pages/teacher-hours/teacher-hours",
     "pages/hours-statistics/hours-statistics",
+    "pages/teacher-admin/teacher-admin",
     "pages/profile/profile"
   ],
   "window": {

@@ -18,7 +18,25 @@ async function login(username, password) {
   const app = getApp();
   if (app) app.globalData.token = (data && data.token) || '';
 
+  // 存角色：登录响应 user 已带回 role，写入 globalData + storage，供前端权限门控使用
+  const role = (data && data.user && data.user.role) || '';
+  if (role) {
+    if (app) app.globalData.role = role;
+    wx.setStorageSync('role', role);
+  }
+
   return data && data.user ? data.user : { username };
+}
+
+// 当前用户是否为管理员（admin / super_admin）。
+// 角色来源：globalData.role 优先，fallback 到 storage，保证刷新后不丢。
+function isAdmin() {
+  const app = getApp();
+  const role =
+    (app && app.globalData && app.globalData.role) ||
+    wx.getStorageSync('role') ||
+    '';
+  return role === 'admin' || role === 'super_admin';
 }
 
 function logout() {
@@ -38,4 +56,4 @@ function guard() {
   return true;
 }
 
-module.exports = { login, logout, guard };
+module.exports = { login, logout, guard, isAdmin };

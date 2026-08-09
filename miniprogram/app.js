@@ -4,12 +4,14 @@ App({
   globalData: {
     apiBase: API_BASE,
     token: '',
+    role: '',
     currentSemester: '',
   },
 
   onLaunch() {
     this.globalData.apiBase = API_BASE;
     this.globalData.token = wx.getStorageSync('token') || '';
+    this.globalData.role = wx.getStorageSync('role') || '';
     this.globalData.currentSemester = wx.getStorageSync('currentSemester') || '';
     if (this.globalData.token) this.bootstrapSemester();
   },
