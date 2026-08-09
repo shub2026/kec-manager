@@ -1,7 +1,7 @@
 {
   "description": "KEC Manager 微信小程序体验版 PoC（零侵入现有 client/server）",
   "miniprogramRoot": "./",
-  "projectname": "kec-miniprogram",
+  "projectname": "教务排课助手",
   "appid": "wx644a8a088dd18bac",
   "setting": {
     "urlCheck": false,
