@@ -26,7 +26,7 @@
   text-align: right;
   font-size: 26rpx;
   font-weight: 600;
-  color: #07c160;
+  color: #1C82F5;
 }
 
 .top-row {
@@ -44,7 +44,7 @@
   line-height: 48rpx;
   text-align: center;
   border-radius: 50%;
-  background: #07c160;
+  background: #1C82F5;
   color: #fff;
   font-size: 26rpx;
   font-weight: 700;
@@ -73,7 +73,7 @@
 .th-num {
   font-size: 34rpx;
   font-weight: 700;
-  color: #07c160;
+  color: #1C82F5;
 }
 .th-label {
   font-size: 20rpx;

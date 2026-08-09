@@ -11,21 +11,21 @@
   ],
   "window": {
     "navigationBarTitleText": "KEC 教务",
-    "navigationBarBackgroundColor": "#07c160",
+    "navigationBarBackgroundColor": "#1C82F5",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#f5f6f8"
   },
   "tabBar": {
     "color": "#8a8a8a",
-    "selectedColor": "#07c160",
+    "selectedColor": "#1C82F5",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [
-      { "pagePath": "pages/home/home", "text": "首页" },
-      { "pagePath": "pages/semester/semester", "text": "开课查询" },
-      { "pagePath": "pages/textbook/textbook", "text": "教材查询" },
-      { "pagePath": "pages/teacher-hours/teacher-hours", "text": "教师课时" },
-      { "pagePath": "pages/profile/profile", "text": "我的" }
+      { "pagePath": "pages/home/home", "text": "首页", "iconPath": "assets/tabbar/home-normal.png", "selectedIconPath": "assets/tabbar/home-active.png" },
+      { "pagePath": "pages/semester/semester", "text": "开课查询", "iconPath": "assets/tabbar/semester-normal.png", "selectedIconPath": "assets/tabbar/semester-active.png" },
+      { "pagePath": "pages/textbook/textbook", "text": "教材查询", "iconPath": "assets/tabbar/textbook-normal.png", "selectedIconPath": "assets/tabbar/textbook-active.png" },
+      { "pagePath": "pages/teacher-hours/teacher-hours", "text": "教师课时", "iconPath": "assets/tabbar/teacher-hours-normal.png", "selectedIconPath": "assets/tabbar/teacher-hours-active.png" },
+      { "pagePath": "pages/profile/profile", "text": "我的", "iconPath": "assets/tabbar/profile-normal.png", "selectedIconPath": "assets/tabbar/profile-active.png" }
     ]
   },
   "style": "v2",

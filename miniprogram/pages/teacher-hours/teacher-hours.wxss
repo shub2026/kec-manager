@@ -22,8 +22,8 @@
 }
 .pt {
   font-size: 20rpx;
-  color: #07c160;
-  background: #e8f8ef;
+  color: #1C82F5;
+  background: #E8F4FD;
   border-radius: 6rpx;
   padding: 2rpx 10rpx;
   margin-left: 12rpx;
@@ -43,7 +43,7 @@
 .tc-hours {
   font-size: 40rpx;
   font-weight: 700;
-  color: #07c160;
+  color: #1C82F5;
   line-height: 1.1;
 }
 .tc-unit {
@@ -74,7 +74,7 @@
 }
 .cb-hours {
   font-size: 24rpx;
-  color: #07c160;
+  color: #1C82F5;
 }
 .cb-class {
   display: flex;
@@ -98,8 +98,8 @@
 }
 .cb-auto {
   font-size: 20rpx;
-  color: #07c160;
-  background: #e8f8ef;
+  color: #1C82F5;
+  background: #E8F4FD;
   border-radius: 6rpx;
   padding: 2rpx 8rpx;
   margin-left: 10rpx;

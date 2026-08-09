@@ -17,9 +17,9 @@
   padding: 10rpx 24rpx;
 }
 .filter.active {
-  color: #07c160;
-  border-color: #07c160;
-  background: #e8f8ef;
+  color: #1C82F5;
+  border-color: #1C82F5;
+  background: #E8F4FD;
 }
 
 .count {
@@ -83,7 +83,7 @@
 }
 .course-hours {
   font-size: 24rpx;
-  color: #07c160;
+  color: #1C82F5;
 }
 .course-book {
   font-size: 24rpx;
