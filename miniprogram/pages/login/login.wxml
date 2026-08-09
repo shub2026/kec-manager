@@ -2,26 +2,34 @@
   <view class="brand">
     <image class="logo" src="/assets/logo.png" mode="aspectFit" />
     <view class="title">KEC课程管理平台</view>
-    <view class="subtitle">微信小程序 · 体验版</view>
+    <view class="subtitle">轻量级教学管理系统</view>
   </view>
 
   <view class="form card">
     <view class="field">
+      <view class="field-ico ico-user"></view>
       <input
         class="input"
         placeholder="请输入用户名"
+        placeholder-class="ph"
         value="{{username}}"
         bindinput="onUsername"
       />
     </view>
+
     <view class="field">
+      <view class="field-ico ico-lock"></view>
       <input
         class="input"
         placeholder="请输入密码"
-        password
+        placeholder-class="ph"
+        password="{{!showPassword}}"
         value="{{password}}"
         bindinput="onPassword"
       />
+      <view class="eye {{showPassword ? 'eye-on' : ''}}" bindtap="togglePassword">
+        <view class="eye-ico"></view>
+      </view>
     </view>
 
     <view wx:if="{{error}}" class="errbox">{{error}}</view>

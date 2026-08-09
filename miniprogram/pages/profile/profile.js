@@ -5,12 +5,23 @@ const { guard, logout } = require('../../utils/auth.js');
 const { roleLabel } = require('../../utils/user.js');
 const { formatTime } = require('../../utils/format.js');
 
-const APP_VERSION = '1.0.2';
+const APP_VERSION = '1.0.0';
+
+// 根据当前运行环境自动识别版本前缀：develop=开发版 / trial=体验版 / release=正式版
+function getEnvLabel() {
+  try {
+    const env = wx.getAccountInfoSync().miniProgram.envVersion;
+    return { develop: '开发版', trial: '体验版', release: '正式版' }[env] || '体验版';
+  } catch (e) {
+    return '体验版';
+  }
+}
 
 Page({
   data: {
     me: null,
     semester: '',
+    appEnv: getEnvLabel(),
     appVersion: APP_VERSION,
     loading: true,
     error: '',

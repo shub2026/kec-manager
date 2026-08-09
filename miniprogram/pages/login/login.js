@@ -6,6 +6,7 @@ Page({
     password: '',
     loading: false,
     error: '',
+    showPassword: false,
   },
 
   onLoad() {
@@ -21,6 +22,10 @@ Page({
 
   onPassword(e) {
     this.setData({ password: e.detail.value });
+  },
+
+  togglePassword() {
+    this.setData({ showPassword: !this.data.showPassword });
   },
 
   async onSubmit() {
