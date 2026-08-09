@@ -112,8 +112,16 @@ export async function querySemester(req, res, next) {
 
     // 注意：naming 中间件已将 req.query 中的 camelCase 转为 snake_case
     // 因此这里必须用 snake_case 变量名解构
-    const { major_id, college_id, training_level_id, enrollment_year, grade, page, page_size } =
-      req.query;
+    const {
+      name,
+      major_id,
+      college_id,
+      training_level_id,
+      enrollment_year,
+      grade,
+      page,
+      page_size,
+    } = req.query;
     // 安全解析数字参数，非数字时回退到默认值，避免 NaN 致 500
     const safeInt = (v, def = undefined) => {
       if (v == null || v === '') return def;
@@ -134,8 +142,11 @@ export async function querySemester(req, res, next) {
       AND: [activeFilter, planFilter],
     };
 
-    // 添加额外的筛选条件（仅当值为有效整数时）
+    // 添加额外的筛选条件
     const extraConditions = {};
+    if (name && typeof name === 'string' && name.trim()) {
+      extraConditions.name = { contains: name.trim() };
+    }
     const majorIdNum = safeInt(major_id);
     const collegeIdNum = safeInt(college_id);
     const trainingLevelIdNum = safeInt(training_level_id);

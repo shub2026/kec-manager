@@ -1,37 +1,102 @@
-.toolbar {
+/* 筛选栏：与教师管理/教师课时页一致 */
+.filter-bar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 8rpx 24rpx 8rpx;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
 }
-.filter {
-  font-size: 26rpx;
-  color: #8a8a8a;
+.search-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 72rpx;
   background: #fff;
-  border: 1rpx solid #e3e6ea;
+  border: 1rpx solid #e2e8f0;
   border-radius: 36rpx;
-  padding: 10rpx 24rpx;
+  padding: 0 24rpx;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.filter.active {
-  color: #1C82F5;
+.search-box:focus-within {
   border-color: #1C82F5;
-  background: #E8F4FD;
+  box-shadow: 0 0 0 2rpx rgba(28, 130, 245, 0.12);
 }
-
-.toolbar-right {
+.search-icon {
+  font-size: 28rpx;
+  color: #1C82F5;
+  margin-right: 12rpx;
+}
+.search-clear {
+  font-size: 32rpx;
+  color: #94a3b8;
+  padding: 0 4rpx 0 12rpx;
+  line-height: 1;
+}
+.filter-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  font-size: 26rpx;
+  color: #1a1a1a;
+}
+.filter-input .placeholder,
+.filter-input::placeholder {
+  color: #94a3b8;
+  font-size: 26rpx;
+}
+.filter-picker {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 14rpx;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.clear {
-  font-size: 24rpx;
-  color: #1C82F5;
+  height: 72rpx;
+  padding: 0 24rpx;
   background: #fff;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 36rpx;
+  font-size: 26rpx;
+  color: #555;
+}
+.filter-picker.active {
+  color: #1C82F5;
+  background: #E8F4FD;
+  border-color: #1C82F5;
+}
+.filter-clear {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 72rpx;
+  padding: 0 24rpx;
   border: 1rpx solid #1C82F5;
   border-radius: 36rpx;
-  padding: 10rpx 22rpx;
+  font-size: 26rpx;
+  color: #1C82F5;
+  background: #fff;
+}
+
+/* 局部刷新提示（搜索/筛选时不卸载搜索框） */
+.top-loading {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.top-loading-bar {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 12rpx;
+  border: 4rpx solid #e3e6ea;
+  border-top-color: #1C82F5;
+  border-radius: 50%;
+  animation: tl-spin 0.7s linear infinite;
+}
+.top-loading-text {
+  font-size: 24rpx;
+  color: #8a8a8a;
+}
+@keyframes tl-spin {
+  to { transform: rotate(360deg); }
 }
 
 .count {
