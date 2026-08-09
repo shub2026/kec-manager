@@ -40,6 +40,29 @@
   color: #1C82F5;
 }
 
+/* 局部刷新提示（顶部细条，不遮挡列表、不卸载搜索框） */
+.top-loading {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.top-loading-bar {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 12rpx;
+  border: 4rpx solid #e3e6ea;
+  border-top-color: #1C82F5;
+  border-radius: 50%;
+  animation: tl-spin 0.7s linear infinite;
+}
+.top-loading-text {
+  font-size: 24rpx;
+  color: #8a8a8a;
+}
+@keyframes tl-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* 教师卡片 */
 .teacher-card { padding: 24rpx 28rpx; }
 .tc-head {
@@ -69,8 +92,16 @@
   margin: 0 10rpx;
   transform: scaleY(0.8);
 }
-.tc-right { flex-shrink: 0; margin-left: 16rpx; }
-.tc-extra { font-size: 24rpx; color: #8a8a8a; }
+.tc-right { flex-shrink: 0; margin-left: 16rpx; display: flex; flex-direction: column; align-items: flex-end; }
+.tc-edit {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #1C82F5;
+  background: #e8f3fe;
+  border: 1rpx solid #bfdbfe;
+  border-radius: 24rpx;
+  padding: 6rpx 22rpx;
+}
 .tc-meta {
   margin-top: 12rpx;
   display: flex;
@@ -175,6 +206,39 @@
   color: #1a1a1a;
 }
 .field-picker-text.ph { color: #b0b0b0; }
+.field-block { display: block; }
+.field-block .field-label { display: block; width: auto; margin-bottom: 16rpx; }
+.field-hint {
+  font-size: 24rpx;
+  color: #8a8a8a;
+  margin-left: 12rpx;
+  font-weight: 400;
+}
+.field-loading,
+.field-empty {
+  font-size: 26rpx;
+  color: #8a8a8a;
+  padding: 12rpx 0;
+}
+.course-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding-bottom: 8rpx;
+}
+.course-chip {
+  font-size: 26rpx;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 28rpx;
+  padding: 10rpx 24rpx;
+}
+.course-chip-selected {
+  color: #1C82F5;
+  background: #e8f3fe;
+  border-color: #1C82F5;
+}
 .sheet-actions {
   display: flex;
   margin-top: 32rpx;

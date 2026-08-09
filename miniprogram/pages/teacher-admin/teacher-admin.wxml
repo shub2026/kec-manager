@@ -11,8 +11,8 @@
     </view>
   </view>
 
-  <view wx:if="{{loading}}" class="loading">加载中…</view>
-  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+  <!-- 仅首屏（列表为空）显示全屏遮罩；其余状态筛选栏始终挂载，避免输入时卸载搜索框 -->
+  <view wx:if="{{loading && teachers.length === 0}}" class="loading">加载中…</view>
 
   <block wx:else>
     <!-- 筛选栏 -->
@@ -26,10 +26,19 @@
           {{filterPersonnelLabel ? filterPersonnelLabel : '人员类别'}} ›
         </view>
       </picker>
-      <text wx:if="{{searchName || filterPersonnel}}" class="filter-clear" bindtap="clearFilters">重置</text>
-    </view>
+        <text wx:if="{{searchName || filterPersonnel}}" class="filter-clear" bindtap="clearFilters">重置</text>
+      </view>
 
-    <!-- 教师列表 -->
+      <!-- 局部刷新提示（输入/筛选时显示，不遮挡列表） -->
+      <view wx:if="{{refreshing && teachers.length}}" class="top-loading">
+        <view class="top-loading-bar"></view>
+        <text class="top-loading-text">刷新中…</text>
+      </view>
+
+      <!-- 行内错误提示（不替换筛选栏，避免输入失焦） -->
+      <view wx:if="{{error}}" class="errbox">{{error}}</view>
+
+      <!-- 教师列表 -->
     <view wx:if="{{teachers.length}}">
       <view wx:for="{{teachers}}" wx:key="id" class="card teacher-card">
         <view class="tc-head">
@@ -50,7 +59,7 @@
             </view>
           </view>
           <view class="tc-right">
-            <text class="tc-extra">任教 {{item.courseCount}} 门</text>
+            <view wx:if="{{canManage}}" class="tc-edit" catchtap="openEdit" data-id="{{item.id}}">编辑</view>
           </view>
         </view>
         <view class="tc-meta">
@@ -73,10 +82,10 @@
   <view wx:if="{{canManage}}" class="fab" bindtap="openAdd">＋ 新增教师</view>
 </view>
 
-<!-- 新增教师弹层 -->
-<view wx:if="{{showAdd}}" class="mask" bindtap="closeAdd">
+<!-- 新增 / 编辑 教师弹层 -->
+<view wx:if="{{showSheet}}" class="mask" bindtap="closeSheet">
   <view class="sheet" catchtap="noop">
-    <view class="sheet-title">新增教师</view>
+    <view class="sheet-title">{{sheetTitle}}</view>
 
     <view class="field">
       <text class="field-label">姓名<text class="req">*</text></text>
@@ -121,14 +130,29 @@
       <input class="field-input" value="{{form.qualification}}" data-field="qualification" placeholder="如：讲师（选填）" placeholder-class="placeholder" bindinput="onFormInput" />
     </view>
 
+    <view class="field field-block">
+      <text class="field-label">学科（课程）<text class="field-hint">选填 · 可多选</text></text>
+      <view wx:if="{{!courseLoaded}}" class="field-loading">加载学科列表…</view>
+      <view wx:elif="{{courseOptions.length === 0}}" class="field-empty">暂无学科</view>
+      <view wx:else class="course-chips">
+        <view
+          wx:for="{{courseOptions}}"
+          wx:key="id"
+          class="course-chip {{item.selected ? 'course-chip-selected' : ''}}"
+          bindtap="toggleCourse"
+          data-id="{{item.id}}"
+        >{{item.name}}</view>
+      </view>
+    </view>
+
     <view class="field">
       <text class="field-label">自定义课时</text>
       <input class="field-input" type="digit" value="{{form.weeklyHours}}" data-field="weeklyHours" placeholder="0-40（选填）" placeholder-class="placeholder" bindinput="onFormInput" />
     </view>
 
     <view class="sheet-actions">
-      <button class="btn-ghost sheet-btn" bindtap="closeAdd">取消</button>
-      <button class="btn-primary sheet-btn" loading="{{submitting}}" bindtap="submitAdd">保存</button>
+      <button class="btn-ghost sheet-btn" bindtap="closeSheet">取消</button>
+      <button class="btn-primary sheet-btn" loading="{{submitting}}" bindtap="submit">保存</button>
     </view>
   </view>
 </view>

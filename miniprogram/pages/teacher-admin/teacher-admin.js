@@ -37,10 +37,22 @@ function normalize(t) {
     college: (t.affiliatedCollege && t.affiliatedCollege.name) || '未归属学院',
     qualification: t.qualificationType || '—',
     defaultWeeklyHours: t.defaultWeeklyHours != null ? t.defaultWeeklyHours : '—',
-    courseCount: t.assignmentCount || 0,
     courseList: courses.slice(0, 3),
     courseListMore: courses.length > 3 ? `+${courses.length - 3}` : '',
     status: t.status, // active / disabled
+    // 编辑时回填表单所需的原始字段（camelCase，与响应一致）
+    editSrc: {
+      id: t.id,
+      name: t.name,
+      gender: t.gender,
+      personnelType: t.personnelType,
+      status: t.status,
+      birthDate: t.birthDate || '',
+      qualificationType: t.qualificationType || '',
+      defaultWeeklyHours: t.defaultWeeklyHours != null ? String(t.defaultWeeklyHours) : '',
+      affiliatedCollegeId: t.affiliatedCollegeId || null,
+      courseIds: (t.courseList || []).map((c) => c.id),
+    },
   };
 }
 
@@ -53,6 +65,7 @@ Page({
     pageSize: 30,
     finished: false,
     loading: true,
+    refreshing: false, // 局部刷新（筛选/输入时），不卸载搜索框
     error: '',
 
     // 筛选
@@ -61,8 +74,11 @@ Page({
     filterPersonnelLabel: '',
     personnelOptions: PERSONNEL_OPTIONS.map((o) => o.label),
 
-    // 新增弹层
-    showAdd: false,
+    // 新增 / 编辑 共用弹层
+    showSheet: false,
+    mode: 'add',          // 'add' | 'edit'
+    editId: null,
+    sheetTitle: '新增教师',
     submitting: false,
     form: {
       name: '',
@@ -80,6 +96,10 @@ Page({
     colleges: [],          // 原始对象数组 {id, name}
     collegeNames: [],      // picker 展示用
     collegeLoaded: false,
+
+    // 学科（课程）多选
+    courseOptions: [],     // { id, name, selected }
+    courseLoaded: false,
   },
 
   onLoad() {
@@ -90,8 +110,9 @@ Page({
       wx.reLaunch({ url: '/pages/home/home' });
       return;
     }
-    // 拉取学院列表（新增教师时选归属学院）
+    // 拉取学院、学科列表（新增/编辑教师时使用）
     this.loadColleges();
+    this.loadCourses();
   },
 
   async loadColleges() {
@@ -110,13 +131,42 @@ Page({
     }
   },
 
+  async loadCourses() {
+    if (this.data.courseLoaded) return;
+    try {
+      const list = await api.getCourses();
+      const arr = Array.isArray(list) ? list : [];
+      this.setData({
+        courseOptions: arr.map((c) => ({ id: c.id, name: c.name, selected: false })),
+        courseLoaded: true,
+      });
+    } catch (e) {
+      // 学科列表加载失败不阻断新增，仅无法选学科
+      this.setData({ courseLoaded: true });
+    }
+  },
+
   onShow() {
-    if (guard()) this.reload();
+    if (!guard()) return;
+    // 首次进入（列表为空）用全屏遮罩；返回本页则原地刷新，保留搜索框
+    if (this.data.teachers.length === 0) this.reload(true);
+    else this.reload(false);
   },
 
   // 重置并加载第一页
-  reload() {
-    this.setData({ page: 1, finished: false, teachers: [], total: 0, loading: true, error: '' });
+  // showOverlay=true：清空列表 + 全屏"加载中"（首屏/下拉刷新）
+  // showOverlay=false：保留现有列表，仅顶部细条提示刷新（输入/筛选，避免卸载搜索框导致键盘收起）
+  reload(showOverlay = false) {
+    const patch = { page: 1, finished: false, total: 0, error: '' };
+    if (showOverlay) {
+      patch.teachers = [];
+      patch.loading = true;
+      patch.refreshing = false;
+    } else {
+      patch.loading = false;
+      patch.refreshing = true;
+    }
+    this.setData(patch);
     this.loadTeachers();
   },
 
@@ -125,7 +175,7 @@ Page({
     try {
       const params = { page: this.data.page, pageSize: this.data.pageSize };
       if (this.data.searchName) params.name = this.data.searchName;
-      if (this.data.filterPersonnel) params.personnel_type = this.data.filterPersonnel;
+      if (this.data.filterPersonnel) params.personnelType = this.data.filterPersonnel;
 
       const res = await api.listTeachers(params);
       const items = (res && res.items) || [];
@@ -139,22 +189,27 @@ Page({
         teachers,
         total,
         loading: false,
+        refreshing: false,
         finished: loaded >= total,
       });
     } catch (e) {
-      this.setData({ error: (e && e.message) || '加载失败', loading: false });
+      this.setData({
+        error: (e && e.message) || '加载失败',
+        loading: false,
+        refreshing: false,
+      });
     }
   },
 
   onReachBottom() {
-    if (!this.data.finished && !this.data.loading) {
+    if (!this.data.finished && !this.data.loading && !this.data.refreshing) {
       this.setData({ page: this.data.page + 1 });
       this.loadTeachers();
     }
   },
 
   onPullDownRefresh() {
-    this.reload();
+    this.reload(true);
     wx.stopPullDownRefresh();
   },
 
@@ -180,10 +235,13 @@ Page({
     this.reload();
   },
 
-  // ===== 新增教师弹层 =====
+  // ===== 新增 / 编辑 弹层 =====
   openAdd() {
     this.setData({
-      showAdd: true,
+      showSheet: true,
+      mode: 'add',
+      editId: null,
+      sheetTitle: '新增教师',
       submitting: false,
       form: {
         name: '',
@@ -195,12 +253,57 @@ Page({
         qualification: '',
         weeklyHours: '',
       },
+      courseOptions: this.data.courseOptions.map((c) => ({ ...c, selected: false })),
     });
   },
 
-  closeAdd() {
+  // 编辑：用卡片已携带的原始字段回填表单
+  openEdit(e) {
+    const id = e.currentTarget.dataset.id;
+    const t = this.data.teachers.find((x) => x.id === id);
+    if (!t || !t.editSrc) return;
+    const s = t.editSrc;
+    const genderIndex = s.gender ? GENDER_OPTIONS.findIndex((o) => o.value === s.gender) : -1;
+    const personnelIndex = s.personnelType
+      ? PERSONNEL_OPTIONS.findIndex((o) => o.value === s.personnelType)
+      : -1;
+    const statusIndex =
+      s.status === 'disabled'
+        ? STATUS_OPTIONS.findIndex((o) => o.value === 'disabled')
+        : STATUS_OPTIONS.findIndex((o) => o.value === 'active');
+    const collegeIndex =
+      s.affiliatedCollegeId != null
+        ? this.data.colleges.findIndex((c) => c.id === s.affiliatedCollegeId)
+        : -1;
+    const selectedIds = new Set(s.courseIds || []);
+    const courseOptions = this.data.courseOptions.map((c) => ({
+      ...c,
+      selected: selectedIds.has(c.id),
+    }));
+
+    this.setData({
+      showSheet: true,
+      mode: 'edit',
+      editId: id,
+      sheetTitle: '编辑教师',
+      submitting: false,
+      form: {
+        name: s.name || '',
+        genderIndex,
+        personnelIndex,
+        collegeIndex,
+        statusIndex: statusIndex < 0 ? 0 : statusIndex,
+        birthDate: s.birthDate || '',
+        qualification: s.qualificationType || '',
+        weeklyHours: s.defaultWeeklyHours || '',
+      },
+      courseOptions,
+    });
+  },
+
+  closeSheet() {
     if (this.data.submitting) return;
-    this.setData({ showAdd: false });
+    this.setData({ showSheet: false });
   },
 
   // 弹层内部点按：阻止冒泡到 mask 关闭
@@ -227,7 +330,15 @@ Page({
     this.setData({ 'form.statusIndex': Number(e.detail.value) });
   },
 
-  async submitAdd() {
+  toggleCourse(e) {
+    const id = Number(e.currentTarget.dataset.id);
+    const courseOptions = this.data.courseOptions.map((c) =>
+      c.id === id ? { ...c, selected: !c.selected } : c
+    );
+    this.setData({ courseOptions });
+  },
+
+  async submit() {
     const f = this.data.form;
     if (!f.name || !f.name.trim()) {
       wx.showToast({ title: '请填写教师姓名', icon: 'none' });
@@ -242,6 +353,12 @@ Page({
     payload.status = STATUS_OPTIONS[f.statusIndex].value;
     if (f.birthDate && f.birthDate.trim()) payload.birth_date = f.birthDate.trim();
     if (f.qualification && f.qualification.trim()) payload.qualification_type = f.qualification.trim();
+
+    // 学科（课程）多选
+    const courseIds = this.data.courseOptions.filter((c) => c.selected).map((c) => c.id);
+    if (courseIds.length) payload.courseIds = courseIds;
+
+    // 自定义课时：空串视作清空（null），否则校验 0-40
     if (f.weeklyHours !== '') {
       const n = Number(f.weeklyHours);
       if (Number.isNaN(n) || n < 0 || n > 40) {
@@ -249,16 +366,25 @@ Page({
         return;
       }
       payload.default_weekly_hours = n;
+    } else {
+      payload.default_weekly_hours = null;
     }
 
     this.setData({ submitting: true });
     try {
-      await api.createTeacher(payload);
-      this.setData({ showAdd: false });
-      wx.showToast({ title: '添加成功', icon: 'success' });
+      if (this.data.mode === 'edit') {
+        await api.updateTeacher(this.data.editId, payload);
+      } else {
+        await api.createTeacher(payload);
+      }
+      this.setData({ showSheet: false });
+      wx.showToast({
+        title: this.data.mode === 'edit' ? '保存成功' : '添加成功',
+        icon: 'success',
+      });
       this.reload();
     } catch (e) {
-      wx.showToast({ title: (e && e.message) || '添加失败', icon: 'none' });
+      wx.showToast({ title: (e && e.message) || '操作失败', icon: 'none' });
     } finally {
       this.setData({ submitting: false });
     }

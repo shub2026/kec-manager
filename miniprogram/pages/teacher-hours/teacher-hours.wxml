@@ -55,7 +55,7 @@
             <text class="tag">教材 {{item.textbookCount}} 种</text>
           </view>
           <view
-            wx:for="{{item.details}}"
+            wx:for="{{activeDetails}}"
             wx:for-item="d"
             wx:key="courseName"
             class="course-block"

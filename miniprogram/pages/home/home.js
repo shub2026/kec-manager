@@ -12,7 +12,7 @@ Page({
 
   onShow() {
     if (!guard()) return;
-    this.load();
+    if (!this.data.stats) this.load();
   },
 
   async load() {

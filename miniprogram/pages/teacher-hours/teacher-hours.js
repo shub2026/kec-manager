@@ -9,6 +9,7 @@ Page({
   data: {
     teachers: [],
     filteredTeachers: [],
+    activeDetails: [],
     subjectOptions: [],
     filterName: '',
     filterSubject: '',
@@ -28,7 +29,25 @@ Page({
     try {
       const raw = await api.getStatistics();
 
+      // details 含课程/班级明细，体积大；不进 data，存实例按需注入展开项，
+      // 避免每次筛选 setData 都序列化整份明细跨线程传输。
+      const detailsMap = {};
       const teachers = (raw.teachers || []).map((t) => {
+        const details = (t.details || []).map((d) => ({
+          courseName: (d.course && d.course.name) || '—',
+          weeklyHours: d.weeklyHours,
+          classes: (d.classes || []).map((c) => ({
+            className: c.className,
+            isCombined: c.isCombined,
+            collegeName: c.collegeName || '—',
+            trainingLevelName: c.trainingLevelName || '—',
+            weeklyHours: c.weeklyHours,
+            isAuto: c.isAuto,
+            textbookName: c.textbookName || '无',
+          })),
+        }));
+        detailsMap[t.teacherId] = details;
+
         const collegeNames = (t.collegeList || []).map((c) => c.name).join('、') || '—';
         const levelNames = (t.trainingLevelList || []).map((l) => l.name).join('、') || '—';
         return {
@@ -42,26 +61,14 @@ Page({
           totalWeeklyHours: t.totalWeeklyHours,
           totalClassCount: t.totalClassCount,
           textbookCount: t.textbookCount,
-          details: (t.details || []).map((d) => ({
-            courseName: (d.course && d.course.name) || '—',
-            weeklyHours: d.weeklyHours,
-            classes: (d.classes || []).map((c) => ({
-              className: c.className,
-              isCombined: c.isCombined,
-              collegeName: c.collegeName || '—',
-              trainingLevelName: c.trainingLevelName || '—',
-              weeklyHours: c.weeklyHours,
-              isAuto: c.isAuto,
-              textbookName: c.textbookName || '无',
-            })),
-          })),
         };
       });
+      this._detailsMap = detailsMap;
 
       // 收集本学期所有任教科目，用于科目筛选下拉
       const subjectSet = new Set();
-      for (const t of teachers) {
-        for (const d of t.details || []) {
+      for (const ds of Object.values(detailsMap)) {
+        for (const d of ds) {
           if (d.courseName) subjectSet.add(d.courseName);
         }
       }
@@ -84,7 +91,11 @@ Page({
 
   toggle(e) {
     const id = e.currentTarget.dataset.id;
-    this.setData({ expandedId: this.data.expandedId === id ? null : id });
+    if (this.data.expandedId === id) {
+      this.setData({ expandedId: null, activeDetails: [] });
+    } else {
+      this.setData({ expandedId: id, activeDetails: (this._detailsMap && this._detailsMap[id]) || [] });
+    }
   },
 
   // 姓名输入防抖 200ms，与 WEB 端一致
@@ -108,10 +119,13 @@ Page({
     const { teachers, filterName, filterSubject } = this.data;
     const filtered = teachers.filter((t) => {
       if (filterName && !t.teacherName.includes(filterName)) return false;
-      if (filterSubject && !(t.details || []).some((d) => d.courseName === filterSubject)) return false;
+      if (filterSubject) {
+        const ds = (this._detailsMap && this._detailsMap[t.teacherId]) || [];
+        if (!ds.some((d) => d.courseName === filterSubject)) return false;
+      }
       return true;
     });
-    this.setData({ filteredTeachers: filtered, expandedId: null });
+    this.setData({ filteredTeachers: filtered, expandedId: null, activeDetails: [] });
   },
 
   // 切走 tab 时重置筛选

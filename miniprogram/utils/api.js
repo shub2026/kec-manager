@@ -65,12 +65,14 @@ const api = {
     return request({ url: '/api/textbooks', data });
   },
 
-  // 教师名册（分页）
+  // 教师名册（分页 + 姓名模糊 / 人员类别筛选）
+  // 注意：按项目约定发 camelCase 参数（name / personnelType），
+  // 后端 convertRequestNaming 中间件会自动转成 snake（personnel_type）。
   listTeachers(params = {}) {
-    return request({
-      url: '/api/teachers',
-      data: { page: params.page || 1, pageSize: params.pageSize || 20 },
-    });
+    const data = { page: params.page || 1, pageSize: params.pageSize || 20 };
+    if (params.name) data.name = params.name;
+    if (params.personnelType) data.personnelType = params.personnelType;
+    return request({ url: '/api/teachers', data });
   },
 
   // 新增教师（仅管理员），POST /api/teachers。
@@ -79,9 +81,21 @@ const api = {
     return request({ url: '/api/teachers', method: 'POST', data: payload });
   },
 
+  // 更新教师（仅管理员），PUT /api/teachers/:id。
+  // 后端 updateTeacher 白名单：name/gender/birth_date/personnel_type/
+  // qualification_type/default_weekly_hours/affiliated_college_id/status。
+  updateTeacher(id, payload) {
+    return request({ url: `/api/teachers/${id}`, method: 'PUT', data: payload });
+  },
+
   // 学院列表（所有登录用户可查），用于新增教师时选择归属学院
   getColleges() {
     return request({ url: '/api/colleges' });
+  },
+
+  // 课程（学科）列表（所有登录用户可查），用于新增/编辑教师时选择可教授课程
+  getCourses() {
+    return request({ url: '/api/courses' });
   },
 
   // 课时统计（按教师汇总周课时）
