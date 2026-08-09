@@ -90,6 +90,7 @@ Page({
       qualification: '',
       weeklyHours: '',
     },
+    focusedField: '', // 当前聚焦的表单字段（高亮边框用）
     genderOptions: GENDER_OPTIONS.map((o) => o.label),
     personnelLabels: PERSONNEL_OPTIONS.map((o) => o.label),
     statusLabels: STATUS_OPTIONS.map((o) => o.label),
@@ -253,6 +254,7 @@ Page({
         qualification: '',
         weeklyHours: '',
       },
+      focusedField: '',
       courseOptions: this.data.courseOptions.map((c) => ({ ...c, selected: false })),
     });
   },
@@ -297,6 +299,7 @@ Page({
         qualification: s.qualificationType || '',
         weeklyHours: s.defaultWeeklyHours || '',
       },
+      focusedField: '',
       courseOptions,
     });
   },
@@ -312,6 +315,16 @@ Page({
   onFormInput(e) {
     const field = e.currentTarget.dataset.field;
     this.setData({ [`form.${field}`]: e.detail.value });
+  },
+
+  onFormFocus(e) {
+    this.setData({ focusedField: e.currentTarget.dataset.field });
+  },
+
+  onFormBlur(e) {
+    if (this.data.focusedField === e.currentTarget.dataset.field) {
+      this.setData({ focusedField: '' });
+    }
   },
 
   onGenderPick(e) {

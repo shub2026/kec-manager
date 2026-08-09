@@ -10,7 +10,6 @@ Page({
     total: 0,
     grade: '',
     grades: [],
-    searchName: '',
     loading: false,      // 首屏/下拉刷新的全屏 loading
     refreshing: false,   // 搜索/筛选时局部刷新，不卸载搜索框
     loadingMore: false,
@@ -28,7 +27,7 @@ Page({
 
   // 切走 tab 时重置筛选，下次进入显示全量数据
   onHide() {
-    this.setData({ grade: '', searchName: '', list: [], finished: false });
+    this.setData({ grade: '', list: [], finished: false });
   },
 
   reload({ showOverlay = false } = {}) {
@@ -51,7 +50,6 @@ Page({
         page: this.data.page,
         pageSize: this.data.pageSize,
         grade: this.data.grade,
-        name: this.data.searchName,
       });
 
       const classes = (resp.data || []).map((c) => ({
@@ -103,21 +101,6 @@ Page({
     this.reload({ showOverlay: true }).then(() => wx.stopPullDownRefresh());
   },
 
-  // ===== 搜索 =====
-  onSearchInput(e) {
-    const value = e.detail.value || '';
-    this.setData({ searchName: value });
-    if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => {
-      this.reload({ showOverlay: false });
-    }, 350);
-  },
-
-  clearSearch() {
-    this.setData({ searchName: '' });
-    this.reload({ showOverlay: false });
-  },
-
   // ===== 年级筛选 =====
   onGradeChange(e) {
     const idx = e.detail.value;
@@ -127,7 +110,7 @@ Page({
   },
 
   clearFilters() {
-    this.setData({ grade: '', searchName: '' });
+    this.setData({ grade: '' });
     this.reload({ showOverlay: false });
   },
 

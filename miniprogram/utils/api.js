@@ -44,12 +44,11 @@ const api = {
     return request({ url: '/api/dashboard/insights', data: { semester } });
   },
 
-  // 开课查询（分页 + 班级名称搜索 + 年级筛选）
+  // 开课查询（分页 + 年级筛选）
   async getSemesterClasses(params = {}) {
     const semester = await ensureSemester();
     const data = { semester, page: params.page || 1, pageSize: params.pageSize || 20 };
     if (params.grade) data.grade = params.grade;
-    if (params.name && params.name.trim()) data.name = params.name.trim();
     return request({ url: '/api/query/semester', data });
   },
 

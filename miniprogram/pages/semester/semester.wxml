@@ -10,32 +10,20 @@
     </view>
   </view>
 
-  <!-- 筛选栏：与教师管理/教师课时页一致 -->
+  <!-- 筛选栏：与教师管理/教师课时页一致（仅年级筛选） -->
   <view class="filter-bar">
-    <view class="search-box">
-      <text class="search-icon">🔍</text>
-      <input
-        class="filter-input"
-        value="{{searchName}}"
-        placeholder="输入班级名称搜索"
-        placeholder-class="placeholder"
-        bindinput="onSearchInput"
-        confirm-type="search"
-      />
-      <text wx:if="{{searchName}}" class="search-clear" bindtap="clearSearch">×</text>
-    </view>
     <picker mode="selector" range="{{grades}}" bindchange="onGradeChange">
       <view class="filter-picker {{grade ? 'active' : ''}}">
         {{grade ? grade + '年级' : '全部年级'}} ›
       </view>
     </picker>
-    <text wx:if="{{searchName || grade}}" class="filter-clear" bindtap="clearFilters">重置</text>
+    <text wx:if="{{grade}}" class="filter-clear" bindtap="clearFilters">重置</text>
   </view>
 
   <view wx:if="{{loading && list.length === 0}}" class="loading">加载中…</view>
 
   <block wx:if="{{!loading || list.length > 0}}">
-    <!-- 局部刷新提示（搜索/筛选时不卸载搜索框） -->
+    <!-- 局部刷新提示（筛选时保留列表，不闪烁） -->
     <view wx:if="{{refreshing && list.length}}" class="top-loading">
       <view class="top-loading-bar"></view>
       <text class="top-loading-text">刷新中…</text>
