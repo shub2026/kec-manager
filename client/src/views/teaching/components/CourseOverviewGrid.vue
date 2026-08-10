@@ -5,6 +5,9 @@
       <span v-if="!loading && !error && courses.length" class="overview-hint">
         共 {{ courses.length }} 门课程，点击卡片查看安排明细
       </span>
+      <div v-if="$slots['header-actions']" class="overview-actions">
+        <slot name="header-actions" />
+      </div>
     </div>
 
     <ListErrorState v-if="error" :message="error" @retry="$emit('retry')" />
@@ -25,7 +28,9 @@
       >
         <div class="card-title-row">
           <span class="card-course-name">{{ c.courseName }}</span>
-          <el-tag size="small" disable-transitions>{{ courseTypeLabel(c.courseType) }}</el-tag>
+          <el-tag size="small" :type="courseTypeTagType(c.courseType)" disable-transitions>
+            {{ courseTypeLabel(c.courseType) }}
+          </el-tag>
         </div>
 
         <div class="card-progress-row">
@@ -94,6 +99,12 @@ function courseTypeLabel(type) {
   return { public: '公共课', professional: '专业课', elective: '选修课' }[type] || type;
 }
 
+// 与课程管理页类型标签配色保持一致：公共课蓝（primary）、专业课绿
+// 注意：不能传空字符串，el-tag 的 type 校验器只接受具名类型值
+function courseTypeTagType(type) {
+  return { professional: 'success' }[type] || 'primary';
+}
+
 function progressPercent(c) {
   if (!c.totalClasses) return 0;
   return Math.min(100, Math.round((c.assignedCount / c.totalClasses) * 100));
@@ -106,9 +117,15 @@ function progressPercent(c) {
 }
 .overview-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-3);
+}
+.overview-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 .overview-title {
   font-size: 16px;

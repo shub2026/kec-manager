@@ -8,7 +8,13 @@
         </el-button>
         <div class="preview-title">
           <span class="course-name">{{ courseInfo.name }}</span>
-          <el-tag size="small" disable-transitions>{{ courseTypeLabel(courseInfo.type) }}</el-tag>
+          <el-tag
+            size="small"
+            :type="courseInfo.type === 'professional' ? 'success' : 'primary'"
+            disable-transitions
+          >
+            {{ courseTypeLabel(courseInfo.type) }}
+          </el-tag>
         </div>
       </div>
     </template>

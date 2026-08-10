@@ -10,7 +10,7 @@ import { computed } from 'vue';
  * - subtotals / grandTotals / totalAllHours 均为 computed，避免每次渲染重复遍历
  */
 export function useMatrixCalculations(rawCourses, semesterWeeksRef = null) {
-  // 按类型分组（公共基础课 / 专业课），同时预计算每门课程的学期查找表与总课时
+  // 按类型分组（公共课 / 专业课），同时预计算每门课程的学期查找表与总课时
   const groups = computed(() => {
     const map = { public: [], professional: [] };
     rawCourses.value.forEach((c) => {
@@ -57,7 +57,7 @@ export function useMatrixCalculations(rawCourses, semesterWeeksRef = null) {
     map.public.sort((a, b) => a.sortOrder - b.sortOrder);
     map.professional.sort((a, b) => a.sortOrder - b.sortOrder);
     return [
-      { type: 'public', label: '公共基础课', courses: map.public },
+      { type: 'public', label: '公共课', courses: map.public },
       { type: 'professional', label: '专业课', courses: map.professional },
     ];
   });

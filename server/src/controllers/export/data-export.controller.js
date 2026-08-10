@@ -57,7 +57,7 @@ export async function exportCourses(req, res, next) {
     const rows = courses.map((course) => ({
       课程名称: course.name,
       课程编码: course.code || '',
-      课程类型: course.type === 'public' ? '公共基础课' : '专业课',
+      课程类型: course.type === 'public' ? '公共课' : '专业课',
       描述: course.description || '',
     }));
 

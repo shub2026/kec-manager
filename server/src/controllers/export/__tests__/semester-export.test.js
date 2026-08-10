@@ -272,7 +272,7 @@ describe('exportSemesterSchedule (GET)', () => {
       expect(rows.length).toBeGreaterThan(0);
       expect(rows[0]['班级名称']).toBe('班级A');
       expect(rows[0]['课程']).toBe('高等数学');
-      expect(rows[0]['课程类型']).toBe('公共基础课');
+      expect(rows[0]['课程类型']).toBe('公共课');
       expect(rows[0]['周课时']).toBe(4);
       expect(rows[0]['学期总课时']).toBe(64);
       expect(rows[0]['教材名称']).toBe('高数上册');
@@ -414,7 +414,7 @@ describe('exportSemesterSchedule (GET)', () => {
   });
 
   describe('课程类型映射', () => {
-    it('public 类型应映射为"公共基础课"', async () => {
+    it('public 类型应映射为"公共课"', async () => {
       mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
       const pc = makePlanCourse({ courses: { name: '英语', type: 'public' } });
       const plan = makePlan({ plan_courses: [pc] });
@@ -428,7 +428,7 @@ describe('exportSemesterSchedule (GET)', () => {
       await exportSemesterSchedule(req, res, vi.fn());
 
       const rows = mocks.createWorkbook.mock.calls[0][1];
-      expect(rows[0]['课程类型']).toBe('公共基础课');
+      expect(rows[0]['课程类型']).toBe('公共课');
     });
 
     it('非 public 类型应映射为"专业课"', async () => {

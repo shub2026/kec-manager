@@ -1,5 +1,8 @@
 <template>
-  <el-card class="settings-card">
+  <el-card
+    class="settings-card"
+    :class="{ 'settings-card--compact': !selectedCourseId && !$slots.default }"
+  >
     <template #header>
       <div class="card-header">
         <span
@@ -73,7 +76,10 @@
         <el-icon><Check /></el-icon> 确定
       </el-button>
     </div>
-    <EmptyState v-else type="generic" description="请选择课程查看教学安排" />
+    <!-- 未选课程时展示父组件传入的课程安排概览 -->
+    <div v-else-if="$slots.default" class="overview-slot">
+      <slot />
+    </div>
   </el-card>
 </template>
 
@@ -81,7 +87,6 @@
 import { reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getHourSettings, saveHourSettings } from '../../../api/teachingArrange';
-import EmptyState from '../../../components/EmptyState.vue';
 
 const props = defineProps({
   currentSemesterLabel: { type: String, default: '' },
@@ -170,6 +175,14 @@ defineExpose({ hourSettings });
 <style scoped>
 .settings-card {
   margin-bottom: var(--space-4);
+}
+/* 未选课程时卡片体无内容，隐藏 body 避免 el-card 自带内边距留白，卡片只剩头部一行 */
+.settings-card--compact :deep(.el-card__body) {
+  display: none;
+}
+/* 概览嵌入卡片体内后去除其自身底部外边距，避免卡片底部多余留白 */
+.overview-slot :deep(.overview-section) {
+  margin-bottom: 0;
 }
 .hour-settings {
   display: flex;

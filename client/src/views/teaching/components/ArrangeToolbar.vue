@@ -68,44 +68,14 @@
       >
         <el-icon><SetUp /></el-icon> 标准模式
       </el-button>
-      <el-dropdown
-        :disabled="batchArranging || historicalReadOnly"
-        class="dropdown-gap"
-        @command="(command) => emit('batch-arrange', command)"
-      >
-        <el-button type="primary" :loading="batchArranging">
-          批量排课<el-icon class="el-icon--right"><ArrowDown /></el-icon>
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item command="full">全量模式（所有课程）</el-dropdown-item>
-            <el-dropdown-item command="standard">标准模式（所有课程）</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
       <el-button
-        type="info"
-        :loading="optimizing"
+        type="danger"
         :disabled="historicalReadOnly"
         class="dropdown-gap"
-        @click="emit('optimize')"
+        @click="emit('reset', 'current')"
       >
-        <el-icon><DataAnalysis /></el-icon>
-        {{ optimizing && optimizeProgressMessage ? optimizeProgressMessage : '排课优化' }}
+        <el-icon><RefreshRight /></el-icon> 重置当前科目
       </el-button>
-      <el-dropdown class="dropdown-gap" @command="(command) => emit('reset', command)">
-        <el-button type="danger" :disabled="historicalReadOnly">
-          <el-icon><RefreshRight /></el-icon> 重置<el-icon class="el-icon--right"
-            ><ArrowDown
-          /></el-icon>
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item command="current">重置当前科目</el-dropdown-item>
-            <el-dropdown-item command="all">重置全部科目</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
       <el-button
         type="success"
         plain
@@ -150,33 +120,13 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  batchArranging: {
-    type: Boolean,
-    default: false,
-  },
-  optimizing: {
-    type: Boolean,
-    default: false,
-  },
-  optimizeProgressMessage: {
-    type: String,
-    default: '',
-  },
   historicalReadOnly: {
     type: Boolean,
     default: false,
   },
 });
 
-const emit = defineEmits([
-  'update:filters',
-  'auto-arrange',
-  'batch-arrange',
-  'optimize',
-  'reset',
-  'lock-all',
-  'unlock-all',
-]);
+const emit = defineEmits(['update:filters', 'auto-arrange', 'reset', 'lock-all', 'unlock-all']);
 
 // 与父页面通过 v-model:filters 通信；直接修改属性可触发父级 deep watch
 const localFilters = computed({

@@ -29,7 +29,7 @@
       title="正在编辑历史学期，保存前需二次确认"
     />
 
-    <!-- 设置区 -->
+    <!-- 设置区：未选课程时卡片体内展示课程安排概览 -->
     <HourSettingsCard
       ref="settingsCardRef"
       v-model:selected-course-id="selectedCourseId"
@@ -38,17 +38,45 @@
       :exporting="exporting"
       @course-change="onCourseChange"
       @export="handleExportArrange"
-    />
-
-    <!-- 课程概览卡片区（未选择科目时展示全部课程安排预览） -->
-    <CourseOverviewGrid
-      v-if="!selectedCourseId"
-      :courses="overviewList"
-      :loading="overviewLoading"
-      :error="overviewError"
-      @select-course="onOverviewSelectCourse"
-      @retry="loadOverview"
-    />
+    >
+      <CourseOverviewGrid
+        :courses="overviewList"
+        :loading="overviewLoading"
+        :error="overviewError"
+        @select-course="onOverviewSelectCourse"
+        @retry="loadOverview"
+      >
+        <!-- 学期级操作：批量排课/排课优化/重置全部科目（作用于所有课程，无需进入具体课程） -->
+        <template #header-actions>
+          <el-dropdown
+            :disabled="batchArranging || historicalReadOnly"
+            @command="handleBatchAutoArrange"
+          >
+            <el-button type="primary" :loading="batchArranging">
+              批量排课<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="full">全量模式（所有课程）</el-dropdown-item>
+                <el-dropdown-item command="standard">标准模式（所有课程）</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-button
+            type="success"
+            :loading="optimizing"
+            :disabled="historicalReadOnly"
+            @click="handleOptimize"
+          >
+            <el-icon><DataAnalysis /></el-icon>
+            {{ optimizing && optimizeProgressMessage ? optimizeProgressMessage : '排课优化' }}
+          </el-button>
+          <el-button type="danger" :disabled="historicalReadOnly" @click="handleResetCommand('all')">
+            <el-icon><RefreshRight /></el-icon> 重置全部科目
+          </el-button>
+        </template>
+      </CourseOverviewGrid>
+    </HourSettingsCard>
 
     <!-- 预览区 -->
     <CoursePreviewCard
@@ -69,13 +97,8 @@
             v-model:filters="filters"
             :class-list="classList"
             :arranging="arranging"
-            :batch-arranging="batchArranging"
-            :optimizing="optimizing"
-            :optimize-progress-message="optimizeProgressMessage"
             :historical-read-only="historicalReadOnly"
             @auto-arrange="handleAutoArrange"
-            @batch-arrange="handleBatchAutoArrange"
-            @optimize="handleOptimize"
             @reset="handleResetCommand"
             @lock-all="handleBatchLockAll"
             @unlock-all="handleBatchUnlockAll"
@@ -320,7 +343,7 @@ const autoArrange = useAutoArrange({
   selectedSemester,
   courseInfo,
   hourSettingsRef,
-  loadData,
+  loadData: refreshArrangeData,
   confirmHistoricalEdit,
 });
 const {
@@ -338,7 +361,7 @@ const {
 const batchArrange = useBatchArrange({
   selectedSemester,
   hourSettingsRef,
-  loadData,
+  loadData: refreshArrangeData,
   confirmHistoricalEdit,
 });
 const {
@@ -364,7 +387,7 @@ const {
   closeOptimizeResult,
 } = useOptimize({
   selectedSemester,
-  loadData,
+  loadData: refreshArrangeData,
   confirmHistoricalEdit,
 });
 
@@ -478,6 +501,19 @@ function backToOverview() {
   teacherList.value = [];
   courseInfo.value = null;
   loadOverview();
+}
+
+/**
+ * 排课写操作（自动排课/批量排课/优化/重置）完成后的统一刷新。
+ * 学期级操作可在概览视图（未选课程）触发，此时 loadData 会因无课程而空转，
+ * 需改为刷新概览卡片，保证统计数据与实际操作结果一致。
+ */
+async function refreshArrangeData() {
+  if (selectedCourseId.value) {
+    await loadData();
+  } else {
+    await loadOverview();
+  }
 }
 
 /**
@@ -685,7 +721,7 @@ async function handleReset() {
     const res = await resetAutoAssignments(payload);
     ElMessage.success(res.message || '已重置');
     resetConfirmVisible.value = false;
-    await loadData();
+    await refreshArrangeData();
   } catch (e) {
     ElMessage.error('重置失败');
   } finally {

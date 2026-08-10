@@ -101,7 +101,7 @@ function swatch(key) {
   font-weight: 500;
 }
 
-/* 课程类别标签（复刻 el-tag success / warning 观感） */
+/* 课程类别标签（复刻 el-tag 默认蓝 / success 绿 观感） */
 .legend-tag {
   display: inline-flex;
   align-items: center;
@@ -113,13 +113,13 @@ function swatch(key) {
 }
 
 .legend-tag--public {
-  background: var(--brand-success-soft, #e7f8f2);
-  color: var(--brand-success-text, #047857);
+  background: var(--brand-primary-soft, #e8f3fe);
+  color: var(--brand-primary-active, #1668c4);
 }
 
 .legend-tag--pro {
-  background: var(--brand-warning-soft, #fff0e8);
-  color: var(--brand-warning-text, #c2410c);
+  background: var(--brand-success-soft, #e7f8f2);
+  color: var(--brand-success-text, #047857);
 }
 
 /* 课时热力色块 */

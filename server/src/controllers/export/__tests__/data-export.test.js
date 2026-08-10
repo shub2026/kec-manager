@@ -225,7 +225,7 @@ describe('exportCourses', () => {
     expect(mocks.createWorkbook).toHaveBeenCalledWith(
       expect.any(Array),
       expect.arrayContaining([
-        expect.objectContaining({ 课程名称: '语文', 课程类型: '公共基础课' }),
+        expect.objectContaining({ 课程名称: '语文', 课程类型: '公共课' }),
         expect.objectContaining({ 课程名称: '专业课A', 课程类型: '专业课' }),
       ])
     );

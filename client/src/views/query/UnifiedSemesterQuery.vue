@@ -145,10 +145,10 @@
                     <template #default="{ row: c }">
                       <el-tag
                         size="small"
-                        :type="c.courseType === 'public' ? 'success' : 'warning'"
+                        :type="c.courseType === 'professional' ? 'success' : 'primary'"
                         disable-transitions
                       >
-                        {{ c.courseType === 'public' ? '公共基础课' : '专业课' }}
+                        {{ c.courseType === 'public' ? '公共课' : '专业课' }}
                       </el-tag>
                     </template>
                   </el-table-column>

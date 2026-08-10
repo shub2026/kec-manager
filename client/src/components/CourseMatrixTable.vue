@@ -28,7 +28,7 @@
               <span class="course-name-text">{{ course.courseName }}</span>
               <el-tag
                 size="small"
-                :type="group.type === 'public' ? 'success' : 'warning'"
+                :type="group.type === 'professional' ? 'success' : 'primary'"
                 class="course-type-tag"
                 disable-transitions
               >
@@ -398,13 +398,13 @@ function cellAriaLabel(course, semester) {
 }
 
 .matrix-group-cell.public {
-  background: var(--brand-success-soft);
-  color: var(--brand-success-text);
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary-active);
 }
 
 .matrix-group-cell.professional {
-  background: var(--brand-warning-soft);
-  color: var(--brand-warning-text);
+  background: var(--brand-success-soft);
+  color: var(--brand-success-text);
 }
 
 .group-label {

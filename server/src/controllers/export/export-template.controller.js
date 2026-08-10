@@ -46,7 +46,7 @@ export async function downloadTemplate(req, res, next) {
         sample = {
           课程名称: '语文',
           课程编码: 'CHN001',
-          课程类型: '公共基础课',
+          课程类型: '公共课',
           描述: '基础语文课程',
         };
         filename = '课程导入模板.xlsx';

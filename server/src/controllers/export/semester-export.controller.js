@@ -240,7 +240,7 @@ async function buildSemesterExportData(semesterInfo, filters) {
         rows.push({
           ...baseRow,
           课程: pc.courses.name,
-          课程类型: pc.courses.type === 'public' ? '公共基础课' : '专业课',
+          课程类型: pc.courses.type === 'public' ? '公共课' : '专业课',
           周课时: weeklyHours,
           学期总课时: weeklyHours * weeksCount,
           教材名称: textbookNames.join('、') || '未指定',
