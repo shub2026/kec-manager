@@ -120,39 +120,48 @@ export async function getCourseOverview(req, res, next) {
       select: { id: true, name: true, type: true },
     });
 
-    // 一次性查询本学期全部安排，按课程聚合，避免逐课程查询
+    // 一次性查询本学期全部安排，按课程分组，后续仅对当前应排班级内的安排做聚合
     const assignments = await prisma.teaching_assignments.findMany({
       where: { semester },
-      select: { course_id: true, teacher_id: true, weekly_hours: true, is_locked: true },
+      select: {
+        course_id: true,
+        class_id: true,
+        teacher_id: true,
+        weekly_hours: true,
+        is_locked: true,
+      },
     });
-    const aggByCourse = new Map();
+    const assignmentsByCourse = new Map();
     for (const a of assignments) {
-      let agg = aggByCourse.get(a.course_id);
-      if (!agg) {
-        agg = { teacherIds: new Set(), assignedCount: 0, lockedCount: 0, assignedHours: 0 };
-        aggByCourse.set(a.course_id, agg);
-      }
-      agg.teacherIds.add(a.teacher_id);
-      agg.assignedCount += 1;
-      if (a.is_locked) agg.lockedCount += 1;
-      agg.assignedHours += a.weekly_hours || 0;
+      if (!assignmentsByCourse.has(a.course_id)) assignmentsByCourse.set(a.course_id, []);
+      assignmentsByCourse.get(a.course_id).push(a);
     }
 
     // 逐课程计算应排班级与总课时（与 getCourseClasses 同一链路，口径一致）
+    // 修复：assignedHours 不再取安排行的快照 weekly_hours 求和——
+    // 培养方案周课时调整后快照会过期，导致概览剩余课时变负而明细页正常；
+    // 现仅统计当前应排班级内的安排，课时一律以当前方案 weeklyHours 为准
     const overview = [];
     for (const course of courses) {
       const classes = await getClassesWithCourse(course.id, semester);
       const totalCourseHours = classes.reduce((sum, c) => sum + c.weeklyHours, 0);
-      const agg = aggByCourse.get(course.id);
-      const assignedHours = agg?.assignedHours || 0;
+      const classHourMap = new Map(classes.map((c) => [c.classId, c.weeklyHours]));
+      const validAssignments = (assignmentsByCourse.get(course.id) || []).filter((a) =>
+        classHourMap.has(a.class_id)
+      );
+      const teacherIds = new Set(validAssignments.map((a) => a.teacher_id));
+      const assignedHours = validAssignments.reduce(
+        (sum, a) => sum + (classHourMap.get(a.class_id) || 0),
+        0
+      );
       overview.push({
         courseId: course.id,
         courseName: course.name,
         courseType: course.type,
-        teacherCount: agg ? agg.teacherIds.size : 0,
+        teacherCount: teacherIds.size,
         totalClasses: classes.length,
-        assignedCount: agg?.assignedCount || 0,
-        lockedCount: agg?.lockedCount || 0,
+        assignedCount: validAssignments.length,
+        lockedCount: validAssignments.filter((a) => a.is_locked).length,
         totalCourseHours,
         assignedHours,
         remainingHours: totalCourseHours - assignedHours,

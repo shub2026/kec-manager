@@ -107,10 +107,10 @@ describe('getCourseOverview', () => {
     // 课程1：3 条安排，2 名教师（10 重复），1 条锁定，课时 4+4+6=14
     // 课程2：1 条安排，课时 2
     mockPrisma.teaching_assignments.findMany.mockResolvedValue([
-      { course_id: 1, teacher_id: 10, weekly_hours: 4, is_locked: false },
-      { course_id: 1, teacher_id: 10, weekly_hours: 4, is_locked: true },
-      { course_id: 1, teacher_id: 11, weekly_hours: 6, is_locked: false },
-      { course_id: 2, teacher_id: 20, weekly_hours: 2, is_locked: false },
+      { course_id: 1, class_id: 101, teacher_id: 10, weekly_hours: 4, is_locked: false },
+      { course_id: 1, class_id: 102, teacher_id: 10, weekly_hours: 4, is_locked: true },
+      { course_id: 1, class_id: 103, teacher_id: 11, weekly_hours: 6, is_locked: false },
+      { course_id: 2, class_id: 201, teacher_id: 20, weekly_hours: 2, is_locked: false },
     ]);
     mockGetClassesWithCourse.mockImplementation((courseId) =>
       Promise.resolve(
@@ -189,10 +189,11 @@ describe('getCourseOverview', () => {
     });
   });
 
-  it('安排课时超过应排课时 → remainingHours 为负数', async () => {
+  it('快照课时过期（安排行课时 > 当前方案）→ 以当前方案为准，剩余课时不为负', async () => {
     mockPrisma.courses.findMany.mockResolvedValue([{ id: 4, name: '体育', type: 'public' }]);
+    // 安排行快照 weekly_hours=8，但当前方案周课时已调整为 2
     mockPrisma.teaching_assignments.findMany.mockResolvedValue([
-      { course_id: 4, teacher_id: 40, weekly_hours: 8, is_locked: false },
+      { course_id: 4, class_id: 401, teacher_id: 40, weekly_hours: 8, is_locked: false },
     ]);
     mockGetClassesWithCourse.mockResolvedValue([{ classId: 401, weeklyHours: 2 }]);
 
@@ -200,7 +201,36 @@ describe('getCourseOverview', () => {
     const res = mockRes();
     await getCourseOverview(req, res, vi.fn());
 
-    expect(res.json.mock.calls[0][0].data[0].remainingHours).toBe(-6);
+    const item = res.json.mock.calls[0][0].data[0];
+    expect(item.assignedHours).toBe(2);
+    expect(item.remainingHours).toBe(0);
+  });
+
+  it('孤儿安排（班级已不在应排列表）→ 不计入聚合', async () => {
+    mockPrisma.courses.findMany.mockResolvedValue([{ id: 5, name: '化学', type: 'public' }]);
+    // class 502 的安排为离校/方案调整后的遗留记录，应被忽略
+    mockPrisma.teaching_assignments.findMany.mockResolvedValue([
+      { course_id: 5, class_id: 501, teacher_id: 50, weekly_hours: 4, is_locked: false },
+      { course_id: 5, class_id: 502, teacher_id: 51, weekly_hours: 4, is_locked: false },
+    ]);
+    mockGetClassesWithCourse.mockResolvedValue([{ classId: 501, weeklyHours: 4 }]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getCourseOverview(req, res, vi.fn());
+
+    expect(res.json.mock.calls[0][0].data[0]).toEqual({
+      courseId: 5,
+      courseName: '化学',
+      courseType: 'public',
+      teacherCount: 1,
+      totalClasses: 1,
+      assignedCount: 1,
+      lockedCount: 0,
+      totalCourseHours: 4,
+      assignedHours: 4,
+      remainingHours: 0,
+    });
   });
 
   it('DB 异常 → next 收到错误', async () => {
