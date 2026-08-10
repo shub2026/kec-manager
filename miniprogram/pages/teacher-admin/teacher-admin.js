@@ -149,9 +149,8 @@ Page({
 
   onShow() {
     if (!guard()) return;
-    // 首次进入（列表为空）用全屏遮罩；返回本页则原地刷新，保留搜索框
+    // 首次进入（列表为空）用全屏遮罩；返回本页仅当有新数据时才刷新（编辑弹层关闭后通过 reload 触发）
     if (this.data.teachers.length === 0) this.reload(true);
-    else this.reload(false);
   },
 
   // 重置并加载第一页

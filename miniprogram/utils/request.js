@@ -160,6 +160,7 @@ async function request(options) {
     const h3 = Object.assign({}, header, { 'X-CSRF-Token': csrf });
     const retry = await rawRequest({ url: options.url, method, data: options.data || {}, header: h3, enableCookie: true });
     if (retry.statusCode >= 200 && retry.statusCode < 300) return normalize(retry);
+    // 重试后仍 403：标记 _csrfRetry 防止递归，交由外层 rejectErr 处理
     return rejectErr(retry);
   }
 

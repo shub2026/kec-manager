@@ -8,24 +8,33 @@ function getAppSemester() {
   return (app && app.globalData && app.globalData.currentSemester) || '';
 }
 
+// 学期拉取单例：并发调用时复用同一 Promise，避免重复请求
+let _semesterPromise = null;
+
 async function ensureSemester() {
   let sem = getAppSemester();
   if (sem) return sem;
-  try {
-    const data = await request({ url: '/api/settings' });
-    sem =
-      (data && data.currentSemester && data.currentSemester.value) ||
-      (data && data.current_semester && data.current_semester.value) ||
-      '';
-    if (sem) {
-      const app = getApp();
-      if (app) app.globalData.currentSemester = sem;
-      wx.setStorageSync('currentSemester', sem);
+  if (_semesterPromise) return _semesterPromise;
+  _semesterPromise = (async () => {
+    try {
+      const data = await request({ url: '/api/settings' });
+      sem =
+        (data && data.currentSemester && data.currentSemester.value) ||
+        (data && data.current_semester && data.current_semester.value) ||
+        '';
+      if (sem) {
+        const app = getApp();
+        if (app) app.globalData.currentSemester = sem;
+        wx.setStorageSync('currentSemester', sem);
+      }
+      return sem;
+    } catch (e) {
+      return '';
+    } finally {
+      _semesterPromise = null;
     }
-  } catch (e) {
-    sem = '';
-  }
-  return sem;
+  })();
+  return _semesterPromise;
 }
 
 const api = {
