@@ -2,7 +2,7 @@
   <el-card v-if="courseInfo" class="preview-card">
     <template #header>
       <div class="card-header">
-        <el-button v-if="showBack" class="back-btn" size="small" plain @click="$emit('back')">
+        <el-button v-if="showBack" class="back-btn" size="small" @click="$emit('back')">
           <el-icon><Back /></el-icon>
           返回课程概览
         </el-button>
@@ -86,9 +86,28 @@ function courseTypeLabel(type) {
   align-items: center;
   gap: 10px;
 }
+/* 返回按钮：品牌软色调次级按钮（极浅蓝底 + 主色文字），
+   与页面主色按钮/标签同一视觉语言，避免纯白描边按钮的游离感 */
 .back-btn {
   margin-right: var(--space-2);
   font-weight: normal;
+  --el-button-bg-color: var(--brand-primary-soft);
+  --el-button-border-color: transparent;
+  --el-button-text-color: var(--brand-primary);
+  --el-button-hover-bg-color: var(--brand-primary-lighter);
+  --el-button-hover-border-color: transparent;
+  --el-button-hover-text-color: var(--brand-primary-active);
+  --el-button-active-bg-color: var(--brand-primary-lighter);
+  --el-button-active-border-color: transparent;
+  --el-button-active-text-color: var(--brand-primary-active);
+  border-radius: var(--radius-sm);
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
+}
+.back-btn:hover {
+  box-shadow: 0 2px 8px var(--brand-primary-shadow);
 }
 .course-name {
   font-size: 16px;
