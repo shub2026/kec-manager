@@ -165,6 +165,14 @@ export const getCourseClasses = (params) => request.get('/teaching-arrange/class
 export const getCourseTeachers = (params) => request.get('/teaching-arrange/teachers', { params });
 
 /**
+ * 教学安排 - 全部课程概览（每门课程的班级数/已安排/已锁定/课时汇总）
+ * @param {{semester: string}} params
+ * @returns {Promise<import('./types').ApiResponse<import('./types').CourseOverviewItem[]>>}
+ */
+export const getCourseOverview = (params) =>
+  request.get('/teaching-arrange/course-overview', { params });
+
+/**
  * 手动安排教师
  * @param {import('./types').AssignTeacherInput} data
  * @returns {Promise<import('./types').ApiResponse<void>>}

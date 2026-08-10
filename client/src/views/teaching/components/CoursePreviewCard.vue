@@ -2,6 +2,10 @@
   <el-card v-if="courseInfo" class="preview-card">
     <template #header>
       <div class="card-header">
+        <el-button v-if="showBack" class="back-btn" size="small" plain @click="$emit('back')">
+          <el-icon><Back /></el-icon>
+          返回课程概览
+        </el-button>
         <div class="preview-title">
           <span class="course-name">{{ courseInfo.name }}</span>
           <el-tag size="small" disable-transitions>{{ courseTypeLabel(courseInfo.type) }}</el-tag>
@@ -46,6 +50,8 @@
 defineProps({
   courseInfo: { type: Object, default: null },
   teacherCount: { type: Number, default: 0 },
+  // 是否显示「返回课程概览」按钮（从概览卡片进入时开启）
+  showBack: { type: Boolean, default: false },
   summary: {
     type: Object,
     default: () => ({
@@ -57,6 +63,8 @@ defineProps({
     }),
   },
 });
+
+defineEmits(['back']);
 
 function courseTypeLabel(type) {
   return { public: '公共课', professional: '专业课', elective: '选修课' }[type] || type;
@@ -71,6 +79,10 @@ function courseTypeLabel(type) {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.back-btn {
+  margin-right: var(--space-2);
+  font-weight: normal;
 }
 .course-name {
   font-size: 16px;

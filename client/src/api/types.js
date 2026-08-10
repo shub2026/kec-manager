@@ -247,6 +247,21 @@
 /** @typedef {Object} BatchAutoArrangeInput @property {string} semester @property {'full' | 'standard'} mode */
 
 /**
+ * 教学安排 - 课程概览（全部课程聚合，供概览卡片渲染）
+ * @typedef {Object} CourseOverviewItem
+ * @property {number} courseId
+ * @property {string} courseName
+ * @property {string} courseType - 'public' | 'professional' | 'elective'
+ * @property {number} teacherCount
+ * @property {number} totalClasses
+ * @property {number} assignedCount
+ * @property {number} lockedCount
+ * @property {number} totalCourseHours
+ * @property {number} assignedHours
+ * @property {number} remainingHours
+ */
+
+/**
  * 课时要求
  * @typedef {Object} HourSettings
  * @property {{standard: number, max: number}} [fullTime]

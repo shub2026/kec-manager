@@ -69,7 +69,7 @@
           />
         </span>
       </div>
-      <el-button type="primary" size="small" :loading="savingSettings" @click="handleSave">
+      <el-button type="primary" class="hour-save-btn" :loading="savingSettings" @click="handleSave">
         <el-icon><Check /></el-icon> 确定
       </el-button>
     </div>
@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getHourSettings, saveHourSettings } from '../../../api/teachingArrange';
 import EmptyState from '../../../components/EmptyState.vue';
@@ -154,6 +154,15 @@ function handleCourseChange(courseId) {
   loadHourSettings(courseId);
 }
 
+// 父组件外部变更课程（如概览卡片点选）时同步加载课时设置；首次挂载不触发
+watch(
+  () => props.selectedCourseId,
+  (id, old) => {
+    if (old === undefined || id === old) return;
+    if (id) loadHourSettings(id);
+  }
+);
+
 // 暴露 hourSettings 供父组件读取
 defineExpose({ hourSettings });
 </script>
@@ -164,10 +173,10 @@ defineExpose({ hourSettings });
 }
 .hour-settings {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* 宽屏一行展示，窄屏自动折行适配移动端 */
   align-items: center;
   gap: var(--space-3);
-  padding-top: var(--space-1);
+  padding: var(--space-1) 0 var(--space-2);
 }
 .hour-settings-title {
   font-size: 14px;
@@ -176,26 +185,34 @@ defineExpose({ hourSettings });
   white-space: nowrap;
 }
 .hour-setting-item {
+  flex: 1 1 260px; /* 三块均分剩余宽度，间隙随容器自适应拉伸 */
+  min-width: 260px;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) 10px;
-  background: var(--bg-subtle);
+  justify-content: center; /* 标签与输入区居中对称，间隙均匀无大空洞 */
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-subtle); /* 仅用底色区分区块，无边框、无 hover 外框，视觉更安静 */
   border-radius: var(--radius-sm);
 }
 .type-label {
-  font-weight: bold;
+  font-weight: 600;
   font-size: 13px;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 .setting-field {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2); /* 标准/最大两组间距加大，视觉更舒展 */
 }
 .field-label {
   font-size: 12px;
   color: var(--text-regular);
+  white-space: nowrap;
+}
+.hour-save-btn {
+  margin-left: auto; /* 卡片填满后按钮靠右；折行后仍保持右对齐 */
 }
 .course-select {
   width: 220px;

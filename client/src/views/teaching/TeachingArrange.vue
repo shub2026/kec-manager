@@ -40,12 +40,24 @@
       @export="handleExportArrange"
     />
 
+    <!-- 课程概览卡片区（未选择科目时展示全部课程安排预览） -->
+    <CourseOverviewGrid
+      v-if="!selectedCourseId"
+      :courses="overviewList"
+      :loading="overviewLoading"
+      :error="overviewError"
+      @select-course="onOverviewSelectCourse"
+      @retry="loadOverview"
+    />
+
     <!-- 预览区 -->
     <CoursePreviewCard
       v-if="selectedCourseId && courseInfo"
       :course-info="courseInfo"
       :teacher-count="teacherList.length"
       :summary="summary"
+      show-back
+      @back="backToOverview"
     />
 
     <!-- 内容区：矩阵表 -->
@@ -192,6 +204,7 @@ import { downloadBlob } from '../../utils/download';
 import {
   getCourseClasses,
   getCourseTeachers,
+  getCourseOverview,
   assignTeacher,
   deleteAssignment,
   resetAutoAssignments,
@@ -205,6 +218,7 @@ import { useArrangeProgress } from './composables/useArrangeProgress';
 
 import HourSettingsCard from './components/HourSettingsCard.vue';
 import CoursePreviewCard from './components/CoursePreviewCard.vue';
+import CourseOverviewGrid from './components/CourseOverviewGrid.vue';
 import ArrangeToolbar from './components/ArrangeToolbar.vue';
 import ArrangeClassTable from './components/ArrangeClassTable.vue';
 import PageHeader from '../../components/PageHeader.vue';
@@ -412,11 +426,58 @@ const historicalGuarded = computed(
   () => isHistoricalSemester.value && settingsStore.settings?.allowHistoricalEdit?.value === 'true'
 );
 
-// 学期切换：重载当前课程的班级与教师数据
+// 学期切换：重载当前课程的班级与教师数据；未选科目时重载课程概览
 function onSemesterChange() {
   if (selectedCourseId.value) {
     loadData();
+  } else {
+    loadOverview();
   }
+}
+
+// --- 课程概览 ---
+const overviewList = ref([]);
+const overviewLoading = ref(false);
+const overviewError = ref(null);
+// 请求序号守卫：快速连续切换学期时，丢弃过期响应
+let overviewSeq = 0;
+
+async function loadOverview() {
+  if (!selectedSemester.value) return;
+  const seq = ++overviewSeq;
+  overviewLoading.value = true;
+  overviewError.value = null;
+  try {
+    const res = await getCourseOverview({ semester: selectedSemester.value });
+    if (seq !== overviewSeq) return;
+    overviewList.value = res.data || [];
+  } catch (e) {
+    if (seq !== overviewSeq) return;
+    overviewError.value = '加载课程概览失败，请稍后重试';
+    if (import.meta.env.DEV) {
+      console.error('加载课程概览失败:', e);
+    }
+  } finally {
+    if (seq === overviewSeq) {
+      overviewLoading.value = false;
+    }
+  }
+}
+
+// 概览卡片点选：选中课程并进入矩阵表（复用现有 course-change 链路）
+async function onOverviewSelectCourse(courseId) {
+  selectedCourseId.value = courseId;
+  await onCourseChange(courseId);
+}
+
+// 返回概览：清空课程选择（等同下拉 clear）并重载概览数据
+function backToOverview() {
+  filters.value = { college: '', major: '', trainingLevel: '', grade: '', textbook: '' };
+  selectedCourseId.value = null;
+  classList.value = [];
+  teacherList.value = [];
+  courseInfo.value = null;
+  loadOverview();
 }
 
 /**
@@ -469,6 +530,7 @@ async function onCourseChange(courseId) {
     classList.value = [];
     teacherList.value = [];
     courseInfo.value = null;
+    loadOverview();
     return;
   }
   courseInfo.value = allCourses.value.find((c) => c.id === courseId) || null;
@@ -669,6 +731,7 @@ async function handleExportArrange(scope = 'current') {
 onMounted(async () => {
   await loadSemester();
   await loadCourses();
+  await loadOverview();
 });
 </script>
 

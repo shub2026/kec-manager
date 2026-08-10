@@ -11,6 +11,7 @@ import {
 } from '../middleware/validation.js';
 import {
   getCourseClasses,
+  getCourseOverview,
   getCourseTeachers,
   assignTeacher,
   deleteAssignment,
@@ -30,6 +31,7 @@ const router = Router();
 
 // GET - 所有登录用户可访问
 router.get('/classes', getCourseClasses);
+router.get('/course-overview', getCourseOverview);
 router.get('/teachers', getCourseTeachers);
 router.get('/statistics', getStatistics);
 router.get('/hour-settings', getHourSettings);

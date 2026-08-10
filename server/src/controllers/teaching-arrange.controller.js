@@ -107,6 +107,65 @@ export async function getCourseClasses(req, res, next) {
 }
 
 /**
+ * GET /course-overview - 全部课程的教学安排概览（卡片聚合视图）
+ * 一次请求返回本学期每门课程的班级数/已安排/已锁定/课时汇总，供概览卡片渲染
+ */
+export async function getCourseOverview(req, res, next) {
+  try {
+    const { semester } = req.query;
+    if (!semester) return fail(res, '请选择学期');
+
+    const courses = await prisma.courses.findMany({
+      orderBy: [{ sort_order: 'asc' }, { id: 'asc' }],
+      select: { id: true, name: true, type: true },
+    });
+
+    // 一次性查询本学期全部安排，按课程聚合，避免逐课程查询
+    const assignments = await prisma.teaching_assignments.findMany({
+      where: { semester },
+      select: { course_id: true, teacher_id: true, weekly_hours: true, is_locked: true },
+    });
+    const aggByCourse = new Map();
+    for (const a of assignments) {
+      let agg = aggByCourse.get(a.course_id);
+      if (!agg) {
+        agg = { teacherIds: new Set(), assignedCount: 0, lockedCount: 0, assignedHours: 0 };
+        aggByCourse.set(a.course_id, agg);
+      }
+      agg.teacherIds.add(a.teacher_id);
+      agg.assignedCount += 1;
+      if (a.is_locked) agg.lockedCount += 1;
+      agg.assignedHours += a.weekly_hours || 0;
+    }
+
+    // 逐课程计算应排班级与总课时（与 getCourseClasses 同一链路，口径一致）
+    const overview = [];
+    for (const course of courses) {
+      const classes = await getClassesWithCourse(course.id, semester);
+      const totalCourseHours = classes.reduce((sum, c) => sum + c.weeklyHours, 0);
+      const agg = aggByCourse.get(course.id);
+      const assignedHours = agg?.assignedHours || 0;
+      overview.push({
+        courseId: course.id,
+        courseName: course.name,
+        courseType: course.type,
+        teacherCount: agg ? agg.teacherIds.size : 0,
+        totalClasses: classes.length,
+        assignedCount: agg?.assignedCount || 0,
+        lockedCount: agg?.lockedCount || 0,
+        totalCourseHours,
+        assignedHours,
+        remainingHours: totalCourseHours - assignedHours,
+      });
+    }
+
+    success(res, overview);
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
  * GET /teachers - 获取某课程的教师列表（含课时统计）
  */
 export async function getCourseTeachers(req, res, next) {
