@@ -44,7 +44,7 @@
 
     <!-- 课时设置 -->
     <div v-if="selectedCourseId" class="hour-settings">
-      <!-- 移动端折叠头：展开/收起课时表单，收起时展示当前配置摘要；桌面端按钮隐藏、表单常显 -->
+      <!-- 折叠头：课时表单默认收起，点击展开/收起，收起时展示当前配置摘要 -->
       <button
         type="button"
         class="hour-toggle"
@@ -103,7 +103,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch, computed, onUnmounted } from 'vue';
+import { reactive, ref, watch, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getHourSettings, saveHourSettings } from '../../../api/teachingArrange';
 
@@ -136,10 +136,8 @@ const hourSettings = reactive({
 
 const savingSettings = ref(false);
 
-// ── 移动端课时表单折叠（≤768px 默认收起，桌面端常显）──
-const MOBILE_QUERY = '(max-width: 768px)';
-const mobileQuery = typeof window !== 'undefined' && window.matchMedia?.(MOBILE_QUERY);
-const hoursCollapsed = ref(mobileQuery ? mobileQuery.matches : false);
+// ── 课时表单默认收起（全端），需要时点击标题展开 ──
+const hoursCollapsed = ref(true);
 
 // 收起时的一行摘要：专职 16/20 · 兼职 12/16 · 外聘 12/16
 const hourSummary = computed(() =>
@@ -151,15 +149,6 @@ const hourSummary = computed(() =>
 function toggleHours() {
   hoursCollapsed.value = !hoursCollapsed.value;
 }
-
-// 跨断点切换时同步折叠态，避免手机横屏/桌面缩放后表单被隐藏或按钮失效
-function handleBreakpointChange(e) {
-  hoursCollapsed.value = e.matches;
-}
-mobileQuery?.addEventListener('change', handleBreakpointChange);
-onUnmounted(() => {
-  mobileQuery?.removeEventListener('change', handleBreakpointChange);
-});
 
 async function loadHourSettings(courseId) {
   Object.assign(hourSettings, JSON.parse(JSON.stringify(defaultHourSettings)));
@@ -234,19 +223,25 @@ defineExpose({ hourSettings });
   gap: var(--space-3);
   padding: var(--space-1) 0 var(--space-2);
 }
-/* 折叠头：桌面端呈现为普通标题行（按钮隐形），移动端为可点触控目标 */
+/* 折叠头：全端可点，整行作为触控目标 */
 .hour-toggle {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   width: 100%;
-  padding: 0;
+  padding: var(--space-2);
+  margin: 0 calc(-1 * var(--space-2));
   background: none;
   border: none;
-  cursor: default;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
   font: inherit;
   color: inherit;
   text-align: left;
+  transition: background-color 0.2s;
+}
+.hour-toggle:hover {
+  background: var(--bg-subtle);
 }
 .hour-summary {
   flex: 1;
@@ -258,7 +253,9 @@ defineExpose({ hourSettings });
   white-space: nowrap;
 }
 .hour-toggle-icon {
-  display: none; /* 桌面端不展示展开/收起箭头 */
+  display: block;
+  flex: none;
+  color: var(--text-secondary);
 }
 .hour-settings-body {
   display: flex;
@@ -314,21 +311,6 @@ defineExpose({ hourSettings });
 /* 移动端（≤768px）：课时要求区块纵向排列，人员类型标签独占一行，
    标准/最大两组输入弹性均分并拉满宽度，避免固定 80px 输入框居中造成拥挤 */
 @media (max-width: 768px) {
-  /* 移动端折叠头：整行可点，触控目标足够大 */
-  .hour-toggle {
-    cursor: pointer;
-    padding: var(--space-2);
-    margin: 0 calc(-1 * var(--space-2));
-    border-radius: var(--radius-sm);
-  }
-  .hour-toggle:active {
-    background: var(--bg-subtle);
-  }
-  .hour-toggle-icon {
-    display: block;
-    flex: none;
-    color: var(--text-secondary);
-  }
   .hour-settings-body {
     display: flex;
     flex-direction: column;

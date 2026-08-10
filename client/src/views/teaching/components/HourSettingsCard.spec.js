@@ -87,18 +87,8 @@ describe('HourSettingsCard（导出Excel下拉按钮）', () => {
   });
 });
 
-describe('HourSettingsCard（移动端课时要求折叠）', () => {
+describe('HourSettingsCard（课时要求折叠）', () => {
   let wrapper;
-  const originalMatchMedia = window.matchMedia;
-
-  function mockMatchMedia(matches) {
-    window.matchMedia = vi.fn().mockReturnValue({
-      matches,
-      media: '',
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    });
-  }
 
   function mountCard(props = {}) {
     wrapper = mount(HourSettingsCard, {
@@ -119,40 +109,40 @@ describe('HourSettingsCard（移动端课时要求折叠）', () => {
     return wrapper.find('.hour-toggle');
   }
 
+  function bodyStyle() {
+    return wrapper.find('.hour-settings-body').attributes('style') || '';
+  }
+
   afterEach(() => {
     wrapper?.unmount();
-    window.matchMedia = originalMatchMedia;
   });
 
-  it('桌面端默认展开，点击折叠头可收起/展开表单', async () => {
-    mockMatchMedia(false);
+  it('默认收起并展示配置摘要，点击可展开/收起', async () => {
     mountCard();
-    expect(wrapper.find('.hour-settings-body').isVisible()).toBe(true);
-    expect(wrapper.find('.hour-summary').exists()).toBe(false);
-
-    await findToggle().trigger('click');
-    expect(wrapper.find('.hour-settings-body').isVisible()).toBe(false);
+    // 默认收起：表单隐藏 + 摘要可见
+    expect(bodyStyle()).toContain('display: none');
     expect(wrapper.find('.hour-summary').exists()).toBe(true);
+    expect(findToggle().attributes('aria-expanded')).toBe('false');
 
     await findToggle().trigger('click');
-    // jsdom 的 getComputedStyle 存在缓存缺陷：内联 display:none 清除后计算样式不刷新，
-    // 故改断言内联样式已移除 + aria-expanded 状态（真实浏览器中 v-show 会恢复显示）
-    expect(wrapper.find('.hour-settings-body').attributes('style') || '').not.toContain(
-      'display: none'
-    );
+    // 展开：内联 display:none 移除（jsdom 的 getComputedStyle 存在缓存缺陷，
+    // 内联样式清除后计算样式不刷新，故断言内联样式 + aria-expanded 而非 isVisible）
+    expect(bodyStyle()).not.toContain('display: none');
+    expect(wrapper.find('.hour-summary').exists()).toBe(false);
     expect(findToggle().attributes('aria-expanded')).toBe('true');
+
+    await findToggle().trigger('click');
+    expect(bodyStyle()).toContain('display: none');
+    expect(wrapper.find('.hour-summary').exists()).toBe(true);
   });
 
-  it('移动端（matchMedia 命中）默认收起并展示配置摘要', () => {
-    mockMatchMedia(true);
+  it('收起时摘要展示当前课时配置', () => {
     mountCard();
-    expect(wrapper.find('.hour-settings-body').isVisible()).toBe(false);
-    // 摘要展示默认课时配置：专职 16/20
+    // 默认课时配置：专职 16/20
     expect(wrapper.find('.hour-summary').text()).toContain('专职 16/20');
   });
 
   it('未选课程时不渲染折叠头', () => {
-    mockMatchMedia(true);
     mountCard({ selectedCourseId: null });
     expect(wrapper.find('.hour-toggle').exists()).toBe(false);
   });
