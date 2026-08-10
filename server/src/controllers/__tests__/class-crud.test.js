@@ -20,6 +20,7 @@ const mockPrisma = {
   classes: {
     create: vi.fn(),
     findUnique: vi.fn(),
+    findFirst: vi.fn().mockResolvedValue(null),
     delete: vi.fn(),
   },
   teaching_assignments: {
@@ -146,6 +147,7 @@ describe('createClass', () => {
     vi.clearAllMocks();
     getCurrentSemesterInfo.mockResolvedValue(SEMESTER_INFO);
     mockPrisma.classes.create.mockResolvedValue({ ...CREATED_CLASS });
+    mockPrisma.classes.findFirst.mockResolvedValue(null);
   });
 
   it('所有字段齐全时调用 prisma.classes.create 并传入正确数据', async () => {
@@ -332,6 +334,68 @@ describe('createClass', () => {
     await createClass(req, res, next);
 
     expect(invalidateDurationCache).toHaveBeenCalled();
+  });
+
+  it('班级名称已存在 → ValidationError，不调用 create', async () => {
+    mockPrisma.classes.findFirst.mockResolvedValue({ id: 99 });
+    const req = mockReq({
+      name: '2024级学前1班',
+      enrollment_year: 2024,
+      duration_years: 3,
+      training_level_id: 2,
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await createClass(req, res, next);
+
+    expect(mockPrisma.classes.create).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledOnce();
+    const err = next.mock.calls[0][0];
+    expect(err.statusCode).toBe(422);
+    expect(err.message).toContain('已存在');
+  });
+
+  it('名称两端空格 → trim 后参与查重与存储', async () => {
+    const req = mockReq({
+      name: '  新班级  ',
+      enrollment_year: 2024,
+      duration_years: 3,
+      training_level_id: 2,
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await createClass(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(mockPrisma.classes.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { name: '新班级' } })
+    );
+    expect(mockPrisma.classes.create.mock.calls[0][0].data.name).toBe('新班级');
+  });
+
+  it('并发竞态 P2002（唯一约束冲突）→ 转为友好 ValidationError', async () => {
+    const p2002 = Object.assign(new Error('Unique constraint failed'), {
+      code: 'P2002',
+      meta: { target: ['name'] },
+    });
+    mockPrisma.classes.create.mockRejectedValue(p2002);
+    const req = mockReq({
+      name: '并发班',
+      enrollment_year: 2024,
+      duration_years: 3,
+      training_level_id: 2,
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await createClass(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    const err = next.mock.calls[0][0];
+    expect(err.statusCode).toBe(422);
+    expect(err.message).toContain('已存在');
   });
 });
 
@@ -551,5 +615,77 @@ describe('updateClass — left_school 级联', () => {
     const auditCall = createAuditLog.mock.calls[0][0];
     expect(auditCall.message).not.toContain('级联删除');
     expect(auditCall.details.deletedAssignments).toBe(0);
+  });
+});
+
+// ══════════════════════════════════════════════
+// updateClass — 班级名称唯一性
+// ══════════════════════════════════════════════
+describe('updateClass — 班级名称唯一性', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.classes.findUnique.mockResolvedValue({ ...EXISTING_CLASS });
+    mockPrisma.classes.findFirst.mockResolvedValue(null);
+    getCurrentSemesterInfo.mockResolvedValue(SEMESTER_INFO);
+    mockTx.classes.update.mockResolvedValue({ ...UPDATED_CLASS });
+  });
+
+  it('改名撞已有班级 → ValidationError，不执行 update', async () => {
+    mockPrisma.classes.findFirst.mockResolvedValue({ id: 99 });
+
+    const req = mockReq({ name: '别的班' }, { id: '1' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await updateClass(req, res, next);
+
+    expect(mockPrisma.classes.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { name: '别的班', id: { not: 1 } } })
+    );
+    expect(mockTx.classes.update).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledOnce();
+    expect(next.mock.calls[0][0].statusCode).toBe(422);
+  });
+
+  it('名称未变（含 trim 后相同）→ 跳过查重正常更新', async () => {
+    const req = mockReq({ name: ' 2024级学前1班 ' }, { id: '1' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await updateClass(req, res, next);
+
+    expect(mockPrisma.classes.findFirst).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+    expect(mockTx.classes.update).toHaveBeenCalledOnce();
+  });
+
+  it('改名成功后 updateData.name 为 trim 后的名称', async () => {
+    const req = mockReq({ name: ' 新名字 ' }, { id: '1' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await updateClass(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(mockTx.classes.update.mock.calls[0][0].data.name).toBe('新名字');
+  });
+
+  it('事务中 P2002（唯一约束冲突）→ 转为友好 ValidationError', async () => {
+    const p2002 = Object.assign(new Error('Unique constraint failed'), {
+      code: 'P2002',
+      meta: { target: ['name'] },
+    });
+    mockTx.classes.update.mockRejectedValue(p2002);
+
+    const req = mockReq({ name: '并发改名' }, { id: '1' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await updateClass(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    const err = next.mock.calls[0][0];
+    expect(err.statusCode).toBe(422);
+    expect(err.message).toContain('已存在');
   });
 });

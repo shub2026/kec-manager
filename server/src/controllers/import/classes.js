@@ -62,6 +62,8 @@ export async function importClasses(req, res, next) {
   const pendingCollegeNames = new Set();
   const classOps = [];
   const validationErrors = [];
+  // 文件内重名检测：保留首行，后续同名行报错（防止同事务内创建两个重名班级）
+  const seenNamesInFile = new Map();
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -102,6 +104,16 @@ export async function importClasses(req, res, next) {
       continue;
     }
 
+    // 文件内重名行检测：首行保留，重复行记为验证错误
+    const trimmedName = String(name).trim();
+    if (seenNamesInFile.has(trimmedName)) {
+      validationErrors.push(
+        `第${i + 2}行：班级“${trimmedName}”在文件内重复（首次出现于第${seenNamesInFile.get(trimmedName)}行）`
+      );
+      continue;
+    }
+    seenNamesInFile.set(trimmedName, i + 2);
+
     // 记录待建基础数据名（事务内统一创建，避免回滚后残留孤儿，H-13 修复）
     if (
       trainingLevelName &&
@@ -133,7 +145,7 @@ export async function importClasses(req, res, next) {
 
     // 收集班级操作描述（含原始名，事务内解析 ID）
     classOps.push({
-      name: String(name).trim(),
+      name: trimmedName,
       enrollmentYear: ey,
       durationYears: dy,
       studentCount: sc,
@@ -280,7 +292,11 @@ export async function importClasses(req, res, next) {
             if (majorId) classData.majors = { connect: { id: majorId } };
             if (collegeId) classData.colleges = { connect: { id: collegeId } };
             if (trainingLevelId) classData.training_levels = { connect: { id: trainingLevelId } };
-            await tx.classes.create({ data: classData });
+            const created = await tx.classes.create({ data: classData });
+            // 新建后回填索引（防御性兜底）：后续同 name 的 op 走更新路径而非再次创建
+            const indexed = existingClassesByName.get(op.name) || [];
+            indexed.push({ id: created.id, name: op.name });
+            existingClassesByName.set(op.name, indexed);
             imported++;
           }
         }

@@ -26,6 +26,28 @@ export function invalidateFilterRelationsCache() {
   filterRelationsCacheAt = 0;
 }
 
+/**
+ * 班级名称唯一性校验（全局唯一，与导入覆盖语义一致）
+ * trim 后精确匹配；excludeId 用于改名场景排除自身
+ * @returns {string} trim 后的名称，供调用方复用
+ */
+async function assertClassNameUnique(name, excludeId = null) {
+  const trimmed = String(name).trim();
+  const existing = await prisma.classes.findFirst({
+    where: { name: trimmed, ...(excludeId != null && { id: { not: excludeId } }) },
+    select: { id: true },
+  });
+  if (existing) {
+    throw new ValidationError(`班级名称“${trimmed}”已存在，请使用其他名称`);
+  }
+  return trimmed;
+}
+
+/** 唯一约束冲突（P2002，并发竞态兜底）转友好错误 */
+function isClassNameConflictError(e) {
+  return e?.code === 'P2002' && Array.isArray(e?.meta?.target) && e.meta.target.includes('name');
+}
+
 async function getClassFilterRelations() {
   if (filterRelationsCache && Date.now() - filterRelationsCacheAt < FILTER_RELATIONS_TTL) {
     return filterRelationsCache;
@@ -221,12 +243,14 @@ export async function listClasses(req, res, next) {
       // 计算匹配的培养方案名称
       let matchedPlanName = null;
       let matchedPlanType = null; // 实际匹配类型：custom / major / level
+      let matchedPlanId = null; // 匹配方案 ID（合班伙伴“同方案”过滤依据）
       let planMatchWarning = null; // 交叉匹配警告
 
       if (cls.custom_plan_id && cls.training_plans) {
         // 有自定义方案
         matchedPlanName = cls.training_plans.name;
         matchedPlanType = 'custom';
+        matchedPlanId = cls.custom_plan_id;
       } else {
         // C1 修复：使用 findBestMatchPlan 选定最佳方案（major > level 优先级，与排课算法一致）
         // 构建 classPlanMap 以与 queries.js / assignTeacher 口径一致（此处 classes 已含 custom_plan_id 但
@@ -236,6 +260,7 @@ export async function listClasses(req, res, next) {
 
         if (bestPlan) {
           matchedPlanName = bestPlan.name;
+          matchedPlanId = bestPlan.id;
           // 根据方案实际字段判断匹配类型，而非根据班级自身字段
           matchedPlanType = bestPlan.major_id
             ? 'major'
@@ -281,6 +306,7 @@ export async function listClasses(req, res, next) {
         grade, // FR3: 后端计算的年级（1=大一，超出学制返回null）
         matchedPlanName, // 添加匹配的方案名称
         matchedPlanType, // 添加实际匹配类型（custom/major/level）
+        matchedPlanId, // 匹配方案 ID
         planMatchWarning, // 添加交叉匹配警告
         isCombinedClass: cls.combination_id != null, // 合班标记
         combinationId: cls.combination_id, // 合班组合 ID
@@ -324,6 +350,45 @@ export async function listClasses(req, res, next) {
   }
 }
 
+/**
+ * GET /api/classes/options - 全量班级轻量候选列表（供合班伙伴选择等下拉场景）
+ * 仅返回 id/name/college_id/combination_id/matched_plan_id 字段，不分页、不做动态状态计算，
+ * 避免 listClasses 的 pageSize 上限（100）截断候选数据。
+ * matched_plan_id 与 listClasses 口径一致（findBestMatchPlan：自定义 > 专业 > 层次），
+ * 供前端合班伙伴下拉按“同培养方案”过滤。
+ */
+export async function listClassOptions(req, res, next) {
+  try {
+    const [classes, allPlans] = await Promise.all([
+      prisma.classes.findMany({
+        select: {
+          id: true,
+          name: true,
+          college_id: true,
+          combination_id: true,
+          major_id: true,
+          training_level_id: true,
+          custom_plan_id: true,
+        },
+        orderBy: { id: 'asc' },
+      }),
+      prisma.training_plans.findMany({
+        select: { id: true, major_id: true, training_level_id: true, created_at: true },
+      }),
+    ]);
+    const items = classes.map((cls) => ({
+      id: cls.id,
+      name: cls.name,
+      college_id: cls.college_id,
+      combination_id: cls.combination_id,
+      matched_plan_id: findBestMatchPlan(cls, allPlans)?.id ?? null,
+    }));
+    success(res, { items });
+  } catch (e) {
+    next(e);
+  }
+}
+
 export async function createClass(req, res, next) {
   try {
     const {
@@ -341,6 +406,9 @@ export async function createClass(req, res, next) {
     if (!name || !enrollment_year || !duration_years || !training_level_id) {
       throw new ValidationError('班级名称、入学年份、学制、培养层次为必填项');
     }
+
+    // 班级名称全局唯一校验（trim 后匹配）
+    const uniqueName = await assertClassNameUnique(name);
 
     const leftSchool = !!is_left_school;
     let autoStatus;
@@ -364,7 +432,7 @@ export async function createClass(req, res, next) {
     // 先创建班级，再在事务中应用合班关系
     const cls = await prisma.classes.create({
       data: {
-        name,
+        name: uniqueName,
         enrollment_year: Number(enrollment_year),
         duration_years: Number(duration_years),
         major_id: major_id ? Number(major_id) : null,
@@ -403,9 +471,9 @@ export async function createClass(req, res, next) {
       module: 'class',
       userId: req.user?.id,
       ip: req.ip,
-      details: { id: cls.id, name, combination_class_ids },
+      details: { id: cls.id, name: uniqueName, combination_class_ids },
       result: 'success',
-      message: `创建班级：${name}`,
+      message: `创建班级：${uniqueName}`,
     });
 
     invalidateDurationCache();
@@ -422,6 +490,11 @@ export async function createClass(req, res, next) {
       result: 'failed',
       message: `创建班级失败：${e.message}`,
     });
+    if (isClassNameConflictError(e)) {
+      return next(
+        new ValidationError(`班级名称“${String(req.body.name).trim()}”已存在，请使用其他名称`)
+      );
+    }
     next(e);
   }
 }
@@ -474,7 +547,14 @@ export async function updateClass(req, res, next) {
       is_left_school: leftSchool,
     };
 
-    if (name !== undefined) updateData.name = name;
+    if (name !== undefined) {
+      const trimmedName = String(name).trim();
+      // 改名时校验唯一性（名称未变则跳过，避免误判自身）
+      if (trimmedName !== currentClass.name) {
+        await assertClassNameUnique(trimmedName, Number(id));
+      }
+      updateData.name = trimmedName;
+    }
     if (enrollment_year !== undefined) updateData.enrollment_year = Number(enrollment_year);
     if (duration_years !== undefined) updateData.duration_years = Number(duration_years);
     if (major_id !== undefined) updateData.major_id = major_id ? Number(major_id) : null;
@@ -563,6 +643,11 @@ export async function updateClass(req, res, next) {
       message: `更新班级失败：${e.message}`,
     });
     if (e.code === 'P2025') return next(new NotFoundError('班级'));
+    if (isClassNameConflictError(e)) {
+      return next(
+        new ValidationError(`班级名称“${String(req.body.name).trim()}”已存在，请使用其他名称`)
+      );
+    }
     next(e);
   }
 }

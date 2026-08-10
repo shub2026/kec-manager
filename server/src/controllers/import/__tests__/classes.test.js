@@ -12,6 +12,7 @@
  * 8. 自动创建缺失的学院
  * 9. 空行数组 → no-op
  * 10. Upsert 模式（覆盖已有班级）
+ * 11. 文件内重名行检测（保留首行，重复行报错）
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -448,5 +449,46 @@ describe('importClasses', () => {
     expect(next).not.toHaveBeenCalled();
     const createArg = mockTx.classes.create.mock.calls[0][0].data;
     expect(createArg.status).toBe('graduated');
+  });
+
+  // ── 11. 文件内重名行检测 ──────────────────
+  it('同文件两行同名新班级 → 首行创建，重复行报“文件内重复”错误', async () => {
+    readWorkbook.mockResolvedValue([validRow(), validRow({ 班级人数: '50' })]);
+    const req = mockReq({ path: '/tmp/test.xlsx' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await importClasses(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    // 仅创建一条，不会因同名创建两个班级
+    expect(mockTx.classes.create).toHaveBeenCalledOnce();
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          imported: 1,
+          failed: 1,
+          errors: expect.arrayContaining([expect.stringContaining('在文件内重复')]),
+        }),
+      })
+    );
+  });
+
+  it('文件内重复错误应指明重复行号与首次出现行号', async () => {
+    // rows 索引 0/2 对应 Excel 第 2/4 行（首行为表头）
+    readWorkbook.mockResolvedValue([
+      validRow({ 班级名称: '同名班' }),
+      validRow({ 班级名称: '其他班' }),
+      validRow({ 班级名称: '同名班' }),
+    ]);
+    const req = mockReq({ path: '/tmp/test.xlsx' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await importClasses(req, res, next);
+
+    const errors = res.json.mock.calls[0][0].data.errors;
+    expect(errors).toEqual(expect.arrayContaining([expect.stringMatching(/第4行.*同名班.*第2行/)]));
+    expect(mockTx.classes.create).toHaveBeenCalledTimes(2);
   });
 });
