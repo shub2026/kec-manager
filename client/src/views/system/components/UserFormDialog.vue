@@ -30,8 +30,18 @@
       </el-form-item>
 
       <el-form-item label="角色" prop="role">
-        <el-select v-model="formData.role" placeholder="请选择角色" style="width: 100%">
-          <!-- 本页仅超级管理员可见，可创建管理员和访客 -->
+        <el-select
+          v-model="formData.role"
+          placeholder="请选择角色"
+          style="width: 100%"
+          :disabled="isEdit && formData.role === 'super_admin'"
+        >
+          <el-option
+            v-if="isEdit && formData.role === 'super_admin'"
+            label="超级管理员"
+            value="super_admin"
+            disabled
+          />
           <el-option label="管理员" value="admin">
             <span>管理员</span>
             <span class="role-hint">基础数据和培养方案维护</span>
@@ -41,6 +51,9 @@
             <span class="role-hint">仅查询权限</span>
           </el-option>
         </el-select>
+        <div v-if="isEdit && formData.role === 'super_admin'" class="role-hint-self">
+          当前用户为超级管理员，角色不可修改
+        </div>
       </el-form-item>
 
       <el-alert v-if="!isEdit" title="角色说明" type="info" :closable="false" class="role-alert">
@@ -144,11 +157,16 @@ async function handleSubmit() {
     isEdit: isEdit.value,
     id: formData.value.id,
     data: isEdit.value
-      ? {
-          realName: formData.value.realName,
-          email: formData.value.email,
-          role: formData.value.role,
-        }
+      ? formData.value.role === 'super_admin'
+        ? {
+            realName: formData.value.realName,
+            email: formData.value.email,
+          }
+        : {
+            realName: formData.value.realName,
+            email: formData.value.email,
+            role: formData.value.role,
+          }
       : {
           username: formData.value.username,
           password: formData.value.password,
@@ -167,6 +185,11 @@ defineExpose({ open, close });
   color: var(--text-secondary);
   font-size: 12px;
   margin-left: 10px;
+}
+.role-hint-self {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 6px;
 }
 .role-alert {
   margin-top: 10px;

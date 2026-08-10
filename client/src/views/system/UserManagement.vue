@@ -60,7 +60,7 @@
             <el-button
               size="small"
               type="primary"
-              :disabled="row.role === 'super_admin'"
+              :disabled="row.role === 'super_admin' && row.id !== authStore.userInfo?.id"
               aria-label="编辑用户"
               @click="showEditDialog(row)"
             >
