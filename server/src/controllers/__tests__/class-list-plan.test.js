@@ -9,6 +9,7 @@
  * 5. 专业+层次交叉匹配 → planMatchWarning 被设置, matchedPlanType = 'major'(优先级)
  * 6. 无交叉匹配 → planMatchWarning = null
  * 7. 班级同时有 major_id + training_level_id，但最佳方案仅按层次匹配 → matchedPlanType = 'level'
+ * 8. matchedPlanId：custom 取 custom_plan_id；findBestMatchPlan 命中取 bestPlan.id；无匹配为 null
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -144,6 +145,8 @@ describe('listClasses — 培养方案匹配逻辑', () => {
     expect(data.items[0].matchedPlanName).toBe('2024学前教育方案');
     expect(data.items[0].matchedPlanType).toBe('custom');
     expect(data.items[0].planMatchWarning).toBeNull();
+    // 合班伙伴“同方案”过滤依据：custom 分支 matchedPlanId 即 custom_plan_id
+    expect(data.items[0].matchedPlanId).toBe(10);
   });
 
   // ── 场景 2: 无 custom_plan_id, 按专业匹配 ──
@@ -181,6 +184,8 @@ describe('listClasses — 培养方案匹配逻辑', () => {
     const data = res.json.mock.calls[0][0].data;
     expect(data.items[0].matchedPlanName).toBe('学前教育专业方案');
     expect(data.items[0].matchedPlanType).toBe('major');
+    // matchedPlanId 取 findBestMatchPlan 命中方案的 id
+    expect(data.items[0].matchedPlanId).toBe(20);
   });
 
   // ── 场景 3: 无 custom_plan_id, 仅按层次匹配 ──
@@ -218,6 +223,7 @@ describe('listClasses — 培养方案匹配逻辑', () => {
     const data = res.json.mock.calls[0][0].data;
     expect(data.items[0].matchedPlanName).toBe('本科通用方案');
     expect(data.items[0].matchedPlanType).toBe('level');
+    expect(data.items[0].matchedPlanId).toBe(30);
   });
 
   // ── 场景 4: 无任何匹配方案 → matchedPlanName = null ──
@@ -254,6 +260,8 @@ describe('listClasses — 培养方案匹配逻辑', () => {
     expect(data.items[0].matchedPlanName).toBeNull();
     expect(data.items[0].matchedPlanType).toBeNull();
     expect(data.items[0].planMatchWarning).toBeNull();
+    // 无匹配方案时 matchedPlanId 为 null（合班伙伴下拉将无可选新候选）
+    expect(data.items[0].matchedPlanId).toBeNull();
   });
 
   // ── 场景 5: 专业+层次交叉匹配 → planMatchWarning 被设置 ──

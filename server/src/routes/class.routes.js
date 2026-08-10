@@ -5,6 +5,7 @@ import { validatePagination } from '../middleware/pagination.js';
 import { validateIdParam, validateClass, validateClassUpdate } from '../middleware/validation.js';
 import {
   listClasses,
+  listClassOptions,
   createClass,
   updateClass,
   deleteClass,
@@ -25,6 +26,11 @@ router.post('/batch-delete', roleMiddleware('admin', 'super_admin'), batchDelete
 router.post('/batch-update', roleMiddleware('admin', 'super_admin'), batchUpdateClasses);
 
 router.get('/', validatePagination(100), listClasses);
+
+/**
+ * GET /api/classes/options - 全量班级轻量候选（合班伙伴选择等下拉场景）
+ */
+router.get('/options', roleMiddleware('admin', 'super_admin'), listClassOptions);
 router.post('/', roleMiddleware('admin', 'super_admin'), validateClass, sanitizeBody, createClass);
 router.put(
   '/:id',

@@ -146,7 +146,11 @@
                 />
               </el-select>
               <div class="form-hint">
-                仅可选择相同学院的班级，当前已选 {{ localForm.combinationClassIds?.length || 0 }} 个
+                仅可选择相同学院、相同培养方案且未加入其他合班组的班级，当前已选
+                {{ localForm.combinationClassIds?.length || 0 }} 个
+              </div>
+              <div v-if="currentMatchedPlanId == null" class="form-hint form-hint-warn">
+                当前班级未匹配到任何培养方案，暂无可选合班伙伴，请先设置专业/层次或自定义方案
               </div>
             </el-form-item>
           </el-col>
@@ -231,6 +235,7 @@ import { ElMessage } from 'element-plus';
 import { storeToRefs } from 'pinia';
 import { useResponsive } from '../../../composables/useResponsive';
 import { useClassDataStore } from '@/stores/classData';
+import { filterPartnerCandidates, resolveMatchedPlanId } from '@/utils/classCombination';
 
 const props = defineProps({
   visible: {
@@ -330,14 +335,19 @@ const rules = {
 
 const { isMobile } = useResponsive();
 
-const sameCollegeClassOptions = computed(() => {
-  const collegeId = localForm.value?.collegeId;
-  const currentId = localForm.value?.id;
-  if (!collegeId) return [];
-  return props.classes
-    .filter((c) => c.collegeId === collegeId && c.id !== currentId)
-    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-});
+// 当前班级匹配的培养方案 ID（合班伙伴“同方案”过滤依据）：
+// - 编辑时直接使用后端返回的 matchedPlanId（与 findBestMatchPlan 口径一致）
+// - 新增时后端尚未计算，按同语义本地推算（见 resolveMatchedPlanId）
+const currentMatchedPlanId = computed(() => resolveMatchedPlanId(localForm.value, plans.value));
+
+const sameCollegeClassOptions = computed(() =>
+  filterPartnerCandidates(props.classes, {
+    collegeId: localForm.value?.collegeId,
+    currentId: localForm.value?.id,
+    currentCombinationId: localForm.value?.combinationId ?? null,
+    currentPlanId: currentMatchedPlanId.value,
+  })
+);
 
 async function handleSave() {
   try {
@@ -380,5 +390,9 @@ function handleBatchSave() {
   margin-top: var(--space-1);
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.form-hint-warn {
+  color: var(--el-color-warning);
 }
 </style>

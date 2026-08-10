@@ -15,23 +15,25 @@
 
       <!-- 已选学期时显示筛选、统计、表格 -->
       <template v-else>
-        <div class="page-toolbar">
+        <FilterBar :active-count="activeFilterCount" @reset="resetFilters">
+          <template #primary>
+            <el-select
+              v-model="selectedSemester"
+              placeholder="选择学期"
+              class="filter-2xl"
+              @change="handleSemesterChange"
+            >
+              <el-option
+                v-for="sem in availableSemesters"
+                :key="sem.value"
+                :label="sem.label"
+                :value="sem.value"
+              />
+            </el-select>
+          </template>
           <el-button @click="goToCurrentSemester">
             <el-icon><Calendar /></el-icon> 当前学期
           </el-button>
-          <el-select
-            v-model="selectedSemester"
-            placeholder="选择学期"
-            class="filter-2xl"
-            @change="handleSemesterChange"
-          >
-            <el-option
-              v-for="sem in availableSemesters"
-              :key="sem.value"
-              :label="sem.label"
-              :value="sem.value"
-            />
-          </el-select>
           <el-select
             v-model="filterCollege"
             clearable
@@ -82,7 +84,7 @@
           >
             <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
           </el-select>
-          <div class="action-buttons">
+          <template #actions>
             <el-button
               :disabled="
                 !selectedSemester &&
@@ -99,8 +101,8 @@
             <el-button v-if="authStore.isAdmin" @click="exportExcel">
               <el-icon><Download /></el-icon> 导出Excel
             </el-button>
-          </div>
-        </div>
+          </template>
+        </FilterBar>
         <el-alert
           :title="`查询学期：${semesterLabel} | 共 ${totalClasses} 个班级`"
           type="success"
@@ -244,6 +246,7 @@ import { exportSemester } from '../../api/export';
 import { useSemesters } from '../../composables/useSemesters';
 import { downloadBlob } from '../../utils/download';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
+import FilterBar from '@/components/filter/FilterBar.vue';
 import { useAuthStore } from '@/stores/auth';
 import { getWithCache } from '../../utils/cache';
 import PageHeader from '../../components/PageHeader.vue';
@@ -479,6 +482,18 @@ function resetFilters() {
   // 不重置学期选择器，只重置其他筛选条件
   resetPaginationAndLoad();
 }
+
+// 生效筛选条件数（不含学期主筛选，移动端“更多筛选”按钮角标）
+const activeFilterCount = computed(
+  () =>
+    [
+      filterCollege.value,
+      filterMajor.value,
+      filterLevel.value,
+      filterEnrollmentYear.value,
+      filterGrade.value,
+    ].filter((v) => v !== '' && v !== null && v !== undefined).length
+);
 
 async function exportExcel() {
   if (!selectedSemester.value) {

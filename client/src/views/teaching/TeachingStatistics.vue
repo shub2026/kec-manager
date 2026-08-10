@@ -33,8 +33,10 @@
       </div>
 
       <!-- 筛选器 -->
-      <div class="page-toolbar">
-        <el-input v-model="filterName" placeholder="姓名" clearable class="filter-md" />
+      <FilterBar :active-count="activeFilterCount" @reset="resetFilters">
+        <template #primary>
+          <el-input v-model="filterName" placeholder="姓名" clearable class="filter-md" />
+        </template>
         <el-select v-model="filterType" placeholder="类别" clearable class="filter-sm">
           <el-option label="专职" value="full_time" />
           <el-option label="兼职" value="part_time" />
@@ -76,12 +78,12 @@
         >
           <el-option v-for="v in collegeOptions" :key="v" :label="v" :value="v" />
         </el-select>
-        <div class="action-buttons">
+        <template #actions>
           <el-button :loading="exporting" :disabled="!statsData" @click="handleExport"
             ><el-icon><Download /></el-icon> 导出Excel</el-button
           >
-        </div>
-      </div>
+        </template>
+      </FilterBar>
 
       <!-- 错误状态 -->
       <ListErrorState v-if="error" :message="error" @retry="loadStats" />
@@ -306,6 +308,7 @@ import PageHeader from '../../components/PageHeader.vue';
 import EmptyState from '../../components/EmptyState.vue';
 import ListErrorState from '../../components/ListErrorState.vue';
 import SemesterSelect from '../../components/SemesterSelect.vue';
+import FilterBar from '@/components/filter/FilterBar.vue';
 
 defineOptions({ name: 'TeachingStatistics' });
 
@@ -333,6 +336,30 @@ const applyFilter = useDebounceFn((val) => {
   debouncedFilterName.value = val;
 }, 200);
 watch(filterName, (val) => applyFilter(val));
+
+// 生效筛选条件数（移动端“更多筛选”按钮角标）
+const activeFilterCount = computed(
+  () =>
+    [
+      filterName.value,
+      filterType.value,
+      filterSubject.value,
+      filterCollege.value,
+      filterLevel.value,
+      filterAffiliatedCollege.value,
+    ].filter((v) => v !== '' && v !== null && v !== undefined).length
+);
+
+// 移动端抽屉“重置”：清空全部筛选条件（姓名需同步清除防抖镜像）
+function resetFilters() {
+  filterName.value = '';
+  debouncedFilterName.value = '';
+  filterType.value = '';
+  filterSubject.value = '';
+  filterCollege.value = '';
+  filterLevel.value = '';
+  filterAffiliatedCollege.value = '';
+}
 
 const teacherList = computed(() => statsData.value?.teachers || []);
 
@@ -523,13 +550,11 @@ onMounted(async () => {
   width: 1px;
   background: var(--border-light);
 }
+/* 窄屏保持三列等分（避免纵向堆叠占满整屏），仅压缩内边距；
+   竖线分隔保留，与 Dashboard 指标条移动端视觉一致 */
 @media (max-width: 576px) {
-  .summary-grid {
-    grid-template-columns: 1fr;
-    row-gap: var(--space-3);
-  }
-  .summary-item + .summary-item::before {
-    display: none;
+  .summary-item {
+    padding: var(--space-1) 2px;
   }
 }
 .expand-content {

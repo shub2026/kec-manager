@@ -9,6 +9,13 @@ import './types';
 export const getClasses = (params) => request.get('/classes', { params });
 
 /**
+ * 获取全量班级轻量候选列表（id/name/collegeId/combinationId）
+ * 供合班伙伴选择等下拉场景使用，不受分页上限截断
+ * @returns {Promise<import('./types').ApiResponse<{items: Array<{id: number, name: string, collegeId: number|null, combinationId: number|null}>}>>}
+ */
+export const getClassOptions = () => request.get('/classes/options');
+
+/**
  * 创建班级
  * @param {import('./types').ClassInput} data
  * @returns {Promise<import('./types').ApiResponse<import('./types').Class>>}

@@ -1,13 +1,15 @@
 <template>
-  <div class="page-toolbar">
-    <el-input
-      v-model="localFilters.name"
-      clearable
-      placeholder="按班级名称筛选"
-      class="filter-2xl"
-      @clear="$emit('search')"
-      @keyup.enter="$emit('search')"
-    />
+  <FilterBar :active-count="activeFilterCount" @reset="resetFilters">
+    <template #primary>
+      <el-input
+        v-model="localFilters.name"
+        clearable
+        placeholder="按班级名称筛选"
+        class="filter-2xl"
+        @clear="$emit('search')"
+        @keyup.enter="$emit('search')"
+      />
+    </template>
     <el-select
       v-model="localFilters.collegeId"
       clearable
@@ -96,7 +98,7 @@
       <el-option v-for="p in filteredPlans" :key="p.id" :label="p.name" :value="p.id" />
     </el-select>
 
-    <div class="action-buttons">
+    <template #actions>
       <el-button @click="$emit('export')"
         ><el-icon><Download /></el-icon> 导出Excel</el-button
       >
@@ -117,8 +119,8 @@
           ><el-icon><Upload /></el-icon> 导入Excel</el-button
         >
       </el-upload>
-    </div>
-  </div>
+    </template>
+  </FilterBar>
 </template>
 
 <script setup>
@@ -128,6 +130,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useClassDataStore } from '@/stores/classData';
 import { getCookie } from '@/utils/cookies';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
+import FilterBar from '@/components/filter/FilterBar.vue';
 
 const props = defineProps({
   filters: {
@@ -181,6 +184,21 @@ const localFilters = computed({
   get: () => props.filters,
   set: (val) => emit('update:filters', val),
 });
+
+// 生效筛选条件数（移动端“更多筛选”按钮角标）
+const activeFilterCount = computed(
+  () =>
+    Object.values(localFilters.value).filter((v) => v !== '' && v !== null && v !== undefined)
+      .length
+);
+
+// 移动端抽屉“重置”：清空全部筛选条件后重新加载
+function resetFilters() {
+  for (const key of Object.keys(localFilters.value)) {
+    localFilters.value[key] = key === 'name' ? '' : null;
+  }
+  emit('change');
+}
 
 // 使用通用联动Hook（storeToRefs 返回的均为 Ref，useFilterLinkage 内部支持 Ref 访问）
 // relations key 必须匹配 Hook 拼接规则 {parentField}{FieldName}Relation；
@@ -283,10 +301,10 @@ function handleTrainingLevelChange() {
 </script>
 
 <style scoped>
-/* filter-bar 布局由 global.css .page-toolbar 统一处理 */
+/* filter-bar 布局由 global.css .page-toolbar / FilterBar 统一处理 */
 
 @media (max-width: 768px) {
-  .action-buttons {
+  :deep(.action-buttons) {
     flex-wrap: wrap;
   }
 }

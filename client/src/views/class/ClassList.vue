@@ -120,6 +120,7 @@ import { ref, onMounted, computed, onActivated, onUnmounted, watch } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import {
   getClasses,
+  getClassOptions,
   createClass,
   updateClass,
   deleteClass,
@@ -151,9 +152,13 @@ const loading = ref(false);
 const error = ref(null);
 const selectedClasses = ref([]);
 const currentSemesterInfo = ref(null);
-// 合班伙伴候选班级（轻量列表：id/name/collegeId），在打开编辑弹窗时按需加载
+// 合班伙伴候选班级（轻量列表：id/name/collegeId/combinationId/matchedPlanId），在打开编辑弹窗时按需加载
 const allClassOptions = ref([]);
 let _allClassOptionsLoaded = false;
+// 班级数据变更（增删改/导入/合班调整）后失效候选缓存，下次打开弹窗重新拉取
+function invalidateClassOptions() {
+  _allClassOptionsLoaded = false;
+}
 
 // 使用 classDataStore 管理共享参考数据（消除向 ClassFilterBar / ClassFormDialog 传递 15+ props）
 const classDataStore = useClassDataStore();
@@ -323,11 +328,14 @@ async function openDialog(row = null) {
   dialogVisible.value = true;
   if (!_allClassOptionsLoaded) {
     try {
-      const res = await getClasses({ page: 1, pageSize: 100 });
+      // 全量轻量接口，不受 listClasses 分页上限（100）截断
+      const res = await getClassOptions();
       allClassOptions.value = (res?.data?.items || []).map((c) => ({
         id: c.id,
         name: c.name,
         collegeId: c.collegeId,
+        combinationId: c.combinationId ?? null,
+        matchedPlanId: c.matchedPlanId ?? null,
       }));
       _allClassOptionsLoaded = true;
     } catch {
@@ -391,6 +399,7 @@ async function handleSave() {
       await createClass(classData);
       ElMessage.success('创建成功');
     }
+    invalidateClassOptions();
     dialogVisible.value = false;
     await load();
   } catch (error) {
@@ -416,6 +425,7 @@ async function confirmDelete() {
   const targetName = target?.name || '该班级';
   try {
     await deleteClass(pendingDeleteId, { silent: true });
+    invalidateClassOptions();
     ElNotification({
       title: '删除成功',
       message: `已删除班级：${targetName}`,
@@ -458,6 +468,7 @@ async function confirmBatchDelete() {
     const ids = targets.map((t) => t.id);
     const { data } = await batchDeleteClasses(ids, { silent: true });
     const { succeeded = [], failed = [] } = data || {};
+    if (succeeded.length > 0) invalidateClassOptions();
 
     ElMessage.closeAll();
 
@@ -598,6 +609,7 @@ async function doBatchSet() {
     const ids = selectedClasses.value.map((cls) => cls.id);
     const { data } = await batchUpdateClasses(ids, updates);
     const { succeeded = [], failed = [] } = data || {};
+    if (succeeded.length > 0) invalidateClassOptions();
 
     if (failed.length === 0) {
       ElMessage.success(`批量设置成功，已更新 ${succeeded.length} 个班级`);
@@ -635,6 +647,7 @@ function onImportSuccess(res) {
   const failed = Number(data.failed) || 0;
   const errors = Array.isArray(data.errors) ? data.errors : [];
   const succeeded = imported + overwritten;
+  if (succeeded > 0) invalidateClassOptions();
 
   let type = 'success';
   if (succeeded === 0 && failed > 0) type = 'error';

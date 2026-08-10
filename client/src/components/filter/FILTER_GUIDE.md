@@ -1,12 +1,14 @@
-# 筛选器联动使用指南
+# 筛选器使用指南
 
 > **文档状态**：使用指南（与代码同步维护）  
-> `useFilterLinkage` composable 位于 `components/filter/composables/`，已在班级管理、教师信息、教学安排、开课查询四个页面落地。
+> `useFilterLinkage` composable 位于 `components/filter/composables/`，已在班级管理、教师信息、教学安排、开课查询四个页面落地。  
+> `FilterBar.vue` 响应式筛选容器位于 `components/filter/`，见下方「移动端响应式收纳」章节。
 
 ## 📋 目录
 
 - [设计理念](#设计理念)
 - [使用方式](#使用方式)
+- [移动端响应式收纳（FilterBar）](#移动端响应式收纳filterbar)
 - [各页面集成现状](#各页面集成现状)
 
 ---
@@ -106,6 +108,62 @@ const filteredYears = computed(() =>
 );
 </script>
 ```
+
+---
+
+## 📱 移动端响应式收纳（FilterBar）
+
+### 背景
+
+桌面端页面工具栏通常有 5~8 个筛选器，移动端（<768px）若全部纵向全宽排列会占满整屏。
+`FilterBar.vue` 提供统一的收纳方案：**主筛选器常驻 + “更多筛选”底部抽屉**。
+
+### 行为约定
+
+- **桌面端（≥768px）**：渲染为普通工具栏（默认 `.page-toolbar`，可通过 `toolbar-class` 替换为 `card-header-actions` 等），与改造前布局完全一致。
+- **移动端（<768px）**：第一行显示主筛选器（全宽）；第二行显示“更多筛选”按钮 + 操作区；其余筛选器收进底部抽屉（`el-drawer` 自下而上，高 60%），抽屉内筛选值实时生效，底部提供“重置 / 完成”。
+- **角标提示**：传入 `active-count`（生效筛选条件数）后，>0 时按钮显示角标并转 primary 色，抽屉“重置”按钮在 0 时禁用。
+
+### 用法示例
+
+```vue
+<template>
+  <FilterBar :active-count="activeFilterCount" @reset="resetFilters">
+    <!-- 主筛选器：选页面最高频/最核心的一个（如名称搜索、学期选择） -->
+    <template #primary>
+      <el-input v-model="filters.name" placeholder="搜索" clearable />
+    </template>
+
+    <!-- 其余筛选器：桌面端并列展示，移动端进抽屉 -->
+    <el-select v-model="filters.collegeId">…</el-select>
+    <el-select v-model="filters.status">…</el-select>
+
+    <!-- 操作按钮（导出/导入/新增等），无需再包 .action-buttons -->
+    <template #actions>
+      <el-button>导出Excel</el-button>
+    </template>
+  </FilterBar>
+</template>
+
+<script setup>
+import FilterBar from '@/components/filter/FilterBar.vue';
+
+const activeFilterCount = computed(
+  () => Object.values(filters.value).filter((v) => v !== '' && v != null).length
+);
+
+function resetFilters() {
+  /* 清空 filters 后重新加载 */
+}
+</script>
+```
+
+### 接入规范
+
+1. **primary 选择原则**：选页面最高频/最核心的筛选器（列表页通常是名称搜索，查询页是学期/学院）。
+2. 筛选器 ≤3 个的简单页面无需接入，现有纵向堆叠可接受；筛选器 ≥4 个的页面必须接入 FilterBar。
+3. 抽屉内筛选控件的全宽样式由 `global.css` 的 `.filter-drawer` 规则统一处理，勿在页面内重复定义。
+4. 已接入页面：班级管理（ClassFilterBar）、教师信息（TeacherFilterBar）、开课查询（UnifiedSemesterQuery）、教学安排（ArrangeToolbar）、课时统计（TeachingStatistics）。筛选器 ≥4 个的页面必须接入；≤3 个的简单页面（如审计日志、教材列表）现有纵向堆叠可接受。
 
 ---
 

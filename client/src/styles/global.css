@@ -557,6 +557,26 @@ a:focus-visible,
     width: 100%;
   }
 
+  /* FilterBar 移动端：主筛选器常驻 + “更多筛选”抽屉收纳（见 components/filter/FilterBar.vue） */
+  .filter-bar-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 12px;
+  }
+
+  .filter-bar-mobile__primary .el-select,
+  .filter-bar-mobile__primary .el-input {
+    width: 100%;
+  }
+
+  .filter-bar-mobile__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
   /* 分页居中 + 窄屏防溢出：允许换行并隐藏每页条数选择器 */
   .pagination-container {
     justify-content: center;
@@ -658,6 +678,32 @@ a:focus-visible,
     max-height: calc(90dvh - 140px);
     overflow-y: auto;
   }
+}
+
+/* ----- FilterBar “更多筛选”抽屉（el-drawer 传送至 body，须写在全局样式） ----- */
+.filter-drawer .filter-drawer__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 抽屉内筛选控件全宽（特异性压过全局 .filter-* 固定宽度工具类） */
+.filter-drawer .filter-drawer__body .el-select,
+.filter-drawer .filter-drawer__body .el-input {
+  width: 100%;
+}
+
+.filter-drawer .filter-drawer__footer {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-drawer .filter-drawer__footer .el-button {
+  flex: 1;
+}
+
+.filter-drawer .filter-drawer__footer .el-button + .el-button {
+  margin-left: 0;
 }
 
 /* ----- 操作列 hover 浮现效果：减少视觉噪音，hover 时才完全显示 ----- */

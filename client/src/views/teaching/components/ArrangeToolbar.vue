@@ -1,14 +1,20 @@
 <template>
-  <div class="card-header-actions arrange-header">
-    <el-select
-      v-model="localFilters.college"
-      placeholder="学院"
-      clearable
-      class="header-filter filter-md"
-      @change="handleCollegeFilterChange"
-    >
-      <el-option v-for="v in filterOptions.colleges" :key="v" :label="v" :value="v" />
-    </el-select>
+  <FilterBar
+    :active-count="activeFilterCount"
+    toolbar-class="card-header-actions arrange-header"
+    @reset="clearFilters"
+  >
+    <template #primary>
+      <el-select
+        v-model="localFilters.college"
+        placeholder="学院"
+        clearable
+        class="header-filter filter-md"
+        @change="handleCollegeFilterChange"
+      >
+        <el-option v-for="v in filterOptions.colleges" :key="v" :label="v" :value="v" />
+      </el-select>
+    </template>
     <el-select
       v-model="localFilters.major"
       placeholder="专业"
@@ -45,79 +51,81 @@
     >
       <el-option v-for="v in filterOptions.textbooks" :key="v" :label="v" :value="v" />
     </el-select>
-    <el-button
-      type="warning"
-      :loading="arranging"
-      :disabled="historicalReadOnly"
-      @click="emit('auto-arrange', 'full')"
-    >
-      <el-icon><MagicStick /></el-icon> 全量模式
-    </el-button>
-    <el-button
-      type="success"
-      :loading="arranging"
-      :disabled="historicalReadOnly"
-      @click="emit('auto-arrange', 'standard')"
-    >
-      <el-icon><SetUp /></el-icon> 标准模式
-    </el-button>
-    <el-dropdown
-      :disabled="batchArranging || historicalReadOnly"
-      class="dropdown-gap"
-      @command="(command) => emit('batch-arrange', command)"
-    >
-      <el-button type="primary" :loading="batchArranging">
-        批量排课<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+    <template #actions>
+      <el-button
+        type="warning"
+        :loading="arranging"
+        :disabled="historicalReadOnly"
+        @click="emit('auto-arrange', 'full')"
+      >
+        <el-icon><MagicStick /></el-icon> 全量模式
       </el-button>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item command="full">全量模式（所有课程）</el-dropdown-item>
-          <el-dropdown-item command="standard">标准模式（所有课程）</el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
-    <el-button
-      type="info"
-      :loading="optimizing"
-      :disabled="historicalReadOnly"
-      class="dropdown-gap"
-      @click="emit('optimize')"
-    >
-      <el-icon><DataAnalysis /></el-icon>
-      {{ optimizing && optimizeProgressMessage ? optimizeProgressMessage : '排课优化' }}
-    </el-button>
-    <el-dropdown class="dropdown-gap" @command="(command) => emit('reset', command)">
-      <el-button type="danger" :disabled="historicalReadOnly">
-        <el-icon><RefreshRight /></el-icon> 重置<el-icon class="el-icon--right"
-          ><ArrowDown
-        /></el-icon>
+      <el-button
+        type="success"
+        :loading="arranging"
+        :disabled="historicalReadOnly"
+        @click="emit('auto-arrange', 'standard')"
+      >
+        <el-icon><SetUp /></el-icon> 标准模式
       </el-button>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item command="current">重置当前科目</el-dropdown-item>
-          <el-dropdown-item command="all">重置全部科目</el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
-    <el-button
-      type="success"
-      plain
-      :disabled="historicalReadOnly"
-      class="lock-btn"
-      @click="emit('lock-all')"
-    >
-      <el-icon><Lock /></el-icon> 锁定
-    </el-button>
-    <el-button
-      type="warning"
-      plain
-      :disabled="historicalReadOnly"
-      class="lock-btn"
-      @click="emit('unlock-all')"
-    >
-      <el-icon><Unlock /></el-icon> 解锁
-    </el-button>
-  </div>
+      <el-dropdown
+        :disabled="batchArranging || historicalReadOnly"
+        class="dropdown-gap"
+        @command="(command) => emit('batch-arrange', command)"
+      >
+        <el-button type="primary" :loading="batchArranging">
+          批量排课<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="full">全量模式（所有课程）</el-dropdown-item>
+            <el-dropdown-item command="standard">标准模式（所有课程）</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <el-button
+        type="info"
+        :loading="optimizing"
+        :disabled="historicalReadOnly"
+        class="dropdown-gap"
+        @click="emit('optimize')"
+      >
+        <el-icon><DataAnalysis /></el-icon>
+        {{ optimizing && optimizeProgressMessage ? optimizeProgressMessage : '排课优化' }}
+      </el-button>
+      <el-dropdown class="dropdown-gap" @command="(command) => emit('reset', command)">
+        <el-button type="danger" :disabled="historicalReadOnly">
+          <el-icon><RefreshRight /></el-icon> 重置<el-icon class="el-icon--right"
+            ><ArrowDown
+          /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="current">重置当前科目</el-dropdown-item>
+            <el-dropdown-item command="all">重置全部科目</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <el-button
+        type="success"
+        plain
+        :disabled="historicalReadOnly"
+        class="lock-btn"
+        @click="emit('lock-all')"
+      >
+        <el-icon><Lock /></el-icon> 锁定
+      </el-button>
+      <el-button
+        type="warning"
+        plain
+        :disabled="historicalReadOnly"
+        class="lock-btn"
+        @click="emit('unlock-all')"
+      >
+        <el-icon><Unlock /></el-icon> 解锁
+      </el-button>
+    </template>
+  </FilterBar>
 </template>
 
 <script setup>
@@ -125,6 +133,7 @@ import { computed } from 'vue';
 // Lock 已全局注册，Unlock 未注册需显式导入（一并导入保持成对语义）
 import { Lock, Unlock } from '@element-plus/icons-vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
+import FilterBar from '@/components/filter/FilterBar.vue';
 
 const props = defineProps({
   /** 筛选值对象：{ college, major, trainingLevel, grade, textbook } */
@@ -174,6 +183,20 @@ const localFilters = computed({
   get: () => props.filters,
   set: (val) => emit('update:filters', val),
 });
+
+// 生效筛选条件数（移动端“更多筛选”按钮角标）
+const activeFilterCount = computed(
+  () =>
+    Object.values(localFilters.value).filter((v) => v !== '' && v !== null && v !== undefined)
+      .length
+);
+
+// 移动端抽屉“重置”：清空筛选条件（与排课重置 emit('reset') 语义不同）
+function clearFilters() {
+  for (const key of Object.keys(localFilters.value)) {
+    localFilters.value[key] = '';
+  }
+}
 
 // 使用通用联动Hook
 const { handleParentChange } = useFilterLinkage({

@@ -1,6 +1,8 @@
 <template>
-  <div class="page-toolbar">
-    <el-input v-model="localFilters.name" placeholder="搜索姓名" clearable class="filter-2xl" />
+  <FilterBar :active-count="activeFilterCount" @reset="resetFilters">
+    <template #primary>
+      <el-input v-model="localFilters.name" placeholder="搜索姓名" clearable class="filter-2xl" />
+    </template>
     <el-select
       v-model="localFilters.personnelType"
       placeholder="人员类别"
@@ -53,7 +55,7 @@
       <el-option label="启用" value="active" />
       <el-option label="禁用" value="disabled" />
     </el-select>
-    <div class="action-buttons">
+    <template #actions>
       <el-button @click="$emit('export')"
         ><el-icon><Download /></el-icon> 导出Excel</el-button
       >
@@ -74,13 +76,14 @@
           ><el-icon><Upload /></el-icon> 导入Excel</el-button
         >
       </el-upload>
-    </div>
-  </div>
+    </template>
+  </FilterBar>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
+import FilterBar from '@/components/filter/FilterBar.vue';
 
 const props = defineProps({
   filters: {
@@ -126,6 +129,20 @@ const localFilters = computed({
   get: () => props.filters,
   set: (val) => emit('update:filters', val),
 });
+
+// 生效筛选条件数（移动端“更多筛选”按钮角标）
+const activeFilterCount = computed(
+  () =>
+    Object.values(localFilters.value).filter((v) => v !== '' && v !== null && v !== undefined)
+      .length
+);
+
+// 移动端抽屉“重置”：清空全部筛选条件（父页 watch 会自动重新拉取）
+function resetFilters() {
+  for (const key of Object.keys(localFilters.value)) {
+    localFilters.value[key] = '';
+  }
+}
 
 // 转换collegeLevelMapping为Hook需要的格式
 const collegeLevelRelation = computed(() => {
