@@ -1,0 +1,157 @@
+/* 分区头（按课程类型分组） */
+.group-head {
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #475569;
+  padding: 24rpx 28rpx 12rpx;
+}
+.group-count {
+  margin-left: 12rpx;
+  font-size: 22rpx;
+  font-weight: 400;
+  color: #94a3b8;
+  background: #f1f5f9;
+  border-radius: 16rpx;
+  padding: 2rpx 14rpx;
+}
+
+/* 课程概览卡片 */
+.ov-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin: 0 24rpx 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+.ov-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ov-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  margin-right: 12rpx;
+}
+.ov-type {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  border-radius: 8rpx;
+  padding: 4rpx 14rpx;
+}
+.ov-type.blue { color: #1C82F5; background: #E8F4FD; }
+.ov-type.green { color: #16a34a; background: #E7F6EC; }
+.ov-type.gray { color: #64748b; background: #f1f5f9; }
+
+.ov-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16rpx;
+}
+.ov-progress-label {
+  font-size: 24rpx;
+  color: #64748b;
+}
+.ov-badge {
+  font-size: 22rpx;
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
+}
+.ov-badge.done { color: #16a34a; background: #E7F6EC; }
+.ov-badge.waiting { color: #ff6b1a; background: #fff0e8; }
+
+.ov-stats {
+  display: flex;
+  margin-top: 18rpx;
+}
+.ov-stat {
+  flex: 1;
+  text-align: center;
+  border-right: 1rpx solid #f0f0f0;
+}
+.ov-stat:last-child { border-right: none; }
+.ov-stat-num {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.ov-stat-num.danger { color: #e11d48; }
+.ov-stat-label {
+  display: block;
+  font-size: 22rpx;
+  color: #8a8a8a;
+  margin-top: 4rpx;
+}
+
+/* 展开明细区 */
+.ov-detail {
+  margin-top: 18rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx dashed #e8e8e8;
+}
+.dt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f4f4f4;
+}
+.dt-row:last-child { border-bottom: none; }
+.dt-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+.dt-name {
+  font-size: 26rpx;
+  color: #1a1a1a;
+}
+.dt-combined {
+  margin-left: 10rpx;
+  font-size: 20rpx;
+  color: #1C82F5;
+  background: #E8F4FD;
+  border-radius: 6rpx;
+  padding: 2rpx 8rpx;
+}
+.dt-assign {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}
+.dt-teacher {
+  font-size: 26rpx;
+  color: #1C82F5;
+}
+.dt-lock {
+  margin-left: 8rpx;
+  font-size: 20rpx;
+  color: #16a34a;
+  background: #E7F6EC;
+  border-radius: 6rpx;
+  padding: 2rpx 8rpx;
+}
+.dt-auto {
+  margin-left: 8rpx;
+  font-size: 20rpx;
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 6rpx;
+  padding: 2rpx 8rpx;
+}
+.dt-unassigned {
+  font-size: 26rpx;
+  color: #ff6b1a;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}

@@ -9,7 +9,7 @@
 |------|------|------|--------|
 | 登录 | `pages/login` | 普通 | `POST /api/auth/login` |
 | 首页概览 | `pages/home` | tabBar | `GET /api/dashboard/stats` + `insights` |
-| 开课查询 | `pages/semester` | tabBar | `GET /api/query/semester`（分页+年级筛选） |
+| 教学安排 | `pages/teaching-arrange` | tabBar | `GET /api/teaching-arrange/course-overview`（按课程聚合的排课概览卡片） |
 | 教材查询 | `pages/textbook` | tabBar | `GET /api/textbooks`（搜索+分页） |
 | 教材详情 | `pages/textbook-detail` | navigateTo | `GET /api/query/textbook/:id` |
 | 教师课时 | `pages/teacher-hours` | tabBar | `GET /api/teaching-arrange/statistics` |

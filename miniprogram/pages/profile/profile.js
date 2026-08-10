@@ -24,16 +24,19 @@ Page({
     appEnv: getEnvLabel(),
     appVersion: APP_VERSION,
     loading: true,
+    refreshing: false,
     error: '',
   },
 
   onShow() {
     if (!guard()) return;
-    this.loadMe();
+    // 已加载过则不再重复拉取（与其他页一致），避免每次切 tab 闪空 + 重复请求
+    if (!this.data.me) this.loadMe();
   },
 
-  async loadMe() {
-    this.setData({ loading: true, error: '' });
+  async loadMe(isRefresh = false) {
+    // 首屏全屏 loading；下拉刷新保留已有内容，仅用轻量提示，避免闪空
+    this.setData(isRefresh ? { refreshing: true, error: '' } : { loading: true, error: '' });
     try {
       const me = await api.getMe();
       const app = getApp();
@@ -50,9 +53,15 @@ Page({
         canManage: isAdmin(),
         canUserManage: isSuperAdmin(),
         loading: false,
+        refreshing: false,
       });
     } catch (e) {
-      this.setData({ error: (e && e.message) || '加载失败', loading: false });
+      if (isRefresh) {
+        this.setData({ refreshing: false });
+        wx.showToast({ title: (e && e.message) || '刷新失败', icon: 'none' });
+      } else {
+        this.setData({ error: (e && e.message) || '加载失败', loading: false });
+      }
     }
   },
 
@@ -76,6 +85,6 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadMe().then(() => wx.stopPullDownRefresh());
+    this.loadMe(true).then(() => wx.stopPullDownRefresh());
   },
 });

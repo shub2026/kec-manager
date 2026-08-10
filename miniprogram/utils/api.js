@@ -44,14 +44,6 @@ const api = {
     return request({ url: '/api/dashboard/insights', data: { semester } });
   },
 
-  // 开课查询（分页 + 年级筛选）
-  async getSemesterClasses(params = {}) {
-    const semester = await ensureSemester();
-    const data = { semester, page: params.page || 1, pageSize: params.pageSize || 20 };
-    if (params.grade) data.grade = params.grade;
-    return request({ url: '/api/query/semester', data });
-  },
-
   // 教材使用情况（按教材查开课班级）
   async getTextbookUsage(id) {
     const semester = await ensureSemester();
@@ -88,6 +80,12 @@ const api = {
     return request({ url: `/api/teachers/${id}`, method: 'PUT', data: payload });
   },
 
+  // 删除教师（仅管理员），DELETE /api/teachers/:id。
+  // 后端 teacher.routes.js 已挂载该路由（roleMiddleware admin/super_admin）。
+  deleteTeacher(id) {
+    return request({ url: `/api/teachers/${id}`, method: 'DELETE' });
+  },
+
   // 学院列表（所有登录用户可查），用于新增教师时选择归属学院
   getColleges() {
     return request({ url: '/api/colleges' });
@@ -102,6 +100,18 @@ const api = {
   async getStatistics() {
     const semester = await ensureSemester();
     return request({ url: '/api/teaching-arrange/statistics', data: { semester } });
+  },
+
+  // 教学安排 - 课程排课概览（对标 web 端 CourseOverviewGrid 的数据源，只读）
+  async getCourseOverview() {
+    const semester = await ensureSemester();
+    return request({ url: '/api/teaching-arrange/course-overview', data: { semester } });
+  },
+
+  // 教学安排 - 单课程逐班安排明细（卡片展开用，只读）
+  async getCourseArrangeDetail(courseId) {
+    const semester = await ensureSemester();
+    return request({ url: '/api/teaching-arrange/classes', data: { courseId, semester } });
   },
 
   // ===== 用户管理（仅超级管理员，后端 roleMiddleware('super_admin') 守门） =====

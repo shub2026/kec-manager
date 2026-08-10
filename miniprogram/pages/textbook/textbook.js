@@ -14,6 +14,7 @@ Page({
     loadingMore: false,
     finished: false,
     error: '',
+    refreshing: false,
   },
 
   onShow() {
@@ -26,11 +27,6 @@ Page({
   },
 
   // 切走 tab 时重置搜索；从详情返回（navigateTo）不重置
-  onHide() {
-    if (this._fromDetail) return;
-    this.setData({ keyword: '', list: [], finished: false });
-  },
-
   async reload() {
     this.setData({ page: 1, list: [], finished: false, error: '' });
     await this.fetch(true);
@@ -87,7 +83,22 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.reload().then(() => wx.stopPullDownRefresh());
+    // 后台静默刷新：保留当前列表，避免整页闪空（与首页/教学安排页范式一致）
+    if (this.data.loading || this.data.loadingMore) {
+      wx.stopPullDownRefresh();
+      return;
+    }
+    this.setData({ refreshing: true, error: '', page: 1 });
+    this.fetch(true)
+      .then(() => {
+        this.setData({ refreshing: false });
+        wx.stopPullDownRefresh();
+      })
+      .catch((e) => {
+        this.setData({ refreshing: false });
+        wx.showToast({ title: (e && e.message) || '刷新失败', icon: 'none' });
+        wx.stopPullDownRefresh();
+      });
   },
 
   goDetail(e) {

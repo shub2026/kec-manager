@@ -168,7 +168,7 @@ Page({
       patch.refreshing = true;
     }
     this.setData(patch);
-    this.loadTeachers();
+    return this.loadTeachers();
   },
 
   async loadTeachers() {
@@ -209,8 +209,8 @@ Page({
     }
   },
 
-  onPullDownRefresh() {
-    this.reload(true);
+  async onPullDownRefresh() {
+    await this.reload(true);
     wx.stopPullDownRefresh();
   },
 
@@ -307,6 +307,27 @@ Page({
   closeSheet() {
     if (this.data.submitting) return;
     this.setData({ showSheet: false });
+  },
+
+  // 删除教师：二次确认防误删，与用户管理页 deleteUser 范式一致
+  deleteTeacher(e) {
+    const id = e.currentTarget.dataset.id;
+    const t = this.data.teachers.find((x) => x.id === id);
+    wx.showModal({
+      title: '删除教师',
+      content: `确定要删除教师「${t ? t.name : ''}」吗？此操作不可恢复。`,
+      confirmColor: '#e53e3e',
+      success: async (res) => {
+        if (!res.confirm) return;
+        try {
+          await api.deleteTeacher(id);
+          wx.showToast({ title: '已删除', icon: 'success' });
+          this.reload();
+        } catch (err) {
+          wx.showToast({ title: (err && err.message) || '删除失败', icon: 'none' });
+        }
+      },
+    });
   },
 
   // 弹层内部点按：阻止冒泡到 mask 关闭

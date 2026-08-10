@@ -61,7 +61,8 @@
   white-space: nowrap;
 }
 .tb-sub {
-  margin-top: 8rpx;
+  margin-top: 10rpx;
+  line-height: 1.4;
 }
 .tb-pub {
   font-size: 24rpx;

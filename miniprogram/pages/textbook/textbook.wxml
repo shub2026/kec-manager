@@ -27,12 +27,13 @@
     <view class="search-btn" bindtap="onSearch">搜索</view>
   </view>
 
-  <view class="count-line" wx:if="{{!loading && !error}}">共 {{total}} 种教材</view>
+  <view class="count-line" wx:if="{{(!loading || refreshing) && !error}}">共 {{total}} 种教材</view>
 
-  <view wx:if="{{loading}}" class="loading">加载中…</view>
-  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+  <view wx:if="{{refreshing}}" class="loading">刷新中…</view>
+  <view wx:elif="{{loading && list.length === 0}}" class="loading">加载中…</view>
+  <view wx:elif="{{error && list.length === 0}}" class="errbox">{{error}}</view>
 
-  <view wx:elif="{{list.length}}" class="list">
+  <view wx:if="{{list.length}}" class="list">
     <view
       wx:for="{{list}}"
       wx:key="id"

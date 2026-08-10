@@ -10,8 +10,8 @@
     </view>
   </view>
 
-  <view wx:if="{{loading}}" class="loading">加载中…</view>
-  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+  <view wx:if="{{loading && !summary}}" class="loading">加载中…</view>
+  <view wx:elif="{{error && !summary}}" class="errbox">{{error}}</view>
 
   <block wx:else>
     <!-- 整体汇总 -->

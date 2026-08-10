@@ -1,3 +1,4 @@
+/* ===== 本学期概览：已排/计划周课时 ===== */
 .hours-row {
   display: flex;
   margin-top: 24rpx;
@@ -16,73 +17,281 @@
   font-size: 40rpx;
   font-weight: 700;
   color: #1C82F5;
+  line-height: 1.1;
+  margin-bottom: 6rpx;
 }
 .h-label {
   font-size: 24rpx;
   color: #8a8a8a;
 }
 
-.bar {
+/* ===== 排课进度（复用 web 端 CourseProgressChart） ===== */
+.card-empty {
+  text-align: center;
+  color: #b0b0b0;
+  padding: 48rpx 0;
+  font-size: 26rpx;
+}
+.progress-summary {
+  text-align: center;
+  padding: 8rpx 0 4rpx;
+}
+.ps-percent {
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #10b981;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -2rpx;
+}
+.ps-sign {
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-left: 4rpx;
+}
+.ps-label {
+  display: block;
+  font-size: 24rpx;
+  color: #8a8a8a;
+  margin-top: 6rpx;
+}
+.progress-track {
   height: 16rpx;
   background: #eef0f2;
   border-radius: 8rpx;
   overflow: hidden;
+  margin-top: 20rpx;
 }
-.bar-in {
+.progress-filled {
   height: 100%;
-  background: #1C82F5;
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
   border-radius: 8rpx;
   transition: width 0.3s ease;
 }
-.completion-text {
-  font-size: 26rpx;
+.progress-legend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20rpx;
+  font-size: 24rpx;
   color: #8a8a8a;
-  margin-top: 16rpx;
 }
-
-.alert-row {
+.pl-item {
+  display: flex;
+  align-items: center;
+}
+.pl-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  margin-right: 8rpx;
+  flex-shrink: 0;
+}
+.pl-dot-filled { background: #10b981; }
+.pl-dot-remaining { background: #cbd5e1; }
+.pl-num {
+  font-weight: 700;
+  color: #1a1a1a;
+  font-variant-numeric: tabular-nums;
+}
+.hours-summary {
   display: flex;
   margin-top: 20rpx;
 }
-.alert-item {
+.hs-tag {
   flex: 1;
-  background: #fff0e8;
-  border: 1rpx solid #ffd3ba;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 12rpx;
   border-radius: 12rpx;
-  padding: 16rpx;
-  text-align: center;
-  margin-right: 16rpx;
+  font-size: 24rpx;
 }
-.alert-item:last-child {
-  margin-right: 0;
-}
-.alert-item.danger-bg {
-  background: #fee2e2;
-  border-color: #fecaca;
-}
-.alert-item.ok-bg {
-  background: #e7f8f2;
-  border-color: #b7ead9;
-}
-.a-num {
-  display: block;
-  font-size: 36rpx;
+.hs-tag + .hs-tag { margin-left: 16rpx; }
+.hs-filled { background: #e7f8f2; color: #047857; }
+.hs-remaining { background: #f1f5f9; color: #475569; }
+.hs-num {
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
-.a-num.warn {
-  color: #ff6b1a;
-}
-.a-num.danger {
-  color: #dc2626;
-}
-.a-num.ok {
-  color: #10b981;
-}
-.a-label {
-  font-size: 22rpx;
-  color: #8a8a8a;
+.complete-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20rpx;
+  padding: 16rpx;
+  background: #e7f8f2;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: #047857;
+  font-weight: 500;
 }
 
+/* ===== 异常提醒（复用 web 端 AlertCard） ===== */
+.alert-badge {
+  min-width: 36rpx;
+  height: 36rpx;
+  padding: 0 10rpx;
+  box-sizing: border-box;
+  border-radius: 18rpx;
+  background: #ff6b1a;
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 36rpx;
+  text-align: center;
+}
+.alert-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 0;
+  color: #8a8a8a;
+  font-size: 26rpx;
+}
+.ae-check {
+  font-size: 56rpx;
+  color: #10b981;
+  line-height: 1;
+  margin-bottom: 12rpx;
+}
+.alert-group { margin-bottom: 24rpx; }
+.alert-group:last-child { margin-bottom: 0; }
+.ag-title {
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 14rpx;
+}
+.ag-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+}
+.ag-warn { background: #ff6b1a; }
+.ag-danger { background: #dc2626; }
+.ai-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 20rpx;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  margin-bottom: 12rpx;
+}
+.ai-item:last-child { margin-bottom: 0; }
+.ai-warn { background: #fff0e8; color: #1a1a1a; }
+.ai-danger { background: #fee2e2; color: #1a1a1a; }
+.ai-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-detail {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  font-weight: 600;
+  color: #dc2626;
+  font-variant-numeric: tabular-nums;
+}
+.ai-more {
+  font-size: 22rpx;
+  color: #8a8a8a;
+  text-align: right;
+}
+
+/* ===== 课时概览（复用 web 端 CourseStatsCard） ===== */
+.cs-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.cs-row:last-child { border-bottom: none; }
+.cs-name {
+  display: flex;
+  align-items: center;
+  width: 200rpx;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.cs-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+}
+.cs-name-text {
+  font-size: 26rpx;
+  color: #1a1a1a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.cs-hours {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0 16rpx;
+}
+.cs-bar-wrap {
+  flex: 1;
+  height: 16rpx;
+  background: #eef0f2;
+  border-radius: 8rpx;
+  overflow: hidden;
+  min-width: 0;
+}
+.cs-bar {
+  height: 100%;
+  border-radius: 8rpx;
+}
+.cs-value {
+  width: 64rpx;
+  flex-shrink: 0;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cs-meta {
+  width: 150rpx;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.cs-meta-num {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+.cs-meta-num + .cs-meta-num { margin-left: 16rpx; }
+.cs-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 2rpx solid #f0f0f0;
+  font-size: 24rpx;
+  color: #8a8a8a;
+}
+.cs-total {
+  color: #1a1a1a;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 学院课时分布（复用全局 .bar / .bar-in） ===== */
 .dist-row {
   display: flex;
   align-items: center;
@@ -107,4 +316,3 @@
   font-weight: 600;
   color: #1C82F5;
 }
-

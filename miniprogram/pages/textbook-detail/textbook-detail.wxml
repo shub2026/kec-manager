@@ -1,6 +1,6 @@
 <view class="page">
-  <view wx:if="{{loading}}" class="loading">加载中…</view>
-  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+  <view wx:if="{{loading && !textbook}}" class="loading">加载中…</view>
+  <view wx:elif="{{error && !textbook}}" class="errbox">{{error}}</view>
 
   <block wx:else>
     <!-- 教材信息 -->

@@ -91,7 +91,7 @@ Page({
       patch.refreshing = true;
     }
     this.setData(patch);
-    this.loadUsers();
+    return this.loadUsers();
   },
 
   async loadUsers() {
@@ -154,8 +154,8 @@ Page({
     }
   },
 
-  onPullDownRefresh() {
-    this.reload(true);
+  async onPullDownRefresh() {
+    await this.reload(true);
     wx.stopPullDownRefresh();
   },
 

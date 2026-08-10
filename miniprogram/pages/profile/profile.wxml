@@ -1,8 +1,10 @@
 <view class="page">
-  <view wx:if="{{loading}}" class="loading">加载中…</view>
-  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+  <view wx:if="{{loading && !me}}" class="loading">加载中…</view>
+  <view wx:elif="{{error && !me}}" class="errbox">{{error}}</view>
 
   <block wx:else>
+    <view wx:if="{{refreshing}}" class="loading">刷新中…</view>
+
     <!-- 用户卡 -->
     <view class="user-card">
       <view class="avatar">{{me.avatar}}</view>

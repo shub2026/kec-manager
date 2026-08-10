@@ -60,6 +60,7 @@
           </view>
           <view class="tc-right">
             <view wx:if="{{canManage}}" class="tc-edit" catchtap="openEdit" data-id="{{item.id}}">编辑</view>
+            <view wx:if="{{canManage}}" class="tc-del" catchtap="deleteTeacher" data-id="{{item.id}}">删除</view>
           </view>
         </view>
         <view class="tc-meta">

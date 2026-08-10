@@ -14,10 +14,12 @@
     </view>
   </view>
 
-  <view wx:if="{{loading}}" class="loading">加载中…</view>
-  <view wx:elif="{{error}}" class="errbox">{{error}}</view>
+  <view wx:if="{{loading && !stats}}" class="loading">加载中…</view>
+  <view wx:elif="{{error && !stats}}" class="errbox">{{error}}</view>
 
   <block wx:else>
+    <view wx:if="{{refreshing}}" class="loading">刷新中…</view>
+
     <!-- 本学期概览 -->
     <view class="card">
       <view class="card-title">本学期概览</view>
@@ -59,29 +61,106 @@
       </view>
     </view>
 
-    <!-- 排课完成度 -->
+    <!-- 排课进度（复用 web 端 CourseProgressChart） -->
     <view class="card">
-      <view class="card-title">排课完成度
+      <view class="card-title">排课进度
         <text class="more" bindtap="goStatistics">课时统计 ›</text>
       </view>
-      <view class="bar"><view class="bar-in" style="width:{{insights.completion.rate}}%"></view></view>
-      <view class="completion-text">
-        已排 {{insights.completion.assignedCourses}} / 应排 {{insights.completion.totalCourses}}（{{insights.completion.rate}}%）
+
+      <view wx:if="{{insights.progress.total === 0}}" class="card-empty">暂无排课数据</view>
+
+      <block wx:else>
+        <view class="progress-summary">
+          <text class="ps-percent">{{insights.progress.rate}}<text class="ps-sign">%</text></text>
+          <text class="ps-label">已排课占比</text>
+        </view>
+
+        <view class="progress-track">
+          <view class="progress-filled" style="width:{{insights.progress.rate}}%"></view>
+        </view>
+
+        <view class="progress-legend">
+          <view class="pl-item">
+            <text class="pl-dot pl-dot-filled"></text>
+            <text class="pl-text">已排课 <text class="pl-num">{{insights.progress.assigned}}</text> 门</text>
+          </view>
+          <view class="pl-item">
+            <text class="pl-dot pl-dot-remaining"></text>
+            <text class="pl-text">剩余 <text class="pl-num">{{insights.progress.remaining}}</text> 门</text>
+          </view>
+        </view>
+
+        <view class="hours-summary">
+          <view class="hs-tag hs-filled">
+            <text class="hs-text">已排 <text class="hs-num">{{insights.progress.assignedHours}}</text> 课时</text>
+          </view>
+          <view class="hs-tag hs-remaining">
+            <text class="hs-text">剩余 <text class="hs-num">{{insights.progress.remainingHours}}</text> 课时</text>
+          </view>
+        </view>
+
+        <view wx:if="{{insights.progress.complete}}" class="complete-hint">全部课程已排课完成</view>
+      </block>
+    </view>
+
+    <!-- 异常提醒（复用 web 端 AlertCard） -->
+    <view class="card">
+      <view class="card-title">异常提醒
+        <text wx:if="{{insights.alerts.hasAlert}}" class="alert-badge">{{insights.alerts.unassigned.length + insights.alerts.overloaded.length}}</text>
       </view>
-      <view class="alert-row">
-        <view class="alert-item warn-bg" wx:if="{{insights.alerts.unassignedCourses.length}}">
-          <text class="a-num warn">{{insights.alerts.unassignedCourses.length}}</text>
-          <text class="a-label">未排课课程</text>
-        </view>
-        <view class="alert-item danger-bg" wx:if="{{insights.alerts.overloadedTeachers.length}}">
-          <text class="a-num danger">{{insights.alerts.overloadedTeachers.length}}</text>
-          <text class="a-label">超课时教师</text>
-        </view>
-        <view class="alert-item ok-bg" wx:if="{{!insights.alerts.unassignedCourses.length && !insights.alerts.overloadedTeachers.length}}">
-          <text class="a-num ok">✓</text>
-          <text class="a-label">暂无异常</text>
-        </view>
+
+      <view wx:if="{{!insights.alerts.hasAlert}}" class="alert-empty">
+        <text class="ae-check">✓</text>
+        <text class="ae-text">暂无异常，一切正常</text>
       </view>
+
+      <block wx:else>
+        <view wx:if="{{insights.alerts.unassigned.length}}" class="alert-group">
+          <view class="ag-title"><text class="ag-dot ag-warn"></text><text>{{insights.alerts.unassigned.length}} 门课程未排课</text></view>
+          <view wx:for="{{insights.alerts.unassigned}}" wx:key="id" class="ai-item ai-warn">{{item.name}}</view>
+          <view wx:if="{{insights.alerts.unassignedMore}}" class="ai-more">+{{insights.alerts.unassignedMore}} 门未显示</view>
+        </view>
+
+        <view wx:if="{{insights.alerts.overloaded.length}}" class="alert-group">
+          <view class="ag-title"><text class="ag-dot ag-danger"></text><text>{{insights.alerts.overloaded.length}} 位教师课时超限</text></view>
+          <view wx:for="{{insights.alerts.overloaded}}" wx:key="id" class="ai-item ai-danger">
+            <text class="ai-name">{{item.name}}</text>
+            <text class="ai-detail">{{item.hours}}/{{item.limit}} 课时</text>
+          </view>
+          <view wx:if="{{insights.alerts.overloadedMore}}" class="ai-more">+{{insights.alerts.overloadedMore}} 位未显示</view>
+        </view>
+      </block>
+    </view>
+
+    <!-- 课时概览（复用 web 端 CourseStatsCard） -->
+    <view class="card">
+      <view class="card-title">课时概览</view>
+
+      <view wx:if="{{insights.courseStats.length === 0}}" class="card-empty">暂无排课数据</view>
+
+      <block wx:else>
+        <view wx:for="{{insights.courseStats}}" wx:key="id" class="cs-row">
+          <view class="cs-name">
+            <text class="cs-dot" style="background:{{item._color}}"></text>
+            <text class="cs-name-text">{{item.name}}</text>
+          </view>
+          <view class="cs-hours">
+            <view class="cs-bar-wrap">
+              <view class="cs-bar" style="width:{{item._pct}}%;background:{{item._color}}"></view>
+            </view>
+            <text class="cs-value">{{item.totalHours}}</text>
+          </view>
+          <view class="cs-meta">
+            <text class="cs-meta-num">{{item.classCount}}班</text>
+            <text class="cs-meta-num">{{item.teacherCount}}人</text>
+          </view>
+        </view>
+
+        <view class="cs-footer">
+          <text>共 {{insights.courseStatsCount}} 门课程</text>
+          <text>合计 <text class="cs-total">{{insights.courseStatsTotal}}</text> 课时</text>
+        </view>
+      </block>
     </view>
 
     <!-- 学院课时分布 -->

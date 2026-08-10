@@ -1,0 +1,99 @@
+<view class="page">
+  <!-- 顶部 Hero（复用全局 .hero 样式，视觉统一） -->
+  <view class="hero">
+    <view class="hero-card">
+      <view class="hero-text">
+        <view class="hero-title">教学安排</view>
+        <view class="hero-subtitle">本学期课程排课概览</view>
+        <view class="hero-badge"><text class="hero-badge-text">当前学期：{{semester || '未设置'}}</text></view>
+      </view>
+      <view class="hero-decor"><view class="hero-ring"></view></view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading && !summary}}" class="loading">加载中…</view>
+  <view wx:elif="{{error && !summary}}" class="errbox">{{error}}</view>
+
+  <block wx:else>
+    <view wx:if="{{refreshing}}" class="loading">刷新中…</view>
+    <!-- 学期总览卡（小程序增强项：一屏看清全局） -->
+    <view class="card" wx:if="{{summary}}">
+      <view class="card-title">学期总览</view>
+      <view class="stat-grid">
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{summary.courses}}</view>
+          <view class="stat-label">开设课程</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{summary.totalClasses}}</view>
+          <view class="stat-label">应排班级</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{summary.assignedCount}}</view>
+          <view class="stat-label">已排班级</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{summary.rate}}%</view>
+          <view class="stat-label">排课完成度</view>
+        </view></view>
+      </view>
+      <view class="bar mt"><view class="bar-in" style="width:{{summary.rate}}%"></view></view>
+    </view>
+
+    <!-- 按课程类型分区的概览卡片列表（对标 web CourseOverviewGrid） -->
+    <block wx:for="{{groups}}" wx:key="type" wx:for-item="group">
+      <view class="group-head">{{group.label}}<text class="group-count">{{group.cards.length}}</text></view>
+
+      <view
+        wx:for="{{group.cards}}"
+        wx:key="courseId"
+        wx:for-item="card"
+        class="ov-card"
+        bindtap="toggle"
+        data-id="{{card.courseId}}"
+      >
+        <view class="ov-head">
+          <text class="ov-name">{{card.courseName}}</text>
+          <text class="ov-type {{card.typeClass}}">{{card.typeLabel}}</text>
+        </view>
+
+        <view class="ov-progress-row">
+          <text class="ov-progress-label">已安排 {{card.assignedCount}}/{{card.totalClasses}} 班</text>
+          <text wx:if="{{card.status === 'done'}}" class="ov-badge done">全部完成</text>
+          <text wx:elif="{{card.status === 'waiting'}}" class="ov-badge waiting">待安排</text>
+        </view>
+        <view class="bar"><view class="bar-in" style="width:{{card.percent}}%"></view></view>
+
+        <view class="ov-stats">
+          <view class="ov-stat"><text class="ov-stat-num">{{card.teacherCount}}</text><text class="ov-stat-label">已排教师</text></view>
+          <view class="ov-stat"><text class="ov-stat-num">{{card.lockedCount}}</text><text class="ov-stat-label">已锁定</text></view>
+          <view class="ov-stat"><text class="ov-stat-num">{{card.totalCourseHours}}</text><text class="ov-stat-label">总课时</text></view>
+          <view class="ov-stat"><text class="ov-stat-num {{card.overHours ? 'danger' : ''}}">{{card.remainingHours}}</text><text class="ov-stat-label">剩余课时</text></view>
+        </view>
+
+        <!-- 展开明细：lazy 调 classes 接口，替代 web 矩阵表编辑 -->
+        <view wx:if="{{expandedId === card.courseId}}" class="ov-detail">
+          <view wx:if="{{detailLoadingId === card.courseId}}" class="loading">加载明细…</view>
+          <block wx:elif="{{currentDetail}}">
+            <view wx:for="{{currentDetail.classes}}" wx:key="classId" wx:for-item="cls" class="dt-row">
+              <view class="dt-info">
+                <text class="dt-name">{{cls.className}}</text>
+                <text wx:if="{{cls.isCombined}}" class="dt-combined">合班</text>
+              </view>
+              <view wx:if="{{cls.assignment}}" class="dt-assign">
+                <text class="dt-teacher">{{cls.assignment.teacherName}}</text>
+                <text wx:if="{{cls.assignment.isLocked}}" class="dt-lock">锁</text>
+                <text wx:elif="{{cls.assignment.isAuto}}" class="dt-auto">自动</text>
+              </view>
+              <view wx:else class="dt-unassigned">未安排</view>
+            </view>
+            <view wx:if="{{!currentDetail.classes.length}}" class="empty">本学期无开课班级</view>
+          </block>
+          <view wx:else class="errbox">{{detailError}}</view>
+        </view>
+      </view>
+    </block>
+
+    <view wx:if="{{!groups.length}}" class="empty">本学期暂无课程安排</view>
+  </block>
+</view>
