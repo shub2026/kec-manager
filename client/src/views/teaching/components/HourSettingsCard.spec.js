@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { Setting, Download, ArrowDown, Check } from '@element-plus/icons-vue';
+import { Setting, Download, ArrowDown, ArrowUp, Check } from '@element-plus/icons-vue';
 import HourSettingsCard from './HourSettingsCard.vue';
 
 // 屏蔽课时设置接口，避免测试触发真实请求
@@ -28,7 +28,7 @@ describe('HourSettingsCard（导出Excel下拉按钮）', () => {
       attachTo: document.body,
       global: {
         // 图标在应用入口全局注册，测试中需手动补齐
-        components: { Setting, Download, ArrowDown, Check },
+        components: { Setting, Download, ArrowDown, ArrowUp, Check },
       },
     });
     return wrapper;
@@ -84,5 +84,76 @@ describe('HourSettingsCard（导出Excel下拉按钮）', () => {
     mountCard({ exporting: true });
     const btn = wrapper.findAll('button').find((b) => b.text().includes('导出Excel'));
     expect(btn.classes()).toContain('is-loading');
+  });
+});
+
+describe('HourSettingsCard（移动端课时要求折叠）', () => {
+  let wrapper;
+  const originalMatchMedia = window.matchMedia;
+
+  function mockMatchMedia(matches) {
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches,
+      media: '',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+  }
+
+  function mountCard(props = {}) {
+    wrapper = mount(HourSettingsCard, {
+      props: {
+        currentSemesterLabel: '2026-2027-1',
+        allCourses: [{ id: 1, name: '数学', code: 'A00012' }],
+        selectedCourseId: 1,
+        ...props,
+      },
+      global: {
+        components: { Setting, Download, ArrowDown, ArrowUp, Check },
+      },
+    });
+    return wrapper;
+  }
+
+  function findToggle() {
+    return wrapper.find('.hour-toggle');
+  }
+
+  afterEach(() => {
+    wrapper?.unmount();
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it('桌面端默认展开，点击折叠头可收起/展开表单', async () => {
+    mockMatchMedia(false);
+    mountCard();
+    expect(wrapper.find('.hour-settings-body').isVisible()).toBe(true);
+    expect(wrapper.find('.hour-summary').exists()).toBe(false);
+
+    await findToggle().trigger('click');
+    expect(wrapper.find('.hour-settings-body').isVisible()).toBe(false);
+    expect(wrapper.find('.hour-summary').exists()).toBe(true);
+
+    await findToggle().trigger('click');
+    // jsdom 的 getComputedStyle 存在缓存缺陷：内联 display:none 清除后计算样式不刷新，
+    // 故改断言内联样式已移除 + aria-expanded 状态（真实浏览器中 v-show 会恢复显示）
+    expect(wrapper.find('.hour-settings-body').attributes('style') || '').not.toContain(
+      'display: none'
+    );
+    expect(findToggle().attributes('aria-expanded')).toBe('true');
+  });
+
+  it('移动端（matchMedia 命中）默认收起并展示配置摘要', () => {
+    mockMatchMedia(true);
+    mountCard();
+    expect(wrapper.find('.hour-settings-body').isVisible()).toBe(false);
+    // 摘要展示默认课时配置：专职 16/20
+    expect(wrapper.find('.hour-summary').text()).toContain('专职 16/20');
+  });
+
+  it('未选课程时不渲染折叠头', () => {
+    mockMatchMedia(true);
+    mountCard({ selectedCourseId: null });
+    expect(wrapper.find('.hour-toggle').exists()).toBe(false);
   });
 });

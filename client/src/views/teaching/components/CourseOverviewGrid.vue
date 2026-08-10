@@ -119,7 +119,7 @@ function progressPercent(c) {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 .overview-actions {
   margin-left: auto;
@@ -139,26 +139,47 @@ function progressPercent(c) {
 }
 .overview-grid {
   display: grid;
-  /* min(100%, 280px)：超窄屏（<320px）单列自适应，避免最小列宽撑出横向滚动条 */
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: var(--space-3);
+  /* 桌面端每行最多 4 列，配合媒体查询逐级降列，保证卡片留白与呼吸感 */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+/* ≤1200px：3 列 */
+@media (max-width: 1200px) {
+  .overview-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+/* ≤900px：2 列 */
+@media (max-width: 900px) {
+  .overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* ≤560px：单列，避免卡片内容挤压 */
+@media (max-width: 560px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
 }
 .overview-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   background: var(--el-bg-color, #fff);
   border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: var(--el-border-radius-base, 4px);
+  border-radius: var(--radius-md, 10px);
   cursor: pointer;
   transition:
     box-shadow 0.2s,
-    border-color 0.2s;
+    border-color 0.2s,
+    transform 0.2s;
 }
 .overview-card:hover {
   border-color: var(--el-color-primary-light-5, #a0cfff);
-  box-shadow: var(--el-box-shadow-light, 0 2px 12px rgba(0, 0, 0, 0.08));
+  box-shadow: var(--el-box-shadow-light, 0 4px 16px rgba(0, 0, 0, 0.08));
+  transform: translateY(-2px);
 }
 .overview-card:focus-visible {
   outline: 2px solid var(--el-color-primary, #409eff);
@@ -192,7 +213,7 @@ function progressPercent(c) {
   display: flex;
   flex-wrap: wrap;
   border-top: 1px solid var(--el-border-color-extra-light, #f2f6fc);
-  padding-top: var(--space-2);
+  padding-top: var(--space-3);
 }
 .card-stat-item {
   flex: 1 1 0;
