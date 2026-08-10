@@ -291,12 +291,14 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ===== 学院课时分布（复用全局 .bar / .bar-in） ===== */
+/* ===== 学院课时分布（复用全局 .bar / .bar-in；行距与课时概览 .cs-row 对齐） ===== */
 .dist-row {
   display: flex;
   align-items: center;
-  margin-bottom: 20rpx;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
 }
+.dist-row:last-child { border-bottom: none; }
 .dist-name {
   width: 160rpx;
   font-size: 26rpx;
@@ -315,4 +317,61 @@
   font-size: 26rpx;
   font-weight: 600;
   color: #1C82F5;
+}
+
+/* ===== 快捷查询入口（开课查询 / 教材查询 链接卡片） ===== */
+.entry-section {
+  margin-bottom: 24rpx;
+}
+.entry-grid {
+  display: flex;
+  gap: 20rpx;
+}
+.entry-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #F5FAFF;
+  border: 1rpx solid #e8f4fd;
+  border-radius: 14rpx;
+  padding: 24rpx 20rpx;
+  box-sizing: border-box;
+}
+.entry-card-hover {
+  background: #e8f4fd;
+}
+.entry-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  background: #1C82F5;
+  color: #fff;
+  font-size: 36rpx;
+  line-height: 72rpx;
+  text-align: center;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+.entry-body {
+  flex: 1;
+  min-width: 0;
+}
+.entry-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.entry-sub {
+  font-size: 22rpx;
+  color: #8a8a8a;
+  margin-top: 4rpx;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.entry-arrow {
+  color: #c8c8c8;
+  font-size: 40rpx;
+  margin-left: 8rpx;
+  flex-shrink: 0;
 }

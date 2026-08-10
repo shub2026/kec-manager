@@ -1,0 +1,65 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-card">
+      <view class="hero-text">
+        <view class="hero-title">开课查询</view>
+        <view class="hero-subtitle">按年级查看本学期开课与教材安排</view>
+        <view class="hero-badge"><text class="hero-badge-text">当前学期：{{semester || '未设置'}}</text></view>
+      </view>
+      <view class="hero-decor"><view class="hero-ring"></view></view>
+    </view>
+  </view>
+
+  <!-- 筛选栏：与教师管理/教师课时页一致（仅年级筛选） -->
+  <view class="filter-bar">
+    <picker mode="selector" range="{{grades}}" bindchange="onGradeChange">
+      <view class="filter-picker {{grade ? 'active' : ''}}">
+        {{grade ? grade + '年级' : '全部年级'}} ›
+      </view>
+    </picker>
+    <text wx:if="{{grade}}" class="filter-clear" bindtap="clearFilters">重置</text>
+  </view>
+
+  <view wx:if="{{loading && list.length === 0}}" class="loading">加载中…</view>
+
+  <block wx:if="{{!loading || list.length > 0}}">
+    <!-- 局部刷新提示（筛选时保留列表，不闪烁） -->
+    <view wx:if="{{refreshing && list.length}}" class="top-loading">
+      <view class="top-loading-bar"></view>
+      <text class="top-loading-text">刷新中…</text>
+    </view>
+
+    <view wx:if="{{error}}" class="errbox">{{error}}</view>
+    <view class="count">共 {{total}} 个在读班级</view>
+
+    <view
+      wx:for="{{list}}"
+      wx:key="classId"
+      class="class-card"
+      bindtap="toggle"
+      data-id="{{item.classId}}"
+    >
+      <view class="class-head">
+        <view class="class-name">{{item.className}}</view>
+        <view class="class-meta">{{item.grade}}年级 · {{item.studentCount}}人</view>
+      </view>
+      <view class="class-sub">{{item.majorName || '—'}} / {{item.collegeName || '—'}}</view>
+      <view class="class-plan">方案：{{item.planName || '—'}} · 开课 {{item.courseCount}} 门</view>
+
+      <view wx:if="{{expandedId === item.classId}}" class="course-list">
+        <view wx:for="{{item.courses}}" wx:for-item="co" wx:key="courseName" class="course">
+          <view class="course-top">
+            <text class="course-name">{{co.courseName}}</text>
+            <text class="course-hours">{{co.weeklyHours}} 节/周</text>
+          </view>
+          <view class="course-book">教材：{{co.textbooks}}</view>
+        </view>
+        <view wx:if="{{!item.courses.length}}" class="empty">本学期无开课</view>
+      </view>
+    </view>
+
+    <view wx:if="{{loadingMore}}" class="loading">加载更多…</view>
+    <view wx:elif="{{finished}}" class="empty">没有更多了</view>
+    <view wx:else class="empty">上拉加载更多</view>
+  </block>
+</view>

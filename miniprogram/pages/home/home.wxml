@@ -14,6 +14,29 @@
     </view>
   </view>
 
+  <!-- 快捷查询入口：开课查询 + 教材查询（不在底部工具栏，改为首页卡片入口） -->
+  <view class="card entry-section">
+    <view class="card-title">快捷查询</view>
+    <view class="entry-grid">
+      <view class="entry-card" hover-class="entry-card-hover" bindtap="goCourseQuery">
+        <view class="entry-icon">📋</view>
+        <view class="entry-body">
+          <view class="entry-title">开课查询</view>
+          <view class="entry-sub">按年级查开课与教材</view>
+        </view>
+        <text class="entry-arrow">›</text>
+      </view>
+      <view class="entry-card" hover-class="entry-card-hover" bindtap="goTextbook">
+        <view class="entry-icon">📚</view>
+        <view class="entry-body">
+          <view class="entry-title">教材查询</view>
+          <view class="entry-sub">搜索教材与选用详情</view>
+        </view>
+        <text class="entry-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
   <view wx:if="{{loading && !stats}}" class="loading">加载中…</view>
   <view wx:elif="{{error && !stats}}" class="errbox">{{error}}</view>
 

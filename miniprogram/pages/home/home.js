@@ -103,8 +103,11 @@ Page({
   goStatistics() {
     wx.navigateTo({ url: '/pages/hours-statistics/hours-statistics' });
   },
+  goCourseQuery() {
+    wx.navigateTo({ url: '/pages/semester/semester' });
+  },
   goTextbook() {
-    wx.switchTab({ url: '/pages/textbook/textbook' });
+    wx.navigateTo({ url: '/pages/textbook/textbook' });
   },
   goTeacher() {
     wx.switchTab({ url: '/pages/teacher-hours/teacher-hours' });

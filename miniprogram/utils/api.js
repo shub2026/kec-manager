@@ -44,6 +44,14 @@ const api = {
     return request({ url: '/api/dashboard/insights', data: { semester } });
   },
 
+  // 开课查询（分页 + 年级筛选）
+  async getSemesterClasses(params = {}) {
+    const semester = await ensureSemester();
+    const data = { semester, page: params.page || 1, pageSize: params.pageSize || 20 };
+    if (params.grade) data.grade = params.grade;
+    return request({ url: '/api/query/semester', data });
+  },
+
   // 教材使用情况（按教材查开课班级）
   async getTextbookUsage(id) {
     const semester = await ensureSemester();
