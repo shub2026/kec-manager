@@ -235,4 +235,41 @@ defineExpose({ hourSettings });
   font-size: 12px;
   margin-left: var(--space-2);
 }
+
+/* 移动端（≤768px）：课时要求区块纵向排列，人员类型标签独占一行，
+   标准/最大两组输入弹性均分并拉满宽度，避免固定 80px 输入框居中造成拥挤 */
+@media (max-width: 768px) {
+  .hour-setting-item {
+    flex: 1 1 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    padding: var(--space-2);
+  }
+  .type-label {
+    flex: 1 1 100%;
+    text-align: left;
+  }
+  .setting-field {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  /* 提升特异性压过全局工具类 .filter-xs 的 80px 固定宽度 */
+  .hour-setting-item .filter-xs {
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+  }
+}
+
+/* 超窄屏（≤480px）：标准/最大改纵向堆叠，每组标签+输入框全宽，触控目标更大 */
+@media (max-width: 480px) {
+  .setting-field {
+    flex: 1 1 100%;
+  }
+  .hour-save-btn {
+    width: 100%;
+    margin-left: 0;
+  }
+}
 </style>

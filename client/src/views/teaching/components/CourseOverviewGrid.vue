@@ -238,14 +238,16 @@ function progressPercent(c) {
     width: 100%;
     margin-left: 0;
     gap: var(--space-2);
-    flex-wrap: wrap;
+    /* 三列等宽网格：三个学期级操作按钮严格对齐，避免内容宽度差异导致左右不齐 */
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  /* 学期级操作按钮（含批量排课下拉）等分铺满，文字不再被截断；
+  /* 学期级操作按钮（含批量排课下拉）填满网格单元；
      按钮为父组件插槽内容，需 :deep 穿透 scoped 作用域 */
   .overview-actions :deep(.el-dropdown),
   .overview-actions :deep(.el-button) {
-    flex: 1 1 auto;
-    min-width: 0;
+    width: 100%;
+    margin-left: 0;
   }
   .overview-actions :deep(.el-dropdown) .el-button {
     width: 100%;
@@ -254,9 +256,8 @@ function progressPercent(c) {
 
 /* 超窄屏（≤480px）：操作按钮纵向全宽排列；卡片统计项改两列，避免四指标挤成一行 */
 @media (max-width: 480px) {
-  .overview-actions :deep(.el-dropdown),
-  .overview-actions :deep(.el-button) {
-    flex: 1 1 100%;
+  .overview-actions {
+    grid-template-columns: 1fr;
   }
   .card-stats {
     gap: var(--space-2);
