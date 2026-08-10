@@ -341,8 +341,8 @@ function cellAriaLabel(course, semester) {
 
 .matrix-total-header {
   width: 70px;
-  background: var(--brand-primary-soft);
-  color: var(--brand-primary);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
 }
 
 .matrix-action-header {
@@ -397,13 +397,17 @@ function cellAriaLabel(course, semester) {
   border: 1px solid var(--border-light);
 }
 
+/* 分组行：底色统一中性浅灰，分类语义交给左侧色条 + 课程标签，
+   避免公共课淡蓝底色与低课时热力单元格（.cell-low）撞色混淆 */
 .matrix-group-cell.public {
-  background: var(--brand-primary-soft);
+  background: var(--bg-subtle);
+  border-left: 3px solid var(--brand-primary);
   color: var(--brand-primary-active);
 }
 
 .matrix-group-cell.professional {
-  background: var(--brand-success-soft);
+  background: var(--bg-subtle);
+  border-left: 3px solid var(--brand-success);
   color: var(--brand-success-text);
 }
 
@@ -530,9 +534,9 @@ function cellAriaLabel(course, semester) {
 
 /* 教材 Tooltip 样式见下方非 scoped style 块（el-popper 渲染在 body 层） */
 
-/* 总课时列 */
+/* 总课时列：中性底色，蓝色色带专用于课时热力，避免与 .cell-low 重复淡蓝 */
 .matrix-total-cell {
-  background: var(--brand-primary-soft);
+  background: var(--bg-subtle);
   font-size: 14px;
 }
 
