@@ -135,10 +135,12 @@ function progressPercent(c) {
 .overview-hint {
   font-size: 12px;
   color: var(--text-secondary);
+  min-width: 0;
 }
 .overview-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* min(100%, 280px)：超窄屏（<320px）单列自适应，避免最小列宽撑出横向滚动条 */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: var(--space-3);
 }
 .overview-card {
@@ -221,5 +223,46 @@ function progressPercent(c) {
 }
 .text-danger {
   color: var(--brand-danger-text);
+}
+
+/* 移动端（≤768px）：标题与操作按钮换行堆叠，按钮组铺满并允许换行防溢出 */
+@media (max-width: 768px) {
+  .overview-header {
+    flex-wrap: wrap;
+  }
+  .overview-hint {
+    flex: 1 1 100%;
+    order: 3;
+  }
+  .overview-actions {
+    width: 100%;
+    margin-left: 0;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+  /* 学期级操作按钮（含批量排课下拉）等分铺满，文字不再被截断；
+     按钮为父组件插槽内容，需 :deep 穿透 scoped 作用域 */
+  .overview-actions :deep(.el-dropdown),
+  .overview-actions :deep(.el-button) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .overview-actions :deep(.el-dropdown) .el-button {
+    width: 100%;
+  }
+}
+
+/* 超窄屏（≤480px）：操作按钮纵向全宽排列；卡片统计项改两列，避免四指标挤成一行 */
+@media (max-width: 480px) {
+  .overview-actions :deep(.el-dropdown),
+  .overview-actions :deep(.el-button) {
+    flex: 1 1 100%;
+  }
+  .card-stats {
+    gap: var(--space-2);
+  }
+  .card-stat-item {
+    flex: 1 1 40%;
+  }
 }
 </style>

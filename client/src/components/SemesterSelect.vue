@@ -67,4 +67,18 @@ function onChange(val) {
   width: 200px;
   flex-shrink: 0;
 }
+
+/* 移动端（≤768px）：页头堆叠布局下操作区全宽，
+   学期下拉改为弹性填充并允许换行，避免固定 200px + nowrap 在窄屏溢出 */
+@media (max-width: 768px) {
+  .semester-select {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .semester-select .semester-select-input {
+    width: auto;
+    flex: 1 1 180px;
+    min-width: 0;
+  }
+}
 </style>
