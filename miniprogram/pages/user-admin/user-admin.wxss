@@ -1,33 +1,73 @@
-/* 筛选栏 */
+/* 筛选栏：与教师管理/教师课时/开课查询页一致 */
 .filter-bar {
   display: flex;
   align-items: center;
-  margin-bottom: 20rpx;
+  gap: 16rpx;
+  padding-bottom: 16rpx;
 }
 .search-box {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
+  height: 72rpx;
   background: #fff;
+  border: 1rpx solid #e2e8f0;
   border-radius: 36rpx;
   padding: 0 24rpx;
-  height: 72rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-box:focus-within {
+  border-color: #1C82F5;
+  box-shadow: 0 0 0 2rpx rgba(28, 130, 245, 0.12);
 }
 .search-icon {
   font-size: 28rpx;
-  margin-right: 12rpx;
   color: #1C82F5;
+  margin-right: 12rpx;
 }
 .filter-input {
   flex: 1;
-  font-size: 28rpx;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  font-size: 26rpx;
   color: #1a1a1a;
 }
-.filter-clear {
-  margin-left: 16rpx;
-  font-size: 24rpx;
+.filter-input .placeholder,
+.filter-input::placeholder {
+  color: #94a3b8;
+  font-size: 26rpx;
+}
+.filter-picker {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 72rpx;
+  padding: 0 24rpx;
+  background: #fff;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 36rpx;
+  font-size: 26rpx;
+  color: #555;
+}
+.filter-picker.active {
   color: #1C82F5;
+  background: #E8F4FD;
+  border-color: #1C82F5;
+}
+.filter-clear {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 72rpx;
+  padding: 0 24rpx;
+  border: 1rpx solid #1C82F5;
+  border-radius: 36rpx;
+  font-size: 26rpx;
+  color: #1C82F5;
+  background: #fff;
 }
 
 /* 局部刷新提示 */
