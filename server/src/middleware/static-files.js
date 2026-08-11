@@ -38,7 +38,8 @@ export function serveStaticFiles(app) {
   }));
 
   // SPA fallback：所有非 API 路由返回 index.html
-  app.get('*', (req, res, next) => {
+  // Express 5 通配符必须使用命名参数格式
+  app.get('/{*splat}', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(distPath, 'index.html'));
   });
