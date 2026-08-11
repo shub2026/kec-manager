@@ -31,10 +31,16 @@ export function serveStaticFiles(app) {
   if (!distPath) return;
 
   // 静态资源缓存 1 年（Vite 构建产物带 hash）
+  // index.html 除外：必须每次验证，否则发版后用户拿不到新入口文件
   app.use(express.static(distPath, {
     maxAge: '1y',
     immutable: true,
     index: 'index.html',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('index.html')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
   }));
 
   // SPA fallback：所有非 API、非静态资源路由返回 index.html
