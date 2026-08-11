@@ -4,8 +4,8 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app/client
 
 # 配置国内 npm 镜像（加速依赖下载，特别是 esbuild 平台二进制）
-RUN npm config set registry https://registry.npmmirror.com && \
-    npm config set esbuild_binary_host https://registry.npmmirror.com/-/binary/esbuild/
+ENV npm_config_registry=https://registry.npmmirror.com
+ENV npm_config_esbuild_binary_host=https://registry.npmmirror.com/-/binary/esbuild/
 
 # 复制前端依赖配置
 COPY client/package*.json ./
@@ -25,7 +25,7 @@ FROM node:20-alpine AS backend-builder
 WORKDIR /app/server
 
 # 配置国内 npm 镜像
-RUN npm config set registry https://registry.npmmirror.com
+ENV npm_config_registry=https://registry.npmmirror.com
 
 # 复制后端依赖配置
 COPY server/package*.json ./
