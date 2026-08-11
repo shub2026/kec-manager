@@ -16,6 +16,9 @@ RUN npm ci --no-fund --no-audit
 # 复制前端源码
 COPY client/ ./
 
+# 复制根目录 package.json（vite.config.js 中 import pkg from '../package.json' 需要）
+COPY package.json /app/package.json
+
 # 构建生产版本
 RUN npm run build
 
