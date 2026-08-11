@@ -101,7 +101,10 @@ app.use((req, res, next) => {
     ip: req.ip,
     query: Object.keys(logQuery).length > 0 ? logQuery : undefined,
   });
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  // 仅对 API 路由设置 JSON Content-Type，静态文件由 express.static/sendFile 自行设置
+  if (req.path.startsWith('/api')) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  }
   next();
 });
 
