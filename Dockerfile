@@ -1,5 +1,9 @@
+# 基础镜像地址（可在 docker-compose.yml 中通过 build.args.NODE_IMAGE 覆盖）
+# 国内环境使用镜像源加速，如：docker.m.daocloud.io/library/node:20-alpine
+ARG NODE_IMAGE=node:20-alpine
+
 # 第一阶段：构建前端
-FROM node:20-alpine AS frontend-builder
+FROM ${NODE_IMAGE} AS frontend-builder
 
 WORKDIR /app/client
 
@@ -23,7 +27,7 @@ COPY package.json /app/package.json
 RUN npm run build
 
 # 第二阶段：构建后端依赖（包含 Prisma Client 生成）
-FROM node:20-alpine AS backend-builder
+FROM ${NODE_IMAGE} AS backend-builder
 
 WORKDIR /app/server
 
@@ -41,7 +45,7 @@ RUN npm ci --no-fund --no-audit
 RUN npx prisma generate
 
 # 第三阶段：生产运行镜像
-FROM node:20-alpine AS production
+FROM ${NODE_IMAGE} AS production
 
 WORKDIR /app
 

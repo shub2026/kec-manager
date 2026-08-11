@@ -3,6 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # 国内环境使用镜像加速，无需修改 Dockerfile
+        # 如果镜像源失效，换另一个地址即可（如 docker.1ms.run/library/node:20-alpine）
+        NODE_IMAGE: docker.m.daocloud.io/library/node:20-alpine
     container_name: kec-manager
     restart: unless-stopped
     ports:
