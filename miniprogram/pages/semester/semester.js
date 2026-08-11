@@ -45,6 +45,9 @@ Page({
   async fetch(reset) {
     if (this.data.loadingMore) return;
     if (!reset && (this.data.loading || this.data.refreshing)) return;
+    if (!reset && this.data.finished) return;
+    // 仅在「加载更多」时置 loadingMore；首屏/刷新由 loading/refreshing 表征，避免与下方守卫冲突
+    this.setData({ loadingMore: !reset });
     try {
       const resp = await api.getSemesterClasses({
         page: this.data.page,
@@ -76,7 +79,10 @@ Page({
         total: resp.total,
         semester: (app && app.globalData.currentSemester) || '',
         grades: resp.grades || [],
-        finished: merged.length >= (resp.total || 0),
+        // 优先以 total 判定到底；后端未返回 total 时，以「本页返回数 < pageSize」兜底
+        finished:
+          (typeof resp.total === 'number' && merged.length >= resp.total) ||
+          classes.length < this.data.pageSize,
         loading: false,
         refreshing: false,
         loadingMore: false,
@@ -93,7 +99,7 @@ Page({
 
   onReachBottom() {
     if (this.data.finished || this.data.loading || this.data.refreshing || this.data.loadingMore) return;
-    this.setData({ page: this.data.page + 1, loadingMore: true });
+    this.setData({ page: this.data.page + 1 });
     this.fetch(false);
   },
 
