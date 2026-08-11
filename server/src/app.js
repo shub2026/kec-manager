@@ -37,10 +37,20 @@ app.set('trust proxy', 1);
 app.use(
   helmet({
     contentSecurityPolicy: {
-      // 纯 JSON API 服务：默认拒绝所有资源加载与框架嵌入
+      // SPA 同源部署策略：脚本/样式/API 请求均限定同源
+      // Vue/Element Plus 运行时依赖内联样式，style-src 需保留 'unsafe-inline'
       directives: {
-        defaultSrc: ["'none'"],
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        fontSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
         frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
       },
     },
     hsts: {
@@ -48,7 +58,8 @@ app.use(
       includeSubDomains: true,
       preload: true,
     },
-    crossOriginEmbedderPolicy: true, // L-1: 启用 COEP，要求跨域资源使用 CORS/CORP 正确声明，防止跨域信息泄露
+    // SPA 同源部署无跨域嵌入需求，关闭 COEP 避免对资源加载的额外约束
+    crossOriginEmbedderPolicy: false,
   })
 );
 
