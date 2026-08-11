@@ -34,13 +34,13 @@ export function serveStaticFiles(app) {
   app.use(express.static(distPath, {
     maxAge: '1y',
     immutable: true,
-    index: false,
+    index: 'index.html',
   }));
 
-  // SPA fallback：所有非 API 路由返回 index.html
-  // Express 5 通配符必须使用命名参数格式
-  app.get('/{*splat}', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
+  // SPA fallback：所有非 API、非静态资源路由返回 index.html
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api')) return next();
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
