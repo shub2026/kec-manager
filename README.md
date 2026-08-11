@@ -172,8 +172,7 @@ kec-manager/
 │   └── scripts/                     # 运维脚本（密码重置、数据库重建）
 ├── docs/                            # 项目文档
 ├── scripts/version.js               # 版本管理脚本
-├── deploy.sh                        # 一键部署（本地/远程）
-├── deploy_ssh.sh                    # SSH 增量部署
+├── deploy.sh                        # 一键部署（本地/远程，PM2 方案）
 ├── ecosystem.config.cjs             # PM2 进程配置
 ├── Dockerfile                       # Docker 多阶段构建
 ├── docker-compose.yml               # Docker Compose 编排
@@ -290,12 +289,9 @@ bash deploy.sh root@your-server.com
 
 # 自定义部署目录（默认 /opt/www/sites/kec/index/kec-manager）
 PROJECT_DIR=/your/custom/path bash deploy.sh root@your-server.com
-
-# SSH 增量更新
-bash deploy_ssh.sh root@your-server.com
 ```
 
-部署脚本自动完成：环境检查 → 代码拉取 → 依赖安装 → 停止旧服务 → 环境变量 → 数据库迁移 → 前端构建 → PM2 启动 → 健康检查。
+部署脚本自动完成：环境检查 → 代码拉取 → 依赖安装 → 停止旧服务 → 环境变量 → 数据库迁移 → 前端构建 → PM2 启动 → 健康检查。重复执行即为增量更新（依赖未变化时自动跳过安装）。
 
 详细部署与运维指南见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) 与 [docs/DOCKER_DEPLOYMENT.md](docs/DOCKER_DEPLOYMENT.md)。
 

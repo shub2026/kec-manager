@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      // 名称与部署脚本（deploy.sh / deploy_ssh.sh）中的 pm2 delete/logs 命令保持一致
+      // 名称与部署脚本（deploy.sh）中的 pm2 delete/logs 命令保持一致
       name: "kec-server",
       script: "src/server.js",
       cwd: "./server",

@@ -2,6 +2,9 @@
 
 > 版本 v1.0.0 · 数据库 SQLite (WAL) · 进程管理 PM2 · 反向代理 Nginx
 
+> **部署方式说明**：项目支持两种部署方式，**主推 Docker 部署**（见 [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md)）；
+> 本文档描述 PM2 脚本部署方案（配合 `deploy.sh`），适用于无法使用 Docker 的环境。
+
 ---
 
 ## 一、环境要求
@@ -313,10 +316,10 @@ PRAGMA synchronous = NORMAL;
 | 方式 | 适用场景 | 推荐度 |
 | --- | --- | --- |
 | 服务器本地 `deploy.sh` | 首次部署、生产更新 | 最推荐 |
-| SSH 远程 `deploy_ssh.sh` | 不便登录服务器 | 推荐 |
+| 远程 `deploy.sh root@server` | 不便登录服务器 | 推荐 |
 | 手动更新 | 故障排查、精细控制 | 备用 |
 
-> `deploy.sh` 先停服务再迁移（安全）；`deploy_ssh.sh` 先迁移后停服务，高并发下可能触发 `SQLITE_BUSY`，建议低峰期执行。
+> `deploy.sh` 先停服务再迁移（安全），重复执行即为增量更新：依赖未变化时自动跳过安装，仅重新构建前端并重启服务。
 
 ### 本地更新（推荐）
 
@@ -331,20 +334,15 @@ git pull
 bash deploy.sh
 ```
 
-### SSH 远程更新
+### 远程更新
+
+在本机执行，脚本通过 SSH 在服务器上完成同样的部署流程：
 
 ```bash
-# 完整部署
-bash deploy_ssh.sh root@your-server-ip
+bash deploy.sh root@your-server-ip
 
-# 仅更新代码（快速重启）
-bash deploy_ssh.sh root@your-server-ip --update-only
-
-# 仅备份数据库
-bash deploy_ssh.sh root@your-server-ip --backup-only
-
-# 自定义端口
-bash deploy_ssh.sh root@192.168.1.100 --port 2222
+# 自定义部署目录
+PROJECT_DIR=/your/custom/path bash deploy.sh root@your-server-ip
 ```
 
 ### 手动更新
