@@ -505,7 +505,7 @@ describe('exportTeachers', () => {
         name: '张三',
         gender: 'male',
         birth_date: '1990-05-15',
-        qualification_type: '高中语文',
+        remark: '高中语文',
         personnel_type: 'full_time',
         status: 'active',
         default_weekly_hours: 16,
@@ -518,7 +518,7 @@ describe('exportTeachers', () => {
         name: '李四',
         gender: 'female',
         birth_date: null,
-        qualification_type: null,
+        remark: null,
         personnel_type: 'part_time',
         status: 'disabled',
         default_weekly_hours: null,
@@ -541,10 +541,12 @@ describe('exportTeachers', () => {
     expect(rows[0]['人员类别']).toBe('专职');
     expect(rows[0]['状态']).toBe('启用');
     expect(rows[0]['学科']).toBe('语文、写作');
+    expect(rows[0]['备注']).toBe('高中语文');
     expect(rows[0]['自定义课时']).toBe(16);
     expect(rows[1]['性别']).toBe('女');
     expect(rows[1]['人员类别']).toBe('兼职');
     expect(rows[1]['状态']).toBe('禁用');
+    expect(rows[1]['备注']).toBe('-');
     expect(rows[1]['自定义课时']).toBe('-');
     expect(res.send).toHaveBeenCalled();
     expect(mocks.createAuditLog).toHaveBeenCalledWith(
@@ -590,6 +592,7 @@ describe('exportStatistics', () => {
       affiliated_college: { name: '教育学院' },
       courses: [{ course: { name: '数学' } }],
       scheduling_colleges: [{ college: { name: '教育学院' } }],
+      remark: '高中语文教师资格证',
     };
 
     mocks.teachersFindMany.mockResolvedValue([teacher]);
@@ -651,12 +654,15 @@ describe('exportStatistics', () => {
     expect(rows[0]['班级数']).toBe(3);
     // 教材解析 mock 为空 → 教材数 0；合计行不汇总教材数
     expect(rows[0]['教材数']).toBe(0);
+    // 备注置于数据最后一列
+    expect(rows[0]['备注']).toBe('高中语文教师资格证');
     // 合计行
     expect(rows[1]['姓名']).toBe('合计');
     expect(rows[1]['总周课时']).toBe(12);
     expect(rows[1]['班级数']).toBe(3);
     expect(rows[1]['教材数']).toBe('');
     expect(rows[1]['课程明细']).toBe('1位教师');
+    expect(rows[1]['备注']).toBe('');
     expect(res.send).toHaveBeenCalled();
   });
 
@@ -693,7 +699,7 @@ describe('exportStatistics', () => {
 
     const headers = mocks.createWorkbook.mock.calls[0][0];
     const labelOrder = headers.map((h) => h.label);
-    // 与前端 TeachingStatistics.vue 主表列顺序对齐（课程明细为展开明细的额外列，置于末位）
+    // 与前端 TeachingStatistics.vue 主表列顺序对齐（课程明细为展开明细的额外列，备注按需求置于数据最末位）
     expect(labelOrder).toEqual([
       '姓名',
       '归属学院',
@@ -705,6 +711,7 @@ describe('exportStatistics', () => {
       '班级数',
       '总周课时',
       '课程明细',
+      '备注',
     ]);
   });
 

@@ -35,7 +35,7 @@ function normalize(t) {
     personnelType: personnelLabel(t.personnelType),
     personnelClass: personnelTagClass(t.personnelType),
     college: (t.affiliatedCollege && t.affiliatedCollege.name) || '未归属学院',
-    qualification: t.qualificationType || '—',
+    qualification: t.remark || '—',
     defaultWeeklyHours: t.defaultWeeklyHours != null ? t.defaultWeeklyHours : '—',
     courseList: courses.slice(0, 3),
     courseListMore: courses.length > 3 ? `+${courses.length - 3}` : '',
@@ -48,7 +48,7 @@ function normalize(t) {
       personnelType: t.personnelType,
       status: t.status,
       birthDate: t.birthDate || '',
-      qualificationType: t.qualificationType || '',
+      remark: t.remark || '',
       defaultWeeklyHours: t.defaultWeeklyHours != null ? String(t.defaultWeeklyHours) : '',
       affiliatedCollegeId: t.affiliatedCollegeId || null,
       courseIds: (t.courseList || []).map((c) => c.id),
@@ -295,7 +295,7 @@ Page({
         collegeIndex,
         statusIndex: statusIndex < 0 ? 0 : statusIndex,
         birthDate: s.birthDate || '',
-        qualification: s.qualificationType || '',
+        qualification: s.remark || '',
         weeklyHours: s.defaultWeeklyHours || '',
       },
       focusedField: '',
@@ -385,7 +385,7 @@ Page({
     }
     payload.status = STATUS_OPTIONS[f.statusIndex].value;
     if (f.birthDate && f.birthDate.trim()) payload.birth_date = f.birthDate.trim();
-    if (f.qualification && f.qualification.trim()) payload.qualification_type = f.qualification.trim();
+    if (f.qualification && f.qualification.trim()) payload.remark = f.qualification.trim();
 
     // 学科（课程）多选
     const courseIds = this.data.courseOptions.filter((c) => c.selected).map((c) => c.id);

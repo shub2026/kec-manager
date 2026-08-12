@@ -119,6 +119,19 @@
           <span v-else class="text-placeholder">-</span>
         </template>
       </el-table-column>
+      <!-- 备注列：宽度仅容 4 个中文字符，超出截断；悬停 tooltip 查看全文 -->
+      <el-table-column label="备注" :width="isMobile ? 62 : 78">
+        <template #default="{ row }">
+          <el-tooltip
+            v-if="row.remark && Array.from(row.remark).length > 4"
+            :content="row.remark"
+            placement="top"
+          >
+            <span>{{ truncateText(row.remark, 4) }}</span>
+          </el-tooltip>
+          <span v-else class="text-placeholder">{{ row.remark || '-' }}</span>
+        </template>
+      </el-table-column>
     </el-table>
 
     <!-- M-10：分页组件 -->
@@ -145,6 +158,7 @@ import { ref, computed, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 import { personnelLabel } from '../../../utils/personnel';
+import { truncateText } from '../../../utils/string';
 import { useResponsive } from '../../../composables/useResponsive';
 
 /* 响应式断点：复用全局共享实例，避免重复监听 + 内存泄漏 */

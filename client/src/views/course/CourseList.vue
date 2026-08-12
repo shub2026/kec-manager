@@ -58,8 +58,14 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
-        <el-table-column label="排序" min-width="120" align="center">
+        <el-table-column
+          v-if="!isMobile"
+          prop="description"
+          label="描述"
+          min-width="200"
+          show-overflow-tooltip
+        />
+        <el-table-column v-if="!isMobile" label="排序" min-width="120" align="center">
           <template #default="{ row }">
             <div class="sort-buttons">
               <el-button

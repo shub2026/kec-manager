@@ -439,7 +439,7 @@ export async function getTeachersForCourse(courseId, semesterStr) {
       name: t.name,
       gender: t.gender,
       personnelType: t.personnel_type,
-      qualificationType: t.qualification_type,
+      remark: t.remark,
       defaultWeeklyHours: t.default_weekly_hours,
       courseList: t.courses.map((tc) => tc.course),
       collegeList: [...(teacherCollegeMap.get(t.id)?.values() || [])],

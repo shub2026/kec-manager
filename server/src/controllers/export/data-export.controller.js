@@ -627,12 +627,12 @@ export async function exportTeachers(req, res, next) {
       教师姓名: t.name,
       性别: genderMap[t.gender] || '-',
       出生年月: t.birth_date ? String(t.birth_date).substring(0, 7) : '-',
-      教师资格类型: t.qualification_type || '-',
       归属学院: t.affiliated_college?.name || '-',
       人员类别: personnelMap[t.personnel_type] || t.personnel_type,
       学科: t.courses.map((tc) => tc.course.name).join('、') || '-',
       任课学院: t.scheduling_colleges.map((sc) => sc.college.name).join('、') || '-',
       任课层次: t.scheduling_levels.map((sl) => sl.training_level.name).join('、') || '-',
+      备注: t.remark || '-',
       自定义课时: t.default_weekly_hours != null ? t.default_weekly_hours : '-',
       状态: statusMap[t.status] || '启用',
     }));
@@ -641,12 +641,12 @@ export async function exportTeachers(req, res, next) {
       { label: '教师姓名', key: '教师姓名', width: 15 },
       { label: '性别', key: '性别', width: 8 },
       { label: '出生年月', key: '出生年月', width: 12 },
-      { label: '教师资格类型', key: '教师资格类型', width: 15 },
       { label: '归属学院', key: '归属学院', width: 15 },
       { label: '人员类别', key: '人员类别', width: 12 },
       { label: '学科', key: '学科', width: 30 },
       { label: '任课学院', key: '任课学院', width: 30 },
       { label: '任课层次', key: '任课层次', width: 20 },
+      { label: '备注', key: '备注', width: 15 },
       { label: '自定义课时', key: '自定义课时', width: 12 },
       { label: '状态', key: '状态', width: 8 },
     ];
@@ -837,6 +837,7 @@ export async function exportStatistics(req, res, next) {
         班级数: classCount,
         总周课时: totalHours,
         课程明细: courseDetail || '-',
+        备注: teacher?.remark || '-',
       });
     }
 
@@ -858,6 +859,7 @@ export async function exportStatistics(req, res, next) {
       班级数: totalClasses,
       总周课时: totalWeeklyHours,
       课程明细: `${totalTeachers}位教师`,
+      备注: '',
     });
 
     const headers = [
@@ -871,6 +873,7 @@ export async function exportStatistics(req, res, next) {
       { label: '班级数', key: '班级数', width: 10 },
       { label: '总周课时', key: '总周课时', width: 10 },
       { label: '课程明细', key: '课程明细', width: 50 },
+      { label: '备注', key: '备注', width: 20 },
     ];
 
     const workbook = await createWorkbook(headers, rows);

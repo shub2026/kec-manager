@@ -51,107 +51,133 @@
         </div>
       </div>
       <ListErrorState v-if="error" :message="error" @retry="load" />
-      <el-table
-        v-else
-        v-loading="loading"
-        :data="list"
-        stripe
-        row-key="id"
-        @selection-change="handleSelectionChange"
-      >
-        <template #empty>
-          <EmptyState type="textbook" description="暂无教材数据" />
-        </template>
-        <el-table-column type="selection" width="45" />
-        <el-table-column label="序号" width="60">
-          <template #default="{ row }">{{
-            (currentPage - 1) * pageSize + globalIndex(row) + 1
-          }}</template>
-        </el-table-column>
-        <el-table-column prop="title" label="书名" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="isbn" label="书号" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="publisher" label="出版社" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="author" label="作者" min-width="80" show-overflow-tooltip />
-        <el-table-column prop="edition" label="版次" min-width="55" show-overflow-tooltip />
-        <el-table-column label="出版日期" min-width="85">
-          <template #default="{ row }">{{ row.publishDate || '-' }}</template>
-        </el-table-column>
-        <el-table-column label="定价" min-width="65" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.price || '-' }}</template>
-        </el-table-column>
-        <el-table-column label="类别" min-width="80">
-          <template #default="{ row }">
-            <el-tag
-              v-if="row.category"
-              :type="row.category === '技工' ? 'primary' : 'info'"
-              size="small"
-              disable-transitions
-            >
-              {{ row.category }}
-            </el-tag>
-            <span v-else>-</span>
+      <!-- 外层横向滚动容器兼容窄屏；移动端隐藏次要列，保留核心信息 -->
+      <div v-else class="table-scroll-wrap">
+        <el-table
+          v-loading="loading"
+          :data="list"
+          stripe
+          row-key="id"
+          @selection-change="handleSelectionChange"
+        >
+          <template #empty>
+            <EmptyState type="textbook" description="暂无教材数据" />
           </template>
-        </el-table-column>
-        <el-table-column label="状态" min-width="65">
-          <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'info'" size="small" disable-transitions>
-              {{ row.isActive ? '启用' : '停用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="排序" min-width="100" align="center">
-          <template #default="{ row }">
-            <div class="sort-buttons">
+          <el-table-column type="selection" width="45" />
+          <el-table-column label="序号" width="60">
+            <template #default="{ row }">{{
+              (currentPage - 1) * pageSize + globalIndex(row) + 1
+            }}</template>
+          </el-table-column>
+          <el-table-column prop="title" label="书名" min-width="150" show-overflow-tooltip />
+          <el-table-column
+            v-if="!isMobile"
+            prop="isbn"
+            label="书号"
+            min-width="120"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            v-if="!isMobile"
+            prop="publisher"
+            label="出版社"
+            min-width="120"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            v-if="!isMobile"
+            prop="author"
+            label="作者"
+            min-width="80"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            v-if="!isMobile"
+            prop="edition"
+            label="版次"
+            min-width="55"
+            show-overflow-tooltip
+          />
+          <el-table-column v-if="!isMobile" label="出版日期" min-width="85">
+            <template #default="{ row }">{{ row.publishDate || '-' }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="定价" min-width="65" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.price || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="类别" min-width="80">
+            <template #default="{ row }">
+              <el-tag
+                v-if="row.category"
+                :type="row.category === '技工' ? 'primary' : 'info'"
+                size="small"
+                disable-transitions
+              >
+                {{ row.category }}
+              </el-tag>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" min-width="65">
+            <template #default="{ row }">
+              <el-tag :type="row.isActive ? 'success' : 'info'" size="small" disable-transitions>
+                {{ row.isActive ? '启用' : '停用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="排序" min-width="100" align="center">
+            <template #default="{ row }">
+              <div class="sort-buttons">
+                <el-button
+                  size="small"
+                  :icon="ArrowUp"
+                  :disabled="globalIndex(row) === 0"
+                  circle
+                  title="上移"
+                  aria-label="上移"
+                  @click="handleMoveUp(row)"
+                />
+                <el-button
+                  size="small"
+                  :icon="ArrowDown"
+                  :disabled="globalIndex(row) === list.length - 1"
+                  circle
+                  title="下移"
+                  aria-label="下移"
+                  @click="handleMoveDown(row)"
+                />
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="180" align="center">
+            <template #default="{ row }">
               <el-button
                 size="small"
-                :icon="ArrowUp"
-                :disabled="globalIndex(row) === 0"
+                :type="row.isActive ? 'warning' : 'success'"
+                @click="handleToggleStatus(row)"
+              >
+                {{ row.isActive ? '停用' : '启用' }}
+              </el-button>
+              <el-button
+                size="small"
+                :icon="Edit"
                 circle
-                title="上移"
-                aria-label="上移"
-                @click="handleMoveUp(row)"
+                title="编辑"
+                aria-label="编辑"
+                @click="openDialog(row)"
               />
               <el-button
                 size="small"
-                :icon="ArrowDown"
-                :disabled="globalIndex(row) === list.length - 1"
+                :icon="Delete"
                 circle
-                title="下移"
-                aria-label="下移"
-                @click="handleMoveDown(row)"
+                type="danger"
+                title="删除"
+                aria-label="删除"
+                @click="handleDelete(row)"
               />
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="180" align="center">
-          <template #default="{ row }">
-            <el-button
-              size="small"
-              :type="row.isActive ? 'warning' : 'success'"
-              @click="handleToggleStatus(row)"
-            >
-              {{ row.isActive ? '停用' : '启用' }}
-            </el-button>
-            <el-button
-              size="small"
-              :icon="Edit"
-              circle
-              title="编辑"
-              aria-label="编辑"
-              @click="openDialog(row)"
-            />
-            <el-button
-              size="small"
-              :icon="Delete"
-              circle
-              type="danger"
-              title="删除"
-              aria-label="删除"
-              @click="handleDelete(row)"
-            />
-          </template>
-        </el-table-column>
-      </el-table>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <div class="pagination-container">
         <el-pagination
@@ -215,6 +241,7 @@ import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
 import { useSortable } from '../../composables/useSortable';
 import { useDebounceFn } from '../../composables/useDebounce';
+import { useResponsive } from '../../composables/useResponsive';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import BaseConfirmDialog from '../../components/BaseConfirmDialog.vue';
@@ -224,6 +251,9 @@ import TextbookFormDialog from './components/TextbookFormDialog.vue';
 import TextbookBatchBar from './components/TextbookBatchBar.vue';
 
 defineOptions({ name: 'TextbookList' });
+
+/* 响应式断点：复用全局共享实例，移动端隐藏次要列避免表格被极限压缩 */
+const { isMobile } = useResponsive();
 
 const list = ref([]);
 

@@ -69,14 +69,6 @@
           </el-form-item>
         </el-col>
       </el-row>
-      <el-form-item label="教师资格类型">
-        <el-input
-          v-model="form.qualificationType"
-          placeholder="如：高中语文"
-          clearable
-          class="field-limited"
-        />
-      </el-form-item>
       <el-form-item label="学科（课程）">
         <el-select
           v-model="form.courseIds"
@@ -124,6 +116,15 @@
           placeholder="不填使用课时要求"
           controls-position="right"
           class="filter-xl"
+        />
+      </el-form-item>
+      <el-form-item label="备注">
+        <el-input
+          v-model="form.remark"
+          placeholder="请输入备注信息"
+          clearable
+          maxlength="100"
+          class="field-limited"
         />
       </el-form-item>
     </el-form>
@@ -181,7 +182,7 @@ const defaultForm = {
   gender: null,
   birthDate: null,
   personnelType: 'full_time',
-  qualificationType: null,
+  remark: null,
   affiliatedCollegeId: null,
   defaultWeeklyHours: null,
   status: 'active',
@@ -249,7 +250,7 @@ async function handleSave() {
       gender: form.value.gender,
       birthDate: form.value.birthDate,
       personnelType: form.value.personnelType,
-      qualificationType: form.value.qualificationType,
+      remark: form.value.remark,
       affiliatedCollegeId: form.value.affiliatedCollegeId,
       defaultWeeklyHours: form.value.defaultWeeklyHours,
       status: form.value.status || 'active',
@@ -264,9 +265,9 @@ defineExpose({ open, close });
 </script>
 
 <style scoped>
-/* 教师资格类型与学科/意向学院/意向层次统一限宽：多选弹层与输入框同宽，
+/* 备注与学科/意向学院/意向层次统一限宽：多选弹层与输入框同宽，
    满宽时展开会盖住右下角取消/保存按钮，收窄后弹层左对齐展开，
-   右侧按钮区始终可见可点；资格类型输入框同宽保持纵向视觉对齐 */
+   右侧按钮区始终可见可点；备注输入框同宽保持纵向视觉对齐 */
 .field-limited {
   width: 100%;
   max-width: 320px;

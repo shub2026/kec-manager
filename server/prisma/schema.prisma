@@ -182,7 +182,7 @@ model textbooks {
   author         String?
   edition        String?
   publish_date   String?
-  price          Decimal?
+  price          Float?
   category       String?
   description    String?
   is_active      Boolean          @default(true)
@@ -261,7 +261,7 @@ model teachers {
   gender               String?
   birth_date           String?
   personnel_type       String                      @default("full_time")
-  qualification_type   String?
+  remark               String?
   default_weekly_hours Float?
   status               String                      @default("active")
   sort_order           Int                         @default(0)

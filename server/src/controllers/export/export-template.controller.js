@@ -77,17 +77,17 @@ export async function downloadTemplate(req, res, next) {
         filename = '教材导入模板.xlsx';
         break;
       case 'teachers':
-        // 列顺序与前端教师信息列表保持一致：姓名→性别→出生年月→资格→归属学院→人员类别→学科→任课学院→任课层次→自定义课时→状态
+        // 列顺序与前端教师信息列表保持一致：姓名→性别→出生年月→归属学院→人员类别→学科→任课学院→任课层次→备注→自定义课时→状态
         headers = [
           { label: '教师姓名', key: 'name', width: 15, required: true },
           { label: '性别', key: 'gender', width: 8 },
           { label: '出生年月', key: 'birth_date', width: 12 },
-          { label: '教师资格类型', key: 'qualification_type', width: 15 },
           { label: '归属学院', key: 'affiliated_college', width: 15 },
           { label: '人员类别', key: 'personnel_type', width: 12, required: true },
           { label: '学科', key: 'courses', width: 25 },
           { label: '任课学院', key: 'colleges', width: 25 },
           { label: '任课层次', key: 'levels', width: 20 },
+          { label: '备注', key: 'remark', width: 15 },
           { label: '自定义课时', key: 'default_weekly_hours', width: 12 },
           { label: '状态', key: 'status', width: 8 },
         ];
@@ -95,12 +95,12 @@ export async function downloadTemplate(req, res, next) {
           教师姓名: '张三',
           性别: '男',
           出生年月: '1990-01',
-          教师资格类型: '高中语文',
           归属学院: '教育学院',
           人员类别: '专职',
           学科: '语文,数学',
           任课学院: '教育学院,艺术学院',
           任课层次: '大专,中专',
+          备注: '高中语文教师资格证',
           自定义课时: 16,
           状态: '启用',
         };

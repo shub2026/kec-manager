@@ -1,141 +1,160 @@
 <template>
   <div>
-    <el-table
-      v-loading="loading"
-      :data="paginatedClassList"
-      stripe
-      row-key="classId"
-      :row-class-name="tableRowClassName"
-      class="adaptive-table"
-    >
-      <el-table-column type="index" label="#" width="50" />
-      <el-table-column prop="className" label="班级名称" min-width="160" show-overflow-tooltip>
-        <template #default="{ row }">
-          <span>{{ row.className }}</span>
-          <el-tooltip
-            v-if="row.combinationId != null"
-            :content="
-              row.partnerClassNames ? `合班伙伴：${row.partnerClassNames}` : '已标记合班教学'
-            "
-            placement="top"
-            effect="light"
-          >
-            <el-icon class="combined-icon" :size="16"><Connection /></el-icon>
-          </el-tooltip>
-        </template>
-      </el-table-column>
-      <el-table-column prop="collegeName" label="学院" min-width="100" show-overflow-tooltip />
-      <el-table-column prop="majorName" label="专业" min-width="100" show-overflow-tooltip />
-      <el-table-column
-        prop="trainingLevelName"
-        label="培养层次"
-        min-width="80"
-        show-overflow-tooltip
-      />
-      <el-table-column label="入学年份" min-width="80" align="center">
-        <template #default="{ row }">{{ row.enrollmentYear }}</template>
-      </el-table-column>
-      <el-table-column label="年级" min-width="60" align="center">
-        <template #default="{ row }">{{ row.grade }}</template>
-      </el-table-column>
-      <el-table-column label="在读学期" min-width="80" align="center">
-        <template #default="{ row }">第{{ row.currentSemester }}学期</template>
-      </el-table-column>
-      <el-table-column label="人数" min-width="60" align="center">
-        <template #default="{ row }">{{ row.studentCount }}</template>
-      </el-table-column>
-      <el-table-column label="周课时" min-width="70" align="center">
-        <template #default="{ row }">{{ row.weeklyHours }}</template>
-      </el-table-column>
-      <el-table-column label="教材" min-width="160" class-name="textbook-col">
-        <template #default="{ row }">
-          <div v-if="row.textbooks?.length" class="textbook-tags">
-            <el-tag
-              v-for="tb in row.textbooks"
-              :key="tb.id"
-              size="small"
-              type="info"
-              class="tag-item"
-              disable-transitions
-              >{{ tb.title }}</el-tag
+    <!-- 外层横向滚动容器兼容窄屏；移动端隐藏次要列，保留任课教师核心交互列 -->
+    <div class="table-scroll-wrap">
+      <el-table
+        v-loading="loading"
+        :data="paginatedClassList"
+        stripe
+        row-key="classId"
+        :row-class-name="tableRowClassName"
+        class="adaptive-table"
+      >
+        <el-table-column type="index" label="#" width="50" />
+        <el-table-column prop="className" label="班级名称" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span>{{ row.className }}</span>
+            <el-tooltip
+              v-if="row.combinationId != null"
+              :content="
+                row.partnerClassNames ? `合班伙伴：${row.partnerClassNames}` : '已标记合班教学'
+              "
+              placement="top"
+              effect="light"
             >
-          </div>
-          <span v-else class="text-muted">-</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="任课教师" min-width="160">
-        <template #default="{ row }">
-          <div
-            class="teacher-cell"
-            :class="{
-              'has-teacher': row.assignment,
-              'no-teacher': !row.assignment,
-              'is-readonly': historicalReadOnly,
-            }"
-            @click="emit('select-teacher', row)"
-          >
-            <template v-if="row.assignment">
+              <el-icon class="combined-icon" :size="16"><Connection /></el-icon>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="!isMobile"
+          prop="collegeName"
+          label="学院"
+          min-width="100"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          v-if="!isMobile"
+          prop="majorName"
+          label="专业"
+          min-width="100"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          v-if="!isMobile"
+          prop="trainingLevelName"
+          label="培养层次"
+          min-width="80"
+          show-overflow-tooltip
+        />
+        <el-table-column v-if="!isMobile" label="入学年份" min-width="80" align="center">
+          <template #default="{ row }">{{ row.enrollmentYear }}</template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="年级" min-width="60" align="center">
+          <template #default="{ row }">{{ row.grade }}</template>
+        </el-table-column>
+        <el-table-column label="在读学期" min-width="80" align="center">
+          <template #default="{ row }">第{{ row.currentSemester }}学期</template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="人数" min-width="60" align="center">
+          <template #default="{ row }">{{ row.studentCount }}</template>
+        </el-table-column>
+        <el-table-column label="周课时" min-width="70" align="center">
+          <template #default="{ row }">{{ row.weeklyHours }}</template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="教材" min-width="160" class-name="textbook-col">
+          <template #default="{ row }">
+            <div v-if="row.textbooks?.length" class="textbook-tags">
               <el-tag
-                :type="
-                  row.assignment.isLocked ? 'success' : row.assignment.isAuto ? 'info' : 'primary'
-                "
+                v-for="tb in row.textbooks"
+                :key="tb.id"
                 size="small"
-                :closable="!historicalReadOnly"
+                type="info"
+                class="tag-item"
                 disable-transitions
-                @close.stop="emit('remove-assignment', row)"
+                >{{ tb.title }}</el-tag
               >
-                <el-icon v-if="row.assignment.isLocked" class="locked-icon" :size="12"
-                  ><Lock
-                /></el-icon>
-                {{ row.assignment.teacherName }}
-              </el-tag>
-              <!-- 锁定/解锁按钮：仅自动安排显示 -->
-              <el-tooltip
-                v-if="row.assignment.isAuto && !historicalReadOnly"
-                :content="
-                  row.assignment.isLocked
-                    ? '点击解锁（解锁后重新排课可覆盖）'
-                    : '点击锁定（锁定后重新排课不受影响）'
-                "
-                placement="top"
-                effect="light"
-              >
-                <el-icon
-                  class="lock-toggle-icon"
-                  :class="{ 'is-locked': row.assignment.isLocked }"
-                  :size="14"
-                  @click.stop="emit('toggle-lock', row)"
+            </div>
+            <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="任课教师" min-width="160">
+          <template #default="{ row }">
+            <div
+              class="teacher-cell"
+              :class="{
+                'has-teacher': row.assignment,
+                'no-teacher': !row.assignment,
+                'is-readonly': historicalReadOnly,
+              }"
+              @click="emit('select-teacher', row)"
+            >
+              <template v-if="row.assignment">
+                <el-tag
+                  :type="
+                    row.assignment.isLocked ? 'success' : row.assignment.isAuto ? 'info' : 'primary'
+                  "
+                  size="small"
+                  :closable="!historicalReadOnly"
+                  disable-transitions
+                  @close.stop="emit('remove-assignment', row)"
                 >
-                  <Lock v-if="row.assignment.isLocked" />
-                  <Unlock v-else />
-                </el-icon>
-              </el-tooltip>
-              <span v-if="!historicalReadOnly && !row.assignment.isLocked" class="replace-hint">
-                <el-icon :size="12"><EditPen /></el-icon>
-                更换
-              </span>
-              <span v-else-if="!historicalReadOnly && row.assignment.isLocked" class="locked-hint">
-                已锁定
-              </span>
-              <span v-else class="readonly-hint">
-                <el-icon :size="12"><Lock /></el-icon>
-                只读
-              </span>
-            </template>
-            <template v-else>
-              <template v-if="historicalReadOnly">
-                <el-icon :size="14" class="cell-hint-icon"><Lock /></el-icon>
-                <span class="text-muted">只读</span>
+                  <el-icon v-if="row.assignment.isLocked" class="locked-icon" :size="12"
+                    ><Lock
+                  /></el-icon>
+                  {{ row.assignment.teacherName }}
+                </el-tag>
+                <!-- 锁定/解锁按钮：仅自动安排显示 -->
+                <el-tooltip
+                  v-if="row.assignment.isAuto && !historicalReadOnly"
+                  :content="
+                    row.assignment.isLocked
+                      ? '点击解锁（解锁后重新排课可覆盖）'
+                      : '点击锁定（锁定后重新排课不受影响）'
+                  "
+                  placement="top"
+                  effect="light"
+                >
+                  <el-icon
+                    class="lock-toggle-icon"
+                    :class="{ 'is-locked': row.assignment.isLocked }"
+                    :size="14"
+                    @click.stop="emit('toggle-lock', row)"
+                  >
+                    <Lock v-if="row.assignment.isLocked" />
+                    <Unlock v-else />
+                  </el-icon>
+                </el-tooltip>
+                <span v-if="!historicalReadOnly && !row.assignment.isLocked" class="replace-hint">
+                  <el-icon :size="12"><EditPen /></el-icon>
+                  更换
+                </span>
+                <span
+                  v-else-if="!historicalReadOnly && row.assignment.isLocked"
+                  class="locked-hint"
+                >
+                  已锁定
+                </span>
+                <span v-else class="readonly-hint">
+                  <el-icon :size="12"><Lock /></el-icon>
+                  只读
+                </span>
               </template>
               <template v-else>
-                <el-icon :size="14" class="cell-hint-icon"><Plus /></el-icon>
-                <span class="text-placeholder">点击安排</span>
+                <template v-if="historicalReadOnly">
+                  <el-icon :size="14" class="cell-hint-icon"><Lock /></el-icon>
+                  <span class="text-muted">只读</span>
+                </template>
+                <template v-else>
+                  <el-icon :size="14" class="cell-hint-icon"><Plus /></el-icon>
+                  <span class="text-placeholder">点击安排</span>
+                </template>
               </template>
-            </template>
-          </div>
-        </template>
-      </el-table-column>
-    </el-table>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <div class="pagination-container">
       <el-pagination
@@ -154,6 +173,10 @@
 import { ref, computed, watch } from 'vue';
 // Lock 已全局注册，Unlock/Connection 未注册需显式导入
 import { Connection, Lock, Unlock } from '@element-plus/icons-vue';
+import { useResponsive } from '../../../composables/useResponsive';
+
+/* 响应式断点：复用全局共享实例，移动端隐藏次要列避免表格被极限压缩 */
+const { isMobile } = useResponsive();
 
 const props = defineProps({
   /** 经父页面筛选后的班级列表，分页由本组件内部完成 */

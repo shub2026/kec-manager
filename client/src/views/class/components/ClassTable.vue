@@ -1,115 +1,118 @@
 <template>
   <div v-loading="loading">
-    <el-table
-      :data="classes"
-      stripe
-      row-key="id"
-      :default-sort="{ prop: 'name', order: 'ascending' }"
-      @selection-change="$emit('selection-change', $event)"
-    >
-      <template #empty>
-        <EmptyState type="class" description="暂无班级数据" />
-      </template>
-      <el-table-column type="selection" width="45" />
-      <el-table-column type="index" label="序号" width="60" align="center" />
-      <el-table-column prop="name" label="班级名称" min-width="180" show-overflow-tooltip />
-      <el-table-column label="二级学院" min-width="115" show-overflow-tooltip>
-        <template #default="{ row }">{{ row.colleges?.name || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="专业" min-width="150" show-overflow-tooltip>
-        <template #default="{ row }">{{ row.majors?.name || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="培养层次" min-width="100" show-overflow-tooltip>
-        <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="入学年份" min-width="85" show-overflow-tooltip>
-        <template #default="{ row }">{{ row.enrollmentYear || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="学制" min-width="55">
-        <template #default="{ row }">{{ row.durationYears || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="人数" min-width="55">
-        <template #default="{ row }">{{ row.studentCount || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="年级" min-width="75">
-        <template #default="{ row }">
-          <el-tag v-if="calcGrade(row)" size="small" disable-transitions
-            >{{ calcGrade(row) }}年级</el-tag
-          >
-          <span v-else>-</span>
+    <!-- 外层横向滚动容器兼容窄屏；移动端隐藏次要列，保留核心信息 -->
+    <div class="table-scroll-wrap">
+      <el-table
+        :data="classes"
+        stripe
+        row-key="id"
+        :default-sort="{ prop: 'name', order: 'ascending' }"
+        @selection-change="$emit('selection-change', $event)"
+      >
+        <template #empty>
+          <EmptyState type="class" description="暂无班级数据" />
         </template>
-      </el-table-column>
-      <el-table-column label="状态" min-width="80">
-        <template #default="{ row }">
-          <el-tag :type="getStatusType(row.status)" disable-transitions>
-            {{ getStatusText(row.status) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="合班教学" min-width="95">
-        <template #default="{ row }">
-          <el-tooltip
-            v-if="row.isCombinedClass"
-            :content="
-              row.partnerClassNames
-                ? `合班伙伴：${row.partnerClassNames}`
-                : '已标记合班（暂无伙伴）'
-            "
-            placement="top"
-            effect="light"
-          >
-            <el-tag class="combined-tag" size="small" disable-transitions>
-              <el-icon class="combined-tag-icon"><Connection /></el-icon>
-              {{ row.partnerClassNames ? '合班' : '合班(无伙伴)' }}
+        <el-table-column type="selection" width="45" />
+        <el-table-column type="index" label="序号" width="60" align="center" />
+        <el-table-column prop="name" label="班级名称" min-width="180" show-overflow-tooltip />
+        <el-table-column v-if="!isMobile" label="二级学院" min-width="115" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.colleges?.name || '-' }}</template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="专业" min-width="150" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.majors?.name || '-' }}</template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="培养层次" min-width="100" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="入学年份" min-width="85" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.enrollmentYear || '-' }}</template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="学制" min-width="55">
+          <template #default="{ row }">{{ row.durationYears || '-' }}</template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="人数" min-width="55">
+          <template #default="{ row }">{{ row.studentCount || '-' }}</template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="年级" min-width="75">
+          <template #default="{ row }">
+            <el-tag v-if="calcGrade(row)" size="small" disable-transitions
+              >{{ calcGrade(row) }}年级</el-tag
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" min-width="80">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.status)" disable-transitions>
+              {{ getStatusText(row.status) }}
             </el-tag>
-          </el-tooltip>
-          <span v-else class="combined-empty">-</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="关联类型" min-width="90">
-        <template #default="{ row }">
-          <el-tag :type="getRelationTypeTag(row)" size="small" disable-transitions>
-            {{ getRelationTypeText(row) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="当前方案" min-width="180">
-        <template #default="{ row }">
-          <div v-if="row.planMatchWarning" class="plan-warning">
-            <el-tooltip :content="row.planMatchWarning" placement="top" effect="light">
-              <el-tag type="warning" size="small" disable-transitions>
-                <el-icon><Warning /></el-icon>
-                {{ getCurrentPlanName(row) }}
+          </template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="合班教学" min-width="95">
+          <template #default="{ row }">
+            <el-tooltip
+              v-if="row.isCombinedClass"
+              :content="
+                row.partnerClassNames
+                  ? `合班伙伴：${row.partnerClassNames}`
+                  : '已标记合班（暂无伙伴）'
+              "
+              placement="top"
+              effect="light"
+            >
+              <el-tag class="combined-tag" size="small" disable-transitions>
+                <el-icon class="combined-tag-icon"><Connection /></el-icon>
+                {{ row.partnerClassNames ? '合班' : '合班(无伙伴)' }}
               </el-tag>
             </el-tooltip>
-          </div>
-          <el-tag v-else :type="getPlanTagType(row)" size="small" disable-transitions>
-            {{ getCurrentPlanName(row) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="100" align="center">
-        <template #default="{ row }">
-          <el-button
-            size="small"
-            :icon="Edit"
-            circle
-            title="编辑"
-            aria-label="编辑"
-            @click="$emit('edit', row)"
-          />
-          <el-button
-            size="small"
-            :icon="Delete"
-            type="danger"
-            circle
-            title="删除"
-            aria-label="删除"
-            @click="$emit('delete', row.id)"
-          />
-        </template>
-      </el-table-column>
-    </el-table>
+            <span v-else class="combined-empty">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="关联类型" min-width="90">
+          <template #default="{ row }">
+            <el-tag :type="getRelationTypeTag(row)" size="small" disable-transitions>
+              {{ getRelationTypeText(row) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column v-if="!isMobile" label="当前方案" min-width="180">
+          <template #default="{ row }">
+            <div v-if="row.planMatchWarning" class="plan-warning">
+              <el-tooltip :content="row.planMatchWarning" placement="top" effect="light">
+                <el-tag type="warning" size="small" disable-transitions>
+                  <el-icon><Warning /></el-icon>
+                  {{ getCurrentPlanName(row) }}
+                </el-tag>
+              </el-tooltip>
+            </div>
+            <el-tag v-else :type="getPlanTagType(row)" size="small" disable-transitions>
+              {{ getCurrentPlanName(row) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" align="center">
+          <template #default="{ row }">
+            <el-button
+              size="small"
+              :icon="Edit"
+              circle
+              title="编辑"
+              aria-label="编辑"
+              @click="$emit('edit', row)"
+            />
+            <el-button
+              size="small"
+              :icon="Delete"
+              type="danger"
+              circle
+              title="删除"
+              aria-label="删除"
+              @click="$emit('delete', row.id)"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
 
     <!-- 批量操作栏 -->
     <div v-if="selectedClasses.length > 0" class="batch-operations">
@@ -155,7 +158,11 @@
 
 <script setup>
 import { Edit, Delete, Connection } from '@element-plus/icons-vue';
+import { useResponsive } from '../../../composables/useResponsive';
 import EmptyState from '../../../components/EmptyState.vue';
+
+/* 响应式断点：复用全局共享实例，移动端隐藏次要列避免表格被极限压缩 */
+const { isMobile } = useResponsive();
 
 defineProps({
   classes: {

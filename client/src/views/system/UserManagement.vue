@@ -20,83 +20,92 @@
       </div>
       <!-- 用户列表 -->
       <ListErrorState v-if="error" :message="error" @retry="loadUsers" />
-      <el-table v-else v-loading="loading" :data="users" stripe row-key="id">
-        <template #empty>
-          <EmptyState type="generic" description="暂无数据" />
-        </template>
-        <el-table-column type="index" label="序号" min-width="60" align="center" />
-        <el-table-column prop="username" label="用户名" min-width="120" />
-        <el-table-column prop="realName" label="姓名" min-width="100" />
-        <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
-        <el-table-column label="角色" min-width="120" align="center">
-          <template #default="{ row }">
-            <el-tag
-              :type="getRoleType(row.role)"
-              :class="getRoleClass(row.role)"
-              size="small"
-              effect="plain"
-              disable-transitions
-            >
-              {{ getRoleLabel(row.role) }}
-            </el-tag>
+      <!-- 外层横向滚动容器兼容窄屏；移动端隐藏次要列，保留核心信息 -->
+      <div v-else class="table-scroll-wrap">
+        <el-table v-loading="loading" :data="users" stripe row-key="id">
+          <template #empty>
+            <EmptyState type="generic" description="暂无数据" />
           </template>
-        </el-table-column>
-        <el-table-column label="状态" min-width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'danger'" size="small" disable-transitions>
-              {{ row.isActive ? '激活' : '禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="lastLoginAt" label="最后登录" min-width="160">
-          <template #default="{ row }">
-            <span :class="{ 'text-muted': !row.lastLoginAt }">
-              {{ row.lastLoginAt ? formatTime(row.lastLoginAt) : '从未登录' }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="300" align="center">
-          <template #default="{ row }">
-            <el-button
-              size="small"
-              type="primary"
-              :disabled="row.role === 'super_admin' && row.id !== authStore.userInfo?.id"
-              aria-label="编辑用户"
-              @click="showEditDialog(row)"
-            >
-              编辑
-            </el-button>
-            <el-button
-              size="small"
-              :type="row.isActive ? 'warning' : 'success'"
-              :disabled="row.role === 'super_admin'"
-              :aria-label="row.isActive ? '禁用用户' : '激活用户'"
-              @click="toggleUserStatus(row)"
-            >
-              {{ row.isActive ? '禁用' : '激活' }}
-            </el-button>
-            <el-button
-              size="small"
-              type="success"
-              plain
-              :disabled="row.id === authStore.userInfo?.id || row.role === 'super_admin'"
-              aria-label="重置密码"
-              @click="openResetPwdDialog(row)"
-            >
-              重置密码
-            </el-button>
-            <el-button
-              size="small"
-              type="danger"
-              :disabled="row.id === authStore.userInfo?.id || row.role === 'super_admin'"
-              aria-label="删除用户"
-              @click="deleteUser(row)"
-            >
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column type="index" label="序号" min-width="60" align="center" />
+          <el-table-column prop="username" label="用户名" min-width="120" />
+          <el-table-column prop="realName" label="姓名" min-width="100" />
+          <el-table-column
+            v-if="!isMobile"
+            prop="email"
+            label="邮箱"
+            min-width="180"
+            show-overflow-tooltip
+          />
+          <el-table-column label="角色" min-width="120" align="center">
+            <template #default="{ row }">
+              <el-tag
+                :type="getRoleType(row.role)"
+                :class="getRoleClass(row.role)"
+                size="small"
+                effect="plain"
+                disable-transitions
+              >
+                {{ getRoleLabel(row.role) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" min-width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.isActive ? 'success' : 'danger'" size="small" disable-transitions>
+                {{ row.isActive ? '激活' : '禁用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" prop="lastLoginAt" label="最后登录" min-width="160">
+            <template #default="{ row }">
+              <span :class="{ 'text-muted': !row.lastLoginAt }">
+                {{ row.lastLoginAt ? formatTime(row.lastLoginAt) : '从未登录' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="300" align="center">
+            <template #default="{ row }">
+              <el-button
+                size="small"
+                type="primary"
+                :disabled="row.role === 'super_admin' && row.id !== authStore.userInfo?.id"
+                aria-label="编辑用户"
+                @click="showEditDialog(row)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                size="small"
+                :type="row.isActive ? 'warning' : 'success'"
+                :disabled="row.role === 'super_admin'"
+                :aria-label="row.isActive ? '禁用用户' : '激活用户'"
+                @click="toggleUserStatus(row)"
+              >
+                {{ row.isActive ? '禁用' : '激活' }}
+              </el-button>
+              <el-button
+                size="small"
+                type="success"
+                plain
+                :disabled="row.id === authStore.userInfo?.id || row.role === 'super_admin'"
+                aria-label="重置密码"
+                @click="openResetPwdDialog(row)"
+              >
+                重置密码
+              </el-button>
+              <el-button
+                size="small"
+                type="danger"
+                :disabled="row.id === authStore.userInfo?.id || row.role === 'super_admin'"
+                aria-label="删除用户"
+                @click="deleteUser(row)"
+              >
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <!-- 分页 -->
       <div class="pagination-container">
@@ -150,6 +159,7 @@
 import { ref, watch, onMounted } from 'vue';
 import { Search } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
+import { useResponsive } from '../../composables/useResponsive';
 import { ElMessage } from 'element-plus';
 import {
   getUsers,
@@ -167,6 +177,9 @@ import UserFormDialog from './components/UserFormDialog.vue';
 import ResetPasswordDialog from './components/ResetPasswordDialog.vue';
 
 defineOptions({ name: 'UserManagement' });
+
+/* 响应式断点：复用全局共享实例，移动端隐藏次要列避免表格被极限压缩 */
+const { isMobile } = useResponsive();
 
 const authStore = useAuthStore();
 

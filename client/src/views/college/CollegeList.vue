@@ -24,11 +24,17 @@
         />
         <el-table-column prop="name" label="学院名称" min-width="150" />
         <el-table-column prop="code" label="编码" min-width="120" />
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+        <el-table-column
+          v-if="!isMobile"
+          prop="description"
+          label="描述"
+          min-width="200"
+          show-overflow-tooltip
+        />
         <el-table-column label="班级数" min-width="80">
           <template #default="{ row }">{{ row.classCount || 0 }}</template>
         </el-table-column>
-        <el-table-column label="排序" min-width="120" align="center">
+        <el-table-column v-if="!isMobile" label="排序" min-width="120" align="center">
           <template #default="{ row }">
             <div class="sort-buttons">
               <el-button
@@ -82,6 +88,7 @@
           :total="filteredList.length"
           :page-sizes="[20, 50, 100]"
           layout="total, sizes, prev, pager, next"
+          :layout="isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'"
           background
           @size-change="currentPage = 1"
         />

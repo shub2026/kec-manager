@@ -603,7 +603,7 @@ describe('getTeachersForCourse - 基础功能', () => {
       name,
       gender: 'male',
       personnel_type: 'fulltime',
-      qualification_type: 'senior',
+      remark: 'senior',
       default_weekly_hours: 12,
       sort_order: id,
       courses: [{ course: { id: COURSE_ID, name: '语文' } }],
@@ -840,7 +840,7 @@ describe('getTeachersForCourse - 基础功能', () => {
     expect(r).toHaveProperty('name', '周老师');
     expect(r).toHaveProperty('gender', 'male');
     expect(r).toHaveProperty('personnelType', 'fulltime');
-    expect(r).toHaveProperty('qualificationType', 'senior');
+    expect(r).toHaveProperty('remark', 'senior');
     expect(r).toHaveProperty('defaultWeeklyHours', 12);
     expect(r).toHaveProperty('courseList');
     expect(r).toHaveProperty('collegeList');

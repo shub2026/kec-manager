@@ -108,7 +108,7 @@ export async function createTeacher(req, res, next) {
       gender,
       birth_date,
       personnel_type,
-      qualification_type,
+      remark,
       default_weekly_hours,
       affiliated_college_id,
       course_ids,
@@ -116,6 +116,8 @@ export async function createTeacher(req, res, next) {
       training_level_ids,
       status,
     } = req.body;
+    // 过渡兼容：旧版客户端仍可能发送 qualification_type，统一映射为 remark（下一版本移除）
+    const finalRemark = remark ?? req.body.qualification_type;
     if (!name) return fail(res, '教师姓名不能为空');
 
     const newSortOrder = await getNextSortOrder('teachers');
@@ -126,7 +128,7 @@ export async function createTeacher(req, res, next) {
         gender: gender || null,
         birth_date: birth_date || null,
         personnel_type: personnel_type || 'full_time',
-        qualification_type: qualification_type || null,
+        remark: finalRemark || null,
         default_weekly_hours: default_weekly_hours != null ? Number(default_weekly_hours) : null,
         affiliated_college_id: affiliated_college_id != null ? Number(affiliated_college_id) : null,
         status: status === 'disabled' ? 'disabled' : 'active',
@@ -193,12 +195,16 @@ export async function updateTeacher(req, res, next) {
     const { id } = req.params;
     const { course_ids, college_ids, training_level_ids, affiliated_college_id, ...rest } =
       req.body;
+    // 过渡兼容：旧版客户端仍可能发送 qualification_type，统一映射为 remark（下一版本移除）
+    if (rest.remark === undefined && rest.qualification_type !== undefined) {
+      rest.remark = rest.qualification_type;
+    }
     const data = buildUpdateData(rest, [
       'name',
       'gender',
       'birth_date',
       'personnel_type',
-      'qualification_type',
+      'remark',
       'default_weekly_hours',
       'sort_order',
       'status',

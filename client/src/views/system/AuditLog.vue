@@ -63,71 +63,73 @@
       </div>
 
       <ListErrorState v-if="error" :message="error" @retry="loadLogs" />
-      <el-table
-        v-else
-        v-loading="loading"
-        :data="logs"
-        stripe
-        row-key="id"
-        :default-sort="{ prop: 'createdAt', order: 'descending' }"
-      >
-        <template #empty>
-          <EmptyState type="generic" description="暂无数据" />
-        </template>
-        <el-table-column label="时间" min-width="165" prop="createdAt" sortable>
-          <template #default="{ row }">
-            <span class="time-text">{{ formatDateTime(row.createdAt) }}</span>
+      <!-- 外层横向滚动容器兼容窄屏；移动端隐藏 IP 列 -->
+      <div v-else class="table-scroll-wrap">
+        <el-table
+          v-loading="loading"
+          :data="logs"
+          stripe
+          row-key="id"
+          :default-sort="{ prop: 'createdAt', order: 'descending' }"
+        >
+          <template #empty>
+            <EmptyState type="generic" description="暂无数据" />
           </template>
-        </el-table-column>
-        <el-table-column label="操作类型" min-width="90" align="center">
-          <template #default="{ row }">
-            <el-tag :type="getActionTagType(row.action)" size="small" disable-transitions>
-              {{ getActionLabel(row.action) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="结果" min-width="70" align="center">
-          <template #default="{ row }">
-            <el-tag
-              :type="row.result === 'success' ? 'success' : 'danger'"
-              size="small"
-              effect="light"
-              disable-transitions
-            >
-              {{ row.result === 'success' ? '成功' : '失败' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="模块" min-width="140" align="center">
-          <template #default="{ row }">
-            <el-tag type="info" size="small" effect="plain" disable-transitions>{{
-              getModuleLabel(row.module)
-            }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="消息" min-width="280">
-          <template #default="{ row }">
-            <div class="message-cell">
-              <span>{{ row.message }}</span>
-              <el-button
-                v-if="row.details"
-                link
-                type="primary"
+          <el-table-column label="时间" min-width="165" prop="createdAt" sortable>
+            <template #default="{ row }">
+              <span class="time-text">{{ formatDateTime(row.createdAt) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作类型" min-width="90" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getActionTagType(row.action)" size="small" disable-transitions>
+                {{ getActionLabel(row.action) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="结果" min-width="70" align="center">
+            <template #default="{ row }">
+              <el-tag
+                :type="row.result === 'success' ? 'success' : 'danger'"
                 size="small"
-                class="details-btn"
-                @click="showDetails(row.details)"
+                effect="light"
+                disable-transitions
               >
-                详情
-              </el-button>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="IP 地址" min-width="130">
-          <template #default="{ row }">
-            <span class="ip-text">{{ row.ip || '-' }}</span>
-          </template>
-        </el-table-column>
-      </el-table>
+                {{ row.result === 'success' ? '成功' : '失败' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="模块" min-width="140" align="center">
+            <template #default="{ row }">
+              <el-tag type="info" size="small" effect="plain" disable-transitions>{{
+                getModuleLabel(row.module)
+              }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="消息" min-width="280">
+            <template #default="{ row }">
+              <div class="message-cell">
+                <span>{{ row.message }}</span>
+                <el-button
+                  v-if="row.details"
+                  link
+                  type="primary"
+                  size="small"
+                  class="details-btn"
+                  @click="showDetails(row.details)"
+                >
+                  详情
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="IP 地址" min-width="130">
+            <template #default="{ row }">
+              <span class="ip-text">{{ row.ip || '-' }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <div class="pagination-container">
         <el-pagination

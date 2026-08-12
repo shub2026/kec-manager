@@ -64,7 +64,7 @@
           </view>
         </view>
         <view class="tc-meta">
-          <text class="tag">资格：{{item.qualification}}</text>
+          <text class="tag">备注：{{item.qualification}}</text>
           <block wx:if="{{item.courseList.length}}">
             <text wx:for="{{item.courseList}}" wx:key="id" wx:for-item="c" class="tag tag-blue">{{c.name}}</text>
             <text wx:if="{{item.courseListMore}}" class="tag tag-more">{{item.courseListMore}}</text>
@@ -146,8 +146,8 @@
             <input class="form-row-input {{focusedField === 'birthDate' ? 'form-row-input-focus' : ''}}" value="{{form.birthDate}}" data-field="birthDate" placeholder="如：1974-03" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
           <view class="form-row {{focusedField === 'qualification' ? 'form-row-focus' : ''}}">
-            <text class="form-row-label">资格类型</text>
-            <input class="form-row-input {{focusedField === 'qualification' ? 'form-row-input-focus' : ''}}" value="{{form.qualification}}" data-field="qualification" placeholder="如：讲师" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+            <text class="form-row-label">备注</text>
+            <input class="form-row-input {{focusedField === 'qualification' ? 'form-row-input-focus' : ''}}" value="{{form.qualification}}" data-field="qualification" placeholder="请输入备注信息" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
           <view class="form-row {{focusedField === 'weeklyHours' ? 'form-row-focus' : ''}}">
             <text class="form-row-label">自定义课时</text>

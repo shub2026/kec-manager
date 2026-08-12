@@ -124,98 +124,123 @@
         </el-alert>
 
         <ListErrorState v-if="error" :message="error" @retry="load" />
-        <el-table v-else v-loading="loading" :data="data" stripe row-key="classId">
-          <el-table-column type="expand">
-            <template #default="{ row }">
-              <div class="expand-content">
-                <el-table
-                  :data="row.courses"
-                  size="small"
-                  border
-                  row-key="courseId"
-                  class="nested-table"
-                >
-                  <el-table-column
-                    prop="courseName"
-                    label="课程"
-                    min-width="150"
-                    show-overflow-tooltip
-                  />
-                  <el-table-column label="类型" min-width="100">
-                    <template #default="{ row: c }">
-                      <el-tag
-                        size="small"
-                        :type="c.courseType === 'professional' ? 'success' : 'primary'"
-                        disable-transitions
-                      >
-                        {{ c.courseType === 'public' ? '公共课' : '专业课' }}
-                      </el-tag>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="weeklyHours" label="周课时" min-width="80" />
-                  <el-table-column
-                    prop="totalHoursThisSemester"
-                    label="学期总课时"
-                    min-width="100"
-                  />
-                  <el-table-column label="使用教材" min-width="250">
-                    <template #default="{ row: c }">
-                      <div v-if="c.textbooks?.length">
-                        <div v-for="tb in c.textbooks" :key="tb.id">
-                          {{ tb.title }}
+        <!-- 外层横向滚动容器兼容窄屏；移动端隐藏次要列，保留核心信息 -->
+        <div v-else class="table-scroll-wrap">
+          <el-table v-loading="loading" :data="data" stripe row-key="classId">
+            <el-table-column type="expand">
+              <template #default="{ row }">
+                <div class="expand-content">
+                  <div class="nested-scroll">
+                    <el-table
+                      :data="row.courses"
+                      size="small"
+                      border
+                      row-key="courseId"
+                      class="nested-table"
+                    >
+                      <el-table-column
+                        prop="courseName"
+                        label="课程"
+                        min-width="150"
+                        show-overflow-tooltip
+                      />
+                      <el-table-column label="类型" min-width="100">
+                        <template #default="{ row: c }">
                           <el-tag
-                            v-if="tb.isConsecutive"
-                            type="warning"
                             size="small"
+                            :type="c.courseType === 'professional' ? 'success' : 'primary'"
                             disable-transitions
-                            >选定</el-tag
                           >
-                          <el-tag v-else-if="tb.isRequired" size="small" disable-transitions
-                            >必订</el-tag
-                          >
-                        </div>
-                      </div>
-                      <span v-else class="no-textbook">未指定</span>
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="className" label="班级" min-width="160" show-overflow-tooltip />
-          <el-table-column
-            prop="collegeName"
-            label="二级学院"
-            min-width="120"
-            show-overflow-tooltip
-          />
-          <el-table-column prop="majorName" label="专业" min-width="140" show-overflow-tooltip />
-          <el-table-column
-            prop="trainingLevelName"
-            label="培养层次"
-            min-width="120"
-            show-overflow-tooltip
-          />
-          <el-table-column label="入学年份" min-width="90" align="center" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.enrollmentYear }}年</template>
-          </el-table-column>
-          <el-table-column label="年级" min-width="60" align="center">
-            <template #default="{ row }">{{ row.grade }}</template>
-          </el-table-column>
-          <el-table-column label="在读学期" min-width="80" align="center">
-            <template #default="{ row }">第{{ row.currentSemester }}学期</template>
-          </el-table-column>
-          <el-table-column prop="studentCount" label="人数" min-width="60" align="center" />
-          <el-table-column label="开课数" min-width="70" align="center">
-            <template #default="{ row }">{{ row.courses?.length || 0 }}</template>
-          </el-table-column>
-          <el-table-column label="周课时合计" min-width="100" align="center">
-            <template #default="{ row }">{{
-              (row.courses || []).reduce((s, c) => s + c.weeklyHours, 0)
-            }}</template>
-          </el-table-column>
-          <el-table-column prop="planName" label="培养方案" min-width="160" show-overflow-tooltip />
-        </el-table>
+                            {{ c.courseType === 'public' ? '公共课' : '专业课' }}
+                          </el-tag>
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="weeklyHours" label="周课时" min-width="80" />
+                      <el-table-column
+                        prop="totalHoursThisSemester"
+                        label="学期总课时"
+                        min-width="100"
+                      />
+                      <el-table-column label="使用教材" min-width="250">
+                        <template #default="{ row: c }">
+                          <div v-if="c.textbooks?.length">
+                            <div v-for="tb in c.textbooks" :key="tb.id">
+                              {{ tb.title }}
+                              <el-tag
+                                v-if="tb.isConsecutive"
+                                type="warning"
+                                size="small"
+                                disable-transitions
+                                >选定</el-tag
+                              >
+                              <el-tag v-else-if="tb.isRequired" size="small" disable-transitions
+                                >必订</el-tag
+                              >
+                            </div>
+                          </div>
+                          <span v-else class="no-textbook">未指定</span>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="className" label="班级" min-width="160" show-overflow-tooltip />
+            <el-table-column
+              v-if="!isMobile"
+              prop="collegeName"
+              label="二级学院"
+              min-width="120"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              v-if="!isMobile"
+              prop="majorName"
+              label="专业"
+              min-width="140"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              v-if="!isMobile"
+              prop="trainingLevelName"
+              label="培养层次"
+              min-width="120"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              v-if="!isMobile"
+              label="入学年份"
+              min-width="90"
+              align="center"
+              show-overflow-tooltip
+            >
+              <template #default="{ row }">{{ row.enrollmentYear }}年</template>
+            </el-table-column>
+            <el-table-column v-if="!isMobile" label="年级" min-width="60" align="center">
+              <template #default="{ row }">{{ row.grade }}</template>
+            </el-table-column>
+            <el-table-column label="在读学期" min-width="80" align="center">
+              <template #default="{ row }">第{{ row.currentSemester }}学期</template>
+            </el-table-column>
+            <el-table-column prop="studentCount" label="人数" min-width="60" align="center" />
+            <el-table-column v-if="!isMobile" label="开课数" min-width="70" align="center">
+              <template #default="{ row }">{{ row.courses?.length || 0 }}</template>
+            </el-table-column>
+            <el-table-column label="周课时合计" min-width="100" align="center">
+              <template #default="{ row }">{{
+                (row.courses || []).reduce((s, c) => s + c.weeklyHours, 0)
+              }}</template>
+            </el-table-column>
+            <el-table-column
+              v-if="!isMobile"
+              prop="planName"
+              label="培养方案"
+              min-width="160"
+              show-overflow-tooltip
+            />
+          </el-table>
+        </div>
 
         <!-- 分页 -->
         <div class="pagination-container">
@@ -244,6 +269,7 @@ import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
 import { exportSemester } from '../../api/export';
 import { useSemesters } from '../../composables/useSemesters';
+import { useResponsive } from '../../composables/useResponsive';
 import { downloadBlob } from '../../utils/download';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import FilterBar from '@/components/filter/FilterBar.vue';
@@ -254,6 +280,9 @@ import EmptyState from '../../components/EmptyState.vue';
 import ListErrorState from '../../components/ListErrorState.vue';
 
 defineOptions({ name: 'UnifiedSemesterQuery' });
+
+/* 响应式断点：复用全局共享实例，移动端隐藏次要列避免表格被极限压缩 */
+const { isMobile } = useResponsive();
 
 const authStore = useAuthStore();
 

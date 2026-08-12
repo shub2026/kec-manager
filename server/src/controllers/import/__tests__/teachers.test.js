@@ -118,7 +118,7 @@ function teacherRow(overrides = {}) {
     性别: '男',
     出生年月: '1990-01',
     人员类别: '专职',
-    教师资格类型: '高校教师资格',
+    备注: '高校教师资格',
     自定义课时: '12',
     学科: '高等数学',
     任课学院: '理学院',
@@ -173,12 +173,28 @@ describe('importTeachers', () => {
     expect(createData.name).toBe('张三');
     expect(createData.gender).toBe('male');
     expect(createData.personnel_type).toBe('full_time');
+    expect(createData.remark).toBe('高校教师资格');
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         success: true,
         data: expect.objectContaining({ imported: 1, overwritten: 0 }),
       })
     );
+  });
+
+  // ── 1b. 备注列兼容旧版"教师资格类型"列名 ────
+  it('旧模板"教师资格类型"列应兼容解析为备注', async () => {
+    readWorkbook.mockResolvedValue([
+      teacherRow({ 备注: undefined, 教师资格类型: '高中语文' }),
+    ]);
+    const req = mockReq({ path: '/tmp/test.xlsx' });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await importTeachers(req, res, next);
+
+    const createData = mockTx.teachers.create.mock.calls[0][0].data;
+    expect(createData.remark).toBe('高中语文');
   });
 
   // ── 2. 出生日期解析：YYYY-MM-DD ────────────

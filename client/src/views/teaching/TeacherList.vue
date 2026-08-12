@@ -28,132 +28,147 @@
       />
 
       <ListErrorState v-if="error" :message="error" @retry="load" />
-      <el-table v-else v-loading="loading" :data="list" stripe row-key="id">
-        <template #empty>
-          <EmptyState type="teacher" description="暂无教师数据" />
-        </template>
-        <el-table-column label="序号" min-width="60" align="center">
-          <template #default="{ $index }">{{ (currentPage - 1) * pageSize + $index + 1 }}</template>
-        </el-table-column>
-        <el-table-column prop="name" label="姓名" min-width="100">
-          <template #default="{ row }">
-            <span
-              :style="
-                row.status === 'disabled'
-                  ? 'color: var(--text-secondary); text-decoration: line-through'
-                  : ''
-              "
-              >{{ row.name }}</span
-            >
+      <!-- 外层横向滚动容器兼容窄屏；移动端隐藏次要列，保留核心信息 -->
+      <div v-else class="table-scroll-wrap">
+        <el-table v-loading="loading" :data="list" stripe row-key="id">
+          <template #empty>
+            <EmptyState type="teacher" description="暂无教师数据" />
           </template>
-        </el-table-column>
-        <el-table-column label="性别" min-width="70" align="center">
-          <template #default="{ row }">{{
-            row.gender === 'male' ? '男' : row.gender === 'female' ? '女' : '-'
-          }}</template>
-        </el-table-column>
-        <el-table-column label="出生年月" min-width="100" align="center">
-          <template #default="{ row }">{{ formatBirthDate(row.birthDate) }}</template>
-        </el-table-column>
-        <el-table-column label="年龄" min-width="70" align="center">
-          <template #default="{ row }">{{ calcAge(row.birthDate) }}</template>
-        </el-table-column>
-        <el-table-column prop="qualificationType" label="教师资格类型" min-width="120">
-          <template #default="{ row }">{{ row.qualificationType || '-' }}</template>
-        </el-table-column>
-        <el-table-column label="归属学院" min-width="120">
-          <template #default="{ row }">
-            <span>{{ row.affiliatedCollege?.name || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="人员类别" min-width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="personnelTagType(row.personnelType)" size="small" disable-transitions>
-              {{ personnelLabel(row.personnelType) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="学科" min-width="160">
-          <template #default="{ row }">
-            <el-tag
-              v-for="c in row.courseList"
-              :key="c.id"
-              size="small"
-              effect="plain"
-              class="tag-item"
-              disable-transitions
-              >{{ c.name }}</el-tag
-            >
-            <span v-if="!row.courseList?.length" class="text-muted">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="意向学院" min-width="140">
-          <template #default="{ row }">
-            <el-tag
-              v-for="c in row.collegeList"
-              :key="c.id"
-              size="small"
-              type="info"
-              effect="plain"
-              class="tag-item"
-              disable-transitions
-              >{{ c.name }}</el-tag
-            >
-            <span v-if="!row.collegeList?.length" class="text-muted">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="意向层次" min-width="120">
-          <template #default="{ row }">
-            <el-tag
-              v-for="l in row.trainingLevelList"
-              :key="l.id"
-              size="small"
-              class="tag-item tag-indigo"
-              disable-transitions
-              >{{ l.name }}</el-tag
-            >
-            <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="自定义课时" min-width="100" align="center">
-          <template #default="{ row }">
-            <span>{{ row.defaultWeeklyHours != null ? row.defaultWeeklyHours : '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态" min-width="80" align="center">
-          <template #default="{ row }">
-            <el-switch
-              :model-value="row.status !== 'disabled'"
-              inline-prompt
-              active-text="启"
-              inactive-text="禁"
-              size="small"
-              @change="(val) => handleToggleStatus(row, val)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100" align="center">
-          <template #default="{ row }">
-            <el-button
-              size="small"
-              :icon="Edit"
-              circle
-              title="编辑"
-              aria-label="编辑"
-              @click="openDialog(row)"
-            />
-            <el-button
-              size="small"
-              type="danger"
-              :icon="Delete"
-              circle
-              title="删除"
-              aria-label="删除"
-              @click="handleDelete(row.id)"
-            />
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column label="序号" min-width="60" align="center">
+            <template #default="{ $index }">{{
+              (currentPage - 1) * pageSize + $index + 1
+            }}</template>
+          </el-table-column>
+          <el-table-column prop="name" label="姓名" min-width="100">
+            <template #default="{ row }">
+              <span
+                :style="
+                  row.status === 'disabled'
+                    ? 'color: var(--text-secondary); text-decoration: line-through'
+                    : ''
+                "
+                >{{ row.name }}</span
+              >
+            </template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="性别" min-width="70" align="center">
+            <template #default="{ row }">{{
+              row.gender === 'male' ? '男' : row.gender === 'female' ? '女' : '-'
+            }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="出生年月" min-width="100" align="center">
+            <template #default="{ row }">{{ formatBirthDate(row.birthDate) }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="年龄" min-width="70" align="center">
+            <template #default="{ row }">{{ calcAge(row.birthDate) }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="归属学院" min-width="120">
+            <template #default="{ row }">
+              <span>{{ row.affiliatedCollege?.name || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="人员类别" min-width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="personnelTagType(row.personnelType)" size="small" disable-transitions>
+                {{ personnelLabel(row.personnelType) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="学科" min-width="160">
+            <template #default="{ row }">
+              <el-tag
+                v-for="c in row.courseList"
+                :key="c.id"
+                size="small"
+                effect="plain"
+                class="tag-item"
+                disable-transitions
+                >{{ c.name }}</el-tag
+              >
+              <span v-if="!row.courseList?.length" class="text-muted">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="意向学院" min-width="140">
+            <template #default="{ row }">
+              <el-tag
+                v-for="c in row.collegeList"
+                :key="c.id"
+                size="small"
+                type="info"
+                effect="plain"
+                class="tag-item"
+                disable-transitions
+                >{{ c.name }}</el-tag
+              >
+              <span v-if="!row.collegeList?.length" class="text-muted">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="意向层次" min-width="120">
+            <template #default="{ row }">
+              <el-tag
+                v-for="l in row.trainingLevelList"
+                :key="l.id"
+                size="small"
+                class="tag-item tag-indigo"
+                disable-transitions
+                >{{ l.name }}</el-tag
+              >
+              <span v-if="!row.trainingLevelList?.length" class="text-muted">-</span>
+            </template>
+          </el-table-column>
+          <!-- 备注最长显示 8 个字符，超出截断；悬停 tooltip 查看全文 -->
+          <el-table-column v-if="!isMobile" label="备注" min-width="140">
+            <template #default="{ row }">
+              <el-tooltip
+                v-if="row.remark && Array.from(row.remark).length > 8"
+                :content="row.remark"
+                placement="top"
+              >
+                <span>{{ truncateText(row.remark, 8) }}</span>
+              </el-tooltip>
+              <span v-else>{{ row.remark || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="自定义课时" min-width="100" align="center">
+            <template #default="{ row }">
+              <span>{{ row.defaultWeeklyHours != null ? row.defaultWeeklyHours : '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" min-width="80" align="center">
+            <template #default="{ row }">
+              <el-switch
+                :model-value="row.status !== 'disabled'"
+                inline-prompt
+                active-text="启"
+                inactive-text="禁"
+                size="small"
+                @change="(val) => handleToggleStatus(row, val)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" align="center">
+            <template #default="{ row }">
+              <el-button
+                size="small"
+                :icon="Edit"
+                circle
+                title="编辑"
+                aria-label="编辑"
+                @click="openDialog(row)"
+              />
+              <el-button
+                size="small"
+                type="danger"
+                :icon="Delete"
+                circle
+                title="删除"
+                aria-label="删除"
+                @click="handleDelete(row.id)"
+              />
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <div class="pagination-container">
         <el-pagination
@@ -219,7 +234,9 @@ import { getCourses } from '../../api/course';
 import { useExport } from '../../composables/useExport';
 import { useImport } from '../../composables/useImport';
 import { useDebounceFn } from '../../composables/useDebounce';
+import { useResponsive } from '../../composables/useResponsive';
 import { personnelLabel, personnelTagType } from '../../utils/personnel';
+import { truncateText } from '../../utils/string';
 import { formatBirthDate, calcAge } from '../../utils/date';
 import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
@@ -230,6 +247,9 @@ import TeacherFilterBar from './components/TeacherFilterBar.vue';
 import TeacherFormDialog from './components/TeacherFormDialog.vue';
 
 defineOptions({ name: 'TeacherList' });
+
+/* 响应式断点：复用全局共享实例，移动端隐藏次要列避免表格被极限压缩 */
+const { isMobile } = useResponsive();
 
 const list = ref([]);
 const loading = ref(false);

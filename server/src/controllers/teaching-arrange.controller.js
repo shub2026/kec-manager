@@ -861,6 +861,7 @@ export async function getStatistics(req, res, next) {
         teacherName: teacher?.name || '未知',
         personnelType: teacher?.personnel_type || null,
         affiliatedCollege: teacher?.affiliated_college || null,
+        remark: teacher?.remark ?? null,
         collegeList,
         trainingLevelList,
         courseList: teacher?.courses?.map((tc) => tc.course) ?? [],

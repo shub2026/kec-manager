@@ -126,7 +126,7 @@ const BASE_TEACHER = {
   gender: '男',
   birth_date: '1985-03-15',
   personnel_type: 'full_time',
-  qualification_type: 'master',
+  remark: 'master',
   default_weekly_hours: null,
   affiliated_college_id: null,
   status: 'active',
@@ -203,6 +203,33 @@ describe('updateTeacher', () => {
         personnel_type: 'part_time',
         default_weekly_hours: null,
       });
+    });
+
+    it('旧字段 qualification_type 应兼容映射为 remark', async () => {
+      const req = mockReq({ id: TEACHER_ID }, { qualification_type: '高中语文' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await updateTeacher(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      const updateCall = mockTx.teachers.update.mock.calls[0][0];
+      expect(updateCall.data.remark).toBe('高中语文');
+      expect(updateCall.data).not.toHaveProperty('qualification_type');
+    });
+
+    it('同时传 remark 与 qualification_type 时 remark 优先', async () => {
+      const req = mockReq(
+        { id: TEACHER_ID },
+        { remark: '新备注', qualification_type: '旧字段' }
+      );
+      const res = mockRes();
+      const next = vi.fn();
+
+      await updateTeacher(req, res, next);
+
+      const updateCall = mockTx.teachers.update.mock.calls[0][0];
+      expect(updateCall.data.remark).toBe('新备注');
     });
 
     it('更新成功后应返回 success 响应并调用审计日志', async () => {

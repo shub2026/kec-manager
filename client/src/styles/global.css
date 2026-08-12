@@ -508,6 +508,25 @@ a:focus-visible,
 
 /* 窄屏（≤768px）：卡片纵向堆叠，筛选器全宽 */
 @media (max-width: 768px) {
+  /* 移动端表格兜底：列被极限压缩时单元格默认 white-space:normal 会导致文字逐字竖排
+     （如"素质教育学院"变成单字一列），统一改为单行省略保可读性；
+     显式声明 wrap-cell 的列（标签密集列）豁免，保持换行 */
+  .el-table .cell {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .el-table .wrap-cell .cell {
+    white-space: normal;
+    overflow: visible;
+  }
+
+  /* 分页组件窄屏简化：防止 total+sizes+pager 一行挤爆换行错位 */
+  .pagination-container .el-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
   /* 卡片头部纵向堆叠 */
   .card-header {
     flex-direction: column;
@@ -678,6 +697,20 @@ a:focus-visible,
     max-height: calc(90dvh - 140px);
     overflow-y: auto;
   }
+}
+
+/* ----- 表格横向滚动容器（全局工具类） -----
+   窄屏下列总宽超出容器时可横滑，避免 el-table 极限压缩列宽导致文字竖排；
+   各列表页在 el-table 外包一层 .table-scroll-wrap 即可启用 */
+.table-scroll-wrap,
+.nested-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 内嵌表（展开行）设最小宽度：移动端展开内容保持可读，超出时由容器横滑承接 */
+.nested-scroll .el-table {
+  min-width: 480px;
 }
 
 /* ----- FilterBar “更多筛选”抽屉（el-drawer 传送至 body，须写在全局样式） ----- */

@@ -544,11 +544,17 @@ export const validateTeacherCreate = [
     .optional()
     .isIn(['full_time', 'part_time', 'external'])
     .withMessage('人员类别必须是full_time、part_time或external'),
+  body('remark')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('备注不超过100个字符'),
+  // 过渡兼容：旧版客户端仍可能发送 qualification_type（下一版本移除）
   body('qualification_type')
     .optional({ nullable: true })
     .trim()
     .isLength({ max: 100 })
-    .withMessage('教师资格类型不超过100个字符'),
+    .withMessage('备注不超过100个字符'),
   body('default_weekly_hours')
     .optional({ nullable: true })
     .isFloat({ min: 0, max: 40 })
@@ -577,11 +583,17 @@ export const validateTeacherUpdate = [
     .optional()
     .isIn(['full_time', 'part_time', 'external'])
     .withMessage('人员类别必须是full_time、part_time或external'),
+  body('remark')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('备注不超过100个字符'),
+  // 过渡兼容：旧版客户端仍可能发送 qualification_type（下一版本移除）
   body('qualification_type')
     .optional({ nullable: true })
     .trim()
     .isLength({ max: 100 })
-    .withMessage('教师资格类型不超过100个字符'),
+    .withMessage('备注不超过100个字符'),
   body('default_weekly_hours')
     .optional({ nullable: true })
     .isFloat({ min: 0, max: 40 })

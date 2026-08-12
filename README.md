@@ -2,7 +2,7 @@
 
 面向大中专职业院校教学管理人员的轻量级教学管理系统，涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心业务。
 
-**版本** v1.0.2 · **架构** 前后端分离 · **部署** Docker / PM2 + Nginx
+**版本** v1.6.0 · **架构** 前后端分离 · **部署** Docker / PM2 + Nginx
 
 ---
 
@@ -12,12 +12,12 @@
 | --- | --- |
 | 培养方案 | 按专业/层次制定方案，可视化课程矩阵编辑各学期课时分布，教材关联到学期 |
 | 班级管理 | 班级 CRUD、合班教学组、基于入学年份和学制动态计算年级与在读状态 |
-| 教师管理 | 教师档案、任课/学院/层次偏好配置、自定义周课时 |
+| 教师管理 | 教师档案（含备注）、任课/学院/层次偏好配置、自定义周课时 |
 | 自动排课 | 五阶段匹配 + 置换回溯 + 可选禁忌搜索优化；批量排课、排课锁定、历史学期保护 |
 | 教材管理 | 教材 CRUD、与培养方案学期关联、征订状态跟踪 |
-| 数据导入导出 | Excel 批量导入（班级/课程/教材/教师）、模板下载、多维度数据导出 |
+| 数据导入导出 | Excel 批量导入（班级/课程/教材/教师）、模板下载、多维度数据导出；教师导入兼容旧版“教师资格类型”列名（已更名为“备注”） |
 | 统一查询 | 开课查询、教材查询、方案查询，多维度筛选与级联联动 |
-| 课时统计 | 教师/班级/课程多维统计、图表可视化、Excel 导出 |
+| 课时统计 | 教师/班级/课程多维统计、图表可视化、Excel 导出（含教师备注） |
 | 用户管理 | 用户 CRUD、禁用/激活、密码重置（重置后强制改密），仅超级管理员可用 |
 | 审计日志 | 增删改全量记录，按模块/操作员/时间筛选 |
 | 权限控制 | 三级角色（super_admin / admin / viewer），路由守卫 + API 鉴权双重校验 |
@@ -33,7 +33,7 @@
 | 数据库 | SQLite（WAL 模式，单实例部署） |
 | 认证 | JWT 双令牌（Access 15min + Refresh 7d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt |
 | 安全 | Helmet + 速率限制 + XSS 清洗 + 输入校验 + 审计日志 |
-| 测试 | Vitest + Supertest（后端 1496 用例 / 前端 160 用例） |
+| 测试 | Vitest + Supertest（后端 1535 用例 / 前端 204 用例） |
 | 部署 | Docker（推荐）/ PM2 进程管理 + Nginx 反向代理 + 一键部署脚本 |
 
 ---
@@ -120,7 +120,7 @@ npm run db:seed:dev      # 含开发测试数据
 npm run db:seed:reset    # 强制重置 + 重新 seed
 npm run db:reset         # 重建数据库
 npm run init:settings    # 初始化系统设置
-npm test                 # Vitest（69 个测试文件）
+npm test                 # Vitest（71 个测试文件）
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化
@@ -133,7 +133,7 @@ npm run dev              # Vite 开发服务器（:5173）
 npm run build            # 生产构建
 npm run preview          # 预览构建产物
 npm run analyze          # 包体积分析
-npm test                 # Vitest（17 个测试文件）
+npm test                 # Vitest（23 个测试文件）
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化
@@ -167,7 +167,7 @@ kec-manager/
 │   │   └── utils/                   # Excel / SSE / 排序 / 日志
 │   ├── prisma/
 │   │   ├── schema.prisma            # 21 个数据模型
-│   │   ├── migrations/              # 迁移文件（13 次迭代）
+│   │   ├── migrations/              # 迁移文件（18 次迭代）
 │   │   └── seed.js                  # 种子数据
 │   └── scripts/                     # 运维脚本（密码重置、数据库重建）
 ├── docs/                            # 项目文档
@@ -199,7 +199,7 @@ kec-manager/
 | `plan_courses` | 方案课程（起止学期、周课时） |
 | `plan_course_semesters` | 课程学期明细（周课时、周数） |
 | `plan_textbooks` | 课程-教材关联 |
-| `teachers` | 教师档案（归属学院、人员类型） |
+| `teachers` | 教师档案（归属学院、人员类型、备注） |
 | `teacher_courses` | 教师任课关联 |
 | `teacher_scheduling_colleges` | 教师上课学院意向 |
 | `teacher_training_levels` | 教师培养层次意向 |

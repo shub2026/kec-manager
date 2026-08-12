@@ -36,10 +36,10 @@
           :index="(i) => (currentPage - 1) * pageSize + i + 1"
         />
         <el-table-column prop="name" label="方案名称" min-width="200" />
-        <el-table-column label="使用部门" min-width="120">
+        <el-table-column v-if="!isMobile" label="使用部门" min-width="120">
           <template #default="{ row }">{{ row.colleges?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="关联类型" min-width="90">
+        <el-table-column v-if="!isMobile" label="关联类型" min-width="90">
           <template #default="{ row }">
             <el-tag v-if="row.majorId" type="success" size="small" disable-transitions
               >按专业</el-tag
@@ -53,20 +53,26 @@
             >
           </template>
         </el-table-column>
-        <el-table-column label="专业" min-width="120">
+        <el-table-column v-if="!isMobile" label="专业" min-width="120">
           <template #default="{ row }">{{ row.majors?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="培养层次" min-width="100">
+        <el-table-column v-if="!isMobile" label="培养层次" min-width="100">
           <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column prop="version" label="版本" min-width="70" align="center" />
-        <el-table-column label="课程数" min-width="75" align="center">
+        <el-table-column
+          v-if="!isMobile"
+          prop="version"
+          label="版本"
+          min-width="70"
+          align="center"
+        />
+        <el-table-column v-if="!isMobile" label="课程数" min-width="75" align="center">
           <template #default="{ row }">{{ row.courseCount || 0 }}</template>
         </el-table-column>
-        <el-table-column label="使用班级" min-width="85" align="center">
+        <el-table-column v-if="!isMobile" label="使用班级" min-width="85" align="center">
           <template #default="{ row }">{{ row.classCount || 0 }}</template>
         </el-table-column>
-        <el-table-column label="排序" min-width="105" align="center">
+        <el-table-column v-if="!isMobile" label="排序" min-width="105" align="center">
           <template #default="{ row }">
             <div class="sort-buttons">
               <el-button

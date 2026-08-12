@@ -92,7 +92,7 @@ const api = {
 
   // 更新教师（仅管理员），PUT /api/teachers/:id。
   // 后端 updateTeacher 白名单：name/gender/birth_date/personnel_type/
-  // qualification_type/default_weekly_hours/affiliated_college_id/status。
+  // remark/default_weekly_hours/affiliated_college_id/status。
   updateTeacher(id, payload) {
     return request({ url: `/api/teachers/${id}`, method: 'PUT', data: payload });
   },
