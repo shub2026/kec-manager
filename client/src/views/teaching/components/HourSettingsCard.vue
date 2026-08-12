@@ -152,9 +152,10 @@ function toggleHours() {
 
 async function loadHourSettings(courseId) {
   Object.assign(hourSettings, JSON.parse(JSON.stringify(defaultHourSettings)));
-  if (!courseId) return;
   try {
-    const res = await getHourSettings({ courseId });
+    // 未选课程时加载全局配置（后端无 course_id 返回全局键），
+    // 避免批量排课时卡片静默显示前端默认值误导用户
+    const res = await getHourSettings(courseId ? { courseId } : {});
     if (res.data) {
       const d = res.data;
       if (d.fullTime) hourSettings.fullTime = { ...d.fullTime };
@@ -191,6 +192,9 @@ function handleCourseChange(courseId) {
   emit('course-change', courseId);
   loadHourSettings(courseId);
 }
+
+// 首次挂载时加载全局课时配置（无课程选中时的展示基准）
+loadHourSettings(null);
 
 // 父组件外部变更课程（如概览卡片点选）时同步加载课时设置；首次挂载不触发
 watch(

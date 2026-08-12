@@ -268,8 +268,8 @@
  * @property {{standard: number, max: number}} [partTime]
  * @property {{standard: number, max: number}} [external]
  */
-/** @typedef {Object} HourSettingsInput @property {number} courseId @property {HourSettings} hourSettings } */
-/** @typedef {Object} HourSettingsQuery @property {number} courseId } */
+/** @typedef {Object} HourSettingsInput @property {number} courseId @property {HourSettings} hourSettings */
+/** @typedef {Object} HourSettingsQuery @property {number} [courseId] 不传则返回全局配置 */
 
 /**
  * 首页统计

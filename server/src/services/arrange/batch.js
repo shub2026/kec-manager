@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma.js';
-import { BATCH_CONFIG, DEFAULT_HOUR_SETTINGS } from '../../constants/index.js';
+import { BATCH_CONFIG, DEFAULT_HOUR_SETTINGS, HOUR_SETTINGS_PREFIX } from '../../constants/index.js';
 import { validateHourSettings } from './validate.js';
 import { autoArrange, batchLocks } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
@@ -54,6 +54,43 @@ export async function batchAutoArrange(
       },
       select: { id: true, name: true, code: true },
     });
+
+    // 批量修复：预加载按课程保存的课时配置与全局配置。
+    // 批量场景下请求传入的 hourSettings 仅作兜底，每门课程实际生效配置按优先级解析：
+    //   课程级 DB 配置 > 请求传入 hourSettings > 全局 DB 配置 > DEFAULT_HOUR_SETTINGS
+    const courseSettingsRows = await prisma.system_settings.findMany({
+      where: { key: { startsWith: `${HOUR_SETTINGS_PREFIX}_` } },
+    });
+    const courseHourSettingsMap = new Map();
+    for (const row of courseSettingsRows) {
+      const settingsCourseId = Number(row.key.slice(HOUR_SETTINGS_PREFIX.length + 1));
+      if (!Number.isFinite(settingsCourseId)) continue;
+      try {
+        const parsed = JSON.parse(row.value);
+        if (parsed && typeof parsed === 'object') {
+          courseHourSettingsMap.set(settingsCourseId, parsed);
+        }
+      } catch (_e) {
+        logger.warn(`[批量排课] 课时配置 ${row.key} 解析失败，已忽略`);
+      }
+    }
+    let globalDbHourSettings = null;
+    const globalSettingsRow = await prisma.system_settings.findUnique({
+      where: { key: HOUR_SETTINGS_PREFIX },
+    });
+    if (globalSettingsRow?.value) {
+      try {
+        const parsed = JSON.parse(globalSettingsRow.value);
+        if (parsed && typeof parsed === 'object') globalDbHourSettings = parsed;
+      } catch (_e) {
+        globalDbHourSettings = null;
+      }
+    }
+    const resolveCourseHourSettings = (courseId) =>
+      courseHourSettingsMap.get(Number(courseId)) ||
+      hourSettings ||
+      globalDbHourSettings ||
+      DEFAULT_HOUR_SETTINGS;
 
     const teacherCounts = await prisma.teacher_courses.groupBy({
       by: ['course_id'],
@@ -142,12 +179,33 @@ export async function batchAutoArrange(
     );
 
     // 预计算每位教师的实际剩余 standardCap（考虑 personnelType / defaultWeeklyHours / 既有负载）
+    // 批量修复：供需估算采用保守口径——按教师所授各课程的解析配置取最小 standard，
+    // 避免课程级配置比兜底配置更严时高估供给，导致紧缺课程优先级失真（仅影响排序，不影响上限正确性）
+    const teacherCoursesMap = new Map();
+    for (const [cid, tids] of courseTeacherMap) {
+      for (const tid of tids) {
+        if (!teacherCoursesMap.has(tid)) teacherCoursesMap.set(tid, []);
+        teacherCoursesMap.get(tid).push(cid);
+      }
+    }
     const teacherRemainingCap = new Map();
     for (const [tid, info] of teacherInfoMap) {
+      let minStandard = null;
+      for (const cid of teacherCoursesMap.get(tid) || []) {
+        const resolved = resolveCourseHourSettings(cid);
+        const typeSetting =
+          resolved[info.personnel_type] ||
+          DEFAULT_HOUR_SETTINGS[info.personnel_type] ||
+          DEFAULT_HOUR_SETTINGS.full_time;
+        minStandard =
+          minStandard == null ? typeSetting.standard : Math.min(minStandard, typeSetting.standard);
+      }
       const setting =
-        hourSettings[info.personnel_type] ||
-        DEFAULT_HOUR_SETTINGS[info.personnel_type] ||
-        DEFAULT_HOUR_SETTINGS.full_time;
+        minStandard != null
+          ? { standard: minStandard }
+          : hourSettings[info.personnel_type] ||
+            DEFAULT_HOUR_SETTINGS[info.personnel_type] ||
+            DEFAULT_HOUR_SETTINGS.full_time;
       const effectiveTotal = Math.max(0, workloadMap.get(tid) || 0);
       const teacherHourCap =
         info.default_weekly_hours != null
@@ -235,7 +293,7 @@ export async function batchAutoArrange(
           courseId,
           semesterStr,
           mode,
-          hourSettings,
+          resolveCourseHourSettings(courseId),
           scheduleConditions,
           {
             ...options,
@@ -363,7 +421,7 @@ export async function batchAutoArrange(
               courseId,
               semesterStr,
               mode,
-              hourSettings,
+              resolveCourseHourSettings(courseId),
               scheduleConditions,
               {
                 ...options,
@@ -387,7 +445,7 @@ export async function batchAutoArrange(
             courseId,
             semesterStr,
             mode,
-            hourSettings,
+            resolveCourseHourSettings(courseId),
             scheduleConditions,
             {
               ...options,

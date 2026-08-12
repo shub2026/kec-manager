@@ -19,6 +19,8 @@ const {
   planCoursesFindMany,
   teachersFindMany,
   teachingAssignmentsGroupBy,
+  systemSettingsFindMany,
+  systemSettingsFindUnique,
   autoArrangeFn,
   batchLocksSet,
   validateFn,
@@ -30,6 +32,8 @@ const {
   planCoursesFindMany: vi.fn().mockResolvedValue([]),
   teachersFindMany: vi.fn().mockResolvedValue([]),
   teachingAssignmentsGroupBy: vi.fn().mockResolvedValue([]),
+  systemSettingsFindMany: vi.fn().mockResolvedValue([]),
+  systemSettingsFindUnique: vi.fn().mockResolvedValue(null),
   autoArrangeFn: vi.fn(),
   batchLocksSet: new Set(),
   validateFn: vi.fn(),
@@ -43,6 +47,8 @@ vi.mock('../../../constants/index.js', () => ({
   },
   // P0-2: batch.js 现在导入 BATCH_CONFIG，需在 mock 中补充
   BATCH_CONFIG: { RESERVE_RATIO: 0.85 },
+  // 批量修复：batch.js 按课程解析课时配置需要存储键前缀
+  HOUR_SETTINGS_PREFIX: 'teaching_hour_settings',
 }));
 
 vi.mock('../../../utils/logger.js', () => ({
@@ -57,6 +63,10 @@ vi.mock('../../../lib/prisma.js', () => {
     plan_courses: { findMany: planCoursesFindMany },
     teachers: { findMany: teachersFindMany },
     teaching_assignments: { groupBy: teachingAssignmentsGroupBy },
+    system_settings: {
+      findMany: systemSettingsFindMany,
+      findUnique: systemSettingsFindUnique,
+    },
   };
   return { prisma: prismaObj };
 });
@@ -119,6 +129,20 @@ function makeResult(overrides = {}) {
     ...overrides,
   };
 }
+// 批量修复：课程级课时配置（key = teaching_hour_settings_<courseId>）
+function setupCourseHourSettings(entries) {
+  systemSettingsFindMany.mockResolvedValue(
+    entries.map(([courseId, value]) => ({
+      key: `teaching_hour_settings_${courseId}`,
+      value: JSON.stringify(value),
+    }))
+  );
+}
+function setupGlobalHourSettings(value) {
+  systemSettingsFindUnique.mockResolvedValue(
+    value ? { key: 'teaching_hour_settings', value: JSON.stringify(value) } : null
+  );
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -131,6 +155,8 @@ beforeEach(() => {
   planCoursesFindMany.mockResolvedValue([]);
   teachersFindMany.mockResolvedValue([]);
   teachingAssignmentsGroupBy.mockResolvedValue([]);
+  systemSettingsFindMany.mockResolvedValue([]);
+  systemSettingsFindUnique.mockResolvedValue(null);
 });
 
 // ══════════════════════════════════════════════
@@ -721,6 +747,145 @@ describe('batchAutoArrange', () => {
       await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {}, { preview: true });
       // 重排前应先扣除本课程主轮的 4 小时，否则自身占用会压缩重排容量
       expect(refillExtraHours).toBeUndefined();
+    });
+  });
+
+  // ══════════════════════════════════════
+  describe('批量修复：按课程解析课时配置', () => {
+    const COURSE_SETTINGS = {
+      full_time: { standard: 16, max: 20 },
+      part_time: { standard: 8, max: 10 },
+      external: { standard: 12, max: 16 },
+    };
+
+    function setupSingleCourse() {
+      setupCourses([{ id: 1, name: 'C1', code: 'A' }]);
+      setupTeacherCounts([[1, 1]]);
+      setupPlanMapping([[10, 1]]);
+      setupDemands([[10, 8]]);
+      autoArrangeFn.mockResolvedValue(makeResult());
+    }
+
+    it('DB 存在课程级配置时应优先于请求传入值（兼职超限根因回归）', async () => {
+      setupSingleCourse();
+      setupCourseHourSettings([[1, COURSE_SETTINGS]]);
+
+      // 请求传入前端默认值（兼职 12/16），课程已保存 8/10 → 应用 8/10
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      expect(autoArrangeFn.mock.calls[0][3]).toEqual(COURSE_SETTINGS);
+    });
+
+    it('课程无独立配置时回退请求传入值', async () => {
+      setupSingleCourse();
+      setupCourseHourSettings([]);
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      expect(autoArrangeFn.mock.calls[0][3]).toBe(VALID_HOUR_SETTINGS);
+    });
+
+    it('请求未传且无课程配置时回退全局 DB 配置', async () => {
+      setupSingleCourse();
+      setupGlobalHourSettings(COURSE_SETTINGS);
+      validateFn.mockImplementation(() => {});
+
+      await batchAutoArrange('2025-2026-1', 'standard', null, {});
+      expect(autoArrangeFn.mock.calls[0][3]).toEqual(COURSE_SETTINGS);
+    });
+
+    it('课程级配置损坏时回退请求传入值并警告', async () => {
+      setupSingleCourse();
+      systemSettingsFindMany.mockResolvedValue([
+        { key: 'teaching_hour_settings_1', value: '{非法JSON' },
+      ]);
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      expect(autoArrangeFn.mock.calls[0][3]).toBe(VALID_HOUR_SETTINGS);
+    });
+
+    it('多课程各自应用自己的配置', async () => {
+      setupCourses([
+        { id: 1, name: 'C1', code: 'A' },
+        { id: 2, name: 'C2', code: 'B' },
+      ]);
+      setupTeacherCounts([
+        [1, 1],
+        [2, 1],
+      ]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
+      setupDemands([
+        [10, 8],
+        [20, 8],
+      ]);
+      autoArrangeFn.mockResolvedValue(makeResult());
+      const course2Settings = { ...COURSE_SETTINGS, external: { standard: 20, max: 24 } };
+      setupCourseHourSettings([
+        [1, COURSE_SETTINGS],
+        [2, course2Settings],
+      ]);
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      const call1 = autoArrangeFn.mock.calls.find((c) => c[0] === 1);
+      const call2 = autoArrangeFn.mock.calls.find((c) => c[0] === 2);
+      expect(call1[3]).toEqual(COURSE_SETTINGS);
+      expect(call2[3]).toEqual(course2Settings);
+    });
+
+    it('补漏轮（F8 preview 评估 + 重排）同样使用课程级配置', async () => {
+      setupCourses([{ id: 1, name: 'C1', code: 'A' }]);
+      setupTeacherCounts([[1, 1]]);
+      setupPlanMapping([[10, 1]]);
+      setupDemands([[10, 16]]);
+      setupTeacherCourses([[101, 1]]);
+      setupCourseHourSettings([[1, COURSE_SETTINGS]]);
+      autoArrangeFn
+        .mockResolvedValueOnce(makeResult({ autoCount: 1, unassignedCount: 2 })) // 主轮
+        .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 0 })) // F8 preview
+        .mockResolvedValueOnce(makeResult({ autoCount: 3, unassignedCount: 0 })); // 补漏重排
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      expect(autoArrangeFn).toHaveBeenCalledTimes(3);
+      for (const call of autoArrangeFn.mock.calls) {
+        expect(call[3]).toEqual(COURSE_SETTINGS);
+      }
+    });
+
+    it('供需估算采用教师所授课程配置的最小 standard（保守口径）', async () => {
+      // 课程2配置兼职 standard=8，课程1无配置（回退请求值 12）；
+      // 教师101 只教课程2 → 供给按 8 估算；教师201 只教课程1 → 供给按 12 估算。
+      // 旧逻辑统一用请求值 12：两课程供给相等（12/12）→ 同分按原顺序课程1先；
+      // 新逻辑：课程2供需比 10/8=1.25 > 课程1 10/12≈0.83 → 课程2先，可区分新旧口径
+      setupCourses([
+        { id: 1, name: 'C1', code: 'A' },
+        { id: 2, name: 'C2', code: 'B' },
+      ]);
+      setupTeacherCounts([
+        [1, 1],
+        [2, 1],
+      ]);
+      setupPlanMapping([
+        [10, 1],
+        [20, 2],
+      ]);
+      setupDemands([
+        [10, 10],
+        [20, 10],
+      ]);
+      setupTeacherCourses([
+        [101, 2],
+        [201, 1],
+      ]);
+      teachersFindMany.mockResolvedValue([
+        { id: 101, personnel_type: 'part_time', default_weekly_hours: null },
+        { id: 201, personnel_type: 'part_time', default_weekly_hours: null },
+      ]);
+      setupCourseHourSettings([[2, COURSE_SETTINGS]]);
+      autoArrangeFn.mockResolvedValue(makeResult());
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      expect(autoArrangeFn.mock.calls[0][0]).toBe(2);
     });
   });
 });

@@ -70,6 +70,8 @@ export function useBatchArrange({
     arrangeAbortController = new AbortController();
 
     try {
+      // hourSettings 仅作兜底：后端批量排课按课程解析 DB 中保存的课时配置
+      // （课程级 > 此传参 > 全局 > 默认），避免当前卡片状态跨课程误用
       const result = await runBatchAutoArrangeWithProgress(
         {
           semester: selectedSemester.value,
