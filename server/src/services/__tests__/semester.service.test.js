@@ -28,6 +28,7 @@ const {
   parseSemester,
   formatSemesterLabel,
   calcClassSemester,
+  getPreviousSemester,
   getCurrentSemesterInfo,
   getSemesterInfoFromRequest,
   getActiveClassFilter,
@@ -216,6 +217,31 @@ describe('calcClassSemester', () => {
     it('duration_years 缺失应返回 null', () => {
       expect(calcClassSemester({ enrollment_year: 2024 }, parseSemester('2025-2026-1'))).toBeNull();
     });
+  });
+});
+
+// ──────────────────────────────────────────────
+// getPreviousSemester（固有班级延续：上学期推算）
+// ──────────────────────────────────────────────
+describe('getPreviousSemester', () => {
+  it('春季学期（N=2）→ 本学年秋季（N=1）', () => {
+    expect(getPreviousSemester('2025-2026-2')).toBe('2025-2026-1');
+  });
+
+  it('秋季学期（N=1）→ 上一学年春季（N=2）', () => {
+    expect(getPreviousSemester('2025-2026-1')).toBe('2024-2025-2');
+  });
+
+  it('年份下界越界（2000-2001-1 无法回推）返回 null', () => {
+    expect(getPreviousSemester('2000-2001-1')).toBeNull();
+  });
+
+  it('非法学期字符串返回 null', () => {
+    expect(getPreviousSemester('')).toBeNull();
+    expect(getPreviousSemester(null)).toBeNull();
+    expect(getPreviousSemester('2025-2026-3')).toBeNull();
+    expect(getPreviousSemester('2025-2027-1')).toBeNull();
+    expect(getPreviousSemester('abc-def-1')).toBeNull();
   });
 });
 

@@ -13,6 +13,7 @@ const DEFAULT_SETTINGS = {
   current_semester: { value: DEFAULT_SEMESTER, description: '当前学期' },
   organization_name: { value: '欢迎回来', description: '系统标识' },
   tabu_search_enabled: { value: 'false', description: '排课禁忌搜索优化' },
+  inherent_class_enabled: { value: 'false', description: '排课固有班级延续' },
   semester_start_month: { value: '8', description: '学期边界月份（秋季学期起始月，1-12）' },
   allow_historical_edit: { value: 'false', description: '是否允许编辑历史学期' },
 };

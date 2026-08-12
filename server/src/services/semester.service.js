@@ -72,6 +72,28 @@ export function formatSemesterLabel(startYear, endYear, semesterIndex) {
 }
 
 /**
+ * 计算指定学期的上一个学期字符串
+ *
+ * 规则：YYYY-YYYY-1（秋季）的上学期为 (YYYY-1)-YYYY-2（上一学年春季）；
+ * YYYY-YYYY-2（春季）的上学期为 YYYY-(YYYY+1)-1（本学年秋季）。
+ *
+ * @param {string} semesterStr - 学期字符串，如 "2025-2026-2"
+ * @returns {string|null} 上学期字符串，如 "2025-2026-1"；解析失败或跨年越界返回 null
+ */
+export function getPreviousSemester(semesterStr) {
+  const info = parseSemester(semesterStr);
+  if (!info) return null;
+  const { startYear, endYear, semesterIndex } = info;
+  if (semesterIndex === 2) {
+    // 春季 → 本学年秋季
+    return `${startYear}-${endYear}-1`;
+  }
+  // 秋季 → 上一学年春季（需校验年份仍在合法区间，parseSemester 会再次把关）
+  if (startYear - 1 < YEAR_MIN) return null;
+  return `${startYear - 1}-${startYear}-2`;
+}
+
+/**
  * 计算班级在指定学期下的相对学期序号
  *
  * 公式：grade = startYear - enrollment_year + 1

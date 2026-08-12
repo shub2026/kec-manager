@@ -5,11 +5,17 @@
 
 import { prisma } from '../../lib/prisma.js';
 import logger from '../../utils/logger.js';
-import { DEFAULT_HOUR_SETTINGS, HOUR_SETTINGS_PREFIX, TABU_SEARCH } from '../../constants/index.js';
+import {
+  DEFAULT_HOUR_SETTINGS,
+  HOUR_SETTINGS_PREFIX,
+  TABU_SEARCH,
+  INHERENT_CLASS,
+} from '../../constants/index.js';
 import { tabuOptimize } from './tabu-search.js';
 import { calcMatchScore } from './auto-arrange.js';
 import { getClassesWithCourse } from './queries.js';
 import { createAuditLog } from '../../services/audit.service.js';
+import { getPreviousSemester } from '../semester.service.js';
 
 /**
  * 检查是否满足最小改进阈值
@@ -416,6 +422,42 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       hourSettings
     );
 
+    // 固有班级延续：与 autoArrange 同源——开关读取一次，预加载上学期快照
+    // 结构：courseId → Map(teacherId → Set(classId))，逐课程挂载到教师约束副本，
+    // 使优化层的目标函数尊重延续分配，避免"排课优化"把延续关系拆掉
+    let inherentClassMap = null;
+    {
+      let inherentClassEnabled = INHERENT_CLASS.ENABLED;
+      if (!inherentClassEnabled) {
+        try {
+          const icSetting = await prisma.system_settings.findUnique({
+            where: { key: 'inherent_class_enabled' },
+          });
+          if (icSetting?.value === 'true') inherentClassEnabled = true;
+        } catch (_) {
+          /* DB 查询失败保持默认关闭 */
+        }
+      }
+      const prevSemester = inherentClassEnabled ? getPreviousSemester(semesterStr) : null;
+      if (prevSemester) {
+        try {
+          const prevRows = await prisma.teaching_assignments.findMany({
+            where: { semester: prevSemester },
+            select: { course_id: true, teacher_id: true, class_id: true },
+          });
+          inherentClassMap = new Map();
+          for (const row of prevRows) {
+            if (!inherentClassMap.has(row.course_id)) inherentClassMap.set(row.course_id, new Map());
+            const teacherMap = inherentClassMap.get(row.course_id);
+            if (!teacherMap.has(row.teacher_id)) teacherMap.set(row.teacher_id, new Set());
+            teacherMap.get(row.teacher_id).add(row.class_id);
+          }
+        } catch (_) {
+          inherentClassMap = null; // 查询失败静默降级，行为退化为现状
+        }
+      }
+    }
+
     // 8. 计算优化前指标（使用 calcMatchScore）
     const beforeMetrics = calculateMetrics(
       currentAssignments.map((a) => ({
@@ -474,12 +516,18 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
 
       // 为每门课创建独立的教师约束副本，防止 tabuOptimize 写回污染共享状态
       // （writeback 会修改 assignedTextbookIds/assignedCollegeIds Set 和 assignedHours）
-      const courseTeacherConstraints = qualifiedTeachers.map((t) => ({
-        ...t,
-        assignedTextbookIds: new Set(t.assignedTextbookIds),
-        assignedCollegeIds: new Set(t.assignedCollegeIds),
-        preferences: new Map(t.preferences),
-      }));
+      const courseTeacherConstraints = qualifiedTeachers.map((t) => {
+        // 固有班级延续：按课程挂载上学期快照（全局约束上无此字段，须按课程维度注入，
+        // 避免教师在其他课程教过的班级被误判为本课程延续）
+        const prevClassIds = inherentClassMap?.get(Number(courseId))?.get(t.id);
+        return {
+          ...t,
+          assignedTextbookIds: new Set(t.assignedTextbookIds),
+          assignedCollegeIds: new Set(t.assignedCollegeIds),
+          preferences: new Map(t.preferences),
+          ...(prevClassIds?.size > 0 ? { inherentClassIds: new Set(prevClassIds) } : {}),
+        };
+      });
 
       // 容量修正：buildTeacherConstraints 的 standardCap/fullCap 用的是全局 existingHours（含所有课程），
       // 但 tabu-search 的 buildTeacherStates 仅从当前课程 assignments 初始化 assignedHours。

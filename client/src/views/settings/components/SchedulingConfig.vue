@@ -53,6 +53,48 @@
         <div class="switch-row">
           <div class="switch-info">
             <label class="field-label">
+              固有班级延续
+              <el-tag
+                v-if="inherentClassDirty"
+                size="small"
+                type="warning"
+                effect="plain"
+                class="unsaved-tag"
+                disable-transitions
+                >未保存</el-tag
+              >
+            </label>
+            <p class="switch-desc">
+              排课时优先让教师回到上学期教过的班级，保持教学连续性。
+              软性优先：仅提升延续班级在评分与拿取顺序上的优先级，不改变教师容量、意向、教材内聚等约束；
+              上学期教过该班的教师本学期容量满或意向不匹配时，班级照常排给其他教师。
+            </p>
+          </div>
+          <el-switch
+            v-model="inherentClassEnabled"
+            :loading="saving"
+            inline-prompt
+            active-text="开"
+            inactive-text="关"
+            size="large"
+          />
+        </div>
+        <div v-if="inherentClassEnabled" class="enabled-hint">
+          <el-icon color="var(--brand-success)"><CircleCheckFilled /></el-icon>
+          <span>已开启 — 排课时将优先延续上学期的教师-班级关系</span>
+        </div>
+        <div v-else class="enabled-hint off">
+          <el-icon><InfoFilled /></el-icon>
+          <span>已关闭 — 排课不参考上学期记录，行为与之前版本一致（默认）</span>
+        </div>
+      </div>
+
+      <el-divider />
+
+      <div class="config-item">
+        <div class="switch-row">
+          <div class="switch-info">
+            <label class="field-label">
               允许编辑历史学期
               <el-tag
                 v-if="historicalDirty"
@@ -120,27 +162,35 @@ import SettingsCardHeader from './SettingsCardHeader.vue';
 const settingsStore = useSettingsStore();
 const enabled = ref(false);
 const savedValue = ref(false);
+const inherentClassEnabled = ref(false);
+const savedInherentClass = ref(false);
 const allowHistoricalEdit = ref(false);
 const savedAllow = ref(false);
 const saving = ref(false);
 const dirty = ref(false);
 
-watch([enabled, allowHistoricalEdit], () => {
+watch([enabled, inherentClassEnabled, allowHistoricalEdit], () => {
   dirty.value =
-    enabled.value !== savedValue.value || allowHistoricalEdit.value !== savedAllow.value;
+    enabled.value !== savedValue.value ||
+    inherentClassEnabled.value !== savedInherentClass.value ||
+    allowHistoricalEdit.value !== savedAllow.value;
 });
 
 // 各开关独立脏状态追踪，用于显示“未保存”标签
 const tabuDirty = computed(() => enabled.value !== savedValue.value);
+const inherentClassDirty = computed(() => inherentClassEnabled.value !== savedInherentClass.value);
 const historicalDirty = computed(() => allowHistoricalEdit.value !== savedAllow.value);
 
 async function loadState() {
   await settingsStore.load();
   const s = settingsStore.settings;
   const tabu = s.tabuSearchEnabled?.value === 'true';
+  const inherentClass = s.inherentClassEnabled?.value === 'true';
   const allow = s.allowHistoricalEdit?.value === 'true';
   enabled.value = tabu;
   savedValue.value = tabu;
+  inherentClassEnabled.value = inherentClass;
+  savedInherentClass.value = inherentClass;
   allowHistoricalEdit.value = allow;
   savedAllow.value = allow;
   dirty.value = false;
@@ -151,9 +201,11 @@ async function handleSave() {
   try {
     await settingsStore.save({
       tabuSearchEnabled: enabled.value,
+      inherentClassEnabled: inherentClassEnabled.value,
       allowHistoricalEdit: allowHistoricalEdit.value,
     });
     savedValue.value = enabled.value;
+    savedInherentClass.value = inherentClassEnabled.value;
     savedAllow.value = allowHistoricalEdit.value;
     dirty.value = false;
     ElMessage.success('设置已保存');

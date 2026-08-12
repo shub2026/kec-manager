@@ -49,6 +49,8 @@ vi.mock('../../../constants/index.js', () => ({
   BATCH_CONFIG: { RESERVE_RATIO: 0.85 },
   // 批量修复：batch.js 按课程解析课时配置需要存储键前缀
   HOUR_SETTINGS_PREFIX: 'teaching_hour_settings',
+  // 固有班级延续：默认关闭，测试主流程行为与功能引入前一致
+  INHERENT_CLASS: { ENABLED: false, CONTINUITY_WEIGHT: 8 },
 }));
 
 vi.mock('../../../utils/logger.js', () => ({
@@ -85,6 +87,8 @@ vi.mock('../lock.js', () => ({
   acquireLock: vi.fn().mockResolvedValue(true),
   releaseLock: vi.fn().mockResolvedValue(undefined),
 }));
+
+// 固有班级延续：直接使用真实 semester.service（其依赖的 prisma/logger 已被 mock）
 
 const { batchAutoArrange } = await import('../batch.js');
 

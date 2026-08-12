@@ -49,6 +49,7 @@ vi.mock('../../../constants/index.js', () => ({
     SCATTERED_THRESHOLD: 3,
   },
   TABU_SEARCH: { ENABLED: false },
+  INHERENT_CLASS: { ENABLED: false, CONTINUITY_WEIGHT: 8 },
   SWAP_CONFIG: { MAX_DEPTH: 3, MAX_UNASSIGNED: 30 },
 }));
 

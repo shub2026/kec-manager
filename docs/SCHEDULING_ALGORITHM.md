@@ -1190,6 +1190,42 @@ v2.21.0 已实现禁忌搜索作为局部搜索优化层。未来可以考虑：
 | **`teacherNameMap` 优化**           | **`arrange/optimize.js`**   | **600**      |
 | 配置 `TEXTBOOK_COHESION`               | `constants/index.js`         | 92-114       |
 
+## 二十六、固有班级延续（v1.7.0 新增）
+
+### 26.1 概述
+
+"固有班级延续"是一个**可选的软优先策略**：排课下学期时，优先将教师分配到他上学期教过的班级（即"固有班级"）。开关为系统设置项 `inherent_class_enabled`（默认关闭），由系统设置页"排课配置"卡片控制。
+
+设计原则：**纯软性优先，不构成硬约束**。容量、资格（学院/层次）、教材惩罚、手动锁定等既有规则全部不变，延续偏好只影响同等条件下的排序与评分。
+
+### 26.2 快照构建
+
+- 上学期推算：`semester.service.js` 的 `getPreviousSemester`（春季 N=2 → 本学年秋季 N=1；秋季 N=1 → 上一学年春季，年份越界返回 null）。
+- 快照来源：查询上学期该课程的 `teaching_assignments`（teacher_id → class_id 集合），构建 Map：`courseId → Map(teacherId → Set(classId))`，挂到教师约束对象的 `inherentClassIds` 字段（每教师独立副本，防止补排多轮间共享 Set 污染）。
+- 批量排课在入口处**一次性预加载**上学期全部排课记录（单条 SQL），按课程切分后透传给各次 `autoArrange` 调用，避免逐课程重复查库；单课程排课自行查询。
+- 快照缺失或查询失败时自动降级为普通排课，不影响主流程。
+
+### 26.3 生效点位
+
+1. **评分**（`calcMatchScore`）：教师命中固有班级时 `+INHERENT_CLASS.CONTINUITY_WEIGHT`（=8）。高于学院/层次匹配权重（各 5），但远低于教材强惩罚（-300），即教材内聚目标仍占主导。
+2. **拿班顺序**（`takeClassesForTeacher`）：固有班级排序前置，先于学院优先规则，再进入既有的 matchHours 最大化逻辑。
+3. **禁忌搜索**：`buildScoringProxy` 通过展开运算符透传教师字段，`inherentClassIds` 自动参与评分，无需额外改动。
+4. **排课优化**（`optimize.js`）：按课程注入 `inherentClassIds` 到课程级约束副本；前后指标评估使用不含快照的全局约束，保证阈值口径一致。
+
+### 26.4 开关语义
+
+- 开关在每次排课调用入口读取一次，同一次批量排课内不重复读取，避免中途改开关导致批次内口径不一致。
+- 静态常量 `INHERENT_CLASS.ENABLED` 默认 `false`；`system_settings.inherent_class_enabled` 为动态开关，DB 查询失败时保持关闭。
+- 即使开关打开，若目标课程上学期无排课记录（首学期开设、上学期未排等），该课程也自然走普通排课。
+
+### 26.5 结果统计
+
+开关生效且存在快照时，排课结果附带 `inherentContinuity`：
+
+- `candidateCount`：本次已分配班级中，上学期存在任教记录的数量；
+- `continuedCount`：其中仍分配给原任课教师的数量；
+- `continuityRate`：延续率百分比（candidateCount 为 0 时为 null）。
+
 ---
 
-_文档版本：v1.0.0 | 最后更新：2026-07-30_
+_文档版本：v1.7.0 | 最后更新：2026-08-12_

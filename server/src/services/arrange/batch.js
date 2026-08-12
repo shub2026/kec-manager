@@ -1,5 +1,10 @@
 import { prisma } from '../../lib/prisma.js';
-import { BATCH_CONFIG, DEFAULT_HOUR_SETTINGS, HOUR_SETTINGS_PREFIX } from '../../constants/index.js';
+import {
+  BATCH_CONFIG,
+  DEFAULT_HOUR_SETTINGS,
+  HOUR_SETTINGS_PREFIX,
+  INHERENT_CLASS,
+} from '../../constants/index.js';
 import { validateHourSettings } from './validate.js';
 import { autoArrange, batchLocks } from './auto-arrange.js';
 import logger from '../../utils/logger.js';
@@ -7,6 +12,7 @@ import logger from '../../utils/logger.js';
 import { acquireLock, releaseLock } from './lock.js';
 // F7 修复：导入 parseSemester 用于供需测算的学期过滤
 import { parseSemester } from './queries.js';
+import { getPreviousSemester } from '../semester.service.js';
 
 // M-13: 批量排课超时上限（5分钟）
 const BATCH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -112,6 +118,45 @@ export async function batchAutoArrange(
       if (!courseTeacherMap.has(row.course_id)) courseTeacherMap.set(row.course_id, []);
       courseTeacherMap.get(row.course_id).push(row.teacher_id);
     }
+
+    // === 固有班级延续：开关在批量开始时读取一次并固化，避免中途切换导致前后课程行为不一致 ===
+    let inherentClassEnabled = INHERENT_CLASS.ENABLED;
+    if (!inherentClassEnabled) {
+      try {
+        const icSetting = await prisma.system_settings.findUnique({
+          where: { key: 'inherent_class_enabled' },
+        });
+        if (icSetting?.value === 'true') inherentClassEnabled = true;
+      } catch (_) {
+        // DB 查询失败保持默认关闭
+      }
+    }
+    // 一次性预查上学期全量排课记录，构建 courseId → Map(teacherId → Set(classId))，
+    // 经 options 传入 autoArrange，避免逐课程重复查询（N 门课 = N 次查询）
+    const inherentClassMap = new Map();
+    if (inherentClassEnabled) {
+      const prevSemester = getPreviousSemester(semesterStr);
+      if (prevSemester) {
+        try {
+          const prevRows = await prisma.teaching_assignments.findMany({
+            where: { semester: prevSemester },
+            select: { course_id: true, teacher_id: true, class_id: true },
+          });
+          for (const row of prevRows) {
+            if (!inherentClassMap.has(row.course_id)) inherentClassMap.set(row.course_id, new Map());
+            const teacherMap = inherentClassMap.get(row.course_id);
+            if (!teacherMap.has(row.teacher_id)) teacherMap.set(row.teacher_id, new Set());
+            teacherMap.get(row.teacher_id).add(row.class_id);
+          }
+          logger.info(
+            `[批量排课][固有班级延续] 上学期=${prevSemester}，${inherentClassMap.size} 门课程存在历史排课记录`
+          );
+        } catch (_) {
+          inherentClassMap.clear(); // 查询失败静默降级，行为退化为现状
+        }
+      }
+    }
+    const inherentOpts = { inherentClassEnabled, inherentClassMap };
 
     // F7 修复：需求测算过滤当前学期，避免跨学期 weekly_hours 求和导致优先级失真
     const semesterInfo = parseSemester(semesterStr);
@@ -305,6 +350,7 @@ export async function batchAutoArrange(
             reserveExemptTeacherIds,
             // P1-12 修复：批量内部调用绕过 batchLocks 检查，由 batch.js 持有学期锁
             skipBatchLockCheck: true,
+            ...inherentOpts,
           }
         );
         if (options.preview && virtualTeacherHours) {
@@ -430,6 +476,7 @@ export async function batchAutoArrange(
                 globalTextbookMap,
                 capacityReserveRatio: 1.0,
                 skipBatchLockCheck: true,
+                ...inherentOpts,
               }
             );
             if (previewRefill.autoCount < prev.autoCount) {
@@ -453,6 +500,7 @@ export async function batchAutoArrange(
               globalTextbookMap,
               capacityReserveRatio: 1.0,
               skipBatchLockCheck: true,
+              ...inherentOpts,
             }
           );
           if (refill.autoCount < prev.autoCount) {

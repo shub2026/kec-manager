@@ -5,6 +5,7 @@ import {
   TEXTBOOK_COHESION,
   TABU_SEARCH,
   SWAP_CONFIG,
+  INHERENT_CLASS,
 } from '../../constants/index.js';
 import logger from '../../utils/logger.js';
 import { validateHourSettings } from './validate.js';
@@ -13,6 +14,7 @@ import { getClassesWithCourse, getTeachersForCourse, isTextbookMatch } from './q
 import { tabuOptimize } from './tabu-search.js';
 // B-01 修复：基于数据库的排课并发锁，支持多进程/多实例部署
 import { acquireLock, releaseLock } from './lock.js';
+import { getPreviousSemester } from '../semester.service.js';
 
 // C-2: 并发锁，防止同一课程被并发排课
 // B-01 修复：保留进程内存 Set 作为单进程快速路径（防止同进程内重复进入），
@@ -35,6 +37,8 @@ export const batchLocks = new Set();
  *   学院匹配 +COLLEGE_WEIGHT, 层次匹配 +LEVEL_WEIGHT,
  *   本轮已分配教材 +ASSIGNED_WEIGHT, 固有教材 +INHERENT_WEIGHT,
  *   新增教材惩罚 -PENALTY_PER_NEW × N（修复3，强制内聚）
+ * 固有班级延续（INHERENT_CLASS，可选）：
+ *   教师上学期教过该班级 +CONTINUITY_WEIGHT
  */
 function calcMatchScore(teacher, classInfo) {
   let score = 0;
@@ -63,6 +67,14 @@ function calcMatchScore(teacher, classInfo) {
     ) {
       score += lw;
     }
+  }
+
+  // 固有班级延续奖励：教师上学期教过该班级（inherentClassIds 快照命中），
+  // 优先回到上学期的班级。软性加分，不改变硬约束；教材强惩罚（-300）分支
+  // 在后续 return 时已计入该加分，内聚原则依然占优。
+  // 运行时门控为快照存在性：开关关闭时不构建快照，字段缺失即零开销退化
+  if (teacher.inherentClassIds?.has(classInfo.classId)) {
+    score += INHERENT_CLASS.CONTINUITY_WEIGHT;
   }
 
   if (classInfo.textbookIds && classInfo.textbookIds.length > 0 && teacher.assignedTextbookIds) {
@@ -505,6 +517,34 @@ function buildResult(
     preview: !!preview,
     warnings: warnings || [],
   };
+
+  // 固有班级延续统计：仅当开关启用（至少一位教师持有上学期快照）时输出，
+  // 关闭时不产生该字段，前端/批量汇总无需感知
+  const snapshotTeachers = (teacherConstraints || []).filter((t) => t.inherentClassIds?.size > 0);
+  if (snapshotTeachers.length > 0 && assignments.length > 0) {
+    const teacherMapForContinuity = new Map((teacherConstraints || []).map((t) => [t.id, t]));
+    // 分母：已分配班级中"至少一位候选教师上学期教过"的班级（可延续对象）
+    // 分子：实际分配给了上学期教过该班的教师的班级（实际延续）
+    let candidateCount = 0;
+    let continuedCount = 0;
+    for (const a of assignments) {
+      const assignedTeacher = teacherMapForContinuity.get(a.teacher_id);
+      const isContinued = !!assignedTeacher?.inherentClassIds?.has(a.class_id);
+      if (isContinued) {
+        candidateCount++;
+        continuedCount++;
+        continue;
+      }
+      const anyTaught = snapshotTeachers.some((t) => t.inherentClassIds.has(a.class_id));
+      if (anyTaught) candidateCount++;
+    }
+    result.inherentContinuity = {
+      enabled: true,
+      candidateCount,
+      continuedCount,
+      continuityRate: candidateCount > 0 ? Math.round((continuedCount / candidateCount) * 100) : null,
+    };
+  }
 
   if (preview && teacherConstraints && assignments.length > 0) {
     const teacherMap = new Map(teacherConstraints.map((t) => [t.id, t]));
@@ -1323,6 +1363,68 @@ export async function autoArrange(
       }
     }
 
+    // === 固有班级延续：构建上学期快照 ===
+    // 开关在排课开始时读取一次并固化，避免批量排课中途切换导致前后课程行为不一致。
+    // 单课程：未显式传入时查 DB（key='inherent_class_enabled'），静态常量作为兜底默认；
+    // 批量排课：batch.js 开始时读一次开关并预查上学期全量记录，经 options 传入，
+    //           避免逐课程重复查询（N 门课 = N 次查询）。
+    let inherentClassEnabled = options.inherentClassEnabled;
+    if (inherentClassEnabled === undefined) {
+      inherentClassEnabled = INHERENT_CLASS.ENABLED;
+      if (!inherentClassEnabled) {
+        try {
+          const icSetting = await prisma.system_settings.findUnique({
+            where: { key: 'inherent_class_enabled' },
+          });
+          if (icSetting?.value === 'true') inherentClassEnabled = true;
+        } catch (_) {
+          // DB 查询失败保持默认关闭，不影响排课主流程
+        }
+      }
+    }
+    if (inherentClassEnabled) {
+      let inherentClassMap = null;
+      const prevSemester = getPreviousSemester(semesterStr);
+      if (options.inherentClassMap !== undefined) {
+        // 批量模式：使用 batch.js 预加载的全课程快照；
+        // 本课程无上学期记录时为空 Map，不再回查 DB（避免逐课程重复查询）
+        inherentClassMap = options.inherentClassMap.get(Number(courseId)) || new Map();
+      } else if (prevSemester) {
+        try {
+          const prevRows = await prisma.teaching_assignments.findMany({
+            where: { course_id: Number(courseId), semester: prevSemester },
+            select: { teacher_id: true, class_id: true },
+          });
+          inherentClassMap = new Map();
+          for (const row of prevRows) {
+            if (!inherentClassMap.has(row.teacher_id)) inherentClassMap.set(row.teacher_id, new Set());
+            inherentClassMap.get(row.teacher_id).add(row.class_id);
+          }
+        } catch (_) {
+          inherentClassMap = null; // 查询失败静默降级为无延续数据，行为退化为现状
+        }
+      }
+      if (inherentClassMap?.size > 0) {
+        let snapshotTeachers = 0;
+        let snapshotClasses = 0;
+        for (const t of teacherConstraints) {
+          const classIds = inherentClassMap.get(t.id);
+          if (classIds?.size > 0) {
+            // 复制为每位教师独立的 Set：批量/补漏轮会多次调用 autoArrange，
+            // 若直接共享 Map 中的 Set，某次调用的意外修改会污染后续调用
+            t.inherentClassIds = new Set(classIds);
+            snapshotTeachers++;
+            snapshotClasses += classIds.size;
+          }
+        }
+        if (snapshotTeachers > 0) {
+          logger.info(
+            `[固有班级延续] 课程 ${courseId} 上学期=${prevSemester || '(无法推算)'}：${snapshotTeachers} 位教师共 ${snapshotClasses} 个固有班级快照`
+          );
+        }
+      }
+    }
+
     // === 版本标记：验证代码已加载 ===
     logger.debug(
       `[TEXTBOOK_COHESION] v2024-06-20-REWRITE autoArrange 入口 courseId=${courseId} semester=${semesterStr} mode=${mode}`
@@ -1564,7 +1666,14 @@ export async function autoArrange(
       const projectedTextbooks = useTbLimit ? new Set(teacher.assignedTextbookIds) : null;
 
       // 按学院排序：教师已分配的学院优先，然后按学院ID排序
+      // 固有班级延续：上学期教过的班级最优先（延续 > 学院内聚）；
+      // 门控为快照存在性，开关关闭时 inherentClassIds 缺失，排序退化为原逻辑
       const sorted = [...availableClasses].sort((a, b) => {
+        if (teacher.inherentClassIds) {
+          const aInherent = teacher.inherentClassIds.has(a.classId) ? 0 : 1;
+          const bInherent = teacher.inherentClassIds.has(b.classId) ? 0 : 1;
+          if (aInherent !== bInherent) return aInherent - bInherent;
+        }
         const aHasCollege = teacher.assignedCollegeIds?.has(a.collegeId) ? 0 : 1;
         const bHasCollege = teacher.assignedCollegeIds?.has(b.collegeId) ? 0 : 1;
         if (aHasCollege !== bHasCollege) return aHasCollege - bHasCollege;
