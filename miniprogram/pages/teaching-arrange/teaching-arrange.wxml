@@ -62,7 +62,7 @@
           <text wx:if="{{card.status === 'done'}}" class="ov-badge done">全部完成</text>
           <text wx:elif="{{card.status === 'waiting'}}" class="ov-badge waiting">待安排</text>
         </view>
-        <view class="bar"><view class="bar-in" style="width:{{card.percent}}%"></view></view>
+        <view class="bar"><view class="bar-in {{card.status === 'done' ? 'done' : ''}}" style="width:{{card.percent}}%"></view></view>
 
         <view class="ov-stats">
           <view class="ov-stat"><text class="ov-stat-num">{{card.teacherCount}}</text><text class="ov-stat-label">已排教师</text></view>
