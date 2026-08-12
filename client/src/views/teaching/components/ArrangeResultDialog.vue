@@ -60,6 +60,32 @@
       <div class="cohesion-hint">内聚率越高表示教师教材越集中；分散教师数指教材数≥2 的教师</div>
     </div>
 
+    <!-- 固有班级延续统计（仅开启开关且上学期存在排课记录时返回） -->
+    <div v-if="result.inherentContinuity" class="arrange-continuity">
+      <div class="continuity-title">
+        <el-icon><RefreshRight /></el-icon>
+        固有班级延续
+      </div>
+      <div class="continuity-metrics">
+        <div class="continuity-metric">
+          <span class="continuity-num text-brand"
+            >{{ result.inherentContinuity.continuityRate ?? '-'
+            }}<small v-if="result.inherentContinuity.continuityRate != null">%</small></span
+          >
+          <span class="continuity-label">延续率</span>
+        </div>
+        <div class="continuity-metric">
+          <span class="continuity-num">{{ result.inherentContinuity.continuedCount || 0 }}</span>
+          <span class="continuity-label">实际延续</span>
+        </div>
+        <div class="continuity-metric">
+          <span class="continuity-num">{{ result.inherentContinuity.candidateCount || 0 }}</span>
+          <span class="continuity-label">可延续班级</span>
+        </div>
+      </div>
+      <div class="continuity-hint">延续率 = 上学期任教教师本学期仍教该班的班级占比</div>
+    </div>
+
     <!-- 警告信息 -->
     <div v-if="result.warnings?.length" class="arrange-warnings">
       <div v-for="w in result.warnings" :key="w" class="arrange-warning-item">
@@ -169,6 +195,57 @@ const cohesionRateClass = computed(() => {
   background: var(--bg-subtle);
   border-radius: var(--radius-md);
   border-left: 3px solid var(--brand-primary);
+}
+/* 固有班级延续统计块：与教材内聚度块同构，品牌紫左边条区分语义 */
+.arrange-continuity {
+  margin: var(--space-3) 0;
+  padding: var(--space-3) 14px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  border-left: 3px solid #8b5cf6;
+}
+.continuity-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+.continuity-metrics {
+  display: flex;
+  gap: var(--space-5);
+  margin-bottom: 6px;
+}
+.continuity-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.continuity-num {
+  font-size: var(--font-size-h2);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.continuity-num.text-brand {
+  color: #8b5cf6;
+}
+.continuity-num small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 1px;
+}
+.continuity-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.continuity-hint {
+  font-size: 12px;
+  color: var(--text-placeholder);
 }
 .cohesion-title {
   font-size: 13px;

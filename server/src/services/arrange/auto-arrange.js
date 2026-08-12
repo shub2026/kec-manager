@@ -678,6 +678,7 @@ export function expandCombinedAssignments(assignments) {
         semester: a.semester,
         weekly_hours: a.weekly_hours,
         is_auto: a.is_auto,
+        ...(a.is_inherent !== undefined ? { is_inherent: a.is_inherent } : {}),
       });
     }
   }
@@ -2150,6 +2151,14 @@ export async function autoArrange(
         logger.debug(`  ${size}本教材: ${count}位教师`);
       }
       logger.debug('========== 诊断结束 ==========\n');
+    }
+
+    // === 固有班级延续标记：为每条最终分配计算 is_inherent ===
+    // 在 tabu 优化/置换回溯之后、持久化之前统一计算，保证标记反映最终教师；
+    // 无快照（开关关闭或上学期无记录）时一律 false，与关闭开关前行为一致
+    const inherentByTeacher = new Map(teacherConstraints.map((t) => [t.id, t.inherentClassIds]));
+    for (const a of assignments) {
+      a.is_inherent = !!inherentByTeacher.get(a.teacher_id)?.has(a.class_id);
     }
 
     if (preview) {

@@ -104,6 +104,15 @@
                   /></el-icon>
                   {{ row.assignment.teacherName }}
                 </el-tag>
+                <!-- 固有班级延续标记：上学期该教师已教此班 -->
+                <el-tooltip
+                  v-if="row.assignment.isInherent"
+                  content="固有班级延续：上学期该教师已教此班"
+                  placement="top"
+                  effect="light"
+                >
+                  <el-icon class="inherent-icon" :size="14"><RefreshRight /></el-icon>
+                </el-tooltip>
                 <!-- 锁定/解锁按钮：仅自动安排显示 -->
                 <el-tooltip
                   v-if="row.assignment.isAuto && !historicalReadOnly"
@@ -323,6 +332,11 @@ function tableRowClassName({ row }) {
 .locked-icon {
   margin-right: 2px;
   vertical-align: -1px;
+}
+/* 固有班级延续标记：品牌紫，与锁定（绿）区分 */
+.inherent-icon {
+  color: #8b5cf6;
+  flex-shrink: 0;
 }
 .locked-hint {
   display: inline-flex;

@@ -107,10 +107,38 @@ describe('getCourseOverview', () => {
     // 课程1：3 条安排，2 名教师（10 重复），1 条锁定，课时 4+4+6=14
     // 课程2：1 条安排，课时 2
     mockPrisma.teaching_assignments.findMany.mockResolvedValue([
-      { course_id: 1, class_id: 101, teacher_id: 10, weekly_hours: 4, is_locked: false },
-      { course_id: 1, class_id: 102, teacher_id: 10, weekly_hours: 4, is_locked: true },
-      { course_id: 1, class_id: 103, teacher_id: 11, weekly_hours: 6, is_locked: false },
-      { course_id: 2, class_id: 201, teacher_id: 20, weekly_hours: 2, is_locked: false },
+      {
+        course_id: 1,
+        class_id: 101,
+        teacher_id: 10,
+        weekly_hours: 4,
+        is_locked: false,
+        is_inherent: true,
+      },
+      {
+        course_id: 1,
+        class_id: 102,
+        teacher_id: 10,
+        weekly_hours: 4,
+        is_locked: true,
+        is_inherent: false,
+      },
+      {
+        course_id: 1,
+        class_id: 103,
+        teacher_id: 11,
+        weekly_hours: 6,
+        is_locked: false,
+        is_inherent: false,
+      },
+      {
+        course_id: 2,
+        class_id: 201,
+        teacher_id: 20,
+        weekly_hours: 2,
+        is_locked: false,
+        is_inherent: false,
+      },
     ]);
     mockGetClassesWithCourse.mockImplementation((courseId) =>
       Promise.resolve(
@@ -144,6 +172,7 @@ describe('getCourseOverview', () => {
       totalClasses: 3,
       assignedCount: 3,
       lockedCount: 1,
+      inherentCount: 1,
       totalCourseHours: 14,
       assignedHours: 14,
       remainingHours: 0,
@@ -156,6 +185,7 @@ describe('getCourseOverview', () => {
       totalClasses: 1,
       assignedCount: 1,
       lockedCount: 0,
+      inherentCount: 0,
       totalCourseHours: 2,
       assignedHours: 2,
       remainingHours: 0,
@@ -183,6 +213,7 @@ describe('getCourseOverview', () => {
       totalClasses: 2,
       assignedCount: 0,
       lockedCount: 0,
+      inherentCount: 0,
       totalCourseHours: 6,
       assignedHours: 0,
       remainingHours: 6,
@@ -227,6 +258,7 @@ describe('getCourseOverview', () => {
       totalClasses: 1,
       assignedCount: 1,
       lockedCount: 0,
+      inherentCount: 0,
       totalCourseHours: 4,
       assignedHours: 4,
       remainingHours: 0,

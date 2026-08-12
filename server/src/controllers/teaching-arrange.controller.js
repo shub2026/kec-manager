@@ -78,6 +78,7 @@ export async function getCourseClasses(req, res, next) {
               teacherPersonnelType: a.teacher?.personnel_type || null,
               isAuto: a.is_auto,
               isLocked: a.is_locked,
+              isInherent: a.is_inherent,
             }
           : null,
       };
@@ -88,6 +89,7 @@ export async function getCourseClasses(req, res, next) {
     const assignedClasses = classList.filter((c) => c.assignment);
     const assignedHours = assignedClasses.reduce((sum, c) => sum + c.weeklyHours, 0);
     const lockedCount = classList.filter((c) => c.assignment && c.assignment.isLocked).length;
+    const inherentCount = classList.filter((c) => c.assignment && c.assignment.isInherent).length;
 
     success(res, {
       classes: classList,
@@ -96,6 +98,7 @@ export async function getCourseClasses(req, res, next) {
         assignedCount: assignedClasses.length,
         unassignedCount: classList.length - assignedClasses.length,
         lockedCount,
+        inherentCount,
         totalCourseHours,
         assignedHours,
         remainingHours: totalCourseHours - assignedHours,
@@ -129,6 +132,7 @@ export async function getCourseOverview(req, res, next) {
         teacher_id: true,
         weekly_hours: true,
         is_locked: true,
+        is_inherent: true,
       },
     });
     const assignmentsByCourse = new Map();
@@ -162,6 +166,7 @@ export async function getCourseOverview(req, res, next) {
         totalClasses: classes.length,
         assignedCount: validAssignments.length,
         lockedCount: validAssignments.filter((a) => a.is_locked).length,
+        inherentCount: validAssignments.filter((a) => a.is_inherent).length,
         totalCourseHours,
         assignedHours,
         remainingHours: totalCourseHours - assignedHours,
@@ -329,6 +334,7 @@ export async function assignTeacher(req, res, next) {
         update: {
           teacher_id: Number(teacher_id),
           is_auto: false,
+          is_inherent: false, // 手动安排覆盖自动延续分配，清除延续标记
           ...(weekly_hours != null && weekly_hours !== ''
             ? { weekly_hours: Number(weekly_hours) }
             : {}),
@@ -340,6 +346,7 @@ export async function assignTeacher(req, res, next) {
           semester,
           weekly_hours: targetWeeklyHours,
           is_auto: false,
+          is_inherent: false,
         },
         include: {
           teacher: { select: { id: true, name: true, personnel_type: true } },
@@ -355,7 +362,7 @@ export async function assignTeacher(req, res, next) {
               semester,
             },
           },
-          update: { teacher_id: Number(teacher_id), is_auto: false },
+          update: { teacher_id: Number(teacher_id), is_auto: false, is_inherent: false },
           create: {
             teacher_id: Number(teacher_id),
             class_id: pid,
@@ -363,6 +370,7 @@ export async function assignTeacher(req, res, next) {
             semester,
             weekly_hours: targetWeeklyHours,
             is_auto: false,
+            is_inherent: false,
           },
         });
       }

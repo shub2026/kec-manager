@@ -35,6 +35,12 @@
         <span class="stat-label">已锁定</span>
         <span class="stat-value stat-locked">{{ summary.lockedCount || 0 }}<small>个</small></span>
       </div>
+      <div v-if="(summary.inherentCount || 0) > 0" class="preview-stat-item">
+        <el-tooltip content="自动排课时延续上学期教师-班级关系的班级占比" placement="top">
+          <span class="stat-label">延续率</span>
+        </el-tooltip>
+        <span class="stat-value stat-inherent">{{ continuityRate }}<small>%</small></span>
+      </div>
       <div class="preview-stat-item">
         <span class="stat-label">总课时</span>
         <span class="stat-value">{{ summary.totalCourseHours }}<small>课时</small></span>
@@ -53,7 +59,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   courseInfo: { type: Object, default: null },
   teacherCount: { type: Number, default: 0 },
   // 是否显示「返回课程概览」按钮（从概览卡片进入时开启）
@@ -64,6 +72,7 @@ defineProps({
       totalClasses: 0,
       assignedCount: 0,
       lockedCount: 0,
+      inherentCount: 0,
       totalCourseHours: 0,
       remainingHours: 0,
     }),
@@ -71,6 +80,14 @@ defineProps({
 });
 
 defineEmits(['back']);
+
+// 延续率：延续班级数占已安排班级数的百分比
+const continuityRate = computed(() => {
+  const assigned = props.summary?.assignedCount || 0;
+  const inherent = props.summary?.inherentCount || 0;
+  if (assigned <= 0) return 0;
+  return Math.round((inherent / assigned) * 100);
+});
 
 function courseTypeLabel(type) {
   return { public: '公共课', professional: '专业课', elective: '选修课' }[type] || type;
@@ -151,5 +168,9 @@ function courseTypeLabel(type) {
 }
 .stat-locked {
   color: var(--el-color-success);
+}
+/* 固有班级延续：品牌紫，与锁定（绿）/未分配（红）区分开 */
+.stat-inherent {
+  color: #8b5cf6;
 }
 </style>

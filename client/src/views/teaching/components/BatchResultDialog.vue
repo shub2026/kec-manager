@@ -119,6 +119,18 @@
               <span v-if="u.reason" class="unassigned-reason">{{ u.reason }}</span>
             </div>
           </div>
+          <div v-if="r.inherentContinuity" class="detail-continuity">
+            <el-icon><RefreshRight /></el-icon>
+            <span>
+              固有班级延续：{{ r.inherentContinuity.continuedCount || 0 }}/{{
+                r.inherentContinuity.candidateCount || 0
+              }}
+              个班级延续上学期教师
+              <template v-if="r.inherentContinuity.continuityRate != null">
+                （{{ r.inherentContinuity.continuityRate }}%）</template
+              >
+            </span>
+          </div>
           <div v-if="!r.error && !r.unassigned?.length && !r.warnings?.length" class="detail-ok">
             所有 {{ r.autoCount || 0 }} 个班级均已安排
           </div>
@@ -386,6 +398,17 @@ function courseRate(r) {
 .detail-ok {
   color: var(--brand-success-text);
   font-size: 13px;
+}
+.detail-continuity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #8b5cf6;
+  margin-bottom: var(--space-2);
+}
+.detail-continuity:last-child {
+  margin-bottom: 0;
 }
 
 /* 移动端响应式：统计卡 2 列重排（与 OptimizeResultDialog 同方案） */

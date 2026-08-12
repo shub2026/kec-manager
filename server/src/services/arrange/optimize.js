@@ -765,6 +765,34 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
 export async function applyOptimizeResult(semesterId, changes, userId) {
   const semesterStr = `${semesterId}`;
   try {
+    // 固有班级延续：教师被置换后原延续标记失效，需按上学期快照重算。
+    // 开关打开：加载涉及课程的上学期快照，标记"新教师上学期是否教过该班"；
+    // 开关关闭：变更行一律清 false（教师已变，且功能未启用不产生新延续）
+    let inherentClassMap = null;
+    try {
+      const icSetting = await prisma.system_settings.findUnique({
+        where: { key: 'inherent_class_enabled' },
+      });
+      const inherentClassEnabled = icSetting?.value === 'true';
+      const prevSemester = inherentClassEnabled ? getPreviousSemester(semesterStr) : null;
+      if (prevSemester && changes.length > 0) {
+        const courseIds = [...new Set(changes.map((c) => Number(c.course_id)))];
+        const prevRows = await prisma.teaching_assignments.findMany({
+          where: { semester: prevSemester, course_id: { in: courseIds } },
+          select: { course_id: true, teacher_id: true, class_id: true },
+        });
+        inherentClassMap = new Map();
+        for (const row of prevRows) {
+          if (!inherentClassMap.has(row.course_id)) inherentClassMap.set(row.course_id, new Map());
+          const teacherMap = inherentClassMap.get(row.course_id);
+          if (!teacherMap.has(row.teacher_id)) teacherMap.set(row.teacher_id, new Set());
+          teacherMap.get(row.teacher_id).add(row.class_id);
+        }
+      }
+    } catch (_) {
+      inherentClassMap = null; // 快照加载失败降级：变更行统一清除标记
+    }
+
     // OL4 修复：累计 updateMany 实际更新数。预览与应用之间数据被改动
     // （教师已变、记录被锁定/删除）时 where 匹配不到会静默 0 更新，
     // 需向调用方如实反馈实际应用数而非请求数
@@ -775,6 +803,10 @@ export async function applyOptimizeResult(semesterId, changes, userId) {
         // where 同时匹配 class_id + course_id + semester，对齐唯一约束
         // 注意：全局 convertRequestNaming 中间件已将请求体 camelCase → snake_case，
         // 故此处用 class_id / course_id / from_teacher / to_teacher
+        const stillInherent = !!inherentClassMap
+          ?.get(Number(change.course_id))
+          ?.get(change.to_teacher.id)
+          ?.has(change.class_id);
         const res = await tx.teaching_assignments.updateMany({
           where: {
             semester: semesterStr,
@@ -785,6 +817,7 @@ export async function applyOptimizeResult(semesterId, changes, userId) {
           },
           data: {
             teacher_id: change.to_teacher.id,
+            is_inherent: stillInherent,
             updated_at: new Date(),
           },
         });
