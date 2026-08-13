@@ -113,6 +113,26 @@ const api = {
     return request({ url: '/api/courses' });
   },
 
+  // ===== 培养方案查询（所有登录用户可读，无需改后端） =====
+  // 方案列表 GET /api/plans；支持 college_id 过滤（其余筛选前端做）。
+  // 注意：后端经 convertResponseNaming 把 snake_case 转 camelCase，
+  // 前端拿到 majorId/collegeId/trainingLevelId/courseCount/classCount/applyFromYear 等。
+  getPlans(params = {}) {
+    const data = {};
+    if (params.collegeId) data.college_id = params.collegeId;
+    return request({ url: '/api/plans', data });
+  },
+
+  // 方案课程明细（含学期与教材）：GET /api/plans/:id/courses
+  getPlanCourses(id) {
+    return request({ url: `/api/plans/${id}/courses` });
+  },
+
+  // 方案学期周数概览：GET /api/plans/:id/semesters
+  getPlanSemesters(id) {
+    return request({ url: `/api/plans/${id}/semesters` });
+  },
+
   // 课时统计（按教师汇总周课时）
   async getStatistics() {
     const semester = await ensureSemester();

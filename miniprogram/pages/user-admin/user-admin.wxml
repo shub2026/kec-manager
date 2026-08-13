@@ -18,8 +18,8 @@
     <!-- 筛选栏 -->
     <view class="filter-bar">
       <view class="search-box">
-        <text class="search-icon">🔍</text>
-        <input class="filter-input" value="{{keyword}}" placeholder="搜索用户名 / 姓名 / 邮箱" placeholder-class="placeholder" bindinput="onKeywordInput" />
+        <view class="search-icon"></view>
+        <input class="filter-input" value="{{keyword}}" placeholder="搜索用户名 / 姓名 / 邮箱" placeholder-class="placeholder" confirm-type="search" cursor-spacing="20" adjust-position bindinput="onKeywordInput" bindconfirm="onKeywordInput" />
       </view>
       <text wx:if="{{keyword}}" class="filter-clear" bindtap="clearFilters">重置</text>
     </view>
@@ -90,24 +90,24 @@
           <!-- 用户名：新增可填（必填），编辑只读 -->
           <view class="form-row {{focusedField === 'username' ? 'form-row-focus' : ''}}">
             <text class="form-row-label">用户名<text wx:if="{{mode === 'add'}}" class="req">*</text></text>
-            <input wx:if="{{mode === 'add'}}" class="form-row-input {{focusedField === 'username' ? 'form-row-input-focus' : ''}}" value="{{form.username}}" data-field="username" placeholder="登录用户名（唯一）" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+            <input wx:if="{{mode === 'add'}}" class="form-row-input {{focusedField === 'username' ? 'form-row-input-focus' : ''}}" value="{{form.username}}" data-field="username" placeholder="登录用户名（唯一）" placeholder-class="placeholder" confirm-type="next" cursor-spacing="20" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
             <view wx:else class="form-row-static">{{form.username}}</view>
           </view>
 
           <!-- 新增时填写初始密码 -->
           <view wx:if="{{mode === 'add'}}" class="form-row {{focusedField === 'password' ? 'form-row-focus' : ''}}">
             <text class="form-row-label">初始密码<text class="req">*</text></text>
-            <input class="form-row-input {{focusedField === 'password' ? 'form-row-input-focus' : ''}}" password value="{{form.password}}" data-field="password" placeholder="初始登录密码" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+            <input class="form-row-input {{focusedField === 'password' ? 'form-row-input-focus' : ''}}" password value="{{form.password}}" data-field="password" placeholder="初始登录密码" placeholder-class="placeholder" confirm-type="next" cursor-spacing="20" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
 
           <view class="form-row {{focusedField === 'realName' ? 'form-row-focus' : ''}}">
             <text class="form-row-label">姓名</text>
-            <input class="form-row-input {{focusedField === 'realName' ? 'form-row-input-focus' : ''}}" value="{{form.realName}}" data-field="realName" placeholder="真实姓名（选填）" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+            <input class="form-row-input {{focusedField === 'realName' ? 'form-row-input-focus' : ''}}" value="{{form.realName}}" data-field="realName" placeholder="真实姓名（选填）" placeholder-class="placeholder" confirm-type="next" cursor-spacing="20" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
 
           <view class="form-row {{focusedField === 'email' ? 'form-row-focus' : ''}}">
             <text class="form-row-label">邮箱</text>
-            <input class="form-row-input {{focusedField === 'email' ? 'form-row-input-focus' : ''}}" value="{{form.email}}" data-field="email" placeholder="邮箱（选填）" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+            <input class="form-row-input {{focusedField === 'email' ? 'form-row-input-focus' : ''}}" type="email" value="{{form.email}}" data-field="email" placeholder="邮箱（选填）" placeholder-class="placeholder" confirm-type="done" cursor-spacing="20" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
 
           <!-- 角色：编辑自己时隐藏（后端禁止自改角色） -->

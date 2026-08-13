@@ -10,19 +10,20 @@
     "pages/hours-statistics/hours-statistics",
     "pages/teacher-admin/teacher-admin",
     "pages/user-admin/user-admin",
-    "pages/profile/profile"
+    "pages/profile/profile",
+    "pages/plan-query/plan-query"
   ],
   "window": {
-    "navigationBarTitleText": "KEC 教务",
+    "navigationBarTitleText": "教务排课助手",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f5f6f8"
+    "backgroundColor": "#F3F4F6"
   },
   "tabBar": {
-    "color": "#8a8a8a",
-    "selectedColor": "#1C82F5",
+    "color": "#64748b",
+    "selectedColor": "#1C6FF0",
     "backgroundColor": "#ffffff",
-    "borderStyle": "black",
+    "borderStyle": "white",
     "list": [
       { "pagePath": "pages/home/home", "text": "首页", "iconPath": "assets/tabbar/home-normal.png", "selectedIconPath": "assets/tabbar/home-active.png" },
       { "pagePath": "pages/teaching-arrange/teaching-arrange", "text": "教学安排", "iconPath": "assets/tabbar/teaching-arrange-normal.png", "selectedIconPath": "assets/tabbar/teaching-arrange-active.png" },

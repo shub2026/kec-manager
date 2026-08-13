@@ -362,7 +362,7 @@ Page({
     wx.showModal({
       title: '删除用户',
       content: `确定要删除用户「${u ? u.username : ''}」吗？此操作不可恢复。`,
-      confirmColor: '#e53e3e',
+      confirmColor: '#dc2626',
       success: async (res) => {
         if (!res.confirm) return;
         try {

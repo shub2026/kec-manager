@@ -1,0 +1,168 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-card">
+      <view class="hero-text">
+        <view class="hero-title">方案查询</view>
+        <view class="hero-subtitle">检索培养方案与课程安排</view>
+        <view class="hero-badge"><text class="hero-badge-text">培养方案</text></view>
+      </view>
+      <view class="hero-decor"><view class="hero-ring"></view></view>
+    </view>
+  </view>
+
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input">
+      <view class="search-ico"></view>
+      <input
+        class="search-field"
+        placeholder="搜索方案名称 / 版本"
+        value="{{keyword}}"
+        confirm-type="search"
+        cursor-spacing="20"
+        adjust-position
+        bindinput="onKeywordInput"
+        bindconfirm="onSearch"
+      />
+      <text wx:if="{{keyword}}" class="search-clear" bindtap="onClearKeyword">✕</text>
+    </view>
+  </view>
+
+  <!-- 筛选行 -->
+  <view class="filter-row">
+    <picker class="filter-picker" range="{{collegePickerRange}}" value="{{collegeIndex}}" bindchange="onCollegeChange">
+      <view class="filter-chip"><text class="filter-chip-text">{{collegeLabel}}</text><text class="filter-caret">▾</text></view>
+    </picker>
+    <picker class="filter-picker" range="{{statusPickerRange}}" value="{{statusIndex}}" bindchange="onStatusChange">
+      <view class="filter-chip"><text class="filter-chip-text">{{statusLabel}}</text><text class="filter-caret">▾</text></view>
+    </picker>
+    <view wx:if="{{keyword || collegeFilter || statusFilter}}" class="filter-reset" bindtap="resetFilter">重置</view>
+  </view>
+
+  <view class="count-line" wx:if="{{!loading && !error}}">共 {{list.length}} 个方案</view>
+
+  <view wx:if="{{loading && list.length === 0}}" class="loading">加载中…</view>
+  <view wx:elif="{{error && list.length === 0}}" class="errbox">{{error}}</view>
+
+  <!-- 方案列表 -->
+  <view wx:if="{{list.length}}" class="list">
+    <view
+      wx:for="{{list}}"
+      wx:key="id"
+      class="plan-card pc-{{item.status}}"
+      bindtap="toggle"
+      data-id="{{item.id}}"
+    >
+      <!-- 上半区：状态色条 + 正文（横向） -->
+      <view class="pc-top">
+        <view class="pc-accent"></view>
+        <view class="pc-body">
+          <view class="pc-head">
+            <text class="pc-name">{{item.name}}</text>
+            <text class="pc-status pc-{{item.status}}">{{statusLabelMap[item.status] || item.status}}</text>
+          </view>
+
+          <view class="pc-meta">
+            <text wx:if="{{item.version}}" class="pc-tag">版本 {{item.version}}</text>
+            <text wx:if="{{item.colleges}}" class="pc-tag">{{item.colleges.name}}</text>
+            <text wx:if="{{item.majors}}" class="pc-tag">{{item.majors.name}}</text>
+            <text wx:if="{{item.trainingLevels}}" class="pc-tag">{{item.trainingLevels.name}}</text>
+          </view>
+
+          <view class="pc-apply" wx:if="{{item.applyFromYear || item.applyToYear}}">
+            适用年级：{{item.applyFromYear || '不限'}} ~ {{item.applyToYear || '不限'}}
+          </view>
+
+          <view class="pc-stats">
+            <text class="pc-stat"><text class="pc-num">{{item.courseCount}}</text> 门课程</text>
+            <text class="pc-stat"><text class="pc-num">{{item.classCount}}</text> 个匹配班级</text>
+          </view>
+
+          <view class="pc-expand-hint">
+            <text class="pc-expand-icon">{{expandedId === item.id ? '▲' : '▼'}}</text>
+            <text class="pc-expand-text">{{expandedId === item.id ? '收起课程' : '展开课程明细'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 展开区：纵向课程卡片流（全宽，位于正文下方） -->
+      <view wx:if="{{expandedId === item.id}}" class="pc-detail" catchtap="noop">
+        <view wx:if="{{detailLoadingId === item.id}}" class="detail-loading">加载课程数据…</view>
+        <block wx:elif="{{detail}}">
+          <!-- 概览条 -->
+          <view class="ov-bar">
+            <view class="ov-item">
+              <text class="ov-num">{{detail.totalAllHours}}</text>
+              <text class="ov-lbl">总课时</text>
+            </view>
+            <view class="ov-item">
+              <text class="ov-num">{{detail.courseCount}}</text>
+              <text class="ov-lbl">门课程</text>
+            </view>
+            <view class="ov-item">
+              <text class="ov-num">{{detail.maxSemester}}</text>
+              <text class="ov-lbl">个学期</text>
+            </view>
+          </view>
+
+          <!-- 课时热力图例 -->
+          <view class="dt-legend">
+            <text class="lg-t">周课时</text>
+            <view class="lg-items">
+              <view class="lg-i"><view class="lg-d lg-d1"></view><text>1~2</text></view>
+              <view class="lg-i"><view class="lg-d lg-d2"></view><text>3~4</text></view>
+              <view class="lg-i"><view class="lg-d lg-d3"></view><text>≥5</text></view>
+              <view class="lg-i"><view class="lg-d lg-d0"></view><text>0</text></view>
+            </view>
+          </view>
+
+          <!-- 分组 -->
+          <block wx:for="{{detail.groups}}" wx:key="type" wx:for-item="group" wx:for-index="gi">
+            <view wx:if="{{group.courses.length}}" class="grp">
+              <view class="grp-head g-{{group.type}}">
+                <text class="grp-label">{{group.label}}</text>
+                <text class="grp-meta">{{group.courses.length}}门 · {{detail.groupTotals[gi]}}课时</text>
+              </view>
+
+              <!-- 课程卡片 -->
+              <view wx:for="{{group.courses}}" wx:key="id" wx:for-item="course"
+                class="crs {{course.isActive === false ? 'crs-off' : ''}}">
+                <view class="crs-head">
+                  <text class="crs-name {{course.isActive === false ? 'name-off' : ''}}">{{course.name}}</text>
+                  <text class="crs-type t-{{course.type || 'public'}}">{{course.type === 'professional' ? '专业' : '公共'}}</text>
+                  <text wx:if="{{course.isActive === false}}" class="crs-stop">停用</text>
+                  <text class="crs-total">{{course.totalHours}}课时</text>
+                </view>
+
+                <!-- 学期明细（纵向） -->
+                <view class="crs-sems">
+                  <view wx:for="{{course.semesterItems}}" wx:key="semester" wx:for-item="sem" class="sem-row">
+                    <view class="sem-info">
+                      <text class="sem-idx">第{{sem.semester}}学期</text>
+                      <text class="sem-hours h-{{_heatClass(sem.weeklyHours)}}">{{sem.weeklyHours}}课时/周</text>
+                      <text class="sem-weeks">{{sem.weeks}}周</text>
+                      <text class="sem-hours-total">{{sem.hours}}课时</text>
+                    </view>
+                    <!-- 教材 -->
+                    <view class="sem-books">
+                      <block wx:if="{{sem.textbooks.length > 0}}">
+                        <view wx:for="{{sem.textbooks}}" wx:key="title" wx:for-item="bk" class="bk-line">
+                          <text class="bk-dot {{bk.isRequired ? 'bk-req' : 'bk-opt'}}">{{bk.isRequired ? '●' : '○'}}</text>
+                          <text class="bk-title {{bk.isActive === false ? 'bk-off' : ''}}">{{bk.title}}</text>
+                        </view>
+                      </block>
+                      <text wx:else class="bk-none">未指定教材</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </block>
+        </block>
+        <view wx:else class="errbox">{{detailError}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:elif="{{!loading && !error}}" class="empty">没有符合条件的方案</view>
+</view>

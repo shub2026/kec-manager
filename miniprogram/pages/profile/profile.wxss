@@ -1,43 +1,66 @@
+/* 用户卡：品牌蓝底 + 白字 + 呼吸感 */
 .user-card {
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, #1C82F5, #1677D9);
-  border-radius: 16rpx;
-  padding: 40rpx 32rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(28, 130, 245, 0.25);
+  background: linear-gradient(135deg, #2A8BFF 0%, #1565C0 58%, #0F4FA8 100%);
+  border-radius: var(--radius-xl);
+  padding: 48rpx 36rpx;
+  margin-bottom: 28rpx;
+  box-shadow: 0 16rpx 44rpx rgba(21, 101, 192, 0.30), 0 4rpx 12rpx rgba(15, 23, 42, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+/* 右下角柔光 */
+.user-card::after {
+  content: "";
+  position: absolute;
+  bottom: -60rpx;
+  right: -30rpx;
+  width: 240rpx;
+  height: 240rpx;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, transparent 70%);
+  pointer-events: none;
 }
 .avatar {
-  width: 96rpx;
-  height: 96rpx;
+  width: 104rpx;
+  height: 104rpx;
   border-radius: 50%;
-  background: #fff;
-  color: #1C82F5;
-  font-size: 44rpx;
+  background: rgba(255, 255, 255, 0.20);
+  border: 2rpx solid rgba(255, 255, 255, 0.35);
+  color: #FFFFFF;
+  font-size: 42rpx;
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 24rpx;
+  line-height: 100rpx;
+  text-align: center;
+  margin-right: 28rpx;
+  flex-shrink: 0;
 }
 .user-info {
   flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 .user-name {
-  font-size: 34rpx;
+  font-size: 36rpx;
   font-weight: 700;
-  color: #fff;
+  color: #FFFFFF;
+  margin-bottom: 10rpx;
+  letter-spacing: -0.3rpx;
 }
 .user-sub {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.85);
-  margin-top: 10rpx;
-  line-height: 1.4;
+  font-size: 25rpx;
+  color: rgba(255, 255, 255, 0.78);
 }
+
 .logout-wrap {
-  padding: 12rpx 8rpx;
+  margin-top: 40rpx;
 }
 .logout-btn {
   width: 100%;
-  background: #fff;
+  height: 92rpx;
+  line-height: 90rpx;
+  font-size: 30rpx;
+  font-weight: 500;
 }
+.logout-btn::after { border: none; }

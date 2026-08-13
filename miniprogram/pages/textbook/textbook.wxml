@@ -13,12 +13,14 @@
   <!-- 搜索栏 -->
   <view class="search-bar">
     <view class="search-input">
-      <text class="search-ico">🔍</text>
+      <view class="search-ico"></view>
       <input
         class="search-field"
         placeholder="搜索书名 / ISBN"
         value="{{keyword}}"
         confirm-type="search"
+        cursor-spacing="20"
+        adjust-position
         bindinput="onKeywordInput"
         bindconfirm="onSearch"
       />

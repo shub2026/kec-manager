@@ -315,7 +315,7 @@ Page({
     wx.showModal({
       title: '删除教师',
       content: `确定要删除教师「${t ? t.name : ''}」吗？此操作不可恢复。`,
-      confirmColor: '#e53e3e',
+      confirmColor: '#dc2626',
       success: async (res) => {
         if (!res.confirm) return;
         try {

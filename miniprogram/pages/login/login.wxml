@@ -13,7 +13,11 @@
         placeholder="请输入用户名"
         placeholder-class="ph"
         value="{{username}}"
+        confirm-type="next"
+        cursor-spacing="20"
+        adjust-position
         bindinput="onUsername"
+        bindconfirm="onUsernameConfirm"
       />
     </view>
 
@@ -25,7 +29,12 @@
         placeholder-class="ph"
         password="{{!showPassword}}"
         value="{{password}}"
+        focus="{{pwdFocus}}"
+        confirm-type="done"
+        cursor-spacing="20"
+        adjust-position
         bindinput="onPassword"
+        bindconfirm="onSubmit"
       />
       <view class="eye {{showPassword ? 'eye-on' : ''}}" bindtap="togglePassword">
         <view class="eye-ico"></view>

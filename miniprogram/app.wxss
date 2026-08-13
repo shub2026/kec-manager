@@ -1,190 +1,335 @@
-/* ===== 设计系统（全局） ===== */
+/* ============================================================
+   设计系统（全局 Design Tokens）
+   风格：克制留白 + 品牌渐变点缀 + 精致层级（微立体）
+   主色：品牌蓝；辅色：青绿(teal) / 紫(violet)，用于入口与指标区分
+   ============================================================ */
+
 page {
-  background: #f5f6f8;
-  font-family: -apple-system, "PingFang SC", "Helvetica Neue", Helvetica, sans-serif;
-  color: #1a1a1a;
+  /* —— 品牌色（含渐变） —— */
+  --brand: #1C82F5;
+  --brand-dark: #1565C0;
+  --brand-light: #4B9BF5;
+  --brand-soft: #F0F7FF;
+  --brand-soft2: #E8F2FC;
+  --brand-border: #D4E6FA;
+  --brand-grad: linear-gradient(135deg, #3C93FF 0%, #1C6FF0 100%);
+
+  /* —— 辅助色：青绿（教材/课程） —— */
+  --teal: #0CA5A5;
+  --teal-dark: #0B8C8C;
+  --teal-soft: #E6FAFA;
+  --teal-border: #BDEAEA;
+
+  /* —— 辅助色：紫（方案/专业） —— */
+  --violet: #6D5DFB;
+  --violet-dark: #5A49E0;
+  --violet-soft: #F1EFFF;
+  --violet-border: #DBD5FB;
+
+  /* —— 语义色（降低饱和度） —— */
+  --success: #16a34a;
+  --success-soft: #F0FDF4;
+  --success-border: #BBF7D0;
+  --warning: #D97706;
+  --warning-soft: #FFFBEB;
+  --warning-border: #FDE68A;
+  --danger: #DC2626;
+  --danger-soft: #FEF2F2;
+  --danger-border: #FECACA;
+
+  /* —— 中性色（灰阶，克制） —— */
+  --text-1: #0F172A;
+  --text-2: #334155;
+  --text-3: #64748B;
+  --text-4: #94A3B8;
+  --text-5: #CBD5E1;
+
+  /* —— 背景 —— */
+  --bg-page: #F2F4F7;
+  --bg-card: #FFFFFF;
+  --bg-subtle: #F8FAFC;
+  --bg-hover: #F1F5F9;
+  --bg-mask: rgba(15, 23, 42, 0.45);
+
+  /* —— 边框 —— */
+  --border: #E6E9EF;
+  --border-light: #F1F4F8;
+
+  /* —— 圆角 —— */
+  --radius-sm: 10rpx;
+  --radius-md: 14rpx;
+  --radius-lg: 18rpx;
+  --radius-xl: 28rpx;
+  --radius-pill: 9999rpx;
+
+  /* —— 阴影（精致微立体，三层叠加提升质感） —— */
+  --shadow-sm: 0 1rpx 2rpx rgba(15, 23, 42, 0.04), 0 3rpx 8rpx rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 6rpx 16rpx rgba(15, 23, 42, 0.07), 0 2rpx 6rpx rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 16rpx 40rpx rgba(15, 23, 42, 0.12), 0 6rpx 16rpx rgba(15, 23, 42, 0.06);
+
+  background: var(--bg-page);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Helvetica, sans-serif;
+  color: var(--text-1);
   font-size: 28rpx;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* ===== 页面容器 ===== */
 .page { padding: 24rpx; box-sizing: border-box; }
+
+/* ===== 卡片 ===== */
 .card {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 28rpx;
+  background: var(--bg-card);
+  border: 1rpx solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32rpx 28rpx;
   margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 .card-title {
   font-size: 30rpx;
   font-weight: 600;
-  margin-bottom: 20rpx;
+  color: var(--text-1);
+  margin-bottom: 24rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10rpx;
+  position: relative;
+  padding-left: 18rpx;
 }
-.card-title .more { font-size: 24rpx; color: #1C82F5; font-weight: 400; }
+/* 全局：卡片标题左侧品牌 accent 条，强化层级与设计感（绝对定位，不挤占标题） */
+.card-title::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6rpx;
+  height: 28rpx;
+  border-radius: 3rpx;
+  background: var(--brand-grad);
+}
+.card-title .more { font-size: 24rpx; color: var(--brand); font-weight: 500; }
 
-/* 页面顶部 Hero 卡片（首页/查询页通用） */
-.hero {
-  padding: 8rpx 0 24rpx;
-}
+/* ===== 页面顶部 Hero 卡片 ===== */
+.hero { padding: 8rpx 0 24rpx; }
 .hero-card {
-  background: linear-gradient(135deg, #ffffff 0%, #e8f4fd 100%);
-  border: 1rpx solid #dbeafe;
-  border-radius: 20rpx;
+  background: linear-gradient(135deg, #EAF2FF 0%, #DCE9FF 55%, #CFE2FF 100%);
+  border: 1rpx solid var(--brand-border);
+  border-left: 6rpx solid var(--brand);
+  border-radius: var(--radius-lg);
   padding: 36rpx 32rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 4rpx 16rpx rgba(28, 130, 245, 0.08);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
 }
-.hero-text {
-  flex: 1;
-  min-width: 0;
+/* 角落柔光，增加层次但不加重底色 */
+.hero-card::after {
+  content: "";
+  position: absolute;
+  top: -60rpx;
+  right: -30rpx;
+  width: 220rpx;
+  height: 220rpx;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
 }
+.hero-text { flex: 1; min-width: 0; position: relative; z-index: 1; }
 .hero-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(28, 130, 245, 0.1);
-  border-radius: 24rpx;
+  background: var(--bg-card);
+  border: 1rpx solid var(--brand-border);
+  border-radius: var(--radius-pill);
   padding: 8rpx 20rpx;
-  margin-top: 12rpx;
+  margin-top: 16rpx;
 }
 .hero-badge::before {
   content: "";
-  width: 12rpx;
-  height: 12rpx;
-  background: #1C82F5;
+  width: 10rpx;
+  height: 10rpx;
+  background: var(--brand);
   border-radius: 50%;
   margin-right: 10rpx;
 }
-.hero-badge-text {
-  font-size: 24rpx;
-  color: #1C82F5;
-  font-weight: 500;
-}
-.hero-title {
-  font-size: 44rpx;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 10rpx;
-}
-.hero-subtitle {
-  font-size: 24rpx;
-  color: #64748b;
-}
+.hero-badge-text { font-size: 24rpx; color: var(--text-2); font-weight: 500; }
+.hero-title { font-size: 40rpx; font-weight: 700; color: var(--text-1); margin-bottom: 10rpx; letter-spacing: -0.5rpx; }
+.hero-subtitle { font-size: 24rpx; color: var(--text-3); }
+/* Hero 徽标容器 */
 .hero-decor {
-  width: 120rpx;
-  height: 120rpx;
+  width: 100rpx;
+  height: 100rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 20rpx;
+  margin-left: 24rpx;
   flex-shrink: 0;
 }
-.hero-ring {
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 50%;
-  border: 12rpx solid rgba(28, 130, 245, 0.15);
-  position: relative;
-  box-sizing: border-box;
-}
-.hero-ring::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 40rpx;
-  height: 40rpx;
-  background: rgba(28, 130, 245, 0.2);
-  border-radius: 50%;
+/* Hero 徽标：项目 LOGO，与登录页一致 */
+.hero-logo {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 24rpx;
+  background: var(--bg-card);
+  box-shadow: 0 8rpx 24rpx rgba(28, 130, 245, 0.18), 0 2rpx 6rpx rgba(15, 23, 42, 0.06);
 }
 
-/* 指标网格 */
-.stat-grid { display: flex; flex-wrap: wrap; margin: -8rpx; }
-.stat-cell {
-  width: 50%;
-  box-sizing: border-box;
-  padding: 8rpx;
-}
+/* ===== 指标网格 ===== */
+.stat-grid { display: flex; flex-wrap: wrap; }
+.stat-cell { width: 50%; box-sizing: border-box; padding: 16rpx 20rpx; }
 .stat-inner {
-  background: #F5FAFF;
-  border-radius: 12rpx;
-  padding: 24rpx 20rpx;
+  padding: 20rpx 8rpx;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
 }
-.stat-num { font-size: 44rpx; font-weight: 700; color: #1C82F5; line-height: 1.2; }
-.stat-num.small { font-size: 36rpx; }
-.stat-label { font-size: 24rpx; color: #8a8a8a; margin-top: 8rpx; }
+.stat-ico {
+  width: 56rpx; height: 56rpx;
+  border-radius: 16rpx;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 32rpx 32rpx;
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+.si-students { background-color: var(--brand-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87'/%3E%3Cpath d='M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E"); }
+.si-classes { background-color: var(--violet-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236D5DFB' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1.5'/%3E%3C/svg%3E"); }
+.si-courses { background-color: var(--teal-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230CA5A5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3C/svg%3E"); }
+.si-teachers { background-color: var(--brand-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E"); }
+.si-majors { background-color: var(--violet-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236D5DFB' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 10 12 5 2 10l10 5 10-5z'/%3E%3Cpath d='M6 12v5c0 1 2.5 2 6 2s6-1 6-2v-5'/%3E%3C/svg%3E"); }
+.si-textbooks { background-color: var(--teal-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230CA5A5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z'/%3E%3Cpath d='M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z'/%3E%3C/svg%3E"); }
+.stat-num { font-size: 40rpx; font-weight: 700; color: var(--text-1); line-height: 1.2; }
+.stat-num.small { font-size: 32rpx; }
+.stat-label { font-size: 24rpx; color: var(--text-3); margin-top: 6rpx; }
+/* 横排时右侧数据区 */
+.stat-data { flex: 1; min-width: 0; }
 
-/* 列表 / 行 */
-.list { background: #fff; border-radius: 16rpx; overflow: hidden; }
+/* ===== 列表 / 行 ===== */
+.list { background: var(--bg-card); border-radius: var(--radius-lg); border: 1rpx solid var(--border); overflow: hidden; }
 .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 28rpx 28rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  padding: 28rpx;
+  border-bottom: 1rpx solid var(--border-light);
 }
 .row:last-child { border-bottom: none; }
-.row .label { color: #8a8a8a; font-size: 26rpx; }
-.row .value { color: #1a1a1a; font-size: 28rpx; text-align: right; }
+.row .label { color: var(--text-3); font-size: 26rpx; }
+.row .value { color: var(--text-1); font-size: 28rpx; text-align: right; }
 .row.arrow::after {
   content: "›";
-  color: #c8c8c8;
+  color: var(--text-5);
   font-size: 36rpx;
   margin-left: 12rpx;
 }
 
-/* 文本 */
-.muted { color: #8a8a8a; }
+/* ===== 文本工具 ===== */
+.muted { color: var(--text-3); }
 .small { font-size: 24rpx; }
 .center { text-align: center; }
 .mt { margin-top: 20rpx; }
 .mb { margin-bottom: 20rpx; }
+.arrow { color: var(--text-5); font-size: 36rpx; margin-left: 12rpx; flex-shrink: 0; }
 
-/* 标签：通用元数据 chip。WEB 端对应字段为纯文本（无彩色标签），
-   故用中性 slate 浅底，不暗示语义状态；.tag.warn 用品牌 warning 橙 */
+/* ===== 标签 chip ===== */
 .tag {
   display: inline-block;
   font-size: 22rpx;
-  color: #64748b;
-  background: #f1f5f9;
-  border: 1rpx solid #e2e8f0;
-  border-radius: 8rpx;
+  color: var(--text-3);
+  background: var(--bg-subtle);
+  border: 1rpx solid var(--border);
+  border-radius: var(--radius-sm);
   padding: 4rpx 14rpx;
   margin-right: 10rpx;
   margin-top: 10rpx;
 }
-.tag.warn { color: #ff6b1a; background: #fff0e8; border-color: #ffd3ba; }
 
-/* 按钮 */
+/* ===== 按钮 ===== */
+/* 全局按钮基础：flex 居中，解决文字偏下问题 */
+.btn-primary, .btn-ghost, .btn-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88rpx;
+  padding: 0 36rpx;
+  box-sizing: border-box;
+}
 .btn-primary {
-  background: #1C82F5;
+  background: var(--brand-grad);
   color: #fff;
-  border-radius: 12rpx;
+  border-radius: var(--radius-md);
   font-size: 30rpx;
+  font-weight: 500;
+  box-shadow: 0 8rpx 18rpx rgba(28, 111, 240, 0.22);
 }
 .btn-ghost {
-  background: #fff;
-  color: #1C82F5;
-  border: 1rpx solid #1C82F5;
-  border-radius: 12rpx;
+  background: var(--bg-card);
+  color: var(--brand);
+  border: 1rpx solid var(--brand-border);
+  border-radius: var(--radius-md);
   font-size: 28rpx;
 }
 
-/* 进度条 */
-.bar { height: 16rpx; background: #eef0f2; border-radius: 8rpx; overflow: hidden; }
-.bar > view { height: 100%; background: #1C82F5; border-radius: 8rpx; }
+/* ===== 进度条 ===== */
+.bar { height: 14rpx; background: var(--border-light); border-radius: 7rpx; overflow: hidden; }
+.bar > view { height: 100%; background: var(--brand); border-radius: 7rpx; }
+.bar-in { height: 100%; background: var(--brand); border-radius: 7rpx; }
 
-/* 状态 */
-.empty { text-align: center; color: #b0b0b0; padding: 80rpx 0; font-size: 26rpx; }
-.loading { text-align: center; color: #b0b0b0; padding: 40rpx 0; font-size: 26rpx; }
+/* ===== 状态 ===== */
+.empty { text-align: center; color: var(--text-4); padding: 80rpx 0; font-size: 26rpx; }
+.loading { text-align: center; color: var(--text-4); padding: 40rpx 0; font-size: 26rpx; }
 .errbox {
-  background: #fff3f3;
-  color: #d4380d;
-  border-radius: 12rpx;
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1rpx solid var(--danger-border);
+  border-radius: var(--radius-md);
   padding: 20rpx 24rpx;
   font-size: 26rpx;
   margin-bottom: 24rpx;
+}
+
+/* ===== 通用左侧状态条卡片 ===== */
+.card-left-bar {
+  position: relative;
+  overflow: hidden;
+}
+.card-left-bar::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 6rpx;
+}
+.card-left-bar.success::before { background: var(--success); }
+.card-left-bar.warning::before { background: var(--warning); }
+.card-left-bar.danger::before { background: var(--danger); }
+.card-left-bar.brand::before { background: var(--brand); }
+
+/* ===== 渐变方块图标（入口/强调） ===== */
+.ei {
+  width: 72rpx; height: 72rpx;
+  border-radius: 18rpx;
+  flex-shrink: 0;
+  margin-right: 20rpx;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 40rpx 40rpx;
+  box-shadow: 0 6rpx 14rpx rgba(15, 23, 42, 0.10);
+}
+.ei-course {
+  background-color: var(--brand-soft);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='17' rx='2'/%3E%3Cpath d='M3 9h18M8 2v4M16 2v4'/%3E%3C/svg%3E");
+}
+.ei-textbook {
+  background-color: var(--teal-soft);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230CA5A5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3C/svg%3E");
+}
+.ei-plan {
+  background-color: var(--violet-soft);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236D5DFB' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2 2 7l10 5 10-5-10-5z'/%3E%3Cpath d='m2 17 10 5 10-5'/%3E%3Cpath d='m2 12 10 5 10-5'/%3E%3C/svg%3E");
 }

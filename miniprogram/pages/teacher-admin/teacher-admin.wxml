@@ -18,8 +18,8 @@
     <!-- 筛选栏 -->
     <view class="filter-bar">
       <view class="search-box">
-        <text class="search-icon">🔍</text>
-        <input class="filter-input" value="{{searchName}}" placeholder="搜索姓名" placeholder-class="placeholder" bindinput="onNameInput" />
+        <view class="search-icon"></view>
+        <input class="filter-input" value="{{searchName}}" placeholder="搜索姓名" placeholder-class="placeholder" confirm-type="search" cursor-spacing="20" adjust-position bindinput="onNameInput" bindconfirm="onNameInput" />
       </view>
       <picker mode="selector" range="{{personnelOptions}}" bindchange="onPersonnelChange">
         <view class="filter-picker {{filterPersonnel ? 'active' : ''}}">
@@ -98,7 +98,7 @@
           <view class="form-section-title">基本信息</view>
           <view class="form-row {{focusedField === 'name' ? 'form-row-focus' : ''}}">
             <text class="form-row-label">姓名<text class="req">*</text></text>
-            <input class="form-row-input {{focusedField === 'name' ? 'form-row-input-focus' : ''}}" value="{{form.name}}" data-field="name" placeholder="请输入教师姓名" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+            <input class="form-row-input {{focusedField === 'name' ? 'form-row-input-focus' : ''}}" value="{{form.name}}" data-field="name" placeholder="请输入教师姓名" placeholder-class="placeholder" confirm-type="next" cursor-spacing="48" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
           <view class="form-row">
             <text class="form-row-label">性别</text>
@@ -143,15 +143,15 @@
           </view>
           <view class="form-row {{focusedField === 'birthDate' ? 'form-row-focus' : ''}}">
             <text class="form-row-label">出生年月</text>
-            <input class="form-row-input {{focusedField === 'birthDate' ? 'form-row-input-focus' : ''}}" value="{{form.birthDate}}" data-field="birthDate" placeholder="如：1974-03" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+            <input class="form-row-input {{focusedField === 'birthDate' ? 'form-row-input-focus' : ''}}" value="{{form.birthDate}}" data-field="birthDate" placeholder="如：1974-03" placeholder-class="placeholder" confirm-type="next" cursor-spacing="48" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
           <view class="form-row {{focusedField === 'qualification' ? 'form-row-focus' : ''}}">
             <text class="form-row-label">备注</text>
-            <input class="form-row-input {{focusedField === 'qualification' ? 'form-row-input-focus' : ''}}" value="{{form.qualification}}" data-field="qualification" placeholder="请输入备注信息" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+            <input class="form-row-input {{focusedField === 'qualification' ? 'form-row-input-focus' : ''}}" value="{{form.qualification}}" data-field="qualification" placeholder="请输入备注信息" placeholder-class="placeholder" confirm-type="next" cursor-spacing="48" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
           <view class="form-row {{focusedField === 'weeklyHours' ? 'form-row-focus' : ''}}">
             <text class="form-row-label">自定义课时</text>
-            <input class="form-row-input {{focusedField === 'weeklyHours' ? 'form-row-input-focus' : ''}}" type="digit" value="{{form.weeklyHours}}" data-field="weeklyHours" placeholder="如：16" placeholder-class="placeholder" bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+            <input class="form-row-input {{focusedField === 'weeklyHours' ? 'form-row-input-focus' : ''}}" type="digit" value="{{form.weeklyHours}}" data-field="weeklyHours" placeholder="如：16" placeholder-class="placeholder" confirm-type="done" cursor-spacing="48" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
         </view>
 

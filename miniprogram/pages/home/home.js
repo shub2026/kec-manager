@@ -76,7 +76,7 @@ Page({
 
       // 课时概览
       const courseStatsRaw = insightsRaw?.courseStats || [];
-      const coursePalette = ['#1C82F5', '#4BA3F5', '#7BC0F7', '#A9D8FA', '#5B8DEF'];
+      const coursePalette = ['#1C82F5', '#4B9BF5', '#7AB8F8', '#A8D0FA', '#6B7280'];
       const courseStatsMax = courseStatsRaw.reduce((m, x) => Math.max(m, x.totalHours || 0), 0) || 1;
       const courseStats = [...courseStatsRaw]
         .sort((a, b) => (b.totalHours || 0) - (a.totalHours || 0))
@@ -127,6 +127,9 @@ Page({
   },
   goTextbook() {
     wx.navigateTo({ url: '/pages/textbook/textbook' });
+  },
+  goPlanQuery() {
+    wx.navigateTo({ url: '/pages/plan-query/plan-query' });
   },
   goTeacher() {
     wx.switchTab({ url: '/pages/teacher-hours/teacher-hours' });

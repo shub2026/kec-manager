@@ -9,7 +9,7 @@
         </view>
       </view>
       <view class="hero-decor">
-        <view class="hero-ring"></view>
+        <image class="hero-logo" src="/assets/logo.png" mode="aspectFit" />
       </view>
     </view>
   </view>
@@ -19,7 +19,7 @@
     <view class="card-title">快捷查询</view>
     <view class="entry-grid">
       <view class="entry-card" hover-class="entry-card-hover" bindtap="goCourseQuery">
-        <view class="entry-icon">📋</view>
+        <view class="ei ei-course"></view>
         <view class="entry-body">
           <view class="entry-title">开课查询</view>
           <view class="entry-sub">按年级查开课与教材</view>
@@ -27,10 +27,18 @@
         <text class="entry-arrow">›</text>
       </view>
       <view class="entry-card" hover-class="entry-card-hover" bindtap="goTextbook">
-        <view class="entry-icon">📚</view>
+        <view class="ei ei-textbook"></view>
         <view class="entry-body">
           <view class="entry-title">教材查询</view>
           <view class="entry-sub">搜索教材与选用详情</view>
+        </view>
+        <text class="entry-arrow">›</text>
+      </view>
+      <view class="entry-card" hover-class="entry-card-hover" bindtap="goPlanQuery">
+        <view class="ei ei-plan"></view>
+        <view class="entry-body">
+          <view class="entry-title">方案查询</view>
+          <view class="entry-sub">培养方案与课程安排</view>
         </view>
         <text class="entry-arrow">›</text>
       </view>
@@ -48,28 +56,46 @@
       <view class="card-title">本学期概览</view>
       <view class="stat-grid">
         <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{stats.totalStudents}}</view>
-          <view class="stat-label">在读学生</view>
+          <view class="stat-ico si-students"></view>
+          <view class="stat-data">
+            <view class="stat-num">{{stats.totalStudents}}</view>
+            <view class="stat-label">在读学生</view>
+          </view>
         </view></view>
         <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{stats.classes}}</view>
-          <view class="stat-label">在读班级</view>
+          <view class="stat-ico si-classes"></view>
+          <view class="stat-data">
+            <view class="stat-num">{{stats.classes}}</view>
+            <view class="stat-label">在读班级</view>
+          </view>
         </view></view>
         <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{stats.courses}}</view>
-          <view class="stat-label">开设课程</view>
+          <view class="stat-ico si-courses"></view>
+          <view class="stat-data">
+            <view class="stat-num">{{stats.courses}}</view>
+            <view class="stat-label">开设课程</view>
+          </view>
         </view></view>
         <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{stats.teachingTeachers}}</view>
-          <view class="stat-label">任课教师</view>
+          <view class="stat-ico si-teachers"></view>
+          <view class="stat-data">
+            <view class="stat-num">{{stats.teachingTeachers}}</view>
+            <view class="stat-label">任课教师</view>
+          </view>
         </view></view>
         <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{stats.majors}}</view>
-          <view class="stat-label">专业数</view>
+          <view class="stat-ico si-majors"></view>
+          <view class="stat-data">
+            <view class="stat-num">{{stats.majors}}</view>
+            <view class="stat-label">专业数</view>
+          </view>
         </view></view>
         <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{stats.textbooks}}</view>
-          <view class="stat-label">教材数</view>
+          <view class="stat-ico si-textbooks"></view>
+          <view class="stat-data">
+            <view class="stat-num">{{stats.textbooks}}</view>
+            <view class="stat-label">教材数</view>
+          </view>
         </view></view>
       </view>
       <view class="hours-row">

@@ -1,12 +1,15 @@
+/* ===== 学院课时分布 ===== */
 .dist-row {
   display: flex;
   align-items: center;
-  margin-bottom: 20rpx;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid var(--border-light);
 }
+.dist-row:last-child { border-bottom: none; }
 .dist-name {
-  width: 180rpx;
+  width: 140rpx;
   font-size: 26rpx;
-  color: #1a1a1a;
+  color: var(--text-1);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -20,56 +23,79 @@
   text-align: right;
   font-size: 26rpx;
   font-weight: 600;
-  color: #1C82F5;
+  color: var(--text-1);
 }
 
+/* ===== Top 教师 ===== */
 .top-row {
   display: flex;
   align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid var(--border-light);
 }
-.top-row:last-child {
-  border-bottom: none;
-}
+.top-row:last-child { border-bottom: none; }
 .top-rank {
   width: 48rpx;
   height: 48rpx;
   line-height: 48rpx;
   text-align: center;
   border-radius: 50%;
-  background: #1C82F5;
-  color: #fff;
-  font-size: 26rpx;
-  font-weight: 700;
-  margin-right: 20rpx;
+  background: var(--bg-subtle);
+  border: 1rpx solid var(--border);
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--text-2);
+  flex-shrink: 0;
+  margin-right: 18rpx;
+}
+.top-row:nth-child(1) .top-rank {
+  background: var(--brand-soft);
+  border-color: var(--brand-border);
+  color: var(--brand);
+}
+.top-row:nth-child(2) .top-rank {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+  color: var(--text-1);
+}
+.top-row:nth-child(3) .top-rank {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+  color: var(--text-1);
 }
 .top-main {
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  min-width: 0;
 }
 .top-name {
+  display: block;
   font-size: 28rpx;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-1);
+  margin-bottom: 6rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .top-college {
+  display: block;
   font-size: 22rpx;
-  color: #8a8a8a;
-  margin-top: 4rpx;
+  color: var(--text-3);
 }
 .top-hours {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  flex-shrink: 0;
+  margin-left: 16rpx;
 }
 .th-num {
-  font-size: 34rpx;
+  font-size: 32rpx;
   font-weight: 700;
-  color: #1C82F5;
+  color: var(--text-1);
+  line-height: 1.2;
 }
 .th-label {
   font-size: 20rpx;
-  color: #8a8a8a;
+  color: var(--text-4);
 }

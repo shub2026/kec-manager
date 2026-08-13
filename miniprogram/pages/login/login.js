@@ -7,6 +7,7 @@ Page({
     loading: false,
     error: '',
     showPassword: false,
+    pwdFocus: false,
   },
 
   onLoad() {
@@ -22,6 +23,11 @@ Page({
 
   onPassword(e) {
     this.setData({ password: e.detail.value });
+  },
+
+  // 用户名回车 → 聚焦密码框（键盘串联，减少手动点按）
+  onUsernameConfirm() {
+    this.setData({ pwdFocus: true });
   },
 
   togglePassword() {
