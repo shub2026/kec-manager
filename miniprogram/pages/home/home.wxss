@@ -230,7 +230,7 @@
 .cs-name {
   display: flex;
   align-items: center;
-  width: 160rpx;
+  width: 150rpx;
   flex-shrink: 0;
   min-width: 0;
 }
@@ -279,18 +279,19 @@
   margin-left: 12rpx;
 }
 .cs-meta {
-  width: 110rpx;
+  width: 134rpx;
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
   align-items: baseline;
-  gap: 4rpx;
+  gap: 6rpx;
 }
 .cs-meta-num {
   font-size: 22rpx;
   font-weight: 500;
   color: var(--text-4);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .cs-meta-num + .cs-meta-num { margin-left: 0; }
 .cs-footer {

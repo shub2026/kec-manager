@@ -82,21 +82,13 @@
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
-.plan-card.pc-active { border-left: 6rpx solid var(--success); }
-.plan-card.pc-draft { border-left: 6rpx solid #93C5FD; }
-.plan-card.pc-archived { border-left: 6rpx solid var(--text-4); }
-
 .pc-top {
   display: flex;
   align-items: stretch;
 }
 .pc-accent {
-  width: 6rpx;
-  flex-shrink: 0;
+  display: none;
 }
-.pc-active .pc-accent { background: var(--success); }
-.pc-draft .pc-accent { background: #93C5FD; }
-.pc-archived .pc-accent { background: var(--text-4); }
 
 .pc-body {
   flex: 1;

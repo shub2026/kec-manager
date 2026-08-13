@@ -90,8 +90,8 @@ Page({
     }
   },
 
-  // 点选课程卡片：展开 / 收起；展开时懒加载该课程逐班安排明细。
-  // 仅通过路径更新当前 card，其余卡片不参与 setData diff，显著减少点击卡顿。
+  // 点选课程卡片：展开 / 收起，手风琴式：展开当前卡片自动收起其他已展开卡片。
+  // 仅通过路径更新涉及的卡片（当前 + 其余展开卡片），未展开卡片零参与 setData diff。
   async toggle(e) {
     const id = e.currentTarget.dataset.id;
     const groups = this.data.groups;
@@ -108,23 +108,34 @@ Page({
     if (gi < 0) return;
     const card = groups[gi].cards[ci];
 
-    // 已展开 → 收起
+    const patch = {};
     if (card.expanded) {
-      this.setData({
-        [`groups[${gi}].cards[${ci}].expanded`]: false,
-        [`groups[${gi}].cards[${ci}].detail`]: null,
-        [`groups[${gi}].cards[${ci}].detailError`]: '',
-      });
+      // 收起当前
+      patch[`groups[${gi}].cards[${ci}].expanded`] = false;
+      patch[`groups[${gi}].cards[${ci}].detail`] = null;
+      patch[`groups[${gi}].cards[${ci}].detailError`] = '';
+      this.setData(patch);
       return;
     }
 
-    // 展开 → 先置 loading，再异步拉取
-    this.setData({
-      [`groups[${gi}].cards[${ci}].expanded`]: true,
-      [`groups[${gi}].cards[${ci}].detailLoading`]: true,
-      [`groups[${gi}].cards[${ci}].detail`]: null,
-      [`groups[${gi}].cards[${ci}].detailError`]: '',
-    });
+    // 手风琴：关闭其他所有已展开卡片
+    for (let i = 0; i < groups.length; i++) {
+      const cards = groups[i].cards;
+      for (let j = 0; j < cards.length; j++) {
+        if ((i !== gi || j !== ci) && cards[j].expanded) {
+          patch[`groups[${i}].cards[${j}].expanded`] = false;
+          patch[`groups[${i}].cards[${j}].detail`] = null;
+          patch[`groups[${i}].cards[${j}].detailError`] = '';
+        }
+      }
+    }
+    // 展开当前
+    patch[`groups[${gi}].cards[${ci}].expanded`] = true;
+    patch[`groups[${gi}].cards[${ci}].detailLoading`] = true;
+    patch[`groups[${gi}].cards[${ci}].detail`] = null;
+    patch[`groups[${gi}].cards[${ci}].detailError`] = '';
+    this.setData(patch);
+
     try {
       const resp = await api.getCourseArrangeDetail(id);
       // 收起竞态检查：以本卡片当前 expanded 为准

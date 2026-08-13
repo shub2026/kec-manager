@@ -23,14 +23,11 @@
   position: relative;
   background: var(--bg-card);
   border: 1rpx solid var(--border);
-  border-left: 6rpx solid var(--brand);
   border-radius: var(--radius-lg);
   padding: 28rpx;
   margin-bottom: 20rpx;
   box-shadow: var(--shadow-sm);
 }
-.ov-card.done { border-left-color: var(--success); }
-.ov-card.waiting { border-left-color: var(--warning); }
 
 .ov-head {
   display: flex;

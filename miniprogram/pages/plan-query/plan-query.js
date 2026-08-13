@@ -113,8 +113,8 @@ Page({
     this.applyFilter();
   },
 
-  // 展开 / 收起方案；展开时懒加载课程数据并构建纵向课程卡片流。
-  // 仅通过路径更新当前 item，其余卡片不参与 setData diff，显著减少点击卡顿。
+  // 展开 / 收起方案，手风琴式：展开当前项自动收起其他已展开项。
+  // 仅通过路径更新涉及的卡片（当前 + 其余展开项），未展开卡片零参与 setData diff。
   async toggle(e) {
     const id = e.currentTarget.dataset.id;
     const list = this.data.list;
@@ -122,23 +122,31 @@ Page({
     if (idx < 0) return;
     const item = list[idx];
 
-    // 已展开 → 收起
+    const patch = {};
     if (item.expanded) {
-      this.setData({
-        [`list[${idx}].expanded`]: false,
-        [`list[${idx}].detail`]: null,
-        [`list[${idx}].detailError`]: '',
-      });
+      // 收起当前
+      patch[`list[${idx}].expanded`] = false;
+      patch[`list[${idx}].detail`] = null;
+      patch[`list[${idx}].detailError`] = '';
+      this.setData(patch);
       return;
     }
 
-    // 展开 → 先置 loading，再异步拉取
-    this.setData({
-      [`list[${idx}].expanded`]: true,
-      [`list[${idx}].detailLoading`]: true,
-      [`list[${idx}].detail`]: null,
-      [`list[${idx}].detailError`]: '',
-    });
+    // 手风琴：先关闭其他所有已展开项
+    for (let i = 0; i < list.length; i++) {
+      if (i !== idx && list[i].expanded) {
+        patch[`list[${i}].expanded`] = false;
+        patch[`list[${i}].detail`] = null;
+        patch[`list[${i}].detailError`] = '';
+      }
+    }
+    // 再展开当前（先 loading，再异步拉取）
+    patch[`list[${idx}].expanded`] = true;
+    patch[`list[${idx}].detailLoading`] = true;
+    patch[`list[${idx}].detail`] = null;
+    patch[`list[${idx}].detailError`] = '';
+    this.setData(patch);
+
     try {
       const [courses] = await Promise.all([api.getPlanCourses(id)]);
       // 收起竞态检查：以本项当前 expanded 为准
