@@ -72,10 +72,10 @@
         </view>
 
         <!-- 展开明细：lazy 调 classes 接口，替代 web 矩阵表编辑 -->
-        <view wx:if="{{expandedId === card.courseId}}" class="ov-detail">
-          <view wx:if="{{detailLoadingId === card.courseId}}" class="loading">加载明细…</view>
-          <block wx:elif="{{currentDetail}}">
-            <view wx:for="{{currentDetail.classes}}" wx:key="classId" wx:for-item="cls" class="dt-row">
+        <view wx:if="{{card.expanded}}" class="ov-detail">
+          <view wx:if="{{card.detailLoading}}" class="loading">加载明细…</view>
+          <block wx:elif="{{card.detail}}">
+            <view wx:for="{{card.detail.classes}}" wx:key="classId" wx:for-item="cls" class="dt-row">
               <view class="dt-info">
                 <text class="dt-name">{{cls.className}}</text>
                 <text wx:if="{{cls.isCombined}}" class="dt-combined">合班</text>
@@ -87,9 +87,9 @@
               </view>
               <view wx:else class="dt-unassigned">未安排</view>
             </view>
-            <view wx:if="{{!currentDetail.classes.length}}" class="empty">本学期无开课班级</view>
+            <view wx:if="{{!card.detail.classes.length}}" class="empty">本学期无开课班级</view>
           </block>
-          <view wx:else class="errbox">{{detailError}}</view>
+          <view wx:else class="errbox">{{card.detailError}}</view>
         </view>
       </view>
     </block>

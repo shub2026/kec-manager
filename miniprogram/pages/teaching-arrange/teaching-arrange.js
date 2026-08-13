@@ -25,6 +25,11 @@ function buildGroups(overview) {
       percent: total ? Math.round((assigned / total) * 100) : 0,
       status: assigned >= total && total > 0 ? 'done' : assigned === 0 ? 'waiting' : 'partial',
       overHours: (c.remainingHours || 0) < 0,
+      // 展开状态下沉到 card：点击只更新本卡片，其余卡片不参与 setData diff
+      expanded: false,
+      detail: null,
+      detailLoading: false,
+      detailError: '',
     });
   }
   // 已知三类按 GROUP_ORDER 排前，未知类型追加其后
@@ -47,10 +52,6 @@ Page({
     refreshing: false,
     error: '',
     semester: '',
-    expandedId: null,
-    currentDetail: null,
-    detailLoadingId: null,
-    detailError: '',
   },
 
   onShow() {
@@ -78,7 +79,6 @@ Page({
         semester: (app && app.globalData.currentSemester) || '',
         loading: false,
         refreshing: false,
-        expandedId: null,
       });
     } catch (e) {
       if (isRefresh) {
@@ -90,18 +90,51 @@ Page({
     }
   },
 
-  // 点选课程卡片：展开 / 收起；展开时懒加载该课程逐班安排明细（同时仅展开一个）
+  // 点选课程卡片：展开 / 收起；展开时懒加载该课程逐班安排明细。
+  // 仅通过路径更新当前 card，其余卡片不参与 setData diff，显著减少点击卡顿。
   async toggle(e) {
     const id = e.currentTarget.dataset.id;
-    if (this.data.expandedId === id) {
-      this.setData({ expandedId: null, currentDetail: null });
+    const groups = this.data.groups;
+    let gi = -1;
+    let ci = -1;
+    for (let i = 0; i < groups.length; i++) {
+      const idx = groups[i].cards.findIndex((c) => c.courseId === id);
+      if (idx >= 0) {
+        gi = i;
+        ci = idx;
+        break;
+      }
+    }
+    if (gi < 0) return;
+    const card = groups[gi].cards[ci];
+
+    // 已展开 → 收起
+    if (card.expanded) {
+      this.setData({
+        [`groups[${gi}].cards[${ci}].expanded`]: false,
+        [`groups[${gi}].cards[${ci}].detail`]: null,
+        [`groups[${gi}].cards[${ci}].detailError`]: '',
+      });
       return;
     }
-    this.setData({ expandedId: id, detailLoadingId: id, detailError: '', currentDetail: null });
+
+    // 展开 → 先置 loading，再异步拉取
+    this.setData({
+      [`groups[${gi}].cards[${ci}].expanded`]: true,
+      [`groups[${gi}].cards[${ci}].detailLoading`]: true,
+      [`groups[${gi}].cards[${ci}].detail`]: null,
+      [`groups[${gi}].cards[${ci}].detailError`]: '',
+    });
     try {
       const resp = await api.getCourseArrangeDetail(id);
-      // 仅当仍展开同一课程时回填，避免快速切换导致的竞态覆盖
-      if (this.data.expandedId !== id) return;
+      // 收起竞态检查：以本卡片当前 expanded 为准
+      if (
+        !this.data.groups[gi] ||
+        !this.data.groups[gi].cards[ci] ||
+        !this.data.groups[gi].cards[ci].expanded
+      ) {
+        return;
+      }
       const classes = (resp.classes || []).map((cls) => ({
         classId: cls.classId,
         className: cls.className,
@@ -115,10 +148,20 @@ Page({
           : null,
         weeklyHours: cls.weeklyHours,
       }));
-      this.setData({ currentDetail: { classes, summary: resp.summary }, detailLoadingId: null });
+      this.setData({
+        [`groups[${gi}].cards[${ci}].detail`]: { classes, summary: resp.summary },
+        [`groups[${gi}].cards[${ci}].detailLoading`]: false,
+      });
     } catch (err) {
-      if (this.data.expandedId === id) {
-        this.setData({ detailError: (err && err.message) || '明细加载失败', detailLoadingId: null });
+      if (
+        this.data.groups[gi] &&
+        this.data.groups[gi].cards[ci] &&
+        this.data.groups[gi].cards[ci].expanded
+      ) {
+        this.setData({
+          [`groups[${gi}].cards[${ci}].detailError`]: (err && err.message) || '明细加载失败',
+          [`groups[${gi}].cards[${ci}].detailLoading`]: false,
+        });
       }
     }
   },

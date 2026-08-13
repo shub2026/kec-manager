@@ -24,11 +24,6 @@ Page({
     statusLabelMap: STATUS_LABEL,
     allPlans: [],
     list: [],
-    expandedId: null,
-    detailLoadingId: null,
-    detailError: '',
-    // 展开方案详情数据：{ groups, groupTotals, totalAllHours, courseCount, maxSemester }
-    detail: null,
   },
 
   onShow() {
@@ -70,7 +65,14 @@ Page({
         if (hay.indexOf(kw) === -1) return false;
       }
       return true;
-    });
+    }).map((p) => ({
+      ...p,
+      // 展开状态下沉到 item：点击只更新本项，避免全列表重渲染卡顿
+      expanded: false,
+      detail: null,
+      detailLoading: false,
+      detailError: '',
+    }));
     this.setData({ list });
   },
 
@@ -111,25 +113,50 @@ Page({
     this.applyFilter();
   },
 
-  // 展开 / 收起方案；展开时懒加载课程数据并构建纵向课程卡片流
+  // 展开 / 收起方案；展开时懒加载课程数据并构建纵向课程卡片流。
+  // 仅通过路径更新当前 item，其余卡片不参与 setData diff，显著减少点击卡顿。
   async toggle(e) {
     const id = e.currentTarget.dataset.id;
-    if (this.data.expandedId === id) {
-      this.setData({ expandedId: null, detail: null });
+    const list = this.data.list;
+    const idx = list.findIndex((it) => it.id === id);
+    if (idx < 0) return;
+    const item = list[idx];
+
+    // 已展开 → 收起
+    if (item.expanded) {
+      this.setData({
+        [`list[${idx}].expanded`]: false,
+        [`list[${idx}].detail`]: null,
+        [`list[${idx}].detailError`]: '',
+      });
       return;
     }
-    this.setData({ expandedId: id, detailLoadingId: id, detailError: '', detail: null });
+
+    // 展开 → 先置 loading，再异步拉取
+    this.setData({
+      [`list[${idx}].expanded`]: true,
+      [`list[${idx}].detailLoading`]: true,
+      [`list[${idx}].detail`]: null,
+      [`list[${idx}].detailError`]: '',
+    });
     try {
       const [courses] = await Promise.all([api.getPlanCourses(id)]);
-      if (this.data.expandedId !== id) return;
+      // 收起竞态检查：以本项当前 expanded 为准
+      if (!this.data.list[idx] || !this.data.list[idx].expanded) return;
 
       const rawCourses = Array.isArray(courses) ? courses : [];
       const detail = this._buildDetail(rawCourses);
 
-      this.setData({ detail, detailLoadingId: null });
+      this.setData({
+        [`list[${idx}].detail`]: detail,
+        [`list[${idx}].detailLoading`]: false,
+      });
     } catch (err) {
-      if (this.data.expandedId === id) {
-        this.setData({ detailError: (err && err.message) || '明细加载失败', detailLoadingId: null });
+      if (this.data.list[idx] && this.data.list[idx].expanded) {
+        this.setData({
+          [`list[${idx}].detailError`]: (err && err.message) || '明细加载失败',
+          [`list[${idx}].detailLoading`]: false,
+        });
       }
     }
   },
@@ -164,6 +191,7 @@ Page({
           weeklyHours,
           weeks,
           hours: Math.round(weeklyHours * weeks),
+          heatClass: this._heatClass(weeklyHours),
           textbooks,
         });
         if (s > maxSemester) maxSemester = s;

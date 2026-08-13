@@ -59,7 +59,6 @@
         <view class="pc-body">
           <view class="pc-head">
             <text class="pc-name">{{item.name}}</text>
-            <text class="pc-status pc-{{item.status}}">{{statusLabelMap[item.status] || item.status}}</text>
           </view>
 
           <view class="pc-meta">
@@ -79,49 +78,38 @@
           </view>
 
           <view class="pc-expand-hint">
-            <text class="pc-expand-icon">{{expandedId === item.id ? '▲' : '▼'}}</text>
-            <text class="pc-expand-text">{{expandedId === item.id ? '收起课程' : '展开课程明细'}}</text>
+            <text class="pc-expand-icon">{{item.expanded ? '▲' : '▼'}}</text>
+            <text class="pc-expand-text">{{item.expanded ? '收起课程' : '展开课程明细'}}</text>
           </view>
         </view>
       </view>
 
       <!-- 展开区：纵向课程卡片流（全宽，位于正文下方） -->
-      <view wx:if="{{expandedId === item.id}}" class="pc-detail" catchtap="noop">
-        <view wx:if="{{detailLoadingId === item.id}}" class="detail-loading">加载课程数据…</view>
-        <block wx:elif="{{detail}}">
+      <view wx:if="{{item.expanded}}" class="pc-detail" catchtap="noop">
+        <view wx:if="{{item.detailLoading}}" class="detail-loading">加载课程数据…</view>
+        <block wx:elif="{{item.detail}}">
           <!-- 概览条 -->
           <view class="ov-bar">
             <view class="ov-item">
-              <text class="ov-num">{{detail.totalAllHours}}</text>
+              <text class="ov-num">{{item.detail.totalAllHours}}</text>
               <text class="ov-lbl">总课时</text>
             </view>
             <view class="ov-item">
-              <text class="ov-num">{{detail.courseCount}}</text>
+              <text class="ov-num">{{item.detail.courseCount}}</text>
               <text class="ov-lbl">门课程</text>
             </view>
             <view class="ov-item">
-              <text class="ov-num">{{detail.maxSemester}}</text>
+              <text class="ov-num">{{item.detail.maxSemester}}</text>
               <text class="ov-lbl">个学期</text>
             </view>
           </view>
 
-          <!-- 课时热力图例 -->
-          <view class="dt-legend">
-            <text class="lg-t">周课时</text>
-            <view class="lg-items">
-              <view class="lg-i"><view class="lg-d lg-d1"></view><text>1~2</text></view>
-              <view class="lg-i"><view class="lg-d lg-d2"></view><text>3~4</text></view>
-              <view class="lg-i"><view class="lg-d lg-d3"></view><text>≥5</text></view>
-              <view class="lg-i"><view class="lg-d lg-d0"></view><text>0</text></view>
-            </view>
-          </view>
-
           <!-- 分组 -->
-          <block wx:for="{{detail.groups}}" wx:key="type" wx:for-item="group" wx:for-index="gi">
+          <block wx:for="{{item.detail.groups}}" wx:key="type" wx:for-item="group" wx:for-index="gi">
             <view wx:if="{{group.courses.length}}" class="grp">
               <view class="grp-head g-{{group.type}}">
                 <text class="grp-label">{{group.label}}</text>
-                <text class="grp-meta">{{group.courses.length}}门 · {{detail.groupTotals[gi]}}课时</text>
+                <text class="grp-meta">{{group.courses.length}}门 · {{item.detail.groupTotals[gi]}}课时</text>
               </view>
 
               <!-- 课程卡片 -->
@@ -139,7 +127,7 @@
                   <view wx:for="{{course.semesterItems}}" wx:key="semester" wx:for-item="sem" class="sem-row">
                     <view class="sem-info">
                       <text class="sem-idx">第{{sem.semester}}学期</text>
-                      <text class="sem-hours h-{{_heatClass(sem.weeklyHours)}}">{{sem.weeklyHours}}课时/周</text>
+                      <text class="sem-hours h-{{sem.heatClass}}">{{sem.weeklyHours}}课时/周</text>
                       <text class="sem-weeks">{{sem.weeks}}周</text>
                       <text class="sem-hours-total">{{sem.hours}}课时</text>
                     </view>
@@ -159,7 +147,7 @@
             </view>
           </block>
         </block>
-        <view wx:else class="errbox">{{detailError}}</view>
+        <view wx:else class="errbox">{{item.detailError}}</view>
       </view>
     </view>
   </view>

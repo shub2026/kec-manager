@@ -1,28 +1,29 @@
 /* ===== 本学期概览：已排/计划周课时 ===== */
 .hours-row {
   display: flex;
-  margin-top: 28rpx;
-  border-top: 1rpx solid var(--border);
-  padding-top: 24rpx;
+  margin-top: 0;
+  padding-top: 20rpx;
+  border-top: 1rpx solid var(--border-light);
 }
 .hours-item {
   flex: 1;
   text-align: center;
+  padding: 10rpx 0;
 }
 .hours-item + .hours-item {
-  border-left: 1rpx solid var(--border);
+  border-left: 1rpx solid var(--border-light);
 }
 .h-num {
   display: block;
-  font-size: 40rpx;
-  font-weight: 700;
+  font-size: 34rpx;
+  font-weight: 600;
   color: var(--text-1);
-  line-height: 1.1;
-  margin-bottom: 8rpx;
+  line-height: 1.2;
+  margin-bottom: 2rpx;
 }
 .h-label {
-  font-size: 24rpx;
-  color: var(--text-3);
+  font-size: 23rpx;
+  color: var(--text-4);
 }
 
 /* ===== 排课进度 ===== */
@@ -57,16 +58,16 @@
   margin-top: 8rpx;
 }
 .progress-track {
-  height: 12rpx;
+  height: 14rpx;
   background: var(--border-light);
-  border-radius: 6rpx;
+  border-radius: 7rpx;
   overflow: hidden;
   margin-top: 24rpx;
 }
 .progress-filled {
   height: 100%;
   background: var(--brand);
-  border-radius: 6rpx;
+  border-radius: 7rpx;
   transition: width 0.3s ease;
 }
 .progress-legend {
@@ -222,22 +223,22 @@
 .cs-row {
   display: flex;
   align-items: center;
-  padding: 18rpx 0;
+  padding: 14rpx 0;
   border-bottom: 1rpx solid var(--border-light);
 }
 .cs-row:last-child { border-bottom: none; }
 .cs-name {
   display: flex;
   align-items: center;
-  width: 180rpx;
+  width: 160rpx;
   flex-shrink: 0;
   min-width: 0;
 }
 .cs-dot {
-  width: 10rpx;
-  height: 10rpx;
+  width: 8rpx;
+  height: 8rpx;
   border-radius: 50%;
-  margin-right: 12rpx;
+  margin-right: 10rpx;
   flex-shrink: 0;
 }
 .cs-name-text {
@@ -257,46 +258,50 @@
 }
 .cs-bar-wrap {
   flex: 1;
-  height: 12rpx;
+  height: 14rpx;
   background: var(--border-light);
-  border-radius: 6rpx;
+  border-radius: 7rpx;
   overflow: hidden;
   min-width: 0;
 }
 .cs-bar {
   height: 100%;
-  border-radius: 6rpx;
+  border-radius: 7rpx;
 }
 .cs-value {
   width: 64rpx;
   flex-shrink: 0;
-  font-size: 26rpx;
-  font-weight: 600;
+  font-size: 28rpx;
+  font-weight: 700;
   color: var(--text-1);
   text-align: right;
   font-variant-numeric: tabular-nums;
+  margin-left: 12rpx;
 }
 .cs-meta {
-  width: 130rpx;
+  width: 110rpx;
   flex-shrink: 0;
   display: flex;
   justify-content: flex-end;
+  align-items: baseline;
+  gap: 4rpx;
 }
 .cs-meta-num {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: var(--text-3);
+  font-size: 22rpx;
+  font-weight: 500;
+  color: var(--text-4);
   font-variant-numeric: tabular-nums;
 }
-.cs-meta-num + .cs-meta-num { margin-left: 14rpx; }
+.cs-meta-num + .cs-meta-num { margin-left: 0; }
 .cs-footer {
   display: flex;
   justify-content: space-between;
-  margin-top: 20rpx;
-  padding-top: 20rpx;
-  border-top: 1rpx solid var(--border);
-  font-size: 24rpx;
-  color: var(--text-3);
+  align-items: center;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid var(--border-light);
+  font-size: 23rpx;
+  color: var(--text-4);
 }
 .cs-total {
   color: var(--text-1);
@@ -308,7 +313,7 @@
 .dist-row {
   display: flex;
   align-items: center;
-  padding: 18rpx 0;
+  padding: 14rpx 0;
   border-bottom: 1rpx solid var(--border-light);
 }
 .dist-row:last-child { border-bottom: none; }

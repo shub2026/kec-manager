@@ -83,7 +83,7 @@
   box-shadow: var(--shadow-sm);
 }
 .plan-card.pc-active { border-left: 6rpx solid var(--success); }
-.plan-card.pc-draft { border-left: 6rpx solid var(--warning); }
+.plan-card.pc-draft { border-left: 6rpx solid #93C5FD; }
 .plan-card.pc-archived { border-left: 6rpx solid var(--text-4); }
 
 .pc-top {
@@ -95,7 +95,7 @@
   flex-shrink: 0;
 }
 .pc-active .pc-accent { background: var(--success); }
-.pc-draft .pc-accent { background: var(--warning); }
+.pc-draft .pc-accent { background: #93C5FD; }
 .pc-archived .pc-accent { background: var(--text-4); }
 
 .pc-body {
@@ -360,10 +360,10 @@
   border-radius: var(--radius-sm);
   font-weight: 500;
 }
-.h-0 { color: var(--text-4); background: var(--bg-subtle); border: 1rpx solid var(--border); }
-.h-1 { color: var(--brand-dark); background: var(--brand-soft); border: 1rpx solid var(--brand-border); }
-.h-2 { color: var(--bg-card); background: var(--brand-light); border: 1rpx solid var(--brand-light); }
-.h-3 { color: var(--bg-card); background: var(--brand); border: 1rpx solid var(--brand); }
+.h-zero { color: var(--text-4); background: var(--bg-subtle); border: 1rpx solid var(--border); }
+.h-low { color: var(--brand-dark); background: var(--brand-soft); border: 1rpx solid var(--brand-border); }
+.h-mid { color: var(--bg-card); background: var(--brand-light); border: 1rpx solid var(--brand-light); }
+.h-high { color: var(--bg-card); background: var(--brand); border: 1rpx solid var(--brand); }
 .sem-weeks, .sem-hours-total {
   font-size: 22rpx;
   color: var(--text-3);

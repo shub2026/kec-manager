@@ -73,6 +73,13 @@ Page({
     wx.navigateTo({ url: '/pages/user-admin/user-admin' });
   },
 
+  copyDesktopUrl() {
+    wx.setClipboardData({
+      data: 'https://kec.sntip.cn',
+      success: () => wx.showToast({ title: '地址已复制', icon: 'none' }),
+    });
+  },
+
   onLogout() {
     wx.showModal({
       title: '退出登录',
