@@ -194,7 +194,14 @@ export async function addCourseToPlan(req, res, next) {
 export async function updatePlanCourse(req, res, next) {
   try {
     const { id } = req.params;
-    const { start_semester, end_semester, weekly_hours, weeks_per_semester, sort_order } = req.body;
+    const {
+      start_semester,
+      end_semester,
+      weekly_hours,
+      weeks_per_semester,
+      sort_order,
+      is_active,
+    } = req.body;
 
     const currentPc = await prisma.plan_courses.findUnique({
       where: { id: Number(id) },
@@ -213,6 +220,8 @@ export async function updatePlanCourse(req, res, next) {
     const newWeeksPerSemester =
       weeks_per_semester !== undefined ? Number(weeks_per_semester) : currentPc.weeks_per_semester;
     const newSortOrder = sort_order !== undefined ? Number(sort_order) : currentPc.sort_order;
+    // 启用/禁用开关：仅接受布尔值（naming 中间件不影响字段名）
+    const newIsActive = is_active !== undefined ? Boolean(is_active) : currentPc.is_active;
 
     const semesterWindowError = validateSemesterWindow(newStart, newEnd);
     if (semesterWindowError) {
@@ -229,6 +238,7 @@ export async function updatePlanCourse(req, res, next) {
           weekly_hours: newWeeklyHours,
           weeks_per_semester: newWeeksPerSemester,
           sort_order: newSortOrder,
+          is_active: newIsActive,
         },
         include: { courses: true },
       });

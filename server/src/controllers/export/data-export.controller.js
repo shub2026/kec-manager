@@ -198,12 +198,15 @@ export async function exportClasses(req, res, next) {
 
     // 预加载所有培养方案，用于自动匹配（与 listClasses 保持一致）
     // 注意：必须 select created_at，findBestMatchPlan 按 created_at 降序排序以保证多匹配时取最新方案的确定性
+    // apply_from_year/apply_to_year 供匹配时按班级入学年份过滤（同专业/层次多版本方案按年级区分）
     const allPlans = await prisma.training_plans.findMany({
       select: {
         id: true,
         name: true,
         major_id: true,
         training_level_id: true,
+        apply_from_year: true,
+        apply_to_year: true,
         created_at: true,
       },
     });
@@ -402,6 +405,8 @@ function buildTextbookUsageRows(textbook, allClasses, semesterInfo, consecutiveM
   for (const pt of textbook.plan_textbooks) {
     const sem = pt.plan_course_semesters;
     const pc = sem.plan_courses;
+    // 禁用课程不出现在教材使用导出（与查询接口 queryTextbookUsage 同口径；=== false 显式判断）
+    if (pc.is_active === false) continue;
     const plan = pc.training_plans;
     // 与查询接口一致：教材学期超出方案课程授课范围时跳过
     if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
@@ -933,7 +938,7 @@ const ARRANGE_EXPORT_HEADERS = [
  * 拼装某课程的教学安排导出行（单科目与全部科目模式复用）
  * @param {object} course - 课程记录
  * @param {string} semester - 学期
- * @param {object} filters - 班级筛选条件（college/major/training_level/grade）
+ * @param {object} filters - 班级筛选条件（class_name/college/major/training_level/grade）
  * @param {string|undefined} textbook - 教材名称筛选
  * @param {Map} assignmentMap - 该课程 class_id → assignment 映射
  * @returns {Promise<Array<object>>} 13 列导出行
@@ -946,6 +951,13 @@ async function buildArrangeRows(course, semester, filters, textbook, assignmentM
   let filteredClasses = classes;
   if (textbook) {
     filteredClasses = classes.filter((c) => c.textbooks?.some((tb) => tb.title === textbook));
+  }
+  // 班级名称模糊筛选（与前端 filteredClassList 同口径：不区分大小写的包含匹配）
+  if (filters.class_name) {
+    const kw = String(filters.class_name).trim().toLowerCase();
+    filteredClasses = filteredClasses.filter((c) =>
+      (c.className || '').toLowerCase().includes(kw)
+    );
   }
 
   // 预加载合班成员映射，用于导出合班伙伴名称
@@ -984,7 +996,8 @@ async function buildArrangeRows(course, semester, filters, textbook, assignmentM
  */
 export async function exportTeachingArrange(req, res, next) {
   try {
-    const { course_id, semester, college, major, training_level, grade, textbook } = req.query;
+    const { course_id, semester, class_name, college, major, training_level, grade, textbook } =
+      req.query;
     if (!semester) {
       return res.status(400).json({ success: false, message: '缺少学期参数' });
     }
@@ -1002,6 +1015,7 @@ export async function exportTeachingArrange(req, res, next) {
 
       // 构建筛选条件
       const filters = {};
+      if (class_name) filters.class_name = class_name;
       if (college) filters.college = college;
       if (major) filters.major = major;
       if (training_level) filters.training_level = training_level;

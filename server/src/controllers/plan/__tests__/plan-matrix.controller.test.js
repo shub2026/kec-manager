@@ -366,6 +366,63 @@ describe('plan-matrix.controller', () => {
       expect(mockTx.plan_course_semesters.updateMany).not.toHaveBeenCalled();
     });
 
+    it('传 is_active=false：应写入禁用状态', async () => {
+      mockPrisma.plan_courses.findUnique.mockResolvedValue({
+        id: 1,
+        start_semester: 1,
+        end_semester: 3,
+        weekly_hours: 4,
+        weeks_per_semester: 18,
+        sort_order: 1,
+        is_active: true,
+        plan_course_semesters: [],
+      });
+
+      const req = mockReq({ is_active: false }, { id: '1' });
+      await updatePlanCourse(req, mockRes(), vi.fn());
+
+      const data = mockTx.plan_courses.update.mock.calls[0][0].data;
+      expect(data.is_active).toBe(false);
+    });
+
+    it('传 is_active=true：应恢复启用', async () => {
+      mockPrisma.plan_courses.findUnique.mockResolvedValue({
+        id: 1,
+        start_semester: 1,
+        end_semester: 3,
+        weekly_hours: 4,
+        weeks_per_semester: 18,
+        sort_order: 1,
+        is_active: false,
+        plan_course_semesters: [],
+      });
+
+      const req = mockReq({ is_active: true }, { id: '1' });
+      await updatePlanCourse(req, mockRes(), vi.fn());
+
+      const data = mockTx.plan_courses.update.mock.calls[0][0].data;
+      expect(data.is_active).toBe(true);
+    });
+
+    it('未传 is_active：应继承当前记录的启用状态', async () => {
+      mockPrisma.plan_courses.findUnique.mockResolvedValue({
+        id: 1,
+        start_semester: 1,
+        end_semester: 3,
+        weekly_hours: 4,
+        weeks_per_semester: 18,
+        sort_order: 1,
+        is_active: false,
+        plan_course_semesters: [],
+      });
+
+      const req = mockReq({ weekly_hours: 6 }, { id: '1' });
+      await updatePlanCourse(req, mockRes(), vi.fn());
+
+      const data = mockTx.plan_courses.update.mock.calls[0][0].data;
+      expect(data.is_active).toBe(false);
+    });
+
     it('范围扩大 + 课时变更：应新增 semester=3，并同步保留的 1,2 学期记录', async () => {
       mockPrisma.plan_courses.findUnique.mockResolvedValue({
         id: 1,

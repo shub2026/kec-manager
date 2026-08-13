@@ -71,6 +71,8 @@ async function buildSemesterExportData(semesterInfo, filters) {
       training_plans: {
         include: {
           plan_courses: {
+            // 禁用课程不参与开课导出/连续教材检测
+            where: { is_active: true },
             include: {
               courses: true,
               plan_course_semesters: {
@@ -114,6 +116,8 @@ async function buildSemesterExportData(semesterInfo, filters) {
     },
     include: {
       plan_courses: {
+        // 禁用课程不参与开课导出/连续教材检测
+        where: { is_active: true },
         include: {
           courses: true,
           plan_course_semesters: {

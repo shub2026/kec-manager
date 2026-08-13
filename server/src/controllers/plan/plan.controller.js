@@ -6,6 +6,90 @@ import { autoFixSortOrder, invalidateSortOrderCache } from '../../utils/sort.js'
 import { findBestMatchPlan, isClassMatchPlan } from '../../services/plan.service.js';
 
 /**
+ * 解析适用入学年份参数：空值（null/''/undefined）返回 null 表示不限，
+ * 非法整数/越界抛 ValidationError
+ * @param {*} value - 请求体中的年份参数
+ * @returns {number|null} 合法年份或 null（不限）
+ */
+function parseApplyYear(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 2000 || n > 2100) {
+    throw new ValidationError('适用入学年份必须为 2000~2100 的整数');
+  }
+  return n;
+}
+
+/**
+ * 校验适用年份区间合法性（起 <= 止）
+ */
+function validateApplyYearRange(fromYear, toYear) {
+  if (fromYear != null && toYear != null && fromYear > toYear) {
+    throw new ValidationError('适用入学年份起不能大于止');
+  }
+}
+
+/**
+ * 同维度（同专业或同层次）适用入学年份重叠校验：
+ * 保证同一专业/层次下任意入学年份最多命中一个方案，匹配结果唯一确定。
+ * null 端视为无穷；存量方案两端皆 null 时视为覆盖所有年份。
+ * @param {object} opts
+ * @param {number|null} opts.majorId - 专业维度（与 trainingLevelId 二选一）
+ * @param {number|null} opts.trainingLevelId - 层次维度
+ * @param {number|null} opts.applyFromYear - 待校验区间起
+ * @param {number|null} opts.applyToYear - 待校验区间止
+ * @param {number|null} [opts.excludeId] - 排除的方案 ID（更新时排除自身）
+ */
+async function assertNoApplyYearOverlap({
+  majorId,
+  trainingLevelId,
+  applyFromYear,
+  applyToYear,
+  excludeId = null,
+}) {
+  const where = majorId ? { major_id: majorId } : { training_level_id: trainingLevelId };
+  if (excludeId != null) where.id = { not: excludeId };
+  const others = await prisma.training_plans.findMany({
+    where,
+    select: { id: true, name: true, apply_from_year: true, apply_to_year: true },
+  });
+  for (const other of others) {
+    // 区间相交判定：不相交当且仅当 a止 < b起 或 b止 < a起（null 端视为无穷）
+    const disjoint =
+      (applyToYear != null && other.apply_from_year != null && applyToYear < other.apply_from_year) ||
+      (other.apply_to_year != null && applyFromYear != null && other.apply_to_year < applyFromYear);
+    if (!disjoint) {
+      throw new ValidationError(
+        `适用入学年份与已有方案「${other.name}」重叠，请先调整其适用年份范围后再保存`
+      );
+    }
+  }
+}
+
+/**
+ * 从源版本号递增主版本号（派生新版本时的默认版本号）
+ * 规则：首个数字段为主版本号，+1；若存在次版本号（.x）则归零。
+ * 示例："V1.0" → "V2.0"；"V1.2" → "V2.0"；"v3" → "v4"；"2.5" → "3.0"。
+ * 无法解析（无数字或为空）时返回原值。
+ * @param {string|null|undefined} version - 源方案版本号
+ * @returns {string|null} 递增后的版本号；源为空时返回 null
+ */
+export function incrementVersion(version) {
+  if (version == null || String(version).trim() === '') return null;
+  const v = String(version);
+  const m = v.match(/^(.*?)(\d+)(\.\d+)?(.*)$/);
+  if (!m) return v;
+  const [, prefix, major, minor, suffix] = m;
+  const nextMajor = Number(major) + 1;
+  // 保留原有前导零风格（如 "01" → "02"）
+  const majorStr =
+    major.length > 1 && major.startsWith('0')
+      ? String(nextMajor).padStart(major.length, '0')
+      : String(nextMajor);
+  return `${prefix}${majorStr}${minor ? '.0' : ''}${suffix}`;
+}
+
+/**
  * 获取培养方案列表（含班级使用统计）
  */
 export async function listPlans(req, res, next) {
@@ -31,7 +115,14 @@ export async function listPlans(req, res, next) {
 
     const allClasses = await prisma.classes.findMany({
       where: { is_left_school: false },
-      select: { id: true, major_id: true, training_level_id: true, custom_plan_id: true },
+      select: {
+        id: true,
+        major_id: true,
+        training_level_id: true,
+        custom_plan_id: true,
+        // 供 findBestMatchPlan/isClassMatchPlan 按方案适用入学年份范围过滤
+        enrollment_year: true,
+      },
     });
 
     const classCountMap = {};
@@ -137,8 +228,17 @@ export async function getPlanById(req, res, next) {
  */
 export async function createPlan(req, res, next) {
   try {
-    const { name, college_id, major_id, training_level_id, version, description, status } =
-      req.body;
+    const {
+      name,
+      college_id,
+      major_id,
+      training_level_id,
+      version,
+      description,
+      status,
+      apply_from_year,
+      apply_to_year,
+    } = req.body;
     if (!name) throw new ValidationError('方案名称为必填项');
 
     if (major_id && training_level_id) {
@@ -147,6 +247,17 @@ export async function createPlan(req, res, next) {
     if (!major_id && !training_level_id) {
       throw new ValidationError('请选择专业类别或培养层次');
     }
+
+    // 适用入学年份：解析 + 区间合法性 + 同维度重叠校验
+    const applyFromYear = parseApplyYear(apply_from_year);
+    const applyToYear = parseApplyYear(apply_to_year);
+    validateApplyYearRange(applyFromYear, applyToYear);
+    await assertNoApplyYearOverlap({
+      majorId: major_id ? Number(major_id) : null,
+      trainingLevelId: training_level_id ? Number(training_level_id) : null,
+      applyFromYear,
+      applyToYear,
+    });
 
     const maxSortOrder = await prisma.training_plans.aggregate({
       _max: { sort_order: true },
@@ -161,6 +272,8 @@ export async function createPlan(req, res, next) {
         training_level_id: training_level_id ? Number(training_level_id) : null,
         version,
         description,
+        apply_from_year: applyFromYear,
+        apply_to_year: applyToYear,
         status: status || 'draft',
         sort_order: newSortOrder,
       },
@@ -178,6 +291,8 @@ export async function createPlan(req, res, next) {
       majors: plan.majors?.name || '未设置',
       training_levels: plan.training_levels?.name || '未设置',
       version: plan.version,
+      apply_from_year: plan.apply_from_year,
+      apply_to_year: plan.apply_to_year,
     };
 
     await createAuditLog({
@@ -220,6 +335,8 @@ export async function updatePlan(req, res, next) {
       description,
       sort_order,
       status,
+      apply_from_year,
+      apply_to_year,
     } = req.body;
 
     // 排序交换：仅更新 sort_order
@@ -270,6 +387,27 @@ export async function updatePlan(req, res, next) {
       return fail(res, '请选择专业类别或培养层次');
     }
 
+    // 提前读取旧值：apply 字段未传（undefined）时保持现值，传 null/'' 时清空
+    const oldPlan = await prisma.training_plans.findUnique({
+      where: { id: Number(id) },
+      include: { colleges: true },
+    });
+    if (!oldPlan) return fail(res, '方案不存在', 404);
+
+    // 适用入学年份：解析 + 区间合法性 + 同维度重叠校验（排除自身）
+    const applyFromYear =
+      apply_from_year === undefined ? oldPlan.apply_from_year : parseApplyYear(apply_from_year);
+    const applyToYear =
+      apply_to_year === undefined ? oldPlan.apply_to_year : parseApplyYear(apply_to_year);
+    validateApplyYearRange(applyFromYear, applyToYear);
+    await assertNoApplyYearOverlap({
+      majorId: major_id ? Number(major_id) : null,
+      trainingLevelId: training_level_id ? Number(training_level_id) : null,
+      applyFromYear,
+      applyToYear,
+      excludeId: Number(id),
+    });
+
     const updateData = {
       name,
       college_id: college_id ? Number(college_id) : null,
@@ -277,6 +415,8 @@ export async function updatePlan(req, res, next) {
       training_level_id: training_level_id ? Number(training_level_id) : null,
       version,
       description,
+      apply_from_year: applyFromYear,
+      apply_to_year: applyToYear,
     };
 
     if (status !== undefined) {
@@ -288,11 +428,6 @@ export async function updatePlan(req, res, next) {
     }
 
     try {
-      const oldPlan = await prisma.training_plans.findUnique({
-        where: { id: Number(id) },
-        include: { colleges: true },
-      });
-
       const plan = await prisma.training_plans.update({
         where: { id: Number(id) },
         data: updateData,
@@ -424,6 +559,174 @@ export async function deletePlan(req, res, next) {
       ip: req.ip,
       result: 'failed',
       details: { error: e.message },
+    });
+    next(e);
+  }
+}
+
+/**
+ * 从现有方案派生新版本（POST /api/plans/:id/new-version）
+ *
+ * 场景：同一专业/层次的培养方案修订后，新年级使用新版本（如 2025 级用 V1.0、2026 级用 V2.0）。
+ * 行为（单事务）：
+ * 1. 校验新版本起始入学年份与同维度其他方案不重叠；
+ * 2. 默认同步收窄源方案 apply_to_year = applyFromYear - 1（可通过 update_source_end_year=false 关闭）；
+ * 3. 复制源方案基本信息与全部 plan_courses → plan_course_semesters → plan_textbooks；
+ * 4. 新方案状态为 draft，待管理员确认课程差异后自行启用。
+ */
+export async function createPlanNewVersion(req, res, next) {
+  try {
+    const sourceId = Number(req.params.id);
+    // naming 中间件已将 camelCase 转 snake_case
+    const { name, version, apply_from_year, update_source_end_year } = req.body;
+
+    const applyFromYear = parseApplyYear(apply_from_year);
+    if (applyFromYear == null) {
+      throw new ValidationError('请填写新版本适用起始入学年份');
+    }
+    const updateSourceEndYear = update_source_end_year !== false; // 默认收窄
+
+    const source = await prisma.training_plans.findUnique({
+      where: { id: sourceId },
+      include: {
+        plan_courses: {
+          include: {
+            plan_course_semesters: { include: { plan_textbooks: true } },
+          },
+        },
+      },
+    });
+    if (!source) throw new NotFoundError('培养方案');
+
+    // 新版本区间 [applyFromYear, +∞)，源方案是否与之重叠（源止年为 null 或 >= 起始年）
+    const sourceOverlaps = source.apply_to_year == null || source.apply_to_year >= applyFromYear;
+    // 源方案可被收窄的前提：收窄后区间不倒挂（源起年 <= 新起始年-1）
+    const canNarrowSource = source.apply_from_year == null || source.apply_from_year <= applyFromYear - 1;
+
+    if (!updateSourceEndYear) {
+      // 不收窄源方案时，源方案也纳入重叠校验
+      if (sourceOverlaps) {
+        throw new ValidationError(
+          `源方案「${source.name}」适用年份覆盖 ${applyFromYear} 年，请勾选同步收窄旧方案适用止年`
+        );
+      }
+    } else if (sourceOverlaps && !canNarrowSource) {
+      throw new ValidationError(
+        `源方案「${source.name}」适用起始年份晚于新版本起始年份，无法自动收窄，请手工调整`
+      );
+    }
+
+    // 与同维度其他方案的重叠校验（收窄场景下排除源方案自身）
+    await assertNoApplyYearOverlap({
+      majorId: source.major_id,
+      trainingLevelId: source.training_level_id,
+      applyFromYear,
+      applyToYear: null,
+      excludeId: updateSourceEndYear ? sourceId : null,
+    });
+
+    const newName = (name || `${source.name}（新版本）`).slice(0, 200);
+
+    // 与 createPlan 一致：取全局最大 sort_order + 1，避免继承源方案导致排序值重复
+    const maxSortOrder = await prisma.training_plans.aggregate({
+      _max: { sort_order: true },
+    });
+    const newSortOrder = (maxSortOrder._max.sort_order || 0) + 1;
+
+    const newPlan = await prisma.$transaction(async (tx) => {
+      // 1. 收窄源方案适用止年（仅当源区间覆盖新起始年时）
+      if (updateSourceEndYear && sourceOverlaps && canNarrowSource) {
+        await tx.training_plans.update({
+          where: { id: sourceId },
+          data: { apply_to_year: applyFromYear - 1 },
+        });
+      }
+
+      // 2. 复制方案基本信息（关联维度继承，适用起始年 = 新版本起始年）
+      const created = await tx.training_plans.create({
+        data: {
+          name: newName,
+          college_id: source.college_id,
+          major_id: source.major_id,
+          training_level_id: source.training_level_id,
+          version:
+            version !== undefined && String(version).trim() !== ''
+              ? String(version).trim()
+              : incrementVersion(source.version),
+          description: source.description,
+          apply_from_year: applyFromYear,
+          apply_to_year: null,
+          status: 'draft',
+          sort_order: newSortOrder,
+        },
+      });
+
+      // 3. 深拷贝课程 → 学期明细 → 教材关联
+      for (const pc of source.plan_courses) {
+        const newPc = await tx.plan_courses.create({
+          data: {
+            plan_id: created.id,
+            course_id: pc.course_id,
+            start_semester: pc.start_semester,
+            end_semester: pc.end_semester,
+            weekly_hours: pc.weekly_hours,
+            weeks_per_semester: pc.weeks_per_semester,
+            // 继承源课程的启用状态（禁用课程派生后仍保持禁用）
+            is_active: pc.is_active,
+            sort_order: pc.sort_order,
+          },
+        });
+        for (const sem of pc.plan_course_semesters) {
+          const newSem = await tx.plan_course_semesters.create({
+            data: {
+              plan_course_id: newPc.id,
+              semester: sem.semester,
+              weekly_hours: sem.weekly_hours,
+              weeks_count: sem.weeks_count,
+            },
+          });
+          for (const tb of sem.plan_textbooks) {
+            await tx.plan_textbooks.create({
+              data: {
+                semester_id: newSem.id,
+                textbook_id: tb.textbook_id,
+                is_required: tb.is_required,
+              },
+            });
+          }
+        }
+      }
+
+      return created;
+    });
+
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'createVersion',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'success',
+      details: {
+        source_id: sourceId,
+        source_name: source.name,
+        new_id: newPlan.id,
+        new_name: newPlan.name,
+        apply_from_year: applyFromYear,
+        source_end_year_narrowed: updateSourceEndYear && sourceOverlaps && canNarrowSource,
+      },
+      message: `派生培养方案新版本：${source.name} → ${newPlan.name}（自 ${applyFromYear} 级起适用）`,
+    });
+
+    invalidateSortOrderCache('training_plans');
+    success(res, newPlan, '新版本创建成功');
+  } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'createVersion',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      details: { source_id: Number(req.params.id), error: e.message },
     });
     next(e);
   }

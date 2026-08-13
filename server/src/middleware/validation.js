@@ -364,6 +364,14 @@ export const validatePlan = [
     .optional({ nullable: true })
     .isInt({ min: 1 })
     .withMessage('培养层次ID必须为正整数'),
+  body('apply_from_year')
+    .optional({ nullable: true })
+    .isInt({ min: 2000, max: 2100 })
+    .withMessage('适用入学年份起必须为2000~2100的整数'),
+  body('apply_to_year')
+    .optional({ nullable: true })
+    .isInt({ min: 2000, max: 2100 })
+    .withMessage('适用入学年份止必须为2000~2100的整数'),
   body('version').optional().trim().isLength({ max: 50 }).withMessage('版本号不超过50个字符'),
   body('status')
     .optional()
@@ -387,6 +395,7 @@ export const validatePlanCourse = [
     .optional()
     .isInt({ min: 1, max: 30 })
     .withMessage('每学期周数必须在1-30之间'),
+  body('is_active').optional().isBoolean().withMessage('启用状态必须为布尔值'),
   handleValidationErrors,
 ];
 
@@ -519,6 +528,14 @@ export const validatePlanCreate = [
     .optional({ nullable: true })
     .isInt({ min: 1 })
     .withMessage('培养层次ID必须为正整数'),
+  body('apply_from_year')
+    .optional({ nullable: true })
+    .isInt({ min: 2000, max: 2100 })
+    .withMessage('适用入学年份起必须为2000~2100的整数'),
+  body('apply_to_year')
+    .optional({ nullable: true })
+    .isInt({ min: 2000, max: 2100 })
+    .withMessage('适用入学年份止必须为2000~2100的整数'),
   body('version').optional().trim().isLength({ max: 50 }).withMessage('版本号不超过50个字符'),
   body('status')
     .optional()

@@ -54,6 +54,8 @@ export async function batchAutoArrange(
       where: {
         plan_courses: {
           some: {
+            // 停用课程不计入：仅存于停用 plan_course 的课时不应让课程进入批量排课清单
+            is_active: true,
             plan_course_semesters: { some: { weekly_hours: { gt: 0 } } },
           },
         },
@@ -165,6 +167,8 @@ export async function batchAutoArrange(
       where: {
         plan_courses: {
           course_id: { in: courses.map((c) => c.id) },
+          // 禁用课程不计入需求测算
+          is_active: true,
           // 仅统计当前学期有效的课时记录（含 start/end 范围校验）
           ...(semesterInfo
             ? {
@@ -178,7 +182,7 @@ export async function batchAutoArrange(
       _sum: { weekly_hours: true },
     });
     const planCourseToCourse = await prisma.plan_courses.findMany({
-      where: { course_id: { in: courses.map((c) => c.id) } },
+      where: { course_id: { in: courses.map((c) => c.id) }, is_active: true },
       select: { id: true, course_id: true },
     });
     const courseDemandMap = new Map();

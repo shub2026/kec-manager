@@ -177,3 +177,138 @@ describe('resolveMatchedPlanId — 当前班级匹配方案推算', () => {
     expect(resolveMatchedPlanId({ id: null, customPlanId: null }, null)).toBeNull();
   });
 });
+
+// ════════════════════════════════════════════════
+// resolveMatchedPlanId — 适用入学年份范围（镜像后端口径）
+// ════════════════════════════════════════════════
+describe('resolveMatchedPlanId — 适用入学年份范围', () => {
+  // 同层次两个版本：V1.0 止于 2025，V2.0 起于 2026
+  const VERSIONED_PLANS = [
+    {
+      id: 41,
+      majorId: null,
+      trainingLevelId: 2,
+      applyFromYear: null,
+      applyToYear: 2025,
+      createdAt: '2026-01-01T00:00:00Z',
+    },
+    {
+      id: 42,
+      majorId: null,
+      trainingLevelId: 2,
+      applyFromYear: 2026,
+      applyToYear: null,
+      createdAt: '2026-02-01T00:00:00Z',
+    },
+  ];
+
+  it('2025 级应匹配止年为 2025 的旧版方案', () => {
+    const form = {
+      id: null,
+      customPlanId: null,
+      majorId: null,
+      trainingLevelId: 2,
+      enrollmentYear: 2025,
+    };
+    expect(resolveMatchedPlanId(form, VERSIONED_PLANS)).toBe(41);
+  });
+
+  it('2026 级应匹配起年为 2026 的新版方案（不受 createdAt 最新者胜影响）', () => {
+    const form = {
+      id: null,
+      customPlanId: null,
+      majorId: null,
+      trainingLevelId: 2,
+      enrollmentYear: 2026,
+    };
+    expect(resolveMatchedPlanId(form, VERSIONED_PLANS)).toBe(42);
+  });
+
+  it('2024 级早于新版起年、落在旧版区间内时匹配旧版', () => {
+    const form = {
+      id: null,
+      customPlanId: null,
+      majorId: null,
+      trainingLevelId: 2,
+      enrollmentYear: 2024,
+    };
+    expect(resolveMatchedPlanId(form, VERSIONED_PLANS)).toBe(41);
+  });
+
+  it('customPlanId 显式钉住豁免年份范围校验', () => {
+    const form = {
+      id: null,
+      customPlanId: 41,
+      majorId: null,
+      trainingLevelId: 2,
+      enrollmentYear: 2026,
+    };
+    expect(resolveMatchedPlanId(form, VERSIONED_PLANS)).toBe(41);
+  });
+
+  it('专业维度同样按年份范围过滤', () => {
+    const majorPlans = [
+      {
+        id: 51,
+        majorId: 1,
+        trainingLevelId: null,
+        applyFromYear: null,
+        applyToYear: 2025,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 52,
+        majorId: 1,
+        trainingLevelId: null,
+        applyFromYear: 2026,
+        applyToYear: null,
+        createdAt: '2026-02-01T00:00:00Z',
+      },
+    ];
+    const form2025 = {
+      id: null,
+      customPlanId: null,
+      majorId: 1,
+      trainingLevelId: null,
+      enrollmentYear: 2025,
+    };
+    const form2026 = {
+      id: null,
+      customPlanId: null,
+      majorId: 1,
+      trainingLevelId: null,
+      enrollmentYear: 2026,
+    };
+    expect(resolveMatchedPlanId(form2025, majorPlans)).toBe(51);
+    expect(resolveMatchedPlanId(form2026, majorPlans)).toBe(52);
+  });
+
+  it('所有方案年份区间均不覆盖时返回 null', () => {
+    const form = {
+      id: null,
+      customPlanId: null,
+      majorId: null,
+      trainingLevelId: 2,
+      enrollmentYear: 2030,
+    };
+    const plans = [VERSIONED_PLANS[0]]; // 仅旧版（止 2025）
+    expect(resolveMatchedPlanId(form, plans)).toBeNull();
+  });
+
+  it('applyFromYear/applyToYear 缺省（undefined/null）视为不限，兼容存量数据', () => {
+    const legacyPlans = [
+      { id: 61, majorId: null, trainingLevelId: 2, createdAt: '2026-01-01T00:00:00Z' },
+    ];
+    const form = {
+      id: null,
+      customPlanId: null,
+      majorId: null,
+      trainingLevelId: 2,
+      enrollmentYear: 2025,
+    };
+    expect(resolveMatchedPlanId(form, legacyPlans)).toBe(61);
+    // form 未填 enrollmentYear 时同样不过滤
+    const noYearForm = { id: null, customPlanId: null, majorId: null, trainingLevelId: 2 };
+    expect(resolveMatchedPlanId(noYearForm, VERSIONED_PLANS)).toBe(42); // 回退 createdAt 最新
+  });
+});

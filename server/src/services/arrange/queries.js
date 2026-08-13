@@ -41,7 +41,8 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
   if (!semesterInfo) throw new Error('学期格式错误');
 
   const planCourses = await prisma.plan_courses.findMany({
-    where: { course_id: Number(courseId) },
+    // is_active：禁用课程不参与开课推导（周课时/教材），数据保留可在方案明细页恢复
+    where: { course_id: Number(courseId), is_active: true },
     include: {
       training_plans: { include: { majors: true, training_levels: true, colleges: true } },
       courses: { select: { id: true, name: true, code: true, type: true } },
@@ -279,7 +280,7 @@ export async function getTeachersForCourse(courseId, semesterStr) {
 
   // 获取当前课程在培养方案中的教材（作为未分配教师的兜底数据）
   const planCoursesForTextbooks = await prisma.plan_courses.findMany({
-    where: { course_id: Number(courseId) },
+    where: { course_id: Number(courseId), is_active: true },
     include: {
       plan_course_semesters: {
         include: {
@@ -306,9 +307,18 @@ export async function getTeachersForCourse(courseId, semesterStr) {
 
     // 批量查询所有涉及课程的 plan_courses（含方案和学期教材）
     const allPlanCourses = await prisma.plan_courses.findMany({
-      where: { course_id: { in: courseIdsInAssignments } },
+      where: { course_id: { in: courseIdsInAssignments }, is_active: true },
       include: {
-        training_plans: { select: { id: true, major_id: true, training_level_id: true } },
+        training_plans: {
+          select: {
+            id: true,
+            major_id: true,
+            training_level_id: true,
+            // 供 findBestMatchPlan 按班级入学年份过滤同维度多版本方案
+            apply_from_year: true,
+            apply_to_year: true,
+          },
+        },
         plan_course_semesters: {
           include: {
             plan_textbooks: { select: { textbook_id: true } },

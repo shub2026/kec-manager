@@ -37,6 +37,15 @@
         <template #primary>
           <el-input v-model="filterName" placeholder="姓名" clearable class="filter-md" />
         </template>
+        <el-select
+          v-model="filterAffiliatedCollege"
+          placeholder="归属学院"
+          clearable
+          filterable
+          class="filter-lg"
+        >
+          <el-option v-for="v in affiliatedCollegeOptions" :key="v" :label="v" :value="v" />
+        </el-select>
         <el-select v-model="filterType" placeholder="类别" clearable class="filter-sm">
           <el-option label="专职" value="full_time" />
           <el-option label="兼职" value="part_time" />
@@ -50,15 +59,6 @@
           class="filter-xl"
         >
           <el-option v-for="v in subjectOptions" :key="v" :label="v" :value="v" />
-        </el-select>
-        <el-select
-          v-model="filterAffiliatedCollege"
-          placeholder="归属学院"
-          clearable
-          filterable
-          class="filter-lg"
-        >
-          <el-option v-for="v in affiliatedCollegeOptions" :key="v" :label="v" :value="v" />
         </el-select>
         <el-select
           v-model="filterLevel"

@@ -71,7 +71,11 @@
             <el-icon><DataAnalysis /></el-icon>
             {{ optimizing && optimizeProgressMessage ? optimizeProgressMessage : '排课优化' }}
           </el-button>
-          <el-button type="danger" :disabled="historicalReadOnly" @click="handleResetCommand('all')">
+          <el-button
+            type="danger"
+            :disabled="historicalReadOnly"
+            @click="handleResetCommand('all')"
+          >
             <el-icon><RefreshRight /></el-icon> 重置全部科目
           </el-button>
         </template>
@@ -304,6 +308,7 @@ const summary = ref({
 
 // 筛选器（选项计算与联动逻辑已下沉至 ArrangeToolbar）
 const filters = ref({
+  className: '',
   college: '',
   major: '',
   trainingLevel: '',
@@ -313,7 +318,9 @@ const filters = ref({
 
 const filteredClassList = computed(() => {
   const f = filters.value;
+  const nameKw = f.className?.trim().toLowerCase();
   return classList.value.filter((c) => {
+    if (nameKw && !(c.className || '').toLowerCase().includes(nameKw)) return false;
     if (f.college && c.collegeName !== f.college) return false;
     if (f.major && c.majorName !== f.major) return false;
     if (f.grade && c.grade !== f.grade) return false;
@@ -495,7 +502,14 @@ async function onOverviewSelectCourse(courseId) {
 
 // 返回概览：清空课程选择（等同下拉 clear）并重载概览数据
 function backToOverview() {
-  filters.value = { college: '', major: '', trainingLevel: '', grade: '', textbook: '' };
+  filters.value = {
+    className: '',
+    college: '',
+    major: '',
+    trainingLevel: '',
+    grade: '',
+    textbook: '',
+  };
   selectedCourseId.value = null;
   classList.value = [];
   teacherList.value = [];
@@ -561,7 +575,14 @@ async function loadCourses() {
 }
 
 async function onCourseChange(courseId) {
-  filters.value = { college: '', major: '', trainingLevel: '', grade: '', textbook: '' };
+  filters.value = {
+    className: '',
+    college: '',
+    major: '',
+    trainingLevel: '',
+    grade: '',
+    textbook: '',
+  };
   if (!courseId) {
     classList.value = [];
     teacherList.value = [];
@@ -742,6 +763,7 @@ async function handleExportArrange(scope = 'current') {
     if (scope === 'current') {
       params.courseId = selectedCourseId.value;
       const f = filters.value;
+      if (f.className?.trim()) params.className = f.className.trim();
       if (f.college) params.college = f.college;
       if (f.major) params.major = f.major;
       if (f.trainingLevel) params.trainingLevel = f.trainingLevel;
@@ -774,6 +796,18 @@ onMounted(async () => {
 <style scoped>
 .matrix-card {
   margin-bottom: var(--space-4);
+}
+/* 筛选器左对齐：紧随标题“教学安排”横向排列，不再被 space-between 推到行尾 */
+.matrix-card .card-header {
+  justify-content: flex-start;
+}
+/* 工具栏填满标题后的剩余宽度，操作按钮组 margin-left:auto 靠右：
+   筛选器（学院/专业/层次/年级/教材）紧跟标题，排课按钮留在行尾 */
+.matrix-card .card-header-actions {
+  flex: 1;
+}
+.matrix-card :deep(.action-buttons) {
+  margin-left: auto;
 }
 .historical-alert {
   max-width: 560px;

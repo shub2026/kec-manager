@@ -86,10 +86,20 @@ export async function resolveClassCourseTextbooks(rawAssignments, semesterInfo) 
   }
 
   // 一次查询：所有相关 plan_courses + 方案 + 学期 + 教材（避免 N+1）
+  // is_active：禁用课程不参与教材推导
   const allPlanCourses = await prisma.plan_courses.findMany({
-    where: { course_id: { in: uniqueCourseIds } },
+    where: { course_id: { in: uniqueCourseIds }, is_active: true },
     include: {
-      training_plans: { select: { id: true, major_id: true, training_level_id: true } },
+      training_plans: {
+        select: {
+          id: true,
+          major_id: true,
+          training_level_id: true,
+          // 供 findBestMatchPlan 按班级入学年份过滤同维度多版本方案
+          apply_from_year: true,
+          apply_to_year: true,
+        },
+      },
       plan_course_semesters: {
         include: {
           plan_textbooks: { select: { textbook_id: true } },

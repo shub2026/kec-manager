@@ -55,6 +55,7 @@
           :plan-id="planId"
           :all-textbooks="allTextbooks"
           @delete-course="handleDeleteCourse"
+          @toggle-active="handleToggleActive"
         />
 
         <!-- 颜色语义图例（置于矩阵表下方） -->
@@ -127,9 +128,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
-import { getPlanById, addPlanCourse, deletePlanCourse } from '../../api/plan';
+import { getPlanById, addPlanCourse, deletePlanCourse, updatePlanCourse } from '../../api/plan';
 import { getCourses } from '../../api/course';
 import { getTextbooks } from '../../api/textbook';
 import { useResponsive } from '../../composables/useResponsive';
@@ -256,6 +257,34 @@ async function handleDeleteCourse(course) {
   pendingDeleteCourse.value = course;
   deleteCourseConfirmMessage.value = `确定要删除课程“${course.courseName}”吗？`;
   deleteCourseConfirmVisible.value = true;
+}
+
+/**
+ * 停用/启用方案内课程（与教材管理页同款交互口径）：停用后保留数据（矩阵置灰可恢复），
+ * 但不参与排课/开课/教材推导；停用操作需二次确认，启用直接生效
+ */
+async function handleToggleActive(course) {
+  const willDisable = course.isActive !== false;
+  if (willDisable) {
+    try {
+      await ElMessageBox.confirm(
+        `停用后课程“${course.courseName}”将不再参与排课、开课与教材推导（数据保留，可随时启用）。确定停用吗？`,
+        '停用课程',
+        { confirmButtonText: '停用', cancelButtonText: '取消', type: 'warning' }
+      );
+    } catch {
+      return; // 用户取消
+    }
+  }
+  try {
+    await updatePlanCourse(course.id, { isActive: !willDisable });
+    // 与教材管理页同款提示：启用/停用各自明确结果
+    ElMessage.success(willDisable ? '已停用' : '已启用');
+    await refreshMatrix();
+  } catch (e) {
+    if (import.meta.env.DEV) console.error(e);
+    // request.js 拦截器已统一弹错误提示
+  }
 }
 
 async function confirmDeleteCourse() {

@@ -8,6 +8,7 @@
       :total-all-hours="totalAllHours"
       @edit="openEdit"
       @delete-course="(course) => $emit('delete-course', course)"
+      @toggle-active="(course) => $emit('toggle-active', course)"
       @move-up="handleMoveUp"
       @move-down="handleMoveDown"
       @set-semester="openSemesterSettings"
@@ -49,7 +50,7 @@ const props = defineProps({
   allTextbooks: { type: Array, default: () => [] },
 });
 
-defineEmits(['delete-course']);
+defineEmits(['delete-course', 'toggle-active']);
 
 // 数据层：加载、状态、计算
 const { loading, rawCourses, globalWeeks, totalAllHours, isInRange, loadData } =

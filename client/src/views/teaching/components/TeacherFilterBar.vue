@@ -4,6 +4,15 @@
       <el-input v-model="localFilters.name" placeholder="搜索姓名" clearable class="filter-2xl" />
     </template>
     <el-select
+      v-model="localFilters.affiliatedCollegeId"
+      placeholder="归属学院"
+      clearable
+      filterable
+      class="filter-xl"
+    >
+      <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
+    </el-select>
+    <el-select
       v-model="localFilters.personnelType"
       placeholder="人员类别"
       clearable
@@ -41,15 +50,6 @@
       @change="handleTrainingLevelFilterChange"
     >
       <el-option v-for="l in filteredTrainingLevels" :key="l.id" :label="l.name" :value="l.id" />
-    </el-select>
-    <el-select
-      v-model="localFilters.affiliatedCollegeId"
-      placeholder="归属学院"
-      clearable
-      filterable
-      class="filter-xl"
-    >
-      <el-option v-for="c in allColleges" :key="c.id" :label="c.name" :value="c.id" />
     </el-select>
     <el-select v-model="localFilters.status" placeholder="状态" clearable class="filter-sm">
       <el-option label="启用" value="active" />

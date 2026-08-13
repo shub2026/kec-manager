@@ -182,6 +182,37 @@ describe('batchAutoArrange', () => {
     });
   });
 
+  describe('停用课程过滤口径', () => {
+    it('课程清单筛选应排除已停用的 plan_courses', async () => {
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+      // 仅存于停用 plan_course 的课时不应让课程进入批量排课清单
+      expect(coursesFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            plan_courses: {
+              some: expect.objectContaining({ is_active: true }),
+            },
+          },
+        })
+      );
+    });
+
+    it('需求测算 groupBy 应排除已停用的 plan_courses', async () => {
+      setupCourses([{ id: 1, name: 'C1', code: 'C01' }]);
+      autoArrangeFn.mockResolvedValue(makeResult());
+
+      await batchAutoArrange('2025-2026-1', 'standard', VALID_HOUR_SETTINGS, {});
+
+      expect(planCourseSemestersGroupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            plan_courses: expect.objectContaining({ is_active: true }),
+          }),
+        })
+      );
+    });
+  });
+
   describe('并发锁', () => {
     it('同学期第二次调用应被拒绝', async () => {
       let resolveFirst;

@@ -38,6 +38,8 @@ async function computeOfferedCourses(semesterInfo) {
     prisma.training_plans.findMany({
       include: {
         plan_courses: {
+          // 禁用课程不计入开设课程数/总周课时
+          where: { is_active: true },
           include: {
             plan_course_semesters: true,
             courses: { select: { id: true } },

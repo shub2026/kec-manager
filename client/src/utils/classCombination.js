@@ -1,16 +1,31 @@
 /**
  * 合班教学工具函数
  * 从 ClassFormDialog.vue 抽取的合班伙伴候选过滤与方案推算逻辑，保持行为一致并便于单元测试。
- * 口径与后端 findBestMatchPlan 一致：自定义方案 > 专业匹配 > 层次匹配，多匹配取最新创建。
+ * 口径与后端 findBestMatchPlan 一致：自定义方案 > 专业匹配 > 层次匹配，多匹配取最新创建；
+ * 专业/层次匹配需满足方案适用入学年份范围（applyFromYear/applyToYear，空端不限）。
  */
+
+/**
+ * 判断方案适用入学年份范围是否覆盖指定入学年份（与后端 isPlanApplicableToYear 同语义）
+ * @param {object} plan - 方案（含 applyFromYear/applyToYear，未返回时视为不限）
+ * @param {number|null|undefined} enrollmentYear - 班级入学年份
+ * @returns {boolean} 是否适用
+ */
+function isPlanApplicableToYear(plan, enrollmentYear) {
+  if (enrollmentYear == null) return true;
+  if (plan.applyFromYear != null && enrollmentYear < plan.applyFromYear) return false;
+  if (plan.applyToYear != null && enrollmentYear > plan.applyToYear) return false;
+  return true;
+}
 
 /**
  * 推算当前班级匹配的培养方案 ID（合班伙伴"同方案"过滤依据）。
  * - 编辑态（form.id 存在）：直接透传后端返回的 matchedPlanId
  * - 新增态：后端尚未计算，按同语义本地推算：
- *   自定义方案 > 专业匹配 > 层次匹配；同维度多匹配取 createdAt 最新（同秒取 id 大者）
- * @param {object|null} form - 班级表单（camelCase 字段）
- * @param {Array} plans - 培养方案列表（需含 id/majorId/trainingLevelId/createdAt）
+ *   自定义方案 > 专业匹配 > 层次匹配；同维度多匹配取 createdAt 最新（同秒取 id 大者），
+ *   专业/层次匹配需满足方案适用入学年份范围
+ * @param {object|null} form - 班级表单（camelCase 字段，含 enrollmentYear）
+ * @param {Array} plans - 培养方案列表（需含 id/majorId/trainingLevelId/applyFromYear/applyToYear/createdAt）
  * @returns {number|null} 匹配方案 ID，无匹配返回 null
  */
 export function resolveMatchedPlanId(form, plans) {
@@ -26,6 +41,7 @@ export function resolveMatchedPlanId(form, plans) {
   let majorMatch = null;
   let levelMatch = null;
   for (const p of sorted) {
+    if (!isPlanApplicableToYear(p, form.enrollmentYear)) continue;
     if (!majorMatch && p.majorId && p.majorId === form.majorId) majorMatch = p;
     if (!levelMatch && p.trainingLevelId && p.trainingLevelId === form.trainingLevelId) {
       levelMatch = p;

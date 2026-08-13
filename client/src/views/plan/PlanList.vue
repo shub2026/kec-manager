@@ -66,6 +66,9 @@
           min-width="70"
           align="center"
         />
+        <el-table-column v-if="!isMobile" label="适用年级" min-width="110" align="center">
+          <template #default="{ row }">{{ formatApplyYears(row) }}</template>
+        </el-table-column>
         <el-table-column v-if="!isMobile" label="课程数" min-width="75" align="center">
           <template #default="{ row }">{{ row.courseCount || 0 }}</template>
         </el-table-column>
@@ -96,7 +99,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="210" align="center">
+        <el-table-column label="操作" width="250" align="center">
           <template #default="{ row }">
             <el-button
               size="small"
@@ -113,6 +116,14 @@
               title="编辑信息"
               aria-label="编辑信息"
               @click="openDialog(row)"
+            />
+            <el-button
+              size="small"
+              :icon="CopyDocument"
+              circle
+              title="派生新版本（修订培养方案时，新年级使用新版本）"
+              aria-label="派生新版本"
+              @click="openNewVersionDialog(row)"
             />
             <el-button
               size="small"
@@ -211,6 +222,30 @@
         <el-form-item label="版本">
           <el-input v-model="form.version" placeholder="如：v1.0" />
         </el-form-item>
+        <el-form-item label="适用入学年份">
+          <div class="apply-year-row">
+            <el-input-number
+              v-model="form.applyFromYear"
+              :min="2000"
+              :max="2100"
+              :controls="false"
+              placeholder="起始（不限）"
+              class="apply-year-input"
+            />
+            <span class="apply-year-sep">~</span>
+            <el-input-number
+              v-model="form.applyToYear"
+              :min="2000"
+              :max="2100"
+              :controls="false"
+              placeholder="截止（不限）"
+              class="apply-year-input"
+            />
+          </div>
+          <div class="form-hint">
+            按班级入学年份区分方案版本，留空表示不限。如 V1.0 填 2025~2025，V2.0 填 2026~留空
+          </div>
+        </el-form-item>
         <el-form-item label="描述">
           <el-input v-model="form.description" type="textarea" />
         </el-form-item>
@@ -231,14 +266,63 @@
     >
       确定要删除此培养方案吗？此操作不可撤销。
     </DeleteConfirmDialog>
+
+    <!-- 派生新版本弹窗：修订培养方案时，新年级使用新版本（复制课程/学期/教材） -->
+    <el-dialog
+      v-model="newVersionVisible"
+      title="派生新版本"
+      width="var(--dialog-width-lg)"
+      :fullscreen="isMobile"
+      destroy-on-close
+    >
+      <el-form label-width="130px">
+        <el-form-item label="源方案">
+          <span>{{ newVersionSource?.name }}</span>
+        </el-form-item>
+        <el-form-item label="新方案名称" required>
+          <el-input
+            v-model="newVersionForm.name"
+            placeholder="如：高级工人培V2.0"
+            maxlength="200"
+          />
+        </el-form-item>
+        <el-form-item label="版本号">
+          <el-input
+            v-model="newVersionForm.version"
+            placeholder="如：V2.0（留空则按源方案版本自动递增）"
+          />
+        </el-form-item>
+        <el-form-item label="起始入学年份" required>
+          <el-input-number
+            v-model="newVersionForm.applyFromYear"
+            :min="2000"
+            :max="2100"
+            :controls="false"
+          />
+          <div class="form-hint">新版本自此入学年份起适用（如 2026 表示 2026 级及以后）</div>
+        </el-form-item>
+        <el-form-item label="旧方案处理">
+          <el-checkbox v-model="newVersionForm.updateSourceEndYear">
+            同步将旧方案适用止年收窄为起始年份前一年
+          </el-checkbox>
+          <div class="form-hint">推荐勾选：保证旧年级继续匹配旧版本方案</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="newVersionVisible = false">取消</el-button>
+        <el-button type="primary" :loading="newVersionSaving" @click="handleNewVersionSave">
+          保存
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, onActivated } from 'vue';
-import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown, Edit, Delete, CopyDocument } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan';
+import { getPlans, createPlan, updatePlan, deletePlan, createPlanNewVersion } from '../../api/plan';
 import { getMajors } from '../../api/major';
 import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
@@ -300,6 +384,8 @@ const form = ref({
   majorId: null,
   trainingLevelId: null,
   version: '',
+  applyFromYear: null,
+  applyToYear: null,
   description: '',
 });
 
@@ -389,6 +475,8 @@ function openDialog(row) {
       majorId: null,
       trainingLevelId: null,
       version: '',
+      applyFromYear: null,
+      applyToYear: null,
       description: '',
     };
     relationMode.value = 'major';
@@ -412,6 +500,15 @@ async function handleSave() {
     return ElMessage.warning('请选择培养层次');
   }
 
+  // 适用入学年份区间合法性校验（与后端 validateApplyYearRange 同口径）
+  if (
+    form.value.applyFromYear != null &&
+    form.value.applyToYear != null &&
+    form.value.applyFromYear > form.value.applyToYear
+  ) {
+    return ElMessage.warning('适用入学年份起始不能大于截止');
+  }
+
   saving.value = true;
   try {
     const data = {
@@ -420,6 +517,8 @@ async function handleSave() {
       majorId: form.value.majorId || null,
       trainingLevelId: form.value.trainingLevelId || null,
       version: form.value.version,
+      applyFromYear: form.value.applyFromYear ?? null,
+      applyToYear: form.value.applyToYear ?? null,
       description: form.value.description,
     };
     if (form.value.id) {
@@ -432,6 +531,81 @@ async function handleSave() {
     await silentReload();
   } finally {
     saving.value = false;
+  }
+}
+
+// 适用年级列展示：两端皆空为"全部"，单端空分别显示"不限"/"至今"
+function formatApplyYears(row) {
+  const from = row?.applyFromYear;
+  const to = row?.applyToYear;
+  if (from == null && to == null) return '全部';
+  return `${from ?? '不限'}~${to ?? '至今'}`;
+}
+
+// ── 派生新版本 ──
+const newVersionVisible = ref(false);
+const newVersionSaving = ref(false);
+const newVersionSource = ref(null);
+const newVersionForm = ref({
+  name: '',
+  version: '',
+  applyFromYear: null,
+  updateSourceEndYear: true,
+});
+
+/**
+ * 从源版本号递增主版本号（与后端 incrementVersion 同规则）：
+ * 首个数字段 +1，存在次版本号（.x）则归零，如 "V1.0" → "V2.0"、"V1.2" → "V2.0"。
+ */
+function incrementVersion(version) {
+  if (version == null || String(version).trim() === '') return '';
+  const v = String(version);
+  const m = v.match(/^(.*?)(\d+)(\.\d+)?(.*)$/);
+  if (!m) return v;
+  const [, prefix, major, minor, suffix] = m;
+  const nextMajor = Number(major) + 1;
+  const majorStr =
+    major.length > 1 && major.startsWith('0')
+      ? String(nextMajor).padStart(major.length, '0')
+      : String(nextMajor);
+  return `${prefix}${majorStr}${minor ? '.0' : ''}${suffix}`;
+}
+
+function openNewVersionDialog(row) {
+  newVersionSource.value = row;
+  newVersionForm.value = {
+    name: `${row.name}（新版本）`,
+    // 默认预填源版本号递增结果（如 V1.0 → V2.0），用户可修改
+    version: incrementVersion(row.version),
+    // 默认预填当前自然年，用户可按实际招生年级调整
+    applyFromYear: new Date().getFullYear(),
+    updateSourceEndYear: true,
+  };
+  newVersionVisible.value = true;
+}
+
+async function handleNewVersionSave() {
+  if (!newVersionForm.value.name?.trim()) {
+    return ElMessage.warning('请输入新方案名称');
+  }
+  if (newVersionForm.value.applyFromYear == null) {
+    return ElMessage.warning('请填写起始入学年份');
+  }
+  newVersionSaving.value = true;
+  try {
+    await createPlanNewVersion(newVersionSource.value.id, {
+      name: newVersionForm.value.name.trim(),
+      version: newVersionForm.value.version,
+      applyFromYear: newVersionForm.value.applyFromYear,
+      updateSourceEndYear: newVersionForm.value.updateSourceEndYear,
+    });
+    ElMessage.success('新版本创建成功，请前往新方案确认课程差异');
+    newVersionVisible.value = false;
+    await silentReload();
+  } catch {
+    // request.js 拦截器已显示后端错误消息（含重叠校验提示）
+  } finally {
+    newVersionSaving.value = false;
   }
 }
 
@@ -538,5 +712,19 @@ onActivated(() => {
   font-size: var(--font-size-body-sm);
   color: var(--el-text-color-secondary);
   line-height: 1.5;
+}
+
+.apply-year-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.apply-year-input {
+  width: 130px;
+}
+
+.apply-year-sep {
+  color: var(--text-secondary);
 }
 </style>

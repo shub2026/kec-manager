@@ -12,7 +12,9 @@ import { describe, it, expect, vi } from 'vitest';
 // Mock prisma（模块加载依赖）
 vi.mock('../lib/prisma.js', () => ({ prisma: {} }));
 
-const { isClassMatchPlan, findBestMatchPlan } = await import('../plan.service.js');
+const { isClassMatchPlan, findBestMatchPlan, isPlanApplicableToYear } = await import(
+  '../plan.service.js'
+);
 
 // ──────────────────────────────────────────────
 // isClassMatchPlan
@@ -192,5 +194,121 @@ describe('findBestMatchPlan', () => {
       const cls = { custom_plan_id: null, major_id: 5, training_level_id: 10 };
       expect(findBestMatchPlan(cls, [])).toBeNull();
     });
+  });
+});
+
+// ──────────────────────────────────────────────
+// 适用入学年份范围（同专业/层次多版本方案按年级区分）
+// ──────────────────────────────────────────────
+describe('isPlanApplicableToYear', () => {
+  const plan = { id: 1, apply_from_year: 2025, apply_to_year: 2026 };
+
+  it('入学年份在区间内 → true', () => {
+    expect(isPlanApplicableToYear(plan, 2025)).toBe(true);
+    expect(isPlanApplicableToYear(plan, 2026)).toBe(true);
+  });
+
+  it('入学年份越界 → false', () => {
+    expect(isPlanApplicableToYear(plan, 2024)).toBe(false);
+    expect(isPlanApplicableToYear(plan, 2027)).toBe(false);
+  });
+
+  it('两端皆 null（存量方案/未 select）→ 不限', () => {
+    expect(isPlanApplicableToYear({ apply_from_year: null, apply_to_year: null }, 2020)).toBe(true);
+    expect(isPlanApplicableToYear({}, 2020)).toBe(true);
+  });
+
+  it('单端不限：仅起年 / 仅止年', () => {
+    expect(isPlanApplicableToYear({ apply_from_year: 2026, apply_to_year: null }, 2030)).toBe(true);
+    expect(isPlanApplicableToYear({ apply_from_year: 2026, apply_to_year: null }, 2025)).toBe(false);
+    expect(isPlanApplicableToYear({ apply_from_year: null, apply_to_year: 2025 }, 2020)).toBe(true);
+    expect(isPlanApplicableToYear({ apply_from_year: null, apply_to_year: 2025 }, 2026)).toBe(false);
+  });
+
+  it('入学年份缺失 → 不做年份过滤', () => {
+    expect(isPlanApplicableToYear(plan, null)).toBe(true);
+    expect(isPlanApplicableToYear(plan, undefined)).toBe(true);
+  });
+});
+
+describe('年份范围参与匹配 —— 多版本方案按年级区分', () => {
+  // 高级工层次：V1.0 适用 2025 级，V2.0 适用 2026 级起
+  const planV1 = {
+    id: 1,
+    major_id: null,
+    training_level_id: 2,
+    apply_from_year: null,
+    apply_to_year: 2025,
+    created_at: '2025-01-01T00:00:00Z',
+  };
+  const planV2 = {
+    id: 2,
+    major_id: null,
+    training_level_id: 2,
+    apply_from_year: 2026,
+    apply_to_year: null,
+    created_at: '2026-06-01T00:00:00Z', // V2 创建更晚，验证不再"最新者胜"误伤老年级
+  };
+  const plans = [planV1, planV2];
+
+  it('isClassMatchPlan：2025 级班级只匹配 V1.0', () => {
+    const cls2025 = { custom_plan_id: null, major_id: null, training_level_id: 2, enrollment_year: 2025 };
+    expect(isClassMatchPlan(cls2025, planV1)).toBe(true);
+    expect(isClassMatchPlan(cls2025, planV2)).toBe(false);
+  });
+
+  it('isClassMatchPlan：2026 级班级只匹配 V2.0', () => {
+    const cls2026 = { custom_plan_id: null, major_id: null, training_level_id: 2, enrollment_year: 2026 };
+    expect(isClassMatchPlan(cls2026, planV1)).toBe(false);
+    expect(isClassMatchPlan(cls2026, planV2)).toBe(true);
+  });
+
+  it('findBestMatchPlan：2025 级取 V1.0，2026 级取 V2.0', () => {
+    const cls2025 = { id: 1, custom_plan_id: null, major_id: null, training_level_id: 2, enrollment_year: 2025 };
+    const cls2026 = { id: 2, custom_plan_id: null, major_id: null, training_level_id: 2, enrollment_year: 2026 };
+    expect(findBestMatchPlan(cls2025, plans)?.id).toBe(1);
+    expect(findBestMatchPlan(cls2026, plans)?.id).toBe(2);
+  });
+
+  it('custom_plan_id 显式钉住豁免年份限制', () => {
+    const cls = { id: 3, custom_plan_id: 1, major_id: null, training_level_id: 2, enrollment_year: 2026 };
+    expect(findBestMatchPlan(cls, plans)?.id).toBe(1);
+    expect(isClassMatchPlan(cls, planV1)).toBe(true);
+  });
+
+  it('所有版本年份均不覆盖 → 返回 null', () => {
+    // 仅存在 V2（2026 起），2025 级无任何方案覆盖
+    const cls2025 = { id: 4, custom_plan_id: null, major_id: null, training_level_id: 2, enrollment_year: 2025 };
+    expect(findBestMatchPlan(cls2025, [planV2])).toBeNull();
+    expect(isClassMatchPlan(cls2025, planV2)).toBe(false);
+  });
+
+  it('专业维度同样按年份区分', () => {
+    const majorV1 = {
+      id: 11,
+      major_id: 5,
+      training_level_id: null,
+      apply_from_year: null,
+      apply_to_year: 2025,
+      created_at: '2025-01-01T00:00:00Z',
+    };
+    const majorV2 = {
+      id: 12,
+      major_id: 5,
+      training_level_id: null,
+      apply_from_year: 2026,
+      apply_to_year: null,
+      created_at: '2026-06-01T00:00:00Z',
+    };
+    const cls2025 = { id: 5, custom_plan_id: null, major_id: 5, training_level_id: null, enrollment_year: 2025 };
+    const cls2027 = { id: 6, custom_plan_id: null, major_id: 5, training_level_id: null, enrollment_year: 2027 };
+    expect(findBestMatchPlan(cls2025, [majorV1, majorV2])?.id).toBe(11);
+    expect(findBestMatchPlan(cls2027, [majorV1, majorV2])?.id).toBe(12);
+  });
+
+  it('存量数据兼容：班级无 enrollment_year 时不做年份过滤', () => {
+    const cls = { id: 7, custom_plan_id: null, major_id: null, training_level_id: 2 };
+    // 无 enrollment_year 时两版本均可匹配，按 created_at 取最新（V2）
+    expect(findBestMatchPlan(cls, plans)?.id).toBe(2);
   });
 });

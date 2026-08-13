@@ -194,6 +194,8 @@ export async function querySemester(req, res, next) {
         training_plans: {
           include: {
             plan_courses: {
+              // 禁用课程不参与开课清单/连续教材检测
+              where: { is_active: true },
               include: {
                 courses: { select: { id: true, name: true, type: true } },
                 plan_course_semesters: {
@@ -255,6 +257,8 @@ export async function querySemester(req, res, next) {
             where: { OR: planOrConditions },
             include: {
               plan_courses: {
+                // 禁用课程不参与开课清单/连续教材检测
+                where: { is_active: true },
                 include: {
                   courses: { select: { id: true, name: true, type: true } },
                   plan_course_semesters: {
@@ -486,6 +490,8 @@ export async function queryTextbookUsage(req, res, next) {
     for (const pt of planTextbooks) {
       const sem = pt.plan_course_semesters;
       const pc = sem.plan_courses;
+      // 禁用课程不出现在教材使用清单（=== false 显式判断，字段缺省视为启用）
+      if (pc.is_active === false) continue;
       const plan = pc.training_plans;
       if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
 

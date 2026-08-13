@@ -22,7 +22,12 @@
           </td>
         </tr>
         <!-- 课程行 -->
-        <tr v-for="course in group.courses" :key="course.id" class="matrix-course-row">
+        <tr
+          v-for="course in group.courses"
+          :key="course.id"
+          class="matrix-course-row"
+          :class="{ 'row-disabled': course.isActive === false }"
+        >
           <td class="matrix-fixed-col matrix-course-name">
             <div class="course-name-inner">
               <span class="course-name-text">{{ course.courseName }}</span>
@@ -33,6 +38,14 @@
                 disable-transitions
               >
                 {{ group.type === 'public' ? '公共' : '专业' }}
+              </el-tag>
+              <el-tag
+                size="small"
+                :type="course.isActive === false ? 'info' : 'success'"
+                class="course-type-tag"
+                disable-transitions
+              >
+                {{ course.isActive === false ? '停用' : '启用' }}
               </el-tag>
             </div>
           </td>
@@ -123,6 +136,22 @@
                 :aria-label="'设置学期 ' + course.courseName"
                 @click="$emit('set-semester', course)"
               />
+              <!-- 与教材管理页同款：实心按钮，启用态显示“停用”（warning），停用态显示“启用”（success） -->
+              <el-button
+                size="small"
+                :type="course.isActive === false ? 'success' : 'warning'"
+                :title="
+                  course.isActive === false
+                    ? '启用课程（恢复参与排课/开课/教材推导）'
+                    : '停用课程（数据保留，不再参与排课/开课/教材推导）'
+                "
+                :aria-label="
+                  (course.isActive === false ? '启用课程 ' : '停用课程 ') + course.courseName
+                "
+                @click="$emit('toggle-active', course)"
+              >
+                {{ course.isActive === false ? '启用' : '停用' }}
+              </el-button>
               <el-button
                 size="small"
                 type="danger"
@@ -207,6 +236,7 @@ const props = defineProps({
 defineEmits([
   'edit',
   'delete-course',
+  'toggle-active',
   'move-up',
   'move-down',
   'set-semester',
@@ -346,7 +376,7 @@ function cellAriaLabel(course, semester) {
 }
 
 .matrix-action-header {
-  width: 160px;
+  width: 200px;
   text-align: center;
   background: var(--bg-subtle);
 }
@@ -382,6 +412,32 @@ function cellAriaLabel(course, semester) {
 
 .course-type-tag {
   flex-shrink: 0;
+}
+
+/* 停用课程行：单元格去色灰底 + 课程名删除线 + 状态标签（启用→停用）三重标识，
+   不用整行 opacity（避免操作按钮一并淡化导致启用按钮不醒目） */
+.matrix-course-row.row-disabled .course-name-text {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+/* 固定列（课程名列）同步灰底，与普通单元格的灰底保持一致 */
+.matrix-course-row.row-disabled .matrix-course-name {
+  background: var(--bg-subtle);
+}
+
+.matrix-course-row.row-disabled .matrix-cell:not(.matrix-action-cell) {
+  background: var(--bg-subtle);
+}
+
+.matrix-course-row.row-disabled .cell-hours {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.matrix-course-row.row-disabled .cell-textbook,
+.matrix-course-row.row-disabled .cell-no-textbook {
+  opacity: 0.6;
 }
 
 /* 分组行 */

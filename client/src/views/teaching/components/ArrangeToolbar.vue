@@ -5,16 +5,22 @@
     @reset="clearFilters"
   >
     <template #primary>
-      <el-select
-        v-model="localFilters.college"
-        placeholder="学院"
+      <el-input
+        v-model="localFilters.className"
+        placeholder="班级名称"
         clearable
-        class="header-filter filter-md"
-        @change="handleCollegeFilterChange"
-      >
-        <el-option v-for="v in filterOptions.colleges" :key="v" :label="v" :value="v" />
-      </el-select>
+        class="header-filter filter-lg"
+      />
     </template>
+    <el-select
+      v-model="localFilters.college"
+      placeholder="学院"
+      clearable
+      class="header-filter filter-md"
+      @change="handleCollegeFilterChange"
+    >
+      <el-option v-for="v in filterOptions.colleges" :key="v" :label="v" :value="v" />
+    </el-select>
     <el-select
       v-model="localFilters.major"
       placeholder="专业"
@@ -74,7 +80,7 @@
         class="dropdown-gap"
         @click="emit('reset', 'current')"
       >
-        <el-icon><RefreshRight /></el-icon> 重置当前科目
+        <el-icon><RefreshRight /></el-icon> 重置当前
       </el-button>
       <el-button
         type="success"
@@ -106,7 +112,7 @@ import { useFilterLinkage } from '@/components/filter/composables/useFilterLinka
 import FilterBar from '@/components/filter/FilterBar.vue';
 
 const props = defineProps({
-  /** 筛选值对象：{ college, major, trainingLevel, grade, textbook } */
+  /** 筛选值对象：{ className, college, major, trainingLevel, grade, textbook } */
   filters: {
     type: Object,
     required: true,

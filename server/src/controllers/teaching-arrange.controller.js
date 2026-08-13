@@ -251,10 +251,20 @@ export async function assignTeacher(req, res, next) {
       // 查询包含该课程的所有方案课程记录（含学期明细和方案信息）
       // P1-6 修复：补 orderBy（training_plans.sort_order + id），保证多方案匹配时取值确定、可复现
       const planCourses = await prisma.plan_courses.findMany({
-        where: { course_id: Number(course_id) },
+        // is_active：禁用课程不参与周课时推导
+        where: { course_id: Number(course_id), is_active: true },
         include: {
           plan_course_semesters: true,
-          training_plans: { select: { id: true, major_id: true, training_level_id: true } },
+          training_plans: {
+            select: {
+              id: true,
+              major_id: true,
+              training_level_id: true,
+              // 供 findBestMatchPlan 按班级入学年份过滤同维度多版本方案
+              apply_from_year: true,
+              apply_to_year: true,
+            },
+          },
         },
         orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
       });

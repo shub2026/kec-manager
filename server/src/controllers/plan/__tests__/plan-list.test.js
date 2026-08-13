@@ -79,7 +79,8 @@ vi.mock('../../../utils/logger.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块
 // ──────────────────────────────────────────────
-const { listPlans, createPlan, updatePlan } = await import('../plan.controller.js');
+const { listPlans, createPlan, updatePlan, createPlanNewVersion, incrementVersion } =
+  await import('../plan.controller.js');
 const { createAuditLog } = await import('../../../services/audit.service.js');
 const { invalidateSortOrderCache } = await import('../../../utils/sort.js');
 
@@ -513,6 +514,8 @@ describe('createPlan — 创建培养方案', () => {
       training_level_id: 2,
       version: 'v2.0',
       description: '测试描述',
+      apply_from_year: null,
+      apply_to_year: null,
       status: 'draft',
       sort_order: 6,
     });
@@ -908,5 +911,349 @@ describe('updatePlan — 更新培养方案', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ success: true, message: '更新成功' })
     );
+  });
+});
+
+// ════════════════════════════════════════════════
+// createPlan — 适用入学年份范围（同专业/层次多版本按年级区分）
+// ════════════════════════════════════════════════
+describe('createPlan — 适用入学年份范围', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.training_plans.aggregate.mockResolvedValue({ _max: { sort_order: 5 } });
+    mockPrisma.training_plans.findMany.mockResolvedValue([]);
+  });
+
+  it('apply_from_year/apply_to_year 正常传入 Prisma', async () => {
+    mockPrisma.training_plans.create.mockResolvedValue({
+      id: 30,
+      name: '高级工人培V1.0',
+      majors: null,
+      colleges: null,
+      training_levels: { id: 2, name: '高级工' },
+    });
+
+    const req = mockReq({
+      name: '高级工人培V1.0',
+      training_level_id: 2,
+      apply_from_year: 2025,
+      apply_to_year: 2025,
+    });
+    const res = mockRes();
+    await createPlan(req, res, vi.fn());
+
+    const data = mockPrisma.training_plans.create.mock.calls[0][0].data;
+    expect(data.apply_from_year).toBe(2025);
+    expect(data.apply_to_year).toBe(2025);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+  });
+
+  it('起始年 > 截止年 → 验证错误', async () => {
+    const req = mockReq({
+      name: '非法区间',
+      training_level_id: 2,
+      apply_from_year: 2026,
+      apply_to_year: 2025,
+    });
+    const next = vi.fn();
+    await createPlan(req, mockRes(), next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: '适用入学年份起不能大于止' })
+    );
+    expect(mockPrisma.training_plans.create).not.toHaveBeenCalled();
+  });
+
+  it('年份越界 → 验证错误', async () => {
+    const req = mockReq({ name: '越界', training_level_id: 2, apply_from_year: 1999 });
+    const next = vi.fn();
+    await createPlan(req, mockRes(), next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('2000~2100') })
+    );
+  });
+
+  it('同层次已有方案区间重叠 → 拒绝并返回冲突方案名', async () => {
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      { id: 5, name: '高级工人培V1.0', apply_from_year: null, apply_to_year: 2026 },
+    ]);
+
+    const req = mockReq({
+      name: '高级工人培V2.0',
+      training_level_id: 2,
+      apply_from_year: 2026,
+    });
+    const next = vi.fn();
+    await createPlan(req, mockRes(), next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('高级工人培V1.0') })
+    );
+    expect(mockPrisma.training_plans.create).not.toHaveBeenCalled();
+  });
+
+  it('同层次区间相邻（V1 止 2025、V2 起 2026）→ 不算重叠，创建成功', async () => {
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      { id: 5, name: 'V1', apply_from_year: null, apply_to_year: 2025 },
+    ]);
+    mockPrisma.training_plans.create.mockResolvedValue({
+      id: 31,
+      name: 'V2',
+      majors: null,
+      colleges: null,
+      training_levels: null,
+    });
+
+    const req = mockReq({ name: 'V2', training_level_id: 2, apply_from_year: 2026 });
+    const res = mockRes();
+    await createPlan(req, res, vi.fn());
+
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+  });
+
+  it('存量方案两端皆 null（覆盖全部年份）→ 任何新建同维度方案均判重叠', async () => {
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      { id: 5, name: '旧方案', apply_from_year: null, apply_to_year: null },
+    ]);
+
+    const req = mockReq({ name: 'V2', training_level_id: 2, apply_from_year: 2026 });
+    const next = vi.fn();
+    await createPlan(req, mockRes(), next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('旧方案') })
+    );
+  });
+});
+
+// ════════════════════════════════════════════════
+// createPlanNewVersion — 从现有方案派生新版本
+// ════════════════════════════════════════════════
+describe('createPlanNewVersion — 派生新版本', () => {
+  const mockTx = {
+    training_plans: { update: vi.fn(), create: vi.fn() },
+    plan_courses: { create: vi.fn() },
+    plan_course_semesters: { create: vi.fn() },
+    plan_textbooks: { create: vi.fn() },
+  };
+
+  const source = {
+    id: 5,
+    name: '高级工人培V1.0',
+    college_id: null,
+    major_id: null,
+    training_level_id: 2,
+    version: 'V1.0',
+    description: '旧版描述',
+    apply_from_year: null,
+    apply_to_year: null,
+    sort_order: 3,
+    plan_courses: [
+      {
+        course_id: 11,
+        start_semester: 1,
+        end_semester: 2,
+        weekly_hours: 4,
+        weeks_per_semester: 18,
+        sort_order: 1,
+        is_active: true,
+        plan_course_semesters: [
+          {
+            semester: 1,
+            weekly_hours: 2,
+            weeks_count: 18,
+            plan_textbooks: [{ textbook_id: 7, is_required: true }],
+          },
+        ],
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.training_plans.findMany.mockResolvedValue([]);
+    mockPrisma.training_plans.aggregate.mockResolvedValue({ _max: { sort_order: 5 } });
+    mockPrisma.$transaction = vi.fn(async (fn) => fn(mockTx));
+    mockTx.training_plans.create.mockResolvedValue({ id: 99, name: '高级工人培V2.0' });
+    mockTx.plan_courses.create.mockResolvedValue({ id: 201 });
+    mockTx.plan_course_semesters.create.mockResolvedValue({ id: 301 });
+  });
+
+  it('复制课程/学期/教材，收窄源方案止年，写审计日志', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue(source);
+
+    const req = mockReq(
+      { name: '高级工人培V2.0', version: 'V2.0', apply_from_year: 2026 },
+      { id: '5' }
+    );
+    const res = mockRes();
+    await createPlanNewVersion(req, res, vi.fn());
+
+    // 源方案止年收窄为 2025
+    expect(mockTx.training_plans.update).toHaveBeenCalledWith({
+      where: { id: 5 },
+      data: { apply_to_year: 2025 },
+    });
+    // 新方案基本信息：维度继承 + 起始年 + draft + sort_order 取全局最大+1（不继承源方案）
+    const createData = mockTx.training_plans.create.mock.calls[0][0].data;
+    expect(createData).toMatchObject({
+      name: '高级工人培V2.0',
+      training_level_id: 2,
+      version: 'V2.0',
+      apply_from_year: 2026,
+      apply_to_year: null,
+      status: 'draft',
+      sort_order: 6,
+    });
+    // 深拷贝链路：课程 → 学期 → 教材
+    expect(mockTx.plan_courses.create).toHaveBeenCalledTimes(1);
+    expect(mockTx.plan_courses.create.mock.calls[0][0].data.plan_id).toBe(99);
+    // 派生继承源课程的启用状态
+    expect(mockTx.plan_courses.create.mock.calls[0][0].data.is_active).toBe(true);
+    expect(mockTx.plan_course_semesters.create).toHaveBeenCalledTimes(1);
+    expect(mockTx.plan_course_semesters.create.mock.calls[0][0].data.plan_course_id).toBe(201);
+    expect(mockTx.plan_textbooks.create).toHaveBeenCalledWith({
+      data: { semester_id: 301, textbook_id: 7, is_required: true },
+    });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    expect(createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({ module: 'trainingPlan', action: 'createVersion', result: 'success' })
+    );
+  });
+
+  it('update_source_end_year=false 且源方案覆盖起始年 → 拒绝且不落库', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue(source);
+
+    const req = mockReq(
+      { apply_from_year: 2026, update_source_end_year: false },
+      { id: '5' }
+    );
+    const next = vi.fn();
+    await createPlanNewVersion(req, mockRes(), next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('收窄') })
+    );
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('源方案止年早于起始年（已收窄过）→ 不收窄不拒绝，正常复制', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue({
+      ...source,
+      apply_to_year: 2025,
+    });
+
+    const req = mockReq({ apply_from_year: 2026 }, { id: '5' });
+    const res = mockRes();
+    await createPlanNewVersion(req, res, vi.fn());
+
+    expect(mockTx.training_plans.update).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+  });
+
+  it('缺起始入学年份 → 验证错误', async () => {
+    const req = mockReq({}, { id: '5' });
+    const next = vi.fn();
+    await createPlanNewVersion(req, mockRes(), next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: '请填写新版本适用起始入学年份' })
+    );
+    expect(mockPrisma.training_plans.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('源方案不存在 → 404', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue(null);
+
+    const req = mockReq({ apply_from_year: 2026 }, { id: '999' });
+    const next = vi.fn();
+    await createPlanNewVersion(req, mockRes(), next);
+
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
+  });
+
+  it('与同维度其他方案重叠 → 拒绝', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue(source);
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      { id: 8, name: '已有V2', apply_from_year: 2026, apply_to_year: null },
+    ]);
+
+    const req = mockReq({ apply_from_year: 2026 }, { id: '5' });
+    const next = vi.fn();
+    await createPlanNewVersion(req, mockRes(), next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('已有V2') })
+    );
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('未传 version → 按源方案版本自动递增（V1.0 → V2.0）', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue(source);
+
+    const req = mockReq({ apply_from_year: 2026 }, { id: '5' });
+    const res = mockRes();
+    await createPlanNewVersion(req, res, vi.fn());
+
+    const createData = mockTx.training_plans.create.mock.calls[0][0].data;
+    expect(createData.version).toBe('V2.0');
+  });
+
+  it('显式传 version → 使用传入值，不递增', async () => {
+    mockPrisma.training_plans.findUnique.mockResolvedValue(source);
+
+    const req = mockReq({ apply_from_year: 2026, version: ' V3.0 ' }, { id: '5' });
+    const res = mockRes();
+    await createPlanNewVersion(req, res, vi.fn());
+
+    const createData = mockTx.training_plans.create.mock.calls[0][0].data;
+    expect(createData.version).toBe('V3.0');
+  });
+
+  it('源课程已禁用 → 派生后仍保持禁用', async () => {
+    const disabledSource = {
+      ...source,
+      plan_courses: [
+        {
+          ...source.plan_courses[0],
+          is_active: false,
+        },
+      ],
+    };
+    mockPrisma.training_plans.findUnique.mockResolvedValue(disabledSource);
+
+    const req = mockReq({ apply_from_year: 2026 }, { id: '5' });
+    await createPlanNewVersion(req, mockRes(), vi.fn());
+
+    expect(mockTx.plan_courses.create.mock.calls[0][0].data.is_active).toBe(false);
+  });
+});
+
+// ════════════════════════════════════════════════
+// incrementVersion — 版本号递增纯函数
+// ════════════════════════════════════════════════
+describe('incrementVersion — 版本号递增', () => {
+  it('标准版本号：主版本 +1，次版本归零', () => {
+    expect(incrementVersion('V1.0')).toBe('V2.0');
+    expect(incrementVersion('V1.2')).toBe('V2.0');
+    expect(incrementVersion('v2.5')).toBe('v3.0');
+  });
+
+  it('无次版本号：仅主版本 +1', () => {
+    expect(incrementVersion('V3')).toBe('V4');
+    expect(incrementVersion('2.5')).toBe('3.0');
+  });
+
+  it('保留前缀/后缀与前导零风格', () => {
+    expect(incrementVersion('第2版')).toBe('第3版');
+    expect(incrementVersion('V01.0')).toBe('V02.0');
+  });
+
+  it('无数字或空值 → 返回原值/null', () => {
+    expect(incrementVersion('初版')).toBe('初版');
+    expect(incrementVersion(null)).toBeNull();
+    expect(incrementVersion(undefined)).toBeNull();
+    expect(incrementVersion('')).toBeNull();
   });
 });

@@ -17,6 +17,7 @@ import {
   createPlan,
   updatePlan,
   deletePlan,
+  createPlanNewVersion,
 } from '../controllers/plan/plan.controller.js';
 import {
   listPlanCourses,
@@ -63,6 +64,15 @@ router.put(
 
 // DELETE /api/plans/:id - 删除方案（admin/super_admin）
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), validateIdParam, deletePlan);
+
+// POST /api/plans/:id/new-version - 从现有方案派生新版本（复制课程/学期/教材，admin/super_admin）
+router.post(
+  '/:id/new-version',
+  roleMiddleware('admin', 'super_admin'),
+  validateIdParam,
+  sanitizeBody,
+  createPlanNewVersion
+);
 
 // ==================== 方案课程管理 ====================
 

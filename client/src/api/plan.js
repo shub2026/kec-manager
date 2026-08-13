@@ -40,6 +40,14 @@ export const deletePlan = (id, { silent } = {}) =>
   request.delete(`/plans/${id}`, { silentError: silent });
 
 /**
+ * 从现有方案派生新版本（复制课程/学期/教材，默认同步收窄源方案适用止年）
+ * @param {number} id - 源方案 ID
+ * @param {{ name?: string, version?: string, applyFromYear: number, updateSourceEndYear?: boolean }} data
+ * @returns {Promise<import('./types').ApiResponse<import('./types').Plan>>}
+ */
+export const createPlanNewVersion = (id, data) => request.post(`/plans/${id}/new-version`, data);
+
+/**
  * 获取方案下的课程列表
  * @param {number} id - 方案 ID
  * @returns {Promise<import('./types').ApiResponse<import('./types').PlanCourse[]>>}

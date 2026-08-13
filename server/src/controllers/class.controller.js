@@ -210,12 +210,15 @@ export async function listClasses(req, res, next) {
 
     // 预加载所有培养方案，用于自动匹配
     // 注意：必须 select created_at，findBestMatchPlan 按 created_at 降序排序以保证多匹配时取最新方案的确定性
+    // apply_from_year/apply_to_year 供匹配时按班级入学年份过滤（同专业/层次多版本方案按年级区分）
     const allPlans = await prisma.training_plans.findMany({
       select: {
         id: true,
         name: true,
         major_id: true,
         training_level_id: true,
+        apply_from_year: true,
+        apply_to_year: true,
         created_at: true,
       },
     });
@@ -369,11 +372,19 @@ export async function listClassOptions(req, res, next) {
           major_id: true,
           training_level_id: true,
           custom_plan_id: true,
+          enrollment_year: true,
         },
         orderBy: { id: 'asc' },
       }),
       prisma.training_plans.findMany({
-        select: { id: true, major_id: true, training_level_id: true, created_at: true },
+        select: {
+          id: true,
+          major_id: true,
+          training_level_id: true,
+          apply_from_year: true,
+          apply_to_year: true,
+          created_at: true,
+        },
       }),
     ]);
     const items = classes.map((cls) => ({

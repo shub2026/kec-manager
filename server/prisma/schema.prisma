@@ -141,6 +141,8 @@ model plan_courses {
   // Float: 业务上通常为 0.5 倍数，SQLite REAL 精度足够
   weekly_hours          Float
   weeks_per_semester    Int                     @default(18)
+  // 课程启用状态：false = 禁用（保留数据但不参与开课/周课时/教材推导），与教材 is_active 同语义
+  is_active             Boolean                 @default(true)
   sort_order            Int                     @default(0)
   created_at            DateTime                @default(now())
   updated_at            DateTime                @updatedAt
@@ -216,6 +218,10 @@ model training_plans {
   college_id        Int?
   training_level_id Int?
   version           String?
+  // 适用入学年份范围（含边界）：null 表示不限。
+  // 用于同一专业/层次下多版本方案按年级区分匹配（如 2025 级用 V1.0、2026 级用 V2.0）。
+  apply_from_year   Int?
+  apply_to_year     Int?
   description       String?
   sort_order        Int              @default(0)
   status            String           @default("draft") // draft | active | archived
