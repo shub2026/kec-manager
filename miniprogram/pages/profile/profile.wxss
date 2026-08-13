@@ -1,45 +1,33 @@
-/* 用户卡：明亮品牌蓝 + 柔光层次 + 呼吸感 */
+/* 用户卡：与首页 Hero 卡统一样式（浅色柔渐变 + 左侧 accent + 柔光 + 微立体），仅底色微调为品牌蓝浅色 */
 .user-card {
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, #4A9FFF 0%, #1E88E5 40%, #1565C0 100%);
-  border-radius: var(--radius-xl);
-  padding: 56rpx 36rpx;
+  background: linear-gradient(135deg, #E9F1FF 0%, #D9E9FF 55%, #CBE2FF 100%);
+  border: 1rpx solid var(--brand-border);
+  border-left: 6rpx solid var(--brand);
+  border-radius: var(--radius-lg);
+  padding: 44rpx 32rpx;
   margin-bottom: 20rpx;
-  box-shadow:
-    0 20rpx 56rpx rgba(30, 136, 229, 0.28),
-    0 6rpx 16rpx rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
 }
-/* 左上角大光晕 */
-.user-card::before {
-  content: "";
-  position: absolute;
-  top: -80rpx;
-  left: -60rpx;
-  width: 300rpx;
-  height: 300rpx;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.18) 0%, transparent 70%);
-  pointer-events: none;
-}
-/* 右下角次光晕 */
+/* 角落柔光，增加层次但不加重底色（与 Hero 一致） */
 .user-card::after {
   content: "";
   position: absolute;
-  bottom: -50rpx;
-  right: -40rpx;
-  width: 260rpx;
-  height: 260rpx;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 65%);
+  top: -60rpx;
+  right: -30rpx;
+  width: 220rpx;
+  height: 220rpx;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 70%);
   pointer-events: none;
 }
 .avatar {
   width: 104rpx;
   height: 104rpx;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.24);
-  border: 2rpx solid rgba(255, 255, 255, 0.38);
+  background: var(--brand);
   color: #FFFFFF;
   font-size: 44rpx;
   font-weight: 700;
@@ -51,7 +39,7 @@
   flex-shrink: 0;
   position: relative;
   z-index: 1;
-  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.10);
+  box-shadow: 0 6rpx 16rpx rgba(28, 130, 245, 0.28);
 }
 .user-info {
   flex: 1;
@@ -62,14 +50,13 @@
 .user-name {
   font-size: 38rpx;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--text-1);
   margin-bottom: 14rpx;
   letter-spacing: -0.3rpx;
-  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 }
 .user-sub {
   font-size: 25rpx;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--text-3);
 }
 
 .logout-wrap {
