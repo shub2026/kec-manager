@@ -260,7 +260,7 @@ async function handleDeleteCourse(course) {
 }
 
 /**
- * 停用/启用方案内课程（与教材管理页同款交互口径）：停用后保留数据（矩阵置灰可恢复），
+ * 停用/启用方案内课程（与教师信息页同款状态开关交互）：停用后保留数据（矩阵置灰可恢复），
  * 但不参与排课/开课/教材推导；停用操作需二次确认，启用直接生效
  */
 async function handleToggleActive(course) {
@@ -273,17 +273,20 @@ async function handleToggleActive(course) {
         { confirmButtonText: '停用', cancelButtonText: '取消', type: 'warning' }
       );
     } catch {
-      return; // 用户取消
+      // 用户取消：el-switch 已先行拨动，需刷新矩阵把开关回滚到真实状态
+      await refreshMatrix();
+      return;
     }
   }
   try {
     await updatePlanCourse(course.id, { isActive: !willDisable });
-    // 与教材管理页同款提示：启用/停用各自明确结果
+    // 与教师信息页同款提示：启用/停用各自明确结果
     ElMessage.success(willDisable ? '已停用' : '已启用');
     await refreshMatrix();
   } catch (e) {
     if (import.meta.env.DEV) console.error(e);
-    // request.js 拦截器已统一弹错误提示
+    // request.js 拦截器已统一弹错误提示；刷新使开关回滚到操作前的正确状态
+    await refreshMatrix();
   }
 }
 

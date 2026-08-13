@@ -52,6 +52,8 @@ export function useMatrixCalculations(rawCourses, semesterWeeksRef = null) {
         semesterMap,
         totalHours: Math.round(totalHours),
         sortOrder: c.sortOrder ?? 0,
+        // 启用状态需透传给矩阵行（停用行灰底/开关状态）；旧数据缺字段视为启用
+        isActive: c.isActive !== false,
       });
     });
     map.public.sort((a, b) => a.sortOrder - b.sortOrder);

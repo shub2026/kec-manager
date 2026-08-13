@@ -14,8 +14,8 @@ ENV npm_config_esbuild_binary_host=https://registry.npmmirror.com/-/binary/esbui
 # 复制前端依赖配置
 COPY client/package*.json ./
 
-# 安装前端依赖
-RUN npm ci --no-fund --no-audit
+# 安装前端依赖（--mount 缓存 npm tarball：版本号变更导致层缓存失效时仍可复用，避免重新下载）
+RUN --mount=type=cache,target=/root/.npm npm ci --no-fund --no-audit
 
 # 复制前端源码
 COPY client/ ./
@@ -38,8 +38,8 @@ ENV npm_config_registry=https://registry.npmmirror.com
 COPY server/package*.json ./
 COPY server/prisma ./prisma/
 
-# 安装全部依赖（包括 devDependencies 中的 prisma CLI）
-RUN npm ci --no-fund --no-audit
+# 安装全部依赖（包括 devDependencies 中的 prisma CLI；npm 缓存挂载同上）
+RUN --mount=type=cache,target=/root/.npm npm ci --no-fund --no-audit
 
 # 生成 Prisma Client
 RUN npx prisma generate
@@ -52,11 +52,8 @@ WORKDIR /app
 # 安装 SQLite、wget（健康检查）和 curl（调试用）、su-exec（权限切换）
 RUN apk add --no-cache sqlite wget curl su-exec
 
-# 复制后端代码
+# 复制后端代码（server/ 已包含 prisma schema 和 migrations，migrate deploy 所需）
 COPY server/ ./server/
-
-# 关键修复：复制 Prisma schema 和 migrations（prisma migrate deploy 需要）
-COPY server/prisma ./server/prisma/
 
 # 从构建阶段复制 node_modules（包含 Prisma Client）
 COPY --from=backend-builder /app/server/node_modules ./server/node_modules

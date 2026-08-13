@@ -40,6 +40,7 @@
                 {{ group.type === 'public' ? '公共' : '专业' }}
               </el-tag>
               <el-tag
+                v-if="readonly"
                 size="small"
                 :type="course.isActive === false ? 'info' : 'success'"
                 class="course-type-tag"
@@ -136,10 +137,13 @@
                 :aria-label="'设置学期 ' + course.courseName"
                 @click="$emit('set-semester', course)"
               />
-              <!-- 与教材管理页同款：实心按钮，启用态显示“停用”（warning），停用态显示“启用”（success） -->
-              <el-button
+              <!-- 与教师信息页同款：状态开关直接反映当前启用状态，拨动即切换 -->
+              <el-switch
+                :model-value="course.isActive !== false"
+                inline-prompt
+                active-text="启"
+                inactive-text="禁"
                 size="small"
-                :type="course.isActive === false ? 'success' : 'warning'"
                 :title="
                   course.isActive === false
                     ? '启用课程（恢复参与排课/开课/教材推导）'
@@ -148,10 +152,8 @@
                 :aria-label="
                   (course.isActive === false ? '启用课程 ' : '停用课程 ') + course.courseName
                 "
-                @click="$emit('toggle-active', course)"
-              >
-                {{ course.isActive === false ? '启用' : '停用' }}
-              </el-button>
+                @change="$emit('toggle-active', course)"
+              />
               <el-button
                 size="small"
                 type="danger"
@@ -376,7 +378,7 @@ function cellAriaLabel(course, semester) {
 }
 
 .matrix-action-header {
-  width: 200px;
+  width: 180px;
   text-align: center;
   background: var(--bg-subtle);
 }
