@@ -7,7 +7,7 @@
 
     <!-- 用户卡 -->
     <view class="user-card">
-      <view class="avatar">{{me.avatar}}</view>
+      <view class="avatar"></view>
       <view class="user-info">
         <view class="user-name">{{me.realName}}</view>
         <view class="user-sub">@{{me.username}}｜{{me.role}}</view>
