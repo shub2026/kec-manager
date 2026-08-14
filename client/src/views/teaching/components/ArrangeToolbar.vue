@@ -57,6 +57,16 @@
     >
       <el-option v-for="v in filterOptions.textbooks" :key="v" :label="v" :value="v" />
     </el-select>
+    <el-select
+      v-model="localFilters.arrangeStatus"
+      placeholder="安排状态"
+      clearable
+      class="header-filter filter-sm"
+    >
+      <el-option label="全部" value="" />
+      <el-option label="已安排" value="assigned" />
+      <el-option label="未安排" value="unassigned" />
+    </el-select>
     <template #actions>
       <el-button
         type="warning"
@@ -112,7 +122,7 @@ import { useFilterLinkage } from '@/components/filter/composables/useFilterLinka
 import FilterBar from '@/components/filter/FilterBar.vue';
 
 const props = defineProps({
-  /** 筛选值对象：{ className, college, major, trainingLevel, grade, textbook } */
+  /** 筛选值对象：{ className, college, major, trainingLevel, grade, textbook, arrangeStatus } */
   filters: {
     type: Object,
     required: true,

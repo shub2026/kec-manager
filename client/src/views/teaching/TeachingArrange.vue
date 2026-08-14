@@ -314,6 +314,7 @@ const filters = ref({
   trainingLevel: '',
   grade: '',
   textbook: '',
+  arrangeStatus: '',
 });
 
 const filteredClassList = computed(() => {
@@ -329,6 +330,8 @@ const filteredClassList = computed(() => {
       const titles = (c.textbooks || []).map((tb) => tb.title);
       if (!titles.includes(f.textbook)) return false;
     }
+    if (f.arrangeStatus === 'assigned' && !c.assignment) return false;
+    if (f.arrangeStatus === 'unassigned' && c.assignment) return false;
     return true;
   });
 });
@@ -509,6 +512,7 @@ function backToOverview() {
     trainingLevel: '',
     grade: '',
     textbook: '',
+    arrangeStatus: '',
   };
   selectedCourseId.value = null;
   classList.value = [];
@@ -582,6 +586,7 @@ async function onCourseChange(courseId) {
     trainingLevel: '',
     grade: '',
     textbook: '',
+    arrangeStatus: '',
   };
   if (!courseId) {
     classList.value = [];
