@@ -108,9 +108,26 @@
           <td class="matrix-cell matrix-total-cell">
             <strong>{{ course.totalHours }}</strong>
           </td>
-          <!-- 操作按钮 -->
+          <!-- 操作按钮：启/禁开关（状态一览）→ 排序 → 内容编辑 → 破坏性操作殿后 -->
           <td v-if="!readonly" class="matrix-cell matrix-action-cell">
             <div class="action-buttons">
+              <!-- 与教师信息页同款：状态开关直接反映当前启用状态，拨动即切换 -->
+              <el-switch
+                :model-value="course.isActive !== false"
+                inline-prompt
+                active-text="启"
+                inactive-text="禁"
+                size="small"
+                :title="
+                  course.isActive === false
+                    ? '启用课程（恢复参与排课/开课/教材推导）'
+                    : '停用课程（数据保留，不再参与排课/开课/教材推导）'
+                "
+                :aria-label="
+                  (course.isActive === false ? '启用课程 ' : '停用课程 ') + course.courseName
+                "
+                @change="$emit('toggle-active', course)"
+              />
               <el-button
                 size="small"
                 :icon="ArrowUp"
@@ -136,23 +153,6 @@
                 title="设置学期"
                 :aria-label="'设置学期 ' + course.courseName"
                 @click="$emit('set-semester', course)"
-              />
-              <!-- 与教师信息页同款：状态开关直接反映当前启用状态，拨动即切换 -->
-              <el-switch
-                :model-value="course.isActive !== false"
-                inline-prompt
-                active-text="启"
-                inactive-text="禁"
-                size="small"
-                :title="
-                  course.isActive === false
-                    ? '启用课程（恢复参与排课/开课/教材推导）'
-                    : '停用课程（数据保留，不再参与排课/开课/教材推导）'
-                "
-                :aria-label="
-                  (course.isActive === false ? '启用课程 ' : '停用课程 ') + course.courseName
-                "
-                @change="$emit('toggle-active', course)"
               />
               <el-button
                 size="small"
@@ -490,7 +490,9 @@ function cellAriaLabel(course, semester) {
   vertical-align: middle;
 }
 
-.matrix-cell:hover {
+/* 悬浮蓝色内描边仅用于可编辑学期单元格（提示可点击）；
+   操作列/总课时列不可整体点击，排除在外避免误导性蓝框 */
+.matrix-cell:not(.matrix-action-cell):not(.matrix-total-cell):hover {
   box-shadow: inset 0 0 0 2px var(--brand-primary);
 }
 
@@ -596,6 +598,7 @@ function cellAriaLabel(course, semester) {
 .matrix-total-cell {
   background: var(--bg-subtle);
   font-size: 14px;
+  cursor: default;
 }
 
 /* 操作列（与 .matrix-cell 同特异性且定义在后，天然覆盖 cursor:pointer） */
@@ -626,6 +629,20 @@ function cellAriaLabel(course, semester) {
 
 .matrix-action-cell .el-button {
   padding: var(--space-1) var(--space-2);
+}
+
+/* 删除按钮轻量化：整列实心红圆视觉过重，改为淡红底 + 红图标（软危险样式），
+   悬浮才过渡为实心红，保持危险语义同时降低存在感 */
+.matrix-action-cell .el-button--danger {
+  --el-button-bg-color: var(--brand-danger-soft);
+  --el-button-border-color: transparent;
+  --el-button-text-color: var(--brand-danger-text);
+  --el-button-hover-bg-color: var(--brand-danger);
+  --el-button-hover-border-color: transparent;
+  --el-button-hover-text-color: #ffffff;
+  --el-button-active-bg-color: var(--brand-danger-text);
+  --el-button-active-border-color: transparent;
+  --el-button-active-text-color: #ffffff;
 }
 
 /* 小计行 */
