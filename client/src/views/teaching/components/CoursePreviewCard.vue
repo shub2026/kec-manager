@@ -2,7 +2,7 @@
   <el-card v-if="courseInfo" class="preview-card">
     <template #header>
       <div class="card-header">
-        <el-button v-if="showBack" class="back-btn" size="small" @click="$emit('back')">
+        <el-button v-if="showBack" class="back-btn" @click="$emit('back')">
           <el-icon><Back /></el-icon>
           返回课程概览
         </el-button>
@@ -103,18 +103,18 @@ function courseTypeLabel(type) {
   align-items: center;
   gap: 10px;
 }
-/* 返回按钮：品牌软色调次级按钮（极浅蓝底 + 主色文字），
-   与页面主色按钮/标签同一视觉语言，避免纯白描边按钮的游离感 */
+/* 返回按钮：无边框中深蓝底（color-mix 在极浅底与浅阶之间取中间色）+ 主色 active 文字，
+   默认尺寸 + 中粗字重承担存在感，仅 hover 时补投影，避免描边过于抢眼 */
 .back-btn {
   margin-right: var(--space-2);
-  font-weight: normal;
-  --el-button-bg-color: var(--brand-primary-soft);
+  font-weight: 500;
+  --el-button-bg-color: color-mix(in srgb, var(--brand-primary) 14%, white);
   --el-button-border-color: transparent;
-  --el-button-text-color: var(--brand-primary);
-  --el-button-hover-bg-color: var(--brand-primary-lighter);
+  --el-button-text-color: var(--brand-primary-active);
+  --el-button-hover-bg-color: color-mix(in srgb, var(--brand-primary) 20%, white);
   --el-button-hover-border-color: transparent;
   --el-button-hover-text-color: var(--brand-primary-active);
-  --el-button-active-bg-color: var(--brand-primary-lighter);
+  --el-button-active-bg-color: color-mix(in srgb, var(--brand-primary) 24%, white);
   --el-button-active-border-color: transparent;
   --el-button-active-text-color: var(--brand-primary-active);
   border-radius: var(--radius-sm);
