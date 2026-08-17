@@ -92,24 +92,22 @@
       >
         <el-icon><RefreshRight /></el-icon> 重置当前
       </el-button>
-      <el-button
-        type="success"
-        plain
-        :disabled="historicalReadOnly"
-        class="lock-btn"
-        @click="emit('lock-all')"
-      >
-        <el-icon><Lock /></el-icon> 锁定
-      </el-button>
-      <el-button
-        type="warning"
-        plain
-        :disabled="historicalReadOnly"
-        class="lock-btn"
-        @click="emit('unlock-all')"
-      >
-        <el-icon><Unlock /></el-icon> 解锁
-      </el-button>
+      <!-- 锁定/解锁整合为单个下拉（与批量排课下拉模式一致） -->
+      <el-dropdown :disabled="historicalReadOnly" @command="handleLockCommand">
+        <el-button type="success" plain :disabled="historicalReadOnly" class="lock-btn">
+          <el-icon><Lock /></el-icon> 锁定<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="lock">
+              <el-icon><Lock /></el-icon>锁定全部
+            </el-dropdown-item>
+            <el-dropdown-item command="unlock">
+              <el-icon><Unlock /></el-icon>解锁全部
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </template>
   </FilterBar>
 </template>
@@ -143,6 +141,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:filters', 'auto-arrange', 'reset', 'lock-all', 'unlock-all']);
+
+// 锁定下拉命令分发：保持对外 lock-all / unlock-all 事件语义不变
+function handleLockCommand(command) {
+  if (command === 'lock') emit('lock-all');
+  else if (command === 'unlock') emit('unlock-all');
+}
 
 // 与父页面通过 v-model:filters 通信；直接修改属性可触发父级 deep watch
 const localFilters = computed({
