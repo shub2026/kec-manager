@@ -12,6 +12,11 @@ describe('personnelLabel', () => {
     expect(personnelLabel('other_type')).toBe('other_type');
   });
 
+  it('驼峰变体归一化后映射（缓存/历史数据兼容）', () => {
+    expect(personnelLabel('fullTime')).toBe('专职');
+    expect(personnelLabel('partTime')).toBe('兼职');
+  });
+
   it('空值返回占位符', () => {
     expect(personnelLabel(null)).toBe('-');
     expect(personnelLabel('')).toBe('-');
@@ -29,5 +34,10 @@ describe('personnelTagType', () => {
   it('未知类别返回空字符串', () => {
     expect(personnelTagType('other')).toBe('');
     expect(personnelTagType(null)).toBe('');
+  });
+
+  it('驼峰变体归一化后映射语义色', () => {
+    expect(personnelTagType('fullTime')).toBe('success');
+    expect(personnelTagType('partTime')).toBe('warning');
   });
 });

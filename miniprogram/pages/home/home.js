@@ -48,10 +48,10 @@ Page({
         d._pct = Math.round((d.hours / maxH) * 100);
       });
 
-      // 排课进度
+      // 排课进度（rate 为后端课时口径：已排课时 ÷ 总课时）
       const c = insightsRaw?.completion || { rate: 0, assignedCourses: 0, totalCourses: 0 };
-      const totalWeekly = stats?.totalWeeklyHours || 0;
-      const assignedWeekly = stats?.assignedWeeklyHours != null ? stats.assignedWeeklyHours : 0;
+      const totalWeekly = c.totalHours ?? stats?.totalWeeklyHours ?? 0;
+      const assignedWeekly = c.assignedHours ?? stats?.assignedWeeklyHours ?? 0;
       const progress = {
         rate: c.rate,
         assigned: c.assignedCourses,
@@ -59,7 +59,7 @@ Page({
         remaining: Math.max(0, c.totalCourses - c.assignedCourses),
         assignedHours: Math.round(assignedWeekly * 10) / 10,
         remainingHours: Math.round(Math.max(0, totalWeekly - assignedWeekly) * 10) / 10,
-        complete: c.totalCourses > 0 && c.assignedCourses >= c.totalCourses,
+        complete: (c.rate || 0) >= 100,
       };
 
       // 异常提醒
@@ -78,6 +78,10 @@ Page({
       const courseStatsRaw = insightsRaw?.courseStats || [];
       const coursePalette = ['#1C82F5', '#4B9BF5', '#7AB8F8', '#A8D0FA', '#6B7280'];
       const courseStatsMax = courseStatsRaw.reduce((m, x) => Math.max(m, x.totalHours || 0), 0) || 1;
+      // 较上学期课时差值文案：增加红 / 减少绿 / 持平与新增灰（上学期无该课程时 delta 为 null）
+      const deltaText = (d) =>
+        d == null ? '新增' : d > 0 ? `+${d}` : d < 0 ? `${d}` : '持平';
+      const deltaClass = (d) => (d > 0 ? 'up' : d < 0 ? 'down' : 'flat');
       const courseStats = [...courseStatsRaw]
         .sort((a, b) => (b.totalHours || 0) - (a.totalHours || 0))
         .slice(0, 8)
@@ -87,6 +91,10 @@ Page({
           totalHours: Math.round((x.totalHours || 0) * 10) / 10,
           classCount: x.classCount || 0,
           teacherCount: x.teacherCount || 0,
+          prevTotalHours: x.prevTotalHours ?? null,
+          delta: x.delta ?? null,
+          _deltaText: deltaText(x.delta ?? null),
+          _deltaClass: deltaClass(x.delta ?? null),
           _pct: Math.max(4, Math.round(((x.totalHours || 0) / courseStatsMax) * 100)),
           _color: coursePalette[i % coursePalette.length],
         }));

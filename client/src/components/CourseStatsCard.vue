@@ -8,7 +8,7 @@
     </template>
 
     <div v-if="!data || data.length === 0" class="chart-empty">
-      <span>暂无排课数据</span>
+      <span>暂无课程数据</span>
     </div>
 
     <div v-else class="stats-table">
@@ -29,6 +29,9 @@
             />
           </span>
           <span class="hours-value">{{ item.totalHours }}</span>
+          <span class="hours-delta" :class="deltaClass(item.delta)" :title="deltaTitle(item)">
+            {{ deltaText(item.delta) }}
+          </span>
         </div>
         <div class="col-meta">
           <span class="meta-num" data-unit="班">{{ item.classCount }}</span>
@@ -71,6 +74,25 @@ const displayData = computed(() => {
 
 function barWidth(hours) {
   return Math.max(4, (hours / maxHours.value) * 100);
+}
+
+// 较上学期课时差值：增加红色 / 减少绿色 / 持平与新增灰色（上学期无该课程时 delta 为 null）
+function deltaText(delta) {
+  if (delta == null) return '新增';
+  if (delta > 0) return `+${delta}`;
+  if (delta < 0) return `${delta}`;
+  return '持平';
+}
+
+function deltaClass(delta) {
+  if (delta > 0) return 'delta-up';
+  if (delta < 0) return 'delta-down';
+  return 'delta-flat';
+}
+
+function deltaTitle(item) {
+  if (item.delta == null) return '上学期未开设该课程';
+  return `上学期总课时 ${item.prevTotalHours}`;
 }
 
 // 主蓝同色阶：与 HoursChart 保持色系一致,中性不引发告警联想
@@ -195,6 +217,30 @@ function barColor(idx) {
   font-variant-numeric: tabular-nums;
 }
 
+/* 较上学期课时差值徽标：增加红/减少绿/持平与新增灰 */
+.hours-delta {
+  width: 42px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hours-delta.delta-up {
+  color: var(--brand-danger-text);
+}
+
+.hours-delta.delta-down {
+  color: var(--brand-success-text);
+}
+
+.hours-delta.delta-flat {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
 /* 班级+教师列 */
 .col-meta {
   display: grid;
@@ -246,6 +292,11 @@ function barColor(idx) {
   .hours-value {
     width: 34px;
     font-size: 12px;
+  }
+
+  .hours-delta {
+    width: 36px;
+    font-size: 10px;
   }
 
   .meta-num {

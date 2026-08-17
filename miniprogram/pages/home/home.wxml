@@ -121,7 +121,7 @@
       <block wx:else>
         <view class="progress-summary">
           <text class="ps-percent">{{insights.progress.rate}}<text class="ps-sign">%</text></text>
-          <text class="ps-label">已排课占比</text>
+          <text class="ps-label">课时完成率</text>
         </view>
 
         <view class="progress-track">
@@ -185,7 +185,7 @@
     <view class="card">
       <view class="card-title">课时概览</view>
 
-      <view wx:if="{{insights.courseStats.length === 0}}" class="card-empty">暂无排课数据</view>
+      <view wx:if="{{insights.courseStats.length === 0}}" class="card-empty">暂无课程数据</view>
 
       <block wx:else>
         <view wx:for="{{insights.courseStats}}" wx:key="id" class="cs-row">
@@ -198,6 +198,7 @@
               <view class="cs-bar" style="width:{{item._pct}}%;background:{{item._color}}"></view>
             </view>
             <text class="cs-value">{{item.totalHours}}</text>
+            <text class="cs-delta cs-delta-{{item._deltaClass}}">{{item._deltaText}}</text>
           </view>
           <view class="cs-meta">
             <text class="cs-meta-num">{{item.classCount}}班</text>

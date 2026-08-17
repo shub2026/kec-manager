@@ -87,22 +87,25 @@
       </div>
     </div>
 
-    <!-- 洞察区域：CSS Grid 非对称布局（左 60% 右 40%） -->
+    <!-- 洞察区域：CSS Grid 三列均分（第一排三卡，第二排课时概览占两列） -->
     <ListErrorState v-if="error" :message="error" @retry="reload" />
     <section v-else class="insights-grid" role="region" aria-label="教学洞察">
       <!-- 加载中先占位，避免闪现“暂无数据”空态（同内嵌表格假加载闪烁问题的反向场景） -->
       <template v-if="insightsLoading">
-        <div v-for="i in 4" :key="i" class="insight-skeleton">
+        <div v-for="i in 5" :key="i" class="insight-skeleton">
           <el-skeleton :rows="4" animated />
         </div>
       </template>
       <template v-else>
-        <div class="insight-main">
+        <div class="insight-side">
           <CourseProgressChart
             :data="insights.completion"
-            :total-hours="stats.totalWeeklyHours"
-            :assigned-hours="stats.assignedWeeklyHours"
+            :total-hours="insights.completion.totalHours ?? stats.totalWeeklyHours"
+            :assigned-hours="insights.completion.assignedHours ?? stats.assignedWeeklyHours"
           />
+        </div>
+        <div class="insight-side">
+          <TeacherLoadCard :data="insights.teacherLoad" />
         </div>
         <div class="insight-side">
           <AlertCard :data="insights.alerts" />
@@ -141,6 +144,7 @@ import AlertCard from '../components/AlertCard.vue';
 import HoursChart from '../components/HoursChart.vue';
 import CourseProgressChart from '../components/CourseProgressChart.vue';
 import CourseStatsCard from '../components/CourseStatsCard.vue';
+import TeacherLoadCard from '../components/TeacherLoadCard.vue';
 import ListErrorState from '../components/ListErrorState.vue';
 
 defineOptions({ name: 'Dashboard' });
@@ -221,6 +225,7 @@ const insights = ref({
   alerts: { unassignedCourses: [], overloadedTeachers: [] },
   distribution: [],
   courseStats: [],
+  teacherLoad: { totalTeachers: 0, assignedTeachers: 0, avgHours: 0, top: [], byPersonnelType: {} },
 });
 
 async function fetchStats() {
@@ -290,6 +295,7 @@ async function fetchInsights() {
       insights.value.alerts = d.alerts || insights.value.alerts;
       insights.value.distribution = d.distribution || [];
       insights.value.courseStats = d.courseStats || [];
+      insights.value.teacherLoad = d.teacherLoad || insights.value.teacherLoad;
     }
   } catch (e) {
     if (import.meta.env.DEV) console.error('Dashboard 洞察加载失败:', e);
@@ -516,12 +522,17 @@ onMounted(async () => {
   /* 图标不另设色：继承标签的 --text-secondary，形状锚点与文字同灰同权重，不抢数字注意力 */
 }
 
-/* ─── 洞察网格：非对称 3fr 2fr ─── */
+/* ─── 洞察网格：三列均分，第二排课时概览占两列 ─── */
 .insights-grid {
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
   margin-top: var(--space-5);
+}
+
+/* 第二排：课时概览跨两列，课时分布占一列 */
+.insight-main {
+  grid-column: span 2;
 }
 
 .insights-grid > div {
@@ -606,6 +617,11 @@ onMounted(async () => {
 @media (max-width: 1200px) {
   .insights-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  /* 窄屏跨列复位：第一排三卡折行为 2+1，课时概览恢复单列 */
+  .insight-main {
+    grid-column: auto;
   }
 }
 

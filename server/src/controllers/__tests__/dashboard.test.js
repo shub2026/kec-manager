@@ -30,6 +30,7 @@ const mockPrisma = {
     findMany: vi.fn(),
   },
   colleges: { findMany: vi.fn() },
+  teachers: { count: vi.fn() },
   teaching_assignments: {
     groupBy: vi.fn(),
     findMany: vi.fn(),
@@ -52,11 +53,18 @@ const mockCalcClassSemester = vi.fn();
 vi.mock('../../services/semester.service.js', () => ({
   getSemesterInfoFromRequest: vi.fn(),
   calcClassSemester: (...args) => mockCalcClassSemester(...args),
+  getPreviousSemester: () => '2025-2026-1',
 }));
 
 const mockFindBestMatchPlan = vi.fn();
 vi.mock('../../services/plan.service.js', () => ({
   findBestMatchPlan: (...args) => mockFindBestMatchPlan(...args),
+}));
+
+// 课时概览 courseStats 现与教学安排页共用 getCourseOverviewAggregate，控制器层 mock 掉
+const mockGetCourseOverviewAggregate = vi.fn();
+vi.mock('../../services/teaching-arrange.service.js', () => ({
+  getCourseOverviewAggregate: (...args) => mockGetCourseOverviewAggregate(...args),
 }));
 
 vi.mock('../../services/audit.service.js', () => ({
@@ -656,6 +664,8 @@ describe('getDashboardInsights', () => {
     getActiveClassFilter.mockResolvedValue({});
     mockPrisma.classes.findMany.mockResolvedValue([]);
     mockPrisma.training_plans.findMany.mockResolvedValue([]);
+    // 课时概览聚合：默认无课程
+    mockGetCourseOverviewAggregate.mockResolvedValue([]);
   });
 
   it('合班教学应去重：课时只计 1 次、逻辑教学班=1（不虚高）', async () => {
@@ -663,6 +673,14 @@ describe('getDashboardInsights', () => {
       id: 1,
       name: '王五',
       default_weekly_hours: 10,
+      personnel_type: 'full_time',
+      affiliated_college: { id: 1, name: '教育学院' },
+    };
+    const teacherB = {
+      id: 2,
+      name: '赵六',
+      default_weekly_hours: 10,
+      personnel_type: 'external',
       affiliated_college: { id: 1, name: '教育学院' },
     };
     // 两行同组合(99)、同课程(数学)、同教师 → 物理上是一节合班课
@@ -691,6 +709,15 @@ describe('getDashboardInsights', () => {
         teacher,
         class: { college_id: 1, combination_id: null, colleges: { id: 1, name: '教育学院' } },
         course: { id: 20, name: '英语', type: '必修' },
+      },
+      // 外聘教师 4 课时独立课，供 teacherLoad TOP 排序与人员类别断言
+      {
+        weekly_hours: 4,
+        course_id: 10,
+        class_id: 4,
+        teacher: teacherB,
+        class: { college_id: 1, combination_id: null, colleges: { id: 1, name: '教育学院' } },
+        course: { id: 10, name: '数学', type: '必修' },
       },
     ];
 
@@ -726,10 +753,52 @@ describe('getDashboardInsights', () => {
     // 第二次 findMany：全部排课记录（含合班成员班）
     mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce(allAssignments);
     mockPrisma.colleges.findMany.mockResolvedValue([{ id: 1, name: '教育学院' }]);
+    mockPrisma.teachers.count.mockResolvedValue(5);
     mockPrisma.courses.findMany.mockResolvedValue([
       { id: 10, name: '数学' },
       { id: 20, name: '英语' },
     ]);
+    // 课时概览口径与教学安排页对齐：来自 getCourseOverviewAggregate（当前方案课时/应排班级）；
+    // 按学期参数返回不同 fixture，覆盖上学期对比（数学 +2 / 英语 -2）
+    mockGetCourseOverviewAggregate.mockImplementation((sem) =>
+      Promise.resolve(
+        sem === '2025-2026-2'
+          ? [
+              {
+                courseId: 10,
+                courseName: '数学',
+                courseType: '必修',
+                totalClasses: 1,
+                totalCourseHours: 4,
+                assignedHours: 4,
+                teacherCount: 1,
+              },
+              {
+                courseId: 20,
+                courseName: '英语',
+                courseType: '必修',
+                totalClasses: 1,
+                totalCourseHours: 2,
+                assignedHours: 2,
+                teacherCount: 1,
+              },
+              {
+                courseId: 99,
+                courseName: '体育',
+                courseType: '公共',
+                totalClasses: 0,
+                totalCourseHours: 0,
+                assignedHours: 0,
+                teacherCount: 0,
+              },
+            ]
+          : [
+              // 上学期：数学 2 课时（本学期增至 4），英语 4 课时（本学期降至 2）
+              { courseId: 10, courseName: '数学', totalClasses: 1, totalCourseHours: 2 },
+              { courseId: 20, courseName: '英语', totalClasses: 1, totalCourseHours: 4 },
+            ]
+      )
+    );
 
     const req = mockReq({ semester: '2025-2026-2' });
     const res = mockRes();
@@ -737,26 +806,60 @@ describe('getDashboardInsights', () => {
 
     const data = res.json.mock.calls[0][0].data;
 
-    // 数学：合班两行合并为 1 个逻辑教学班，课时只计 4（而非 8）
+    // 课时概览按教学安排页口径映射：数学总课时 4 / 1 班 / 1 教师；
+    // 无应排班级的课程（本学期不开设）不进入列表；
+    // 上学期对比：数学 4-2=+2，英语 2-4=-2
+    expect(mockGetCourseOverviewAggregate).toHaveBeenCalledWith('2025-2026-2');
+    expect(mockGetCourseOverviewAggregate).toHaveBeenCalledWith('2025-2026-1');
+    expect(data.courseStats).toHaveLength(2);
     const math = data.courseStats.find((c) => c.name === '数学');
-    expect(math.totalHours).toBe(4);
-    expect(math.classCount).toBe(1);
-    // 英语：独立班，课时 2、班级数 1
+    expect(math).toEqual({
+      id: 10,
+      name: '数学',
+      totalHours: 4,
+      classCount: 1,
+      teacherCount: 1,
+      prevTotalHours: 2,
+      delta: 2,
+    });
     const eng = data.courseStats.find((c) => c.name === '英语');
-    expect(eng.totalHours).toBe(2);
-    expect(eng.classCount).toBe(1);
+    expect(eng).toEqual({
+      id: 20,
+      name: '英语',
+      totalHours: 2,
+      classCount: 1,
+      teacherCount: 1,
+      prevTotalHours: 4,
+      delta: -2,
+    });
 
-    // 学院课时分布也应去重：4（数学合班）+ 2（英语）= 6，而非 10
+    // 学院课时分布也应去重：4（数学合班）+ 2（英语）+ 4（赵六）= 10，而非 14
     const dist = data.distribution.find((d) => d.name === '教育学院');
-    expect(dist.hours).toBe(6);
+    expect(dist.hours).toBe(10);
+
+    // 教师负载：参与 2 人 / 在职 5 人，总课时 6+4=10 → 人均 5；
+    // TOP 按课时降序，byPersonnelType 按 personnel_type 计数
+    expect(data.teacherLoad).toEqual({
+      totalTeachers: 5,
+      assignedTeachers: 2,
+      avgHours: 5,
+      top: [
+        { id: 1, name: '王五', hours: 6 },
+        { id: 2, name: '赵六', hours: 4 },
+      ],
+      byPersonnelType: { full_time: 1, external: 1 },
+    });
 
     // 王五总课时去重后为 6，未超 default_weekly_hours(10)
     expect(data.alerts.overloadedTeachers).toHaveLength(0);
 
-    // 完成度按应开口径：应开 2 门（数学/英语）且均已排 → 100%
+    // 完成度按应开口径：应开 2 门（数学/英语）且均已排 → 门数 2/2；
+    // rate 为课时口径：已排 6 ÷ 总 6 = 100%
     expect(data.completion.totalCourses).toBe(2);
     expect(data.completion.assignedCourses).toBe(2);
     expect(data.completion.rate).toBe(100);
+    expect(data.completion.totalHours).toBe(6);
+    expect(data.completion.assignedHours).toBe(6);
   });
 
   it('完成度与未排课提醒按"本学期应开课程"口径，不开设的课程不计入也不误报', async () => {
@@ -793,11 +896,47 @@ describe('getDashboardInsights', () => {
     ]);
     mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce([]);
     mockPrisma.colleges.findMany.mockResolvedValue([]);
+    mockPrisma.teachers.count.mockResolvedValue(3);
     mockPrisma.courses.findMany.mockResolvedValue([
       { id: 10, name: '数学' },
       { id: 20, name: '英语' },
       { id: 30, name: '化学' },
       { id: 99, name: '体育' }, // 本学期不开设
+    ]);
+    // 排课聚合：数学/英语已排满（4+2），化学应开 2 课时未排 → rate = 6/8 = 75%
+    mockGetCourseOverviewAggregate.mockResolvedValue([
+      {
+        courseId: 10,
+        courseName: '数学',
+        totalClasses: 1,
+        totalCourseHours: 4,
+        assignedHours: 4,
+        teacherCount: 1,
+      },
+      {
+        courseId: 20,
+        courseName: '英语',
+        totalClasses: 1,
+        totalCourseHours: 2,
+        assignedHours: 2,
+        teacherCount: 1,
+      },
+      {
+        courseId: 30,
+        courseName: '化学',
+        totalClasses: 1,
+        totalCourseHours: 2,
+        assignedHours: 0,
+        teacherCount: 0,
+      },
+      {
+        courseId: 99,
+        courseName: '体育',
+        totalClasses: 0,
+        totalCourseHours: 0,
+        assignedHours: 0,
+        teacherCount: 0,
+      },
     ]);
 
     const req = mockReq({ semester: '2025-2026-2' });
@@ -806,14 +945,65 @@ describe('getDashboardInsights', () => {
 
     const data = res.json.mock.calls[0][0].data;
 
-    // 分母=应开 3 门（而非课程库 4 门），分子=已排∩应开 2 门
+    // 门数分母=应开 3 门（而非课程库 4 门），分子=已排∩应开 2 门；
+    // rate 为课时口径：已排 6 ÷ 总 8 = 75%（而非门数口径 67%）
     expect(data.completion.totalCourses).toBe(3);
     expect(data.completion.assignedCourses).toBe(2);
-    expect(data.completion.rate).toBe(67);
+    expect(data.completion.rate).toBe(75);
+    expect(data.completion.totalHours).toBe(8);
+    expect(data.completion.assignedHours).toBe(6);
 
     // 未排课提醒只含应开未排的化学，不含本学期不开的体育
     expect(data.alerts.unassignedCourses).toHaveLength(1);
     expect(data.alerts.unassignedCourses[0].name).toBe('化学');
+
+    // 无排课记录时教师负载为空态：参与 0 人、人均 0、TOP 为空
+    expect(data.teacherLoad.assignedTeachers).toBe(0);
+    expect(data.teacherLoad.avgHours).toBe(0);
+    expect(data.teacherLoad.top).toEqual([]);
+    expect(data.teacherLoad.byPersonnelType).toEqual({});
+  });
+
+  it('课时概览口径与教学安排页对齐：应排未排班级计入班级数与总课时，教师数为 0 也展示，上学期无该课程时 delta 为 null', async () => {
+    // 化学：2 个应排班级（周课时各 2）但尚未安排教师 →
+    // 总课时 4 / 2 班 / 0 教师，与教学安排页概览卡片一致；
+    // 上学期无化学 → prevTotalHours/delta 均为 null（前端展示"新增"）
+    mockGetCourseOverviewAggregate.mockImplementation((sem) =>
+      Promise.resolve(
+        sem === '2025-2026-2'
+          ? [
+              {
+                courseId: 30,
+                courseName: '化学',
+                courseType: '必修',
+                totalClasses: 2,
+                totalCourseHours: 4,
+                teacherCount: 0,
+                assignedCount: 0,
+                assignedHours: 0,
+                remainingHours: 4,
+              },
+            ]
+          : []
+      )
+    );
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardInsights(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.courseStats).toEqual([
+      {
+        id: 30,
+        name: '化学',
+        totalHours: 4,
+        classCount: 2,
+        teacherCount: 0,
+        prevTotalHours: null,
+        delta: null,
+      },
+    ]);
   });
 
   it('无学期参数 → 返回错误', async () => {

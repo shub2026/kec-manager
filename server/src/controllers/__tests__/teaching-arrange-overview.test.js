@@ -1,11 +1,11 @@
 /**
  * teaching-arrange.controller.js — getCourseOverview 单元测试
+ * 及 arrange/queries.js — getCourseOverviewAggregate 聚合逻辑测试
  *
  * 重点覆盖：
  * 1. 缺 semester → 400 错误
- * 2. 多课程聚合：assignedCount/lockedCount/teacherCount 去重、课时与剩余课时计算
- * 3. 无任何安排的课程 → 计数全 0 不报错
- * 4. DB 异常 → next(error)
+ * 2. 控制器透传聚合结果 / DB 异常 → next(error)
+ * 3. 聚合逻辑：多课程计数/教师去重/锁定、无任何安排、快照过期、孤儿安排
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -43,9 +43,11 @@ vi.mock('../../constants/index.js', () => ({
 }));
 
 const mockGetClassesWithCourse = vi.fn();
+const mockCourseOverviewAggregate = vi.fn();
 vi.mock('../../services/teaching-arrange.service.js', () => ({
   getClassesWithCourse: (...args) => mockGetClassesWithCourse(...args),
   getTeachersForCourse: vi.fn(),
+  getCourseOverviewAggregate: (...args) => mockCourseOverviewAggregate(...args),
   autoArrange: vi.fn(),
   batchAutoArrange: vi.fn(),
   parseSemester: vi.fn(),
@@ -64,6 +66,8 @@ vi.mock('../../services/semester.service.js', () => ({
 // 导入被测模块
 // ──────────────────────────────────────────────
 const { getCourseOverview } = await import('../teaching-arrange.controller.js');
+// 聚合逻辑真实实现（应排班级查询通过参数注入 mock）
+const { getCourseOverviewAggregate } = await import('../../services/arrange/queries.js');
 
 // ──────────────────────────────────────────────
 // 工具函数
@@ -80,23 +84,11 @@ function mockRes() {
 }
 
 // ════════════════════════════════════════════════
-// 测试
+// getCourseOverviewAggregate — 聚合逻辑（与首页课时概览共用口径）
 // ════════════════════════════════════════════════
-describe('getCourseOverview', () => {
+describe('getCourseOverviewAggregate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('缺 semester → 返回 400 错误', async () => {
-    const req = mockReq({});
-    const res = mockRes();
-    await getCourseOverview(req, res, vi.fn());
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ success: false, message: '请选择学期' })
-    );
-    expect(mockPrisma.courses.findMany).not.toHaveBeenCalled();
   });
 
   it('多课程聚合：计数/教师去重/锁定/课时与剩余课时计算正确', async () => {
@@ -152,9 +144,7 @@ describe('getCourseOverview', () => {
       )
     );
 
-    const req = mockReq({ semester: '2025-2026-2' });
-    const res = mockRes();
-    await getCourseOverview(req, res, vi.fn());
+    const data = await getCourseOverviewAggregate('2025-2026-2', mockGetClassesWithCourse);
 
     expect(mockPrisma.teaching_assignments.findMany).toHaveBeenCalledWith({
       where: { semester: '2025-2026-2' },
@@ -162,7 +152,6 @@ describe('getCourseOverview', () => {
     });
     expect(mockGetClassesWithCourse).toHaveBeenCalledTimes(2);
 
-    const data = res.json.mock.calls[0][0].data;
     expect(data).toHaveLength(2);
     expect(data[0]).toEqual({
       courseId: 1,
@@ -200,11 +189,7 @@ describe('getCourseOverview', () => {
       { classId: 302, weeklyHours: 3 },
     ]);
 
-    const req = mockReq({ semester: '2025-2026-2' });
-    const res = mockRes();
-    await getCourseOverview(req, res, vi.fn());
-
-    const data = res.json.mock.calls[0][0].data;
+    const data = await getCourseOverviewAggregate('2025-2026-2', mockGetClassesWithCourse);
     expect(data[0]).toEqual({
       courseId: 3,
       courseName: '英语',
@@ -228,13 +213,9 @@ describe('getCourseOverview', () => {
     ]);
     mockGetClassesWithCourse.mockResolvedValue([{ classId: 401, weeklyHours: 2 }]);
 
-    const req = mockReq({ semester: '2025-2026-2' });
-    const res = mockRes();
-    await getCourseOverview(req, res, vi.fn());
-
-    const item = res.json.mock.calls[0][0].data[0];
-    expect(item.assignedHours).toBe(2);
-    expect(item.remainingHours).toBe(0);
+    const data = await getCourseOverviewAggregate('2025-2026-2', mockGetClassesWithCourse);
+    expect(data[0].assignedHours).toBe(2);
+    expect(data[0].remainingHours).toBe(0);
   });
 
   it('孤儿安排（班级已不在应排列表）→ 不计入聚合', async () => {
@@ -246,11 +227,8 @@ describe('getCourseOverview', () => {
     ]);
     mockGetClassesWithCourse.mockResolvedValue([{ classId: 501, weeklyHours: 4 }]);
 
-    const req = mockReq({ semester: '2025-2026-2' });
-    const res = mockRes();
-    await getCourseOverview(req, res, vi.fn());
-
-    expect(res.json.mock.calls[0][0].data[0]).toEqual({
+    const data = await getCourseOverviewAggregate('2025-2026-2', mockGetClassesWithCourse);
+    expect(data[0]).toEqual({
       courseId: 5,
       courseName: '化学',
       courseType: 'public',
@@ -264,10 +242,57 @@ describe('getCourseOverview', () => {
       remainingHours: 0,
     });
   });
+});
+
+// ════════════════════════════════════════════════
+// getCourseOverview 控制器 — 参数校验/透传/错误传播
+// ════════════════════════════════════════════════
+describe('getCourseOverview', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('缺 semester → 返回 400 错误', async () => {
+    const req = mockReq({});
+    const res = mockRes();
+    await getCourseOverview(req, res, vi.fn());
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, message: '请选择学期' })
+    );
+    expect(mockCourseOverviewAggregate).not.toHaveBeenCalled();
+  });
+
+  it('成功 → 透传聚合结果', async () => {
+    const overview = [
+      {
+        courseId: 1,
+        courseName: '语文',
+        courseType: 'public',
+        teacherCount: 2,
+        totalClasses: 3,
+        assignedCount: 3,
+        lockedCount: 1,
+        inherentCount: 1,
+        totalCourseHours: 14,
+        assignedHours: 14,
+        remainingHours: 0,
+      },
+    ];
+    mockCourseOverviewAggregate.mockResolvedValue(overview);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getCourseOverview(req, res, vi.fn());
+
+    expect(mockCourseOverviewAggregate).toHaveBeenCalledWith('2025-2026-2');
+    expect(res.json.mock.calls[0][0].data).toEqual(overview);
+  });
 
   it('DB 异常 → next 收到错误', async () => {
     const dbError = new Error('db down');
-    mockPrisma.courses.findMany.mockRejectedValue(dbError);
+    mockCourseOverviewAggregate.mockRejectedValue(dbError);
 
     const req = mockReq({ semester: '2025-2026-2' });
     const res = mockRes();

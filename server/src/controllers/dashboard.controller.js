@@ -1,9 +1,10 @@
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { getActiveClassFilter } from '../services/class.service.js';
-import { getSemesterInfoFromRequest, calcClassSemester } from '../services/semester.service.js';
+import { getSemesterInfoFromRequest, calcClassSemester, getPreviousSemester } from '../services/semester.service.js';
 import { findBestMatchPlan } from '../services/plan.service.js';
 import { dedupeTeachingUnits } from '../services/teaching-statistics.service.js';
+import { getCourseOverviewAggregate } from '../services/teaching-arrange.service.js';
 
 /**
  * 计算本学期开设课程与计划周课时（来自培养方案）
@@ -217,7 +218,13 @@ export async function getDashboardInsights(req, res, next) {
     const semesterInfo = await getSemesterInfoFromRequest(req);
     if (!semesterInfo) return fail(res, '学期格式错误，应为 YYYY-YYYY-N', 400);
 
-    const [{ offeredCourseIds }, assignedCourses, allAssignments, colleges] = await Promise.all([
+    const [
+      { offeredCourseIds },
+      assignedCourses,
+      allAssignments,
+      colleges,
+      activeTeacherCount,
+    ] = await Promise.all([
       // 本学期应开课程（培养方案口径，与 stats 的"课程数量"同源）
       computeOfferedCourses(semesterInfo),
       // 已排课课程（去重）
@@ -238,6 +245,7 @@ export async function getDashboardInsights(req, res, next) {
               id: true,
               name: true,
               default_weekly_hours: true,
+              personnel_type: true,
               affiliated_college: { select: { id: true, name: true } },
             },
           },
@@ -253,19 +261,41 @@ export async function getDashboardInsights(req, res, next) {
       }),
       // 所有学院（用于分布图标签）
       prisma.colleges.findMany({ select: { id: true, name: true } }),
+      // 在职教师总数（供教师负载卡"参与排课教师 X / 在职 Y"展示）
+      prisma.teachers.count({ where: { status: 'active' } }),
     ]);
 
     // 合班去重：将成员班行归并为逻辑教学单元，避免课时/班级数虚高
     const allUnits = dedupeTeachingUnits(allAssignments);
 
-    // —— 排课完成度（分母=本学期应开课程，分子=已排∩应开，防方案外排课致 rate 超 100%）——
+    // —— 排课聚合（与教学安排页同口径，供完成度课时口径与 courseStats 共用） ——
+    // 并行查询当前学期与上学期聚合，供课时概览展示"较上学期"差值；
+    // 上学期不存在（跨年越界等）时以空集处理，delta 全部为"新增"
+    const prevSemester = getPreviousSemester(semester);
+    const [overviewRows, prevRows] = await Promise.all([
+      getCourseOverviewAggregate(semester),
+      prevSemester ? getCourseOverviewAggregate(prevSemester) : Promise.resolve([]),
+    ]);
+    const prevHoursMap = new Map(prevRows.map((r) => [r.courseId, r.totalCourseHours]));
+    const planHoursSum =
+      Math.round(overviewRows.reduce((s, r) => s + r.totalCourseHours, 0) * 10) / 10;
+    const assignedHoursSum =
+      Math.round(overviewRows.reduce((s, r) => s + r.assignedHours, 0) * 10) / 10;
+
+    // —— 排课完成度 ——
+    // rate 采用课时口径（已排课时 ÷ 总课时，与教学安排页同链路）：
+    // 按课程门数计数时"只要有 1 条安排即算已排"，各科仅排部分班级也会虚高至 100%；
+    // 课时口径按工作量加权，能反映真实进度
+    // 门数仍按"应开课程"口径（分母=本学期应开，分子=已排∩应开），供"已排 X 门"展示
     const assignedIds = new Set(assignedCourses.map((c) => c.course_id));
     const assignedOfferedCount = [...assignedIds].filter((id) => offeredCourseIds.has(id)).length;
     const totalCourses = offeredCourseIds.size;
     const completion = {
       totalCourses,
       assignedCourses: assignedOfferedCount,
-      rate: totalCourses > 0 ? Math.round((assignedOfferedCount / totalCourses) * 100) : 0,
+      rate: planHoursSum > 0 ? Math.round((assignedHoursSum / planHoursSum) * 100) : 0,
+      totalHours: planHoursSum,
+      assignedHours: assignedHoursSum,
     };
 
     // —— 异常提醒 ——
@@ -285,11 +315,35 @@ export async function getDashboardInsights(req, res, next) {
           id: tid,
           name: t.name,
           limit: t.default_weekly_hours || 0,
+          personnelType: t.personnel_type || null,
           hours: 0,
         };
       }
       teacherHours[tid].hours += u.weeklyHours;
     }
+
+    // —— 教师负载（供首页教师负载卡） ——
+    // 与超限提醒共用 teacherHours（已按合班去重单元聚合），纯增量展示：
+    // 参与排课教师数 / 在职总数、人均周课时、课时 TOP3、人员类别构成
+    const teacherList = Object.values(teacherHours);
+    const assignedTeachers = teacherList.length;
+    const totalTeacherHours = teacherList.reduce((s, t) => s + t.hours, 0);
+    const byPersonnelType = {};
+    for (const t of teacherList) {
+      const key = t.personnelType || 'unknown';
+      byPersonnelType[key] = (byPersonnelType[key] || 0) + 1;
+    }
+    const teacherLoad = {
+      totalTeachers: activeTeacherCount,
+      assignedTeachers,
+      avgHours:
+        assignedTeachers > 0 ? Math.round((totalTeacherHours / assignedTeachers) * 10) / 10 : 0,
+      top: teacherList
+        .sort((a, b) => b.hours - a.hours)
+        .slice(0, 3)
+        .map((t) => ({ id: t.id, name: t.name, hours: Math.round(t.hours * 10) / 10 })),
+      byPersonnelType,
+    };
     const overloadedTeachers = Object.values(teacherHours)
       .filter((t) => t.limit > 0 && t.hours > t.limit)
       .sort((a, b) => b.hours - a.hours)
@@ -317,36 +371,33 @@ export async function getDashboardInsights(req, res, next) {
       .map(([name, hours]) => ({ name, hours: Math.round(hours * 10) / 10 }))
       .sort((a, b) => b.hours - a.hours);
 
-    // —— 课程课时统计（按课程聚合：总课时、逻辑教学班数、教师数） ——
-    // 合班去重：同一组合的多个成员班合并为 1 个逻辑教学班
-    const courseMap = {};
-    for (const u of allUnits) {
-      const c = u.representative.course;
-      const cid = c.id;
-      if (!courseMap[cid]) {
-        courseMap[cid] = {
-          id: cid,
-          name: c.name,
-          totalHours: 0,
-          classCount: 0,
-          teacherIds: new Set(),
+    // —— 课程课时统计（按课程聚合：总课时、应排班级数、教师数） ——
+    // 口径与教学安排页概览卡片完全对齐（共用 getCourseOverviewAggregate）：
+    // 总课时 = 当前培养方案下周课时之和（非安排行快照），
+    // 班级数 = 应排班级数（含未排课班级），教师数 = 应排班级内有效安排的教师去重数；
+    // 无应排班级的课程（本学期不开设）不进入列表
+    // 上学期对比：delta = 本学期总课时 - 上学期总课时（上学期无该课程为 null，前端展示"新增"）；
+    // 口径限制：两学期聚合均受"未离校"过滤约束，已毕业班级不计入上学期基数，
+    // 对比实际反映"当前仍在读班级两个学期的课时变化"
+    const courseStats = overviewRows
+      .filter((r) => r.totalClasses > 0)
+      .map((r) => {
+        const totalHours = Math.round(r.totalCourseHours * 10) / 10;
+        const prevRaw = prevHoursMap.get(r.courseId);
+        const prevTotalHours = prevRaw != null ? Math.round(prevRaw * 10) / 10 : null;
+        return {
+          id: r.courseId,
+          name: r.courseName,
+          totalHours,
+          classCount: r.totalClasses,
+          teacherCount: r.teacherCount,
+          prevTotalHours,
+          delta: prevTotalHours != null ? Math.round((totalHours - prevTotalHours) * 10) / 10 : null,
         };
-      }
-      courseMap[cid].totalHours += u.weeklyHours;
-      courseMap[cid].classCount += 1; // 合班=1 个逻辑教学班
-      courseMap[cid].teacherIds.add(u.representative.teacher.id);
-    }
-    const courseStats = Object.values(courseMap)
-      .map((c) => ({
-        id: c.id,
-        name: c.name,
-        totalHours: Math.round(c.totalHours * 10) / 10,
-        classCount: c.classCount,
-        teacherCount: c.teacherIds.size,
-      }))
+      })
       .sort((a, b) => b.totalHours - a.totalHours);
 
-    success(res, { semester, completion, alerts, distribution, courseStats });
+    success(res, { semester, completion, alerts, distribution, courseStats, teacherLoad });
   } catch (e) {
     next(e);
   }

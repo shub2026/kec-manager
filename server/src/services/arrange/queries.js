@@ -160,6 +160,76 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
 }
 
 /**
+ * 全部课程的教学安排概览聚合（按课程维度）
+ *
+ * 一次查询全部安排并按课程分组，仅对当前应排班级内的安排做聚合；
+ * 课时一律以当前培养方案 weeklyHours 为准（非安排行快照），避免方案调整后快照过期。
+ * 供教学安排页概览卡片（getCourseOverview）与首页课时概览（getDashboardInsights courseStats）共用，
+ * 保证两处"总课时/班级数/教师数"口径完全一致。
+ *
+ * @param {string} semester 学期字符串 YYYY-YYYY-N
+ * @param {Function} [getClassesFn=getClassesWithCourse] 应排班级查询函数，默认用真实实现；测试可注入 mock
+ */
+export async function getCourseOverviewAggregate(semester, getClassesFn = getClassesWithCourse) {
+  const courses = await prisma.courses.findMany({
+    orderBy: [{ sort_order: 'asc' }, { id: 'asc' }],
+    select: { id: true, name: true, type: true },
+  });
+
+  // 一次性查询本学期全部安排，按课程分组，后续仅对当前应排班级内的安排做聚合
+  const assignments = await prisma.teaching_assignments.findMany({
+    where: { semester },
+    select: {
+      course_id: true,
+      class_id: true,
+      teacher_id: true,
+      weekly_hours: true,
+      is_locked: true,
+      is_inherent: true,
+    },
+  });
+  const assignmentsByCourse = new Map();
+  for (const a of assignments) {
+    if (!assignmentsByCourse.has(a.course_id)) assignmentsByCourse.set(a.course_id, []);
+    assignmentsByCourse.get(a.course_id).push(a);
+  }
+
+  // 逐课程计算应排班级与总课时（与 getCourseClasses 同一链路，口径一致）
+  // 修复：assignedHours 不再取安排行的快照 weekly_hours 求和——
+  // 培养方案周课时调整后快照会过期，导致概览剩余课时变负而明细页正常；
+  // 现仅统计当前应排班级内的安排，课时一律以当前方案 weeklyHours 为准
+  const overview = [];
+  for (const course of courses) {
+    const classes = await getClassesFn(course.id, semester);
+    const totalCourseHours = classes.reduce((sum, c) => sum + c.weeklyHours, 0);
+    const classHourMap = new Map(classes.map((c) => [c.classId, c.weeklyHours]));
+    const validAssignments = (assignmentsByCourse.get(course.id) || []).filter((a) =>
+      classHourMap.has(a.class_id)
+    );
+    const teacherIds = new Set(validAssignments.map((a) => a.teacher_id));
+    const assignedHours = validAssignments.reduce(
+      (sum, a) => sum + (classHourMap.get(a.class_id) || 0),
+      0
+    );
+    overview.push({
+      courseId: course.id,
+      courseName: course.name,
+      courseType: course.type,
+      teacherCount: teacherIds.size,
+      totalClasses: classes.length,
+      assignedCount: validAssignments.length,
+      lockedCount: validAssignments.filter((a) => a.is_locked).length,
+      inherentCount: validAssignments.filter((a) => a.is_inherent).length,
+      totalCourseHours,
+      assignedHours,
+      remainingHours: totalCourseHours - assignedHours,
+    });
+  }
+
+  return overview;
+}
+
+/**
  * 获取教师列表（含当前学期已安排课时统计）
  */
 export async function getTeachersForCourse(courseId, semesterStr) {

@@ -15,7 +15,7 @@
       <!-- 汇总百分比 -->
       <div class="summary">
         <div class="summary-percent">{{ rate }}<span class="percent-sign">%</span></div>
-        <div class="summary-label">已排课占比</div>
+        <div class="summary-label">课时完成率</div>
       </div>
 
       <!-- 进度条 -->
@@ -26,7 +26,7 @@
           :aria-valuenow="rate"
           aria-valuemin="0"
           aria-valuemax="100"
-          :aria-label="`已排课占比 ${rate}%`"
+          :aria-label="`课时完成率 ${rate}%`"
         >
           <div class="progress-filled" :style="{ transform: `scaleX(${rate / 100})` }" />
         </div>
@@ -54,7 +54,7 @@
         </span>
       </div>
 
-      <div v-if="remaining === 0" class="complete-hint">
+      <div v-if="rate >= 100" class="complete-hint">
         <el-icon><CircleCheckFilled /></el-icon>
         <span>全部课程已排课完成</span>
       </div>
@@ -79,10 +79,8 @@ const props = defineProps({
 const total = computed(() => props.data?.totalCourses || 0);
 const assigned = computed(() => props.data?.assignedCourses || 0);
 const remaining = computed(() => Math.max(0, total.value - assigned.value));
-const rate = computed(() => {
-  if (total.value === 0) return 0;
-  return Math.round((assigned.value / total.value) * 100);
-});
+// rate 使用后端课时口径（已排课时 ÷ 总课时），避免按门数计数时部分排课也虚高至 100%
+const rate = computed(() => props.data?.rate ?? 0);
 
 // 课时回退估算的每门课平均周课时（仅在无后端实际值时使用）
 const AVG_HOURS_PER_COURSE = 16;

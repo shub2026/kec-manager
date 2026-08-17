@@ -278,6 +278,27 @@
   font-variant-numeric: tabular-nums;
   margin-left: 12rpx;
 }
+/* 较上学期课时差值：增加红/减少绿/持平与新增灰（与 Web 端设计令牌等值） */
+.cs-delta {
+  width: 76rpx;
+  flex-shrink: 0;
+  font-size: 20rpx;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  margin-left: 8rpx;
+}
+.cs-delta-up {
+  color: #dc2626;
+}
+.cs-delta-down {
+  color: #047857;
+}
+.cs-delta-flat {
+  color: var(--text-3);
+  font-weight: 400;
+}
 .cs-meta {
   width: 134rpx;
   flex-shrink: 0;
