@@ -151,110 +151,16 @@
       </div>
     </el-card>
 
-    <el-dialog
-      v-model="dialogVisible"
-      :title="form.id ? '编辑方案' : '新增方案'"
-      width="var(--dialog-width-lg)"
-      :fullscreen="isMobile"
-      destroy-on-close
-    >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="方案名称" prop="name" required>
-          <el-input v-model="form.name" placeholder="如：2024级学前教育培养方案" maxlength="200" />
-        </el-form-item>
-
-        <el-form-item label="使用部门">
-          <el-select
-            v-model="form.collegeId"
-            placeholder="请选择使用部门（可选）"
-            class="full-width"
-            clearable
-          >
-            <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="关联方式" required>
-          <div class="relation-mode-wrapper">
-            <el-radio-group
-              v-model="relationMode"
-              class="relation-mode-group"
-              @change="handleModeChange"
-            >
-              <el-radio value="major">按专业</el-radio>
-              <el-radio value="trainingLevel">按层次</el-radio>
-            </el-radio-group>
-            <div class="form-hint">
-              <span v-if="relationMode === 'major'"
-                >该方案关联特定专业，适用于同一专业的培养方案</span
-              >
-              <span v-else-if="relationMode === 'trainingLevel'"
-                >该方案关联特定培养层次，适用于跨专业的统一方案</span
-              >
-            </div>
-          </div>
-        </el-form-item>
-
-        <el-form-item label="关联数据" required>
-          <el-select
-            v-if="relationMode === 'major'"
-            v-model="form.majorId"
-            placeholder="请选择专业类别"
-            class="full-width"
-          >
-            <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
-          </el-select>
-          <el-select
-            v-else
-            v-model="form.trainingLevelId"
-            placeholder="请选择培养层次"
-            class="full-width"
-          >
-            <el-option
-              v-for="level in trainingLevels"
-              :key="level.id"
-              :label="level.name"
-              :value="level.id"
-            />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="版本">
-          <el-input v-model="form.version" placeholder="如：v1.0" />
-        </el-form-item>
-        <el-form-item label="适用入学年份">
-          <div class="apply-year-row">
-            <el-input-number
-              v-model="form.applyFromYear"
-              :min="2000"
-              :max="2100"
-              :controls="false"
-              placeholder="起始（不限）"
-              class="apply-year-input"
-            />
-            <span class="apply-year-sep">~</span>
-            <el-input-number
-              v-model="form.applyToYear"
-              :min="2000"
-              :max="2100"
-              :controls="false"
-              placeholder="截止（不限）"
-              class="apply-year-input"
-            />
-          </div>
-          <div class="form-hint">
-            按班级入学年份区分方案版本，留空表示不限。如 V1.0 填 2025~2025，V2.0 填 2026~留空
-          </div>
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
-      </template>
-    </el-dialog>
+    <!-- 新增/编辑方案弹窗 -->
+    <PlanFormDialog
+      v-model:visible="dialogVisible"
+      :plan="editingPlan"
+      :colleges="colleges"
+      :majors="majors"
+      :training-levels="trainingLevels"
+      :saving="saving"
+      @save="handleSave"
+    />
 
     <!-- 删除确认弹窗 -->
     <DeleteConfirmDialog
@@ -268,53 +174,12 @@
     </DeleteConfirmDialog>
 
     <!-- 派生新版本弹窗：修订培养方案时，新年级使用新版本（复制课程/学期/教材） -->
-    <el-dialog
-      v-model="newVersionVisible"
-      title="派生新版本"
-      width="var(--dialog-width-lg)"
-      :fullscreen="isMobile"
-      destroy-on-close
-    >
-      <el-form label-width="130px">
-        <el-form-item label="源方案">
-          <span>{{ newVersionSource?.name }}</span>
-        </el-form-item>
-        <el-form-item label="新方案名称" required>
-          <el-input
-            v-model="newVersionForm.name"
-            placeholder="如：高级工人培V2.0"
-            maxlength="200"
-          />
-        </el-form-item>
-        <el-form-item label="版本号">
-          <el-input
-            v-model="newVersionForm.version"
-            placeholder="如：V2.0（留空则按源方案版本自动递增）"
-          />
-        </el-form-item>
-        <el-form-item label="起始入学年份" required>
-          <el-input-number
-            v-model="newVersionForm.applyFromYear"
-            :min="2000"
-            :max="2100"
-            :controls="false"
-          />
-          <div class="form-hint">新版本自此入学年份起适用（如 2026 表示 2026 级及以后）</div>
-        </el-form-item>
-        <el-form-item label="旧方案处理">
-          <el-checkbox v-model="newVersionForm.updateSourceEndYear">
-            同步将旧方案适用止年收窄为起始年份前一年
-          </el-checkbox>
-          <div class="form-hint">推荐勾选：保证旧年级继续匹配旧版本方案</div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="newVersionVisible = false">取消</el-button>
-        <el-button type="primary" :loading="newVersionSaving" @click="handleNewVersionSave">
-          保存
-        </el-button>
-      </template>
-    </el-dialog>
+    <PlanNewVersionDialog
+      v-model:visible="newVersionVisible"
+      :source="newVersionSource"
+      :saving="newVersionSaving"
+      @save="handleNewVersionSave"
+    />
   </div>
 </template>
 
@@ -332,6 +197,8 @@ import EmptyState from '../../components/EmptyState.vue';
 import PageHeader from '../../components/PageHeader.vue';
 import DeleteConfirmDialog from '../../components/DeleteConfirmDialog.vue';
 import ListErrorState from '../../components/ListErrorState.vue';
+import PlanFormDialog from './components/PlanFormDialog.vue';
+import PlanNewVersionDialog from './components/PlanNewVersionDialog.vue';
 
 defineOptions({ name: 'PlanList' });
 
@@ -376,27 +243,8 @@ watch(filteredList, (l) => {
 });
 const dialogVisible = ref(false);
 const saving = ref(false);
-const relationMode = ref('major'); // 'major' 或 'trainingLevel'
-const form = ref({
-  id: null,
-  name: '',
-  collegeId: null,
-  majorId: null,
-  trainingLevelId: null,
-  version: '',
-  applyFromYear: null,
-  applyToYear: null,
-  description: '',
-});
-
-// 表单引用与校验规则
-const formRef = ref(null);
-const rules = {
-  name: [
-    { required: true, message: '请输入方案名称', trigger: 'blur' },
-    { min: 2, max: 200, message: '名称长度应在 2-200 个字符之间', trigger: 'blur' },
-  ],
-};
+// 编辑时传入方案行，新增时为 null（表单初始化由 PlanFormDialog 内部完成）
+const editingPlan = ref(null);
 
 // 使用排序 composable（针对 filteredList）
 const { handleMoveUp, handleMoveDown } = useSortable(filteredList, updatePlan, silentReload, {
@@ -443,86 +291,17 @@ function handleFilterChange() {
   // filteredList 是 computed，自动响应 filterCollegeId 变化
 }
 
-function handleModeChange(mode) {
-  if (mode === 'major') {
-    // 按专业模式：清空层次
-    form.value.trainingLevelId = null;
-  } else {
-    // 按层次模式：清空专业
-    form.value.majorId = null;
-  }
-}
-
 function openDialog(row) {
-  if (row) {
-    form.value = {
-      ...row,
-      collegeId: row.collegeId || null,
-      trainingLevelId: row.trainingLevelId || null,
-    };
-
-    // 根据已有数据确定关联模式（优先判断层次）
-    if (row.trainingLevelId) {
-      relationMode.value = 'trainingLevel';
-    } else {
-      relationMode.value = 'major';
-    }
-  } else {
-    form.value = {
-      id: null,
-      name: '',
-      collegeId: null,
-      majorId: null,
-      trainingLevelId: null,
-      version: '',
-      applyFromYear: null,
-      applyToYear: null,
-      description: '',
-    };
-    relationMode.value = 'major';
-  }
+  editingPlan.value = row || null;
   dialogVisible.value = true;
 }
 
-async function handleSave() {
-  if (!formRef.value) return;
-  try {
-    await formRef.value.validate();
-  } catch {
-    return;
-  }
-
-  // 根据关联模式验证必填项
-  if (relationMode.value === 'major' && !form.value.majorId) {
-    return ElMessage.warning('请选择专业类别');
-  }
-  if (relationMode.value === 'trainingLevel' && !form.value.trainingLevelId) {
-    return ElMessage.warning('请选择培养层次');
-  }
-
-  // 适用入学年份区间合法性校验（与后端 validateApplyYearRange 同口径）
-  if (
-    form.value.applyFromYear != null &&
-    form.value.applyToYear != null &&
-    form.value.applyFromYear > form.value.applyToYear
-  ) {
-    return ElMessage.warning('适用入学年份起始不能大于截止');
-  }
-
+// PlanFormDialog 校验通过后回调，此处只负责接口调用与刷新
+async function handleSave(data) {
   saving.value = true;
   try {
-    const data = {
-      name: form.value.name,
-      collegeId: form.value.collegeId || null,
-      majorId: form.value.majorId || null,
-      trainingLevelId: form.value.trainingLevelId || null,
-      version: form.value.version,
-      applyFromYear: form.value.applyFromYear ?? null,
-      applyToYear: form.value.applyToYear ?? null,
-      description: form.value.description,
-    };
-    if (form.value.id) {
-      await updatePlan(form.value.id, data);
+    if (editingPlan.value?.id) {
+      await updatePlan(editingPlan.value.id, data);
     } else {
       await createPlan(data);
     }
@@ -546,59 +325,17 @@ function formatApplyYears(row) {
 const newVersionVisible = ref(false);
 const newVersionSaving = ref(false);
 const newVersionSource = ref(null);
-const newVersionForm = ref({
-  name: '',
-  version: '',
-  applyFromYear: null,
-  updateSourceEndYear: true,
-});
-
-/**
- * 从源版本号递增主版本号（与后端 incrementVersion 同规则）：
- * 首个数字段 +1，存在次版本号（.x）则归零，如 "V1.0" → "V2.0"、"V1.2" → "V2.0"。
- */
-function incrementVersion(version) {
-  if (version == null || String(version).trim() === '') return '';
-  const v = String(version);
-  const m = v.match(/^(.*?)(\d+)(\.\d+)?(.*)$/);
-  if (!m) return v;
-  const [, prefix, major, minor, suffix] = m;
-  const nextMajor = Number(major) + 1;
-  const majorStr =
-    major.length > 1 && major.startsWith('0')
-      ? String(nextMajor).padStart(major.length, '0')
-      : String(nextMajor);
-  return `${prefix}${majorStr}${minor ? '.0' : ''}${suffix}`;
-}
 
 function openNewVersionDialog(row) {
   newVersionSource.value = row;
-  newVersionForm.value = {
-    name: `${row.name}（新版本）`,
-    // 默认预填源版本号递增结果（如 V1.0 → V2.0），用户可修改
-    version: incrementVersion(row.version),
-    // 默认预填当前自然年，用户可按实际招生年级调整
-    applyFromYear: new Date().getFullYear(),
-    updateSourceEndYear: true,
-  };
   newVersionVisible.value = true;
 }
 
-async function handleNewVersionSave() {
-  if (!newVersionForm.value.name?.trim()) {
-    return ElMessage.warning('请输入新方案名称');
-  }
-  if (newVersionForm.value.applyFromYear == null) {
-    return ElMessage.warning('请填写起始入学年份');
-  }
+// PlanNewVersionDialog 校验通过后回调，此处只负责接口调用与刷新
+async function handleNewVersionSave(payload) {
   newVersionSaving.value = true;
   try {
-    await createPlanNewVersion(newVersionSource.value.id, {
-      name: newVersionForm.value.name.trim(),
-      version: newVersionForm.value.version,
-      applyFromYear: newVersionForm.value.applyFromYear,
-      updateSourceEndYear: newVersionForm.value.updateSourceEndYear,
-    });
+    await createPlanNewVersion(newVersionSource.value.id, payload);
     ElMessage.success('新版本创建成功，请前往新方案确认课程差异');
     newVersionVisible.value = false;
     await silentReload();
@@ -695,36 +432,3 @@ onActivated(() => {
   }
 });
 </script>
-
-<style scoped>
-.relation-mode-wrapper {
-  display: flex;
-  flex-direction: column;
-}
-
-.relation-mode-group {
-  display: flex;
-  gap: var(--space-4);
-}
-
-.form-hint {
-  margin-top: var(--space-3);
-  font-size: var(--font-size-body-sm);
-  color: var(--el-text-color-secondary);
-  line-height: 1.5;
-}
-
-.apply-year-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.apply-year-input {
-  width: 130px;
-}
-
-.apply-year-sep {
-  color: var(--text-secondary);
-}
-</style>

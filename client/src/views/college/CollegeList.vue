@@ -87,7 +87,6 @@
           v-model:page-size="pageSize"
           :total="filteredList.length"
           :page-sizes="[20, 50, 100]"
-          layout="total, sizes, prev, pager, next"
           :layout="isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'"
           background
           @size-change="currentPage = 1"
