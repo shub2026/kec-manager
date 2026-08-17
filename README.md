@@ -33,7 +33,7 @@
 | 数据库 | SQLite（WAL 模式，单实例部署） |
 | 认证 | JWT 双令牌（Access 15min + Refresh 7d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt |
 | 安全 | Helmet + 速率限制 + XSS 清洗 + 输入校验 + 审计日志 |
-| 测试 | Vitest + Supertest（后端 1577 用例 / 前端 227 用例） |
+| 测试 | Vitest + Supertest（后端 1577 用例 / 前端 267 用例） |
 | 部署 | Docker（推荐）/ PM2 进程管理 + Nginx 反向代理 + 一键部署脚本 |
 
 ---
@@ -133,7 +133,7 @@ npm run dev              # Vite 开发服务器（:5173）
 npm run build            # 生产构建
 npm run preview          # 预览构建产物
 npm run analyze          # 包体积分析
-npm test                 # Vitest（24 个测试文件 / 219 用例）
+npm test                 # Vitest（29 个测试文件 / 267 用例）
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化

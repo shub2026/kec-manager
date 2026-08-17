@@ -223,21 +223,13 @@
 
 <script setup>
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
 import { exportTeachingArrange } from '../../api/export';
 import { downloadBlob } from '../../utils/download';
-import {
-  getCourseClasses,
-  getCourseTeachers,
-  getCourseOverview,
-  assignTeacher,
-  deleteAssignment,
-  resetAutoAssignments,
-  toggleAssignmentLock,
-  batchLockAssignments,
-} from '../../api/teachingArrange';
+import { getCourseClasses, getCourseTeachers, getCourseOverview } from '../../api/teachingArrange';
+import { useArrangeAssign } from './composables/useArrangeAssign';
 import { useAutoArrange } from './composables/useAutoArrange';
 import { useBatchArrange } from './composables/useBatchArrange';
 import { useOptimize } from './composables/useOptimize';
@@ -342,10 +334,35 @@ const exporting = ref(false);
 // 教师选择弹窗
 const teacherDialogRef = ref(null);
 
-// 重置排课状态
-const resetConfirmVisible = ref(false);
-const resetting = ref(false);
-const resetScope = ref('current');
+// 学期与设置 store（写操作 composable 依赖，需先于其它 composable 初始化）
+const settingsStore = useSettingsStore();
+const settingsRef = computed(() => settingsStore.settings);
+
+// 使用指派/锁定/重置写操作 composable（含历史学期权限控制）
+const {
+  historicalReadOnly,
+  historicalGuarded,
+  confirmHistoricalEdit,
+  openTeacherSelect,
+  onTeacherConfirm,
+  handleRemoveAssignment,
+  handleToggleLock,
+  handleBatchLockAll,
+  handleBatchUnlockAll,
+  resetConfirmVisible,
+  resetting,
+  resetScope,
+  handleResetCommand,
+  handleReset,
+} = useArrangeAssign({
+  selectedCourseId,
+  selectedSemester,
+  globalCurrentSemester,
+  settingsRef,
+  teacherDialogRef,
+  loadData,
+  refreshArrangeData,
+});
 
 // 使用自动排课 composable（进度状态整体交给 useArrangeProgress 合并代理）
 const autoArrange = useAutoArrange({
@@ -424,7 +441,6 @@ const {
 });
 
 // --- 学期与课程 ---
-const settingsStore = useSettingsStore();
 
 // 禁忌搜索开关状态（来自系统设置），用于排课进度弹窗直观提示是否启用
 const tabuSearchEnabled = computed(
@@ -443,21 +459,6 @@ async function loadSemester() {
     }
   }
 }
-
-// 是否正在查看历史学期（非全局当前学期）
-const isHistoricalSemester = computed(
-  () => !!selectedSemester.value && selectedSemester.value !== globalCurrentSemester.value
-);
-
-// 历史学期是否处于只读模式（系统设置开关关闭时：禁止编辑）
-const historicalReadOnly = computed(
-  () => isHistoricalSemester.value && settingsStore.settings?.allowHistoricalEdit?.value !== 'true'
-);
-
-// 历史学期是否处于「编辑前二次确认」模式（系统设置开关开启时：可编辑但需确认）
-const historicalGuarded = computed(
-  () => isHistoricalSemester.value && settingsStore.settings?.allowHistoricalEdit?.value === 'true'
-);
 
 // 学期切换：重载当前课程的班级与教师数据；未选科目时重载课程概览
 function onSemesterChange() {
@@ -531,39 +532,6 @@ async function refreshArrangeData() {
     await loadData();
   } else {
     await loadOverview();
-  }
-}
-
-/**
- * 历史学期写操作权限控制。
- * - 非历史学期：直接放行。
- * - 历史学期且开关关闭（只读模式）：拦截，禁止编辑并提示用户去系统设置开启。
- * - 历史学期且开关开启：弹出二次确认，用户确认后放行，取消则返回 false。
- * @returns {Promise<boolean>}
- */
-async function confirmHistoricalEdit() {
-  if (!isHistoricalSemester.value) return true;
-  // 开关关闭：历史学期为只读模式，禁止任何写操作
-  if (historicalReadOnly.value) {
-    ElMessage.warning(
-      '当前历史学期为只读模式，禁止编辑。如需编辑请在系统设置 → 排课优化 开启「允许编辑历史学期」。'
-    );
-    return false;
-  }
-  // 开关开启：编辑前二次确认
-  try {
-    await ElMessageBox.confirm(
-      `您正在修改历史学期「${selectedSemester.value}」的排课数据，此操作可能影响已结课记录，确认继续吗？`,
-      '编辑历史学期确认',
-      {
-        type: 'warning',
-        confirmButtonText: '确认修改',
-        cancelButtonText: '取消',
-      }
-    );
-    return true;
-  } catch {
-    return false;
   }
 }
 
@@ -643,117 +611,9 @@ async function loadData() {
   }
 }
 
-// --- 教师选择 ---
-function openTeacherSelect(row) {
-  if (historicalReadOnly.value) {
-    ElMessage.warning(
-      '当前历史学期为只读模式，禁止编辑。如需编辑请在系统设置 → 排课优化 开启「允许编辑历史学期」。'
-    );
-    return;
-  }
-  teacherDialogRef.value?.open(row);
-}
-
-async function onTeacherConfirm({ classId, teacherId, weeklyHours }) {
-  if (!(await confirmHistoricalEdit())) return;
-  try {
-    await assignTeacher({
-      classId,
-      courseId: selectedCourseId.value,
-      semester: selectedSemester.value,
-      teacherId,
-      weeklyHours,
-    });
-    teacherDialogRef.value?.close();
-    ElMessage.success('安排成功');
-    await loadData();
-  } catch (e) {
-    ElMessage.error('安排失败');
-  }
-}
-
-async function handleRemoveAssignment(row) {
-  if (!row.assignment?.id) return;
-  if (!(await confirmHistoricalEdit())) return;
-  try {
-    await deleteAssignment(row.assignment.id);
-    ElMessage.success('已移除安排');
-    await loadData();
-  } catch (e) {
-    ElMessage.error('操作失败');
-  }
-}
-
-// --- 锁定/解锁 ---
-async function handleToggleLock(row) {
-  if (!row.assignment?.id) return;
-  if (!(await confirmHistoricalEdit())) return;
-  const newLocked = !row.assignment.isLocked;
-  try {
-    await toggleAssignmentLock(row.assignment.id, newLocked);
-    ElMessage.success(newLocked ? '已锁定' : '已解锁');
-    await loadData();
-  } catch (e) {
-    ElMessage.error('操作失败');
-  }
-}
-
-async function handleBatchLockAll() {
-  if (!(await confirmHistoricalEdit())) return;
-  try {
-    const res = await batchLockAssignments({
-      semester: selectedSemester.value,
-      courseId: selectedCourseId.value,
-      locked: true,
-    });
-    ElMessage.success(res.message || '已锁定');
-    await loadData();
-  } catch (e) {
-    ElMessage.error('操作失败');
-  }
-}
-
-async function handleBatchUnlockAll() {
-  if (!(await confirmHistoricalEdit())) return;
-  try {
-    const res = await batchLockAssignments({
-      semester: selectedSemester.value,
-      courseId: selectedCourseId.value,
-      locked: false,
-    });
-    ElMessage.success(res.message || '已解锁');
-    await loadData();
-  } catch (e) {
-    ElMessage.error('操作失败');
-  }
-}
+// 教师指派/移除/锁定/批量锁定/重置逻辑已迁至 useArrangeAssign
 
 // 进度弹窗关闭处理已移至 useArrangeProgress
-
-// --- 重置 ---
-function handleResetCommand(command) {
-  resetScope.value = command;
-  resetConfirmVisible.value = true;
-}
-
-async function handleReset() {
-  resetting.value = true;
-  try {
-    if (!(await confirmHistoricalEdit())) return;
-    const payload = { semester: selectedSemester.value };
-    if (resetScope.value === 'current') {
-      payload.courseId = selectedCourseId.value;
-    }
-    const res = await resetAutoAssignments(payload);
-    ElMessage.success(res.message || '已重置');
-    resetConfirmVisible.value = false;
-    await refreshArrangeData();
-  } catch (e) {
-    ElMessage.error('重置失败');
-  } finally {
-    resetting.value = false;
-  }
-}
 
 // --- 导出 ---
 // scope: 'current' 导出当前科目（携带筛选条件）；'all' 导出全部科目（全量）
