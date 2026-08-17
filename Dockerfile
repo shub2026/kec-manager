@@ -33,6 +33,8 @@ WORKDIR /app/server
 
 # 配置国内 npm 镜像
 ENV npm_config_registry=https://registry.npmmirror.com
+# Prisma 引擎二进制走国内镜像（默认从 binaries.prisma.sh 下载，国内偏慢）
+ENV PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary/prisma
 
 # 复制后端依赖配置
 COPY server/package*.json ./
