@@ -58,6 +58,12 @@ vi.mock('../../services/semester.service.js', () => ({
   calcClassSemester: vi.fn(),
 }));
 
+// 合班伙伴映射（合班用例需避免真实 DB 查询）
+vi.mock('../../services/class-combination.service.js', () => ({
+  buildCombinationMemberMap: vi.fn().mockResolvedValue(new Map()),
+  formatPartnerNames: vi.fn().mockReturnValue(''),
+}));
+
 // ──────────────────────────────────────────────
 // 导入被测模块
 // ──────────────────────────────────────────────
@@ -283,5 +289,45 @@ describe('getCourseClasses — 课时汇总', () => {
     expect(data.summary.lockedCount).toBe(1); // 仅班级A锁定
     expect(data.classes[0].assignment.isLocked).toBe(true);
     expect(data.classes[1].assignment.isLocked).toBe(false);
+  });
+
+  // ── 场景 8: 合班班级 → summary 课时按教学单元去重 ──
+  it('合班班级 → summary 课时只计 1 次单元课时，班级计数逐班不变', async () => {
+    const classes = [
+      { classId: 1, className: '班级A', weeklyHours: 6, combinationId: 9 },
+      { classId: 2, className: '班级B', weeklyHours: 6, combinationId: 9 },
+      { classId: 3, className: '班级C', weeklyHours: 4 },
+    ];
+    mockGetClassesWithCourse.mockResolvedValue(classes);
+
+    // 合班单元展开为 2 行安排（每成员班一行）；班级C未安排
+    mockPrisma.teaching_assignments.findMany.mockResolvedValue([
+      {
+        class_id: 1,
+        teacher_id: 10,
+        is_auto: true,
+        is_locked: false,
+        teacher: { id: 10, name: '王老师', personnel_type: 'full_time' },
+      },
+      {
+        class_id: 2,
+        teacher_id: 10,
+        is_auto: true,
+        is_locked: false,
+        teacher: { id: 10, name: '王老师', personnel_type: 'full_time' },
+      },
+    ]);
+
+    const req = mockReq({ course_id: '1', semester: '2025-2026-2' });
+    const res = mockRes();
+    await getCourseClasses(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.summary.totalClasses).toBe(3); // 逐班口径不变
+    expect(data.summary.assignedCount).toBe(2);
+    expect(data.summary.unassignedCount).toBe(1);
+    expect(data.summary.totalCourseHours).toBe(10); // 合班 6（非 12）+ 独立班 4
+    expect(data.summary.assignedHours).toBe(6); // 合班单元只计 1 次
+    expect(data.summary.remainingHours).toBe(4);
   });
 });

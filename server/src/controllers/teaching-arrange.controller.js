@@ -16,6 +16,7 @@ import {
 import { calcClassSemester } from '../services/semester.service.js';
 import {
   dedupeTeachingUnits,
+  dedupeClassUnits,
   isCombinedUnit,
   resolveClassCourseTextbooks,
 } from '../services/teaching-statistics.service.js';
@@ -86,9 +87,17 @@ export async function getCourseClasses(req, res, next) {
     });
 
     // 汇总统计（基于周课时）
-    const totalCourseHours = classList.reduce((sum, c) => sum + c.weeklyHours, 0);
+    // 合班去重：合班成员班逐班展开且各带一份课时，课时聚合按逻辑教学单元只计 1 次；
+    // 班级计数字段维持逐班口径，与矩阵表逐班呈现一致
+    const { units, classUnitMap } = dedupeClassUnits(classList);
+    const totalCourseHours = units.reduce((sum, u) => sum + u.weeklyHours, 0);
     const assignedClasses = classList.filter((c) => c.assignment);
-    const assignedHours = assignedClasses.reduce((sum, c) => sum + c.weeklyHours, 0);
+    const assignedUnitKeys = new Set(
+      assignedClasses.map((c) => classUnitMap.get(c.classId)).filter(Boolean)
+    );
+    const assignedHours = units
+      .filter((u) => assignedUnitKeys.has(u.key))
+      .reduce((sum, u) => sum + u.weeklyHours, 0);
     const lockedCount = classList.filter((c) => c.assignment && c.assignment.isLocked).length;
     const inherentCount = classList.filter((c) => c.assignment && c.assignment.isInherent).length;
 

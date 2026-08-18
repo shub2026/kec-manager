@@ -64,6 +64,42 @@ export function isCombinedUnit(unit) {
 }
 
 /**
+ * 应排班级维度合班去重工具（课程级课时聚合用）
+ *
+ * 背景：getClassesWithCourse 返回的应排班级逐班展开，合班的成员班各带一份 weeklyHours；
+ * 直接逐班求和会把合班单元课时按成员班数量放大（与 dedupeTeachingUnits 同一问题的班级侧）。
+ *
+ * 归并规则：合班（combinationId 非空）成员班按 combinationId 合并为 1 个逻辑单元，
+ * 课时取代表班（首个成员班）值，与算法侧 mergeCombinedClasses 口径一致；
+ * 非合班班级各自独立成单元。
+ *
+ * @param {Array<Object>} classes 班级行数组，每项需含 classId、weeklyHours、combinationId
+ * @returns {{units: Array<Object>, classUnitMap: Map}}
+ *   units: 逻辑教学单元列表，每项 { key, combinationId, weeklyHours, memberClassIds }；
+ *   classUnitMap: classId → unitKey 映射，供安排行归属单元使用。
+ */
+export function dedupeClassUnits(classes) {
+  const unitMap = new Map();
+  const classUnitMap = new Map();
+  for (const c of classes) {
+    const unitKey = c.combinationId != null ? `comb:${c.combinationId}` : `cls:${c.classId}`;
+    let unit = unitMap.get(unitKey);
+    if (!unit) {
+      unit = {
+        key: unitKey,
+        combinationId: c.combinationId ?? null,
+        weeklyHours: c.weeklyHours,
+        memberClassIds: [],
+      };
+      unitMap.set(unitKey, unit);
+    }
+    unit.memberClassIds.push(c.classId);
+    classUnitMap.set(c.classId, unitKey);
+  }
+  return { units: [...unitMap.values()], classUnitMap };
+}
+
+/**
  * 批量解析“班级 × 课程”当前学期使用的教材（培养方案 → 学期匹配 → plan_textbooks）
  *
  * 自 getStatistics 内联逻辑提取，供课时统计接口与课时统计导出共用，

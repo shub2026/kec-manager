@@ -3,7 +3,7 @@ import { TEXTBOOK_COHESION } from '../../constants/index.js';
 import { isClassMatchPlan, findBestMatchPlan } from '../plan.service.js';
 // 学期相关函数统一收敛至 semester.service.js
 import { parseSemester, calcClassSemester, getActiveClassFilter } from '../semester.service.js';
-import { dedupeTeachingUnits } from '../teaching-statistics.service.js';
+import { dedupeTeachingUnits, dedupeClassUnits } from '../teaching-statistics.service.js';
 
 // 重新导出 parseSemester，保持 `export { parseSemester, ... } from './arrange/queries.js'` 链路
 export { parseSemester };
@@ -197,20 +197,27 @@ export async function getCourseOverviewAggregate(semester, getClassesFn = getCla
   // 逐课程计算应排班级与总课时（与 getCourseClasses 同一链路，口径一致）
   // 修复：assignedHours 不再取安排行的快照 weekly_hours 求和——
   // 培养方案周课时调整后快照会过期，导致概览剩余课时变负而明细页正常；
-  // 现仅统计当前应排班级内的安排，课时一律以当前方案 weeklyHours 为准
+  // 现仅统计当前应排班级内的安排，课时一律以当前方案 weeklyHours 为准。
+  // 合班去重：应排班级与安排行均逐班展开（成员班各带一份课时），
+  // 课时聚合按逻辑教学单元去重（dedupeClassUnits），合班单元只计 1 次；
+  // 班级计数字段维持逐班口径，服务"已安排 X/Y 个班级"的排课工作流展示。
   const overview = [];
   for (const course of courses) {
     const classes = await getClassesFn(course.id, semester);
-    const totalCourseHours = classes.reduce((sum, c) => sum + c.weeklyHours, 0);
+    const { units, classUnitMap } = dedupeClassUnits(classes);
+    const totalCourseHours = units.reduce((sum, u) => sum + u.weeklyHours, 0);
     const classHourMap = new Map(classes.map((c) => [c.classId, c.weeklyHours]));
     const validAssignments = (assignmentsByCourse.get(course.id) || []).filter((a) =>
       classHourMap.has(a.class_id)
     );
     const teacherIds = new Set(validAssignments.map((a) => a.teacher_id));
-    const assignedHours = validAssignments.reduce(
-      (sum, a) => sum + (classHourMap.get(a.class_id) || 0),
-      0
+    // 已排课时按单元去重：合班单元的 N 行展开安排只计 1 次单元课时
+    const assignedUnitKeys = new Set(
+      validAssignments.map((a) => classUnitMap.get(a.class_id)).filter(Boolean)
     );
+    const assignedHours = units
+      .filter((u) => assignedUnitKeys.has(u.key))
+      .reduce((sum, u) => sum + u.weeklyHours, 0);
     overview.push({
       courseId: course.id,
       courseName: course.name,

@@ -242,6 +242,72 @@ describe('getCourseOverviewAggregate', () => {
       remainingHours: 0,
     });
   });
+
+  it('合班去重：成员班逐班展开 → 总课时/已排课时只计 1 次单元课时', async () => {
+    mockPrisma.courses.findMany.mockResolvedValue([{ id: 6, name: '大学数学', type: 'public' }]);
+    // 合班单元展开为 2 行安排（每成员班一行，同课时同教师）
+    mockPrisma.teaching_assignments.findMany.mockResolvedValue([
+      {
+        course_id: 6,
+        class_id: 601,
+        teacher_id: 60,
+        weekly_hours: 6,
+        is_locked: false,
+        is_inherent: false,
+      },
+      {
+        course_id: 6,
+        class_id: 602,
+        teacher_id: 60,
+        weekly_hours: 6,
+        is_locked: false,
+        is_inherent: false,
+      },
+    ]);
+    mockGetClassesWithCourse.mockResolvedValue([
+      { classId: 601, weeklyHours: 6, combinationId: 9 },
+      { classId: 602, weeklyHours: 6, combinationId: 9 },
+      { classId: 603, weeklyHours: 4 }, // 非合班班级
+    ]);
+
+    const data = await getCourseOverviewAggregate('2025-2026-2', mockGetClassesWithCourse);
+    expect(data[0]).toEqual({
+      courseId: 6,
+      courseName: '大学数学',
+      courseType: 'public',
+      teacherCount: 1,
+      totalClasses: 3, // 班级计数维持逐班口径
+      assignedCount: 2,
+      lockedCount: 0,
+      inherentCount: 0,
+      totalCourseHours: 10, // 合班 6（非 12）+ 独立班 4
+      assignedHours: 6, // 合班单元只计 1 次
+      remainingHours: 4,
+    });
+  });
+
+  it('合班单元仅部分成员班有安排行 → 整个单元视为已排', async () => {
+    mockPrisma.courses.findMany.mockResolvedValue([{ id: 7, name: '大学英语', type: 'public' }]);
+    mockPrisma.teaching_assignments.findMany.mockResolvedValue([
+      {
+        course_id: 7,
+        class_id: 701,
+        teacher_id: 70,
+        weekly_hours: 6,
+        is_locked: false,
+        is_inherent: false,
+      },
+    ]);
+    mockGetClassesWithCourse.mockResolvedValue([
+      { classId: 701, weeklyHours: 6, combinationId: 10 },
+      { classId: 702, weeklyHours: 6, combinationId: 10 },
+    ]);
+
+    const data = await getCourseOverviewAggregate('2025-2026-2', mockGetClassesWithCourse);
+    expect(data[0].totalCourseHours).toBe(6);
+    expect(data[0].assignedHours).toBe(6);
+    expect(data[0].remainingHours).toBe(0);
+  });
 });
 
 // ════════════════════════════════════════════════
