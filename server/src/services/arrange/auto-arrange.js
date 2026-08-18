@@ -1595,6 +1595,8 @@ export async function autoArrange(
     // F12 修复：意向教师供给不足前置预警
     // 意向是硬约束（全链路），意向学院/层次内供给 < 教师容量时该教师注定欠课时，
     // 提前输出 warning 避免像"蒋梅问题"一样事后逐人排查
+    // prefSupplyWarnedIds：供标准课时保障轮后的欠课时告警去重，避免同一教师重复告警
+    const prefSupplyWarnedIds = new Set();
     for (const t of teacherConstraints) {
       if (!t.schedulingCollegeIds?.length && !t.schedulingLevelIds?.length) continue;
       const cap = maxCapFn(t);
@@ -1605,6 +1607,7 @@ export async function autoArrange(
       }
       if (prefSupply < cap) {
         warnings.push(`教师${t.name}意向范围内供给${prefSupply}h < 容量${cap}h，无法排满`);
+        prefSupplyWarnedIds.add(t.id);
       }
     }
 
@@ -1663,8 +1666,10 @@ export async function autoArrange(
     }
 
     // --- 辅助函数：教师从可用班级中拿取，直到课时满 ---
-    function takeClassesForTeacher(teacher, availableClasses, strictPrefCheck = true) {
-      const cap = maxCapFn(teacher);
+    // capOverride：标准课时保障轮传入，覆写容量上限（到 standard 即停，不吃到 max）；
+    // 其余调用点不传，行为不变
+    function takeClassesForTeacher(teacher, availableClasses, strictPrefCheck = true, capOverride = null) {
+      const cap = capOverride ?? maxCapFn(teacher);
       const remainingCap = cap - teacher.assignedHours;
       if (remainingCap <= 0) return [];
 
@@ -1759,13 +1764,15 @@ export async function autoArrange(
     //   strictPref=false → 阶段2（无意向教师，isPrefMatch 对所有教师返回 true）
     // 每位教师连续拿组（天然满足"先拿完第一本，再拿第二本"），
     // 直到容量不足、教材名额用尽或无可拿组。
-    function takeGroupsForTeacher(teacher, groupAvailable, strictPref, tierZeroOnly = false) {
+    function takeGroupsForTeacher(teacher, groupAvailable, strictPref, tierZeroOnly = false, capOverride = null) {
       // 个人开关教师上限覆写为 1（不受全局 ENABLED 影响），否则跟随全局配置
       const maxTb = teacherMaxTextbooks(teacher);
       const useTbLimit = maxTb > 0;
+      // 保障轮传入 capOverride 时到标准课时即停，否则吃到当前模式容量上限
+      const effectiveCap = capOverride ?? maxCapFn(teacher);
 
       for (;;) {
-        const remainingCap = maxCapFn(teacher) - teacher.assignedHours;
+        const remainingCap = effectiveCap - teacher.assignedHours;
         if (remainingCap <= 0) break;
 
         let best = null;
@@ -1837,7 +1844,7 @@ export async function autoArrange(
         const matchingClasses = strictPref
           ? best.available.filter((cls) => isPrefMatch(teacher, cls))
           : best.available;
-        const taken = takeClassesForTeacher(teacher, matchingClasses, strictPref);
+        const taken = takeClassesForTeacher(teacher, matchingClasses, strictPref, capOverride);
         if (taken.length === 0) break; // 防死循环兜底
         for (const cls of taken) {
           recordAssignment(teacher, cls);
@@ -1904,6 +1911,46 @@ export async function autoArrange(
     for (const [tbKey, available] of groupAvailable) {
       logger.debug(`  [阶段1] 教材组 ${tbKey}: 剩余 ${available.length} 个班级`);
     }
+
+    // ================================================================
+    // 标准课时保障轮（阶段1 与 阶段2 之间）
+    // 五阶段贪心按"剩余容量降序"选教师，大容量教师先整组吃光班级，
+    // 导致教师充足时仍随机出现个别教师欠标准课时。本轮让有缺口的教师
+    // 按 专职 > 兼职 > 外聘、缺口降序 优先拿班，拿到标准课时即停
+    // （capOverride = min(当前模式容量, standardCap)，不吃到 max），
+    // 把超额课时留给后续阶段分配。
+    // 复用 takeGroupsForTeacher：意向硬约束、教材上限、单教材开关、
+    // 学院内聚、tier 0 已持教材组优先等规则全部照旧生效。
+    // ================================================================
+    logger.info('[标准课时保障轮] 按专职>兼职>外聘优先补足标准课时');
+
+    const personnelGuaranteeRank = (t) => {
+      const type = t.personnelType || 'full_time';
+      if (type === 'full_time') return 0;
+      if (type === 'part_time') return 1;
+      return 2; // external 及未知类别
+    };
+    const guaranteeCandidates = teacherConstraints
+      .filter((t) => t.standardCap - t.assignedHours > 0)
+      .sort((a, b) => {
+        const rankDiff = personnelGuaranteeRank(a) - personnelGuaranteeRank(b);
+        if (rankDiff !== 0) return rankDiff;
+        const gapDiff = b.standardCap - b.assignedHours - (a.standardCap - a.assignedHours);
+        if (gapDiff !== 0) return gapDiff;
+        const capLeftDiff = maxCapFn(b) - b.assignedHours - (maxCapFn(a) - a.assignedHours);
+        if (capLeftDiff !== 0) return capLeftDiff;
+        return a.id - b.id; // 确定性兜底
+      });
+
+    for (const teacher of guaranteeCandidates) {
+      if (teacher.standardCap - teacher.assignedHours <= 0) continue;
+      const capOverride = Math.min(maxCapFn(teacher), teacher.standardCap);
+      const hasPref = teacher.schedulingCollegeIds?.length > 0 || teacher.schedulingLevelIds?.length > 0;
+      takeGroupsForTeacher(teacher, groupAvailable, hasPref, false, capOverride);
+    }
+    logger.debug(
+      `[标准课时保障轮] ${guaranteeCandidates.length} 位有缺口教师参与，分配后累计 ${assignments.length} 条`
+    );
 
     // ================================================================
     // 第二阶段：处理无指定意向的教师（按课时容量去拿）
@@ -2136,6 +2183,18 @@ export async function autoArrange(
           }
         }
         logger.warn(`[禁忌搜索] 优化异常，已跳过并回滚教师状态: ${tsErr.message}`);
+      }
+    }
+
+    // === 标准课时欠课时告警 ===
+    // 在全部阶段（含置换回溯/禁忌搜索）结束后评估，避免中途误报；
+    // 与 F12 意向供给预警按教师 id 去重（F12 先记录的保留）
+    for (const t of teacherConstraints) {
+      const remainingGap = t.standardCap - t.assignedHours;
+      if (remainingGap > 0 && !prefSupplyWarnedIds.has(t.id)) {
+        warnings.push(
+          `教师${t.name}标准课时未满足（本课程已排 ${t.assignedHours} h，距标准还差 ${remainingGap} h），受意向/教材/学院约束限制`
+        );
       }
     }
 
