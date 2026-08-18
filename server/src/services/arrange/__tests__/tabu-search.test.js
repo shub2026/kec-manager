@@ -317,6 +317,82 @@ describe('tabuOptimize — 硬约束', () => {
 
     expect(unassigned.length).toBe(1);
   });
+
+  // ── 只带一本教材开关（教师个人维度硬约束，canAccept 拒收新教材移动）──
+  it('单教材开关：受限教师拒收会引入第 2 本教材的未分配班级', () => {
+    const t1 = makeTeacher({
+      id: 1,
+      name: 'T1',
+      standardCap: 20,
+      fullCap: 20,
+      singleTextbookOnly: true,
+      assignedTextbookIds: new Set([1]), // 已持教材 1
+    });
+    const cls1 = makeClass({ classId: 100, textbookIds: [1], weeklyHours: 4 });
+    const cls2 = makeClass({ classId: 101, textbookIds: [2], weeklyHours: 4 }); // 新教材
+
+    const assignments = [makeAssignment(t1, cls1)];
+    const unassigned = [{ classId: 101, className: 'C2', weeklyHours: 4, reason: 'test' }];
+    const classMap = new Map([
+      [100, cls1],
+      [101, cls2],
+    ]);
+
+    tabuOptimize(assignments, unassigned, [t1], 'full', classMap, 1, '2025-2026-2');
+
+    // 引入第 2 本教材被硬拒绝
+    expect(assignments.length).toBe(1);
+    expect(unassigned.length).toBe(1);
+  });
+
+  it('单教材开关：受限教师可接收同教材班级', () => {
+    const t1 = makeTeacher({
+      id: 1,
+      name: 'T1',
+      standardCap: 20,
+      fullCap: 20,
+      singleTextbookOnly: true,
+      assignedTextbookIds: new Set([1]),
+    });
+    const cls1 = makeClass({ classId: 100, textbookIds: [1], weeklyHours: 4 });
+    const cls2 = makeClass({ classId: 101, textbookIds: [1], weeklyHours: 4 }); // 同教材
+
+    const assignments = [makeAssignment(t1, cls1)];
+    const unassigned = [{ classId: 101, className: 'C2', weeklyHours: 4, reason: 'test' }];
+    const classMap = new Map([
+      [100, cls1],
+      [101, cls2],
+    ]);
+
+    tabuOptimize(assignments, unassigned, [t1], 'full', classMap, 1, '2025-2026-2');
+
+    expect(assignments.length).toBe(2);
+    expect(unassigned.length).toBe(0);
+  });
+
+  it('对照：未开启开关的教师可接第 2 本教材（全局 2 本上限）', () => {
+    const t1 = makeTeacher({
+      id: 1,
+      name: 'T1',
+      standardCap: 20,
+      fullCap: 20,
+      assignedTextbookIds: new Set([1]),
+    });
+    const cls1 = makeClass({ classId: 100, textbookIds: [1], weeklyHours: 4 });
+    const cls2 = makeClass({ classId: 101, textbookIds: [2], weeklyHours: 4 });
+
+    const assignments = [makeAssignment(t1, cls1)];
+    const unassigned = [{ classId: 101, className: 'C2', weeklyHours: 4, reason: 'test' }];
+    const classMap = new Map([
+      [100, cls1],
+      [101, cls2],
+    ]);
+
+    tabuOptimize(assignments, unassigned, [t1], 'full', classMap, 1, '2025-2026-2');
+
+    expect(assignments.length).toBe(2);
+    expect(unassigned.length).toBe(0);
+  });
 });
 
 describe('tabuOptimize — 返回结构', () => {

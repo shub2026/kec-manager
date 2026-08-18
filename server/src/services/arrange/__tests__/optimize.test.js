@@ -278,6 +278,40 @@ describe('Optimize Service', () => {
       expect(teacher.assignedCollegeIds).toBeInstanceOf(Set);
       expect(teacher.inherentTextbookIds).toBeDefined();
     });
+
+    it('should pass through singleTextbookOnly flag in teacher constraints', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+
+      const mockAssignments = [mockAssignment(1, 1, 1), mockAssignment(2, 2, 1)];
+
+      mockAssignmentQueries(prisma, mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'Teacher 1', { single_textbook_only: true }),
+        mockTeacher(2, 'Teacher 2'), // 未开启开关
+      ]);
+
+      let capturedConstraints = null;
+      tabuOptimize.mockImplementation((assignments, unassigned, teacherConstraints) => {
+        capturedConstraints = teacherConstraints;
+        return {
+          improved: false,
+          iterations: 0,
+          scoreBefore: 0,
+          scoreAfter: 0,
+          delta: 0,
+          elapsed: 10,
+        };
+      });
+
+      await runOptimizeSchedule(1, 'standard');
+
+      expect(capturedConstraints).not.toBeNull();
+      const t1 = capturedConstraints.find((t) => t.id === 1);
+      const t2 = capturedConstraints.find((t) => t.id === 2);
+      expect(t1.singleTextbookOnly).toBe(true);
+      expect(t2.singleTextbookOnly).toBe(false);
+    });
   });
 
   describe('applyOptimizeResult', () => {

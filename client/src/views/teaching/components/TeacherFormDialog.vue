@@ -118,6 +118,10 @@
           class="filter-xl"
         />
       </el-form-item>
+      <el-form-item label="只带一本教材">
+        <el-switch v-model="form.singleTextbookOnly" />
+        <span class="switch-hint">开启后该教师本学期最多只能持有一本教材</span>
+      </el-form-item>
       <el-form-item label="备注">
         <el-input
           v-model="form.remark"
@@ -185,6 +189,7 @@ const defaultForm = {
   remark: null,
   affiliatedCollegeId: null,
   defaultWeeklyHours: null,
+  singleTextbookOnly: false,
   status: 'active',
   courseIds: [],
   collegeIds: [],
@@ -222,6 +227,7 @@ function open(row) {
     form.value = {
       ...row,
       birthDate: row.birthDate ? String(row.birthDate).substring(0, 7) : null,
+      singleTextbookOnly: !!row.singleTextbookOnly,
       affiliatedCollegeId: row.affiliatedCollege?.id || null,
       courseIds: row.courseList?.map((c) => c.id) || [],
       collegeIds: row.collegeList?.map((c) => c.id) || [],
@@ -253,6 +259,7 @@ async function handleSave() {
       remark: form.value.remark,
       affiliatedCollegeId: form.value.affiliatedCollegeId,
       defaultWeeklyHours: form.value.defaultWeeklyHours,
+      singleTextbookOnly: !!form.value.singleTextbookOnly,
       status: form.value.status || 'active',
       courseIds: form.value.courseIds,
       collegeIds: form.value.collegeIds,
@@ -271,5 +278,11 @@ defineExpose({ open, close });
 .field-limited {
   width: 100%;
   max-width: 320px;
+}
+/* 只带一本教材开关说明文字：弱化提示，与开关同行展示 */
+.switch-hint {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>

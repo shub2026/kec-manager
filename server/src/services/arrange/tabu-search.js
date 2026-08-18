@@ -125,6 +125,16 @@ function buildScoringProxy(teacher, state) {
 
 // ── 可行性检查（不修改状态） ──
 
+/**
+ * 教师有效教材上限：个人开关「只带一本教材」优先（恒为 1，不受全局 ENABLED 影响），
+ * 否则跟随 TEXTBOOK_COHESION 全局配置；返回 <=0 表示无教材约束
+ * （与 auto-arrange.js 同名函数逻辑一致；tabu-search 被 auto-arrange 导入，不可反向引用）
+ */
+function teacherMaxTextbooks(t) {
+  if (t?.singleTextbookOnly) return 1;
+  return TEXTBOOK_COHESION.ENABLED ? TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER : 0;
+}
+
 function canAccept(teacher, cls, state, mode) {
   const cap = mode === 'standard' ? teacher.standardCap : teacher.fullCap;
   // 容量检查
@@ -150,9 +160,9 @@ function canAccept(teacher, cls, state, mode) {
     return false;
   }
 
-  // 教材硬上限
-  const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
-  if (TEXTBOOK_COHESION.ENABLED && maxTb > 0 && cls.textbookIds?.length > 0) {
+  // 教材硬上限（个人开关教师上限覆写为 1）
+  const maxTb = teacherMaxTextbooks(teacher);
+  if (maxTb > 0 && cls.textbookIds?.length > 0) {
     const newTbCount = cls.textbookIds.filter((tid) => !state.assignedTextbookIds.has(tid)).length;
     if (state.assignedTextbookIds.size + newTbCount > maxTb) return false;
   }
@@ -417,9 +427,10 @@ function findBestMove(
       if (!clsB.trainingLevelId && tA.schedulingLevelIds?.length > 0) continue;
       if (!clsA.trainingLevelId && tB.schedulingLevelIds?.length > 0) continue;
 
-      // 教材上限检查（简化：假设交换后教材数变化不超过上限）
-      const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
-      if (TEXTBOOK_COHESION.ENABLED && maxTb > 0) {
+      // 教材上限检查（简化：假设交换后教材数变化不超过上限；个人开关教师上限覆写为 1）
+      const maxTbA = teacherMaxTextbooks(tA);
+      const maxTbB = teacherMaxTextbooks(tB);
+      if (maxTbA > 0) {
         const aNewTbs = (clsB.textbookIds || []).filter(
           (tid) => !stateA.assignedTextbookIds.has(tid)
         );
@@ -427,8 +438,9 @@ function findBestMove(
           (tid) => (stateA.refCountMap.get(tid) || 0) <= 1
         );
         const projectedASize = stateA.assignedTextbookIds.size - aOldTbs.length + aNewTbs.length;
-        if (projectedASize > maxTb) continue;
-
+        if (projectedASize > maxTbA) continue;
+      }
+      if (maxTbB > 0) {
         const bNewTbs = (clsA.textbookIds || []).filter(
           (tid) => !stateB.assignedTextbookIds.has(tid)
         );
@@ -436,7 +448,7 @@ function findBestMove(
           (tid) => (stateB.refCountMap.get(tid) || 0) <= 1
         );
         const projectedBSize = stateB.assignedTextbookIds.size - bOldTbs.length + bNewTbs.length;
-        if (projectedBSize > maxTb) continue;
+        if (projectedBSize > maxTbB) continue;
       }
 
       // 评分变化
@@ -465,10 +477,12 @@ function findBestMove(
         addToTeacher(teacherIdB, classIdA, clsA, teacherStates);
 
         // 模拟后硬约束检查：预检公式基于投影估算，此处用实际状态兜底
-        if (TEXTBOOK_COHESION.ENABLED && maxTb > 0) {
-          if (stateA.assignedTextbookIds.size > maxTb || stateB.assignedTextbookIds.size > maxTb) {
-            continue; // finally 会还原状态
-          }
+        // 按教师各自有效上限判定（个人开关教师恒为 1，不受全局 ENABLED 影响）
+        if (maxTbA > 0 && stateA.assignedTextbookIds.size > maxTbA) {
+          continue; // finally 会还原状态
+        }
+        if (maxTbB > 0 && stateB.assignedTextbookIds.size > maxTbB) {
+          continue; // finally 会还原状态
         }
 
         const proxyANew = buildScoringProxy(tA, stateA);

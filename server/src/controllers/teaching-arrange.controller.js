@@ -184,6 +184,29 @@ export async function assignTeacher(req, res, next) {
     });
     if (!canTeach) return fail(res, '该教师未关联此课程，无法安排');
 
+    // 只带一本教材开关：手动指派引入第 2 本教材时拦截（硬约束口径与自动排课一致）
+    if (teacher.single_textbook_only) {
+      const [courseTeachers, courseClasses] = await Promise.all([
+        getTeachersForCourse(course_id, semester),
+        getClassesWithCourse(course_id, semester),
+      ]);
+      const me = courseTeachers.find((t) => t.id === Number(teacher_id));
+      const targetCls = courseClasses.find((c) => c.classId === Number(class_id));
+      const heldTextbooks = me?.assignedTextbooks || [];
+      const heldIdSet = new Set(heldTextbooks.map((tb) => tb.id));
+      const clsTextbooks = targetCls?.textbooks || [];
+      const newOnes = clsTextbooks.filter((tb) => !heldIdSet.has(tb.id));
+      if (newOnes.length > 0 && heldIdSet.size + newOnes.length > 1) {
+        const heldNames = heldTextbooks.map((tb) => `《${tb.title}》`).join('、') || '无教材';
+        const clsNames = newOnes.map((tb) => `《${tb.title}》`).join('、');
+        return fail(
+          res,
+          `该教师已开启“只带一本教材”，当前持有 ${heldNames}，该班级需要 ${clsNames}，无法安排`,
+          400
+        );
+      }
+    }
+
     let createWeeklyHours =
       weekly_hours != null && weekly_hours !== '' ? Number(weekly_hours) : null;
     if (createWeeklyHours === null) {

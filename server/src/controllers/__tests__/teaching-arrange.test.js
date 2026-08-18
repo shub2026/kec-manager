@@ -90,7 +90,9 @@ const { assignTeacher, resetAutoAssignments, getStatistics, deleteAssignment } =
   await import('../teaching-arrange.controller.js');
 const { createAuditLog } = await import('../../services/audit.service.js');
 const { findBestMatchPlan } = await import('../../services/plan.service.js');
-const { parseSemester } = await import('../../services/teaching-arrange.service.js');
+const { parseSemester, getTeachersForCourse, getClassesWithCourse } = await import(
+  '../../services/teaching-arrange.service.js'
+);
 const { calcClassSemester } = await import('../../services/semester.service.js');
 
 // ──────────────────────────────────────────────
@@ -462,6 +464,103 @@ describe('assignTeacher — 手动安排教师', () => {
       })
     );
   });
+
+  // ──────────────────────────────────────────────
+  // 8. 只带一本教材开关拦截
+  // ──────────────────────────────────────────────
+  it('开启单教材开关且指派会引入第 2 本教材时应返回 400 并提示所持教材', async () => {
+    mockPrisma.teachers.findUnique.mockResolvedValue({
+      ...ACTIVE_TEACHER,
+      single_textbook_only: true,
+    });
+    getTeachersForCourse.mockResolvedValue([
+      {
+        id: 5,
+        name: '张老师',
+        assignedTextbooks: [{ id: 1, title: '高等数学' }],
+        assignedTextbookIds: new Set([1]),
+      },
+    ]);
+    getClassesWithCourse.mockResolvedValue([
+      { classId: 10, className: '2024级学前1班', textbooks: [{ id: 2, title: '大学物理' }] },
+    ]);
+
+    const req = mockReq({
+      class_id: 10,
+      course_id: 3,
+      semester: '2025-2026-2',
+      teacher_id: 5,
+      weekly_hours: 4,
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await assignTeacher(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        message: expect.stringContaining('只带一本教材'),
+      })
+    );
+    const message = res.json.mock.calls[0][0].message;
+    expect(message).toContain('《高等数学》');
+    expect(message).toContain('《大学物理》');
+    expect(mockPrisma.teaching_assignments.upsert).not.toHaveBeenCalled();
+  });
+
+  it('开启单教材开关但目标班级为同教材时应正常安排', async () => {
+    mockPrisma.teachers.findUnique.mockResolvedValue({
+      ...ACTIVE_TEACHER,
+      single_textbook_only: true,
+    });
+    getTeachersForCourse.mockResolvedValue([
+      {
+        id: 5,
+        name: '张老师',
+        assignedTextbooks: [{ id: 1, title: '高等数学' }],
+        assignedTextbookIds: new Set([1]),
+      },
+    ]);
+    getClassesWithCourse.mockResolvedValue([
+      { classId: 10, className: '2024级学前1班', textbooks: [{ id: 1, title: '高等数学' }] },
+    ]);
+
+    const req = mockReq({
+      class_id: 10,
+      course_id: 3,
+      semester: '2025-2026-2',
+      teacher_id: 5,
+      weekly_hours: 4,
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await assignTeacher(req, res, next);
+
+    expect(mockPrisma.teaching_assignments.upsert).toHaveBeenCalledTimes(1);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+  });
+
+  it('未开启单教材开关时不执行拦截逻辑（不查询教材上下文）', async () => {
+    // ACTIVE_TEACHER 无 single_textbook_only 字段
+    const req = mockReq({
+      class_id: 10,
+      course_id: 3,
+      semester: '2025-2026-2',
+      teacher_id: 5,
+      weekly_hours: 4,
+    });
+    const res = mockRes();
+    const next = vi.fn();
+
+    await assignTeacher(req, res, next);
+
+    expect(getTeachersForCourse).not.toHaveBeenCalled();
+    expect(getClassesWithCourse).not.toHaveBeenCalled();
+    expect(mockPrisma.teaching_assignments.upsert).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ════════════════════════════════════════════════
@@ -784,7 +883,6 @@ describe('getStatistics', () => {
 // ──────────────────────────────────────────────
 // 合班联动 / 级联（P0：合班成员班教师一致）
 // ──────────────────────────────────────────────
-const { getClassesWithCourse } = await import('../../services/teaching-arrange.service.js');
 
 describe('assignTeacher — 合班联动', () => {
   beforeEach(() => {

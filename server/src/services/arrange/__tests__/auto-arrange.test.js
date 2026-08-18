@@ -63,6 +63,7 @@ const {
   tryPlaceClass,
   trySwapUnassigned,
   buildGroupAvailable,
+  teacherMaxTextbooks,
 } = await import('../auto-arrange.js');
 
 const C = {
@@ -333,6 +334,70 @@ describe('isTeacherEligible', () => {
     const c = baseClass();
     c.textbookIds = [300];
     expect(isTeacherEligible(t, c, mode)).toBe(true);
+  });
+
+  // ── 只带一本教材开关（教师个人维度硬约束）──
+  it('单教材开关：已有 1 本且接班会引入第 2 本时应返回 false', () => {
+    const t = baseTeacher();
+    t.singleTextbookOnly = true;
+    t.assignedTextbookIds = new Set([300]);
+    const c = baseClass();
+    c.textbookIds = [301]; // 新教材
+    expect(isTeacherEligible(t, c, mode)).toBe(false);
+  });
+
+  it('单教材开关：同教材多班应放行', () => {
+    const t = baseTeacher();
+    t.singleTextbookOnly = true;
+    t.assignedTextbookIds = new Set([300]);
+    const c = baseClass();
+    c.textbookIds = [300]; // 同教材
+    expect(isTeacherEligible(t, c, mode)).toBe(true);
+  });
+
+  it('单教材开关：无教材班级（textbookIds 为空）不计入，应放行', () => {
+    const t = baseTeacher();
+    t.singleTextbookOnly = true;
+    t.assignedTextbookIds = new Set([300]);
+    const c = baseClass();
+    c.textbookIds = [];
+    expect(isTeacherEligible(t, c, mode)).toBe(true);
+  });
+
+  it('单教材开关：尚未持有任何教材时可接手首个教材班级', () => {
+    const t = baseTeacher();
+    t.singleTextbookOnly = true;
+    t.assignedTextbookIds = new Set();
+    const c = baseClass();
+    c.textbookIds = [301];
+    expect(isTeacherEligible(t, c, mode)).toBe(true);
+  });
+
+  it('未开启开关的教师行为不变（全局 2 本上限：持 1 本可接新教材）', () => {
+    const t = baseTeacher();
+    t.assignedTextbookIds = new Set([300]);
+    const c = baseClass();
+    c.textbookIds = [301];
+    expect(isTeacherEligible(t, c, mode)).toBe(true);
+  });
+});
+
+// ──────────────────────────────────────────────
+// teacherMaxTextbooks（个人开关优先于全局配置）
+// ──────────────────────────────────────────────
+describe('teacherMaxTextbooks', () => {
+  it('开启单教材开关时有效上限恒为 1', () => {
+    expect(teacherMaxTextbooks({ singleTextbookOnly: true })).toBe(1);
+  });
+
+  it('未开启开关时跟随全局配置（ENABLED=true → MAX=2）', () => {
+    expect(teacherMaxTextbooks({ singleTextbookOnly: false })).toBe(2);
+    expect(teacherMaxTextbooks({})).toBe(2);
+  });
+
+  it('教师对象缺失时不报错且跟随全局配置', () => {
+    expect(teacherMaxTextbooks(null)).toBe(2);
+    expect(teacherMaxTextbooks(undefined)).toBe(2);
   });
 });
 

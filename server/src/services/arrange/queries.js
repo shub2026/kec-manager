@@ -553,6 +553,8 @@ export async function getTeachersForCourse(courseId, semesterStr) {
       totalClassCount: classCountMap.get(t.id) || 0,
       courseHours: courseAssignmentMap.get(t.id)?.hours || 0,
       courseClassCount: courseAssignmentMap.get(t.id)?.classCount || 0,
+      // 只带一本教材开关（教师个人维度硬约束，供排课链路覆写教材上限）
+      singleTextbookOnly: !!t.single_textbook_only,
     };
   });
 }

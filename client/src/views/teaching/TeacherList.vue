@@ -49,6 +49,14 @@
                 "
                 >{{ row.name }}</span
               >
+              <!-- 只带一本教材开关标记：图标展示节省列宽，悬停 tooltip 说明含义 -->
+              <el-tooltip
+                v-if="row.singleTextbookOnly"
+                content="只带一本教材：本学期最多只能持有一本教材"
+                placement="top"
+              >
+                <el-icon class="single-tb-icon"><Reading /></el-icon>
+              </el-tooltip>
             </template>
           </el-table-column>
           <el-table-column v-if="!isMobile" label="性别" min-width="70" align="center">
@@ -219,7 +227,7 @@
 
 <script setup>
 import { ref, onMounted, onActivated, watch } from 'vue';
-import { Edit, Delete } from '@element-plus/icons-vue';
+import { Edit, Delete, Reading } from '@element-plus/icons-vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import {
   getTeachers,
@@ -453,5 +461,13 @@ onActivated(() => {
 <style scoped>
 .tag-item {
   margin: 2px;
+}
+/* 只带一本教材图标：警示色弱提示，紧跟姓名不独占列宽 */
+.single-tb-icon {
+  margin-left: 4px;
+  font-size: 14px;
+  color: var(--el-color-warning);
+  vertical-align: -2px;
+  cursor: help;
 }
 </style>

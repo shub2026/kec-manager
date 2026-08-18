@@ -36,7 +36,19 @@
         label="姓名"
         :width="isMobile ? undefined : 80"
         :min-width="isMobile ? 65 : undefined"
-      />
+      >
+        <template #default="{ row }">
+          <span>{{ row.name }}</span>
+          <!-- 只带一本教材开关标记：图标展示节省列宽；不做前置禁用，由服务端拦截消息硬保证 -->
+          <el-tooltip
+            v-if="row.singleTextbookOnly"
+            content="只带一本教材：本学期最多只能持有一本教材"
+            placement="top"
+          >
+            <el-icon class="single-tb-icon"><Reading /></el-icon>
+          </el-tooltip>
+        </template>
+      </el-table-column>
       <el-table-column label="人员类别" :width="isMobile ? 72 : 88" align="center">
         <template #default="{ row }">{{ personnelLabel(row.personnelType) }}</template>
       </el-table-column>
@@ -156,7 +168,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import { Search } from '@element-plus/icons-vue';
+import { Search, Reading } from '@element-plus/icons-vue';
 import { personnelLabel } from '../../../utils/personnel';
 import { truncateText } from '../../../utils/string';
 import { useResponsive } from '../../../composables/useResponsive';
@@ -292,6 +304,14 @@ defineExpose({ open, close });
 .text-placeholder {
   color: var(--text-placeholder);
   font-size: 12px;
+}
+/* 只带一本教材图标：警示色弱提示，紧跟姓名不独占列宽 */
+.single-tb-icon {
+  margin-left: 4px;
+  font-size: 14px;
+  color: var(--el-color-warning);
+  vertical-align: -2px;
+  cursor: help;
 }
 .tag-item {
   margin: 2px;

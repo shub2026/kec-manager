@@ -213,6 +213,7 @@
  * @property {string} [remark]
  * @property {number} [defaultWeeklyHours]
  * @property {string} [status]
+ * @property {boolean} [singleTextbookOnly]
  * @property {number} [sortOrder]
  * @property {number} [affiliatedCollegeId]
  */
@@ -226,6 +227,7 @@
  * @property {string} [remark]
  * @property {number} [defaultWeeklyHours]
  * @property {string} [status]
+ * @property {boolean} [singleTextbookOnly]
  * @property {number} [sortOrder]
  * @property {number} [affiliatedCollegeId]
  */

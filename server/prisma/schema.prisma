@@ -269,6 +269,7 @@ model teachers {
   personnel_type       String                      @default("full_time")
   remark               String?
   default_weekly_hours Float?
+  single_textbook_only Boolean                     @default(false)
   status               String                      @default("active")
   sort_order           Int                         @default(0)
   created_at           DateTime                    @default(now())

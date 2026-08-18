@@ -145,6 +145,15 @@ function calcMatchScore(teacher, classInfo) {
   return score;
 }
 
+/**
+ * 教师有效教材上限：个人开关「只带一本教材」优先（恒为 1，不受全局 ENABLED 影响），
+ * 否则跟随 TEXTBOOK_COHESION 全局配置；返回 <=0 表示无教材约束
+ */
+export function teacherMaxTextbooks(t) {
+  if (t?.singleTextbookOnly) return 1;
+  return TEXTBOOK_COHESION.ENABLED ? TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER : 0;
+}
+
 function isTeacherEligible(t, cls, mode) {
   const cap = mode === 'standard' ? t.standardCap : t.fullCap;
   // 全局容量检查（已包含 defaultWeeklyHours 天花板）
@@ -168,10 +177,10 @@ function isTeacherEligible(t, cls, mode) {
   if (!cls.trainingLevelId && t.schedulingLevelIds && t.schedulingLevelIds.length > 0) {
     return false;
   }
-  // 二轮优化：教材硬上限检查
+  // 二轮优化：教材硬上限检查（个人开关教师上限覆写为 1）
   // 教师已有教材数 + 接此班新增教材数 > MAX → 不可选
-  const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
-  if (TEXTBOOK_COHESION.ENABLED && maxTb > 0 && cls.textbookIds?.length > 0) {
+  const maxTb = teacherMaxTextbooks(t);
+  if (maxTb > 0 && cls.textbookIds?.length > 0) {
     const newTbCount = cls.textbookIds.filter((tid) => !t.assignedTextbookIds.has(tid)).length;
     if (t.assignedTextbookIds.size + newTbCount > maxTb) return false;
   }
@@ -327,14 +336,15 @@ function diagnoseFailure(cls, teacherConstraints, mode) {
     };
   }
 
-  // P1-2 修复（P2-4）：教材上限诊断
+  // P1-2 修复（P2-4）：教材上限诊断（含个人开关教师上限覆写）
   // 所有教师已达教材硬上限且无法接纳新教材时，给出明确诊断
-  const diagMaxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
-  if (TEXTBOOK_COHESION.ENABLED && diagMaxTb > 0 && cls.textbookIds?.length > 0) {
+  if (cls.textbookIds?.length > 0) {
     const textbookFullTeachers = allTeachers.filter((t) => {
       if (!t.assignedTextbookIds) return false;
+      const diagMax = teacherMaxTextbooks(t);
+      if (diagMax <= 0) return false;
       const newTbCount = cls.textbookIds.filter((tid) => !t.assignedTextbookIds.has(tid)).length;
-      return t.assignedTextbookIds.size + newTbCount > diagMaxTb;
+      return t.assignedTextbookIds.size + newTbCount > diagMax;
     });
     if (textbookFullTeachers.length === allTeachers.length) {
       return {
@@ -342,7 +352,7 @@ function diagnoseFailure(cls, teacherConstraints, mode) {
         details: textbookFullTeachers.slice(0, 5).map((t) => ({
           teacherName: t.name,
           textbookCount: t.assignedTextbookIds.size,
-          max: diagMaxTb,
+          max: teacherMaxTextbooks(t),
         })),
       };
     }
@@ -849,10 +859,10 @@ function placeClassOnTeacher(
   for (const tid of clsTextbookIds) t.assignedTextbookIds.add(tid);
 }
 
-/** 检查教师 T 添加 cls 后是否超出教材上限 */
+/** 检查教师 T 添加 cls 后是否超出教材上限（个人开关教师上限覆写为 1） */
 function checkTextbookAdd(t, clsTextbookIds) {
-  const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
-  if (!clsTextbookIds.length) return true;
+  const maxTb = teacherMaxTextbooks(t);
+  if (maxTb <= 0 || !clsTextbookIds.length) return true;
   const newTextbooks = clsTextbookIds.filter((tid) => !t.assignedTextbookIds.has(tid));
   return t.assignedTextbookIds.size + newTextbooks.length <= maxTb;
 }
@@ -866,7 +876,8 @@ function checkTextbookSwap(
   vAssign,
   classTextbookMap
 ) {
-  const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
+  const maxTb = teacherMaxTextbooks(t);
+  if (maxTb <= 0) return true;
   const vUniqueToT = vTextbookIds.filter((tid) => {
     return !tAssignments.some((a) => {
       if (a === vAssign) return false;
@@ -904,7 +915,6 @@ function tryPlaceClass(
   visited,
   excludeTeacherId = null
 ) {
-  const useTbLimit = TEXTBOOK_COHESION.ENABLED && TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER > 0;
   const clsTextbookIds = classTextbookMap.get(cls.classId) || cls.textbookIds || [];
 
   // F3 修复：候选教师按评分降序排列（同分按剩余容量降序），
@@ -946,7 +956,7 @@ function tryPlaceClass(
 
     // 直接放置（T 有容量）
     if (t.assignedHours + cls.weeklyHours <= cap) {
-      if (!useTbLimit || checkTextbookAdd(t, clsTextbookIds)) {
+      if (checkTextbookAdd(t, clsTextbookIds)) {
         placeClassOnTeacher(
           cls,
           t,
@@ -973,7 +983,6 @@ function tryPlaceClass(
 
       const vTextbookIds = classTextbookMap.get(vAssign.class_id) || [];
       if (
-        useTbLimit &&
         !checkTextbookSwap(t, vTextbookIds, clsTextbookIds, tAssignments, vAssign, classTextbookMap)
       )
         continue;
@@ -1052,7 +1061,6 @@ function trySwapOne(
   if (!u.weeklyHours || u.weeklyHours <= 0) return false;
 
   const uHours = u.weeklyHours;
-  const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
 
   // 遍历所有教师 T（含已满的），找能教 U 且置换后可容纳的场景
   for (const t of teacherConstraints) {
@@ -1130,9 +1138,11 @@ function trySwapOne(
           if (!vInfo.trainingLevelId && t2.schedulingLevelIds?.length > 0) continue;
         }
 
-        // 修复：教材上限检查（防止置换越狱）
-        // 必须计算 V 的教材对 T 是否"独有"（T 的其他班级不再使用），置换后需清理
-        if (TEXTBOOK_COHESION.ENABLED && maxTb > 0) {
+        // 修复：教材上限检查（防止置换越狱，个人开关教师上限覆写为 1）
+        // 必须计算 V 的教材对 T 是否“独有”（T 的其他班级不再使用），置换后需清理
+        const maxTbT = teacherMaxTextbooks(t);
+        const maxTbT2 = teacherMaxTextbooks(t2);
+        if (maxTbT > 0 || maxTbT2 > 0) {
           // 计算 V 的教材中哪些是 T 独有的（T 的其他分配不再用到）
           vUniqueToT = vTextbookIds.filter((tid) => {
             return !tAssignments.some((a) => {
@@ -1142,18 +1152,18 @@ function trySwapOne(
             });
           });
           // C-2 修复：先计算 T 移除 V 独有教材后的集合，再基于该集合计算 U 的新增教材
-          // 旧代码直接基于移除前集合计算 uNewForT，导致被移除的教材仍被视为"已有"，少算新增
+          // 旧代码直接基于移除前集合计算 uNewForT，导致被移除的教材仍被视为“已有”，少算新增
           const tAfterRemoveSet = new Set(t.assignedTextbookIds);
           for (const tid of vUniqueToT) tAfterRemoveSet.delete(tid);
           const uNewForT = (u.textbookIds || []).filter((tid) => !tAfterRemoveSet.has(tid));
           // T 置换后教材数 = 移除后集合大小 + U新增
           const afterSwapTSize = tAfterRemoveSet.size + uNewForT.length;
-          if (afterSwapTSize > maxTb) continue;
+          if (maxTbT > 0 && afterSwapTSize > maxTbT) continue;
 
           // T'' 接管 V 后教材数
           const vNewForT2 = vTextbookIds.filter((tid) => !t2.assignedTextbookIds.has(tid));
           const afterSwapT2Size = t2.assignedTextbookIds.size + vNewForT2.length;
-          if (afterSwapT2Size > maxTb) continue;
+          if (maxTbT2 > 0 && afterSwapT2Size > maxTbT2) continue;
         }
 
         // === 执行置换 ===
@@ -1518,10 +1528,10 @@ export async function autoArrange(
             if (eligibilityFilter && !eligibilityFilter(t, cls)) return false;
             if (!isTeacherEligible(t, cls, mode)) return false;
 
-            // 硬上限检查：已达教材上限的教师，只能接已持有教材的班级
-            if (TEXTBOOK_COHESION.ENABLED && TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER > 0) {
+            // 硬上限检查：已达教材上限的教师，只能接已持有教材的班级（个人开关上限覆写为 1）
+            const maxTb = teacherMaxTextbooks(t);
+            if (maxTb > 0) {
               const tbCount = t.assignedTextbookIds?.size ?? 0;
-              const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
               if (tbCount >= maxTb && cls.textbookIds && cls.textbookIds.length > 0) {
                 const hasSame = cls.textbookIds.some((tid) => t.assignedTextbookIds.has(tid));
                 if (!hasSame) return false; // 已达上限且是新教材，排除
@@ -1661,9 +1671,9 @@ export async function autoArrange(
       const taken = [];
       let usedHours = 0;
 
-      // P1-2 修复：追踪"假设拿取后"的教材集合，防止累计超限
-      const takeMaxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
-      const useTbLimit = TEXTBOOK_COHESION.ENABLED && takeMaxTb > 0;
+      // P1-2 修复：追踪“假设拿取后”的教材集合，防止累计超限（个人开关教师上限覆写为 1）
+      const takeMaxTb = teacherMaxTextbooks(teacher);
+      const useTbLimit = takeMaxTb > 0;
       const projectedTextbooks = useTbLimit ? new Set(teacher.assignedTextbookIds) : null;
 
       // 按学院排序：教师已分配的学院优先，然后按学院ID排序
@@ -1750,9 +1760,9 @@ export async function autoArrange(
     // 每位教师连续拿组（天然满足"先拿完第一本，再拿第二本"），
     // 直到容量不足、教材名额用尽或无可拿组。
     function takeGroupsForTeacher(teacher, groupAvailable, strictPref, tierZeroOnly = false) {
-      const useTbLimit =
-        TEXTBOOK_COHESION.ENABLED && TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER > 0;
-      const maxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
+      // 个人开关教师上限覆写为 1（不受全局 ENABLED 影响），否则跟随全局配置
+      const maxTb = teacherMaxTextbooks(teacher);
+      const useTbLimit = maxTb > 0;
 
       for (;;) {
         const remainingCap = maxCapFn(teacher) - teacher.assignedHours;
@@ -1799,7 +1809,7 @@ export async function autoArrange(
           const tier = holdsGroupTb ? 0 : 1;
           // L3 修复：同 tier 且可拿课时接近（≥另一方的 GROUP_PROXIMITY_RATIO）时，
           // 优先选已分配学院课时更多的组（学院内聚软目标），否则仍按 matchHours 最大化
-          let better = false;
+          let better;
           if (!best) {
             better = true;
           } else if (tier !== best.tier) {
@@ -2215,12 +2225,14 @@ export async function autoArrange(
         // F1 修复：baseline 直接取 assignedTextbookIds（已含跨课程 DB 种子），
         // 不再与 inherentTextbookIds 取交集。旧交集逻辑在 assignedTextbookIds 为空集种子时
         // 用于提取"预存教材"，F1 种子修复后 assignedTextbookIds 本身即为全学期已有教材集合。
-        const txMaxTb = TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER;
-        const useTxTbLimit = TEXTBOOK_COHESION.ENABLED && txMaxTb > 0;
+        // 按教师各自有效上限判定：个人开关教师恒为 1，不受全局 ENABLED 影响
+        const txMaxTbMap = new Map(teacherConstraints.map((t) => [t.id, teacherMaxTextbooks(t)]));
+        const useTxTbLimit = [...txMaxTbMap.values()].some((m) => m > 0);
         const baselineTextbooks = new Map();
         const writtenTextbooks = new Map();
         if (useTxTbLimit) {
           for (const t of teacherConstraints) {
+            if ((txMaxTbMap.get(t.id) || 0) <= 0) continue;
             baselineTextbooks.set(t.id, new Set(t.assignedTextbookIds || []));
             writtenTextbooks.set(t.id, new Set());
           }
@@ -2247,8 +2259,9 @@ export async function autoArrange(
             overloadSkipped.push(a);
             continue;
           }
-          // P1-2 修复：教材上限二次校验，违规的不写入 DB
-          if (useTxTbLimit) {
+          // P1-2 修复：教材上限二次校验，违规的不写入 DB（按教师各自有效上限）
+          const txMaxTb = txMaxTbMap.get(a.teacher_id) || 0;
+          if (txMaxTb > 0) {
             const baseline = baselineTextbooks.get(a.teacher_id);
             const written = writtenTextbooks.get(a.teacher_id);
             const tbIds = classTextbookMap.get(a.class_id) || [];

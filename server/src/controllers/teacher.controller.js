@@ -110,6 +110,7 @@ export async function createTeacher(req, res, next) {
       personnel_type,
       remark,
       default_weekly_hours,
+      single_textbook_only,
       affiliated_college_id,
       course_ids,
       college_ids,
@@ -130,6 +131,7 @@ export async function createTeacher(req, res, next) {
         personnel_type: personnel_type || 'full_time',
         remark: finalRemark || null,
         default_weekly_hours: default_weekly_hours != null ? Number(default_weekly_hours) : null,
+        single_textbook_only: single_textbook_only === true || single_textbook_only === 'true',
         affiliated_college_id: affiliated_college_id != null ? Number(affiliated_college_id) : null,
         status: status === 'disabled' ? 'disabled' : 'active',
         sort_order: newSortOrder,
@@ -206,9 +208,16 @@ export async function updateTeacher(req, res, next) {
       'personnel_type',
       'remark',
       'default_weekly_hours',
+      'single_textbook_only',
       'sort_order',
       'status',
     ]);
+
+    // single_textbook_only 统一归一为布尔值（兼容字符串 'true'/'false'）
+    if (data.single_textbook_only !== undefined) {
+      data.single_textbook_only =
+        data.single_textbook_only === true || data.single_textbook_only === 'true';
+    }
 
     // 处理 affiliated_college_id
     if (affiliated_college_id !== undefined) {

@@ -224,6 +224,9 @@ function buildTeacherConstraints(teachers, allAssignments, courseTextbookMap, ho
       schedulingCollegeIds,
       schedulingLevelIds,
 
+      // 只带一本教材开关（个人维度硬约束，供 tabu-search canAccept/swap 覆写教材上限）
+      singleTextbookOnly: !!t.single_textbook_only,
+
       // 教材相关 - 关键字段
       inherentTextbookIds,
       textbookIds: [...inherentTextbookIds],

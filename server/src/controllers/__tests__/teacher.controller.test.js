@@ -42,6 +42,7 @@ const mockTx = {
 const mockPrisma = {
   teachers: {
     findUnique: vi.fn(),
+    create: vi.fn(),
     update: vi.fn().mockResolvedValue({}),
     updateMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
@@ -90,7 +91,7 @@ vi.mock('../../utils/sort.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { updateTeacher, toggleTeacherStatus, batchUpdateDefaultHours } =
+const { updateTeacher, toggleTeacherStatus, batchUpdateDefaultHours, createTeacher } =
   await import('../teacher.controller.js');
 const { createAuditLog } = await import('../../services/audit.service.js');
 const { invalidateSortOrderCache } = await import('../../utils/sort.js');
@@ -230,6 +231,51 @@ describe('updateTeacher', () => {
 
       const updateCall = mockTx.teachers.update.mock.calls[0][0];
       expect(updateCall.data.remark).toBe('新备注');
+    });
+
+    // ── 只带一本教材开关字段写入与归一化 ──
+    it('single_textbook_only=true 应写入布尔 true', async () => {
+      const req = mockReq({ id: TEACHER_ID }, { single_textbook_only: true });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await updateTeacher(req, res, next);
+
+      const updateCall = mockTx.teachers.update.mock.calls[0][0];
+      expect(updateCall.data.single_textbook_only).toBe(true);
+    });
+
+    it("single_textbook_only='true'（字符串）应归一为布尔 true", async () => {
+      const req = mockReq({ id: TEACHER_ID }, { single_textbook_only: 'true' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await updateTeacher(req, res, next);
+
+      const updateCall = mockTx.teachers.update.mock.calls[0][0];
+      expect(updateCall.data.single_textbook_only).toBe(true);
+    });
+
+    it("single_textbook_only='false'（字符串）应归一为布尔 false", async () => {
+      const req = mockReq({ id: TEACHER_ID }, { single_textbook_only: 'false' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await updateTeacher(req, res, next);
+
+      const updateCall = mockTx.teachers.update.mock.calls[0][0];
+      expect(updateCall.data.single_textbook_only).toBe(false);
+    });
+
+    it('未传 single_textbook_only 时不应写入该字段', async () => {
+      const req = mockReq({ id: TEACHER_ID }, { name: '李四' });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await updateTeacher(req, res, next);
+
+      const updateCall = mockTx.teachers.update.mock.calls[0][0];
+      expect(updateCall.data).not.toHaveProperty('single_textbook_only');
     });
 
     it('更新成功后应返回 success 响应并调用审计日志', async () => {
@@ -1338,5 +1384,56 @@ describe('batchUpdateDefaultHours', () => {
         })
       );
     });
+  });
+});
+
+// ════════════════════════════════════════════════
+// createTeacher — 只带一本教材开关字段写入与归一化
+// ════════════════════════════════════════════════
+describe('createTeacher — single_textbook_only', () => {
+  const CREATED_TEACHER = {
+    id: 99,
+    name: '新教师',
+    affiliated_college: null,
+    courses: [],
+    scheduling_colleges: [],
+    scheduling_levels: [],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.teachers.create.mockResolvedValue({ ...CREATED_TEACHER });
+  });
+
+  function reqWith(body) {
+    return { body: { name: '新教师', ...body }, user: { id: 1 }, ip: '127.0.0.1' };
+  }
+
+  it('传入 single_textbook_only=true 应写入布尔 true', async () => {
+    await createTeacher(reqWith({ single_textbook_only: true }), mockRes(), vi.fn());
+
+    const createCall = mockPrisma.teachers.create.mock.calls[0][0];
+    expect(createCall.data.single_textbook_only).toBe(true);
+  });
+
+  it("传入字符串 'true' 应归一为布尔 true", async () => {
+    await createTeacher(reqWith({ single_textbook_only: 'true' }), mockRes(), vi.fn());
+
+    const createCall = mockPrisma.teachers.create.mock.calls[0][0];
+    expect(createCall.data.single_textbook_only).toBe(true);
+  });
+
+  it('未传字段时默认写入 false', async () => {
+    await createTeacher(reqWith({}), mockRes(), vi.fn());
+
+    const createCall = mockPrisma.teachers.create.mock.calls[0][0];
+    expect(createCall.data.single_textbook_only).toBe(false);
+  });
+
+  it("传入字符串 'false' 应归一为布尔 false", async () => {
+    await createTeacher(reqWith({ single_textbook_only: 'false' }), mockRes(), vi.fn());
+
+    const createCall = mockPrisma.teachers.create.mock.calls[0][0];
+    expect(createCall.data.single_textbook_only).toBe(false);
   });
 });

@@ -885,4 +885,28 @@ describe('getTeachersForCourse - 基础功能', () => {
     expect(result[0].assignedCollegeIds).toBeInstanceOf(Set);
     expect(result[0].assignedCollegeIds.size).toBe(0);
   });
+
+  it('未开启只带一本教材开关时 singleTextbookOnly 应为 false', async () => {
+    const teacher = makeTeacher(1, '郑老师'); // 无 single_textbook_only 字段
+    setupTeacherMocks([teacher], {
+      workloadStats: [],
+      courseAssignments: [],
+    });
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].singleTextbookOnly).toBe(false);
+  });
+
+  it('开启只带一本教材开关时 singleTextbookOnly 应为 true', async () => {
+    const teacher = makeTeacher(1, '冯老师', { single_textbook_only: true });
+    setupTeacherMocks([teacher], {
+      workloadStats: [],
+      courseAssignments: [],
+    });
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result[0].singleTextbookOnly).toBe(true);
+  });
 });
