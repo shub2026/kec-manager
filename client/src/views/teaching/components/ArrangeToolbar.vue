@@ -58,6 +58,15 @@
       <el-option v-for="v in filterOptions.textbooks" :key="v" :label="v" :value="v" />
     </el-select>
     <el-select
+      v-model="localFilters.teacher"
+      placeholder="教师"
+      clearable
+      filterable
+      class="header-filter filter-md"
+    >
+      <el-option v-for="t in teacherList" :key="t.id" :label="t.name" :value="t.id" />
+    </el-select>
+    <el-select
       v-model="localFilters.arrangeStatus"
       placeholder="安排状态"
       clearable
@@ -92,10 +101,10 @@
       >
         <el-icon><RefreshRight /></el-icon> 重置当前
       </el-button>
-      <!-- 锁定/解锁整合为单个下拉（与批量排课下拉模式一致） -->
-      <el-dropdown :disabled="historicalReadOnly" @command="handleLockCommand">
-        <el-button type="success" plain :disabled="historicalReadOnly" class="lock-btn">
-          <el-icon><Lock /></el-icon> 锁定<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+      <!-- 整合下拉：锁定/解锁全部 + 交换教师班级（与批量排课下拉模式一致） -->
+      <el-dropdown :disabled="historicalReadOnly" @command="handleMoreCommand">
+        <el-button type="success" plain :disabled="historicalReadOnly" class="more-btn">
+          更多操作<el-icon class="el-icon--right"><ArrowDown /></el-icon>
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
@@ -104,6 +113,9 @@
             </el-dropdown-item>
             <el-dropdown-item command="unlock">
               <el-icon><Unlock /></el-icon>解锁全部
+            </el-dropdown-item>
+            <el-dropdown-item command="swap" divided>
+              <el-icon><SwitchButton /></el-icon>交换教师班级
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -114,19 +126,24 @@
 
 <script setup>
 import { computed } from 'vue';
-// Lock 已全局注册，Unlock 未注册需显式导入（一并导入保持成对语义）
-import { Lock, Unlock } from '@element-plus/icons-vue';
+// Lock 已全局注册，Unlock/SwitchButton 未注册需显式导入
+import { Lock, Unlock, SwitchButton } from '@element-plus/icons-vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import FilterBar from '@/components/filter/FilterBar.vue';
 
 const props = defineProps({
-  /** 筛选值对象：{ className, college, major, trainingLevel, grade, textbook, arrangeStatus } */
+  /** 筛选值对象：{ className, college, major, trainingLevel, grade, textbook, teacher, arrangeStatus } */
   filters: {
     type: Object,
     required: true,
   },
   /** 全量班级列表（未过滤），用于计算各筛选器可选项 */
   classList: {
+    type: Array,
+    default: () => [],
+  },
+  /** 本课程教师列表，供教师筛选下拉使用 */
+  teacherList: {
     type: Array,
     default: () => [],
   },
@@ -140,12 +157,20 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:filters', 'auto-arrange', 'reset', 'lock-all', 'unlock-all']);
+const emit = defineEmits([
+  'update:filters',
+  'auto-arrange',
+  'reset',
+  'lock-all',
+  'unlock-all',
+  'swap-teachers',
+]);
 
-// 锁定下拉命令分发：保持对外 lock-all / unlock-all 事件语义不变
-function handleLockCommand(command) {
+// 更多操作下拉命令分发：保持对外 lock-all / unlock-all 事件语义不变
+function handleMoreCommand(command) {
   if (command === 'lock') emit('lock-all');
   else if (command === 'unlock') emit('unlock-all');
+  else if (command === 'swap') emit('swap-teachers');
 }
 
 // 与父页面通过 v-model:filters 通信；直接修改属性可触发父级 deep watch
@@ -250,7 +275,7 @@ function handleTrainingLevelFilterChange() {
 .dropdown-gap {
   margin-left: var(--space-1);
 }
-.lock-btn {
+.more-btn {
   margin-left: var(--space-1);
 }
 </style>

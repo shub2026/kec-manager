@@ -100,12 +100,14 @@
           <ArrangeToolbar
             v-model:filters="filters"
             :class-list="classList"
+            :teacher-list="teacherList"
             :arranging="arranging"
             :historical-read-only="historicalReadOnly"
             @auto-arrange="handleAutoArrange"
             @reset="handleResetCommand"
             @lock-all="handleBatchLockAll"
             @unlock-all="handleBatchUnlockAll"
+            @swap-teachers="handleOpenSwapDialog"
           />
         </div>
       </template>
@@ -128,6 +130,15 @@
       :teacher-list="teacherList"
       :hour-settings="hourSettingsRef"
       @confirm="onTeacherConfirm"
+    />
+
+    <!-- 交换教师班级弹窗 -->
+    <SwapTeachersDialog
+      ref="swapDialogRef"
+      :teacher-list="teacherList"
+      :class-list="classList"
+      :loading="swapping"
+      @confirm="handleSwapConfirm"
     />
 
     <!-- 单课程排课结果弹窗 -->
@@ -228,7 +239,12 @@ import { useSettingsStore } from '../../stores/settings';
 import { getCourses } from '../../api/course';
 import { exportTeachingArrange } from '../../api/export';
 import { downloadBlob } from '../../utils/download';
-import { getCourseClasses, getCourseTeachers, getCourseOverview } from '../../api/teachingArrange';
+import {
+  getCourseClasses,
+  getCourseTeachers,
+  getCourseOverview,
+  swapTeacherAssignments,
+} from '../../api/teachingArrange';
 import { useArrangeAssign } from './composables/useArrangeAssign';
 import { useAutoArrange } from './composables/useAutoArrange';
 import { useBatchArrange } from './composables/useBatchArrange';
@@ -252,6 +268,9 @@ const { isMobile } = useResponsive();
 
 const TeacherSelectDialog = defineAsyncComponent(
   () => import('./components/TeacherSelectDialog.vue')
+);
+const SwapTeachersDialog = defineAsyncComponent(
+  () => import('./components/SwapTeachersDialog.vue')
 );
 const ArrangeResultDialog = defineAsyncComponent(
   () => import('./components/ArrangeResultDialog.vue')
@@ -306,6 +325,7 @@ const filters = ref({
   trainingLevel: '',
   grade: '',
   textbook: '',
+  teacher: null,
   arrangeStatus: '',
 });
 
@@ -322,6 +342,8 @@ const filteredClassList = computed(() => {
       const titles = (c.textbooks || []).map((tb) => tb.title);
       if (!titles.includes(f.textbook)) return false;
     }
+    // 教师筛选：值为教师 id；空串（重置）与 null（初始）均视为未选
+    if (f.teacher && c.assignment?.teacherId !== f.teacher) return false;
     if (f.arrangeStatus === 'assigned' && !c.assignment) return false;
     if (f.arrangeStatus === 'unassigned' && c.assignment) return false;
     return true;
@@ -513,6 +535,7 @@ function backToOverview() {
     trainingLevel: '',
     grade: '',
     textbook: '',
+    teacher: null,
     arrangeStatus: '',
   };
   selectedCourseId.value = null;
@@ -554,6 +577,7 @@ async function onCourseChange(courseId) {
     trainingLevel: '',
     grade: '',
     textbook: '',
+    teacher: null,
     arrangeStatus: '',
   };
   if (!courseId) {
@@ -612,6 +636,48 @@ async function loadData() {
 }
 
 // 教师指派/移除/锁定/批量锁定/重置逻辑已迁至 useArrangeAssign
+
+// --- 交换教师班级 ---
+const swapDialogRef = ref(null);
+const swapping = ref(false);
+
+// 入口：更多操作下拉 → 交换教师班级（历史学期需二次确认，只读模式由工具栏禁用拦截）
+async function handleOpenSwapDialog() {
+  if (!(await confirmHistoricalEdit())) return;
+  swapDialogRef.value?.open();
+}
+
+async function handleSwapConfirm({ teacherIdA, teacherIdB }) {
+  swapping.value = true;
+  try {
+    const res = await swapTeacherAssignments({
+      courseId: selectedCourseId.value,
+      semester: selectedSemester.value,
+      teacherIdA,
+      teacherIdB,
+    });
+    swapDialogRef.value?.close();
+    const {
+      swappedCountA = 0,
+      swappedCountB = 0,
+      skippedLocked = [],
+      warnings = [],
+    } = res.data || {};
+    ElMessage.success(
+      `交换完成：互换 ${swappedCountA} / ${swappedCountB} 班` +
+        (skippedLocked.length ? `，跳过已锁定 ${skippedLocked.length} 班` : '')
+    );
+    for (const w of warnings) {
+      ElMessage.warning(w);
+    }
+    await loadData();
+  } catch (e) {
+    // 后端业务拦截（单教材开关/教师未关联课程等）携带具体原因，优先展示
+    ElMessage.error(e?.response?.data?.message || '交换失败');
+  } finally {
+    swapping.value = false;
+  }
+}
 
 // 进度弹窗关闭处理已移至 useArrangeProgress
 

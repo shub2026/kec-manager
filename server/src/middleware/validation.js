@@ -633,6 +633,25 @@ export const validateAssignTeacher = [
 ];
 
 /**
+ * 教学安排 - 交换两位教师班级验证规则
+ */
+export const validateSwapTeachers = [
+  body('course_id').isInt({ min: 1 }).withMessage('课程ID必须为正整数'),
+  body('semester')
+    .matches(/^\d{4}-\d{4}-[12]$/)
+    .withMessage('学期格式错误，应为YYYY-YYYY-N'),
+  body('teacher_id_a').isInt({ min: 1 }).withMessage('教师A ID必须为正整数'),
+  body('teacher_id_b').isInt({ min: 1 }).withMessage('教师B ID必须为正整数'),
+  body('teacher_id_b').custom((value, { req }) => {
+    if (Number(value) === Number(req.body.teacher_id_a)) {
+      throw new Error('两位教师不能相同');
+    }
+    return true;
+  }),
+  handleValidationErrors,
+];
+
+/**
  * 教学安排 - 自动排课验证规则
  */
 export const validateAutoArrange = [

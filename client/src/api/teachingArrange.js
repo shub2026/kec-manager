@@ -180,6 +180,15 @@ export const getCourseOverview = (params) =>
 export const assignTeacher = (data) => request.post('/teaching-arrange/assign', data);
 
 /**
+ * 一键交换两位教师在同课程同学期的全部班级安排
+ * 锁定班级跳过并在返回中报告；单教材开关冲突时后端 400 拦截
+ * @param {object} data - { courseId, semester, teacherIdA, teacherIdB }
+ * @returns {Promise<import('./types').ApiResponse<Object>>}
+ */
+export const swapTeacherAssignments = (data) =>
+  request.post('/teaching-arrange/swap-teachers', data);
+
+/**
  * 删除教学安排
  * @param {number} id - 教学安排 ID
  * @returns {Promise<import('./types').ApiResponse<void>>}

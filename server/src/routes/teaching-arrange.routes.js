@@ -4,6 +4,7 @@ import { sanitizeBody } from '../middleware/xss.js';
 import {
   validateIdParam,
   validateAssignTeacher,
+  validateSwapTeachers,
   validateAutoArrange,
   validateBatchAutoArrange,
   validateResetAuto,
@@ -14,6 +15,7 @@ import {
   getCourseOverview,
   getCourseTeachers,
   assignTeacher,
+  swapTeacherAssignments,
   deleteAssignment,
   runAutoArrange,
   runBatchAutoArrange,
@@ -43,6 +45,14 @@ router.post(
   validateAssignTeacher,
   sanitizeBody,
   assignTeacher
+);
+// POST /swap-teachers - 一键交换两位教师在本课程的全部班级
+router.post(
+  '/swap-teachers',
+  roleMiddleware('admin', 'super_admin'),
+  validateSwapTeachers,
+  sanitizeBody,
+  swapTeacherAssignments
 );
 router.post(
   '/auto-arrange',

@@ -112,6 +112,8 @@ describe('useOptimize', () => {
       expect(mockApplyOptimize).toHaveBeenCalledWith({
         semester: '2025-2026-2',
         changes: [{}, {}, {}],
+        // 预览未携带 mode 时默认 standard 容量口径
+        mode: 'standard',
       });
       expect(mockElMessage.success).toHaveBeenCalledWith('优化已应用：变更3个班级');
       expect(c.optimizeResultVisible.value).toBe(false);

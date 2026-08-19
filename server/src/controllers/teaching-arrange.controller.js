@@ -448,6 +448,196 @@ export async function assignTeacher(req, res, next) {
 }
 
 /**
+ * POST /swap-teachers - 一键交换两位教师在本课程学期内的全部班级安排
+ * 锁定记录跳过并在结果中报告；单教材开关教师交换后将持多本教材时硬拦截
+ */
+export async function swapTeacherAssignments(req, res, next) {
+  try {
+    const { course_id, semester, teacher_id_a, teacher_id_b } = req.body;
+    const courseId = Number(course_id);
+    const tidA = Number(teacher_id_a);
+    const tidB = Number(teacher_id_b);
+
+    // 1. 两教师存在且启用
+    const [teacherA, teacherB] = await Promise.all([
+      prisma.teachers.findUnique({ where: { id: tidA } }),
+      prisma.teachers.findUnique({ where: { id: tidB } }),
+    ]);
+    if (!teacherA || !teacherB) return fail(res, '教师不存在', 404);
+    if (teacherA.status === 'disabled' || teacherB.status === 'disabled') {
+      return fail(res, '其中存在已禁用的教师，无法交换', 400);
+    }
+
+    // 2. 双方均已关联本课程
+    const [canTeachA, canTeachB] = await Promise.all([
+      prisma.teacher_courses.findUnique({
+        where: { teacher_id_course_id: { teacher_id: tidA, course_id: courseId } },
+      }),
+      prisma.teacher_courses.findUnique({
+        where: { teacher_id_course_id: { teacher_id: tidB, course_id: courseId } },
+      }),
+    ]);
+    if (!canTeachA || !canTeachB) {
+      return fail(res, '其中存在未关联此课程的教师，无法交换', 400);
+    }
+
+    // 3. 查询双方在本课程学期内的全部安排；锁定记录不参与交换
+    const assignments = await prisma.teaching_assignments.findMany({
+      where: { course_id: courseId, semester, teacher_id: { in: [tidA, tidB] } },
+      include: { class: { select: { id: true, name: true } } },
+    });
+    const ownA = assignments.filter((a) => a.teacher_id === tidA);
+    const ownB = assignments.filter((a) => a.teacher_id === tidB);
+    const swapA = ownA.filter((a) => !a.is_locked);
+    const swapB = ownB.filter((a) => !a.is_locked);
+    const skippedLocked = assignments
+      .filter((a) => a.is_locked)
+      .map((a) => ({ classId: a.class_id, className: a.class?.name }));
+
+    // 4. 单教材开关硬拦截（与 assignTeacher 口径一致）：
+    // 交换后某方在本课程持有的教材集合（本人锁定保留的班 + 未锁定的班换出 + 对方换入）> 1 本 → 拒绝
+    if (teacherA.single_textbook_only || teacherB.single_textbook_only) {
+      const courseClasses = await getClassesWithCourse(courseId, semester);
+      const clsTextbookIds = new Map(
+        courseClasses.map((c) => [c.classId, (c.textbooks || []).map((tb) => tb.id)])
+      );
+      const tbTitleById = new Map();
+      for (const c of courseClasses) {
+        for (const tb of c.textbooks || []) tbTitleById.set(tb.id, tb.title);
+      }
+      const checkOne = (teacher, mineKept, incoming) => {
+        if (!teacher.single_textbook_only) return null;
+        const heldIds = new Set();
+        for (const a of [...mineKept, ...incoming]) {
+          for (const tid of clsTextbookIds.get(a.class_id) || []) heldIds.add(tid);
+        }
+        // 未锁定的班已全部换出，最终集合 = 锁定保留的班 + 换入的班；> 1 本即拦截
+        if (heldIds.size > 1) {
+          const titles = [...heldIds].map((id) => `《${tbTitleById.get(id) || `教材${id}`}》`).join('、');
+          return `教师${teacher.name}已开启“只带一本教材”，交换后将持有 ${titles}，无法交换`;
+        }
+        return null;
+      };
+      const errA = checkOne(teacherA, ownA.filter((a) => a.is_locked), swapB);
+      if (errA) return fail(res, errA, 400);
+      const errB = checkOne(teacherB, ownB.filter((a) => a.is_locked), swapA);
+      if (errB) return fail(res, errB, 400);
+    }
+
+    // 5. 事务内按记录 id 双向互换（先收集 ids，避免顺序 update 互相命中）；
+    // 交换后视为手动安排：is_auto/is_inherent 归零
+    const idsA = swapA.map((a) => a.id);
+    const idsB = swapB.map((a) => a.id);
+    await prisma.$transaction(async (tx) => {
+      if (idsA.length > 0) {
+        await tx.teaching_assignments.updateMany({
+          where: { id: { in: idsA } },
+          data: { teacher_id: tidB, is_auto: false, is_inherent: false },
+        });
+      }
+      if (idsB.length > 0) {
+        await tx.teaching_assignments.updateMany({
+          where: { id: { in: idsB } },
+          data: { teacher_id: tidA, is_auto: false, is_inherent: false },
+        });
+      }
+    });
+
+    // 6. 交换后工作量软警告（口径与 assignTeacher M5 一致：合班去重 + 自定义课时优先）
+    const warnings = [];
+    try {
+      const globalSettings = await prisma.system_settings.findUnique({
+        where: { key: HOUR_SETTINGS_PREFIX },
+      });
+      const configuredSettings = globalSettings
+        ? safeParseJSON(globalSettings.value, DEFAULT_HOUR_SETTINGS)
+        : DEFAULT_HOUR_SETTINGS;
+      for (const teacher of [teacherA, teacherB]) {
+        const teacherAssignments = await prisma.teaching_assignments.findMany({
+          where: { semester, teacher_id: teacher.id },
+          select: {
+            teacher_id: true,
+            course_id: true,
+            weekly_hours: true,
+            class_id: true,
+            class: { select: { combination_id: true } },
+          },
+        });
+        const totalHours = dedupeTeachingUnits(teacherAssignments).reduce(
+          (sum, u) => sum + (u.weeklyHours || 0),
+          0
+        );
+        const personnelType = teacher.personnel_type || 'full_time';
+        const hourLimit =
+          teacher.default_weekly_hours ??
+          configuredSettings[personnelType]?.standard ??
+          DEFAULT_HOUR_SETTINGS[personnelType]?.standard ??
+          DEFAULT_HOUR_SETTINGS.full_time.standard;
+        if (totalHours > hourLimit) {
+          warnings.push(
+            `教师${teacher.name}当前学期周课时已达 ${totalHours}，超过标准课时上限 ${hourLimit}`
+          );
+        }
+      }
+    } catch (_e) {
+      // 工作量查询失败不阻塞主流程
+    }
+
+    await createAuditLog({
+      action: 'update',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        course_id: courseId,
+        semester,
+        teacher_id_a: tidA,
+        teacher_id_b: tidB,
+        swappedA: idsA.length,
+        swappedB: idsB.length,
+        skippedLocked: skippedLocked.length,
+      },
+      result: 'success',
+      message: `交换教师班级：${teacherA.name}(${idsA.length}班) ↔ ${teacherB.name}(${idsB.length}班)`,
+    });
+
+    success(
+      res,
+      {
+        swappedCountA: idsA.length,
+        swappedCountB: idsB.length,
+        skippedLocked,
+        warnings,
+      },
+      '交换成功'
+    );
+  } catch (e) {
+    const {
+      course_id: _cid,
+      semester: _sem,
+      teacher_id_a: _ta,
+      teacher_id_b: _tb,
+    } = req.body || {};
+    await createAuditLog({
+      action: 'update',
+      module: 'teachingArrange',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        course_id: _cid != null ? Number(_cid) : undefined,
+        semester: _sem,
+        teacher_id_a: _ta != null ? Number(_ta) : undefined,
+        teacher_id_b: _tb != null ? Number(_tb) : undefined,
+        error: e.message,
+      },
+      result: 'failed',
+      message: `交换教师班级失败：${e.message}`,
+    }).catch(() => {});
+    next(e);
+  }
+}
+
+/**
  * DELETE /assignments/:id - 删除教学安排
  */
 export async function deleteAssignment(req, res, next) {
