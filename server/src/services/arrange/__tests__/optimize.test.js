@@ -37,6 +37,14 @@ vi.mock('../tabu-search.js', () => ({
 
 vi.mock('../auto-arrange.js', () => ({
   calcMatchScore: vi.fn(() => 10),
+  // P1 修复：optimize.js 会检查批量排课锁，mock 需提供同结构的 batchLocks
+  batchLocks: new Set(),
+}));
+
+// P1 修复：optimize.js 引入数据库锁（optimize:/apply-optimize:），测试中 mock 为直接获取成功
+vi.mock('../lock.js', () => ({
+  acquireLock: vi.fn(async () => true),
+  releaseLock: vi.fn(async () => true),
 }));
 
 // OL2 修复后教材推导复用 queries.js 的 getClassesWithCourse（真实口径）
@@ -873,6 +881,288 @@ describe('Optimize Service', () => {
       expect(teacher1.maxHours).toBe(26);
       // 容量排除本课（4h）后：standardCap = 20 - 0 = 20
       expect(teacher1.standardCap).toBe(20);
+    });
+  });
+
+  // ── P1 修复测试：并发保护 ──
+  describe('并发保护 (P1 fix)', () => {
+    it('批量排课进行中应拒绝优化', async () => {
+      const { batchLocks } = await import('../auto-arrange.js');
+      batchLocks.add('1');
+      try {
+        await expect(runOptimizeSchedule(1, 'standard')).rejects.toThrow('批量排课进行中');
+      } finally {
+        batchLocks.delete('1');
+      }
+    });
+
+    it('同学期优化锁被占用时应拒绝（acquireLock 失败）', async () => {
+      const { acquireLock } = await import('../lock.js');
+      acquireLock.mockResolvedValueOnce(false);
+      await expect(runOptimizeSchedule(1, 'standard')).rejects.toThrow('正在排课优化中');
+    });
+
+    it('批量排课进行中应拒绝应用优化结果', async () => {
+      const { batchLocks } = await import('../auto-arrange.js');
+      batchLocks.add('1');
+      try {
+        await expect(
+          applyOptimizeResult(1, [{ class_id: 1, course_id: 1, from_teacher: { id: 1 }, to_teacher: { id: 2 } }], 1)
+        ).rejects.toThrow('批量排课进行中');
+      } finally {
+        batchLocks.delete('1');
+      }
+    });
+  });
+
+  // ── P1 修复测试：合班课时去重 ──
+  describe('combined class hour dedup (P1 fix)', () => {
+    it('合班多行只计 1 次课时：effectiveTotal 不随成员班行数虚增', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+
+      // 组合7 的班10、班11 同教师同课程各一行（4h）→ 只计 4h；另课程2 班20（4h）
+      const mockAssignments = [
+        mockAssignment(10, 1, 1, {
+          class: { id: 10, name: 'C10', college_id: 1, training_level_id: 1, combination_id: 7 },
+        }),
+        mockAssignment(11, 1, 1, {
+          class: { id: 11, name: 'C11', college_id: 1, training_level_id: 1, combination_id: 7 },
+        }),
+        mockAssignment(20, 1, 2),
+      ];
+      mockAssignmentQueries(prisma, mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'T1', { courses: [{ course_id: 1 }, { course_id: 2 }] }),
+      ]);
+
+      let capturedConstraints = null;
+      tabuOptimize.mockImplementation((assignments, unassigned, teacherConstraints) => {
+        capturedConstraints = teacherConstraints;
+        return {
+          improved: false,
+          iterations: 0,
+          scoreBefore: 0,
+          scoreAfter: 0,
+          delta: 0,
+          elapsed: 10,
+        };
+      });
+
+      await runOptimizeSchedule(1, 'standard');
+
+      expect(capturedConstraints).not.toBeNull();
+      const t1 = capturedConstraints.find((t) => t.id === 1);
+      // 修复前按行累加 = 4+4+4 = 12（合班虚增 N 倍）；修复后 = 4 + 4 = 8
+      expect(t1.effectiveTotal).toBe(8);
+    });
+  });
+
+  // ── P2 修复测试：指标容量口径 ──
+  describe('metrics capacity semantics (P2 fix)', () => {
+    it('avgLoadRate 应为真实总课时 / 类别容量（而非被容量修正削过的 cap）', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+
+      // 两教师各 2 班（各 8h），full_time 标准容量 16 → 平均负载率应为 0.5
+      const mockAssignments = [
+        mockAssignment(1, 1, 1),
+        mockAssignment(2, 1, 1),
+        mockAssignment(3, 2, 1),
+        mockAssignment(4, 2, 1),
+      ];
+      mockAssignmentQueries(prisma, mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'T1', { default_weekly_hours: null }),
+        mockTeacher(2, 'T2', { default_weekly_hours: null }),
+      ]);
+      tabuOptimize.mockReturnValue({
+        improved: false,
+        iterations: 0,
+        scoreBefore: 0,
+        scoreAfter: 0,
+        delta: 0,
+        elapsed: 10,
+      });
+
+      const result = await runOptimizeSchedule(1, 'standard');
+
+      // 修复前 cap 被削为 16-8=8 → 负载率 8/8 = 1；修复后 8/16 = 0.5
+      expect(result.before.avgLoadRate).toBe(0.5);
+    });
+
+    it('教师负载应计入基线（手动/锁定）课时', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+
+      // 教师1：自动 1 班 4h + 手动基线 1 班 4h = 8h；教师2：0h
+      const autoAssignments = [mockAssignment(1, 1, 1)];
+      const baseline = [mockBaselineAssignment(99, 1, 2, 4)];
+      mockAssignmentQueries(prisma, autoAssignments, baseline);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'T1', { default_weekly_hours: null }),
+        mockTeacher(2, 'T2', { default_weekly_hours: null }),
+      ]);
+      tabuOptimize.mockReturnValue({
+        improved: false,
+        iterations: 0,
+        scoreBefore: 0,
+        scoreAfter: 0,
+        delta: 0,
+        elapsed: 10,
+      });
+
+      const result = await runOptimizeSchedule(1, 'standard');
+
+      // 教师1 负载率 = (4+4)/16 = 0.5；教师2 = 0 → 平均 0.25
+      // 修复前基线不计入 assignedHours → 教师1 仅 4/16 = 0.25，平均 0.125
+      expect(result.before.avgLoadRate).toBe(0.25);
+    });
+  });
+
+  // ── P1 修复测试：停用教师不参与优化 ──
+  describe('inactive teacher exclusion (P1 fix)', () => {
+    it('停用教师的排课记录应保持现状，不出现在变更中', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { tabuOptimize } = await import('../tabu-search.js');
+      const { calcMatchScore } = await import('../auto-arrange.js');
+
+      // T3 已停用（teachers.findMany 模拟 where status:'active' 只返回 T1/T2）
+      const mockAssignments = [
+        mockAssignment(1, 1, 1),
+        mockAssignment(2, 3, 1), // 停用教师 T3 名下
+      ];
+      mockAssignmentQueries(prisma, mockAssignments);
+      prisma.teachers.findMany.mockResolvedValue([
+        mockTeacher(1, 'T1'),
+        mockTeacher(2, 'T2'),
+      ]);
+      // T1 匹配分远高于 T2，诱导算法尽量把班挪给 T1
+      calcMatchScore.mockImplementation((teacher) => (teacher.id === 1 ? 50 : 0));
+      tabuOptimize.mockImplementation((assignments) => {
+        // 若停用教师的记录被错误地传入优化，此处会看到 class_id=2
+        for (const a of assignments) {
+          if (a.class_id === 2) a.teacher_id = 1;
+        }
+        return {
+          improved: true,
+          iterations: 5,
+          scoreBefore: 0,
+          scoreAfter: 10,
+          delta: 10,
+          elapsed: 10,
+        };
+      });
+
+      const result = await runOptimizeSchedule(1, 'standard');
+
+      // 停用教师的班2 不参与优化：既不会被移走，也不会被加课
+      expect(result.changes).toHaveLength(0);
+      expect(result.summary.totalClasses).toBe(1);
+    });
+  });
+
+  // ── P2 修复测试：应用前校验（TOCTOU 防护） ──
+  describe('applyOptimizeResult validation (P2 TOCTOU fix)', () => {
+    function validationRow(classId, teacherId, courseId, weeklyHours, combinationId = null) {
+      return {
+        teacher_id: teacherId,
+        class_id: classId,
+        course_id: courseId,
+        weekly_hours: weeklyHours,
+        class: { id: classId, combination_id: combinationId },
+      };
+    }
+
+    function validationTeacher(id, overrides = {}) {
+      return {
+        id,
+        name: `T${id}`,
+        personnel_type: 'full_time',
+        default_weekly_hours: null,
+        single_textbook_only: false,
+        ...overrides,
+      };
+    }
+
+    it('变更将拆散合班时应拒绝应用', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      prisma.teaching_assignments.findMany.mockResolvedValue([
+        validationRow(10, 1, 1, 4, 7),
+        validationRow(11, 1, 1, 4, 7),
+      ]);
+      prisma.teachers.findMany.mockResolvedValue([validationTeacher(1), validationTeacher(2)]);
+
+      const changes = [
+        { class_id: 11, course_id: 1, from_teacher: { id: 1 }, to_teacher: { id: 2 } },
+      ];
+      await expect(applyOptimizeResult('2025-2026-1', changes, 1)).rejects.toThrow('合班被拆散');
+    });
+
+    it('变更将使教师超过容量上限时应拒绝应用', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      // 教师2 已有 14h（班3/班4 各 7h），再接收班1（4h）→ 18h > 16h
+      prisma.teaching_assignments.findMany.mockResolvedValue([
+        validationRow(1, 1, 1, 4),
+        validationRow(3, 2, 2, 7),
+        validationRow(4, 2, 2, 7),
+      ]);
+      prisma.teachers.findMany.mockResolvedValue([validationTeacher(1), validationTeacher(2)]);
+
+      const changes = [
+        { class_id: 1, course_id: 1, from_teacher: { id: 1 }, to_teacher: { id: 2 } },
+      ];
+      await expect(applyOptimizeResult('2025-2026-1', changes, 1)).rejects.toThrow(
+        '超过容量上限'
+      );
+    });
+
+    it('变更将使教师超过教材上限时应拒绝应用', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { getClassesWithCourse } = await import('../queries.js');
+      // 教师2 已持教材 201（课2班2）、301（课3班3）；变更将班1（课1→教材101）转给它 → 3 本 > 2 本
+      prisma.teaching_assignments.findMany.mockResolvedValue([
+        validationRow(1, 1, 1, 4),
+        validationRow(2, 2, 2, 4),
+        validationRow(3, 2, 3, 4),
+      ]);
+      prisma.teachers.findMany.mockResolvedValue([validationTeacher(1), validationTeacher(2)]);
+      getClassesWithCourse.mockImplementation(async (courseId) => {
+        const map = {
+          1: [{ classId: 1, textbooks: [{ id: 101 }] }],
+          2: [{ classId: 2, textbooks: [{ id: 201 }] }],
+          3: [{ classId: 3, textbooks: [{ id: 301 }] }],
+        };
+        return map[Number(courseId)] || [];
+      });
+
+      const changes = [
+        { class_id: 1, course_id: 1, from_teacher: { id: 1 }, to_teacher: { id: 2 } },
+      ];
+      await expect(applyOptimizeResult('2025-2026-1', changes, 1)).rejects.toThrow('教材数');
+    });
+
+    it('预存超限但变更未使其恶化时不应阻断应用', async () => {
+      const { prisma } = await import('../../../lib/prisma.js');
+      const { createAuditLog } = await import('../../../services/audit.service.js');
+      // 教师2 已 18h（预存超限）；变更对等交换（收 4h 课1班1，出 4h 课1班2）→ 仍 18h，未恶化
+      prisma.teaching_assignments.findMany.mockResolvedValue([
+        validationRow(1, 1, 1, 4),
+        validationRow(2, 2, 1, 4),
+        validationRow(3, 2, 2, 14),
+      ]);
+      prisma.teachers.findMany.mockResolvedValue([validationTeacher(1), validationTeacher(2)]);
+      prisma.$transaction.mockImplementation(async (fn) =>
+        fn({ teaching_assignments: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) } })
+      );
+      createAuditLog.mockResolvedValue();
+
+      const changes = [
+        { class_id: 1, course_id: 1, from_teacher: { id: 1 }, to_teacher: { id: 2 } },
+        { class_id: 2, course_id: 1, from_teacher: { id: 2 }, to_teacher: { id: 1 } },
+      ];
+      const result = await applyOptimizeResult('2025-2026-1', changes, 1);
+      expect(result.success).toBe(true);
     });
   });
 });

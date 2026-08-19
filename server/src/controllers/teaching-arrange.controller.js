@@ -1241,15 +1241,20 @@ export async function runOptimizeSchedule(req, res, next) {
  */
 export async function applyOptimizeResult(req, res, next) {
   try {
-    const { semester, changes } = req.body;
+    const { semester, changes, mode } = req.body;
 
     if (!semester) return fail(res, '缺少学期参数');
     if (!Array.isArray(changes) || changes.length === 0) {
       return fail(res, '缺少变更数据或无变更需要应用');
     }
+    // 应用前校验需要与预览一致的容量口径（standard/full）
+    const applyMode = mode || 'standard';
+    if (!['full', 'standard'].includes(applyMode)) {
+      return fail(res, '排课模式必须是full或standard');
+    }
 
     const { applyOptimizeResult } = await import('../services/arrange/optimize.js');
-    const result = await applyOptimizeResult(semester, changes, req.user?.id);
+    const result = await applyOptimizeResult(semester, changes, req.user?.id, applyMode);
 
     await createAuditLog({
       action: 'update',

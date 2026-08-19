@@ -5,17 +5,21 @@
 
 import { prisma } from '../../lib/prisma.js';
 import logger from '../../utils/logger.js';
+import { AppError } from '../../utils/error.js';
 import {
   DEFAULT_HOUR_SETTINGS,
   HOUR_SETTINGS_PREFIX,
   TABU_SEARCH,
+  TEXTBOOK_COHESION,
   INHERENT_CLASS,
 } from '../../constants/index.js';
 import { tabuOptimize } from './tabu-search.js';
-import { calcMatchScore } from './auto-arrange.js';
+import { calcMatchScore, batchLocks } from './auto-arrange.js';
 import { getClassesWithCourse } from './queries.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { getPreviousSemester } from '../semester.service.js';
+import { dedupeTeachingUnits } from '../teaching-statistics.service.js';
+import { acquireLock, releaseLock } from './lock.js';
 
 /**
  * 检查是否满足最小改进阈值
@@ -35,15 +39,34 @@ function meetsMinimumThreshold(before, after) {
 
 /**
  * 计算排课质量指标 - 使用 calcMatchScore 统一评分
+ * P2 修复：指标口径与真实业务语义对齐——
+ * - 教师负载含基线（手动/锁定）课时，容量用"个人自定义或类别标准/上限"原始值，
+ *   不再用逐课程容量修正后的 standardCap/fullCap（该值在课程循环中仅对单课有效，
+ *   挂在共享约束上会被后续课程反复改写，用于全局指标必然失真）
+ * - 教材按 (course_id, class_id) 精确取值，杜绝同班多课程的教材串味
+ * - 输入为 dedupeTeachingUnits 归并后的教学单元，合班课时只计 1 次
+ * @param {Array} assignmentUnits - dedupeTeachingUnits 输出的教学单元列表
+ * @param {Array} teacherConstraints - 教师约束
+ * @param {Map} classMap - classId → 班级基础信息（className/collegeId/trainingLevelId）
+ * @param {string} mode - 排课模式
+ * @param {Map} courseTextbookMap - courseId → Map(classId → textbookIds[])
+ * @param {Map} baselineHoursByTeacher - 教师基线（手动/锁定）课时
  */
-function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
+function calculateMetrics(
+  assignmentUnits,
+  teacherConstraints,
+  classMap,
+  mode,
+  courseTextbookMap,
+  baselineHoursByTeacher
+) {
   const teacherMap = new Map(teacherConstraints.map((t) => [t.id, t]));
 
-  // 1. 计算教师负载状态
+  // 1. 计算教师负载状态（含基线课时）
   const teacherStates = new Map();
   for (const t of teacherConstraints) {
     teacherStates.set(t.id, {
-      assignedHours: 0,
+      assignedHours: baselineHoursByTeacher.get(t.id) || 0,
       textbooks: new Set(),
       colleges: new Set(),
       classes: [],
@@ -54,15 +77,19 @@ function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
   let totalMatchScore = 0;
   let matchCount = 0;
 
-  for (const a of allAssignments) {
+  for (const unit of assignmentUnits) {
+    const a = unit.representative;
     const state = teacherStates.get(a.teacher_id);
-    const cls = classMap.get(a.class_id);
+    const baseCls = classMap.get(a.class_id);
+    // 教材按 (course, class) 精确取值：同一班级在不同课程的教材不同
+    const textbookIds = courseTextbookMap.get(a.course_id)?.get(a.class_id) || [];
+    const cls = baseCls ? { ...baseCls, textbookIds } : null;
     if (state) {
-      state.assignedHours += a.weekly_hours || 0;
+      state.assignedHours += unit.weeklyHours || 0;
       state.classes.push(a.class_id);
-      if (cls) {
-        for (const tid of cls.textbookIds || []) state.textbooks.add(tid);
-        if (cls.collegeId != null) state.colleges.add(cls.collegeId);
+      if (baseCls) {
+        for (const tid of textbookIds) state.textbooks.add(tid);
+        if (baseCls.collegeId != null) state.colleges.add(baseCls.collegeId);
       }
     }
 
@@ -80,12 +107,22 @@ function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
     }
   }
 
-  // 2. 计算负载均衡度
+  // 2. 容量口径：个人自定义课时优先；负载率用 mode 对应的类别容量
+  const capOf = (t) =>
+    t.defaultWeeklyHours != null
+      ? t.defaultWeeklyHours
+      : mode === 'standard'
+        ? t.standardHours
+        : t.maxHours;
+  // 欠分配达标口径：自定义与类别标准取严（guarantee 语义，与 computeObjective 对齐）
+  const guaranteeOf = (t) => Math.min(t.defaultWeeklyHours ?? Infinity, t.standardHours);
+
+  // 计算负载均衡度
   const loadRates = [];
   for (const t of teacherConstraints) {
     const state = teacherStates.get(t.id);
     if (!state) continue;
-    const cap = mode === 'standard' ? t.standardCap : t.fullCap;
+    const cap = capOf(t);
     if (cap > 0) {
       loadRates.push(state.assignedHours / cap);
     }
@@ -102,7 +139,7 @@ function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
   // 3. 计算教材内聚度
   let cohesionSum = 0;
   let teacherCount = 0;
-  for (const [tid, state] of teacherStates) {
+  for (const state of teacherStates.values()) {
     if (state.classes.length === 0) continue;
     const tbSize = state.textbooks.size;
     const classCount = state.classes.length;
@@ -119,14 +156,14 @@ function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
   const alpha = TABU_SEARCH.UNDER_ASSIGNMENT_PENALTY || 0;
   const beta = TABU_SEARCH.LOAD_VARIANCE_WEIGHT || 0;
 
-  // 欠分配惩罚：每位教师低于 cap 的课时缺口 × α
+  // 欠分配惩罚：每位教师低于达标线（guarantee）的课时缺口 × α
   let underAssignmentPenalty = 0;
   for (const t of teacherConstraints) {
     const state = teacherStates.get(t.id);
     if (!state) continue;
-    const cap = mode === 'standard' ? t.standardCap : t.fullCap;
-    if (cap > 0) {
-      const gap = Math.max(0, cap - state.assignedHours);
+    const target = guaranteeOf(t);
+    if (target > 0) {
+      const gap = Math.max(0, target - state.assignedHours);
       underAssignmentPenalty += alpha * gap;
     }
   }
@@ -143,7 +180,7 @@ function calculateMetrics(allAssignments, teacherConstraints, classMap, mode) {
     loadVariance: Math.round(loadVariance * 10000) / 10000,
     avgLoadRate: Math.round(avgLoadRate * 100) / 100,
     textbookCohesionRate,
-    totalAssignments: allAssignments.length,
+    totalAssignments: assignmentUnits.length,
     affectedTeachers: teacherConstraints.length,
   };
 }
@@ -161,9 +198,16 @@ function buildTeacherConstraints(teachers, allAssignments, courseTextbookMap, ho
   const teacherTextbookMap = new Map();
   const teacherCollegeMap = new Map();
 
+  // P1 修复：合班课时去重——同一 (combination, course, teacher) 的多行记录只计 1 次课时。
+  // teaching_assignments 中合班每个成员班各存一行，直接按行累加会把同一节课记 N 倍，
+  // 导致 effectiveTotal 虚高 → 容量被过度压缩 → 欠分配；与全系统 dedupeTeachingUnits 口径对齐
+  for (const unit of dedupeTeachingUnits(allAssignments)) {
+    const tid = unit.representative.teacher_id;
+    teacherHoursMap.set(tid, (teacherHoursMap.get(tid) || 0) + (unit.weeklyHours || 0));
+  }
+
   for (const a of allAssignments) {
     const tid = a.teacher_id;
-    teacherHoursMap.set(tid, (teacherHoursMap.get(tid) || 0) + (a.weekly_hours || 0));
 
     // OL2 修复：教材按 (course_id, class_id) 精确取值，
     // 修正原 classMap 按 class_id 首课程覆盖导致同班多课程教材漏计的问题
@@ -268,6 +312,17 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
 
   const semesterStr = `${semesterId}`;
 
+  // P1 修复：并发保护——批量排课进行中拒绝优化（与 auto-arrange 的 batchLocks 同源）；
+  // 同学期优化用数据库锁互斥（支持多实例部署）
+  if (batchLocks.has(semesterStr)) {
+    throw new AppError(`学期 ${semesterStr} 批量排课进行中，请稍后再试`, 409);
+  }
+  const dbLockKey = `optimize:${semesterStr}`;
+  const dbLocked = await acquireLock(dbLockKey);
+  if (!dbLocked) {
+    throw new AppError('该学期正在排课优化中，请稍后重试', 409);
+  }
+
   try {
     progress('init', '正在加载当前排课数据...', 5);
 
@@ -348,15 +403,17 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         class_id: true,
         course_id: true,
         weekly_hours: true,
-        class: { select: { id: true, college_id: true } },
+        class: { select: { id: true, college_id: true, combination_id: true } },
       },
     });
 
     // 4. 加载教师完整信息（含 scheduling_colleges、scheduling_levels、courses）
     // Schema 对齐修复：teachers 模型无 teacher_textbook_preferences 关系
     // courses 用于按课程筛选合格教师，防止 tabuOptimize 跨学科变更
+    // P1 修复：过滤停用教师（与 auto-arrange 的 getTeachersForCourse status:'active' 口径对齐），
+    // 停用教师名下的排课记录保持现状，不参与优化、不接收新班级
     const teachers = await prisma.teachers.findMany({
-      where: { id: { in: [...allTeacherIds] } },
+      where: { id: { in: [...allTeacherIds] }, status: 'active' },
       include: {
         scheduling_colleges: { select: { college_id: true } },
         scheduling_levels: {
@@ -365,6 +422,27 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         courses: { select: { course_id: true } },
       },
     });
+
+    // P1 修复：从可优化集合中剔除停用教师的记录，保持其现状
+    const activeTeacherIds = new Set(teachers.map((t) => t.id));
+    let optimizableCount = 0;
+    for (const [cid, course] of courseMap) {
+      course.assignments = course.assignments.filter((a) => activeTeacherIds.has(a.teacher_id));
+      if (course.assignments.length === 0) {
+        courseMap.delete(cid);
+        continue;
+      }
+      course.classIds = new Set(course.assignments.map((a) => a.class_id));
+      course.teacherIds = new Set(course.assignments.map((a) => a.teacher_id));
+      optimizableCount += course.assignments.length;
+    }
+    if (optimizableCount === 0) {
+      throw new AppError('没有可优化的自动排课记录（教师均已停用）', 400);
+    }
+    const optimizableAssignments = [];
+    for (const course of courseMap.values()) {
+      for (const a of course.assignments) optimizableAssignments.push(a);
+    }
 
     // 4.5 OL3 修复：读取系统设置的全局课时配置（key 与 controller 的 getHourSettings 同源），
     // 跨课程全局优化统一取全局配置（不做逐课程覆盖），解析失败回退默认值
@@ -404,18 +482,17 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
 
     progress('prepare', '正在构建约束条件...', 25);
 
-    // 6. 构建全局班级映射（含 textbookIds 数组）
-    // Schema 对齐修复：class_name → name，weekly_hours 取自 assignments，textbookIds 取自 courseTextbookMap
+    // 6. 构建全局班级映射（仅班级级属性：名称/学院/层次）
+    // P0-1/P0-3 修复：weekly_hours 与 textbookIds 是课程维度属性，
+    // 同一班级在不同课程取值不同，按 class_id 摊平必然"首条记录污染"其余课程。
+    // 课程维度的取值改在课程循环内按本课程安排行单独构建，此处不再携带。
     const globalClassMap = new Map();
-    for (const a of currentAssignments) {
+    for (const a of optimizableAssignments) {
       if (globalClassMap.has(a.class_id)) continue;
       const cls = a.class;
-      const tbIds = courseTextbookMap.get(a.course_id)?.get(a.class_id) || [];
       globalClassMap.set(a.class_id, {
         classId: a.class_id,
         className: cls?.name || `班级${a.class_id}`,
-        weeklyHours: a.weekly_hours || 0,
-        textbookIds: tbIds,
         collegeId: cls?.college_id,
         trainingLevelId: cls?.training_level_id,
       });
@@ -424,10 +501,20 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
     // 7. 构建全局教师约束（含完整字段；OL1：基线记录一并计入约束统计）
     const teacherConstraints = buildTeacherConstraints(
       teachers,
-      [...currentAssignments, ...baselineAssignments],
+      [...optimizableAssignments, ...baselineAssignments],
       courseTextbookMap,
       hourSettings
     );
+
+    // 基线（手动/锁定）课时按教师累计（合班去重），供指标计算计入教师真实负载
+    const baselineHoursByTeacher = new Map();
+    for (const unit of dedupeTeachingUnits(baselineAssignments)) {
+      const tid = unit.representative.teacher_id;
+      baselineHoursByTeacher.set(
+        tid,
+        (baselineHoursByTeacher.get(tid) || 0) + (unit.weeklyHours || 0)
+      );
+    }
 
     // 固有班级延续：与 autoArrange 同源——开关读取一次，预加载上学期快照
     // 结构：courseId → Map(teacherId → Set(classId))，逐课程挂载到教师约束副本，
@@ -465,16 +552,15 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       }
     }
 
-    // 8. 计算优化前指标（使用 calcMatchScore）
+    // 8. 计算优化前指标（使用 calcMatchScore；合班课时去重后按教学单元统计）
+    const beforeUnits = dedupeTeachingUnits(optimizableAssignments);
     const beforeMetrics = calculateMetrics(
-      currentAssignments.map((a) => ({
-        teacher_id: a.teacher_id,
-        class_id: a.class_id,
-        weekly_hours: a.weekly_hours || 0,
-      })),
+      beforeUnits,
       teacherConstraints,
       globalClassMap,
-      mode
+      mode,
+      courseTextbookMap,
+      baselineHoursByTeacher
     );
     beforeMetrics.changesCount = 0;
 
@@ -493,25 +579,82 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       const progressPercent = 35 + Math.floor((i / totalCourses) * 40);
       progress('optimize', `正在优化课程 ${i + 1}/${totalCourses}...`, progressPercent);
 
-      // 构建该课程的班级映射
-      const classMap = new Map();
-      for (const classId of course.classIds) {
-        const cls = globalClassMap.get(classId);
-        if (cls) classMap.set(classId, cls);
+      // P0-2 修复：合班归并——同 combination 的成员班合并为 1 个教学单元统一分配，
+      // 禁忌搜索只能整组移动，杜绝优化过程把合班拆给不同教师。
+      // 含手动/锁定成员的组合整体钉住（保持现状）：既尊重手动排课，
+      // 也避免成员班被移到与手动教师不同的教师造成新的不一致
+      const pinnedCombinations = new Set();
+      for (const b of baselineAssignments) {
+        if (Number(b.course_id) === Number(courseId) && b.class?.combination_id != null) {
+          pinnedCombinations.add(b.class.combination_id);
+        }
       }
 
-      // 构建该课程的 assignments 数组
-      const courseAssignments = course.assignments.map((a) => ({
-        teacher_id: a.teacher_id,
-        teacher_name: a.teacher.name,
-        class_id: a.class_id,
-        class_name: a.class?.name || `班级${a.class_id}`,
-        course_id: Number(courseId),
-        semester: semesterStr,
-        weekly_hours: a.weekly_hours || 0,
-        is_auto: true,
-        memberClassIds: null,
-      }));
+      const byComb = new Map();
+      const soloRows = [];
+      for (const a of course.assignments) {
+        const combId = a.class?.combination_id;
+        if (combId != null) {
+          if (!byComb.has(combId)) byComb.set(combId, []);
+          byComb.get(combId).push(a);
+        } else {
+          soloRows.push(a);
+        }
+      }
+      const units = [];
+      for (const a of soloRows) {
+        units.push({ rows: [a], combined: false, pinned: false });
+      }
+      for (const [combId, rows] of byComb) {
+        units.push({
+          rows,
+          combined: rows.length > 1,
+          pinned: pinnedCombinations.has(combId),
+        });
+      }
+
+      // P0-1/P0-3 修复：本课程班级映射按课程口径构建——
+      // weekly_hours 取本课程安排行、textbookIds 按 (course, class) 精确推导（合班取成员并集），
+      // 不再复用按 class_id 摊平的 globalClassMap（首条记录会污染其他课程口径，
+      // 曾导致搜索内部课时记账偏小 → 教师被加课超容量、教材上限失守）
+      const classMap = new Map();
+      for (const unit of units) {
+        const rep = unit.rows[0];
+        const memberIds = unit.combined ? unit.rows.map((r) => r.class_id) : [rep.class_id];
+        const tbIds = new Set();
+        for (const cid of memberIds) {
+          for (const tid of courseTextbookMap.get(Number(courseId))?.get(cid) || []) {
+            tbIds.add(tid);
+          }
+        }
+        classMap.set(rep.class_id, {
+          classId: rep.class_id,
+          className: rep.class?.name || `班级${rep.class_id}`,
+          weeklyHours: rep.weekly_hours || 0,
+          textbookIds: [...tbIds],
+          collegeId: rep.class?.college_id,
+          trainingLevelId: rep.class?.training_level_id,
+          memberClassIds: unit.combined ? memberIds : null,
+        });
+      }
+
+      // 构建该课程的 assignments 数组（钉住的组合单元不参与优化，保持现状）
+      const courseAssignments = [];
+      for (const unit of units) {
+        if (unit.pinned) continue;
+        const rep = unit.rows[0];
+        courseAssignments.push({
+          teacher_id: rep.teacher_id,
+          teacher_name: rep.teacher.name,
+          class_id: rep.class_id,
+          class_name: rep.class?.name || `班级${rep.class_id}`,
+          course_id: Number(courseId),
+          semester: semesterStr,
+          weekly_hours: rep.weekly_hours || 0,
+          is_auto: true,
+          memberClassIds: unit.combined ? unit.rows.map((r) => r.class_id) : null,
+        });
+      }
 
       const courseUnassigned = [];
 
@@ -544,12 +687,21 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       //   canAccept: courseHours + newHours > standardCap → REJECTED
       // 修正：将 standardCap/fullCap 重算为 "排除本课后" 的可用容量，
       // 与 auto-arrange.js 的 effectiveTotal = totalWeeklyHours - autoHoursForCourse 思路对齐
+      // P1 修复：本课程课时按 (combination, teacher) 去重统计（含钉住单元），
+      // 合班多行只计 1 次，否则 otherHours 虚高 → cap 偏低 → 欠分配
       const courseHoursMap = new Map();
-      for (const a of courseAssignments) {
-        courseHoursMap.set(
-          a.teacher_id,
-          (courseHoursMap.get(a.teacher_id) || 0) + (a.weekly_hours || 0)
-        );
+      {
+        const seen = new Set();
+        for (const a of course.assignments) {
+          const combId = a.class?.combination_id;
+          const key = combId != null ? `comb:${combId}:${a.teacher_id}` : `cls:${a.class_id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          courseHoursMap.set(
+            a.teacher_id,
+            (courseHoursMap.get(a.teacher_id) || 0) + (a.weekly_hours || 0)
+          );
+        }
       }
       for (const t of courseTeacherConstraints) {
         const courseHours = courseHoursMap.get(t.id) || 0;
@@ -610,9 +762,15 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         // 将优化后的 assignments 写回 course.assignments
         // 用 class_id 匹配而非位置索引：tabuOptimize 可能在 best-solution 还原时
         // 改变 assignments 数组顺序（Map 迭代序不确定），位置匹配会导致 teacher_id 错位
-        const optimizedTeacherByClass = new Map(
-          courseAssignments.map((a) => [a.class_id, a.teacher_id])
-        );
+        // P0-2 修复：合班单元展开——同一组合的全部成员班共享单元教师，保证整组一致；
+        // 不在 map 中的班级（钉住单元/非合格教师单元）保持原教师
+        const optimizedTeacherByClass = new Map();
+        for (const a of courseAssignments) {
+          const memberIds = a.memberClassIds?.length ? a.memberClassIds : [a.class_id];
+          for (const cid of memberIds) {
+            optimizedTeacherByClass.set(cid, a.teacher_id);
+          }
+        }
         course.assignments = course.assignments.map((orig) => ({
           ...orig,
           teacher_id: optimizedTeacherByClass.get(orig.class_id) ?? orig.teacher_id,
@@ -647,12 +805,21 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         // 后续课程拿不到课直至欠课时。这正是"部分教师超课时、部分教师欠课时"的根因。
         // 修正：用本课优化前后的课时差增量更新 effectiveTotal，
         // 使下一门课的容量修正基于真实剩余量（standardCap/fullCap 在下轮循环开头据此重算）。
+        // P1 修复：去重口径与 courseHoursMap 一致（合班多行只计 1 次），
+        // 否则成员班在优化中被换教师时差值重复计算，effectiveTotal 漂移
         const newCourseHoursMap = new Map();
-        for (const a of course.assignments) {
-          newCourseHoursMap.set(
-            a.teacher_id,
-            (newCourseHoursMap.get(a.teacher_id) || 0) + (a.weekly_hours || 0)
-          );
+        {
+          const seen = new Set();
+          for (const a of course.assignments) {
+            const combId = a.class?.combination_id;
+            const key = combId != null ? `comb:${combId}:${a.teacher_id}` : `cls:${a.class_id}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            newCourseHoursMap.set(
+              a.teacher_id,
+              (newCourseHoursMap.get(a.teacher_id) || 0) + (a.weekly_hours || 0)
+            );
+          }
         }
         for (const sharedT of qualifiedTeachers) {
           const beforeHours = courseHoursMap.get(sharedT.id) || 0;
@@ -668,25 +835,24 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
 
     progress('validate', '正在验证优化结果...', 80);
 
-    // 11. 构建优化后的全局排课方案
+    // 11. 构建优化后的全局排课方案（course.assignments 已写回优化后的教师，
+    // 保留原始行结构以便 dedupeTeachingUnits 读取 class.combination_id）
     const optimizedAssignments = [];
     for (const course of courseMap.values()) {
       for (const a of course.assignments) {
-        optimizedAssignments.push({
-          teacher_id: a.teacher_id,
-          class_id: a.class_id,
-          course_id: a.course_id,
-          weekly_hours: a.weekly_hours || 0,
-        });
+        optimizedAssignments.push(a);
       }
     }
 
-    // 12. 计算优化后指标
+    // 12. 计算优化后指标（合班课时去重后按教学单元统计）
+    const afterUnits = dedupeTeachingUnits(optimizedAssignments);
     const afterMetrics = calculateMetrics(
-      optimizedAssignments,
+      afterUnits,
       teacherConstraints,
       globalClassMap,
-      mode
+      mode,
+      courseTextbookMap,
+      baselineHoursByTeacher
     );
 
     // 13. 构建变更详情（先于阈值判定，changesCount 需基于真实变更数）
@@ -699,7 +865,7 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       optimizedAssignments.map((a) => [`${a.class_id}:${a.course_id}`, a])
     );
     const changes = [];
-    for (const original of currentAssignments) {
+    for (const original of optimizableAssignments) {
       const optimized = optimizedByKey.get(`${original.class_id}:${original.course_id}`);
       if (optimized && optimized.teacher_id !== original.teacher_id) {
         const clsInfo = globalClassMap.get(original.class_id);
@@ -761,7 +927,7 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       changes,
       courseResults,
       summary: {
-        totalClasses: currentAssignments.length,
+        totalClasses: optimizableAssignments.length,
         changedClasses: changes.length,
         affectedTeachers: teacherConstraints.length,
         affectedCourses: courseMap.size,
@@ -772,14 +938,221 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
   } catch (error) {
     logger.error('排课优化失败:', error);
     throw error;
+  } finally {
+    await releaseLock(dbLockKey);
   }
 }
 
 /**
- * 应用优化结果到数据库
+ * 应用前校验（P2 修复：TOCTOU 防护）
+ * 预览与应用之间排课数据可能已变动，仅靠 updateMany 的 from_teacher 匹配兜底
+ * 无法防止"数据变动后变更仍部分生效并破坏硬约束"。此处基于当前数据库状态
+ * 内存重放全部变更，校验合班一致性 / 教师容量 / 教材硬上限。
+ * 只拦截"应用变更后新产生或恶化"的违例，预存违例不阻断修复型变更：
+ * - 容量：应用后超上限 且 比应用前更满（数值更高）才拦截
+ * - 教材：应用后超上限 且 数量比应用前更多才拦截
+ * - 合班：应用前一致、应用后不一致的组合才拦截
+ * @param {string} semesterStr - 学期标识
+ * @param {Array} changes - 变更列表（snake_case：class_id/course_id/from_teacher/to_teacher）
+ * @param {string} mode - 排课模式（standard/full），决定容量口径
+ * @returns {Promise<string[]>} 违例描述列表（空数组 = 通过）
  */
-export async function applyOptimizeResult(semesterId, changes, userId) {
+async function validateApplyChanges(semesterStr, changes, mode) {
+  const courseIds = [...new Set(changes.map((c) => Number(c.course_id)).filter(Number.isFinite))];
+  const teacherIds = [
+    ...new Set(changes.flatMap((c) => [Number(c.from_teacher?.id), Number(c.to_teacher?.id)])),
+  ].filter(Number.isFinite);
+  if (courseIds.length === 0 || teacherIds.length === 0) return [];
+
+  // 1. 加载受影响课程与受影响教师的当前排课（含合班组合信息）
+  const rows =
+    (await prisma.teaching_assignments.findMany({
+      where: {
+        semester: semesterStr,
+        OR: [{ course_id: { in: courseIds } }, { teacher_id: { in: teacherIds } }],
+      },
+      select: {
+        teacher_id: true,
+        class_id: true,
+        course_id: true,
+        weekly_hours: true,
+        class: { select: { id: true, combination_id: true } },
+      },
+    })) || [];
+
+  // 2. 内存重放变更 → after 状态（from_teacher 不匹配的行保持原教师，与 updateMany 行为一致）
+  const changeByClassCourse = new Map();
+  for (const c of changes) {
+    changeByClassCourse.set(`${c.class_id}:${c.course_id}`, c);
+  }
+  const afterRows = rows.map((r) => {
+    const c = changeByClassCourse.get(`${r.class_id}:${r.course_id}`);
+    if (c && r.teacher_id === Number(c.from_teacher?.id)) {
+      return { ...r, teacher_id: Number(c.to_teacher?.id) };
+    }
+    return r;
+  });
+
+  const violations = [];
+
+  // 3. 合班一致性：同一 (course, combination) 的成员班必须同教师
+  const collectCombTeachers = (list) => {
+    const m = new Map();
+    for (const r of list) {
+      const combId = r.class?.combination_id;
+      if (combId == null) continue;
+      const key = `${r.course_id}:${combId}`;
+      if (!m.has(key)) m.set(key, new Set());
+      m.get(key).add(r.teacher_id);
+    }
+    return m;
+  };
+  const combBefore = collectCombTeachers(rows);
+  const combAfter = collectCombTeachers(afterRows);
+  for (const [key, teachers] of combAfter) {
+    if (teachers.size > 1 && (combBefore.get(key)?.size ?? 0) <= 1) {
+      const [cidStr, combIdStr] = key.split(':');
+      violations.push(`合班被拆散：课程#${cidStr} 组合#${combIdStr} 将出现 ${teachers.size} 位教师`);
+    }
+  }
+
+  // 4. 教师容量：应用后总课时（合班去重）不得超过容量上限，且不得比应用前更满
+  const teachers =
+    (await prisma.teachers.findMany({
+      where: { id: { in: teacherIds } },
+      select: {
+        id: true,
+        name: true,
+        personnel_type: true,
+        default_weekly_hours: true,
+        single_textbook_only: true,
+      },
+    })) || [];
+
+  let hourSettings = DEFAULT_HOUR_SETTINGS;
+  try {
+    const globalSettings = await prisma.system_settings.findUnique({
+      where: { key: HOUR_SETTINGS_PREFIX },
+    });
+    if (globalSettings?.value) {
+      hourSettings = JSON.parse(globalSettings.value) || DEFAULT_HOUR_SETTINGS;
+    }
+  } catch (_) {
+    hourSettings = DEFAULT_HOUR_SETTINGS;
+  }
+
+  const hoursByTeacher = (list) => {
+    const m = new Map();
+    const seen = new Set();
+    for (const r of list) {
+      const combId = r.class?.combination_id;
+      const key =
+        combId != null
+          ? `comb:${combId}:${r.course_id}:${r.teacher_id}`
+          : `${r.class_id}:${r.course_id}:${r.teacher_id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      m.set(r.teacher_id, (m.get(r.teacher_id) || 0) + (r.weekly_hours || 0));
+    }
+    return m;
+  };
+  const beforeHours = hoursByTeacher(rows);
+  const afterHours = hoursByTeacher(afterRows);
+
+  for (const t of teachers) {
+    const setting =
+      hourSettings?.[t.personnel_type || 'full_time'] ||
+      hourSettings?.full_time ||
+      DEFAULT_HOUR_SETTINGS.full_time;
+    const cap =
+      t.default_weekly_hours != null
+        ? t.default_weekly_hours
+        : mode === 'standard'
+          ? setting.standard
+          : setting.max;
+    const after = afterHours.get(t.id) || 0;
+    const before = beforeHours.get(t.id) || 0;
+    if (cap > 0 && after > cap && after > before) {
+      violations.push(
+        `教师「${t.name || t.id}」应用后周课时 ${after}h 将超过容量上限 ${cap}h`
+      );
+    }
+  }
+
+  // 5. 教材硬上限：按 (course, class) 推导教师应用后教材集合
+  const courseIdsInRows = [...new Set(afterRows.map((r) => Number(r.course_id)))];
+  const courseTextbookMap = new Map();
+  for (const cid of courseIdsInRows) {
+    const classTbMap = new Map();
+    try {
+      const courseClasses = (await getClassesWithCourse(cid, semesterStr)) || [];
+      for (const c of courseClasses) {
+        classTbMap.set(c.classId, (c.textbooks || []).map((tb) => tb?.id).filter(Boolean));
+      }
+    } catch (_) {
+      // 推导失败按无教材处理，不阻塞应用
+    }
+    courseTextbookMap.set(cid, classTbMap);
+  }
+  const textbooksByTeacher = (list) => {
+    const m = new Map();
+    for (const r of list) {
+      if (!m.has(r.teacher_id)) m.set(r.teacher_id, new Set());
+      for (const tb of courseTextbookMap.get(Number(r.course_id))?.get(r.class_id) || []) {
+        m.get(r.teacher_id).add(tb);
+      }
+    }
+    return m;
+  };
+  const beforeTbs = textbooksByTeacher(rows);
+  const afterTbs = textbooksByTeacher(afterRows);
+  for (const t of teachers) {
+    const maxTb = t.single_textbook_only
+      ? 1
+      : TEXTBOOK_COHESION.ENABLED
+        ? TEXTBOOK_COHESION.MAX_TEXTBOOKS_PER_TEACHER
+        : 0;
+    if (maxTb <= 0) continue;
+    const after = afterTbs.get(t.id)?.size || 0;
+    const before = beforeTbs.get(t.id)?.size || 0;
+    if (after > maxTb && after > before) {
+      violations.push(`教师「${t.name || t.id}」应用后教材数 ${after} 本将超过上限 ${maxTb} 本`);
+    }
+  }
+
+  return violations;
+}
+
+/**
+ * 应用优化结果到数据库
+ * P1 修复：并发保护（批量排课互斥 + 同学期应用互斥）
+ * P2 修复：应用前基于当前数据重放变更并校验硬约束（TOCTOU 防护）
+ */
+export async function applyOptimizeResult(semesterId, changes, userId, mode = 'standard') {
   const semesterStr = `${semesterId}`;
+
+  if (batchLocks.has(semesterStr)) {
+    throw new AppError(`学期 ${semesterStr} 批量排课进行中，请稍后再试`, 409);
+  }
+  const dbLockKey = `apply-optimize:${semesterStr}`;
+  const dbLocked = await acquireLock(dbLockKey);
+  if (!dbLocked) {
+    throw new AppError('该学期正在应用优化结果，请稍后重试', 409);
+  }
+
+  // 应用前校验失败时直接拒绝（AppError 携带违例明细，不会被下方 catch 吞掉）
+  let violations;
+  try {
+    violations = await validateApplyChanges(semesterStr, changes, mode);
+  } catch (e) {
+    await releaseLock(dbLockKey);
+    throw new AppError(`应用前校验失败：${e.message}`, 500);
+  }
+  if (violations.length > 0) {
+    await releaseLock(dbLockKey);
+    throw new AppError(`应用优化结果将违反排课约束：${violations.join('；')}`, 409);
+  }
+
   try {
     // 固有班级延续：教师被置换后原延续标记失效，需按上学期快照重算。
     // 开关打开：加载涉及课程的上学期快照，标记"新教师上学期是否教过该班"；
@@ -866,5 +1239,7 @@ export async function applyOptimizeResult(semesterId, changes, userId) {
   } catch (error) {
     logger.error('应用优化结果失败:', error);
     throw new Error('应用优化结果失败', { cause: error });
+  } finally {
+    await releaseLock(dbLockKey);
   }
 }

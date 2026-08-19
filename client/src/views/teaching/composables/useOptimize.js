@@ -76,6 +76,8 @@ export function useOptimize({ selectedSemester, loadData, confirmHistoricalEdit 
       const response = await applyOptimizeResultApi({
         semester: selectedSemester.value,
         changes: optimizeResult.value.changes,
+        // 应用前校验需要与预览一致的容量口径（standard/full）
+        mode: optimizeResult.value?.mode || 'standard',
       });
 
       if (response.success) {
