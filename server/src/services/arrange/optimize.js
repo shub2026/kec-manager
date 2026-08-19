@@ -184,19 +184,22 @@ function buildTeacherConstraints(teachers, allAssignments, courseTextbookMap, ho
     const existingHours = teacherHoursMap.get(t.id) || 0;
 
     // 容量计算：与 auto-arrange 对齐
+    // 自定义课时最高优先级：设置后完全替代类别 standard/max（既能收紧也能放宽）；
+    // guaranteeCap 保留"自定义与类别标准取严"口径，供 α 欠分配惩罚使用
     const teacherHourCap =
       t.default_weekly_hours != null ? Math.max(0, t.default_weekly_hours - existingHours) : null;
     const rawStandardCap =
-      teacherHourCap != null
-        ? Math.min(teacherHourCap, Math.max(0, setting.standard - existingHours))
-        : Math.max(0, setting.standard - existingHours);
+      teacherHourCap != null ? teacherHourCap : Math.max(0, setting.standard - existingHours);
     const rawFullCap =
-      teacherHourCap != null
-        ? Math.min(teacherHourCap, Math.max(0, setting.max - existingHours))
-        : Math.max(0, setting.max - existingHours);
+      teacherHourCap != null ? teacherHourCap : Math.max(0, setting.max - existingHours);
+    const rawGuaranteeCap = Math.min(
+      teacherHourCap ?? Infinity,
+      Math.max(0, setting.standard - existingHours)
+    );
 
     const standardCap = Math.floor(rawStandardCap);
     const fullCap = Math.floor(rawFullCap);
+    const guaranteeCap = Math.floor(rawGuaranteeCap);
 
     // 提取 schedulingCollegeIds 和 schedulingLevelIds
     const schedulingCollegeIds = (t.scheduling_colleges || []).map((sc) => sc.college_id);
@@ -238,6 +241,7 @@ function buildTeacherConstraints(teachers, allAssignments, courseTextbookMap, ho
       maxHours: setting.max,
       standardCap,
       fullCap,
+      guaranteeCap,
       teacherHourCap,
       effectiveTotal: existingHours,
       assignedHours: 0, // tabuOptimize 会从 assignments 重建
@@ -551,17 +555,26 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         const courseHours = courseHoursMap.get(t.id) || 0;
         const otherHours = t.effectiveTotal - courseHours;
         // OL6 修复：与 buildTeacherConstraints 口径一致，教师个人周课时上限
-        // （default_weekly_hours）必须 min() 折入 standardCap/fullCap。
+        // （default_weekly_hours）必须折入 standardCap/fullCap。
         // canAccept 只检查这两个 cap，不看 teacherHourCap，原实现重算时丢失折算，
-        // 导致个人上限低于全局标准/上限的教师被加课超出个人约束
+        // 导致个人上限低于全局标准/上限的教师被加课超出个人约束。
+        // 自定义课时优先：设置后完全替代类别 standard/max（与 auto-arrange 同口径），
+        // guaranteeCap 保留"自定义与类别标准取严"供 α 惩罚使用
         t.teacherHourCap =
           t.defaultWeeklyHours != null ? Math.max(0, t.defaultWeeklyHours - otherHours) : null;
         const personalRemain = t.teacherHourCap != null ? t.teacherHourCap : Infinity;
-        t.standardCap = Math.max(
+        t.standardCap =
+          t.teacherHourCap != null
+            ? Math.max(0, t.teacherHourCap)
+            : Math.max(0, Math.floor(t.standardHours - otherHours));
+        t.fullCap =
+          t.teacherHourCap != null
+            ? Math.max(0, t.teacherHourCap)
+            : Math.max(0, Math.floor(t.maxHours - otherHours));
+        t.guaranteeCap = Math.max(
           0,
           Math.floor(Math.min(t.standardHours - otherHours, personalRemain))
         );
-        t.fullCap = Math.max(0, Math.floor(Math.min(t.maxHours - otherHours, personalRemain)));
       }
 
       try {

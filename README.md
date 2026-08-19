@@ -2,7 +2,7 @@
 
 面向大中专职业院校教学管理人员的轻量级教学管理系统，涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心业务。
 
-**版本** v1.11.0 · **架构** 前后端分离 · **部署** Docker / PM2 + Nginx
+**版本** v1.12.0 · **架构** 前后端分离 · **部署** Docker / PM2 + Nginx
 
 ---
 
@@ -33,7 +33,7 @@
 | 数据库 | SQLite（WAL 模式，单实例部署） |
 | 认证 | JWT 双令牌（Access 15min + Refresh 7d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt |
 | 安全 | Helmet + 速率限制 + XSS 清洗 + 输入校验 + 审计日志 |
-| 测试 | Vitest + Supertest（后端 1610 用例 / 前端 267 用例） |
+| 测试 | Vitest + Supertest（后端 1622 用例 / 前端 267 用例） |
 | 部署 | Docker（推荐）/ PM2 进程管理 + Nginx 反向代理 + 一键部署脚本 |
 
 ---
@@ -120,7 +120,7 @@ npm run db:seed:dev      # 含开发测试数据
 npm run db:seed:reset    # 强制重置 + 重新 seed
 npm run db:reset         # 重建数据库
 npm run init:settings    # 初始化系统设置
-npm test                 # Vitest（72 个测试文件 / 1610 用例）
+npm test                 # Vitest（73 个测试文件 / 1622 用例）
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化

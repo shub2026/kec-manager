@@ -342,6 +342,79 @@ describe('标准课时保障轮', () => {
     expect(t1Warnings[0]).toContain('意向范围内供给');
     const t2Warnings = result.warnings.filter((w) => w.includes('T2'));
     expect(t2Warnings).toHaveLength(1);
-    expect(t2Warnings[0]).toContain('标准课时未满足');
+    expect(t2Warnings[0]).toContain('目标课时未满足');
+  });
+});
+
+describe('自定义课时最高优先级', () => {
+  it('自定义 < 类别标准：standard 模式容量收紧为自定义值，课时充足也不超拿', async () => {
+    // T1 自定义 10（< 标准16）：13 个 2h 班共 26h，T2 先补足标准 16，
+    // T1 拿到自定义上限 10 即停（第三组 12h > 10 不得拿）
+    const classes = Array.from({ length: 13 }, (_, i) => makeClass(101 + i, 2));
+    getClassesWithCourseFn.mockResolvedValue(classes);
+    getTeachersForCourseFn.mockResolvedValue([
+      makeTeacher(1, 'full_time', { defaultWeeklyHours: 10 }),
+      makeTeacher(2, 'full_time'),
+    ]);
+
+    const result = await runArrange();
+
+    expect(hoursOf(result, 1)).toBe(10);
+    expect(hoursOf(result, 2)).toBe(16);
+    expect(result.unassignedCount).toBe(0);
+  });
+
+  it('自定义 > 类别上限：full 模式可放宽到自定义值（不再受类别 max 约束）', async () => {
+    // T1 自定义 24（> max 20）：full 模式 fullCap = 24，6 个 4h 班全部吃下
+    // （旧口径 min(自定义, max)=20 会导致 4h 未分配）
+    const classes = Array.from({ length: 6 }, (_, i) => makeClass(101 + i, 4));
+    getClassesWithCourseFn.mockResolvedValue(classes);
+    getTeachersForCourseFn.mockResolvedValue([
+      makeTeacher(1, 'full_time', { defaultWeeklyHours: 24 }),
+    ]);
+
+    const result = await autoArrange(1, '2026-2027-1', 'full', HOUR_SETTINGS, null, {
+      preview: true,
+    });
+
+    expect(hoursOf(result, 1)).toBe(24);
+    expect(result.unassignedCount).toBe(0);
+  });
+
+  it('自定义 > 类别标准：保障轮只补到类别标准（guaranteeCap），不挤占他人达标课时', async () => {
+    // T1 自定义 24（> 标准16）+ T2 无自定义：8 个 4h 班共 32h = 2×16
+    // 保障轮按 guaranteeCap=16 各补 16；若保障轮误用 standardCap=24，
+    // T1 会先拿 24 导致 T2 只剩 8h 而欠课时
+    const classes = Array.from({ length: 8 }, (_, i) => makeClass(101 + i, 4));
+    getClassesWithCourseFn.mockResolvedValue(classes);
+    getTeachersForCourseFn.mockResolvedValue([
+      makeTeacher(1, 'full_time', { defaultWeeklyHours: 24 }),
+      makeTeacher(2, 'full_time'),
+    ]);
+
+    const result = await runArrange();
+
+    expect(hoursOf(result, 1)).toBe(16);
+    expect(hoursOf(result, 2)).toBe(16);
+    expect(result.unassignedCount).toBe(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('自定义教师欠课时告警：缺口按自定义值计算，措辞体现自定义来源', async () => {
+    // T1 自定义 10 但只有 8h 班级：告警目标 10h、还差 2h，且标注目标取自定义口径
+    const classes = [makeClass(101, 4), makeClass(102, 4)];
+    getClassesWithCourseFn.mockResolvedValue(classes);
+    getTeachersForCourseFn.mockResolvedValue([
+      makeTeacher(1, 'full_time', { defaultWeeklyHours: 10 }),
+    ]);
+
+    const result = await runArrange();
+
+    expect(hoursOf(result, 1)).toBe(8);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('目标课时未满足');
+    expect(result.warnings[0]).toContain('目标 10 h');
+    expect(result.warnings[0]).toContain('还差 2 h');
+    expect(result.warnings[0]).toContain('自定义课时');
   });
 });

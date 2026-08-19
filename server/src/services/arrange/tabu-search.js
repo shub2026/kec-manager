@@ -215,13 +215,15 @@ function buildPenaltyContext(teacherConstraints, teacherStates, mode) {
  */
 function hoursPenaltyDelta(ctx, teacherStates, changes) {
   let delta = 0;
-  // α 欠分配缺口变化（与 computeObjective 一致，达标口径恒用 standardCap）
+  // α 欠分配缺口变化（与 computeObjective 一致，达标口径用 guaranteeCap，
+  // 即自定义课时与类别标准取严，避免高自定义教师被膨胀为保障目标）
   if (ctx.alpha > 0) {
     for (const [t, dh] of changes) {
       const state = teacherStates.get(t.id);
       if (!state) continue;
-      const gapOld = Math.max(0, t.standardCap - state.assignedHours);
-      const gapNew = Math.max(0, t.standardCap - (state.assignedHours + dh));
+      const target = t.guaranteeCap ?? t.standardCap;
+      const gapOld = Math.max(0, target - state.assignedHours);
+      const gapNew = Math.max(0, target - (state.assignedHours + dh));
       delta -= ctx.alpha * (gapNew - gapOld);
     }
   }
@@ -604,7 +606,9 @@ function computeObjective(
     for (const t of teacherConstraints) {
       const state = teacherStates.get(t.id);
       if (!state) continue;
-      const gap = Math.max(0, t.standardCap - state.assignedHours);
+      // 达标口径：guaranteeCap（自定义课时与类别标准取严），回退 standardCap 兼容旧约束对象
+      const target = t.guaranteeCap ?? t.standardCap;
+      const gap = Math.max(0, target - state.assignedHours);
       score -= alpha * gap;
     }
   }
