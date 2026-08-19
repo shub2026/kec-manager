@@ -1,101 +1,89 @@
-/* ===== 学院课时分布 ===== */
-.dist-row {
-  display: flex;
-  align-items: center;
-  padding: 18rpx 0;
-  border-bottom: 1rpx solid var(--border-light);
-}
-.dist-row:last-child { border-bottom: none; }
-.dist-name {
-  width: 140rpx;
-  font-size: 26rpx;
-  color: var(--text-1);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.dist-bar {
-  flex: 1;
-  margin: 0 16rpx;
-}
-.dist-num {
-  width: 80rpx;
-  text-align: right;
-  font-size: 26rpx;
-  font-weight: 600;
-  color: var(--text-1);
+/* ===== 教师构成副标题 ===== */
+.card-sub {
+  font-size: 22rpx;
+  font-weight: 400;
+  color: var(--text-4);
+  margin-left: 8rpx;
 }
 
-/* ===== Top 教师 ===== */
-.top-row {
+/* ===== 教师构成 · 各科分布 ===== */
+.tt-divider {
   display: flex;
   align-items: center;
+  margin: 28rpx 0 20rpx;
+}
+.tt-divider-line {
+  flex: 1;
+  height: 1rpx;
+  background: var(--border-light);
+}
+.tt-divider-text {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--text-3);
+  margin: 0 20rpx;
+  letter-spacing: 2rpx;
+}
+
+.college-tt {
   padding: 18rpx 0;
   border-bottom: 1rpx solid var(--border-light);
 }
-.top-row:last-child { border-bottom: none; }
-.top-rank {
-  width: 48rpx;
-  height: 48rpx;
-  line-height: 48rpx;
-  text-align: center;
-  border-radius: 50%;
-  background: var(--bg-subtle);
-  border: 1rpx solid var(--border);
-  font-size: 24rpx;
-  font-weight: 600;
-  color: var(--text-2);
-  flex-shrink: 0;
-  margin-right: 18rpx;
+.college-tt:last-of-type {
+  border-bottom: none;
 }
-.top-row:nth-child(1) .top-rank {
-  background: var(--brand-soft);
-  border-color: var(--brand-border);
-  color: var(--brand);
+.ct-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14rpx;
 }
-.top-row:nth-child(2) .top-rank {
-  background: var(--bg-subtle);
-  border-color: var(--border);
-  color: var(--text-1);
-}
-.top-row:nth-child(3) .top-rank {
-  background: var(--bg-subtle);
-  border-color: var(--border);
-  color: var(--text-1);
-}
-.top-main {
-  flex: 1;
-  min-width: 0;
-}
-.top-name {
-  display: block;
-  font-size: 28rpx;
+.ct-name {
+  font-size: 27rpx;
   font-weight: 600;
   color: var(--text-1);
-  margin-bottom: 6rpx;
+  max-width: 460rpx;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.top-college {
-  display: block;
+.ct-total {
   font-size: 22rpx;
   color: var(--text-3);
-}
-.top-hours {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
   flex-shrink: 0;
   margin-left: 16rpx;
 }
-.th-num {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: var(--text-1);
-  line-height: 1.2;
+
+.ct-bar {
+  display: flex;
+  gap: 4rpx;
+  height: 12rpx;
+  border-radius: 6rpx;
+  overflow: hidden;
+  background: #F4F5F8;
 }
-.th-label {
-  font-size: 20rpx;
-  color: var(--text-4);
+.ct-seg {
+  height: 100%;
 }
+.seg-full { background: #5FA0CC; }
+.seg-part { background: #C0908B; }
+.seg-ext  { background: #7DB888; }
+.seg-unk  { background: #C9CED8; }
+
+.ct-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 14rpx;
+}
+.ct-tag {
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  line-height: 1.4;
+}
+.tag-full { color: #1E5E85; background: rgba(95, 160, 204, 0.24); }
+.tag-part { color: #7A4D48; background: rgba(192, 144, 139, 0.30); }
+.tag-ext  { color: #2F5E3E; background: rgba(125, 184, 136, 0.28); }
+.tag-unk  { color: #4C515A; background: rgba(201, 206, 216, 0.7); }

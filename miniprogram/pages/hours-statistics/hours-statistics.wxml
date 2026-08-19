@@ -37,34 +37,46 @@
       </view>
     </view>
 
-    <!-- 学院课时分布 -->
+    <!-- 教师构成 -->
     <view class="card">
-      <view class="card-title">学院课时分布</view>
-      <view wx:for="{{collegeDist}}" wx:key="name" class="dist-row">
-        <text class="dist-name">{{item.name}}</text>
-        <view class="bar dist-bar"><view class="bar-in" style="width:{{item._pct}}%"></view></view>
-        <text class="dist-num">{{item.hours}}</text>
+      <view class="card-title">教师构成<text class="card-sub">（本学期任课）</text></view>
+      <view class="stat-grid">
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{teacherTypeStat.fullTime}}</view>
+          <view class="stat-label">专职教师</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{teacherTypeStat.partTime}}</view>
+          <view class="stat-label">兼职教师</view>
+        </view></view>
+        <view class="stat-cell"><view class="stat-inner">
+          <view class="stat-num">{{teacherTypeStat.external}}</view>
+          <view class="stat-label">外聘教师</view>
+        </view></view>
       </view>
-      <view wx:if="{{!collegeDist.length}}" class="empty">暂无分布数据</view>
-    </view>
 
-    <!-- 课时 Top 教师 -->
-    <view class="card">
-      <view class="card-title">课时 Top 5 教师</view>
-      <view wx:if="{{topTeachers.length}}">
-        <view wx:for="{{topTeachers}}" wx:key="teacherName" class="top-row">
-          <text class="top-rank">{{index + 1}}</text>
-          <view class="top-main">
-            <text class="top-name">{{item.teacherName}}</text>
-            <text class="top-college">{{item.affiliatedCollege}}</text>
-          </view>
-          <view class="top-hours">
-            <text class="th-num">{{item.totalWeeklyHours}}</text>
-            <text class="th-label">课时/周·{{item.totalClassCount}}班</text>
-          </view>
+      <!-- 各科教师分布 -->
+      <view class="tt-divider"><view class="tt-divider-line"></view><text class="tt-divider-text">各科分布</text><view class="tt-divider-line"></view></view>
+      <view class="college-tt" wx:for="{{subjectTeacherStat}}" wx:key="name">
+        <view class="ct-head">
+          <text class="ct-name">{{item.name}}</text>
+          <text class="ct-total">共 {{item.total}} 人</text>
+        </view>
+        <view class="ct-bar">
+          <view class="ct-seg seg-full" style="width:{{item.fullPct}}%"></view>
+          <view class="ct-seg seg-part" style="width:{{item.partPct}}%"></view>
+          <view class="ct-seg seg-ext" style="width:{{item.extPct}}%"></view>
+          <view class="ct-seg seg-unk" wx:if="{{item.unkPct > 0}}" style="width:{{item.unkPct}}%"></view>
+        </view>
+        <view class="ct-legend">
+          <text class="ct-tag tag-full">专 {{item.fullTime}}</text>
+          <text class="ct-tag tag-part">兼 {{item.partTime}}</text>
+          <text class="ct-tag tag-ext">外 {{item.external}}</text>
+          <text class="ct-tag tag-unk" wx:if="{{item.unknown > 0}}">未分类 {{item.unknown}}</text>
         </view>
       </view>
-      <view wx:else class="empty">暂无教师课时数据</view>
+      <view wx:if="{{!subjectTeacherStat.length}}" class="empty">暂无教师数据</view>
     </view>
+
   </block>
 </view>
