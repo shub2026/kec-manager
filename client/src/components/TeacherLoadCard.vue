@@ -133,12 +133,13 @@ const donutBackground = computed(() => {
   padding: var(--space-2) 0;
 }
 
-/* 环图居左、图例居右铺满卡片宽度，避免居中聚拢造成两侧大片留白 */
+/* 环图 + 图例作为整体水平居中，与卡片左右边缘保留呼吸感；
+   组内间距 24px 形成清晰视觉分区，避免两端顶满、中间空旷 */
 .load-main {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-5);
+  justify-content: center;
+  gap: var(--space-6);
 }
 
 /* 底部指标行：两列等分浅底块 */
@@ -218,9 +219,6 @@ const donutBackground = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  /* 图例铺满右侧至卡片边缘，与下方指标行宽度对齐 */
-  flex: 1;
-  min-width: 0;
 }
 
 .legend-item {
@@ -260,7 +258,7 @@ const donutBackground = computed(() => {
 /* ─── 移动端响应式 ─── */
 @media (max-width: 768px) {
   .load-main {
-    gap: var(--space-4);
+    gap: var(--space-5);
   }
 
   .metric-value {
