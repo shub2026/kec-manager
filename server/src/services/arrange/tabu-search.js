@@ -216,7 +216,8 @@ function buildPenaltyContext(teacherConstraints, teacherStates, mode) {
 function hoursPenaltyDelta(ctx, teacherStates, changes) {
   let delta = 0;
   // α 欠分配缺口变化（与 computeObjective 一致，达标口径用 guaranteeCap，
-  // 即自定义课时与类别标准取严，避免高自定义教师被膨胀为保障目标）
+  // 即自定义课时与类别标准取严，避免高自定义教师被膨胀为保障目标；
+  // 系统设置"自定义课时硬保障"开启时 guaranteeCap 已在约束构建阶段提升为自定义剩余课时，此处无需分支）
   if (ctx.alpha > 0) {
     for (const [t, dh] of changes) {
       const state = teacherStates.get(t.id);

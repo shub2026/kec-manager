@@ -418,3 +418,76 @@ describe('自定义课时最高优先级', () => {
     expect(result.warnings[0]).toContain('自定义课时');
   });
 });
+
+describe('自定义课时硬保障开关', () => {
+  it('开关开启：保障目标提升为自定义值，课时充足时补到自定义课时', async () => {
+    // T1 自定义 24（> 标准16）+ T2 无自定义：10 个 4h 班共 40h = 24 + 16
+    // 开关开启后 T1 保障目标 = 24（缺口 8 大于 T2，保障轮先补满 T1），T2 拿 16
+    const classes = Array.from({ length: 10 }, (_, i) => makeClass(101 + i, 4));
+    getClassesWithCourseFn.mockResolvedValue(classes);
+    getTeachersForCourseFn.mockResolvedValue([
+      makeTeacher(1, 'full_time', { defaultWeeklyHours: 24 }),
+      makeTeacher(2, 'full_time'),
+    ]);
+
+    const result = await runArrange({ customHoursGuarantee: true });
+
+    expect(hoursOf(result, 1)).toBe(24);
+    expect(hoursOf(result, 2)).toBe(16);
+    expect(result.unassignedCount).toBe(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('开关开启：未设自定义课时的教师行为不变（仍按类别标准保障）', async () => {
+    // 同场景对照：T2 无自定义，保障目标仍为类别标准 16，不受开关影响
+    const classes = Array.from({ length: 10 }, (_, i) => makeClass(101 + i, 4));
+    getClassesWithCourseFn.mockResolvedValue(classes);
+    getTeachersForCourseFn.mockResolvedValue([
+      makeTeacher(1, 'full_time', { defaultWeeklyHours: 24 }),
+      makeTeacher(2, 'full_time'),
+    ]);
+
+    const result = await runArrange({ customHoursGuarantee: true });
+
+    expect(hoursOf(result, 2)).toBe(16); // 类别标准，未被膨胀到自定义口径
+    expect(result.unassignedCount).toBe(0);
+  });
+
+  it('开关关闭（默认）：保障轮仍只补到类别标准，剩余需求不强制喂给高自定义教师', async () => {
+    // 与开关开启对照：9 个 4h 班共 36h，保障轮各补 16（共 32）后剩 4h 由后续阶段分配；
+    // 保障目标仍为 min(自定义, 标准)=16，不因自定义 24 而强制补到 24
+    const classes = Array.from({ length: 9 }, (_, i) => makeClass(101 + i, 4));
+    getClassesWithCourseFn.mockResolvedValue(classes);
+    getTeachersForCourseFn.mockResolvedValue([
+      makeTeacher(1, 'full_time', { defaultWeeklyHours: 24 }),
+      makeTeacher(2, 'full_time'),
+    ]);
+
+    const result = await runArrange();
+
+    // 保障轮只把 T1 补到类别标准 16（未强补到 24），剩余 4h 由后续阶段按剩余容量分给 T1
+    expect(hoursOf(result, 1)).toBe(20);
+    expect(hoursOf(result, 2)).toBe(16);
+    expect(result.unassignedCount).toBe(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('开关开启且供给不足：排课照常成功，欠课时告警标注硬保障口径', async () => {
+    // T1 自定义 24 但仅 8h 供给：目标 24 无法满足，仅告警不阻断
+    const classes = [makeClass(101, 4), makeClass(102, 4)];
+    getClassesWithCourseFn.mockResolvedValue(classes);
+    getTeachersForCourseFn.mockResolvedValue([
+      makeTeacher(1, 'full_time', { defaultWeeklyHours: 24 }),
+    ]);
+
+    const result = await runArrange({ customHoursGuarantee: true });
+
+    expect(hoursOf(result, 1)).toBe(8);
+    expect(result.unassignedCount).toBe(0);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('目标课时未满足');
+    expect(result.warnings[0]).toContain('目标 24 h');
+    expect(result.warnings[0]).toContain('还差 16 h');
+    expect(result.warnings[0]).toContain('硬保障已开启');
+  });
+});

@@ -40,6 +40,21 @@ function safeParseJSON(str, fallback = null) {
 }
 
 /**
+ * 读取系统设置中的"自定义课时硬保障"开关（默认关闭）
+ * 读取失败时降级为关闭，不阻断排课流程
+ */
+async function getCustomHoursGuarantee() {
+  try {
+    const setting = await prisma.system_settings.findUnique({
+      where: { key: 'custom_hours_hard_guarantee' },
+    });
+    return setting?.value === 'true';
+  } catch (_e) {
+    return false;
+  }
+}
+
+/**
  * GET /classes - 获取某课程在某学期下的班级列表（矩阵表数据）
  */
 export async function getCourseClasses(req, res, next) {
@@ -761,6 +776,8 @@ export async function runAutoArrange(req, res, next) {
       return fail(res, '排课条件功能暂未实现，请联系管理员');
     }
 
+    const customHoursGuarantee = await getCustomHoursGuarantee();
+
     // SSE 模式：初始化流式响应，通过 onProgress 回调推送五阶段进度
     if (useSSE) {
       initSSE(res);
@@ -776,6 +793,7 @@ export async function runAutoArrange(req, res, next) {
           onProgress: (progress) => {
             sendSSEEvent(res, 'progress', progress);
           },
+          customHoursGuarantee,
         });
 
         await createAuditLog({
@@ -810,7 +828,9 @@ export async function runAutoArrange(req, res, next) {
     }
 
     // 非 SSE 模式：保持原有 JSON 响应
-    const result = await autoArrange(courseId, semester, mode, finalHourSettings, conditions, {});
+    const result = await autoArrange(courseId, semester, mode, finalHourSettings, conditions, {
+      customHoursGuarantee,
+    });
 
     await createAuditLog({
       action: 'update',
@@ -1281,6 +1301,8 @@ export async function runBatchAutoArrange(req, res, next) {
       return fail(res, '排课条件功能暂未实现，请联系管理员');
     }
 
+    const customHoursGuarantee = await getCustomHoursGuarantee();
+
     // SSE 模式：初始化流式响应，通过 onProgress 回调推送每门课程进度
     if (useSSE) {
       initSSE(res);
@@ -1295,6 +1317,7 @@ export async function runBatchAutoArrange(req, res, next) {
           onProgress: (progress) => {
             sendSSEEvent(res, 'progress', progress);
           },
+          customHoursGuarantee,
         });
 
         await createAuditLog({
@@ -1328,7 +1351,9 @@ export async function runBatchAutoArrange(req, res, next) {
     }
 
     // 非 SSE 模式：保持原有 JSON 响应
-    const result = await batchAutoArrange(semester, mode, finalHourSettings, conditions, {});
+    const result = await batchAutoArrange(semester, mode, finalHourSettings, conditions, {
+      customHoursGuarantee,
+    });
 
     await createAuditLog({
       action: 'update',
@@ -1375,6 +1400,8 @@ export async function runOptimizeSchedule(req, res, next) {
     if (!semester) return fail(res, '缺少学期参数');
     if (!['full', 'standard'].includes(mode)) return fail(res, '排课模式必须是full或standard');
 
+    const customHoursGuarantee = await getCustomHoursGuarantee();
+
     // SSE 模式：初始化流式响应，通过 onProgress 回调推送优化进度
     if (useSSE) {
       initSSE(res);
@@ -1389,6 +1416,7 @@ export async function runOptimizeSchedule(req, res, next) {
           onProgress: (progress) => {
             sendSSEEvent(res, 'progress', progress);
           },
+          customHoursGuarantee,
         });
 
         sendSSEEvent(res, 'complete', {
@@ -1408,7 +1436,7 @@ export async function runOptimizeSchedule(req, res, next) {
 
     // 非 SSE 模式：保持原有 JSON 响应
     const { runOptimizeSchedule } = await import('../services/arrange/optimize.js');
-    const result = await runOptimizeSchedule(semester, mode);
+    const result = await runOptimizeSchedule(semester, mode, { customHoursGuarantee });
 
     success(res, result, `优化分析完成：${result.summary.changedClasses}个班级可优化`);
   } catch (e) {

@@ -16,6 +16,10 @@ const DEFAULT_SETTINGS = {
   inherent_class_enabled: { value: 'false', description: '排课固有班级延续' },
   semester_start_month: { value: '8', description: '学期边界月份（秋季学期起始月，1-12）' },
   allow_historical_edit: { value: 'false', description: '是否允许编辑历史学期' },
+  custom_hours_hard_guarantee: {
+    value: 'false',
+    description: '自定义课时硬保障：开启后保障目标取自定义课时值而非与类别标准取严',
+  },
 };
 
 /**

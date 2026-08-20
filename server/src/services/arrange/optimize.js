@@ -191,8 +191,15 @@ function calculateMetrics(
  * @param {Array} allAssignments - 可优化记录 + 基线记录（手动/锁定），基线仅参与约束统计
  * @param {Map} courseTextbookMap - courseId → Map(classId → textbookIds[])
  * @param {object} hourSettings - 课时配置（系统设置优先，回退 DEFAULT_HOUR_SETTINGS）
+ * @param {boolean} customHoursGuarantee - 自定义课时硬保障开关：开启后已设自定义的教师保障目标取自定义剩余课时
  */
-function buildTeacherConstraints(teachers, allAssignments, courseTextbookMap, hourSettings) {
+function buildTeacherConstraints(
+  teachers,
+  allAssignments,
+  courseTextbookMap,
+  hourSettings,
+  customHoursGuarantee = false
+) {
   // 构建教师现有分配统计
   const teacherHoursMap = new Map();
   const teacherTextbookMap = new Map();
@@ -229,17 +236,18 @@ function buildTeacherConstraints(teachers, allAssignments, courseTextbookMap, ho
 
     // 容量计算：与 auto-arrange 对齐
     // 自定义课时最高优先级：设置后完全替代类别 standard/max（既能收紧也能放宽）；
-    // guaranteeCap 保留"自定义与类别标准取严"口径，供 α 欠分配惩罚使用
+    // guaranteeCap 默认保留"自定义与类别标准取严"口径，供 α 欠分配惩罚使用；
+    // 硬保障开关开启时已设自定义的教师保障目标提升为自定义剩余课时
     const teacherHourCap =
       t.default_weekly_hours != null ? Math.max(0, t.default_weekly_hours - existingHours) : null;
     const rawStandardCap =
       teacherHourCap != null ? teacherHourCap : Math.max(0, setting.standard - existingHours);
     const rawFullCap =
       teacherHourCap != null ? teacherHourCap : Math.max(0, setting.max - existingHours);
-    const rawGuaranteeCap = Math.min(
-      teacherHourCap ?? Infinity,
-      Math.max(0, setting.standard - existingHours)
-    );
+    const rawGuaranteeCap =
+      customHoursGuarantee && teacherHourCap != null
+        ? teacherHourCap
+        : Math.min(teacherHourCap ?? Infinity, Math.max(0, setting.standard - existingHours));
 
     const standardCap = Math.floor(rawStandardCap);
     const fullCap = Math.floor(rawFullCap);
@@ -303,6 +311,8 @@ function buildTeacherConstraints(teachers, allAssignments, courseTextbookMap, ho
  */
 export async function runOptimizeSchedule(semesterId, mode = 'standard', options = {}) {
   const onProgress = options.onProgress || null;
+  // 自定义课时硬保障开关（系统设置透传）：影响保障目标 guaranteeCap 口径
+  const customHoursGuarantee = !!options.customHoursGuarantee;
   const progress = (phase, message, percent) => {
     if (onProgress) {
       onProgress({ phase, message, percent });
@@ -503,7 +513,8 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
       teachers,
       [...optimizableAssignments, ...baselineAssignments],
       courseTextbookMap,
-      hourSettings
+      hourSettings,
+      customHoursGuarantee
     );
 
     // 基线（手动/锁定）课时按教师累计（合班去重），供指标计算计入教师真实负载
@@ -711,7 +722,8 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
         // canAccept 只检查这两个 cap，不看 teacherHourCap，原实现重算时丢失折算，
         // 导致个人上限低于全局标准/上限的教师被加课超出个人约束。
         // 自定义课时优先：设置后完全替代类别 standard/max（与 auto-arrange 同口径），
-        // guaranteeCap 保留"自定义与类别标准取严"供 α 惩罚使用
+        // guaranteeCap 默认保留"自定义与类别标准取严"供 α 惩罚使用；
+        // 硬保障开关开启时已设自定义的教师保障目标提升为自定义剩余课时
         t.teacherHourCap =
           t.defaultWeeklyHours != null ? Math.max(0, t.defaultWeeklyHours - otherHours) : null;
         const personalRemain = t.teacherHourCap != null ? t.teacherHourCap : Infinity;
@@ -723,10 +735,10 @@ export async function runOptimizeSchedule(semesterId, mode = 'standard', options
           t.teacherHourCap != null
             ? Math.max(0, t.teacherHourCap)
             : Math.max(0, Math.floor(t.maxHours - otherHours));
-        t.guaranteeCap = Math.max(
-          0,
-          Math.floor(Math.min(t.standardHours - otherHours, personalRemain))
-        );
+        t.guaranteeCap =
+          customHoursGuarantee && t.teacherHourCap != null
+            ? Math.max(0, Math.floor(t.teacherHourCap))
+            : Math.max(0, Math.floor(Math.min(t.standardHours - otherHours, personalRemain)));
       }
 
       try {

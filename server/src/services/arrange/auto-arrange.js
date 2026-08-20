@@ -244,7 +244,8 @@ function buildTeacherConstraints(
   mode,
   extraTeacherHours = null,
   capacityReserveRatio = 1.0,
-  reserveExemptTeacherIds = null
+  reserveExemptTeacherIds = null,
+  customHoursGuarantee = false
 ) {
   return teachers.map((t) => {
     const personnelType = t.personnelType || 'full_time';
@@ -271,16 +272,18 @@ function buildTeacherConstraints(
     const effectiveRatio = reserveExemptTeacherIds?.has(t.id) ? 1.0 : capacityReserveRatio;
     // 自定义课时最高优先级：设置了自定义课时（default_weekly_hours）后，
     // 它完全替代类别 standard/max，不再受类别课时配置约束（既能收紧也能放宽）；
-    // guaranteeCap 保留"自定义与类别标准取严"口径，仅作保障轮/α惩罚/欠课时告警目标，
-    // 避免高自定义教师被保障轮膨胀为优先目标而挤占其他教师达标课时
+    // guaranteeCap 默认保留"自定义与类别标准取严"口径，仅作保障轮/α惩罚/欠课时告警目标，
+    // 避免高自定义教师被保障轮膨胀为优先目标而挤占其他教师达标课时；
+    // customHoursGuarantee（系统设置开关）开启后，已设自定义的教师的保障目标
+    // 提升为自定义剩余课时（尽力强制满足），未设自定义的教师仍用类别标准
     const rawStandardCap =
       teacherHourCap != null ? teacherHourCap : Math.max(0, setting.standard - effectiveTotal);
     const rawFullCap =
       teacherHourCap != null ? teacherHourCap : Math.max(0, setting.max - effectiveTotal);
-    const rawGuaranteeCap = Math.min(
-      teacherHourCap ?? Infinity,
-      Math.max(0, setting.standard - effectiveTotal)
-    );
+    const rawGuaranteeCap =
+      customHoursGuarantee && teacherHourCap != null
+        ? teacherHourCap
+        : Math.min(teacherHourCap ?? Infinity, Math.max(0, setting.standard - effectiveTotal));
 
     return {
       ...t,
@@ -1232,6 +1235,7 @@ function trySwapOne(
  * @param {boolean} [options.preview=false] - 预览模式（只计算不写库）
  * @param {number} [options.capacityReserveRatio=1.0] - 容量预留比例（批量排课传入 <1 为后续课程预留空间）
  * @param {Set<number>} [options.reserveExemptTeacherIds] - 免预留的教师 ID 集合（批量中无后续课程的教师）
+ * @param {boolean} [options.customHoursGuarantee=false] - 自定义课时硬保障开关（系统设置）：开启后保障目标取自定义课时值而非与类别标准取严
  */
 export async function autoArrange(
   courseId,
@@ -1247,6 +1251,7 @@ export async function autoArrange(
     globalTextbookMap = null,
     capacityReserveRatio = 1.0,
     reserveExemptTeacherIds = null,
+    customHoursGuarantee = false,
   } = options;
   const onProgress = options.onProgress;
   const _arrangeStart = Date.now();
@@ -1365,7 +1370,8 @@ export async function autoArrange(
       mode,
       extraTeacherHours,
       capacityReserveRatio,
-      reserveExemptTeacherIds
+      reserveExemptTeacherIds,
+      customHoursGuarantee
     );
 
     // S-13 修复：预览模式下从前序课程累计教材负载
@@ -1931,7 +1937,11 @@ export async function autoArrange(
     // 复用 takeGroupsForTeacher：意向硬约束、教材上限、单教材开关、
     // 学院内聚、tier 0 已持教材组优先等规则全部照旧生效。
     // ================================================================
-    logger.info('[标准课时保障轮] 按专职>兼职>外聘优先补足目标课时（自定义与类别标准取严）');
+    logger.info(
+      `[标准课时保障轮] 按专职>兼职>外聘优先补足目标课时（${
+        customHoursGuarantee ? '硬保障已开启：目标取自定义课时' : '自定义与类别标准取严'
+      }）`
+    );
 
     const personnelGuaranteeRank = (t) => {
       const type = t.personnelType || 'full_time';
@@ -2204,7 +2214,9 @@ export async function autoArrange(
       if (remainingGap > 0 && !prefSupplyWarnedIds.has(t.id)) {
         const targetNote =
           t.defaultWeeklyHours != null
-            ? '（目标取自定义课时与类别标准中较严者）'
+            ? customHoursGuarantee
+              ? '（目标为自定义课时，硬保障已开启）'
+              : '（目标取自定义课时与类别标准中较严者）'
             : '';
         warnings.push(
           `教师${t.name}目标课时未满足（本课程已排 ${t.assignedHours} h，目标 ${t.guaranteeCap} h，还差 ${remainingGap} h）${targetNote}，受意向/教材/学院约束限制`

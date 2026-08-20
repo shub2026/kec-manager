@@ -131,6 +131,47 @@
           <span>已关闭 — 历史学期为只读状态，禁止编辑（默认）</span>
         </div>
       </div>
+
+      <el-divider />
+
+      <div class="config-item">
+        <div class="switch-row">
+          <div class="switch-info">
+            <label class="field-label">
+              自定义课时硬保障
+              <el-tag
+                v-if="customHoursDirty"
+                size="small"
+                type="warning"
+                effect="plain"
+                class="unsaved-tag"
+                disable-transitions
+                >未保存</el-tag
+              >
+            </label>
+            <p class="switch-desc">
+              开启后自动排课将尽力满足教师自定义课时（保障目标不再与类别标准取严）；供给不足时仅告警，不影响排课成功。
+              软性优先：仅提升保障轮与均衡优化的达标目标，不改变容量上限、意向、教材等硬约束。
+            </p>
+          </div>
+          <el-switch
+            v-model="customHoursHardGuarantee"
+            :loading="saving"
+            inline-prompt
+            active-text="开"
+            inactive-text="关"
+            size="large"
+          />
+        </div>
+        <div v-if="customHoursHardGuarantee" class="enabled-hint">
+          <el-icon color="var(--brand-success)"><CircleCheckFilled /></el-icon>
+          <span>已开启 — 保障目标取教师自定义课时值，尽力强制满足</span>
+        </div>
+        <div v-else class="enabled-hint off">
+          <el-icon><InfoFilled /></el-icon>
+          <span>已关闭 — 保障目标取自定义课时与类别标准中较严者（默认）</span>
+        </div>
+      </div>
     </div>
 
     <div class="scheduling-actions">
@@ -166,20 +207,24 @@ const inherentClassEnabled = ref(false);
 const savedInherentClass = ref(false);
 const allowHistoricalEdit = ref(false);
 const savedAllow = ref(false);
+const customHoursHardGuarantee = ref(false);
+const savedCustomHours = ref(false);
 const saving = ref(false);
 const dirty = ref(false);
 
-watch([enabled, inherentClassEnabled, allowHistoricalEdit], () => {
+watch([enabled, inherentClassEnabled, allowHistoricalEdit, customHoursHardGuarantee], () => {
   dirty.value =
     enabled.value !== savedValue.value ||
     inherentClassEnabled.value !== savedInherentClass.value ||
-    allowHistoricalEdit.value !== savedAllow.value;
+    allowHistoricalEdit.value !== savedAllow.value ||
+    customHoursHardGuarantee.value !== savedCustomHours.value;
 });
 
 // 各开关独立脏状态追踪，用于显示“未保存”标签
 const tabuDirty = computed(() => enabled.value !== savedValue.value);
 const inherentClassDirty = computed(() => inherentClassEnabled.value !== savedInherentClass.value);
 const historicalDirty = computed(() => allowHistoricalEdit.value !== savedAllow.value);
+const customHoursDirty = computed(() => customHoursHardGuarantee.value !== savedCustomHours.value);
 
 async function loadState() {
   await settingsStore.load();
@@ -187,12 +232,15 @@ async function loadState() {
   const tabu = s.tabuSearchEnabled?.value === 'true';
   const inherentClass = s.inherentClassEnabled?.value === 'true';
   const allow = s.allowHistoricalEdit?.value === 'true';
+  const customHours = s.customHoursHardGuarantee?.value === 'true';
   enabled.value = tabu;
   savedValue.value = tabu;
   inherentClassEnabled.value = inherentClass;
   savedInherentClass.value = inherentClass;
   allowHistoricalEdit.value = allow;
   savedAllow.value = allow;
+  customHoursHardGuarantee.value = customHours;
+  savedCustomHours.value = customHours;
   dirty.value = false;
 }
 
@@ -203,10 +251,12 @@ async function handleSave() {
       tabuSearchEnabled: enabled.value,
       inherentClassEnabled: inherentClassEnabled.value,
       allowHistoricalEdit: allowHistoricalEdit.value,
+      customHoursHardGuarantee: customHoursHardGuarantee.value,
     });
     savedValue.value = enabled.value;
     savedInherentClass.value = inherentClassEnabled.value;
     savedAllow.value = allowHistoricalEdit.value;
+    savedCustomHours.value = customHoursHardGuarantee.value;
     dirty.value = false;
     ElMessage.success('设置已保存');
   } catch (e) {
