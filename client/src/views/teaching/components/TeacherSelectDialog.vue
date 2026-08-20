@@ -19,6 +19,18 @@
         :prefix-icon="Search"
         class="search-input"
       />
+      <!-- 人员类别筛选：与姓名搜索叠加过滤，选项与 utils/personnel.js 枚举一致 -->
+      <el-select
+        v-model="personnelFilter"
+        placeholder="人员类别"
+        clearable
+        size="small"
+        class="personnel-select"
+      >
+        <el-option label="专职" value="full_time" />
+        <el-option label="兼职" value="part_time" />
+        <el-option label="外聘" value="external" />
+      </el-select>
       <span class="filter-count">共 {{ filteredList.length }} 位教师</span>
     </div>
 
@@ -146,21 +158,27 @@
       </el-table-column>
     </el-table>
 
-    <!-- M-10：分页组件 -->
-    <div v-if="filteredList.length > pageSize" class="pagination-bar">
-      <el-pagination
-        v-model:current-page="currentPage"
-        :page-size="pageSize"
-        :total="filteredList.length"
-        layout="prev, pager, next"
-        size="small"
-        background
-      />
-    </div>
-
     <template #footer>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :disabled="!selectedTeacher" @click="handleConfirm">确定</el-button>
+      <!-- 分页居中、操作按钮居右：两侧 1fr 等宽列保证分页始终相对弹窗真正居中 -->
+      <div class="dialog-footer">
+        <div class="footer-pagination">
+          <el-pagination
+            v-if="filteredList.length > pageSize"
+            v-model:current-page="currentPage"
+            :page-size="pageSize"
+            :total="filteredList.length"
+            layout="prev, pager, next"
+            size="small"
+            background
+          />
+        </div>
+        <div class="footer-actions">
+          <el-button @click="visible = false">取消</el-button>
+          <el-button type="primary" :disabled="!selectedTeacher" @click="handleConfirm"
+            >确定</el-button
+          >
+        </div>
+      </div>
     </template>
   </el-dialog>
 </template>
@@ -169,7 +187,7 @@
 import { ref, computed, watch } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { Search, Reading } from '@element-plus/icons-vue';
-import { personnelLabel } from '../../../utils/personnel';
+import { normalizePersonnelType, personnelLabel } from '../../../utils/personnel';
 import { truncateText } from '../../../utils/string';
 import { useResponsive } from '../../../composables/useResponsive';
 
@@ -189,14 +207,19 @@ const selectedTeacher = ref(null);
 
 // M-10：搜索与分页状态
 const searchKey = ref('');
+const personnelFilter = ref('');
 const currentPage = ref(1);
 const pageSize = 15;
 
-// M-10：按姓名过滤
+// M-10：按姓名 + 人员类别过滤（normalizePersonnelType 兼容后端驼峰变体）
 const filteredList = computed(() => {
   const key = searchKey.value.trim().toLowerCase();
-  if (!key) return props.teacherList;
-  return props.teacherList.filter((t) => t.name?.toLowerCase().includes(key));
+  const type = personnelFilter.value;
+  return props.teacherList.filter((t) => {
+    if (key && !t.name?.toLowerCase().includes(key)) return false;
+    if (type && normalizePersonnelType(t.personnelType) !== type) return false;
+    return true;
+  });
 });
 
 // M-10：分页切片
@@ -205,8 +228,8 @@ const pagedList = computed(() => {
   return filteredList.value.slice(start, start + pageSize);
 });
 
-// M-10：搜索词变化时重置到第一页
-watch(searchKey, () => {
+// M-10：搜索词或人员类别变化时重置到第一页
+watch([searchKey, personnelFilter], () => {
   currentPage.value = 1;
 });
 
@@ -266,6 +289,7 @@ function open(row) {
   currentClass.value = row;
   selectedTeacher.value = null;
   searchKey.value = '';
+  personnelFilter.value = '';
   currentPage.value = 1;
   visible.value = true;
 }
@@ -287,15 +311,27 @@ defineExpose({ open, close });
 .search-input {
   width: 220px;
 }
+.personnel-select {
+  width: 120px;
+}
 .filter-count {
   font-size: 13px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
 }
-.pagination-bar {
-  display: flex;
-  justify-content: center;
-  margin-top: var(--space-3);
+/* 底部一行：三列布局，分页居中、操作按钮居右；无分页时占位列保持居中结构不塌陷 */
+.dialog-footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+.footer-pagination {
+  grid-column: 2;
+  justify-self: center;
+}
+.footer-actions {
+  grid-column: 3;
+  justify-self: end;
 }
 .text-warning {
   color: var(--brand-warning-text);
