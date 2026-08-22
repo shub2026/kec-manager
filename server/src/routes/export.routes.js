@@ -15,6 +15,7 @@ import {
   exportTeachers,
   exportStatistics,
   exportTeachingArrange,
+  exportCoursePlans,
 } from '../controllers/export/data-export.controller.js';
 import { issueDownloadTicket } from '../services/download-ticket.service.js'; // SEC-M2修复
 import { success } from '../utils/response.js';
@@ -88,6 +89,9 @@ router.get('/teaching-arrange', roleMiddleware('admin', 'super_admin'), exportTe
 
 // GET /api/export/textbook-usage - 导出全部教材使用情况（与单教材同控制器，缺省 id 即全量；限 admin+）
 router.get('/textbook-usage', roleMiddleware('admin', 'super_admin'), exportTextbookUsage);
+
+// GET /api/export/course-plans - 导出课程方案查询（与课程查询页同口径；限 admin+）
+router.get('/course-plans', roleMiddleware('admin', 'super_admin'), exportCoursePlans);
 
 // GET /api/export/textbook/:id - 导出教材使用情况（M-12修复：限制为admin+）
 router.get(

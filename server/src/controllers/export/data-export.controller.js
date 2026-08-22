@@ -13,6 +13,7 @@ import {
   parseSemester,
 } from '../../services/semester.service.js';
 import { isClassMatchPlan, findBestMatchPlan } from '../../services/plan.service.js';
+import { aggregateCoursePlans } from '../query.controller.js';
 import { buildClassFilter } from '../../services/class-filter.service.js';
 import { getClassesWithCourse } from '../../services/teaching-arrange.service.js';
 import {
@@ -199,7 +200,9 @@ export async function exportClasses(req, res, next) {
     // 预加载所有培养方案，用于自动匹配（与 listClasses 保持一致）
     // 注意：必须 select created_at，findBestMatchPlan 按 created_at 降序排序以保证多匹配时取最新方案的确定性
     // apply_from_year/apply_to_year 供匹配时按班级入学年份过滤（同专业/层次多版本方案按年级区分）
+    // 归档方案不作为现行方案，不参与导出匹配
     const allPlans = await prisma.training_plans.findMany({
+      where: { status: { not: 'archived' } },
       select: {
         id: true,
         name: true,
@@ -376,7 +379,9 @@ const TEXTBOOK_PLAN_INCLUDE = {
         include: {
           plan_courses: {
             include: {
-              training_plans: { include: { majors: true, training_levels: true } },
+              training_plans: {
+                include: { majors: true, training_levels: true },
+              },
               courses: true,
             },
           },
@@ -408,6 +413,8 @@ function buildTextbookUsageRows(textbook, allClasses, semesterInfo, consecutiveM
     // 禁用课程不出现在教材使用导出（与查询接口 queryTextbookUsage 同口径；=== false 显式判断）
     if (pc.is_active === false) continue;
     const plan = pc.training_plans;
+    // 归档方案不参与教材使用推导（与查询接口同口径）
+    if (plan?.status === 'archived') continue;
     // 与查询接口一致：教材学期超出方案课程授课范围时跳过
     if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
     const isConsecutive =
@@ -1114,6 +1121,126 @@ export async function exportTeachingArrange(req, res, next) {
       ip: req.ip,
       result: 'failed',
       message: `导出教学安排失败: ${e.message}`,
+    });
+    next(e);
+  }
+}
+
+/**
+ * 导出课程方案查询数据（课程 × 培养方案 × 各学期课时）
+ * 与课程查询页（GET /api/query/course）同口径，支持相同筛选参数。
+ * 每行 = 一门课程在一个方案中的采用记录（页面展开明细的平铺）。
+ */
+export async function exportCoursePlans(req, res, next) {
+  try {
+    // naming 中间件已将 camelCase query 转为 snake_case
+    const {
+      course_name,
+      course_type,
+      college_id,
+      major_id,
+      training_level_id,
+      plan_status,
+    } = req.query;
+
+    const courses = await aggregateCoursePlans({
+      courseName: course_name,
+      courseType: course_type,
+      collegeId: college_id,
+      majorId: major_id,
+      trainingLevelId: training_level_id,
+      planStatus: plan_status,
+    });
+
+    // 学期列数取全量结果最大学期数（与页面动态列一致）
+    let maxSemester = 0;
+    for (const c of courses) {
+      for (const p of c.plans) {
+        for (const s of p.semesters) {
+          if (s.semester > maxSemester) maxSemester = s.semester;
+        }
+      }
+    }
+
+    const courseTypeMap = { public: '公共课', professional: '专业课' };
+    const planStatusMap = { active: '生效', draft: '草稿', archived: '归档' };
+
+    const headers = [
+      { label: '课程名称', key: 'courseName', width: 18 },
+      { label: '科目类型', key: 'courseType', width: 10 },
+      { label: '课程代码', key: 'courseCode', width: 12 },
+      { label: '培养方案', key: 'planName', width: 24 },
+      { label: '专业', key: 'majorName', width: 14 },
+      { label: '培养层次', key: 'levelName', width: 12 },
+      { label: '学院', key: 'collegeName', width: 16 },
+      { label: '方案状态', key: 'planStatus', width: 10 },
+      { label: '课程启用', key: 'courseActive', width: 10 },
+      { label: '开课学期', key: 'semesterRange', width: 12 },
+    ];
+    for (let s = 1; s <= maxSemester; s++) {
+      headers.push({ label: `第${s}学期`, key: `sem_${s}`, width: 9 });
+    }
+    headers.push({ label: '总课时', key: 'totalHours', width: 10 });
+
+    const rows = [];
+    for (const c of courses) {
+      for (const p of c.plans) {
+        const row = {
+          courseName: c.course.name,
+          courseType: courseTypeMap[c.course.type] || c.course.type || '-',
+          courseCode: c.course.code || '-',
+          planName: p.version ? `${p.planName}（${p.version}）` : p.planName,
+          majorName: p.majorName || '-',
+          levelName: p.trainingLevelName || '-',
+          collegeName: p.collegeName || '-',
+          planStatus: planStatusMap[p.planStatus] || p.planStatus || '-',
+          courseActive: p.isActive ? '启用' : '已禁用',
+          semesterRange: `第${p.startSemester}-${p.endSemester}学期`,
+          totalHours: p.totalHours,
+        };
+        for (const s of p.semesters) {
+          // 周课时（空白学期留空）
+          row[`sem_${s.semester}`] = s.weeklyHours;
+        }
+        rows.push(row);
+      }
+    }
+
+    const workbook = await createWorkbook(headers, rows);
+    const buffer = await workbookToBuffer(workbook);
+
+    const filename = `课程方案查询_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    await createAuditLog({
+      action: 'export',
+      module: 'query',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        courseCount: courses.length,
+        rowCount: rows.length,
+        filters: { course_name, course_type, college_id, major_id, training_level_id, plan_status },
+      },
+      result: 'success',
+      message: `导出课程方案查询，共${courses.length}门课程${rows.length}条方案记录`,
+    });
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
+    res.send(buffer);
+  } catch (e) {
+    await createAuditLog({
+      action: 'export',
+      module: 'query',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `导出课程方案查询失败: ${e.message}`,
     });
     next(e);
   }

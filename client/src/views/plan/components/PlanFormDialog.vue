@@ -68,6 +68,16 @@
         </el-select>
       </el-form-item>
 
+      <el-form-item label="状态">
+        <el-radio-group v-model="form.status">
+          <el-radio value="draft">草稿</el-radio>
+          <el-radio value="active">生效</el-radio>
+          <el-radio value="archived">归档</el-radio>
+        </el-radio-group>
+        <div class="form-hint">
+          归档后方案保留数据，但不再参与排课、开课与教材推导；草稿和生效均正常参与匹配
+        </div>
+      </el-form-item>
       <el-form-item label="版本">
         <el-input v-model="form.version" placeholder="如：v1.0" />
       </el-form-item>
@@ -131,6 +141,7 @@ const emptyForm = () => ({
   collegeId: null,
   majorId: null,
   trainingLevelId: null,
+  status: 'draft',
   version: '',
   applyFromYear: null,
   applyToYear: null,
@@ -161,6 +172,8 @@ watch(
         ...row,
         collegeId: row.collegeId || null,
         trainingLevelId: row.trainingLevelId || null,
+        // 后端始终返回 status；兜底防止旧数据缺省
+        status: row.status || 'draft',
       };
       // 根据已有数据确定关联模式（优先判断层次）
       relationMode.value = row.trainingLevelId ? 'trainingLevel' : 'major';
@@ -212,6 +225,7 @@ async function handleSave() {
     collegeId: form.value.collegeId || null,
     majorId: form.value.majorId || null,
     trainingLevelId: form.value.trainingLevelId || null,
+    status: form.value.status || 'draft',
     version: form.value.version,
     applyFromYear: form.value.applyFromYear ?? null,
     applyToYear: form.value.applyToYear ?? null,

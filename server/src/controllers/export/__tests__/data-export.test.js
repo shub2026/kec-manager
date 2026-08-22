@@ -41,6 +41,8 @@ const mocks = vi.hoisted(() => ({
   getClassesWithCourse: vi.fn().mockResolvedValue([]),
   buildCombinationMemberMap: vi.fn().mockResolvedValue(new Map()),
   formatPartnerNames: vi.fn().mockReturnValue(''),
+  // query.controller 聚合函数（exportCoursePlans 数据源）
+  aggregateCoursePlans: vi.fn().mockResolvedValue([]),
   // excel
   createWorkbook: vi.fn().mockResolvedValue({}),
   workbookToBuffer: vi.fn().mockResolvedValue(Buffer.from('fake-xlsx')),
@@ -119,6 +121,10 @@ vi.mock('../../../services/class-combination.service.js', () => ({
   formatPartnerNames: mocks.formatPartnerNames,
 }));
 
+vi.mock('../../query.controller.js', () => ({
+  aggregateCoursePlans: mocks.aggregateCoursePlans,
+}));
+
 vi.mock('../../../utils/excel.js', () => ({
   createWorkbook: mocks.createWorkbook,
   workbookToBuffer: mocks.workbookToBuffer,
@@ -136,6 +142,7 @@ const {
   exportStatistics,
   exportTeachingArrange,
   exportTextbookUsage,
+  exportCoursePlans,
 } = await import('../data-export.controller.js');
 
 // ──────────────────────────────────────────────
@@ -1548,5 +1555,278 @@ describe('exportTextbookUsage', () => {
     expect(mocks.createAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({ result: 'failed' })
     );
+  });
+});
+
+// ══════════════════════════════════════════════
+// exportCoursePlans
+// ══════════════════════════════════════════════
+describe('exportCoursePlans', () => {
+  beforeEach(() => {
+    mocks.aggregateCoursePlans.mockResolvedValue([]);
+  });
+
+  it('应把筛选参数透传给聚合函数（snake_case）', async () => {
+    mocks.aggregateCoursePlans.mockResolvedValue([]);
+    const req = makeReq({
+      query: { course_name: '语文', course_type: 'public', plan_status: 'active' },
+    });
+    const res = makeRes();
+
+    await exportCoursePlans(req, res, vi.fn());
+
+    expect(mocks.aggregateCoursePlans).toHaveBeenCalledWith({
+      courseName: '语文',
+      courseType: 'public',
+      collegeId: undefined,
+      majorId: undefined,
+      trainingLevelId: undefined,
+      planStatus: 'active',
+    });
+  });
+
+  it('应平铺课程×方案明细行，学期列按最大学期数生成', async () => {
+    mocks.aggregateCoursePlans.mockResolvedValue([
+      {
+        course: { id: 1, name: '语文', code: 'C001', type: 'public' },
+        planCount: 1,
+        activePlanCount: 1,
+        totalHours: 108,
+        plans: [
+          {
+            planCourseId: 11,
+            planId: 1,
+            planName: '方案A',
+            version: 'V1.0',
+            planStatus: 'active',
+            majorName: '学前教育',
+            collegeName: '教育学院',
+            trainingLevelName: '中职',
+            isActive: true,
+            startSemester: 1,
+            endSemester: 2,
+            totalHours: 108,
+            semesters: [
+              { semester: 1, weeklyHours: 4, weeksCount: 18, hours: 72 },
+              { semester: 2, weeklyHours: 2, weeksCount: 18, hours: 36 },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    const req = makeReq();
+    const res = makeRes();
+
+    await exportCoursePlans(req, res, vi.fn());
+
+    // 学期列动态生成（最大学期=2 → 第1/第2学期列存在）
+    const headers = mocks.createWorkbook.mock.calls[0][0];
+    const headerLabels = headers.map((h) => h.label);
+    expect(headerLabels).toContain('第1学期');
+    expect(headerLabels).toContain('第2学期');
+    expect(headerLabels).not.toContain('第3学期');
+
+    // 明细行内容
+    const rows = mocks.createWorkbook.mock.calls[0][1];
+    expect(rows).toHaveLength(1);
+    // createWorkbook 的行 key 与 headers.key 一致（英文），中文由表头 label 渲染
+    expect(rows[0]).toMatchObject({
+      courseName: '语文',
+      courseType: '公共课',
+      courseCode: 'C001',
+      planName: '方案A（V1.0）',
+      majorName: '学前教育',
+      levelName: '中职',
+      collegeName: '教育学院',
+      planStatus: '生效',
+      courseActive: '启用',
+      semesterRange: '第1-2学期',
+      sem_1: 4,
+      sem_2: 2,
+      totalHours: 108,
+    });
+
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      expect.stringContaining('spreadsheetml')
+    );
+    expect(res.send).toHaveBeenCalledWith(expect.any(Buffer));
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'export', module: 'query', result: 'success' })
+    );
+  });
+
+  it('禁用课程行应标注已禁用', async () => {
+    mocks.aggregateCoursePlans.mockResolvedValue([
+      {
+        course: { id: 2, name: '数学', code: null, type: 'professional' },
+        planCount: 1,
+        activePlanCount: 0,
+        totalHours: 0,
+        plans: [
+          {
+            planCourseId: 21,
+            planId: 2,
+            planName: '方案B',
+            version: null,
+            planStatus: 'draft',
+            majorName: null,
+            collegeName: null,
+            trainingLevelName: null,
+            isActive: false,
+            startSemester: 1,
+            endSemester: 1,
+            totalHours: 72,
+            semesters: [{ semester: 1, weeklyHours: 4, weeksCount: 18, hours: 72 }],
+          },
+        ],
+      },
+    ]);
+
+    const req = makeReq();
+    const res = makeRes();
+
+    await exportCoursePlans(req, res, vi.fn());
+
+    const rows = mocks.createWorkbook.mock.calls[0][1];
+    expect(rows[0]).toMatchObject({ courseName: '数学', courseActive: '已禁用', planStatus: '草稿' });
+  });
+
+  it('聚合函数异常时应调用 next 并记录失败审计', async () => {
+    mocks.aggregateCoursePlans.mockRejectedValue(new Error('DB error'));
+    const req = makeReq();
+    const res = makeRes();
+    const next = vi.fn();
+
+    await exportCoursePlans(req, res, next);
+
+    expect(next).toHaveBeenCalledWith(expect.any(Error));
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'export', module: 'query', result: 'failed' })
+    );
+  });
+});
+
+// ════════════════════════════════════════════════
+// exportTextbookUsage — 归档方案过滤
+// ════════════════════════════════════════════════
+describe('exportTextbookUsage — 归档方案过滤', () => {
+  it('教材仅被归档方案使用 → 不产生数据行（仅合计行）', async () => {
+    mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
+
+    // 教材挂在归档方案下（与查询接口 queryTextbookUsage 同口径跳过）
+    const textbook = {
+      id: 1,
+      title: '大学语文',
+      isbn: '978-1',
+      plan_textbooks: [
+        {
+          textbook_id: 1,
+          is_required: true,
+          plan_course_semesters: {
+            plan_course_id: 100,
+            semester: 1,
+            plan_courses: {
+              id: 100,
+              course_id: 1,
+              start_semester: 1,
+              end_semester: 2,
+              training_plans: {
+                id: 10,
+                status: 'archived',
+                majors: { id: 1 },
+                training_levels: { id: 1 },
+              },
+              courses: { name: '语文' },
+            },
+          },
+        },
+      ],
+    };
+
+    const cls = {
+      id: 1,
+      name: '班级A',
+      enrollment_year: 2024,
+      duration_years: 3,
+      student_count: 40,
+      major_id: 1,
+      training_level_id: 1,
+      colleges: { name: '教育学院' },
+      majors: { name: '学前教育' },
+      training_levels: { name: '大专' },
+    };
+
+    mocks.textbooksFindUnique.mockResolvedValue(textbook);
+    mocks.classesFindMany.mockResolvedValue([cls]);
+    mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
+    mocks.isClassMatchPlan.mockReturnValue(true);
+    mocks.buildConsecutiveTextbookMap.mockResolvedValue(new Map());
+
+    const req = makeReq({ params: { id: '1' } });
+    const res = makeRes();
+    await exportTextbookUsage(req, res, vi.fn());
+
+    // 归档方案被跳过 → 0 数据行 + 1 合计行
+    const rows = mocks.createWorkbook.mock.calls[0][1];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]['使用班级']).toContain('0个班级');
+  });
+
+  it('非归档方案的教材使用不受影响（status 缺省视为非归档）', async () => {
+    mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
+
+    const textbook = {
+      id: 1,
+      title: '大学语文',
+      isbn: '978-1',
+      plan_textbooks: [
+        {
+          textbook_id: 1,
+          is_required: true,
+          plan_course_semesters: {
+            plan_course_id: 100,
+            semester: 1,
+            plan_courses: {
+              id: 100,
+              course_id: 1,
+              start_semester: 1,
+              end_semester: 2,
+              training_plans: { id: 10, majors: { id: 1 }, training_levels: { id: 1 } },
+              courses: { name: '语文' },
+            },
+          },
+        },
+      ],
+    };
+
+    const cls = {
+      id: 1,
+      name: '班级A',
+      enrollment_year: 2024,
+      duration_years: 3,
+      student_count: 40,
+      major_id: 1,
+      training_level_id: 1,
+      colleges: { name: '教育学院' },
+      majors: { name: '学前教育' },
+      training_levels: { name: '大专' },
+    };
+
+    mocks.textbooksFindUnique.mockResolvedValue(textbook);
+    mocks.classesFindMany.mockResolvedValue([cls]);
+    mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
+    mocks.isClassMatchPlan.mockReturnValue(true);
+    mocks.buildConsecutiveTextbookMap.mockResolvedValue(new Map());
+
+    const req = makeReq({ params: { id: '1' } });
+    const res = makeRes();
+    await exportTextbookUsage(req, res, vi.fn());
+
+    // 1 数据行 + 1 合计行（归档过滤不影响正常路径）
+    const rows = mocks.createWorkbook.mock.calls[0][1];
+    expect(rows).toHaveLength(2);
+    expect(rows[0]['使用班级']).toBe('班级A');
   });
 });

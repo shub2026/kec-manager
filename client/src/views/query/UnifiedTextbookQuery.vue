@@ -3,9 +3,6 @@
     <PageHeader title="教材查询" subtitle="查询中心" description="按学期查看各课程教材使用情况" />
     <el-card>
       <div class="page-toolbar">
-        <el-button @click="goToCurrentSemester">
-          <el-icon><Calendar /></el-icon> 当前学期
-        </el-button>
         <el-select
           v-model="selectedSemester"
           placeholder="选择学期"
@@ -20,6 +17,10 @@
             :value="sem.value"
           />
         </el-select>
+        <!-- 当前学期按钮：紧跟学期选择器（与开课查询页位置一致） -->
+        <el-button @click="goToCurrentSemester">
+          <el-icon><Calendar /></el-icon> 当前学期
+        </el-button>
         <el-select
           v-model="selectedTextbook"
           filterable
@@ -36,10 +37,11 @@
             :value="tb.id"
           />
         </el-select>
+        <!-- 重置按钮：紧跟筛选器 -->
+        <el-button :disabled="!selectedSemester && !selectedTextbook" @click="resetFilters">
+          <el-icon><Refresh /></el-icon> 重置
+        </el-button>
         <div class="action-buttons">
-          <el-button :disabled="!selectedSemester && !selectedTextbook" @click="resetFilters">
-            <el-icon><Refresh /></el-icon> 重置
-          </el-button>
           <el-dropdown v-if="authStore.isAdmin" @command="handleExportCommand">
             <el-button :loading="exporting">
               <el-icon><Download /></el-icon> 导出Excel<el-icon class="el-icon--right"
@@ -314,6 +316,7 @@ function resetFilters() {
 
 // 跳转到当前学期
 async function goToCurrentSemester() {
+  // 赋相同值不会触发 @change，但这里显式重置全部状态，任何情况下都生效
   selectedSemester.value = await fetchCurrentSemester();
   // 清空已选教材和其他状态
   selectedTextbook.value = null;

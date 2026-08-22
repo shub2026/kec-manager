@@ -626,6 +626,76 @@ describe('updatePlan — 更新培养方案', () => {
     expect(invalidateSortOrderCache).toHaveBeenCalledWith('training_plans');
   });
 
+  it('status-only 更新 → 绕过完整验证直接更新并写审计日志', async () => {
+    const updatedPlan = {
+      id: 1,
+      name: '原方案',
+      status: 'active',
+      major_id: 1,
+      training_level_id: null,
+      colleges: null,
+      majors: null,
+      training_levels: null,
+    };
+    mockPrisma.training_plans.update.mockResolvedValue(updatedPlan);
+
+    const req = mockReq({ status: 'active' }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true, message: '更新成功' })
+    );
+    // 仅更新数据为 status，不触碰其他字段
+    expect(mockPrisma.training_plans.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: 'active' } })
+    );
+    // 绕过完整验证路径（不调用 findUnique）
+    expect(mockPrisma.training_plans.findUnique).not.toHaveBeenCalled();
+    // 记录审计日志
+    expect(createAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'update',
+        module: 'trainingPlan',
+        result: 'success',
+        details: expect.objectContaining({ status: 'active', type: 'status' }),
+      })
+    );
+  });
+
+  it('不存在的方案（P2025）→ status-only 路径返回 404', async () => {
+    const err = new Error('Not found');
+    err.code = 'P2025';
+    mockPrisma.training_plans.update.mockRejectedValue(err);
+
+    const req = mockReq({ status: 'archived' }, { id: '999' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: '培养方案不存在',
+    });
+  });
+
+  it('status 与 name 同时传 → 走完整更新路径（status 并入 updateData）', async () => {
+    const oldPlan = { id: 1, college_id: 1, colleges: { name: '旧学院' } };
+    mockPrisma.training_plans.findUnique.mockResolvedValue(oldPlan);
+    mockPrisma.training_plans.update.mockResolvedValue({ id: 1, name: '改名方案', status: 'active' });
+
+    const req = mockReq({ name: '改名方案', major_id: 1, status: 'active' }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: true, message: '更新成功' })
+    );
+    const call = mockPrisma.training_plans.update.mock.calls[0][0];
+    expect(call.data.status).toBe('active');
+    expect(call.data.name).toBe('改名方案');
+  });
+
   it('不存在的方案（P2025）→ sort_order 路径返回 404', async () => {
     const err = new Error('Not found');
     err.code = 'P2025';
@@ -1255,5 +1325,103 @@ describe('incrementVersion — 版本号递增', () => {
     expect(incrementVersion(null)).toBeNull();
     expect(incrementVersion(undefined)).toBeNull();
     expect(incrementVersion('')).toBeNull();
+  });
+});
+
+// ════════════════════════════════════════════════
+// 归档方案计数口径：归档后使用班级数应归零
+// ════════════════════════════════════════════════
+describe('listPlans — 归档方案计数', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('归档方案的 classCount / matchedClassCount 应为 0（不参与匹配候选）', async () => {
+    const archivedPlan = {
+      id: 1,
+      name: '归档方案',
+      major_id: 1,
+      training_level_id: null,
+      college_id: 1,
+      status: 'archived',
+      majors: null,
+      colleges: null,
+      training_levels: null,
+      plan_courses: [{ id: 1 }],
+    };
+    const activePlan = {
+      id: 2,
+      name: '生效方案',
+      major_id: 1,
+      training_level_id: null,
+      college_id: 1,
+      status: 'active',
+      majors: null,
+      colleges: null,
+      training_levels: null,
+      plan_courses: [{ id: 2 }],
+    };
+
+    mockPrisma.training_plans.findMany.mockResolvedValue([archivedPlan, activePlan]);
+    mockPrisma.classes.findMany.mockResolvedValue([
+      // 一个按专业可匹配两方案的班级
+      { id: 10, major_id: 1, training_level_id: null, custom_plan_id: null, enrollment_year: 2024 },
+    ]);
+    // findBestMatchPlan/isClassMatchPlan 若被喂入归档方案会返回它——
+    // 控制器应把归档方案从候选中剔除，使归档方案计数为 0
+    mockFindBestMatchPlan.mockImplementation((_cls, plans) => plans[0] || null);
+    mockIsClassMatchPlan.mockReturnValue(true);
+
+    const req = mockReq({}, {}, {});
+    const res = mockRes();
+    await listPlans(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    const archived = data.find((p) => p.id === 1);
+    const active = data.find((p) => p.id === 2);
+    // 归档方案：使用班级数归零
+    expect(archived.classCount).toBe(0);
+    expect(archived.matchedClassCount).toBe(0);
+    // 生效方案正常计数
+    expect(active.classCount).toBe(1);
+    expect(active.matchedClassCount).toBe(1);
+    // findBestMatchPlan 的候选列表不含归档方案
+    const calledPlans = mockFindBestMatchPlan.mock.calls[0][1];
+    expect(calledPlans.map((p) => p.id)).toEqual([2]);
+    // isClassMatchPlan 的遍历列表也不含归档方案
+    const matchPlanIds = mockIsClassMatchPlan.mock.calls.map((c) => c[1].id);
+    expect(matchPlanIds).not.toContain(1);
+  });
+
+  it('班级自定义关联归档方案 → customPlanMap 不命中，classCount 不计入归档方案', async () => {
+    const archivedPlan = {
+      id: 1,
+      name: '归档方案',
+      major_id: null,
+      training_level_id: null,
+      college_id: null,
+      status: 'archived',
+      majors: null,
+      colleges: null,
+      training_levels: null,
+      plan_courses: [],
+    };
+    mockPrisma.training_plans.findMany.mockResolvedValue([archivedPlan]);
+    mockPrisma.classes.findMany.mockResolvedValue([
+      // 班级钉住归档方案（custom_plan_id=1）
+      { id: 10, major_id: null, training_level_id: null, custom_plan_id: 1, enrollment_year: 2024 },
+    ]);
+    mockFindBestMatchPlan.mockReturnValue(null);
+    mockIsClassMatchPlan.mockReturnValue(false);
+
+    const req = mockReq({}, {}, {});
+    const res = mockRes();
+    await listPlans(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    // 使用班级数归零；customLinkedClassCount 保留（反映数据仍存在 custom_plan_id 引用）
+    expect(data[0].classCount).toBe(0);
+    expect(data[0].matchedClassCount).toBe(0);
+    expect(data[0].customLinkedClassCount).toBe(1);
   });
 });

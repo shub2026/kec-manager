@@ -69,7 +69,10 @@ async function buildSemesterExportData(semesterInfo, filters) {
       colleges: true,
       training_levels: true,
       training_plans: {
-        include: {
+        // status 供归档方案判断（归档的自定义关联方案不参与匹配）
+        select: {
+          id: true,
+          status: true,
           plan_courses: {
             // 禁用课程不参与开课导出/连续教材检测
             where: { is_active: true },
@@ -97,7 +100,10 @@ async function buildSemesterExportData(semesterInfo, filters) {
     const gradeCalc = semesterInfo.startYear - cls.enrollment_year + 1;
     if (gradeCalc < 1 || gradeCalc > cls.duration_years) continue;
     if (cls.custom_plan_id) {
-      classPlanMap.set(cls.id, cls.training_plans);
+      // 归档方案不参与匹配：不进入 classPlanMap（与开课查询口径一致）
+      if (cls.training_plans && cls.training_plans.status !== 'archived') {
+        classPlanMap.set(cls.id, cls.training_plans);
+      }
     } else {
       if (cls.major_id) majorPlanIds.add(cls.major_id);
       if (cls.training_level_id) levelPlanIds.add(cls.training_level_id);
@@ -109,6 +115,8 @@ async function buildSemesterExportData(semesterInfo, filters) {
   // findBestMatchPlan 会优先从 classPlanMap 查找自定义方案，无需重复查询。
   const matchingPlans = await prisma.training_plans.findMany({
     where: {
+      // 归档方案不作为现行方案，不参与导出匹配
+      status: { not: 'archived' },
       OR: [
         { major_id: { in: [...majorPlanIds] } },
         { training_level_id: { in: [...levelPlanIds] } },

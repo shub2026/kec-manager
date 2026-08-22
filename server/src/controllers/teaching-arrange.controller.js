@@ -247,7 +247,7 @@ export async function assignTeacher(req, res, next) {
 
       // 查询包含该课程的所有方案课程记录（含学期明细和方案信息）
       // P1-6 修复：补 orderBy（training_plans.sort_order + id），保证多方案匹配时取值确定、可复现
-      const planCourses = await prisma.plan_courses.findMany({
+      const planCoursesRaw = await prisma.plan_courses.findMany({
         // is_active：禁用课程不参与周课时推导
         where: { course_id: Number(course_id), is_active: true },
         include: {
@@ -257,6 +257,7 @@ export async function assignTeacher(req, res, next) {
               id: true,
               major_id: true,
               training_level_id: true,
+              status: true, // 供归档方案过滤（一对一 include 无法查询层过滤）
               // 供 findBestMatchPlan 按班级入学年份过滤同维度多版本方案
               apply_from_year: true,
               apply_to_year: true,
@@ -265,6 +266,8 @@ export async function assignTeacher(req, res, next) {
         },
         orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
       });
+      // 归档方案不参与周课时推导
+      const planCourses = planCoursesRaw.filter((pc) => pc.training_plans?.status !== 'archived');
 
       createWeeklyHours = 0;
       // H1 修复：使用 findBestMatchPlan 选定最佳方案（major > level 优先级，与排课算法一致）

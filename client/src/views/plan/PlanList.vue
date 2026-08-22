@@ -59,6 +59,34 @@
         <el-table-column v-if="!isMobile" label="培养层次" min-width="100">
           <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
         </el-table-column>
+        <el-table-column v-if="!isMobile" label="状态" min-width="100" align="center">
+          <template #default="{ row }">
+            <el-dropdown trigger="click" @command="(cmd) => handleStatusCommand(cmd, row)">
+              <el-tag
+                :type="statusTagType(row.status)"
+                size="small"
+                class="status-tag-clickable"
+                disable-transitions
+                title="点击切换状态"
+              >
+                {{ statusLabel(row.status) }}
+              </el-tag>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="active" :disabled="row.status === 'active'">
+                    生效
+                  </el-dropdown-item>
+                  <el-dropdown-item command="draft" :disabled="row.status === 'draft'">
+                    草稿
+                  </el-dropdown-item>
+                  <el-dropdown-item command="archived" :disabled="row.status === 'archived'">
+                    归档
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
+        </el-table-column>
         <el-table-column
           v-if="!isMobile"
           prop="version"
@@ -321,6 +349,30 @@ function formatApplyYears(row) {
   return `${from ?? '不限'}~${to ?? '至今'}`;
 }
 
+// ── 方案状态管理（draft/active/archived）──
+// 与课程查询页同款映射：生效绿 / 草稿橙 / 归档灰
+function statusLabel(status) {
+  const map = { active: '生效', draft: '草稿', archived: '归档' };
+  return map[status] || status || '—';
+}
+
+function statusTagType(status) {
+  const map = { active: 'success', draft: 'warning', archived: 'info' };
+  return map[status] || 'info';
+}
+
+// 状态快捷切换：仅传 status，走 updatePlan（后端 status !== undefined 分支）
+async function handleStatusCommand(command, row) {
+  if (command === row.status) return;
+  try {
+    await updatePlan(row.id, { status: command });
+    ElMessage.success(`已切换为「${statusLabel(command)}」`);
+    await silentReload();
+  } catch {
+    // request.js 拦截器已显示后端错误消息，此处静默回滚（silentReload 恢复真实状态）
+  }
+}
+
 // ── 派生新版本 ──
 const newVersionVisible = ref(false);
 const newVersionSaving = ref(false);
@@ -432,3 +484,10 @@ onActivated(() => {
   }
 });
 </script>
+
+<style scoped>
+/* 状态标签可点击切换（配合 el-dropdown） */
+.status-tag-clickable {
+  cursor: pointer;
+}
+</style>

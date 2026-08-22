@@ -949,3 +949,141 @@ describe('getTeachersForCourse - 基础功能', () => {
     expect(result[0].singleTextbookOnly).toBe(true);
   });
 });
+
+// ════════════════════════════════════════════════
+// getTeachersForCourse — 归档方案教材推导过滤
+// ════════════════════════════════════════════════
+describe('getTeachersForCourse — 归档方案教材推导', () => {
+  function makeTeacher(id, name) {
+    return {
+      id,
+      name,
+      gender: 'male',
+      personnel_type: 'fulltime',
+      remark: 'senior',
+      default_weekly_hours: 12,
+      sort_order: id,
+      courses: [{ course: { id: COURSE_ID, name: '语文' } }],
+      scheduling_colleges: [],
+      scheduling_levels: [],
+    };
+  }
+
+  function setupTeacherMocks(teachers, options = {}) {
+    const {
+      collegeAndLevelAssignments = [],
+      allSemesterAssignments = [],
+      allAssignments = [],
+      planCoursesForTextbooks = [],
+      allPlanCourses = [],
+      classesForTextbooks = [],
+      trainingLevels = [],
+      textbooks = [],
+    } = options;
+
+    mockTeachersFindMany.mockReset().mockResolvedValue(teachers);
+    mockAssignmentsGroupBy.mockReset().mockResolvedValue([]);
+    // clearAllMocks 不清除 mockResolvedValueOnce 队列，先 reset 防止前面用例残留的队列错位消费
+    mockAssignmentsFindMany
+      .mockReset()
+      .mockResolvedValueOnce(allSemesterAssignments)
+      .mockResolvedValueOnce(collegeAndLevelAssignments)
+      .mockResolvedValueOnce(allAssignments);
+    mockPlanCoursesFindMany
+      .mockReset()
+      .mockResolvedValueOnce(planCoursesForTextbooks)
+      .mockResolvedValueOnce(allPlanCourses);
+    mockClassesFindMany.mockReset().mockResolvedValue(classesForTextbooks);
+    mockTrainingLevelsFindMany.mockReset().mockResolvedValue(trainingLevels);
+    mockTextbooksFindMany.mockReset().mockResolvedValue(textbooks);
+    mockFindBestMatchPlan.mockReset();
+    mockIsClassMatchPlan.mockReset();
+  }
+
+  it('排课方案为归档 → 教材推导不命中，textbookIds 为空', async () => {
+    const teacher = makeTeacher(1, '吴老师');
+    setupTeacherMocks([teacher], {
+      allAssignments: [{ teacher_id: 1, class_id: 100, course_id: COURSE_ID }],
+      allPlanCourses: [
+        {
+          course_id: COURSE_ID,
+          training_plans: {
+            id: 1,
+            major_id: 1,
+            training_level_id: 1,
+            status: 'archived',
+          },
+          start_semester: 1,
+          end_semester: 4,
+          plan_course_semesters: [
+            {
+              semester: CURRENT_SEM_NUM,
+              plan_textbooks: [{ textbook_id: 501 }],
+            },
+          ],
+        },
+      ],
+      classesForTextbooks: [
+        {
+          id: 100,
+          custom_plan_id: null,
+          major_id: 1,
+          training_level_id: 1,
+          enrollment_year: 2025,
+          duration_years: 4,
+        },
+      ],
+      textbooks: [{ id: 501, title: '高等数学' }],
+    });
+    mockFindBestMatchPlan.mockReturnValue({ id: 1, major_id: 1, training_level_id: 1 });
+    mockIsClassMatchPlan.mockReturnValue(true);
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    // 归档方案被代码层过滤 → 无候选 → 不推导出教材
+    expect(result).toHaveLength(1);
+    expect(result[0].textbookIds).toEqual([]);
+    // findBestMatchPlan 的候选列表为空（归档方案未进入）
+    const candidateCall = mockFindBestMatchPlan.mock.calls.find((c) => Array.isArray(c[1]));
+    expect(candidateCall[1]).toHaveLength(0);
+  });
+
+  it('非归档方案教材推导正常（status 缺省视为非归档）', async () => {
+    const teacher = makeTeacher(1, '郑老师');
+    setupTeacherMocks([teacher], {
+      allAssignments: [{ teacher_id: 1, class_id: 100, course_id: COURSE_ID }],
+      allPlanCourses: [
+        {
+          course_id: COURSE_ID,
+          training_plans: { id: 1, major_id: 1, training_level_id: 1 },
+          start_semester: 1,
+          end_semester: 4,
+          plan_course_semesters: [
+            {
+              semester: CURRENT_SEM_NUM,
+              plan_textbooks: [{ textbook_id: 501 }],
+            },
+          ],
+        },
+      ],
+      classesForTextbooks: [
+        {
+          id: 100,
+          custom_plan_id: null,
+          major_id: 1,
+          training_level_id: 1,
+          enrollment_year: 2025,
+          duration_years: 4,
+        },
+      ],
+      textbooks: [{ id: 501, title: '高等数学' }],
+    });
+    mockFindBestMatchPlan.mockReturnValue({ id: 1, major_id: 1, training_level_id: 1 });
+    mockIsClassMatchPlan.mockReturnValue(true);
+
+    const result = await getTeachersForCourse(COURSE_ID, SEMESTER_STR);
+
+    // 正常推导出教材 501
+    expect(result[0].textbookIds).toContain(501);
+  });
+});

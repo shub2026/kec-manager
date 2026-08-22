@@ -35,8 +35,9 @@ async function computeOfferedCourses(semesterInfo) {
         combination_id: true,
       },
     }),
-    // 加载所有培养方案及其课程结构（用于计算开设课程和周课时）
+    // 加载所有培养方案及其课程结构（用于计算开设课程和周课时）；归档方案不参与统计
     prisma.training_plans.findMany({
+      where: { status: { not: 'archived' } },
       include: {
         plan_courses: {
           // 禁用课程不计入开设课程数/总周课时

@@ -66,6 +66,7 @@
       <span>查询报表</span>
     </template>
     <el-menu-item index="/query/plan">方案查询</el-menu-item>
+    <el-menu-item index="/query/course">课程查询</el-menu-item>
     <el-menu-item index="/query/semester">开课查询</el-menu-item>
     <el-menu-item index="/query/textbook">教材查询</el-menu-item>
   </el-sub-menu>

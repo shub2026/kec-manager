@@ -94,21 +94,22 @@
           >
             <el-option v-for="p in plans" :key="p.id" :label="getPlanLabel(p)" :value="p.id" />
           </el-select>
+          <!-- 重置按钮：紧跟筛选器 -->
+          <el-button
+            :disabled="
+              !selectedSemester &&
+              !filterCollege &&
+              !filterMajor &&
+              !filterLevel &&
+              !filterPlan &&
+              !filterEnrollmentYear &&
+              !filterGrade
+            "
+            @click="resetFilters"
+          >
+            <el-icon><Refresh /></el-icon> 重置
+          </el-button>
           <template #actions>
-            <el-button
-              :disabled="
-                !selectedSemester &&
-                !filterCollege &&
-                !filterMajor &&
-                !filterLevel &&
-                !filterPlan &&
-                !filterEnrollmentYear &&
-                !filterGrade
-              "
-              @click="resetFilters"
-            >
-              <el-icon><Refresh /></el-icon> 重置
-            </el-button>
             <el-button v-if="authStore.isAdmin" @click="exportExcel">
               <el-icon><Download /></el-icon> 导出Excel
             </el-button>
@@ -518,7 +519,9 @@ function getPlanLabel(plan) {
 
 // 跳转到当前学期
 async function goToCurrentSemester() {
-  selectedSemester.value = await fetchCurrentSemester();
+  const target = await fetchCurrentSemester();
+  // 赋相同值不会触发 @change，显式调用刷新逻辑保证任何情况下都生效
+  selectedSemester.value = target;
   // 同时清空其他筛选条件
   filterCollege.value = null;
   filterMajor.value = null;
@@ -526,6 +529,7 @@ async function goToCurrentSemester() {
   filterPlan.value = null;
   filterEnrollmentYear.value = null;
   filterGrade.value = null;
+  resetPaginationAndLoad();
 }
 
 function resetFilters() {

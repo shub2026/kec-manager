@@ -94,6 +94,7 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
   // 当最佳方案不含本课程时会回落到次优方案，导致班级开课推导与其适用方案脱节、
   // 跨页面课时汇总不一致（如转段-特例方案只开大学语文，查语文时回落五年制人培虚增课时）。
   const allPlans = await prisma.training_plans.findMany({
+    where: { status: { not: 'archived' } }, // 归档方案不参与排课匹配
     select: {
       id: true,
       major_id: true,
@@ -395,7 +396,7 @@ export async function getTeachersForCourse(courseId, semesterStr) {
     const classIdsInAssignments = [...new Set(allTeacherAssignments.map((a) => a.class_id))];
 
     // 批量查询所有涉及课程的 plan_courses（含方案和学期教材）
-    const allPlanCourses = await prisma.plan_courses.findMany({
+    const allPlanCoursesRaw = await prisma.plan_courses.findMany({
       where: { course_id: { in: courseIdsInAssignments }, is_active: true },
       include: {
         training_plans: {
@@ -403,6 +404,7 @@ export async function getTeachersForCourse(courseId, semesterStr) {
             id: true,
             major_id: true,
             training_level_id: true,
+            status: true, // 供归档方案过滤（一对一 include 无法查询层过滤）
             // 供 findBestMatchPlan 按班级入学年份过滤同维度多版本方案
             apply_from_year: true,
             apply_to_year: true,
@@ -417,6 +419,8 @@ export async function getTeachersForCourse(courseId, semesterStr) {
       // P1-6 修复：补 orderBy，保证多方案匹配时教材取值确定、与 getClassesWithCourse 口径一致
       orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
     });
+    // 归档方案不参与排课教材推导
+    const allPlanCourses = allPlanCoursesRaw.filter((pc) => pc.training_plans?.status !== 'archived');
     // 按 course_id 分组
     const planCoursesByCourse = new Map();
     for (const pc of allPlanCourses) {

@@ -100,6 +100,12 @@ const routes = [
         meta: { title: '方案查询' },
       },
       {
+        path: 'query/course',
+        name: 'CourseQuery',
+        component: () => import('../views/query/CourseQuery.vue'),
+        meta: { title: '课程查询' },
+      },
+      {
         path: 'query/semester',
         name: 'SemesterQuery',
         component: () => import('../views/query/UnifiedSemesterQuery.vue'),

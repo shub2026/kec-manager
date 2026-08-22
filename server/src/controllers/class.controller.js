@@ -63,6 +63,8 @@ async function getClassFilterRelations() {
       },
     }),
     prisma.training_plans.findMany({
+      // 归档方案不作为现行方案，不参与筛选项推导
+      where: { status: { not: 'archived' } },
       select: { id: true, college_id: true, major_id: true, training_level_id: true },
     }),
   ]);
@@ -198,7 +200,8 @@ export async function listClasses(req, res, next) {
         majors: { select: { id: true, name: true } },
         colleges: { select: { id: true, name: true } },
         training_levels: { select: { id: true, name: true } },
-        training_plans: { select: { id: true, name: true } },
+        // status 供归档方案判断（归档的自定义关联方案视为未关联，走通用匹配）
+        training_plans: { select: { id: true, name: true, status: true } },
       },
       orderBy: { id: 'asc' },
       skip: (pageNum - 1) * pageSizeNum,
@@ -211,7 +214,9 @@ export async function listClasses(req, res, next) {
     // 预加载所有培养方案，用于自动匹配
     // 注意：必须 select created_at，findBestMatchPlan 按 created_at 降序排序以保证多匹配时取最新方案的确定性
     // apply_from_year/apply_to_year 供匹配时按班级入学年份过滤（同专业/层次多版本方案按年级区分）
+    // 归档方案不作为现行方案，不参与班级自动匹配
     const allPlans = await prisma.training_plans.findMany({
+      where: { status: { not: 'archived' } },
       select: {
         id: true,
         name: true,
@@ -249,8 +254,8 @@ export async function listClasses(req, res, next) {
       let matchedPlanId = null; // 匹配方案 ID（合班伙伴“同方案”过滤依据）
       let planMatchWarning = null; // 交叉匹配警告
 
-      if (cls.custom_plan_id && cls.training_plans) {
-        // 有自定义方案
+      if (cls.custom_plan_id && cls.training_plans && cls.training_plans.status !== 'archived') {
+        // 有自定义方案（归档方案视为未关联，走通用匹配）
         matchedPlanName = cls.training_plans.name;
         matchedPlanType = 'custom';
         matchedPlanId = cls.custom_plan_id;
@@ -377,6 +382,8 @@ export async function listClassOptions(req, res, next) {
         orderBy: { id: 'asc' },
       }),
       prisma.training_plans.findMany({
+        // 归档方案不参与匹配推导（与 listClasses 口径一致）
+        where: { status: { not: 'archived' } },
         select: {
           id: true,
           major_id: true,

@@ -1002,3 +1002,112 @@ describe('deleteAssignment — 合班级联', () => {
     expect(mockPrisma.teaching_assignments.deleteMany).not.toHaveBeenCalled();
   });
 });
+
+// ════════════════════════════════════════════════
+// assignTeacher — 周课时推导的归档方案过滤
+// ════════════════════════════════════════════════
+describe('assignTeacher — 归档方案周课时推导', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.classes.findFirst.mockResolvedValue({ ...ACTIVE_CLASS });
+    mockPrisma.classes.findUnique.mockResolvedValue({
+      ...ACTIVE_CLASS,
+      majors: { id: 1 },
+      training_levels: { id: 2 },
+    });
+    mockPrisma.teachers.findUnique.mockResolvedValue({ ...ACTIVE_TEACHER });
+    mockPrisma.teacher_courses.findUnique.mockResolvedValue({ teacher_id: 5, course_id: 3 });
+    mockPrisma.teaching_assignments.upsert.mockResolvedValue({ ...UPSERTED_ASSIGNMENT });
+    mockPrisma.teaching_assignments.groupBy.mockResolvedValue([
+      { teacher_id: 5, _sum: { weekly_hours: 10 } },
+    ]);
+    calcClassSemester.mockReturnValue({ currentSemesterNum: 2 });
+    // assignTeacher 周课时推导用 parseSemester（而非 settings 服务）解析学期
+    parseSemester.mockReturnValue({
+      startYear: 2025,
+      endYear: 2026,
+      semesterIndex: 2,
+      raw: '2025-2026-2',
+    });
+  });
+
+  it('仅归档方案包含该课程 → 过滤后无候选，周课时推导为 0', async () => {
+    // clearAllMocks 不清除前面 describe 泄漏的 mock 实现，显式置空保证语义确定
+    findBestMatchPlan.mockReturnValue(null);
+    // 方案课程挂在归档方案下（一对一 include 无法查询层过滤，控制器代码层过滤）
+    mockPrisma.plan_courses.findMany.mockResolvedValue([
+      {
+        id: 20,
+        course_id: 3,
+        start_semester: 1,
+        end_semester: 4,
+        weekly_hours: 6,
+        plan_course_semesters: [{ semester: 2, weekly_hours: 8 }],
+        training_plans: { id: 1, major_id: 1, training_level_id: null, status: 'archived' },
+      },
+    ]);
+
+    const req = mockReq({
+      class_id: 10,
+      course_id: 3,
+      semester: '2025-2026-2',
+      teacher_id: 5,
+      // weekly_hours 不传，走推导路径
+    });
+    const res = mockRes();
+    await assignTeacher(req, res, vi.fn());
+
+    // 归档方案被过滤 → 无候选方案 → 0 课时守卫返回 400（而非按归档方案的 8 创建安排）
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        message: expect.stringContaining('培养方案未包含此课程'),
+      })
+    );
+    // 未创建任何安排
+    expect(mockPrisma.teaching_assignments.upsert).not.toHaveBeenCalled();
+  });
+
+  it('归档与非归档方案同时含该课程 → 仅按非归档方案推导', async () => {
+    mockPrisma.plan_courses.findMany.mockResolvedValue([
+      {
+        id: 20,
+        course_id: 3,
+        start_semester: 1,
+        end_semester: 4,
+        weekly_hours: 6,
+        plan_course_semesters: [{ semester: 2, weekly_hours: 8 }],
+        training_plans: { id: 1, major_id: 1, training_level_id: null, status: 'archived' },
+      },
+      {
+        id: 21,
+        course_id: 3,
+        start_semester: 1,
+        end_semester: 4,
+        weekly_hours: 4,
+        plan_course_semesters: [{ semester: 2, weekly_hours: 4 }],
+        training_plans: { id: 2, major_id: 1, training_level_id: null, status: 'active' },
+      },
+    ]);
+    findBestMatchPlan.mockImplementation((_cls, plans) =>
+      plans.find((p) => p.id === 2) || null
+    );
+
+    const req = mockReq({
+      class_id: 10,
+      course_id: 3,
+      semester: '2025-2026-2',
+      teacher_id: 5,
+    });
+    const res = mockRes();
+    await assignTeacher(req, res, vi.fn());
+
+    // 候选只剩非归档方案（id=2，周课时4），非归档方案的 8
+    const upsertCall = mockPrisma.teaching_assignments.upsert.mock.calls[0][0];
+    expect(upsertCall.create.weekly_hours).toBe(4);
+    // findBestMatchPlan 的候选列表不含归档方案
+    const calledPlans = findBestMatchPlan.mock.calls[0][1];
+    expect(calledPlans.map((p) => p.id)).toEqual([2]);
+  });
+});

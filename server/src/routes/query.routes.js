@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { validateIdParam } from '../middleware/validation.js';
-import { querySemester, queryTextbookUsage } from '../controllers/query.controller.js';
+import { querySemester, queryTextbookUsage, queryCoursePlans } from '../controllers/query.controller.js';
 
 const router = Router();
 
@@ -12,6 +12,11 @@ router.use(authMiddleware);
  * GET /api/query/semester - 当前学期开课查询
  */
 router.get('/semester', querySemester);
+
+/**
+ * GET /api/query/course - 课程查询（按课程聚合各培养方案采用情况）
+ */
+router.get('/course', queryCoursePlans);
 
 /**
  * GET /api/query/textbook/:id - 教材使用情况查询

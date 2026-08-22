@@ -74,7 +74,9 @@ export async function buildClassFilter(query) {
 
   if (plan_id) {
     if (plan_id === 'none') {
+      // 归档方案不作为现行方案：仅被归档方案覆盖的班级应视为"未关联方案"
       const allPlans = await prisma.training_plans.findMany({
+        where: { status: { not: 'archived' } },
         select: { id: true, major_id: true, training_level_id: true },
       });
 

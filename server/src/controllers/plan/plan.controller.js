@@ -113,6 +113,10 @@ export async function listPlans(req, res, next) {
       orderBy: { sort_order: 'asc' },
     });
 
+    // 归档方案不作为现行方案：班级匹配统计（使用班级/匹配班级数）应将其视为无方案
+    const effectivePlans = plans.filter((p) => p.status !== 'archived');
+    const effectivePlanMap = new Map(effectivePlans.map((p) => [p.id, p]));
+
     const allClasses = await prisma.classes.findMany({
       where: { is_left_school: false },
       select: {
@@ -136,18 +140,18 @@ export async function listPlans(req, res, next) {
 
     // S-05 修复：使用 findBestMatchPlan 优先级语义（自定义>专业>层次），
     // 每个班级只计入其最佳匹配方案，避免同一班级被重复计入多个方案
-    // 构建自定义方案的快速查找 Map
+    // 构建自定义方案的快速查找 Map：归档方案不在候选内（与排课/开课口径一致）
     const customPlanMap = new Map();
     for (const cls of allClasses) {
       if (cls.custom_plan_id) {
-        customPlanMap.set(cls.id, plans.find((p) => p.id === cls.custom_plan_id) || null);
+        customPlanMap.set(cls.id, effectivePlanMap.get(cls.custom_plan_id) || null);
       }
     }
-    // 候选方案列表：包含有专业/层次的方案 + 被 custom_plan_id 引用的方案
+    // 候选方案列表：包含有专业/层次的方案 + 被 custom_plan_id 引用的方案（均为非归档）
     const referencedCustomPlanIds = new Set(
       allClasses.filter((c) => c.custom_plan_id).map((c) => c.custom_plan_id)
     );
-    const candidatePlans = plans.filter(
+    const candidatePlans = effectivePlans.filter(
       (p) => p.major_id || p.training_level_id || referencedCustomPlanIds.has(p.id)
     );
 
@@ -167,7 +171,8 @@ export async function listPlans(req, res, next) {
       // 也含 custom 匹配）。删除方案后这些班级将不再匹配此方案。
       // 注意：deletePlan 从不调用 isClassMatchPlan、也从不真正阻塞删除，
       // 此字段仅用于前端删除弹窗准确预告"删除后将丢失匹配的班级数"。
-      for (const plan of plans) {
+      // 归档方案不参与匹配计数（视为无方案）。
+      for (const plan of effectivePlans) {
         if (isClassMatchPlan(cls, plan)) {
           if (matchedCountMap[plan.id] !== undefined) matchedCountMap[plan.id]++;
         }
@@ -373,6 +378,45 @@ export async function updatePlan(req, res, next) {
             details: { id: Number(id), sort_order: Number(sort_order), error: 'not_found' },
             result: 'failed',
             message: `调整培养方案排序失败：方案不存在`,
+          });
+          return fail(res, '培养方案不存在', 404);
+        }
+        throw e;
+      }
+    }
+
+    // 状态快捷切换：仅更新 status（列表页状态下拉，跳过表单必填校验）
+    if (status !== undefined && name === undefined && sort_order === undefined) {
+      try {
+        const plan = await prisma.training_plans.update({
+          where: { id: Number(id) },
+          data: { status },
+          include: {
+            majors: true,
+            colleges: true,
+            training_levels: true,
+          },
+        });
+        await createAuditLog({
+          action: 'update',
+          module: 'trainingPlan',
+          userId: req.user?.id,
+          ip: req.ip,
+          details: { id: Number(id), status, type: 'status' },
+          result: 'success',
+          message: `切换培养方案状态：${plan.name} → ${status}`,
+        });
+        return success(res, plan, '更新成功');
+      } catch (e) {
+        if (e.code === 'P2025') {
+          await createAuditLog({
+            action: 'update',
+            module: 'trainingPlan',
+            userId: req.user?.id,
+            ip: req.ip,
+            details: { id: Number(id), status, error: 'not_found' },
+            result: 'failed',
+            message: `切换培养方案状态失败：方案不存在`,
           });
           return fail(res, '培养方案不存在', 404);
         }

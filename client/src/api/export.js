@@ -41,3 +41,11 @@ export const exportTextbook = (id, params) =>
  */
 export const exportAllTextbookUsage = (params) =>
   request.get('/export/textbook-usage', { params, responseType: 'blob' });
+
+/**
+ * 导出课程方案查询数据（课程 × 培养方案 × 各学期课时，与课程查询页同口径）
+ * @param {Object} [params] - 与 getCourseQuery 相同的筛选参数
+ * @returns {Promise<Blob>}
+ */
+export const exportCoursePlans = (params = {}) =>
+  request.get('/export/course-plans', { params, responseType: 'blob' });

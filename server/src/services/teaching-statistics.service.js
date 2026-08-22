@@ -123,6 +123,8 @@ export async function resolveClassCourseTextbooks(rawAssignments, semesterInfo) 
 
   // 一次查询：所有相关 plan_courses + 方案 + 学期 + 教材（避免 N+1）
   // is_active：禁用课程不参与教材推导
+  // 注意：training_plans 为一对一关联，Prisma 的 include 不支持 where（仅一对多可用），
+  // 归档方案过滤在代码层完成（见下方 filter）
   const allPlanCourses = await prisma.plan_courses.findMany({
     where: { course_id: { in: uniqueCourseIds }, is_active: true },
     include: {
@@ -131,6 +133,7 @@ export async function resolveClassCourseTextbooks(rawAssignments, semesterInfo) 
           id: true,
           major_id: true,
           training_level_id: true,
+          status: true,
           // 供 findBestMatchPlan 按班级入学年份过滤同维度多版本方案
           apply_from_year: true,
           apply_to_year: true,
@@ -147,6 +150,8 @@ export async function resolveClassCourseTextbooks(rawAssignments, semesterInfo) 
 
   const planCoursesByCourse = new Map();
   for (const pc of allPlanCourses) {
+    // 归档方案不参与教材推导匹配（一对一 include 无法在查询层过滤）
+    if (pc.training_plans?.status === 'archived') continue;
     if (!planCoursesByCourse.has(pc.course_id)) {
       planCoursesByCourse.set(pc.course_id, []);
     }

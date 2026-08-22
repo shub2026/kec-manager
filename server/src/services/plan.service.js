@@ -1,6 +1,14 @@
 import { prisma } from '../lib/prisma.js';
 
 /**
+ * 归档方案排除条件（业务口径统一约定）：
+ * 归档 = 保留数据但不作为现行方案，不参与排课/开课推导/统计/导出等任何业务匹配；
+ * 草稿与生效均参与匹配（草稿承担派生新版本过渡态，适用入学年份负责版本隔离）。
+ * 所有"取方案做业务匹配"的查询必须带上此条件。
+ */
+export const NOT_ARCHIVED_PLAN_WHERE = { status: { not: 'archived' } };
+
+/**
  * 构建"班级必须能关联到培养方案"的 Prisma 过滤条件
  * M-6 说明：此 filter 仅为"粗筛"——收集所有方案涉及的专业 ID 和层次 ID 构建 OR 条件。
  * 精确匹配由下游 findBestMatchPlan 完成（逐班逐方案比对）。
@@ -9,6 +17,7 @@ import { prisma } from '../lib/prisma.js';
  */
 export async function buildClassWithPlanFilter() {
   const allPlans = await prisma.training_plans.findMany({
+    where: NOT_ARCHIVED_PLAN_WHERE,
     select: { id: true, major_id: true, college_id: true, training_level_id: true },
   });
 

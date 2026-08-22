@@ -74,3 +74,51 @@ describe('PlanFormDialog（新增/编辑方案弹窗）', () => {
     expect(wrapper.emitted('update:visible')?.[0]).toEqual([false]);
   });
 });
+
+
+// 取状态组（draft/active/archived）当前选中的值；关联方式组的 radio 值为 major/trainingLevel，需排除
+function getCheckedStatus() {
+  const radios = document.querySelectorAll('.el-dialog input[type="radio"]:checked');
+  const values = [...radios].map((r) => r.value);
+  return values.find((v) => ['draft', 'active', 'archived'].includes(v)) || null;
+}
+
+describe('PlanFormDialog — 方案状态字段', () => {
+  it('新增模式：状态默认为草稿', async () => {
+    factory({ plan: null });
+    await flush();
+    const dialog = document.querySelector('.el-dialog');
+    // 默认选中草稿单选框
+    const status = getCheckedStatus();
+    expect(status).toBe('draft');
+  });
+
+  it('编辑模式：回填方案状态（active）', async () => {
+    factory({
+      plan: { id: 5, name: '生效方案', majorId: 10, trainingLevelId: null, status: 'active' },
+    });
+    await flush();
+    expect(getCheckedStatus()).toBe('active');
+  });
+
+  it('编辑模式：status 缺省时兜底为 draft', async () => {
+    factory({
+      plan: { id: 7, name: '旧数据方案', majorId: 10, trainingLevelId: null },
+    });
+    await flush();
+    expect(getCheckedStatus()).toBe('draft');
+  });
+
+  it('保存时 save 事件携带 status 字段', async () => {
+    factory({
+      plan: { id: 5, name: '生效方案', majorId: 10, trainingLevelId: null, status: 'active' },
+    });
+    await flush();
+    const buttons = [...document.querySelectorAll('.el-dialog__footer button')];
+    buttons.find((b) => b.textContent.includes('保存')).click();
+    await flush();
+    const events = wrapper.emitted('save');
+    expect(events).toBeTruthy();
+    expect(events[0][0]).toMatchObject({ name: '生效方案', status: 'active' });
+  });
+});

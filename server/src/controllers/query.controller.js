@@ -7,6 +7,7 @@ import {
   findBestMatchPlan,
   buildClassWithPlanFilter,
   isClassMatchPlan,
+  NOT_ARCHIVED_PLAN_WHERE,
 } from '../services/plan.service.js';
 import { log } from '../utils/logger.js';
 
@@ -100,7 +101,10 @@ const CLASS_FULL_INCLUDE = {
   colleges: { select: { id: true, name: true } },
   training_levels: { select: { id: true, name: true } },
   training_plans: {
-    include: {
+    // status 供归档方案判断（归档的自定义关联方案不参与匹配）
+    select: {
+      id: true,
+      status: true,
       plan_courses: {
         // 禁用课程不参与开课清单/连续教材检测
         where: { is_active: true },
@@ -164,9 +168,9 @@ async function filterClassIdsByPlan(classWhere, planId, semesterInfo) {
   if (levelIds.size > 0) planOrConditions.push({ training_level_id: { in: [...levelIds] } });
   planOrConditions.push({ id: { in: [...explicitPlanIds] } });
 
-  // 仅取匹配所需字段，不加载课程/教材明细，控制开销
+  // 仅取匹配所需字段，不加载课程/教材明细，控制开销；归档方案不参与匹配
   const matchingPlans = await prisma.training_plans.findMany({
-    where: { OR: planOrConditions },
+    where: { ...NOT_ARCHIVED_PLAN_WHERE, OR: planOrConditions },
     select: {
       id: true,
       major_id: true,
@@ -325,7 +329,10 @@ export async function querySemester(req, res, next) {
       const calc = calcClassSemester(cls, semesterInfo);
       if (!calc) continue;
       if (cls.custom_plan_id) {
-        classPlanMap.set(cls.id, cls.training_plans);
+        // 归档方案不参与匹配：不进入 classPlanMap，班级将落入 unmatchedClasses 提示重新关联
+        if (cls.training_plans && cls.training_plans.status !== 'archived') {
+          classPlanMap.set(cls.id, cls.training_plans);
+        }
         customPlanIds.add(cls.custom_plan_id);
       }
       // 始终收集 major/level（即使有 custom_plan_id 也收集，用于兜底匹配）
@@ -350,7 +357,7 @@ export async function querySemester(req, res, next) {
     const matchingPlans =
       planOrConditions.length > 0
         ? await prisma.training_plans.findMany({
-            where: { OR: planOrConditions },
+            where: { ...NOT_ARCHIVED_PLAN_WHERE, OR: planOrConditions },
             include: {
               plan_courses: {
                 // 禁用课程不参与开课清单/连续教材检测
@@ -589,6 +596,8 @@ export async function queryTextbookUsage(req, res, next) {
       // 禁用课程不出现在教材使用清单（=== false 显式判断，字段缺省视为启用）
       if (pc.is_active === false) continue;
       const plan = pc.training_plans;
+      // 归档方案不参与教材使用推导
+      if (plan.status === 'archived') continue;
       if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
 
       const gradeForThisSemester = Math.ceil(sem.semester / 2);
@@ -646,4 +655,187 @@ export async function queryTextbookUsage(req, res, next) {
   } catch (e) {
     next(e);
   }
+}
+
+/**
+ * 课程查询：按课程聚合各培养方案的采用情况
+ *
+ * 视角与方案查询（plan → courses）相反，本接口以课程为主体，
+ * 返回每门课程被哪些培养方案采用、各学期周课时分布。
+ * 口径：默认排除归档方案；禁用课程保留展示（isActive=false）。
+ *
+ * 筛选参数（snake_case，经命名中间件转换）：
+ * - course_name: 课程名称模糊匹配
+ * - course_type: 课程科目类型（public | professional）
+ * - college_id / major_id / training_level_id: 方案维度筛选
+ * - plan_status: 方案状态筛选（draft | active | archived）
+ */
+export async function queryCoursePlans(req, res, next) {
+  try {
+    const {
+      course_name,
+      course_type,
+      college_id,
+      major_id,
+      training_level_id,
+      plan_status,
+    } = req.query;
+
+    const result = await aggregateCoursePlans({
+      courseName: course_name,
+      courseType: course_type,
+      collegeId: college_id,
+      majorId: major_id,
+      trainingLevelId: training_level_id,
+      planStatus: plan_status,
+    });
+
+    success(res, {
+      courses: result,
+      totalCourses: result.length,
+      totalPlans: result.reduce((sum, c) => sum + c.planCount, 0),
+    });
+  } catch (e) {
+    log.error('课程查询失败', { error: e.message, query: req.query });
+    next(e);
+  }
+}
+
+/**
+ * 课程×方案聚合核心（查询接口与 Excel 导出共用同一口径）
+ * 返回按课程分组的方案采用明细数组。
+ */
+export async function aggregateCoursePlans({
+  courseName,
+  courseType,
+  collegeId,
+  majorId,
+  trainingLevelId,
+  planStatus,
+} = {}) {
+  // 方案维度筛选（嵌套过滤 plan_courses.training_plans）
+  // 默认排除归档方案（归档不作为现行方案）；显式传 plan_status 时按用户选择，
+  // 选 archived 即可单独查看归档方案中的课程分布
+  const planFilter = {};
+  if (collegeId) planFilter.college_id = Number(collegeId);
+  if (majorId) planFilter.major_id = Number(majorId);
+  if (trainingLevelId) planFilter.training_level_id = Number(trainingLevelId);
+  if (planStatus) {
+    planFilter.status = String(planStatus);
+  } else {
+    planFilter.status = NOT_ARCHIVED_PLAN_WHERE.status;
+  }
+
+  const rows = await prisma.plan_courses.findMany({
+    where: { training_plans: planFilter },
+    include: {
+      courses: { select: { id: true, name: true, code: true, type: true } },
+      training_plans: {
+        select: {
+          id: true,
+          name: true,
+          version: true,
+          status: true,
+          majors: { select: { id: true, name: true } },
+          colleges: { select: { id: true, name: true } },
+          training_levels: { select: { id: true, name: true } },
+        },
+      },
+      plan_course_semesters: {
+        select: {
+          semester: true,
+          weekly_hours: true,
+          weeks_count: true,
+          plan_textbooks: {
+            select: {
+              is_required: true,
+              textbooks: { select: { id: true, title: true, isbn: true, publisher: true, is_active: true } },
+            },
+          },
+        },
+        orderBy: { semester: 'asc' },
+      },
+    },
+    orderBy: [{ courses: { sort_order: 'asc' } }, { courses: { name: 'asc' } }],
+  });
+
+  // 课程名称/科目类型筛选（课程侧条件，在聚合前对行级过滤）
+  const keyword = typeof courseName === 'string' ? courseName.trim() : '';
+  const filtered =
+    keyword || courseType
+      ? rows.filter((row) => {
+          if (keyword && !row.courses.name.includes(keyword)) return false;
+          if (courseType && row.courses.type !== courseType) return false;
+          return true;
+        })
+      : rows;
+
+  // 按课程分组聚合
+  const courseMap = new Map();
+  for (const row of filtered) {
+    const course = row.courses;
+    if (!courseMap.has(course.id)) {
+      courseMap.set(course.id, {
+        course: { id: course.id, name: course.name, code: course.code, type: course.type },
+        plans: [],
+      });
+    }
+
+    // 总课时 = Σ(各学期周课时 × 周数)；教材明细供前端悬停展示
+    const semesters = row.plan_course_semesters.map((s) => ({
+      semester: s.semester,
+      weeklyHours: s.weekly_hours,
+      weeksCount: s.weeks_count,
+      hours: Math.round(s.weekly_hours * s.weeks_count * 100) / 100,
+      textbooks: (s.plan_textbooks || []).map((pt) => ({
+        id: pt.textbooks?.id ?? null,
+        title: pt.textbooks?.title || null,
+        isbn: pt.textbooks?.isbn || null,
+        publisher: pt.textbooks?.publisher || null,
+        // 教材停用状态（=== false 显式判断，缺省视为启用）
+        isActive: pt.textbooks?.is_active !== false,
+        isRequired: pt.is_required ?? true,
+      })),
+    }));
+    const totalHours =
+      Math.round(semesters.reduce((sum, s) => sum + s.hours, 0) * 100) / 100;
+
+    const plan = row.training_plans;
+    courseMap.get(course.id).plans.push({
+      planCourseId: row.id,
+      planId: plan.id,
+      planName: plan.name,
+      version: plan.version,
+      planStatus: plan.status,
+      majorName: plan.majors?.name || null,
+      collegeName: plan.colleges?.name || null,
+      trainingLevelName: plan.training_levels?.name || null,
+      // 课程启用状态（=== false 显式判断，字段缺省视为启用，与其他模块口径一致）
+      isActive: row.is_active !== false,
+      startSemester: row.start_semester,
+      endSemester: row.end_semester,
+      semesters,
+      totalHours,
+    });
+  }
+
+  // 方案排序：启用课程优先，状态 active > draft > archived，再按方案名
+  const statusOrder = { active: 0, draft: 1, archived: 2 };
+  const result = Array.from(courseMap.values()).map((entry) => {
+    entry.plans.sort((a, b) => {
+      if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+      const so = (statusOrder[a.planStatus] ?? 9) - (statusOrder[b.planStatus] ?? 9);
+      if (so !== 0) return so;
+      return (a.planName || '').localeCompare(b.planName || '', 'zh-CN');
+    });
+    entry.planCount = entry.plans.length;
+    entry.activePlanCount = entry.plans.filter((p) => p.isActive).length;
+    entry.totalHours =
+      Math.round(
+        entry.plans.filter((p) => p.isActive).reduce((sum, p) => sum + p.totalHours, 0) * 100
+      ) / 100;
+    return entry;
+  });
+
+  return result;
 }
