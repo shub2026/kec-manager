@@ -89,16 +89,27 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
     },
   });
 
-  // 高-5修复：对每个班级使用 findBestMatchPlan 选定唯一最佳方案
-  // 原实现按 sort_order 迭代+去重取首个匹配，可能与 findBestMatchPlan 的 major>level 优先级不一致
-  const candidatePlans = planCourses.map((pc) => pc.training_plans).filter(Boolean);
+  // 口径统一修复：班级先做"全局最佳方案"匹配（与首页 computeOfferedCourses 同源），
+  // 再看该方案是否包含本课程。原实现将候选限定为"含本课程的方案"，
+  // 当最佳方案不含本课程时会回落到次优方案，导致班级开课推导与其适用方案脱节、
+  // 跨页面课时汇总不一致（如转段-特例方案只开大学语文，查语文时回落五年制人培虚增课时）。
+  const allPlans = await prisma.training_plans.findMany({
+    select: {
+      id: true,
+      major_id: true,
+      training_level_id: true,
+      apply_from_year: true,
+      apply_to_year: true,
+      created_at: true,
+    },
+  });
   const planCourseByPlanId = new Map(planCourses.map((pc) => [pc.training_plans.id, pc]));
 
-  // 构建自定义方案映射表（供 findBestMatchPlan 使用）
+  // 构建自定义方案映射表（全局方案范围，与 computeOfferedCourses 一致）
   const classPlanMap = new Map();
   for (const cls of allClasses) {
     if (cls.custom_plan_id) {
-      const customPlan = candidatePlans.find((p) => p.id === cls.custom_plan_id);
+      const customPlan = allPlans.find((p) => p.id === cls.custom_plan_id);
       if (customPlan) classPlanMap.set(cls.id, customPlan);
     }
   }
@@ -106,9 +117,10 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
   const results = [];
 
   for (const cls of allClasses) {
-    const bestPlan = findBestMatchPlan(cls, candidatePlans, classPlanMap);
+    const bestPlan = findBestMatchPlan(cls, allPlans, classPlanMap);
     if (!bestPlan) continue;
 
+    // 适用方案不含本课程 → 该班本学期不开设本课程（不再回落其他方案）
     const pc = planCourseByPlanId.get(bestPlan.id);
     if (!pc) continue;
 

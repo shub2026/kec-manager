@@ -22,6 +22,7 @@ const mockPrisma = {
   },
   training_plans: {
     findMany: vi.fn(),
+    findUnique: vi.fn(),
   },
   system_settings: {
     findUnique: vi.fn(),
@@ -69,7 +70,10 @@ vi.mock('../../utils/logger.js', () => ({
 const { querySemester, invalidateQueryFilterCache } = await import('../query.controller.js');
 const { getSemesterInfoFromRequest } = await import('../../services/settings.service.js');
 const { getActiveClassFilter } = await import('../../services/class.service.js');
-const { buildClassWithPlanFilter } = await import('../../services/plan.service.js');
+const { buildClassWithPlanFilter, findBestMatchPlan } = await import(
+  '../../services/plan.service.js'
+);
+const { calcClassSemester } = await import('../../services/semester.service.js');
 
 // ──────────────────────────────────────────────
 // 工具函数
@@ -118,6 +122,7 @@ describe('querySemester — 筛选器单元测试', () => {
     mockPrisma.classes.count.mockResolvedValue(0);
     mockPrisma.classes.findMany.mockResolvedValue([]);
     mockPrisma.training_plans.findMany.mockResolvedValue([]);
+    mockPrisma.training_plans.findUnique.mockResolvedValue(null);
   });
 
   // ──────────────────────────────────────────────
@@ -350,7 +355,132 @@ describe('querySemester — 筛选器单元测试', () => {
   });
 
   // ──────────────────────────────────────────────
-  // 7. 命名转换回归（模拟前端发 camelCase 被中间件转换后的效果）
+  // 7. 按培养方案筛选（training_plan_id）
+  // ──────────────────────────────────────────────
+  describe('按培养方案筛选', () => {
+    // 预筛轻量查询返回的候选班级：专业1 → 方案7，专业2 → 方案8
+    const CANDIDATES = [
+      {
+        id: 11,
+        major_id: 1,
+        training_level_id: null,
+        custom_plan_id: null,
+        enrollment_year: 2025,
+        duration_years: 3,
+      },
+      {
+        id: 12,
+        major_id: 2,
+        training_level_id: null,
+        custom_plan_id: null,
+        enrollment_year: 2024,
+        duration_years: 3,
+      },
+      {
+        id: 13,
+        major_id: 1,
+        training_level_id: null,
+        custom_plan_id: null,
+        enrollment_year: 2024,
+        duration_years: 3,
+      },
+    ];
+
+    beforeEach(() => {
+      // 目标方案默认存在；在读校验全部通过；最佳方案由专业决定
+      mockPrisma.training_plans.findUnique.mockResolvedValue({ id: 7 });
+      calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 2 });
+      findBestMatchPlan.mockImplementation((cls) => {
+        if (cls.major_id === 1) return { id: 7, name: '方案A', plan_courses: [] };
+        if (cls.major_id === 2) return { id: 8, name: '方案B', plan_courses: [] };
+        return null;
+      });
+
+      mockPrisma.classes.findMany.mockImplementation((args) => {
+        // 带 select 的是预筛/筛选选项轻量查询，直接返回候选数据
+        if (args.select) return Promise.resolve(CANDIDATES);
+        // 全量取数：按预筛结果的 id in 条件裁剪返回顺序与主查询一致（入学年份降序）
+        const idCond = Array.isArray(args.where?.AND)
+          ? args.where.AND.find((c) => c?.id?.in)
+          : null;
+        const ids = idCond?.id?.in || [];
+        return Promise.resolve(
+          CANDIDATES.filter((c) => ids.includes(c.id)).map((c) => ({
+            ...c,
+            name: `班级${c.id}`,
+            student_count: 30,
+            majors: null,
+            colleges: null,
+            training_levels: null,
+            training_plans: null,
+          }))
+        );
+      });
+      mockPrisma.training_plans.findMany.mockResolvedValue([
+        { id: 7, major_id: 1, plan_courses: [] },
+        { id: 8, major_id: 2, plan_courses: [] },
+      ]);
+    });
+
+    it('目标方案不存在应返回 404', async () => {
+      mockPrisma.training_plans.findUnique.mockResolvedValue(null);
+      const req = mockReq({ semester: '2025-2026-2', training_plan_id: '999' });
+      const res = mockRes();
+      await querySemester(req, res, vi.fn());
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, message: '培养方案不存在' })
+      );
+    });
+
+    it('只保留最佳匹配方案为目标方案的班级，总数与数据口径一致', async () => {
+      const req = mockReq({ semester: '2025-2026-2', training_plan_id: '7' });
+      const res = mockRes();
+      await querySemester(req, res, vi.fn());
+
+      const json = res.json.mock.calls[0][0];
+      expect(json.success).toBe(true);
+      // 班级12 的最佳方案为方案8，应被排除；总数与明细一致（均为2）
+      expect(json.data.total).toBe(2);
+      expect(json.data.totalClasses).toBe(2);
+      expect(json.data.data.map((r) => r.classId)).toEqual([11, 13]);
+      expect(json.data.data.every((r) => r.planName === '方案A')).toBe(true);
+    });
+
+    it('预筛后分页：page=2 & page_size=1 只返回第二个匹配班级', async () => {
+      const req = mockReq({
+        semester: '2025-2026-2',
+        training_plan_id: '7',
+        page: '2',
+        page_size: '1',
+      });
+      const res = mockRes();
+      await querySemester(req, res, vi.fn());
+
+      const json = res.json.mock.calls[0][0];
+      expect(json.data.total).toBe(2);
+      // 按入学年份降序：[11(2025), 13(2024)]，第二页为班级13
+      expect(json.data.data.map((r) => r.classId)).toEqual([13]);
+    });
+
+    it('无匹配班级时返回空列表且不执行全量取数', async () => {
+      findBestMatchPlan.mockReturnValue(null);
+      const req = mockReq({ semester: '2025-2026-2', training_plan_id: '7' });
+      const res = mockRes();
+      await querySemester(req, res, vi.fn());
+
+      const json = res.json.mock.calls[0][0];
+      expect(json.data.total).toBe(0);
+      expect(json.data.data).toEqual([]);
+      // classes.findMany 仅两次（预筛轻量查询 + 筛选选项查询），无带 include 的全量取数
+      const includeCalls = mockPrisma.classes.findMany.mock.calls.filter((c) => c[0].include);
+      expect(includeCalls).toHaveLength(0);
+    });
+  });
+
+  // ──────────────────────────────────────────────
+  // 8. 命名转换回归（模拟前端发 camelCase 被中间件转换后的效果）
   // ──────────────────────────────────────────────
   describe('命名转换回归测试', () => {
     it('前端发 collegeId=35 经中间件转换后，req.query 中是 college_id=35', async () => {

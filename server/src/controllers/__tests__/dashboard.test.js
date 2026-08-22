@@ -30,7 +30,7 @@ const mockPrisma = {
     findMany: vi.fn(),
   },
   colleges: { findMany: vi.fn() },
-  teachers: { count: vi.fn() },
+  teachers: { count: vi.fn(), findMany: vi.fn() },
   teaching_assignments: {
     groupBy: vi.fn(),
     findMany: vi.fn(),
@@ -61,10 +61,13 @@ vi.mock('../../services/plan.service.js', () => ({
   findBestMatchPlan: (...args) => mockFindBestMatchPlan(...args),
 }));
 
-// 课时概览 courseStats 现与教学安排页共用 getCourseOverviewAggregate，控制器层 mock 掉
+// 课时概览 courseStats 现与教学安排页共用 getCourseOverviewAggregate，控制器层 mock 掉；
+// 课时分布按应排班级链路（getClassesWithCourse）聚合，同样在此 mock。
 const mockGetCourseOverviewAggregate = vi.fn();
+const mockGetClassesWithCourse = vi.fn();
 vi.mock('../../services/teaching-arrange.service.js', () => ({
   getCourseOverviewAggregate: (...args) => mockGetCourseOverviewAggregate(...args),
+  getClassesWithCourse: (...args) => mockGetClassesWithCourse(...args),
 }));
 
 vi.mock('../../services/audit.service.js', () => ({
@@ -664,8 +667,11 @@ describe('getDashboardInsights', () => {
     getActiveClassFilter.mockResolvedValue({});
     mockPrisma.classes.findMany.mockResolvedValue([]);
     mockPrisma.training_plans.findMany.mockResolvedValue([]);
-    // 课时概览聚合：默认无课程
+    // 待办提醒新增数据源默认空：无自定义课时教师
+    mockPrisma.teachers.findMany.mockResolvedValue([]);
+    // 课时概览聚合：默认无课程；应排班级链路：默认无班级（分布为空）
     mockGetCourseOverviewAggregate.mockResolvedValue([]);
+    mockGetClassesWithCourse.mockResolvedValue([]);
   });
 
   it('合班教学应去重：课时只计 1 次、逻辑教学班=1（不虚高）', async () => {
@@ -800,6 +806,24 @@ describe('getDashboardInsights', () => {
       )
     );
 
+    // 课时分布按应排班级口径（计划课时）：数学合班单元 4 + 英语 2 + 外聘数学班 4 = 10，
+    // 合计与 completion.totalHours 对齐，不受实际安排进度影响；合班同样去重只计 1 次。
+    mockGetClassesWithCourse.mockImplementation((courseId) => {
+      if (courseId === 10) {
+        return Promise.resolve([
+          { classId: 1, collegeName: '教育学院', combinationId: 99, weeklyHours: 4 },
+          { classId: 2, collegeName: '教育学院', combinationId: 99, weeklyHours: 4 },
+          { classId: 4, collegeName: '教育学院', combinationId: null, weeklyHours: 4 },
+        ]);
+      }
+      if (courseId === 20) {
+        return Promise.resolve([
+          { classId: 3, collegeName: '教育学院', combinationId: null, weeklyHours: 2 },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
     const req = mockReq({ semester: '2025-2026-2' });
     const res = mockRes();
     await getDashboardInsights(req, res, vi.fn());
@@ -833,7 +857,7 @@ describe('getDashboardInsights', () => {
       delta: -2,
     });
 
-    // 学院课时分布也应去重：4（数学合班）+ 2（英语）+ 4（赵六）= 10，而非 14
+    // 学院课时分布也应去重：4（数学合班）+ 2（英语）+ 4（外聘数学班）= 10，而非 14
     const dist = data.distribution.find((d) => d.name === '教育学院');
     expect(dist.hours).toBe(10);
 
@@ -1015,5 +1039,110 @@ describe('getDashboardInsights', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ success: false, message: '请选择学期' })
     );
+  });
+
+  it('待办提醒：未安排班级按应开口径聚合，保障课时未达标含 0 安排教师并按缺口降序', async () => {
+    // 应开 2 门：数学（应排 3 班）/英语（应排 1 班）
+    mockPrisma.classes.findMany.mockResolvedValue([
+      {
+        id: 1,
+        student_count: 40,
+        enrollment_year: 2024,
+        duration_years: 3,
+        major_id: 1,
+        training_level_id: 2,
+        college_id: 1,
+        custom_plan_id: null,
+      },
+    ]);
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      makePlan(1, {
+        training_level_id: 2,
+        plan_courses: [
+          makePlanCourse(10, 1, 6, 4, [{ semester: 4, weekly_hours: 4 }]),
+          makePlanCourse(20, 3, 5, 2, [{ semester: 4, weekly_hours: 2 }]),
+        ],
+      }),
+    ]);
+    mockCalcClassSemester.mockReturnValue({ grade: 2, currentSemesterNum: 4 });
+    mockFindBestMatchPlan.mockImplementation((cls, plans) => plans[0] || null);
+
+    // 已排：数学 1 班（王五 4 课时）
+    mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce([{ course_id: 10 }]);
+    mockPrisma.teaching_assignments.findMany.mockResolvedValueOnce([
+      {
+        weekly_hours: 4,
+        course_id: 10,
+        class_id: 1,
+        teacher: {
+          id: 1,
+          name: '王五',
+          default_weekly_hours: 10,
+          personnel_type: 'full_time',
+          affiliated_college: null,
+        },
+        class: { name: '一班', college_id: 1, combination_id: null, colleges: null },
+        course: { id: 10, name: '数学', type: '必修' },
+      },
+    ]);
+    mockPrisma.colleges.findMany.mockResolvedValue([]);
+    mockPrisma.teachers.count.mockResolvedValue(3);
+    mockPrisma.courses.findMany.mockResolvedValue([
+      { id: 10, name: '数学' },
+      { id: 20, name: '英语' },
+    ]);
+    // 数学应排 3 班已排 1；英语应排 1 班已排 1；另加未应开课程 99（应被排除）
+    mockGetCourseOverviewAggregate.mockResolvedValue([
+      {
+        courseId: 10,
+        courseName: '数学',
+        totalClasses: 3,
+        assignedCount: 1,
+        totalCourseHours: 12,
+        assignedHours: 4,
+        teacherCount: 1,
+      },
+      {
+        courseId: 20,
+        courseName: '英语',
+        totalClasses: 1,
+        assignedCount: 1,
+        totalCourseHours: 2,
+        assignedHours: 2,
+        teacherCount: 1,
+      },
+      {
+        courseId: 99,
+        courseName: '体育',
+        totalClasses: 5,
+        assignedCount: 0,
+        totalCourseHours: 10,
+        assignedHours: 0,
+        teacherCount: 0,
+      },
+    ]);
+    // 自定义课时教师：王五已排 4/目标 10（缺口 6）；李四 0 安排/目标 8（缺口 8）
+    mockPrisma.teachers.findMany.mockResolvedValue([
+      { id: 1, name: '王五', default_weekly_hours: 10 },
+      { id: 2, name: '李四', default_weekly_hours: 8 },
+    ]);
+
+    const req = mockReq({ semester: '2025-2026-2' });
+    const res = mockRes();
+    await getDashboardInsights(req, res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+
+    // 未安排班级：仅数学缺 2 班（英语已满，未应开的体育不计）
+    expect(data.alerts.unassignedClasses).toEqual({
+      count: 2,
+      courses: [{ id: 10, name: '数学', missing: 2, total: 3 }],
+    });
+
+    // 保障未达标：按缺口降序（李四 8 > 王五 6），0 安排教师也在列
+    expect(data.alerts.underGuaranteedTeachers).toEqual([
+      { id: 2, name: '李四', hours: 0, limit: 8 },
+      { id: 1, name: '王五', hours: 4, limit: 10 },
+    ]);
   });
 });

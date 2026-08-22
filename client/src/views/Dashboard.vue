@@ -64,19 +64,8 @@
       <el-skeleton v-if="loading" :rows="2" animated class="loading-skeleton" />
       <div v-else-if="!error" class="metrics-strip" role="list" aria-label="核心指标">
         <div v-for="m in metrics" :key="m.key" class="metric-item" role="listitem">
-          <!-- 可点击指标用 router-link 承载链接语义：屏幕阅读器可感知、键盘原生激活 -->
-          <router-link
-            v-if="isAdmin && m.route"
-            :to="m.route"
-            class="metric-inner metric-clickable"
-          >
-            <span class="metric-value">{{ m.displayValue }}</span>
-            <span class="metric-label">
-              <el-icon :size="13"><component :is="m.icon" /></el-icon>
-              {{ m.label }}
-            </span>
-          </router-link>
-          <div v-else class="metric-inner">
+          <!-- 纯展示指标：保留 hover 数字变色反馈，不承载跳转链接 -->
+          <div class="metric-inner">
             <span class="metric-value">{{ m.displayValue }}</span>
             <span class="metric-label">
               <el-icon :size="13"><component :is="m.icon" /></el-icon>
@@ -102,6 +91,7 @@
             :data="insights.completion"
             :total-hours="insights.completion.totalHours ?? stats.totalWeeklyHours"
             :assigned-hours="insights.completion.assignedHours ?? stats.assignedWeeklyHours"
+            :is-admin="isAdmin"
           />
         </div>
         <div class="insight-side">
@@ -176,14 +166,15 @@ const greeting = computed(() => {
 });
 
 // ─── 指标配置与 countup ───
-// icon 用全局注册的 EP 图标名，与侧边栏菜单符号保持一致（培养方案=Document 等）
+// icon 用全局注册的 EP 图标名，与侧边栏菜单符号保持一致（培养方案=Document 等）；
+// 指标条为纯展示区，不承载跳转（跳转动线由下方待办/卡片承担）
 const metricConfigs = [
-  { key: 'totalWeeklyHours', label: '总周课时', route: '/teaching/arrange', icon: 'Clock' },
-  { key: 'teachingTeachers', label: '参与教师', route: '/teaching/arrange', icon: 'User' },
-  { key: 'courses', label: '课程数量', route: '/courses', icon: 'Reading' },
-  { key: 'classes', label: '班级数量', route: '/classes', icon: 'School' },
-  { key: 'totalStudents', label: '在读学生', route: '', icon: 'Avatar' },
-  { key: 'plans', label: '培养方案', route: '/plans', icon: 'Document' },
+  { key: 'totalWeeklyHours', label: '总周课时', icon: 'Clock' },
+  { key: 'teachingTeachers', label: '参与教师', icon: 'User' },
+  { key: 'courses', label: '课程数量', icon: 'Reading' },
+  { key: 'classes', label: '班级数量', icon: 'School' },
+  { key: 'totalStudents', label: '在读学生', icon: 'Avatar' },
+  { key: 'plans', label: '培养方案', icon: 'Document' },
 ];
 
 const stats = ref({
@@ -458,7 +449,7 @@ onMounted(async () => {
   position: relative;
 }
 
-/* 指标内容层：可点击时为 router-link(a 标签)，需重置链接默认样式 */
+/* 指标内容层：纯展示，不承载链接 */
 .metric-inner {
   flex: 1;
   display: flex;
@@ -467,9 +458,7 @@ onMounted(async () => {
   gap: 8px;
   padding: 6px 16px;
   border-radius: var(--radius-sm);
-  transition: background var(--dur-fast) var(--ease-out);
   color: inherit;
-  text-decoration: none;
 }
 
 /* 指标间的竖线分隔符 */
@@ -483,17 +472,9 @@ onMounted(async () => {
   background: var(--border-light);
 }
 
-.metric-clickable {
-  cursor: pointer;
-}
-
-.metric-clickable:hover {
-  background: var(--bg-subtle);
-}
-
-.metric-clickable:focus-visible {
-  outline: 2px solid var(--brand-primary);
-  outline-offset: -2px;
+/* hover 反馈：数字染品牌蓝，保留可感知的交互呼应但不暗示可点击 */
+.metric-item:hover .metric-value {
+  color: var(--brand-primary);
 }
 
 .metric-value {
@@ -504,11 +485,6 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
   transition: color var(--dur-fast) var(--ease-out);
-}
-
-/* 可点击指标 hover：数字染品牌蓝，比单纯换灰底的反馈更明确 */
-.metric-clickable:hover .metric-value {
-  color: var(--brand-primary);
 }
 
 .metric-label {

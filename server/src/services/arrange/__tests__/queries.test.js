@@ -14,6 +14,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const {
   mockPlanCoursesFindMany,
   mockClassesFindMany,
+  mockTrainingPlansFindMany,
   mockFindBestMatchPlan,
   mockTeachersFindMany,
   mockAssignmentsGroupBy,
@@ -24,6 +25,7 @@ const {
 } = vi.hoisted(() => ({
   mockPlanCoursesFindMany: vi.fn(),
   mockClassesFindMany: vi.fn(),
+  mockTrainingPlansFindMany: vi.fn(),
   mockFindBestMatchPlan: vi.fn(),
   mockTeachersFindMany: vi.fn(),
   mockAssignmentsGroupBy: vi.fn(),
@@ -37,6 +39,7 @@ vi.mock('../../../lib/prisma.js', () => ({
   prisma: {
     plan_courses: { findMany: mockPlanCoursesFindMany },
     classes: { findMany: mockClassesFindMany },
+    training_plans: { findMany: mockTrainingPlansFindMany },
     teachers: { findMany: mockTeachersFindMany },
     teaching_assignments: {
       groupBy: mockAssignmentsGroupBy,
@@ -166,6 +169,8 @@ function makeClass(id, name, overrides = {}) {
 function setupMocks(planCourses, classes) {
   mockPlanCoursesFindMany.mockResolvedValue(planCourses);
   mockClassesFindMany.mockResolvedValue(classes);
+  // 全局方案默认 = 含本课程的方案（保持旧用例语义）
+  mockTrainingPlansFindMany.mockResolvedValue(planCourses.map((pc) => pc.training_plans));
   mockFindBestMatchPlan.mockImplementation((cls) => {
     // 默认返回第一个方案
     return planCourses[0]?.training_plans || null;
@@ -177,6 +182,7 @@ function setupMocks(planCourses, classes) {
 // ──────────────────────────────────────────────
 beforeEach(() => {
   vi.clearAllMocks();
+  mockTrainingPlansFindMany.mockResolvedValue([]);
 });
 
 describe('getClassesWithCourse - 0 课时过滤', () => {
@@ -507,6 +513,7 @@ describe('getClassesWithCourse - custom_plan_id 处理', () => {
 
     mockPlanCoursesFindMany.mockResolvedValue([pc1, pc2]);
     mockClassesFindMany.mockResolvedValue([cls]);
+    mockTrainingPlansFindMany.mockResolvedValue([plan1, plan2]);
     // findBestMatchPlan 应收到 classPlanMap 并返回 plan2
     mockFindBestMatchPlan.mockReturnValue(plan2);
 
@@ -514,6 +521,38 @@ describe('getClassesWithCourse - custom_plan_id 处理', () => {
 
     expect(result).toHaveLength(1);
     expect(mockFindBestMatchPlan).toHaveBeenCalledWith(cls, [plan1, plan2], expect.any(Map));
+  });
+});
+
+describe('getClassesWithCourse - 全局匹配口径', () => {
+  it('全局最佳方案不含本课程时，不应回落含本课程的次优方案', async () => {
+    // 回归：班级全局最佳方案为方案11（不含本课程，如转段-特例只开大学语文），
+    // 方案5含本课程（如五年制人培）。口径统一后该班不应出现在结果中，
+    // 与首页 computeOfferedCourses 的开课推导保持一致。
+    const pc5 = makePlanCourse(5, [makeSemRecord(CURRENT_SEM_NUM, 4)]);
+    const plan11 = {
+      id: 11,
+      name: '转段-特例',
+      major_id: 1,
+      training_level_id: 1,
+      created_at: new Date('2026-01-01'),
+    };
+    const cls = makeClass(523, '25级转段1班');
+
+    mockPlanCoursesFindMany.mockResolvedValue([pc5]);
+    mockClassesFindMany.mockResolvedValue([cls]);
+    mockTrainingPlansFindMany.mockResolvedValue([pc5.training_plans, plan11]);
+    // 全局匹配命中方案11（不含本课程）
+    mockFindBestMatchPlan.mockReturnValue(plan11);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(0);
+    expect(mockFindBestMatchPlan).toHaveBeenCalledWith(
+      cls,
+      expect.arrayContaining([plan11]),
+      expect.any(Map)
+    );
   });
 });
 

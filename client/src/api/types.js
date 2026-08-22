@@ -340,6 +340,7 @@
  * @property {number} [collegeId]
  * @property {number} [majorId]
  * @property {number} [trainingLevelId]
+ * @property {number} [trainingPlanId]
  * @property {number} [enrollmentYear]
  * @property {number} [grade]
  */
@@ -358,6 +359,6 @@
  * @property {string} [level]
  * @property {string} [college]
  */
-/** @typedef {Object} ExportSemesterInput @property {string} semester @property {number} [collegeId] @property {number} [majorId] @property {number} [trainingLevelId] @property {number} [enrollmentYear] @property {number} [grade] } */
+/** @typedef {Object} ExportSemesterInput @property {string} semester @property {number} [collegeId] @property {number} [majorId] @property {number} [trainingLevelId] @property {number} [trainingPlanId] @property {number} [enrollmentYear] @property {number} [grade] } */
 
 /** @typedef {Object} DeleteOptions @property {boolean} [silent] - 静默错误（不弹错误提示） */

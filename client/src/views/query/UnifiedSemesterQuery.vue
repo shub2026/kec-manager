@@ -84,6 +84,16 @@
           >
             <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
           </el-select>
+          <el-select
+            v-model="filterPlan"
+            clearable
+            filterable
+            placeholder="按培养方案筛选"
+            class="filter-2xl"
+            @change="resetPaginationAndLoad"
+          >
+            <el-option v-for="p in plans" :key="p.id" :label="getPlanLabel(p)" :value="p.id" />
+          </el-select>
           <template #actions>
             <el-button
               :disabled="
@@ -91,6 +101,7 @@
                 !filterCollege &&
                 !filterMajor &&
                 !filterLevel &&
+                !filterPlan &&
                 !filterEnrollmentYear &&
                 !filterGrade
               "
@@ -267,6 +278,7 @@ import { getSemesterQuery } from '../../api/query';
 import { getMajors } from '../../api/major';
 import { getTrainingLevels } from '../../api/trainingLevel';
 import { getColleges } from '../../api/college';
+import { getPlans } from '../../api/plan';
 import { exportSemester } from '../../api/export';
 import { useSemesters } from '../../composables/useSemesters';
 import { useResponsive } from '../../composables/useResponsive';
@@ -293,9 +305,11 @@ const error = ref(null);
 const majors = ref([]);
 const levels = ref([]);
 const colleges = ref([]);
+const plans = ref([]);
 const filterCollege = ref(null);
 const filterMajor = ref(null);
 const filterLevel = ref(null);
+const filterPlan = ref(null);
 const filterEnrollmentYear = ref(null);
 const filterGrade = ref(null);
 const selectedSemester = ref('');
@@ -351,6 +365,7 @@ async function load() {
     if (filterCollege.value) params.collegeId = filterCollege.value;
     if (filterMajor.value) params.majorId = filterMajor.value;
     if (filterLevel.value) params.trainingLevelId = filterLevel.value;
+    if (filterPlan.value) params.trainingPlanId = filterPlan.value;
     if (filterEnrollmentYear.value) params.enrollmentYear = filterEnrollmentYear.value;
     if (filterGrade.value) params.grade = filterGrade.value;
     const res = await getWithCache(
@@ -491,6 +506,16 @@ function handleMajorChange() {
   handleParentChange('majorId', ['trainingLevelId'], resetPaginationAndLoad);
 }
 
+// 获取方案显示标签（与方案查询页保持一致）
+function getPlanLabel(plan) {
+  const parts = [];
+  if (plan.majors?.name) parts.push(plan.majors.name);
+  if (plan.colleges?.name) parts.push(plan.colleges.name);
+  if (plan.trainingLevels?.name) parts.push(plan.trainingLevels.name);
+  if (plan.version) parts.push(`(${plan.version})`);
+  return parts.length > 0 ? `${plan.name} ${parts.join(' - ')}` : plan.name;
+}
+
 // 跳转到当前学期
 async function goToCurrentSemester() {
   selectedSemester.value = await fetchCurrentSemester();
@@ -498,6 +523,7 @@ async function goToCurrentSemester() {
   filterCollege.value = null;
   filterMajor.value = null;
   filterLevel.value = null;
+  filterPlan.value = null;
   filterEnrollmentYear.value = null;
   filterGrade.value = null;
 }
@@ -506,6 +532,7 @@ function resetFilters() {
   filterCollege.value = null;
   filterMajor.value = null;
   filterLevel.value = null;
+  filterPlan.value = null;
   filterEnrollmentYear.value = null;
   filterGrade.value = null;
   // 不重置学期选择器，只重置其他筛选条件
@@ -519,6 +546,7 @@ const activeFilterCount = computed(
       filterCollege.value,
       filterMajor.value,
       filterLevel.value,
+      filterPlan.value,
       filterEnrollmentYear.value,
       filterGrade.value,
     ].filter((v) => v !== '' && v !== null && v !== undefined).length
@@ -536,6 +564,7 @@ async function exportExcel() {
       collegeId: filterCollege.value || undefined,
       majorId: filterMajor.value || undefined,
       trainingLevelId: filterLevel.value || undefined,
+      trainingPlanId: filterPlan.value || undefined,
       enrollmentYear: filterEnrollmentYear.value || undefined,
       grade: filterGrade.value || undefined,
     };
@@ -560,14 +589,16 @@ onMounted(async () => {
   // 设置默认学期为系统设置的当前学期
   selectedSemester.value = await fetchCurrentSemester();
 
-  const [levelRes, majorRes, collegeRes] = await Promise.all([
+  const [levelRes, majorRes, collegeRes, planRes] = await Promise.all([
     getTrainingLevels(),
     getMajors(),
     getColleges(),
+    getPlans(),
   ]);
   levels.value = levelRes.data || [];
   majors.value = majorRes.data || [];
   colleges.value = collegeRes.data || [];
+  plans.value = planRes.data || [];
 
   // 加载数据
   load();

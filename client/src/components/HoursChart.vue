@@ -3,12 +3,12 @@
     <template #header>
       <span class="card-title" role="heading" aria-level="2">
         <el-icon><Histogram /></el-icon>
-        课时分布
+        计划课时分布
       </span>
     </template>
 
     <div v-if="!data || data.length === 0" class="chart-empty">
-      <span>暂无课时数据</span>
+      <span>暂无计划课时数据</span>
     </div>
 
     <div v-else class="chart-container">
@@ -27,8 +27,8 @@
       </div>
 
       <div class="chart-footer">
-        <span>单位：课时/周</span>
-        <span>共 {{ totalHours }} 课时</span>
+        <span>单位：计划课时/周</span>
+        <span>共 {{ totalHours }} 计划课时</span>
       </div>
     </div>
   </el-card>

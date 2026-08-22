@@ -40,7 +40,7 @@ async function batchFindMany(model, args) {
 /**
  * 开课导出核心逻辑：查询班级 + 构建导出行数据
  * @param {object} semesterInfo - 学期信息
- * @param {object} filters - 筛选条件 { college_id, major_id, training_level_id, enrollment_year, grade }
+ * @param {object} filters - 筛选条件 { college_id, major_id, training_level_id, enrollment_year, grade, training_plan_id }
  * @returns {Promise<{rows: Array, totalClasses: number}>}
  */
 async function buildSemesterExportData(semesterInfo, filters) {
@@ -163,6 +163,8 @@ async function buildSemesterExportData(semesterInfo, filters) {
   // 构建导出行
   const rows = [];
   const grade = filters.grade;
+  // 按培养方案筛选：与开课查询同口径（最佳匹配方案相等才保留）
+  const planIdFilter = filters.training_plan_id ? Number(filters.training_plan_id) : null;
 
   for (const cls of classes) {
     const calc = calcClassSemester(cls, semesterInfo);
@@ -172,6 +174,7 @@ async function buildSemesterExportData(semesterInfo, filters) {
     const currentSemesterNum = calc.currentSemesterNum;
     const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
     if (!plan) continue;
+    if (planIdFilter != null && plan.id !== planIdFilter) continue;
 
     const allPlanCourses = plan.plan_courses.filter(
       (pc) => pc.start_semester <= currentSemesterNum && pc.end_semester >= currentSemesterNum
@@ -326,13 +329,15 @@ export async function exportSemesterSchedule(req, res, next) {
     }
 
     // 中间件已将 camelCase query 转为 snake_case
-    const { college_id, major_id, training_level_id, enrollment_year, grade } = req.query;
+    const { college_id, major_id, training_level_id, enrollment_year, grade, training_plan_id } =
+      req.query;
     const filters = {
       college_id,
       major_id,
       training_level_id,
       enrollment_year,
       grade,
+      training_plan_id,
     };
 
     const { rows } = await buildSemesterExportData(semesterInfo, filters);
@@ -356,7 +361,15 @@ export async function exportSemesterSchedule(req, res, next) {
 export async function exportSemesterSchedulePost(req, res, next) {
   try {
     // req.body 已被命名中间件转为 snake_case，semester 单词不变
-    const { college_id, major_id, training_level_id, enrollment_year, grade, semester } = req.body;
+    const {
+      college_id,
+      major_id,
+      training_level_id,
+      enrollment_year,
+      grade,
+      training_plan_id,
+      semester,
+    } = req.body;
 
     // 支持历史学期导出：优先使用传入的 semester，否则使用全局当前学期
     let semesterInfo;
@@ -373,7 +386,7 @@ export async function exportSemesterSchedulePost(req, res, next) {
       }
     }
 
-    const filters = { college_id, major_id, training_level_id, enrollment_year, grade };
+    const filters = { college_id, major_id, training_level_id, enrollment_year, grade, training_plan_id };
     const { rows } = await buildSemesterExportData(semesterInfo, filters);
     await sendExportResponse(res, req, semesterInfo, rows);
   } catch (e) {

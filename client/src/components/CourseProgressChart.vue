@@ -54,9 +54,22 @@
         </span>
       </div>
 
-      <div v-if="rate >= 100" class="complete-hint">
-        <el-icon><CircleCheckFilled /></el-icon>
-        <span>全部课程已排课完成</span>
+      <!-- 常驻状态条：完成态绿色提示；未完成态提示待排并支持管理员点击跳转教学安排 -->
+      <router-link
+        v-if="!isComplete && isAdmin"
+        :to="{ name: 'TeachingArrange' }"
+        class="status-hint is-pending is-clickable"
+      >
+        <el-icon><Clock /></el-icon>
+        <span>{{ statusText }}</span>
+        <el-icon class="status-hint-arrow"><ArrowRight /></el-icon>
+      </router-link>
+      <div v-else class="status-hint" :class="isComplete ? 'is-done' : 'is-pending'">
+        <el-icon>
+          <CircleCheckFilled v-if="isComplete" />
+          <Clock v-else />
+        </el-icon>
+        <span>{{ isComplete ? '全部课程已排课完成' : statusText }}</span>
       </div>
     </div>
   </el-card>
@@ -64,7 +77,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { TrendCharts, CircleCheckFilled } from '@element-plus/icons-vue';
+import { TrendCharts, CircleCheckFilled, Clock, ArrowRight } from '@element-plus/icons-vue';
 
 const props = defineProps({
   data: {
@@ -74,6 +87,8 @@ const props = defineProps({
   totalHours: { type: Number, default: 0 },
   // 真实已排周课时（后端合班去重值）；缺省时回退按课程门数比例估算
   assignedHours: { type: Number, default: null },
+  // 管理员才可跳转教学安排页（路由 requiresAdmin），非管理员状态条仅展示
+  isAdmin: { type: Boolean, default: false },
 });
 
 const total = computed(() => props.data?.totalCourses || 0);
@@ -108,6 +123,17 @@ const remainingHours = computed(() => {
   }
   return remaining.value * AVG_HOURS_PER_COURSE;
 });
+
+// 完成态沿用课时口径 rate>=100 判定，与上方百分比自洽
+const isComplete = computed(() => rate.value >= 100);
+
+// 未完成态文案：优先按剩余门数；全部课程均已开排但课时未满的边界态回退为剩余课时
+const statusText = computed(() => {
+  if (remaining.value > 0) {
+    return `剩余 ${remaining.value} 门课程待排课`;
+  }
+  return `剩余 ${remainingHours.value} 课时待安排`;
+});
 </script>
 
 <style scoped>
@@ -124,6 +150,8 @@ const remainingHours = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  /* 撑满卡片高度，配合状态条 margin-top:auto 钉底，吸收同行卡片等高拉伸的留白 */
+  height: 100%;
 }
 
 /* 汇总百分比 */
@@ -246,21 +274,62 @@ const remainingHours = computed(() => {
   color: var(--text-regular);
 }
 
-/* 完成提示 */
-.complete-hint {
+/* 常驻状态条：钉在卡片底部，按完成/未完成切换色调 */
+.status-hint {
+  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 10px var(--space-3);
-  background: var(--brand-success-soft);
   border-radius: var(--radius-sm);
   font-size: 13px;
-  color: var(--brand-success-text);
   font-weight: 500;
 }
 
-.complete-hint .el-icon {
+.status-hint.is-done {
+  background: var(--brand-success-soft);
+  color: var(--brand-success-text);
+}
+
+.status-hint.is-done .el-icon {
   color: var(--brand-success);
+}
+
+.status-hint.is-pending {
+  background: var(--brand-primary-soft);
+  /* 深蓝字配极浅蓝底，白底对比度达标 */
+  color: var(--brand-primary-active);
+}
+
+.status-hint.is-pending .el-icon {
+  color: var(--brand-primary);
+}
+
+/* 可点击态（管理员未完成）：去下划线 + hover 加深底色、箭头微位移 */
+.status-hint.is-clickable {
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.status-hint.is-clickable:hover,
+.status-hint.is-clickable:focus-visible {
+  background: var(--brand-primary-lighter);
+}
+
+.status-hint-arrow {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.status-hint.is-clickable:hover .status-hint-arrow {
+  transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-hint.is-clickable,
+  .status-hint-arrow {
+    transition: none;
+  }
 }
 </style>

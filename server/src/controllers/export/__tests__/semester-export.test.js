@@ -413,6 +413,50 @@ describe('exportSemesterSchedule (GET)', () => {
     });
   });
 
+  describe('按培养方案筛选', () => {
+    it('GET 传入 training_plan_id 时应只导出最佳匹配方案相符的行', async () => {
+      mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
+      const clsA = makeClass({ id: 1, name: '班级A', major_id: 10 });
+      const clsB = makeClass({ id: 2, name: '班级B', major_id: 11 });
+      mocks.classesFindMany.mockResolvedValue([clsA, clsB]);
+
+      const planA = makePlan({ id: 100, name: '方案A' });
+      const planB = makePlan({ id: 200, name: '方案B', major_id: 11 });
+      mocks.trainingPlansFindMany.mockResolvedValue([planA, planB]);
+      mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
+      mocks.findBestMatchPlan.mockImplementation((cls) => (cls.major_id === 10 ? planA : planB));
+
+      const req = makeReq({ query: { training_plan_id: '100' } });
+      const res = makeRes();
+      await exportSemesterSchedule(req, res, vi.fn());
+
+      const rows = mocks.createWorkbook.mock.calls[0][1];
+      expect(rows).toHaveLength(1);
+      expect(rows[0]['班级名称']).toBe('班级A');
+      expect(rows[0]['培养方案']).toBe('方案A');
+    });
+
+    it('不传 training_plan_id 时应导出全部匹配班级', async () => {
+      mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
+      const clsA = makeClass({ id: 1, name: '班级A', major_id: 10 });
+      const clsB = makeClass({ id: 2, name: '班级B', major_id: 11 });
+      mocks.classesFindMany.mockResolvedValue([clsA, clsB]);
+
+      const planA = makePlan({ id: 100, name: '方案A' });
+      const planB = makePlan({ id: 200, name: '方案B', major_id: 11 });
+      mocks.trainingPlansFindMany.mockResolvedValue([planA, planB]);
+      mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
+      mocks.findBestMatchPlan.mockImplementation((cls) => (cls.major_id === 10 ? planA : planB));
+
+      const req = makeReq();
+      const res = makeRes();
+      await exportSemesterSchedule(req, res, vi.fn());
+
+      const rows = mocks.createWorkbook.mock.calls[0][1];
+      expect(rows).toHaveLength(2);
+    });
+  });
+
   describe('课程类型映射', () => {
     it('public 类型应映射为"公共课"', async () => {
       mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
@@ -584,5 +628,26 @@ describe('exportSemesterSchedulePost (POST)', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ success: false, message: expect.stringMatching(/设置当前学期/) })
     );
+  });
+
+  it('body.training_plan_id 应同样生效', async () => {
+    mocks.getCurrentSemesterInfo.mockResolvedValue(SEMESTER_INFO);
+    const clsA = makeClass({ id: 1, name: '班级A', major_id: 10 });
+    const clsB = makeClass({ id: 2, name: '班级B', major_id: 11 });
+    mocks.classesFindMany.mockResolvedValue([clsA, clsB]);
+
+    const planA = makePlan({ id: 100, name: '方案A' });
+    const planB = makePlan({ id: 200, name: '方案B', major_id: 11 });
+    mocks.trainingPlansFindMany.mockResolvedValue([planA, planB]);
+    mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
+    mocks.findBestMatchPlan.mockImplementation((cls) => (cls.major_id === 10 ? planA : planB));
+
+    const req = makeReq({ body: { training_plan_id: '200' } });
+    const res = makeRes();
+    await exportSemesterSchedulePost(req, res, vi.fn());
+
+    const rows = mocks.createWorkbook.mock.calls[0][1];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]['班级名称']).toBe('班级B');
   });
 });

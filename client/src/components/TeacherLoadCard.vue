@@ -35,18 +35,19 @@
         </ul>
       </div>
 
-      <!-- 下部：指标行填充环图下方空间（参与排课教师 / 人均周课时） -->
+      <!-- 下部：指标行填充环图下方空间（参与排课教师 / 人均周课时）；
+           整块可点击跳转对应处理页面：教师信息 / 课时统计 -->
       <div class="load-metrics">
-        <div class="metric">
+        <router-link to="/teaching/teachers" class="metric metric-link">
           <span class="metric-label">参与排课教师</span>
           <span class="metric-value">
             {{ data.assignedTeachers }}<i class="metric-total">/{{ data.totalTeachers }} 在职</i>
           </span>
-        </div>
-        <div class="metric">
+        </router-link>
+        <router-link to="/teaching/statistics" class="metric metric-link">
           <span class="metric-label">人均周课时</span>
           <span class="metric-value">{{ data.avgHours }}</span>
-        </div>
+        </router-link>
       </div>
     </div>
   </el-card>
@@ -156,6 +157,16 @@ const donutBackground = computed(() => {
   padding: var(--space-3);
   background: var(--bg-subtle);
   border-radius: var(--radius-sm);
+}
+
+/* 指标块整体可点击：默认样式不变，hover 主色浅底提示可跳转 */
+.metric-link {
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.metric-link:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
 }
 
 .metric-label {

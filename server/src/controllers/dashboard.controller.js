@@ -3,8 +3,8 @@ import { success, fail } from '../utils/response.js';
 import { getActiveClassFilter } from '../services/class.service.js';
 import { getSemesterInfoFromRequest, calcClassSemester, getPreviousSemester } from '../services/semester.service.js';
 import { findBestMatchPlan } from '../services/plan.service.js';
-import { dedupeTeachingUnits } from '../services/teaching-statistics.service.js';
-import { getCourseOverviewAggregate } from '../services/teaching-arrange.service.js';
+import { dedupeTeachingUnits, dedupeClassUnits } from '../services/teaching-statistics.service.js';
+import { getCourseOverviewAggregate, getClassesWithCourse } from '../services/teaching-arrange.service.js';
 
 /**
  * 计算本学期开设课程与计划周课时（来自培养方案）
@@ -224,6 +224,7 @@ export async function getDashboardInsights(req, res, next) {
       allAssignments,
       colleges,
       activeTeacherCount,
+      teachersWithLimit,
     ] = await Promise.all([
       // 本学期应开课程（培养方案口径，与 stats 的"课程数量"同源）
       computeOfferedCourses(semesterInfo),
@@ -251,9 +252,7 @@ export async function getDashboardInsights(req, res, next) {
           },
           class: {
             select: {
-              college_id: true,
               combination_id: true,
-              colleges: { select: { id: true, name: true } },
             },
           },
           course: { select: { id: true, name: true, type: true } },
@@ -263,6 +262,11 @@ export async function getDashboardInsights(req, res, next) {
       prisma.colleges.findMany({ select: { id: true, name: true } }),
       // 在职教师总数（供教师负载卡"参与排课教师 X / 在职 Y"展示）
       prisma.teachers.count({ where: { status: 'active' } }),
+      // 已设置自定义课时的在职教师（供保障课时未达标待办，含 0 安排教师）
+      prisma.teachers.findMany({
+        where: { status: 'active', default_weekly_hours: { gt: 0 } },
+        select: { id: true, name: true, default_weekly_hours: true },
+      }),
     ]);
 
     // 合班去重：将成员班行归并为逻辑教学单元，避免课时/班级数虚高
@@ -349,20 +353,60 @@ export async function getDashboardInsights(req, res, next) {
       .sort((a, b) => b.hours - a.hours)
       .slice(0, 10);
 
+    // 3) 未安排班级：应排未排的班级缺口（与教学安排页概览同口径，排除未应开课程）
+    const unassignedClassCourses = overviewRows
+      .filter((r) => offeredCourseIds.has(r.courseId) && r.totalClasses > r.assignedCount)
+      .map((r) => ({
+        id: r.courseId,
+        name: r.courseName,
+        missing: r.totalClasses - r.assignedCount,
+        total: r.totalClasses,
+      }))
+      .sort((a, b) => b.missing - a.missing);
+    const unassignedClasses = {
+      count: unassignedClassCourses.reduce((s, c) => s + c.missing, 0),
+      courses: unassignedClassCourses.slice(0, 10),
+    };
+
+    // 4) 保障课时未达标教师：已设自定义课时但实际安排低于目标的（含 0 安排），
+    // 与超限提醒镜像互补；按缺口降序取前 10，与 v1.14 硬保障开关告警同口径基础（仅看自定义值）
+    const underGuaranteedTeachers = teachersWithLimit
+      .map((t) => {
+        const hours = Math.round((teacherHours[t.id]?.hours ?? 0) * 10) / 10;
+        return { id: t.id, name: t.name, hours, limit: t.default_weekly_hours };
+      })
+      .filter((t) => t.hours < t.limit)
+      .sort((a, b) => (b.limit - b.hours) - (a.limit - a.hours))
+      .slice(0, 10);
+
     const alerts = {
       unassignedCourses,
       overloadedTeachers,
+      unassignedClasses,
+      underGuaranteedTeachers,
     };
 
-    // —— 课时分布（按任课班级所属学院汇总） ——
+    // —— 课时分布（按应排班级所属学院汇总） ——
+    // 与完成度/课时概览卡共用"应排班级"链路（getClassesWithCourse），合班单元去重后按学院聚合，
+    // 合计与 completion.totalHours 等计划课时口径对齐；
+    // 原实现按实际安排行汇总，排课进行中会小于计划课时，与其他卡片不吻合。
     const collegeHours = {};
     for (const c of colleges) {
       collegeHours[c.name] = 0;
     }
-    for (const u of allUnits) {
-      const collegeName = u.representative.class?.colleges?.name;
-      if (collegeName && collegeHours[collegeName] !== undefined) {
-        collegeHours[collegeName] += u.weeklyHours;
+    const collegeNameByClassId = new Map();
+    for (const courseId of offeredCourseIds) {
+      const classes = await getClassesWithCourse(courseId, semester);
+      for (const cls of classes) {
+        if (cls.collegeName) collegeNameByClassId.set(cls.classId, cls.collegeName);
+      }
+      const { units } = dedupeClassUnits(classes);
+      for (const u of units) {
+        // 合班归属代表班（首个成员班），与 dedupeTeachingUnits 的合班课时口径一致
+        const collegeName = collegeNameByClassId.get(u.memberClassIds[0]);
+        if (collegeName && collegeHours[collegeName] !== undefined) {
+          collegeHours[collegeName] += u.weeklyHours;
+        }
       }
     }
     // 过滤掉 0 课时的学院，转为数组

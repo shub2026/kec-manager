@@ -1,8 +1,32 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { createRouter, createMemoryHistory } from 'vue-router';
 import TeacherLoadCard from '@/components/TeacherLoadCard.vue';
 
-// 组件已在 vitest.setup.js 中全局注册 Element Plus
+// 组件已在 vitest.setup.js 中全局注册 Element Plus；router-link 需按用例注入路由（同 CourseProgressChart 先例）
+function makeRouter() {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', name: 'Home', component: { template: '<div />' } },
+      { path: '/teaching/teachers', name: 'Teachers', component: { template: '<div />' } },
+      {
+        path: '/teaching/statistics',
+        name: 'TeachingStatistics',
+        component: { template: '<div />' },
+      },
+    ],
+  });
+}
+
+function mountCard(options = {}) {
+  return mount(TeacherLoadCard, {
+    props: { data: baseData },
+    global: { plugins: [makeRouter()] },
+    ...options,
+  });
+}
+
 const baseData = {
   totalTeachers: 76,
   assignedTeachers: 2,
@@ -16,14 +40,12 @@ const baseData = {
 
 describe('TeacherLoadCard (首页教师课时卡片)', () => {
   it('无排课教师时展示空态文案', () => {
-    const wrapper = mount(TeacherLoadCard, {
-      props: { data: { ...baseData, assignedTeachers: 0 } },
-    });
+    const wrapper = mountCard({ props: { data: { ...baseData, assignedTeachers: 0 } } });
     expect(wrapper.text()).toContain('暂无排课教师');
   });
 
   it('渲染标题与环图下方指标（参与排课教师 / 人均周课时）', () => {
-    const wrapper = mount(TeacherLoadCard, { props: { data: baseData } });
+    const wrapper = mountCard();
     expect(wrapper.text()).toContain('教师情况');
     expect(wrapper.text()).toContain('参与排课教师');
     expect(wrapper.text()).toContain('76 在职');
@@ -31,8 +53,17 @@ describe('TeacherLoadCard (首页教师课时卡片)', () => {
     expect(wrapper.find('.load-metrics').text()).toContain('5');
   });
 
+  it('底部指标块整体可点击：教师指标跳转教师信息页、课时指标跳转课时统计页', () => {
+    const links = mountCard().findAll('.load-metrics a.metric-link');
+    expect(links).toHaveLength(2);
+    expect(links[0].attributes('href')).toBe('/teaching/teachers');
+    expect(links[0].text()).toContain('参与排课教师');
+    expect(links[1].attributes('href')).toBe('/teaching/statistics');
+    expect(links[1].text()).toContain('人均周课时');
+  });
+
   it('环状图图例按中文标签展示人数与占比，中心展示总人数', () => {
-    const wrapper = mount(TeacherLoadCard, { props: { data: baseData } });
+    const wrapper = mountCard();
     // full_time 1 + external 1 → 各占 50%
     const items = wrapper.findAll('.legend-item');
     expect(items[0].find('.legend-label').text()).toBe('专职');
@@ -47,7 +78,7 @@ describe('TeacherLoadCard (首页教师课时卡片)', () => {
   });
 
   it('驼峰键归一化：fullTime/partTime 也展示中文标签', () => {
-    const wrapper = mount(TeacherLoadCard, {
+    const wrapper = mountCard({
       props: {
         data: { ...baseData, byPersonnelType: { fullTime: 49, partTime: 14 } },
       },
@@ -63,7 +94,7 @@ describe('TeacherLoadCard (首页教师课时卡片)', () => {
   });
 
   it('人员类别固定顺序：专职 → 兼职 → 外聘（不随接口键序变化）', () => {
-    const wrapper = mount(TeacherLoadCard, {
+    const wrapper = mountCard({
       props: {
         data: {
           ...baseData,
