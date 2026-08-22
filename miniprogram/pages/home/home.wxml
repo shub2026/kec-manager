@@ -2,8 +2,8 @@
   <view class="hero">
     <view class="hero-card">
       <view class="hero-text">
-        <view class="hero-title">素质教育学院课程管理平台</view>
-        <view class="hero-subtitle">实时掌握本学期教学运行数据</view>
+        <view class="hero-title">KEC课程管理平台</view>
+        <view class="hero-subtitle is-org"><text class="org-ico"></text><text class="org-text">{{orgName || '欢迎回来'}}</text></view>
         <view class="hero-badge">
           <text class="hero-badge-text">当前学期：{{semester || '未设置'}}</text>
         </view>

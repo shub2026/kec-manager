@@ -6,6 +6,7 @@ Page({
     stats: null,
     insights: null,
     semester: '',
+    orgName: '',
     loading: true,
     refreshing: false,
     error: '',
@@ -15,7 +16,19 @@ Page({
   onShow() {
     if (!guard()) return;
     this.setData({ isAdmin: isAdmin() });
+    this.loadOrgName();
     if (!this.data.stats) this.load();
+  },
+
+  // 副标题调用 WEB 端系统标识（organizationName 设置，默认「欢迎回来」）
+  async loadOrgName() {
+    try {
+      const settings = await api.getSettings();
+      const org = settings?.organizationName?.value || '欢迎回来';
+      this.setData({ orgName: org });
+    } catch (e) {
+      // 失败保持默认「欢迎回来」
+    }
   },
 
   async load(isRefresh = false) {

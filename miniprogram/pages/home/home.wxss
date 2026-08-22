@@ -1,3 +1,31 @@
+/* ===== 首页 Hero 副标题：品牌化「系统标识」胶囊 ===== */
+/* 仅在首页生效（.is-org 修饰），不影响其他页面通用 .hero-subtitle */
+.hero-subtitle.is-org {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  align-self: flex-start;
+  margin-bottom: 4rpx;
+  padding: 9rpx 20rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  letter-spacing: 0.5rpx;
+  color: var(--brand);
+  background: rgba(28, 130, 245, 0.10);
+  border: 1rpx solid var(--brand-border);
+  border-radius: var(--radius-pill);
+}
+.org-ico {
+  width: 26rpx;
+  height: 26rpx;
+  flex-shrink: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V7l7-4 7 4v14'/%3E%3Cpath d='M9 9h.01M15 9h.01M9 13h.01M15 13h.01M9 17h.01M15 17h.01'/%3E%3C/svg%3E");
+}
+.org-text { line-height: 1; }
+
 /* ===== 本学期概览：已排/计划周课时 ===== */
 .hours-row {
   display: flex;
