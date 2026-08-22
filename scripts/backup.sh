@@ -55,9 +55,24 @@ if [ "$CONTAINER_RUNNING" = "yes" ]; then
   log "WAL checkpoint 完成"
 
   # 2. 在线备份（.backup 走 SQLite Online Backup API，备份期间业务照常读写）
+  #    落盘路径：容器 /tmp（docker exec 默认 root 可写；数据卷内无 backup 目录且应用用户无权创建），
+  #    校验通过后 docker cp 拷出到宿主机备份目录，再清理容器临时文件
   log "执行在线备份..."
-  docker exec "$CONTAINER_NAME" sqlite3 "$CONTAINER_DB" \
-    ".backup '${CONTAINER_DB%/kec.db}/backup/kec_${TIMESTAMP}.db'"
+  TMP_DB="/tmp/kec_backup_${TIMESTAMP}.db"
+  docker exec "$CONTAINER_NAME" sqlite3 "$CONTAINER_DB" ".backup '${TMP_DB}'"
+
+  # 容器内校验（拷出之前，保证落袋文件已验证）
+  VERIFY=$(docker exec "$CONTAINER_NAME" sqlite3 "$TMP_DB" "PRAGMA integrity_check;" 2>&1)
+  if [ "$VERIFY" != "ok" ]; then
+    docker exec "$CONTAINER_NAME" rm -f "$TMP_DB"
+    log "错误：备份文件校验失败（${VERIFY}），已清理容器临时文件"
+    exit 1
+  fi
+  log "完整性校验通过 (integrity_check: ok)"
+
+  docker cp "$CONTAINER_NAME:${TMP_DB}" "$BACKUP_FILE"
+  docker exec "$CONTAINER_NAME" rm -f "$TMP_DB"
+  VERIFIED=1
 else
   # ── 容器未运行：主库即静止状态 ──
   log "警告：容器 ${CONTAINER_NAME} 未运行，走离线备份路径"
@@ -89,21 +104,22 @@ else
 fi
 
 # 3. 完整性校验：失败即删除损坏备份并退出（1panel 标记任务失败）
-log "校验备份完整性..."
-VERIFY="unverified"
-if command -v sqlite3 >/dev/null 2>&1; then
-  VERIFY=$(sqlite3 "$BACKUP_FILE" "PRAGMA integrity_check;" 2>&1)
-elif [ "$CONTAINER_RUNNING" = "yes" ]; then
-  VERIFY=$(docker exec "$CONTAINER_NAME" sqlite3 "$BACKUP_FILE" "PRAGMA integrity_check;" 2>&1)
-fi
-if [ "$VERIFY" = "ok" ]; then
-  log "完整性校验通过 (integrity_check: ok)"
-elif [ "$VERIFY" = "unverified" ]; then
-  log "警告：容器未运行且宿主机无 sqlite3，跳过校验"
-else
-  log "错误：备份文件校验失败（${VERIFY}），删除损坏备份"
-  rm -f "$BACKUP_FILE" "${BACKUP_FILE}-wal" "${BACKUP_FILE}-shm"
-  exit 1
+#    （在线路径已在容器内校验过，此处仅覆盖离线路径）
+if [ "${VERIFIED:-0}" != "1" ]; then
+  log "校验备份完整性..."
+  VERIFY="unverified"
+  if command -v sqlite3 >/dev/null 2>&1; then
+    VERIFY=$(sqlite3 "$BACKUP_FILE" "PRAGMA integrity_check;" 2>&1)
+  fi
+  if [ "$VERIFY" = "ok" ]; then
+    log "完整性校验通过 (integrity_check: ok)"
+  elif [ "$VERIFY" = "unverified" ]; then
+    log "警告：宿主机无 sqlite3，跳过校验"
+  else
+    log "错误：备份文件校验失败（${VERIFY}），删除损坏备份"
+    rm -f "$BACKUP_FILE" "${BACKUP_FILE}-wal" "${BACKUP_FILE}-shm"
+    exit 1
+  fi
 fi
 
 # 4. 滚动清理超期备份
