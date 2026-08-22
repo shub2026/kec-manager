@@ -1,5 +1,5 @@
 const api = require('../../utils/api.js');
-const { guard } = require('../../utils/auth.js');
+const { guard, isAdmin } = require('../../utils/auth.js');
 
 Page({
   data: {
@@ -9,10 +9,12 @@ Page({
     loading: true,
     refreshing: false,
     error: '',
+    isAdmin: false,
   },
 
   onShow() {
     if (!guard()) return;
+    this.setData({ isAdmin: isAdmin() });
     if (!this.data.stats) this.load();
   },
 
@@ -62,16 +64,52 @@ Page({
         complete: (c.rate || 0) >= 100,
       };
 
-      // 异常提醒
-      const rawAlerts = insightsRaw?.alerts || { unassignedCourses: [], overloadedTeachers: [] };
-      const unassigned = rawAlerts.unassignedCourses || [];
-      const overloaded = rawAlerts.overloadedTeachers || [];
-      const alerts = {
-        unassigned: unassigned.slice(0, 3),
-        overloaded: overloaded.slice(0, 3),
-        unassignedMore: Math.max(0, unassigned.length - 3),
-        overloadedMore: Math.max(0, overloaded.length - 3),
-        hasAlert: unassigned.length > 0 || overloaded.length > 0,
+      // 教师情况（对照 web 端 TeacherLoadCard，环形图示）
+      // 数据源：insights.teacherLoad.byPersonnelType（专职/兼职/外聘计数）+ 在岗/参与排课/人均周课时
+      const rawTeacherLoad = insightsRaw?.teacherLoad || {
+        totalTeachers: 0,
+        assignedTeachers: 0,
+        avgHours: 0,
+        byPersonnelType: {},
+      };
+      const PERSONNEL_ORDER = ['fullTime', 'partTime', 'external'];
+      const PERSONNEL_LABEL = { fullTime: '专职', partTime: '兼职', external: '外聘', unknown: '未分类' };
+      // 教师构成：暖橘 + 湖绿 + 雾蓝灰，与品牌冷蓝 #1C82F5 形成冷暖对比，整体克制不抢眼
+      const PERSONNEL_COLOR = {
+        fullTime: '#10b981',  // 专职 翡翠绿（WEB --brand-success）
+        partTime: '#ff6b1a',  // 兼职 活力橙（WEB --brand-warning）
+        external: '#64748b',  // 外聘 中性灰（WEB --el-color-info）
+        unknown:   '#c0c4cc', // 未分类（WEB fallback）
+      };
+      const bt = rawTeacherLoad.byPersonnelType || {};
+      const tlEntries = Object.keys(bt)
+        .map((k) => ({ type: k, count: bt[k] }))
+        .sort((a, b) => {
+          const ia = PERSONNEL_ORDER.indexOf(a.type);
+          const ib = PERSONNEL_ORDER.indexOf(b.type);
+          return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        });
+      const tlTotal = tlEntries.reduce((s, e) => s + e.count, 0);
+      let acc = 0;
+      const stops = tlEntries.map((e) => {
+        const pct = tlTotal > 0 ? (e.count / tlTotal) * 100 : 0;
+        const from = acc;
+        acc += pct;
+        return `${PERSONNEL_COLOR[e.type] || '#CBD5E1'} ${from.toFixed(2)}% ${acc.toFixed(2)}%`;
+      });
+      const teacherLoad = {
+        hasData: (rawTeacherLoad.assignedTeachers || 0) > 0,
+        assignedTeachers: rawTeacherLoad.assignedTeachers || 0,
+        totalTeachers: rawTeacherLoad.totalTeachers || 0,
+        avgHours: rawTeacherLoad.avgHours || 0,
+        total: tlTotal,
+        entries: tlEntries.map((e) => ({
+          label: PERSONNEL_LABEL[e.type] || e.type,
+          count: e.count,
+          pct: tlTotal > 0 ? Math.round((e.count / tlTotal) * 100) : 0,
+          color: PERSONNEL_COLOR[e.type] || '#CBD5E1',
+        })),
+        donut: tlTotal > 0 ? `conic-gradient(${stops.join(', ')})` : 'none',
       };
 
       // 课时概览
@@ -102,7 +140,7 @@ Page({
 
       const insights = {
         progress,
-        alerts,
+        teacherLoad,
         distribution: dist,
         courseStats,
         courseStatsTotal,
@@ -141,6 +179,9 @@ Page({
   },
   goTeacher() {
     wx.switchTab({ url: '/pages/teacher-hours/teacher-hours' });
+  },
+  goTeacherAdmin() {
+    wx.navigateTo({ url: '/pages/teacher-admin/teacher-admin' });
   },
 
   onPullDownRefresh() {

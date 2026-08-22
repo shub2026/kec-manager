@@ -2,7 +2,7 @@
   <view class="hero">
     <view class="hero-card">
       <view class="hero-text">
-        <view class="hero-title">课时统计</view>
+        <view class="hero-title">教师情况</view>
         <view class="hero-subtitle">本学期课时分布与工作量排行</view>
         <view class="hero-badge"><text class="hero-badge-text">当前学期：{{semester || '未设置'}}</text></view>
       </view>
@@ -14,6 +14,39 @@
   <view wx:elif="{{error && !summary}}" class="errbox">{{error}}</view>
 
   <block wx:else>
+    <!-- 教师情况（环形图示，与首页同款，置顶优先展示） -->
+    <view class="card" wx:if="{{teacherLoadCard}}">
+      <view wx:if="{{!teacherLoadCard.hasData}}" class="card-empty">暂无排课教师</view>
+      <block wx:else>
+        <view class="tl-main">
+          <view class="tl-donut" style="background:{{teacherLoadCard.donut}}">
+            <view class="tl-hole">
+              <text class="tl-total">{{teacherLoadCard.total}}</text>
+              <text class="tl-unit">人</text>
+            </view>
+          </view>
+          <view class="tl-legend">
+            <view wx:for="{{teacherLoadCard.entries}}" wx:key="label" class="tl-item">
+              <text class="tl-dot" style="background:{{item.color}}"></text>
+              <text class="tl-label">{{item.label}}</text>
+              <text class="tl-count">{{item.count}} 人</text>
+              <text class="tl-pct">{{item.pct}}%</text>
+            </view>
+          </view>
+        </view>
+        <view class="tl-metrics">
+          <view class="tl-metric">
+            <text class="tl-m-label">参与排课教师</text>
+            <text class="tl-m-value">{{teacherLoadCard.assignedTeachers}}<text class="tl-m-sub">/{{teacherLoadCard.totalTeachers}} 在职</text></text>
+          </view>
+          <view class="tl-metric">
+            <text class="tl-m-label">人均周课时</text>
+            <text class="tl-m-value">{{teacherLoadCard.avgHours}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+
     <!-- 整体汇总 -->
     <view class="card" wx:if="{{summary}}">
       <view class="card-title">整体汇总</view>
@@ -37,26 +70,9 @@
       </view>
     </view>
 
-    <!-- 教师构成 -->
+    <!-- 各科教师分布 -->
     <view class="card">
-      <view class="card-title">教师构成<text class="card-sub">（本学期任课）</text></view>
-      <view class="stat-grid">
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{teacherTypeStat.fullTime}}</view>
-          <view class="stat-label">专职教师</view>
-        </view></view>
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{teacherTypeStat.partTime}}</view>
-          <view class="stat-label">兼职教师</view>
-        </view></view>
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{teacherTypeStat.external}}</view>
-          <view class="stat-label">外聘教师</view>
-        </view></view>
-      </view>
-
-      <!-- 各科教师分布 -->
-      <view class="tt-divider"><view class="tt-divider-line"></view><text class="tt-divider-text">各科分布</text><view class="tt-divider-line"></view></view>
+      <view class="card-title">各科分布<text class="card-sub">（本学期任课）</text></view>
       <view class="college-tt" wx:for="{{subjectTeacherStat}}" wx:key="name">
         <view class="ct-head">
           <text class="ct-name">{{item.name}}</text>

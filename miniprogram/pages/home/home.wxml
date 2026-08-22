@@ -34,6 +34,14 @@
         </view>
         <text class="entry-arrow">›</text>
       </view>
+      <view class="entry-card" hover-class="entry-card-hover" bindtap="goStatistics">
+        <view class="ei ei-teacher"></view>
+        <view class="entry-body">
+          <view class="entry-title">教师情况</view>
+          <view class="entry-sub">教师工作量与构成</view>
+        </view>
+        <text class="entry-arrow">›</text>
+      </view>
       <view class="entry-card" hover-class="entry-card-hover" bindtap="goPlanQuery">
         <view class="ei ei-plan"></view>
         <view class="entry-body">
@@ -41,6 +49,14 @@
           <view class="entry-sub">培养方案与课程安排</view>
         </view>
         <text class="entry-arrow">›</text>
+      </view>
+      <view wx:if="{{isAdmin}}" class="entry-card entry-card--admin" hover-class="entry-card-hover" bindtap="goTeacherAdmin">
+        <view class="ei ei-mgr"></view>
+        <view class="entry-body">
+          <view class="entry-title">教师管理</view>
+          <view class="entry-sub">新增与维护教师档案</view>
+        </view>
+        <text class="entry-tag">管理</text>
       </view>
     </view>
   </view>
@@ -112,9 +128,7 @@
 
     <!-- 排课进度（复用 web 端 CourseProgressChart） -->
     <view class="card">
-      <view class="card-title">排课进度
-        <text class="more" bindtap="goStatistics">课时统计 ›</text>
-      </view>
+      <view class="card-title">排课进度</view>
 
       <view wx:if="{{insights.progress.total === 0}}" class="card-empty">暂无排课数据</view>
 
@@ -152,31 +166,41 @@
       </block>
     </view>
 
-    <!-- 异常提醒（复用 web 端 AlertCard） -->
+    <!-- 教师情况（对照 web 端 TeacherLoadCard，环形图示） -->
     <view class="card">
-      <view class="card-title">异常提醒
-        <text wx:if="{{insights.alerts.hasAlert}}" class="alert-badge">{{insights.alerts.unassigned.length + insights.alerts.overloaded.length}}</text>
+      <view class="card-title">教师情况
+        <text class="more" bindtap="goStatistics">更多 ›</text>
       </view>
 
-      <view wx:if="{{!insights.alerts.hasAlert}}" class="alert-empty">
-        <text class="ae-check">✓</text>
-        <text class="ae-text">暂无异常，一切正常</text>
-      </view>
+      <view wx:if="{{!insights.teacherLoad.hasData}}" class="card-empty">暂无排课教师</view>
 
       <block wx:else>
-        <view wx:if="{{insights.alerts.unassigned.length}}" class="alert-group">
-          <view class="ag-title"><text class="ag-dot ag-warn"></text><text>{{insights.alerts.unassigned.length}} 门课程未排课</text></view>
-          <view wx:for="{{insights.alerts.unassigned}}" wx:key="id" class="ai-item ai-warn">{{item.name}}</view>
-          <view wx:if="{{insights.alerts.unassignedMore}}" class="ai-more">+{{insights.alerts.unassignedMore}} 门未显示</view>
+        <view class="tl-main">
+          <view class="tl-donut" style="background:{{insights.teacherLoad.donut}}">
+            <view class="tl-hole">
+              <text class="tl-total">{{insights.teacherLoad.total}}</text>
+              <text class="tl-unit">人</text>
+            </view>
+          </view>
+          <view class="tl-legend">
+            <view wx:for="{{insights.teacherLoad.entries}}" wx:key="label" class="tl-item">
+              <text class="tl-dot" style="background:{{item.color}}"></text>
+              <text class="tl-label">{{item.label}}</text>
+              <text class="tl-count">{{item.count}} 人</text>
+              <text class="tl-pct">{{item.pct}}%</text>
+            </view>
+          </view>
         </view>
 
-        <view wx:if="{{insights.alerts.overloaded.length}}" class="alert-group">
-          <view class="ag-title"><text class="ag-dot ag-danger"></text><text>{{insights.alerts.overloaded.length}} 位教师课时超限</text></view>
-          <view wx:for="{{insights.alerts.overloaded}}" wx:key="id" class="ai-item ai-danger">
-            <text class="ai-name">{{item.name}}</text>
-            <text class="ai-detail">{{item.hours}}/{{item.limit}} 课时</text>
+        <view class="tl-metrics">
+          <view class="tl-metric">
+            <text class="tl-m-label">参与排课教师</text>
+            <text class="tl-m-value">{{insights.teacherLoad.assignedTeachers}}<text class="tl-m-sub">/{{insights.teacherLoad.totalTeachers}} 在职</text></text>
           </view>
-          <view wx:if="{{insights.alerts.overloadedMore}}" class="ai-more">+{{insights.alerts.overloadedMore}} 位未显示</view>
+          <view class="tl-metric">
+            <text class="tl-m-label">人均周课时</text>
+            <text class="tl-m-value">{{insights.teacherLoad.avgHours}}</text>
+          </view>
         </view>
       </block>
     </view>
