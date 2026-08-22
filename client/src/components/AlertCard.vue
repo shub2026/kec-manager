@@ -19,33 +19,55 @@
 
     <div v-else class="alert-list">
       <div v-for="group in visibleGroups" :key="group.key" class="alert-group">
-        <!-- 分组标题即折叠头：默认收拢只显示标题，点击展开/收起该组明细 -->
-        <div
-          class="alert-group-title"
-          role="button"
-          tabindex="0"
-          :aria-expanded="expandedGroups.has(group.key)"
-          @click="toggleExpand(group.key)"
-          @keydown.enter="toggleExpand(group.key)"
-        >
+        <!-- 分组标题 -->
+        <div class="alert-group-title">
           <el-icon :color="group.iconColor"><component :is="group.icon" /></el-icon>
           <span class="alert-group-label">{{ group.title }}</span>
           <el-icon
+            v-if="group.hiddenCount > 0"
             class="alert-group-arrow"
             :class="{ 'is-expanded': expandedGroups.has(group.key) }"
           >
             <ArrowDown />
           </el-icon>
         </div>
-        <ul v-if="expandedGroups.has(group.key)" class="alert-items">
-          <li v-for="item in group.items" :key="item.key" :class="['alert-item', group.itemClass]">
-            <!-- 整项可点击跳转对应处理页面，承载待办"去哪里处理"的动线 -->
+        <!-- 预览项始终可见（最多 previewCount 条） -->
+        <ul class="alert-items">
+          <li
+            v-for="item in group.previewItems"
+            :key="item.key"
+            :class="['alert-item', group.itemClass]"
+          >
             <router-link :to="group.route" class="alert-item-link">
               <span class="alert-item-name">{{ item.name }}</span>
               <span v-if="item.detail" class="alert-item-detail">{{ item.detail }}</span>
             </router-link>
           </li>
+          <!-- 超出预览数的项：点击“展开更多”后显示 -->
+          <template v-if="expandedGroups.has(group.key)">
+            <li
+              v-for="item in group.hiddenItems"
+              :key="item.key"
+              :class="['alert-item', group.itemClass]"
+            >
+              <router-link :to="group.route" class="alert-item-link">
+                <span class="alert-item-name">{{ item.name }}</span>
+                <span v-if="item.detail" class="alert-item-detail">{{ item.detail }}</span>
+              </router-link>
+            </li>
+          </template>
         </ul>
+        <!-- 展开/收起按钮 -->
+        <div
+          v-if="group.hiddenCount > 0"
+          class="alert-toggle"
+          role="button"
+          tabindex="0"
+          @click="toggleExpand(group.key)"
+          @keydown.enter="toggleExpand(group.key)"
+        >
+          {{ expandedGroups.has(group.key) ? '收起' : `展开 ${group.hiddenCount} 条更多` }}
+        </div>
       </div>
     </div>
   </el-card>
@@ -61,7 +83,6 @@ const props = defineProps({
       unassignedCourses: [],
       overloadedTeachers: [],
       unassignedClasses: { count: 0, courses: [] },
-      underGuaranteedTeachers: [],
     }),
   },
 });
@@ -76,11 +97,13 @@ function toggleExpand(key) {
   }
 }
 
-// 分组定义驱动渲染：四类待办统一"标题 + 明细 + 跳转动线"结构；
-// 顺序即处理优先级——未排课课程 > 未安排班级 > 保障未达标 > 课时超限
+// 分组定义驱动渲染：三类待办统一"标题 + 明细 + 跳转动线"结构；
+// 每组直接展示前 previewCount 条明细，超出时出现"展开更多"按钮
+// 顺序即处理优先级——未排课课程 > 未安排班级 > 课时超限
+const PREVIEW_COUNT = 4;
 const visibleGroups = computed(() => {
   const d = props.data;
-  const groups = [
+  const defs = [
     {
       key: 'unassignedCourses',
       title: `${d.unassignedCourses?.length || 0} 门课程未排课`,
@@ -104,19 +127,6 @@ const visibleGroups = computed(() => {
       })),
     },
     {
-      key: 'underGuaranteedTeachers',
-      title: `${d.underGuaranteedTeachers?.length || 0} 位教师保障课时未达标`,
-      icon: 'InfoFilled',
-      iconColor: 'var(--el-color-primary)',
-      itemClass: 'alert-item-info',
-      route: '/teaching/teachers',
-      items: (d.underGuaranteedTeachers || []).map((t) => ({
-        key: t.id,
-        name: t.name,
-        detail: `${t.hours}/${t.limit} 课时`,
-      })),
-    },
-    {
       key: 'overloadedTeachers',
       title: `${d.overloadedTeachers?.length || 0} 位教师课时超限`,
       icon: 'CircleCloseFilled',
@@ -130,7 +140,14 @@ const visibleGroups = computed(() => {
       })),
     },
   ];
-  return groups.filter((g) => g.items.length > 0);
+  return defs
+    .filter((g) => g.items.length > 0)
+    .map((g) => ({
+      ...g,
+      previewItems: g.items.slice(0, PREVIEW_COUNT),
+      hiddenItems: g.items.slice(PREVIEW_COUNT),
+      hiddenCount: Math.max(0, g.items.length - PREVIEW_COUNT),
+    }));
 });
 
 const totalCount = computed(() => {
@@ -138,8 +155,7 @@ const totalCount = computed(() => {
   return (
     (d.unassignedCourses?.length || 0) +
     (d.overloadedTeachers?.length || 0) +
-    (d.unassignedClasses?.count || 0) +
-    (d.underGuaranteedTeachers?.length || 0)
+    (d.unassignedClasses?.count || 0)
   );
 });
 </script>
@@ -198,13 +214,6 @@ const totalCount = computed(() => {
   padding: 6px 8px;
   margin: 0 0 var(--space-1);
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.2s;
-}
-
-.alert-group-title:hover {
-  background: var(--bg-subtle);
 }
 
 .alert-group-label {
@@ -252,10 +261,6 @@ const totalCount = computed(() => {
   background: color-mix(in srgb, var(--brand-warning) 8%, transparent);
 }
 
-.alert-item-info {
-  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
-}
-
 .alert-item-danger {
   background: color-mix(in srgb, var(--brand-danger) 8%, transparent);
 }
@@ -273,10 +278,6 @@ const totalCount = computed(() => {
 
 .alert-item-warning .alert-item-link:hover {
   background: color-mix(in srgb, var(--brand-warning) 16%, transparent);
-}
-
-.alert-item-info .alert-item-link:hover {
-  background: color-mix(in srgb, var(--el-color-primary) 16%, transparent);
 }
 
 .alert-item-danger .alert-item-link:hover {
@@ -297,5 +298,20 @@ const totalCount = computed(() => {
   font-weight: 600;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+/* 展开/收起按钮：居中文字链，低调但与分组标题区分 */
+.alert-toggle {
+  text-align: center;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  padding: 4px 0 2px;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+
+.alert-toggle:hover {
+  opacity: 0.7;
 }
 </style>

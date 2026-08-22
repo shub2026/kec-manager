@@ -24,10 +24,6 @@ const baseData = {
       { id: 12, name: '英语', missing: 38, total: 55 },
     ],
   },
-  underGuaranteedTeachers: [
-    { id: 21, name: '陈萍', hours: 0, limit: 8 },
-    { id: 22, name: '肖安琪', hours: 0, limit: 8 },
-  ],
   overloadedTeachers: [{ id: 31, name: '高菊', hours: 18, limit: 16 }],
 };
 
@@ -47,7 +43,6 @@ describe('AlertCard (首页待办提醒卡)', () => {
           unassignedCourses: [],
           overloadedTeachers: [],
           unassignedClasses: { count: 0, courses: [] },
-          underGuaranteedTeachers: [],
         },
       },
     });
@@ -55,49 +50,62 @@ describe('AlertCard (首页待办提醒卡)', () => {
     expect(wrapper.find('.alert-group').exists()).toBe(false);
   });
 
-  it('默认全部收拢：只渲染分组标题，不渲染任何明细项', () => {
+  it('明细 ≤4 条时直接展示，无展开按钮', () => {
     const wrapper = mountCard();
     const titles = wrapper.findAll('.alert-group-title');
-    expect(titles).toHaveLength(4);
+    expect(titles).toHaveLength(3);
     expect(wrapper.text()).toContain('1 门课程未排课');
     expect(wrapper.text()).toContain('437 个班级未安排');
-    expect(wrapper.text()).toContain('2 位教师保障课时未达标');
     expect(wrapper.text()).toContain('1 位教师课时超限');
-    expect(wrapper.find('.alert-item').exists()).toBe(false);
-    titles.forEach((t) => expect(t.attributes('aria-expanded')).toBe('false'));
-  });
-
-  it('点击分组标题展开该组明细，明细项携带跳转链接；再次点击收拢', async () => {
-    const wrapper = mountCard();
-    const titles = wrapper.findAll('.alert-group-title');
-    // 展开“未安排班级”分组
-    await titles[1].trigger('click');
-    expect(titles[1].attributes('aria-expanded')).toBe('true');
-    const links = wrapper.findAll('.alert-item-link');
-    expect(links).toHaveLength(2);
-    expect(links[0].attributes('href')).toBe('/teaching/arrange');
+    // 明细项直接可见（均 ≤4 条）
+    expect(wrapper.text()).toContain('大学数学');
     expect(wrapper.text()).toContain('语文');
-    expect(wrapper.text()).toContain('还差 141/161 班');
-    // 其他分组保持收拢
-    expect(wrapper.text()).not.toContain('陈萍');
-    // 再次点击收拢
-    await titles[1].trigger('click');
-    expect(titles[1].attributes('aria-expanded')).toBe('false');
-    expect(wrapper.find('.alert-item').exists()).toBe(false);
+    expect(wrapper.text()).toContain('英语');
+    expect(wrapper.text()).toContain('高菊');
+    // 无展开按钮
+    expect(wrapper.find('.alert-toggle').exists()).toBe(false);
   });
 
-  it('保障课时未达标分组展开后明细展示课时进度并跳转教师页', async () => {
-    const wrapper = mountCard();
-    await wrapper.findAll('.alert-group-title')[2].trigger('click');
-    const links = wrapper.findAll('.alert-item-link');
-    expect(links).toHaveLength(2);
-    expect(links[0].attributes('href')).toBe('/teaching/teachers');
-    expect(wrapper.text()).toContain('0/8 课时');
+  it('明细 ＞4 条时显示前 4 条和展开按钮，点击后显示剩余项并可收起', async () => {
+    const courses = Array.from({ length: 6 }, (_, i) => ({
+      id: i,
+      name: `课程${i}`,
+      missing: 10 - i,
+      total: 20,
+    }));
+    const wrapper = mountCard({
+      props: {
+        data: {
+          unassignedCourses: [],
+          overloadedTeachers: [],
+          unassignedClasses: { count: 100, courses },
+        },
+      },
+    });
+    // 前 4 条直接展示
+    expect(wrapper.text()).toContain('课程0');
+    expect(wrapper.text()).toContain('课程3');
+    // 第 5、6 条不可见
+    expect(wrapper.text()).not.toContain('课程4');
+    expect(wrapper.text()).not.toContain('课程5');
+    // 展开按钮显示并携带正确文案
+    const toggle = wrapper.find('.alert-toggle');
+    expect(toggle.exists()).toBe(true);
+    expect(toggle.text()).toBe('展开 2 条更多');
+    // 点击展开后显示全部
+    await toggle.trigger('click');
+    expect(wrapper.text()).toContain('课程4');
+    expect(wrapper.text()).toContain('课程5');
+    expect(toggle.text()).toBe('收起');
+    // 再次点击收拢
+    await toggle.trigger('click');
+    expect(wrapper.text()).not.toContain('课程4');
+    expect(toggle.text()).toBe('展开 2 条更多');
   });
 
   it('头部角标展示待办总数', () => {
     const wrapper = mountCard();
-    // 1 + 437 + 2 + 1 = 441
-    expect(wrapper.find('.el-tag').text()).toBe('441');
+    // 1 + 437 + 1 = 439
+    expect(wrapper.find('.el-tag').text()).toBe('439');
   });
 });

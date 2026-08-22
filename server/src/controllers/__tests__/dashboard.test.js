@@ -1041,7 +1041,7 @@ describe('getDashboardInsights', () => {
     );
   });
 
-  it('待办提醒：未安排班级按应开口径聚合，保障课时未达标含 0 安排教师并按缺口降序', async () => {
+  it('待办提醒：未安排班级按应开口径聚合，未应开课程不计入', async () => {
     // 应开 2 门：数学（应排 3 班）/英语（应排 1 班）
     mockPrisma.classes.findMany.mockResolvedValue([
       {
@@ -1121,11 +1121,6 @@ describe('getDashboardInsights', () => {
         teacherCount: 0,
       },
     ]);
-    // 自定义课时教师：王五已排 4/目标 10（缺口 6）；李四 0 安排/目标 8（缺口 8）
-    mockPrisma.teachers.findMany.mockResolvedValue([
-      { id: 1, name: '王五', default_weekly_hours: 10 },
-      { id: 2, name: '李四', default_weekly_hours: 8 },
-    ]);
 
     const req = mockReq({ semester: '2025-2026-2' });
     const res = mockRes();
@@ -1138,11 +1133,5 @@ describe('getDashboardInsights', () => {
       count: 2,
       courses: [{ id: 10, name: '数学', missing: 2, total: 3 }],
     });
-
-    // 保障未达标：按缺口降序（李四 8 > 王五 6），0 安排教师也在列
-    expect(data.alerts.underGuaranteedTeachers).toEqual([
-      { id: 2, name: '李四', hours: 0, limit: 8 },
-      { id: 1, name: '王五', hours: 4, limit: 10 },
-    ]);
   });
 });

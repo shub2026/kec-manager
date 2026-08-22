@@ -225,7 +225,6 @@ export async function getDashboardInsights(req, res, next) {
       allAssignments,
       colleges,
       activeTeacherCount,
-      teachersWithLimit,
     ] = await Promise.all([
       // 本学期应开课程（培养方案口径，与 stats 的"课程数量"同源）
       computeOfferedCourses(semesterInfo),
@@ -263,11 +262,6 @@ export async function getDashboardInsights(req, res, next) {
       prisma.colleges.findMany({ select: { id: true, name: true } }),
       // 在职教师总数（供教师负载卡"参与排课教师 X / 在职 Y"展示）
       prisma.teachers.count({ where: { status: 'active' } }),
-      // 已设置自定义课时的在职教师（供保障课时未达标待办，含 0 安排教师）
-      prisma.teachers.findMany({
-        where: { status: 'active', default_weekly_hours: { gt: 0 } },
-        select: { id: true, name: true, default_weekly_hours: true },
-      }),
     ]);
 
     // 合班去重：将成员班行归并为逻辑教学单元，避免课时/班级数虚高
@@ -369,22 +363,10 @@ export async function getDashboardInsights(req, res, next) {
       courses: unassignedClassCourses.slice(0, 10),
     };
 
-    // 4) 保障课时未达标教师：已设自定义课时但实际安排低于目标的（含 0 安排），
-    // 与超限提醒镜像互补；按缺口降序取前 10，与 v1.14 硬保障开关告警同口径基础（仅看自定义值）
-    const underGuaranteedTeachers = teachersWithLimit
-      .map((t) => {
-        const hours = Math.round((teacherHours[t.id]?.hours ?? 0) * 10) / 10;
-        return { id: t.id, name: t.name, hours, limit: t.default_weekly_hours };
-      })
-      .filter((t) => t.hours < t.limit)
-      .sort((a, b) => (b.limit - b.hours) - (a.limit - a.hours))
-      .slice(0, 10);
-
     const alerts = {
       unassignedCourses,
       overloadedTeachers,
       unassignedClasses,
-      underGuaranteedTeachers,
     };
 
     // —— 课时分布（按应排班级所属学院汇总） ——
