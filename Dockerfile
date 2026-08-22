@@ -1,6 +1,8 @@
 # 基础镜像地址（可在 docker-compose.yml 中通过 build.args.NODE_IMAGE 覆盖）
 # 国内环境使用镜像源加速，如：docker.m.daocloud.io/library/node:20-alpine
 ARG NODE_IMAGE=node:20-alpine
+# 应用版本标签（由 docker-compose.yml 的 build.args.APP_VERSION 注入，未配置默认 dev）
+ARG APP_VERSION=dev
 
 # 第一阶段：构建前端
 FROM ${NODE_IMAGE} AS frontend-builder
@@ -49,6 +51,9 @@ RUN npx prisma generate
 # 第三阶段：生产运行镜像
 FROM ${NODE_IMAGE} AS production
 
+# 重新声明 ARG（多阶段构建中 FROM 开启新作用域，需再次声明才能引用全局 APP_VERSION）
+ARG APP_VERSION
+
 WORKDIR /app
 
 # 安装 SQLite、wget（健康检查）和 curl（调试用）、su-exec（权限切换）
@@ -83,6 +88,10 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # 暴露端口
 EXPOSE 3000
+
+# 镜像元数据（OCI 标准标签，便于按版本追溯与回滚）
+LABEL org.opencontainers.image.title="kec-manager" \
+      org.opencontainers.image.version="${APP_VERSION}"
 
 # 使用 entrypoint 处理权限问题
 ENTRYPOINT ["docker-entrypoint.sh"]

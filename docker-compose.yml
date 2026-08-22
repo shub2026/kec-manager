@@ -7,6 +7,11 @@ services:
         # 基础镜像地址：默认官方镜像；国内网络可在服务器 .env 中配置
         # NODE_IMAGE=<镜像加速地址>/library/node:20-alpine（.env 不会上传到仓库）
         NODE_IMAGE: ${NODE_IMAGE:-node:20-alpine}
+        # 应用镜像版本标签：在 .env 中配置 APP_VERSION（如 v1.4.1），未配置默认 latest
+        APP_VERSION: ${APP_VERSION:-latest}
+    # 显式镜像标签：支持 docker push 到仓库 + 按版本回滚
+    # 镜像仓库地址可用 .env 的 IMAGE_REPO 覆盖（如 registry.example.com/kec-manager）
+    image: ${IMAGE_REPO:-kec-manager}:${APP_VERSION:-latest}
     container_name: kec-manager
     restart: unless-stopped
     ports:
