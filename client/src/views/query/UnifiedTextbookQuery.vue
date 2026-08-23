@@ -3,6 +3,10 @@
     <PageHeader title="教材查询" subtitle="查询中心" description="按学期查看各课程教材使用情况" />
     <el-card>
       <div class="page-toolbar">
+        <!-- 当前学期按钮：置于最前（与开课查询页位置一致） -->
+        <el-button @click="goToCurrentSemester">
+          <el-icon><Calendar /></el-icon> 当前学期
+        </el-button>
         <el-select
           v-model="selectedSemester"
           placeholder="选择学期"
@@ -17,10 +21,6 @@
             :value="sem.value"
           />
         </el-select>
-        <!-- 当前学期按钮：紧跟学期选择器（与开课查询页位置一致） -->
-        <el-button @click="goToCurrentSemester">
-          <el-icon><Calendar /></el-icon> 当前学期
-        </el-button>
         <el-select
           v-model="selectedTextbook"
           filterable

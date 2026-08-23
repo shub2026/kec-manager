@@ -17,6 +17,9 @@
       <template v-else>
         <FilterBar :active-count="activeFilterCount" @reset="resetFilters">
           <template #primary>
+            <el-button @click="goToCurrentSemester">
+              <el-icon><Calendar /></el-icon> 当前学期
+            </el-button>
             <el-select
               v-model="selectedSemester"
               placeholder="选择学期"
@@ -31,9 +34,6 @@
               />
             </el-select>
           </template>
-          <el-button @click="goToCurrentSemester">
-            <el-icon><Calendar /></el-icon> 当前学期
-          </el-button>
           <el-select
             v-model="filterCollege"
             clearable
