@@ -26,7 +26,7 @@
     "borderStyle": "white",
     "list": [
       { "pagePath": "pages/home/home", "text": "首页", "iconPath": "assets/tabbar/home-normal.png", "selectedIconPath": "assets/tabbar/home-active.png" },
-      { "pagePath": "pages/teaching-arrange/teaching-arrange", "text": "教学安排", "iconPath": "assets/tabbar/teaching-arrange-normal.png", "selectedIconPath": "assets/tabbar/teaching-arrange-active.png" },
+      { "pagePath": "pages/teaching-arrange/teaching-arrange", "text": "课程查询", "iconPath": "assets/tabbar/teaching-arrange-normal.png", "selectedIconPath": "assets/tabbar/teaching-arrange-active.png" },
       { "pagePath": "pages/teacher-hours/teacher-hours", "text": "教师课时", "iconPath": "assets/tabbar/teacher-hours-normal.png", "selectedIconPath": "assets/tabbar/teacher-hours-active.png" },
       { "pagePath": "pages/profile/profile", "text": "我的", "iconPath": "assets/tabbar/profile-normal.png", "selectedIconPath": "assets/tabbar/profile-active.png" }
     ]

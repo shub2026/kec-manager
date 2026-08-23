@@ -3,97 +3,95 @@
   <view class="hero">
     <view class="hero-card">
       <view class="hero-text">
-        <view class="hero-title">教学安排</view>
-        <view class="hero-subtitle">本学期课程排课概览</view>
-        <view class="hero-badge"><text class="hero-badge-text">当前学期：{{semester || '未设置'}}</text></view>
+        <view class="hero-title">课程查询</view>
+        <view class="hero-subtitle">按课程查看各培养方案采用情况</view>
       </view>
       <view class="hero-decor"><view class="hero-ring"></view></view>
     </view>
   </view>
 
-  <view wx:if="{{loading && !summary}}" class="loading">加载中…</view>
-  <view wx:elif="{{error && !summary}}" class="errbox">{{error}}</view>
+  <!-- 筛选栏：课程名搜索为主，科目类型筛选 -->
+  <view class="filter-bar">
+    <view class="search-box">
+      <view class="search-ico"></view>
+      <input
+        class="search-input"
+        placeholder="搜索课程名称"
+        placeholder-class="ph"
+        value="{{keyword}}"
+        bindinput="onKeywordInput"
+        confirm-type="search"
+      />
+      <text wx:if="{{keyword}}" class="search-clear" catchtap="resetFilters">✕</text>
+    </view>
+    <picker class="type-picker" range="{{typeOptions}}" range-key="label" value="{{typeIndex}}" bindchange="onTypeChange">
+      <view class="type-picker-inner">{{typeLabel}}<text class="caret">▾</text></view>
+    </picker>
+  </view>
+
+  <view wx:if="{{loading && !courses.length}}" class="loading">加载中…</view>
+  <view wx:elif="{{error && !courses.length}}" class="errbox">{{error}}</view>
 
   <block wx:else>
     <view wx:if="{{refreshing}}" class="loading">刷新中…</view>
-    <!-- 学期总览卡（小程序增强项：一屏看清全局） -->
-    <view class="card" wx:if="{{summary}}">
-      <view class="card-title">学期总览</view>
-      <view class="stat-grid">
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{summary.courses}}</view>
-          <view class="stat-label">开设课程</view>
-        </view></view>
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{summary.totalClasses}}</view>
-          <view class="stat-label">应排班级</view>
-        </view></view>
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{summary.assignedCount}}</view>
-          <view class="stat-label">已排班级</view>
-        </view></view>
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-num">{{summary.rate}}%</view>
-          <view class="stat-label">排课完成度</view>
-        </view></view>
-      </view>
-      <view class="bar mt"><view class="bar-in" style="width:{{summary.rate}}%"></view></view>
+
+    <!-- 统计条：共 X 门课程，被 Y 条培养方案引用 -->
+    <view class="alert-bar">
+      <text class="alert-text">共 <text class="alert-num">{{totalCourses}}</text> 门课程，被 <text class="alert-num">{{totalPlans}}</text> 条培养方案引用</text>
+      <text wx:if="{{keyword || courseType}}" class="alert-reset" bindtap="resetFilters">重置</text>
     </view>
 
-    <!-- 按课程类型分区的概览卡片列表（对标 web CourseOverviewGrid） -->
-    <block wx:for="{{groups}}" wx:key="type" wx:for-item="group">
-      <view class="group-head">{{group.label}}<text class="group-count">{{group.cards.length}}</text></view>
+    <view wx:if="{{!courses.length}}" class="empty">没有符合筛选条件的课程</view>
 
-      <view
-        wx:for="{{group.cards}}"
-        wx:key="courseId"
-        wx:for-item="card"
-        class="ov-card"
-        bindtap="toggle"
-        data-id="{{card.courseId}}"
-      >
-        <view class="ov-head">
-          <text class="ov-name">{{card.courseName}}</text>
-          <text class="ov-type {{card.typeClass}}">{{card.typeLabel}}</text>
+    <view
+      wx:for="{{courses}}"
+      wx:key="id"
+      class="course-card"
+      bindtap="toggle"
+      data-id="{{item.id}}"
+    >
+      <view class="course-head">
+        <view class="course-name-wrap">
+          <text class="course-name">{{item.name}}</text>
+          <text wx:if="{{item.code}}" class="course-code">{{item.code}}</text>
         </view>
-
-        <view class="ov-progress-row">
-          <text class="ov-progress-label">已安排 {{card.assignedCount}}/{{card.totalClasses}} 班</text>
-          <text wx:if="{{card.status === 'done'}}" class="ov-badge done">全部完成</text>
-          <text wx:elif="{{card.status === 'waiting'}}" class="ov-badge waiting">待安排</text>
-        </view>
-        <view class="bar"><view class="bar-in {{card.status === 'done' ? 'done' : ''}}" style="width:{{card.percent}}%"></view></view>
-
-        <view class="ov-stats">
-          <view class="ov-stat"><text class="ov-stat-num">{{card.teacherCount}}</text><text class="ov-stat-label">已排教师</text></view>
-          <view class="ov-stat"><text class="ov-stat-num">{{card.lockedCount}}</text><text class="ov-stat-label">已锁定</text></view>
-          <view class="ov-stat"><text class="ov-stat-num">{{card.totalCourseHours}}</text><text class="ov-stat-label">总课时</text></view>
-          <view class="ov-stat"><text class="ov-stat-num {{card.overHours ? 'danger' : ''}}">{{card.remainingHours}}</text><text class="ov-stat-label">剩余课时</text></view>
-        </view>
-
-        <!-- 展开明细：lazy 调 classes 接口，替代 web 矩阵表编辑 -->
-        <view wx:if="{{card.expanded}}" class="ov-detail">
-          <view wx:if="{{card.detailLoading}}" class="loading">加载明细…</view>
-          <block wx:elif="{{card.detail}}">
-            <view wx:for="{{card.detail.classes}}" wx:key="classId" wx:for-item="cls" class="dt-row">
-              <view class="dt-info">
-                <text class="dt-name">{{cls.className}}</text>
-                <text wx:if="{{cls.isCombined}}" class="dt-combined">合班</text>
-              </view>
-              <view wx:if="{{cls.assignment}}" class="dt-assign">
-                <text class="dt-teacher">{{cls.assignment.teacherName}}</text>
-                <text wx:if="{{cls.assignment.isLocked}}" class="dt-lock">锁</text>
-                <text wx:elif="{{cls.assignment.isAuto}}" class="dt-auto">自动</text>
-              </view>
-              <view wx:else class="dt-unassigned">未安排</view>
-            </view>
-            <view wx:if="{{!card.detail.classes.length}}" class="empty">本学期无开课班级</view>
-          </block>
-          <view wx:else class="errbox">{{card.detailError}}</view>
-        </view>
+        <text class="course-type {{item.typeClass}}">{{item.typeLabel}}</text>
       </view>
-    </block>
 
-    <view wx:if="{{!groups.length}}" class="empty">本学期暂无课程安排</view>
+      <view class="course-meta">
+        <text class="meta-item">采用方案 <text class="meta-num">{{item.planCount}}</text></text>
+        <text class="meta-sep">·</text>
+        <text class="meta-item">总课时（启用）<text class="meta-num">{{item.totalHours}}</text></text>
+        <text class="course-arrow">{{item.expanded ? '收起' : '展开'}}</text>
+      </view>
+
+      <!-- 展开方案明细 -->
+      <view wx:if="{{item.expanded}}" class="plan-list">
+        <view wx:for="{{item.plans}}" wx:for-item="p" wx:key="planId" class="plan-row">
+          <view class="plan-top">
+            <text class="plan-name">{{p.planName}}</text>
+            <text wx:if="{{p.version}}" class="plan-version">{{p.version}}</text>
+            <text class="plan-status {{p.statusClass}}">{{p.statusLabel}}</text>
+            <text wx:if="{{!p.isActive}}" class="plan-disabled">已禁用</text>
+          </view>
+          <view class="plan-info">
+            <text class="info-tag">专业 {{p.majorName}}</text>
+            <text class="info-tag">层次 {{p.trainingLevelName}}</text>
+            <text class="info-tag">学院 {{p.collegeName}}</text>
+            <text class="info-tag" wx:if="{{p.startSemester}}">开课 第{{p.startSemester}}-{{p.endSemester}}学期</text>
+          </view>
+          <!-- 各学期周课时 -->
+          <view wx:if="{{p.semesters.length}}" class="sem-row">
+            <view wx:for="{{p.semesters}}" wx:for-item="s" wx:key="semester" class="sem-cell">
+              <text class="sem-label">第{{s.semester}}学期</text>
+              <text class="sem-hours">{{s.weeklyHours}}<text class="sem-unit">课时/周</text></text>
+              <text wx:if="{{s.textbooks}}" class="sem-tb">{{s.textbooks}}</text>
+            </view>
+          </view>
+          <view class="plan-total">总课时：<text class="plan-total-num">{{p.totalHours}}</text></view>
+        </view>
+        <view wx:if="{{!item.plans.length}}" class="empty">该课程暂无采用方案</view>
+      </view>
+    </view>
   </block>
 </view>

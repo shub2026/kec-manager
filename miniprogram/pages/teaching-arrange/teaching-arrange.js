@@ -1,183 +1,160 @@
 const api = require('../../utils/api.js');
 const { guard } = require('../../utils/auth.js');
 
-// 课程类型元数据：与 web 端 CourseOverviewGrid 标签语义保持一致
+// 科目类型元数据：与 WEB 端 CourseQuery 标签语义保持一致（仅 public / professional 两种）
 const TYPE_META = {
   public: { label: '公共课', cls: 'blue' },
   professional: { label: '专业课', cls: 'green' },
-  elective: { label: '选修课', cls: 'gray' },
 };
-// 分组展示顺序
-const GROUP_ORDER = ['public', 'professional', 'elective'];
 
-function buildGroups(overview) {
-  const byType = {};
-  for (const c of overview) {
-    const type = c.courseType || 'other';
-    if (!byType[type]) byType[type] = [];
-    const meta = TYPE_META[type] || { label: c.courseType || '其他', cls: 'gray' };
-    const total = c.totalClasses || 0;
-    const assigned = c.assignedCount || 0;
-    byType[type].push({
-      ...c,
-      typeLabel: meta.label,
-      typeClass: meta.cls,
-      percent: total ? Math.round((assigned / total) * 100) : 0,
-      status: assigned >= total && total > 0 ? 'done' : assigned === 0 ? 'waiting' : 'partial',
-      overHours: (c.remainingHours || 0) < 0,
-      // 展开状态下沉到 card：点击只更新本卡片，其余卡片不参与 setData diff
-      expanded: false,
-      detail: null,
-      detailLoading: false,
-      detailError: '',
-    });
-  }
-  // 已知三类按 GROUP_ORDER 排前，未知类型追加其后
-  const order = GROUP_ORDER.filter((t) => byType[t]);
-  Object.keys(byType).forEach((t) => {
-    if (!GROUP_ORDER.includes(t)) order.push(t);
-  });
-  return order.map((type) => ({
-    type,
-    label: (TYPE_META[type] || { label: type }).label,
-    cards: byType[type],
-  }));
+// 方案状态展示：与 WEB 端一致（生效 / 草稿 / 归档）
+function statusLabel(status) {
+  const map = { active: '生效', draft: '草稿', archived: '归档' };
+  return map[status] || status || '—';
+}
+// 方案状态标签样式类：与 WEB 端 el-tag type 对齐（success/warning/info）
+function statusClass(status) {
+  const map = { active: 'success', draft: 'warning', archived: 'info' };
+  return map[status] || 'info';
 }
 
 Page({
   data: {
-    groups: [],
-    summary: null,
+    // 筛选
+    keyword: '',          // 课程名模糊搜索
+    courseType: '',       // 科目类型筛选（''=全部）
+    typeIndex: 0,         // 当前科目类型筛选项索引
+    typeLabel: '全部',    // 当前科目类型筛选显示文案
+    typeOptions: [
+      { value: '', label: '全部' },
+      { value: 'public', label: '公共课' },
+      { value: 'professional', label: '专业课' },
+    ],
+    // 数据
+    courses: [],          // 课程聚合列表
+    totalCourses: 0,
+    totalPlans: 0,
+    expandedId: null,     // 当前展开的课程 id（手风琴）
+    // 状态
     loading: true,
     refreshing: false,
     error: '',
-    semester: '',
   },
 
   onShow() {
     if (!guard()) return;
-    if (!this.data.groups.length) this.reload();
+    if (!this.data.courses.length) this.reload();
   },
 
-  async reload(isRefresh = false) {
-    this.setData(isRefresh ? { refreshing: true, error: '', detailError: '' } : { loading: true, error: '', detailError: '' });
+  // 课程名输入即搜：200ms 防抖（与 WEB 端同款交互）
+  onKeywordInput(e) {
+    const value = e.detail.value;
+    this.setData({ keyword: value });
+    if (this._debounceTimer) clearTimeout(this._debounceTimer);
+    this._debounceTimer = setTimeout(() => {
+      this.reload();
+    }, 200);
+  },
+
+  onTypeChange(e) {
+    const idx = Number(e.detail.value);
+    const opt = this.data.typeOptions[idx];
+    this.setData({ courseType: opt.value, typeIndex: idx, typeLabel: opt.label });
+    this.reload();
+  },
+
+  resetFilters() {
+    this.setData({ keyword: '', courseType: '', typeIndex: 0, typeLabel: '全部' });
+    this.reload();
+  },
+
+  reload() {
+    this.setData({ loading: true, error: '', courses: [], expandedId: null });
+    return this.fetch();
+  },
+
+  async fetch() {
+    const { keyword, courseType } = this.data;
+    this.setData({ refreshing: true });
     try {
-      const overview = await api.getCourseOverview();
-      const list = Array.isArray(overview) ? overview : [];
-      const totalClasses = list.reduce((s, c) => s + (c.totalClasses || 0), 0);
-      const assignedCount = list.reduce((s, c) => s + (c.assignedCount || 0), 0);
-      const summary = {
-        courses: list.length,
-        totalClasses,
-        assignedCount,
-        rate: totalClasses ? Math.round((assignedCount / totalClasses) * 100) : 0,
-      };
-      const app = getApp();
+      const params = {};
+      if (keyword.trim()) params.courseName = keyword.trim();
+      if (courseType) params.courseType = courseType;
+      const resp = await api.getCourseQuery(params);
+      const courses = (resp.courses || []).map((c) => {
+        const meta = TYPE_META[c.course.type] || { label: c.course.type || '其他', cls: 'gray' };
+        return {
+          id: c.course.id,
+          name: c.course.name,
+          code: c.course.code || '',
+          type: c.course.type,
+          typeLabel: meta.label,
+          typeClass: meta.cls,
+          planCount: c.planCount || 0,
+          activePlanCount: c.activePlanCount || 0,
+          totalHours: c.totalHours || 0,
+          // 展开状态下沉到课程：点击只更新本卡片
+          plans: (c.plans || []).map((p) => ({
+            planId: p.planId,
+            planName: p.planName,
+            version: p.version || '',
+            planStatus: p.planStatus,
+            statusLabel: statusLabel(p.planStatus),
+            statusClass: statusClass(p.planStatus),
+            isActive: p.isActive,
+            majorName: p.majorName || '—',
+            collegeName: p.collegeName || '—',
+            trainingLevelName: p.trainingLevelName || '—',
+            startSemester: p.startSemester,
+            endSemester: p.endSemester,
+            semesters: (p.semesters || []).map((s) => ({
+              semester: s.semester,
+              weeklyHours: s.weeklyHours,
+              weeksCount: s.weeksCount,
+              hours: s.hours,
+              textbooks: (s.textbooks || [])
+                .filter((t) => t.isActive)
+                .map((t) => t.title)
+                .join('、') || '',
+            })),
+            totalHours: p.totalHours,
+          })),
+          expanded: false,
+        };
+      });
       this.setData({
-        groups: buildGroups(list),
-        summary,
-        semester: (app && app.globalData.currentSemester) || '',
+        courses,
+        totalCourses: resp.totalCourses || 0,
+        totalPlans: resp.totalPlans || 0,
         loading: false,
         refreshing: false,
       });
     } catch (e) {
-      if (isRefresh) {
-        this.setData({ refreshing: false });
-        wx.showToast({ title: (e && e.message) || '刷新失败', icon: 'none' });
-      } else {
-        this.setData({ error: (e && e.message) || '加载失败', loading: false });
-      }
+      this.setData({
+        error: (e && e.message) || '课程查询失败',
+        loading: false,
+        refreshing: false,
+      });
     }
   },
 
-  // 点选课程卡片：展开 / 收起，手风琴式：展开当前卡片自动收起其他已展开卡片。
-  // 仅通过路径更新涉及的卡片（当前 + 其余展开卡片），未展开卡片零参与 setData diff。
-  async toggle(e) {
+  // 点选课程卡片：展开 / 收起，手风琴式（展开当前自动收起其他）
+  toggle(e) {
     const id = e.currentTarget.dataset.id;
-    const groups = this.data.groups;
-    let gi = -1;
-    let ci = -1;
-    for (let i = 0; i < groups.length; i++) {
-      const idx = groups[i].cards.findIndex((c) => c.courseId === id);
-      if (idx >= 0) {
-        gi = i;
-        ci = idx;
-        break;
-      }
-    }
-    if (gi < 0) return;
-    const card = groups[gi].cards[ci];
-
+    const courses = this.data.courses;
+    const idx = courses.findIndex((c) => c.id === id);
+    if (idx < 0) return;
     const patch = {};
-    if (card.expanded) {
-      // 收起当前
-      patch[`groups[${gi}].cards[${ci}].expanded`] = false;
-      patch[`groups[${gi}].cards[${ci}].detail`] = null;
-      patch[`groups[${gi}].cards[${ci}].detailError`] = '';
-      this.setData(patch);
-      return;
-    }
-
-    // 手风琴：关闭其他所有已展开卡片
-    for (let i = 0; i < groups.length; i++) {
-      const cards = groups[i].cards;
-      for (let j = 0; j < cards.length; j++) {
-        if ((i !== gi || j !== ci) && cards[j].expanded) {
-          patch[`groups[${i}].cards[${j}].expanded`] = false;
-          patch[`groups[${i}].cards[${j}].detail`] = null;
-          patch[`groups[${i}].cards[${j}].detailError`] = '';
-        }
-      }
-    }
-    // 展开当前
-    patch[`groups[${gi}].cards[${ci}].expanded`] = true;
-    patch[`groups[${gi}].cards[${ci}].detailLoading`] = true;
-    patch[`groups[${gi}].cards[${ci}].detail`] = null;
-    patch[`groups[${gi}].cards[${ci}].detailError`] = '';
+    const willExpand = !courses[idx].expanded;
+    // 收起其他已展开
+    courses.forEach((c, i) => {
+      if (i !== idx && c.expanded) patch[`courses[${i}].expanded`] = false;
+    });
+    patch[`courses[${idx}].expanded`] = willExpand;
     this.setData(patch);
-
-    try {
-      const resp = await api.getCourseArrangeDetail(id);
-      // 收起竞态检查：以本卡片当前 expanded 为准
-      if (
-        !this.data.groups[gi] ||
-        !this.data.groups[gi].cards[ci] ||
-        !this.data.groups[gi].cards[ci].expanded
-      ) {
-        return;
-      }
-      const classes = (resp.classes || []).map((cls) => ({
-        classId: cls.classId,
-        className: cls.className,
-        isCombined: cls.isCombinedClass,
-        assignment: cls.assignment
-          ? {
-              teacherName: cls.assignment.teacherName,
-              isLocked: cls.assignment.isLocked,
-              isAuto: cls.assignment.isAuto,
-            }
-          : null,
-        weeklyHours: cls.weeklyHours,
-      }));
-      this.setData({
-        [`groups[${gi}].cards[${ci}].detail`]: { classes, summary: resp.summary },
-        [`groups[${gi}].cards[${ci}].detailLoading`]: false,
-      });
-    } catch (err) {
-      if (
-        this.data.groups[gi] &&
-        this.data.groups[gi].cards[ci] &&
-        this.data.groups[gi].cards[ci].expanded
-      ) {
-        this.setData({
-          [`groups[${gi}].cards[${ci}].detailError`]: (err && err.message) || '明细加载失败',
-          [`groups[${gi}].cards[${ci}].detailLoading`]: false,
-        });
-      }
-    }
   },
 
   onPullDownRefresh() {
-    this.reload(true).then(() => wx.stopPullDownRefresh());
+    this.reload().then(() => wx.stopPullDownRefresh());
   },
 });

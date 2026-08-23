@@ -151,6 +151,20 @@ const api = {
     return request({ url: '/api/teaching-arrange/classes', data: { courseId, semester } });
   },
 
+  // 课程查询（对标 WEB 端 CourseQuery 页）：按课程聚合各培养方案采用情况
+  // GET /api/query/course，筛选参数透传；后端 convertRequestNaming 会自动把
+  // camelCase 查询参数转成 snake_case（courseName→course_name 等）。
+  async getCourseQuery(params = {}) {
+    const data = {};
+    if (params.courseName) data.courseName = params.courseName;
+    if (params.courseType) data.courseType = params.courseType;
+    if (params.collegeId) data.collegeId = params.collegeId;
+    if (params.majorId) data.majorId = params.majorId;
+    if (params.trainingLevelId) data.trainingLevelId = params.trainingLevelId;
+    if (params.planStatus) data.planStatus = params.planStatus;
+    return request({ url: '/api/query/course', data });
+  },
+
   // ===== 用户管理（仅超级管理员，后端 roleMiddleware('super_admin') 守门） =====
   // 列表：分页 + keyword 模糊（用户名 / 姓名 / 邮箱）。
   // 按项目约定发 camelCase 参数（pageSize / keyword），后端中间件会自动转 snake。
