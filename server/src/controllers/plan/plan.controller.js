@@ -3,7 +3,11 @@ import { success, fail } from '../../utils/response.js';
 import { NotFoundError, ValidationError } from '../../utils/error.js';
 import { createAuditLog } from '../../services/audit.service.js';
 import { autoFixSortOrder, invalidateSortOrderCache } from '../../utils/sort.js';
-import { findBestMatchPlan, isClassMatchPlan } from '../../services/plan.service.js';
+import {
+  findBestMatchPlan,
+  isClassMatchPlan,
+  NOT_ARCHIVED_PLAN_WHERE,
+} from '../../services/plan.service.js';
 
 /**
  * 解析适用入学年份参数：空值（null/''/undefined）返回 null 表示不限，
@@ -29,10 +33,27 @@ function validateApplyYearRange(fromYear, toYear) {
   }
 }
 
+/** 方案状态合法取值（与路由层 validatePlan/validatePlanCreate 的 isIn 白名单一致） */
+const PLAN_STATUSES = ['draft', 'active', 'archived'];
+
+/**
+ * 控制器层 status 白名单兜底校验（纵深防御）：
+ * 路由中间件已做 isIn 校验，但控制器可被绕过中间件的调用路径复用；
+ * 所有归档拦截均为负逻辑（status != 'archived'），非法值一旦落库会静默参与全部业务匹配。
+ * @param {*} status - 请求体中的状态值（undefined 表示未传，跳过校验）
+ */
+function assertValidPlanStatus(status) {
+  if (status !== undefined && !PLAN_STATUSES.includes(status)) {
+    throw new ValidationError('方案状态必须是 draft、active 或 archived');
+  }
+}
+
 /**
  * 同维度（同专业或同层次）适用入学年份重叠校验：
  * 保证同一专业/层次下任意入学年份最多命中一个方案，匹配结果唯一确定。
  * null 端视为无穷；存量方案两端皆 null 时视为覆盖所有年份。
+ * 归档方案已退出业务匹配，不参与重叠校验（支持「归档旧方案 → 同届新建」操作流）；
+ * 草稿与生效方案均参与匹配，仍互相约束以保证唯一性。
  * @param {object} opts
  * @param {number|null} opts.majorId - 专业维度（与 trainingLevelId 二选一）
  * @param {number|null} opts.trainingLevelId - 层次维度
@@ -48,6 +69,8 @@ async function assertNoApplyYearOverlap({
   excludeId = null,
 }) {
   const where = majorId ? { major_id: majorId } : { training_level_id: trainingLevelId };
+  // 归档方案不再占用适用年份区间（与业务匹配口径一致）
+  where.status = NOT_ARCHIVED_PLAN_WHERE.status;
   if (excludeId != null) where.id = { not: excludeId };
   const others = await prisma.training_plans.findMany({
     where,
@@ -245,6 +268,7 @@ export async function createPlan(req, res, next) {
       apply_to_year,
     } = req.body;
     if (!name) throw new ValidationError('方案名称为必填项');
+    assertValidPlanStatus(status);
 
     if (major_id && training_level_id) {
       throw new ValidationError('专业类别和培养层次只能选择一项');
@@ -343,6 +367,9 @@ export async function updatePlan(req, res, next) {
       apply_from_year,
       apply_to_year,
     } = req.body;
+
+    // status 白名单兜底：覆盖下方「排序交换 / 仅状态快捷 / 完整更新」三条分支
+    assertValidPlanStatus(status);
 
     // 排序交换：仅更新 sort_order
     if (sort_order !== undefined && name === undefined) {

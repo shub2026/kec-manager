@@ -15,7 +15,7 @@
  * - 成功时写审计日志
  * - college_id 字符串→Number() 转换
  * - college_id 为 null → 传 null
- * - status 默认 draft / 显式传值
+ * - status 默认 draft / 显式传值 / 非法值拒绝（白名单兜底）
  * - 完整字段（college_id+version+description+status）全部传入 Prisma
  * - major_id 和 training_level_id 都不传 → 验证错误
  * - Prisma create 抛错 → 记录失败审计日志
@@ -25,7 +25,7 @@
  * - sort_order-only 更新 → 绕过完整验证
  * - 不存在的方案 → 404
  * - college_id 字符串→Number() 转换 / null 传递
- * - status 未传时不包含在 updateData / 显式传值时包含
+ * - status 未传时不包含在 updateData / 显式传值时包含 / 非法值拒绝（白名单兜底）
  * - 完整字段更新所有字段正确传入
  * - college_id 变更→审计日志 collegeChange / 未变更→不含
  * - Prisma update 非 P2025 错误 → 失败审计日志
@@ -70,6 +70,8 @@ const mockIsClassMatchPlan = vi.fn();
 vi.mock('../../../services/plan.service.js', () => ({
   findBestMatchPlan: (...args) => mockFindBestMatchPlan(...args),
   isClassMatchPlan: (...args) => mockIsClassMatchPlan(...args),
+  // 与真实实现同构的常量（归档排除条件）
+  NOT_ARCHIVED_PLAN_WHERE: { status: { not: 'archived' } },
 }));
 
 vi.mock('../../../utils/logger.js', () => ({
@@ -480,6 +482,20 @@ describe('createPlan — 创建培养方案', () => {
     expect(createCall.data.status).toBe('active');
   });
 
+  it('status 非法值（如大小写错误的 Archived）→ 拒绝且不落库', async () => {
+    const req = mockReq({ name: '非法状态方案', major_id: 1, status: 'Archived' });
+    const res = mockRes();
+    const next = vi.fn();
+    await createPlan(req, res, next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: '方案状态必须是 draft、active 或 archived',
+      })
+    );
+    expect(mockPrisma.training_plans.create).not.toHaveBeenCalled();
+  });
+
   it('完整字段（college_id + version + description + status）全部传入 Prisma', async () => {
     mockPrisma.training_plans.create.mockResolvedValue({
       id: 24,
@@ -661,6 +677,21 @@ describe('updatePlan — 更新培养方案', () => {
         details: expect.objectContaining({ status: 'active', type: 'status' }),
       })
     );
+  });
+
+  it('status-only 快捷分支传非法值 → 拒绝且不触发 prisma.update', async () => {
+    const req = mockReq({ status: 'invalid_status' }, { id: '1' });
+    const res = mockRes();
+    const next = vi.fn();
+    await updatePlan(req, res, next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: '方案状态必须是 draft、active 或 archived',
+      })
+    );
+    expect(mockPrisma.training_plans.update).not.toHaveBeenCalled();
+    expect(mockPrisma.training_plans.findUnique).not.toHaveBeenCalled();
   });
 
   it('不存在的方案（P2025）→ status-only 路径返回 404', async () => {
@@ -1094,6 +1125,75 @@ describe('createPlan — 适用入学年份范围', () => {
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({ message: expect.stringContaining('旧方案') })
     );
+  });
+
+  it('重叠校验 where 排除归档方案（支持「归档旧方案 → 同届新建」操作流）', async () => {
+    mockPrisma.training_plans.create.mockResolvedValue({
+      id: 32,
+      name: '同届新方案',
+      majors: { id: 1, name: '学前教育' },
+      colleges: null,
+      training_levels: null,
+    });
+
+    const req = mockReq({ name: '同届新方案', major_id: 1, apply_from_year: 2025 });
+    const res = mockRes();
+    await createPlan(req, res, vi.fn());
+
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    // 归档方案在 DB 层被排除，不会占用适用年份区间
+    const overlapWhere = mockPrisma.training_plans.findMany.mock.calls[0][0].where;
+    expect(overlapWhere).toEqual({
+      major_id: 1,
+      status: { not: 'archived' },
+    });
+  });
+
+  it('与非归档（生效/草稿）方案重叠 → 仍拒绝（回归保护）', async () => {
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      { id: 6, name: '生效方案', status: 'active', apply_from_year: null, apply_to_year: null },
+    ]);
+
+    const req = mockReq({ name: 'V2', training_level_id: 2, apply_from_year: 2026 });
+    const next = vi.fn();
+    await createPlan(req, mockRes(), next);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('生效方案') })
+    );
+    expect(mockPrisma.training_plans.create).not.toHaveBeenCalled();
+  });
+
+  it('updatePlan 完整更新路径的重叠校验同样排除归档并排除自身', async () => {
+    mockPrisma.training_plans.findMany.mockResolvedValue([]);
+    mockPrisma.training_plans.findUnique.mockResolvedValue({
+      id: 1,
+      college_id: null,
+      colleges: null,
+      apply_from_year: null,
+      apply_to_year: null,
+    });
+    mockPrisma.training_plans.update.mockResolvedValue({
+      id: 1,
+      name: '更新',
+      major_id: 1,
+      training_level_id: null,
+      colleges: null,
+      majors: null,
+      training_levels: null,
+    });
+
+    const req = mockReq({ name: '更新', major_id: 1 }, { id: '1' });
+    const res = mockRes();
+    await updatePlan(req, res, vi.fn());
+
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    const overlapWhere = mockPrisma.training_plans.findMany.mock.calls[0][0].where;
+    expect(overlapWhere).toEqual({
+      major_id: 1,
+      status: { not: 'archived' },
+      id: { not: 1 },
+    });
   });
 });
 
