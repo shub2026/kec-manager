@@ -222,7 +222,23 @@ describe('getClassesWithCourse - 0 课时过滤', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('semRecord 不存在时回退 pc.weekly_hours=0 也应被过滤', async () => {
+  it('semRecord 不存在但 pc.weekly_hours>0 应回退并正常返回', async () => {
+    // 口径统一回归：缺学期记录时回退方案课程默认周课时，与开课查询/首页推导一致
+    // （修复前 getClassesWithCourse 要求 semRecord 必须存在，会漏排"有默认周课时但未单独建学期记录"的班级）
+    const pc = makePlanCourse(1, [
+      makeSemRecord(99, 4), // semester=99，不匹配 currentSemesterNum=2 → semRecord 为 undefined
+    ]);
+    pc.weekly_hours = 4; // 回退到默认周课时
+    const cls = makeClass(10, '25级1班');
+    setupMocks([pc], [cls]);
+
+    const result = await getClassesWithCourse(COURSE_ID, SEMESTER_STR);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].weeklyHours).toBe(4);
+  });
+
+  it('semRecord 不存在且 pc.weekly_hours=0 应被过滤', async () => {
     // semRecord 的 semester 不匹配当前学期 → semRecord 为 undefined → 回退到 pc.weekly_hours
     const pc = makePlanCourse(1, [
       makeSemRecord(99, 4), // semester=99，不匹配 currentSemesterNum=2

@@ -98,6 +98,29 @@ export function isClassMatchPlan(cls, plan) {
 }
 
 /**
+ * 判断方案在指定学期是否有至少一门有效开课（开课推导统一口径）
+ *
+ * 口径：plan_courses 的 start/end_semester 覆盖当前学期，且周课时 > 0；
+ * 周课时优先取 plan_course_semesters 的学期覆盖值，缺省回退方案课程默认值。
+ * 供开课查询/导出/筛选选项等链路共用，保证"本学期是否开课"判定一致。
+ *
+ * @param {object} plan - 培养方案对象（含 plan_courses，每项含 start/end_semester、weekly_hours、plan_course_semesters）
+ * @param {number} currentSemesterNum - 班级在读学期序号
+ * @returns {boolean} 是否有有效开课
+ */
+export function planHasOfferedCourses(plan, currentSemesterNum) {
+  return (plan.plan_courses || []).some((pc) => {
+    if (pc.start_semester > currentSemesterNum || pc.end_semester < currentSemesterNum) {
+      return false;
+    }
+    const semRecord = (pc.plan_course_semesters || []).find(
+      (s) => s.semester === currentSemesterNum
+    );
+    return (semRecord?.weekly_hours ?? pc.weekly_hours) > 0;
+  });
+}
+
+/**
  * 为班级查找最佳匹配的培养方案
  * M-4: 区分匹配优先级——自定义方案 > 专业匹配 > 层次匹配
  * @param {object} cls - 班级对象

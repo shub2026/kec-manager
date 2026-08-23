@@ -131,22 +131,20 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
     // 循环内按实际年级精确复核，确保只返回目标 grade 的班级（结果变少且正确）。
     if (filters.grade && calc.grade !== Number(filters.grade)) continue;
 
-    // 找到班级当前学期的学期记录
-    const semRecord = pc.plan_course_semesters.find(
-      (s) =>
-        s.semester === calc.currentSemesterNum &&
-        s.semester >= pc.start_semester &&
-        s.semester <= pc.end_semester
-    );
-    if (!semRecord) continue;
+    // 与开课查询/首页口径一致：先判 start/end 覆盖，学期记录可缺省
+    // （缺省时回退方案课程默认周课时/周数），避免"开课查询显示开课、排课页却不视为应排"的分歧
+    if (pc.start_semester > calc.currentSemesterNum || pc.end_semester < calc.currentSemesterNum) {
+      continue;
+    }
+    const semRecord = pc.plan_course_semesters.find((s) => s.semester === calc.currentSemesterNum);
 
-    const weeklyHours = semRecord.weekly_hours ?? pc.weekly_hours;
+    const weeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours;
     // 过滤周课时为 0 的课程（本学期暂不开课）
     if (weeklyHours <= 0) continue;
     // B5 修复：weekly_hours 存在而 weeks_count 与 weeks_per_semester 同时缺失时，
     // 原 `weeklyHours * null` 会得到 NaN。补充 18 周兜底默认值，消除 NaN。
-    const weeksCount = semRecord.weeks_count ?? pc.weeks_per_semester ?? 18;
-    const textbooks = semRecord.plan_textbooks.map((pt) => pt.textbooks);
+    const weeksCount = semRecord?.weeks_count ?? pc.weeks_per_semester ?? 18;
+    const textbooks = (semRecord?.plan_textbooks || []).map((pt) => pt.textbooks);
 
     results.push({
       classId: cls.id,
@@ -161,7 +159,8 @@ export async function getClassesWithCourse(courseId, semesterStr, filters = {}) 
       grade: calc.grade,
       enrollmentYear: cls.enrollment_year,
       studentCount: cls.student_count || 0,
-      currentSemester: semRecord.semester,
+      // 回退语义：semRecord 缺失时回退到当前学期编号（与 planHasOfferedCourses 谓词一致）
+      currentSemester: semRecord?.semester ?? calc.currentSemesterNum,
       weeklyHours,
       weeksCount,
       totalHours: weeklyHours * weeksCount,
@@ -420,7 +419,9 @@ export async function getTeachersForCourse(courseId, semesterStr) {
       orderBy: [{ training_plans: { sort_order: 'asc' } }, { id: 'asc' }],
     });
     // 归档方案不参与排课教材推导
-    const allPlanCourses = allPlanCoursesRaw.filter((pc) => pc.training_plans?.status !== 'archived');
+    const allPlanCourses = allPlanCoursesRaw.filter(
+      (pc) => pc.training_plans?.status !== 'archived'
+    );
     // 按 course_id 分组
     const planCoursesByCourse = new Map();
     for (const pc of allPlanCourses) {

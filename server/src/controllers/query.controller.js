@@ -6,7 +6,7 @@ import { calcClassSemester, buildConsecutiveTextbookMap } from '../services/seme
 import {
   findBestMatchPlan,
   buildClassWithPlanFilter,
-  isClassMatchPlan,
+  planHasOfferedCourses,
   NOT_ARCHIVED_PLAN_WHERE,
 } from '../services/plan.service.js';
 import { log } from '../utils/logger.js';
@@ -21,26 +21,19 @@ export function invalidateQueryFilterCache() {
   queryFilterCache.clear();
 }
 
-async function getQueryFilterOptions(semesterInfo, activeFilter, planFilter) {
+async function getQueryFilterOptions(semesterInfo, baseWhere) {
   const cacheKey = semesterInfo.raw;
   const cached = queryFilterCache.get(cacheKey);
   if (cached && Date.now() - cached.at < QUERY_FILTER_TTL) {
     return cached.data;
   }
 
-  // 使用不含用户筛选条件的基础 where，保证下拉选项稳定
-  const baseWhere = { AND: [activeFilter, planFilter] };
-
-  const allMatchingClasses = await prisma.classes.findMany({
-    where: baseWhere,
-    select: {
-      enrollment_year: true,
-      duration_years: true,
-      college_id: true,
-      major_id: true,
-      training_level_id: true,
-    },
-  });
+  // 以"当前学期有开课"的班级集合为选项口径（与主列表一致），
+  // 避免下拉出现无开课的维度（如全部班级本学期均无课的入学年份）
+  const { validClasses: allMatchingClasses } = await computeOfferedClassSet(
+    semesterInfo,
+    baseWhere
+  );
 
   const enrollmentYearSet = new Set();
   const gradeSet = new Set();
@@ -128,66 +121,126 @@ const CLASS_FULL_INCLUDE = {
 };
 
 /**
- * 预筛选出"最佳匹配方案"等于指定方案的班级 ID 列表。
- * 班级与方案的匹配（自定义 > 专业 > 层次）由 findBestMatchPlan 在 JS 侧计算，
- * 无法直接下推为 DB where 条件，故轻量查询全部候选班级逐个计算最佳方案。
- * 返回结果按主查询 orderBy 一致排序（入学年份降序，id 升序兜底），保证分页顺序稳定。
- * @param {object} classWhere - 已含学期/学院/专业等筛选的班级 where 条件
- * @param {number} planId - 目标培养方案 ID（调用方已校验存在）
- * @param {object} semesterInfo - 查询学期信息（用于在读校验）
- * @returns {Promise<number[]>} 匹配的班级 ID（按分页顺序）
+ * 预计算"当前学期有开课"的班级集合（开课推导统一口径）
+ *
+ * 对 classWhere 内的候选班级逐班计算最佳匹配方案，并保留
+ * 最佳方案在当前学期有有效开课（planHasOfferedCourses）的班级。
+ * "是否有开课"依赖 JS 侧方案匹配，无法下推为 DB where，故先轻量全量取数再逐班计算，
+ * 调用方基于返回的 valid 集合做筛选/分页，保证总数与明细口径一致。
+ *
+ * @param {object} semesterInfo - 已解析的查询学期信息
+ * @param {object} classWhere - 班级过滤条件（含用户筛选）
+ * @returns {Promise<{validClasses: Array, unmatched: Array, matchingPlans: Array, classPlanMap: Map}>}
+ *          validClasses 按入学年份降序、id 升序排序，每项附 bestPlanId
  */
-async function filterClassIdsByPlan(classWhere, planId, semesterInfo) {
+async function computeOfferedClassSet(semesterInfo, classWhere) {
   const candidates = await prisma.classes.findMany({
     where: classWhere,
     select: {
       id: true,
+      name: true,
+      enrollment_year: true,
+      duration_years: true,
+      college_id: true,
       major_id: true,
       training_level_id: true,
       custom_plan_id: true,
-      enrollment_year: true,
-      duration_years: true,
     },
   });
 
-  // 与主流程一致：跳过在读校验不通过的班级（防御性守卫）
-  const validClasses = candidates.filter((cls) => calcClassSemester(cls, semesterInfo));
-
+  // 收集维度加载候选方案；自定义方案纳入候选，避免 findBestMatchPlan 找不到钉住的方案而误判
   const majorIds = new Set();
   const levelIds = new Set();
-  const explicitPlanIds = new Set([planId]);
-  for (const cls of validClasses) {
+  const customPlanIds = new Set();
+  for (const cls of candidates) {
     if (cls.major_id) majorIds.add(cls.major_id);
     if (cls.training_level_id) levelIds.add(cls.training_level_id);
-    // 自定义方案纳入候选，避免 findBestMatchPlan 找不到钉住的方案而误判
-    if (cls.custom_plan_id != null) explicitPlanIds.add(cls.custom_plan_id);
+    if (cls.custom_plan_id != null) customPlanIds.add(cls.custom_plan_id);
   }
 
   const planOrConditions = [];
   if (majorIds.size > 0) planOrConditions.push({ major_id: { in: [...majorIds] } });
   if (levelIds.size > 0) planOrConditions.push({ training_level_id: { in: [...levelIds] } });
-  planOrConditions.push({ id: { in: [...explicitPlanIds] } });
+  if (customPlanIds.size > 0) planOrConditions.push({ id: { in: [...customPlanIds] } });
 
-  // 仅取匹配所需字段，不加载课程/教材明细，控制开销；归档方案不参与匹配
-  const matchingPlans = await prisma.training_plans.findMany({
-    where: { ...NOT_ARCHIVED_PLAN_WHERE, OR: planOrConditions },
-    select: {
-      id: true,
-      major_id: true,
-      training_level_id: true,
-      apply_from_year: true,
-      apply_to_year: true,
-      created_at: true,
-    },
-  });
+  // 仅取匹配所需方案；归档方案不参与匹配；include 课程/学期/教材明细供结果构造复用
+  const matchingPlans =
+    planOrConditions.length > 0
+      ? await prisma.training_plans.findMany({
+          where: { ...NOT_ARCHIVED_PLAN_WHERE, OR: planOrConditions },
+          include: {
+            plan_courses: {
+              // 禁用课程不参与开课清单/连续教材检测
+              where: { is_active: true },
+              include: {
+                courses: { select: { id: true, name: true, type: true } },
+                plan_course_semesters: {
+                  include: {
+                    plan_textbooks: {
+                      include: {
+                        textbooks: {
+                          select: { id: true, title: true, isbn: true, publisher: true },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        })
+      : [];
 
-  const matched = validClasses.filter((cls) => {
-    const bestPlan = findBestMatchPlan(cls, matchingPlans);
-    return bestPlan?.id === planId;
-  });
+  // 自定义方案映射（matchingPlans 已排除归档，归档自定义方案天然不命中）
+  const classPlanMap = new Map();
+  for (const cls of candidates) {
+    if (cls.custom_plan_id != null) {
+      const customPlan = matchingPlans.find((p) => p.id === cls.custom_plan_id);
+      if (customPlan) classPlanMap.set(cls.id, customPlan);
+    }
+  }
 
-  matched.sort((a, b) => b.enrollment_year - a.enrollment_year || a.id - b.id);
-  return matched.map((c) => c.id);
+  const validClasses = [];
+  const unmatched = [];
+  for (const cls of candidates) {
+    const calc = calcClassSemester(cls, semesterInfo);
+    if (!calc) continue;
+
+    const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
+    if (!plan) {
+      // 收集无匹配方案的班级（如 custom_plan_id 指向已删除方案），暴露给前端提示重新关联
+      log.warn('班级无匹配方案', {
+        className: cls.name,
+        major_id: cls.major_id,
+        level_id: cls.training_level_id,
+      });
+      unmatched.push({
+        classId: cls.id,
+        className: cls.name,
+        major_id: cls.major_id,
+        training_level_id: cls.training_level_id,
+        custom_plan_id: cls.custom_plan_id,
+        reason: cls.custom_plan_id ? '自定义方案已失效，请重新关联' : '无匹配培养方案',
+      });
+      continue;
+    }
+
+    // 仅保留最佳匹配方案在当前学期有有效开课的班级
+    if (!planHasOfferedCourses(plan, calc.currentSemesterNum)) {
+      log.debug('方案无当前学期有效课程', {
+        className: cls.name,
+        planName: plan.name,
+        currentSemester: calc.currentSemesterNum,
+      });
+      continue;
+    }
+
+    validClasses.push({ ...cls, bestPlanId: plan.id });
+  }
+
+  validClasses.sort((a, b) => b.enrollment_year - a.enrollment_year || a.id - b.id);
+  // 重构修复：返回键名对齐解构名（unmatchedClasses），避免下游取到 undefined
+  return { validClasses, unmatchedClasses: unmatched, matchingPlans, classPlanMap };
 }
 
 /**
@@ -279,7 +332,7 @@ export async function querySemester(req, res, next) {
 
     // 优化2：筛选器下拉选项使用按学期缓存（TTL 5分钟），避免每次请求重复全量查询。
     // 选项仅依赖学期（不随用户筛选条件变化），保证下拉稳定且缓存命中率高。
-    const filterOptions = await getQueryFilterOptions(semesterInfo, activeFilter, planFilter);
+    const filterOptions = await getQueryFilterOptions(semesterInfo, baseWhere);
     const availableEnrollmentYears = filterOptions.enrollmentYears;
     const availableGrades = filterOptions.grades;
     const availableCollegeIds = filterOptions.collegeIds;
@@ -289,95 +342,28 @@ export async function querySemester(req, res, next) {
     const collegeLevelRelation = filterOptions.collegeLevelRelation;
     const majorLevelRelation = filterOptions.majorLevelRelation;
 
-    let totalClassesCount;
-    let classes;
+    // 预计算"当前学期有开课"的班级集合（开课推导统一口径）：
+    // "最佳匹配方案在当前学期是否有有效课程"依赖 JS 侧方案匹配，无法下推为 DB 条件，
+    // 故先在 JS 侧算出 valid 集合，再基于它筛选/分页，保证总数与明细口径一致。
+    const { validClasses, unmatchedClasses, matchingPlans, classPlanMap } =
+      await computeOfferedClassSet(semesterInfo, classWhere);
 
-    if (planIdNum != null) {
-      const matchedIds = await filterClassIdsByPlan(classWhere, planIdNum, semesterInfo);
-      totalClassesCount = matchedIds.length;
-      const pageIds = matchedIds.slice((pageNum - 1) * pageSizeNum, pageNum * pageSizeNum);
-      classes =
-        pageIds.length > 0
-          ? await prisma.classes.findMany({
-              where: { AND: [classWhere, { id: { in: pageIds } }] },
-              include: CLASS_FULL_INCLUDE,
-              orderBy: { enrollment_year: 'desc' },
-            })
-          : [];
-    } else {
-      // 修复A：分页总数与 DB 取数基准(classWhere)完全一致，
-      // 保证所有在读+有方案班级均可通过分页到达。
-      // 原实现多加了 teaching_assignments.some 条件，导致 total < 实际班级数，
-      // 多出来的页永远无法被前端请求，部分班级永久不可见。
-      totalClassesCount = await prisma.classes.count({ where: classWhere });
-      classes = await prisma.classes.findMany({
-        where: classWhere,
-        include: CLASS_FULL_INCLUDE,
-        orderBy: { enrollment_year: 'desc' },
-        skip: (pageNum - 1) * pageSizeNum,
-        take: pageSizeNum,
-      });
-    }
+    // 按培养方案筛选：仅保留最佳匹配方案为目标方案的班级
+    const offeredClasses =
+      planIdNum != null ? validClasses.filter((c) => c.bestPlanId === planIdNum) : validClasses;
 
-    // 第二步：预加载相关培养方案
-    const majorPlanIds = new Set();
-    const levelPlanIds = new Set();
-    const customPlanIds = new Set();
-    const classPlanMap = new Map();
+    const totalClassesCount = offeredClasses.length;
+    const pageIds = offeredClasses
+      .slice((pageNum - 1) * pageSizeNum, pageNum * pageSizeNum)
+      .map((c) => c.id);
 
-    for (const cls of classes) {
-      const calc = calcClassSemester(cls, semesterInfo);
-      if (!calc) continue;
-      if (cls.custom_plan_id) {
-        // 归档方案不参与匹配：不进入 classPlanMap，班级将落入 unmatchedClasses 提示重新关联
-        if (cls.training_plans && cls.training_plans.status !== 'archived') {
-          classPlanMap.set(cls.id, cls.training_plans);
-        }
-        customPlanIds.add(cls.custom_plan_id);
-      }
-      // 始终收集 major/level（即使有 custom_plan_id 也收集，用于兜底匹配）
-      if (cls.major_id) majorPlanIds.add(cls.major_id);
-      if (cls.training_level_id) levelPlanIds.add(cls.training_level_id);
-    }
-
-    // 构建匹配方案的 OR 条件
-    const planOrConditions = [];
-    if (majorPlanIds.size > 0) {
-      planOrConditions.push({ major_id: { in: [...majorPlanIds] } });
-    }
-    if (levelPlanIds.size > 0) {
-      planOrConditions.push({ training_level_id: { in: [...levelPlanIds] } });
-    }
-    // 修复：将 custom_plan_id 引用的方案也纳入匹配列表，
-    // 避免自定义方案因无 major_id/training_level_id 匹配而缺失
-    if (customPlanIds.size > 0) {
-      planOrConditions.push({ id: { in: [...customPlanIds] } });
-    }
-
-    const matchingPlans =
-      planOrConditions.length > 0
-        ? await prisma.training_plans.findMany({
-            where: { ...NOT_ARCHIVED_PLAN_WHERE, OR: planOrConditions },
-            include: {
-              plan_courses: {
-                // 禁用课程不参与开课清单/连续教材检测
-                where: { is_active: true },
-                include: {
-                  courses: { select: { id: true, name: true, type: true } },
-                  plan_course_semesters: {
-                    include: {
-                      plan_textbooks: {
-                        include: {
-                          textbooks: {
-                            select: { id: true, title: true, isbn: true, publisher: true },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
+    // 当页班级取完整数据（供课程/教材明细展示）
+    const classes =
+      pageIds.length > 0
+        ? await prisma.classes.findMany({
+            where: { id: { in: pageIds } },
+            include: CLASS_FULL_INCLUDE,
+            orderBy: { enrollment_year: 'desc' },
           })
         : [];
 
@@ -408,9 +394,6 @@ export async function querySemester(req, res, next) {
     const consecutiveMap = await buildConsecutiveTextbookMap(textbookRecords);
 
     const results = [];
-    // 修复C：收集无匹配方案的班级（如 custom_plan_id 指向已删除方案），
-    // 暴露给前端提示用户重新关联，避免静默跳过
-    const unmatchedClasses = [];
 
     for (const cls of classes) {
       const calc = calcClassSemester(cls, semesterInfo);
@@ -418,21 +401,11 @@ export async function querySemester(req, res, next) {
 
       const plan = findBestMatchPlan(cls, matchingPlans, classPlanMap);
       if (!plan) {
-        // 修复C：保持 findBestMatchPlan 匹配语义不变（有 custom_plan_id 时不回退到 major/level，
-        // 避免自定义方案被删除后误匹配到通用方案），但收集到 unmatchedClasses 暴露给前端，
-        // 避免"静默跳过导致班级不可见"的问题。
+        // unmatchedClasses 已在预计算阶段全量收集；此处未命中说明两次查询间数据变化，直接跳过
         log.warn('班级无匹配方案', {
           className: cls.name,
           major_id: cls.major_id,
           level_id: cls.training_level_id,
-        });
-        unmatchedClasses.push({
-          classId: cls.id,
-          className: cls.name,
-          major_id: cls.major_id,
-          training_level_id: cls.training_level_id,
-          custom_plan_id: cls.custom_plan_id,
-          reason: cls.custom_plan_id ? '自定义方案已失效，请重新关联' : '无匹配培养方案',
         });
         continue;
       }
@@ -475,18 +448,6 @@ export async function querySemester(req, res, next) {
             })),
           };
         });
-
-      // 修复B：本学期无有效课程的班级也展示（courses=[]，开课数显示 0），
-      // 使 results 与 total 口径一致，用户能看到全部在读+有方案班级。
-      // 原实现 continue 跳过，导致"所有班级都关联了方案但只显示部分"的观感。
-      if (courses.length === 0) {
-        log.debug('方案无当前学期有效课程', {
-          className: cls.name,
-          planName: plan.name,
-          currentSemester: calc.currentSemesterNum,
-          totalPlanCourses: planCourses.length,
-        });
-      }
 
       results.push({
         classId: cls.id,
@@ -552,7 +513,7 @@ export async function queryTextbookUsage(req, res, next) {
     if (!textbook) return fail(res, '教材不存在', 404);
 
     const activeFilter = await getActiveClassFilter(semesterInfo);
-    const [planTextbooks, allClasses] = await Promise.all([
+    const [planTextbooks, allClasses, allPlans] = await Promise.all([
       prisma.plan_textbooks.findMany({
         where: { textbook_id: Number(id) },
         include: {
@@ -576,7 +537,28 @@ export async function queryTextbookUsage(req, res, next) {
           training_levels: true,
         },
       }),
+      // 非归档方案维度字段，供最佳匹配方案计算（与开课查询口径统一）
+      prisma.training_plans.findMany({
+        where: NOT_ARCHIVED_PLAN_WHERE,
+        select: {
+          id: true,
+          major_id: true,
+          training_level_id: true,
+          apply_from_year: true,
+          apply_to_year: true,
+          created_at: true,
+        },
+      }),
     ]);
+
+    // 自定义方案映射（供 findBestMatchPlan 优先匹配 custom_plan_id）
+    const classPlanMap = new Map();
+    for (const cls of allClasses) {
+      if (cls.custom_plan_id != null) {
+        const customPlan = allPlans.find((p) => p.id === cls.custom_plan_id);
+        if (customPlan) classPlanMap.set(cls.id, customPlan);
+      }
+    }
 
     const consecutiveMap = await buildConsecutiveTextbookMap(
       planTextbooks.map((pt) => ({
@@ -610,8 +592,9 @@ export async function queryTextbookUsage(req, res, next) {
         const compositeKey = `${cls.id}_${pc.course_id}`;
         if (addedClassCourseIds.has(compositeKey)) continue;
 
-        // 使用统一的方案匹配逻辑（三级互斥，null-safe）
-        if (!isClassMatchPlan(cls, plan)) continue;
+        // 全局唯一最佳匹配方案口径（与开课查询一致），避免维度匹配列出幻影班级
+        const bestPlan = findBestMatchPlan(cls, allPlans, classPlanMap);
+        if (!bestPlan || bestPlan.id !== plan.id) continue;
 
         const calc = calcClassSemester(cls, semesterInfo);
         if (!calc || calc.currentSemesterNum !== sem.semester) continue;
@@ -672,14 +655,8 @@ export async function queryTextbookUsage(req, res, next) {
  */
 export async function queryCoursePlans(req, res, next) {
   try {
-    const {
-      course_name,
-      course_type,
-      college_id,
-      major_id,
-      training_level_id,
-      plan_status,
-    } = req.query;
+    const { course_name, course_type, college_id, major_id, training_level_id, plan_status } =
+      req.query;
 
     const result = await aggregateCoursePlans({
       courseName: course_name,
@@ -749,7 +726,9 @@ export async function aggregateCoursePlans({
           plan_textbooks: {
             select: {
               is_required: true,
-              textbooks: { select: { id: true, title: true, isbn: true, publisher: true, is_active: true } },
+              textbooks: {
+                select: { id: true, title: true, isbn: true, publisher: true, is_active: true },
+              },
             },
           },
         },
@@ -797,8 +776,7 @@ export async function aggregateCoursePlans({
         isRequired: pt.is_required ?? true,
       })),
     }));
-    const totalHours =
-      Math.round(semesters.reduce((sum, s) => sum + s.hours, 0) * 100) / 100;
+    const totalHours = Math.round(semesters.reduce((sum, s) => sum + s.hours, 0) * 100) / 100;
 
     const plan = row.training_plans;
     courseMap.get(course.id).plans.push({

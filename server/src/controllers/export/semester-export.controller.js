@@ -224,45 +224,33 @@ async function buildSemesterExportData(semesterInfo, filters) {
       合班教学: combinationText,
     };
 
-    if (planCourses.length === 0) {
-      // 修复B：本学期无有效课程的班级也输出一行（课程明细为空），
-      // 与开课查询口径保持一致，使导出包含全部在读+有方案班级
+    // 与开课查询口径一致：最佳匹配方案本学期无有效课程的班级不输出
+    if (planCourses.length === 0) continue;
+
+    for (const pc of planCourses) {
+      const semRecord = pc.plan_course_semesters?.find((s) => s.semester === currentSemesterNum);
+      const textbooks = semRecord?.plan_textbooks || [];
+      const weeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours;
+      const weeksCount = semRecord?.weeks_count ?? pc.weeks_per_semester;
+
+      // 拆分教材名称和征订情况为独立列
+      const textbookNames = textbooks.map((pt) => pt.textbooks.title);
+      const textbookStatuses = textbooks.map((pt) => {
+        const isConsecutive =
+          consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(semRecord?.semester) ?? false;
+        return isConsecutive ? '选定' : pt.is_required ? '必订' : '选修';
+      });
+
       rows.push({
         ...baseRow,
-        课程: '无',
-        课程类型: '-',
-        周课时: 0,
-        学期总课时: 0,
-        教材名称: '未指定',
-        书号: '-',
-        征订情况: '-',
+        课程: pc.courses.name,
+        课程类型: pc.courses.type === 'public' ? '公共课' : '专业课',
+        周课时: weeklyHours,
+        学期总课时: weeklyHours * weeksCount,
+        教材名称: textbookNames.join('、') || '未指定',
+        书号: textbooks.map((pt) => pt.textbooks.isbn || '-').join('、') || '-',
+        征订情况: textbookStatuses.join('、') || '-',
       });
-    } else {
-      for (const pc of planCourses) {
-        const semRecord = pc.plan_course_semesters?.find((s) => s.semester === currentSemesterNum);
-        const textbooks = semRecord?.plan_textbooks || [];
-        const weeklyHours = semRecord?.weekly_hours ?? pc.weekly_hours;
-        const weeksCount = semRecord?.weeks_count ?? pc.weeks_per_semester;
-
-        // 拆分教材名称和征订情况为独立列
-        const textbookNames = textbooks.map((pt) => pt.textbooks.title);
-        const textbookStatuses = textbooks.map((pt) => {
-          const isConsecutive =
-            consecutiveMap.get(`${pc.id}_${pt.textbook_id}`)?.has(semRecord?.semester) ?? false;
-          return isConsecutive ? '选定' : pt.is_required ? '必订' : '选修';
-        });
-
-        rows.push({
-          ...baseRow,
-          课程: pc.courses.name,
-          课程类型: pc.courses.type === 'public' ? '公共课' : '专业课',
-          周课时: weeklyHours,
-          学期总课时: weeklyHours * weeksCount,
-          教材名称: textbookNames.join('、') || '未指定',
-          书号: textbooks.map((pt) => pt.textbooks.isbn || '-').join('、') || '-',
-          征订情况: textbookStatuses.join('、') || '-',
-        });
-      }
     }
   }
 
@@ -394,7 +382,14 @@ export async function exportSemesterSchedulePost(req, res, next) {
       }
     }
 
-    const filters = { college_id, major_id, training_level_id, enrollment_year, grade, training_plan_id };
+    const filters = {
+      college_id,
+      major_id,
+      training_level_id,
+      enrollment_year,
+      grade,
+      training_plan_id,
+    };
     const { rows } = await buildSemesterExportData(semesterInfo, filters);
     await sendExportResponse(res, req, semesterInfo, rows);
   } catch (e) {

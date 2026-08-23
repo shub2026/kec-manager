@@ -281,6 +281,8 @@ describe('exportSemesterSchedule (GET)', () => {
     });
 
     it('本学期无有效课程的班级不应出现在导出中', async () => {
+      // 新口径：开课查询/导出统一，无有效课程的班级直接被 continue 排除
+      // （与开课查询页 planHasOfferedCourses 谓词一致）
       mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
 
       // 课程的 plan_course_semesters 中无当前学期记录，且 weekly_hours=0
@@ -304,14 +306,13 @@ describe('exportSemesterSchedule (GET)', () => {
 
       await exportSemesterSchedule(req, res, next);
 
-      // 修复B：周课时为0的课程被过滤 → 无有效课程 → 班级输出一行汇总（课程='无'，开课数=0）
+      // 新口径：班级无任何本学期有效课程 → 整班不输出
       const rows = mocks.createWorkbook.mock.calls[0][1];
-      expect(rows).toHaveLength(1);
-      expect(rows[0].课程).toBe('无');
-      expect(rows[0].开课数).toBe(0);
+      expect(rows).toHaveLength(0);
     });
 
     it('课程不在当前学期范围内应被过滤', async () => {
+      // 新口径：开课查询/导出统一，本学期无课程的班级整班被 continue 排除
       mocks.getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
 
       // 课程只在第3-4学期开设
@@ -333,10 +334,9 @@ describe('exportSemesterSchedule (GET)', () => {
 
       await exportSemesterSchedule(req, res, next);
 
-      // 修复B：课程不在当前学期范围 → 无有效课程 → 班级输出一行汇总（课程='无'）
+      // 新口径：本学期无任何匹配课程 → 整班不输出
       const rows = mocks.createWorkbook.mock.calls[0][1];
-      expect(rows).toHaveLength(1);
-      expect(rows[0].课程).toBe('无');
+      expect(rows).toHaveLength(0);
     });
 
     it('无匹配方案的班级不应出现在导出中', async () => {
@@ -420,8 +420,9 @@ describe('exportSemesterSchedule (GET)', () => {
       const clsB = makeClass({ id: 2, name: '班级B', major_id: 11 });
       mocks.classesFindMany.mockResolvedValue([clsA, clsB]);
 
-      const planA = makePlan({ id: 100, name: '方案A' });
-      const planB = makePlan({ id: 200, name: '方案B', major_id: 11 });
+      // 方案需带本学期有开课的 plan_courses，否则整班会被 continue 排除（新口径）
+      const planA = makePlan({ id: 100, name: '方案A', plan_courses: [makePlanCourse()] });
+      const planB = makePlan({ id: 200, name: '方案B', major_id: 11, plan_courses: [makePlanCourse()] });
       mocks.trainingPlansFindMany.mockResolvedValue([planA, planB]);
       mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
       mocks.findBestMatchPlan.mockImplementation((cls) => (cls.major_id === 10 ? planA : planB));
@@ -442,8 +443,8 @@ describe('exportSemesterSchedule (GET)', () => {
       const clsB = makeClass({ id: 2, name: '班级B', major_id: 11 });
       mocks.classesFindMany.mockResolvedValue([clsA, clsB]);
 
-      const planA = makePlan({ id: 100, name: '方案A' });
-      const planB = makePlan({ id: 200, name: '方案B', major_id: 11 });
+      const planA = makePlan({ id: 100, name: '方案A', plan_courses: [makePlanCourse()] });
+      const planB = makePlan({ id: 200, name: '方案B', major_id: 11, plan_courses: [makePlanCourse()] });
       mocks.trainingPlansFindMany.mockResolvedValue([planA, planB]);
       mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
       mocks.findBestMatchPlan.mockImplementation((cls) => (cls.major_id === 10 ? planA : planB));
@@ -636,8 +637,9 @@ describe('exportSemesterSchedulePost (POST)', () => {
     const clsB = makeClass({ id: 2, name: '班级B', major_id: 11 });
     mocks.classesFindMany.mockResolvedValue([clsA, clsB]);
 
-    const planA = makePlan({ id: 100, name: '方案A' });
-    const planB = makePlan({ id: 200, name: '方案B', major_id: 11 });
+    // 方案需带本学期有开课的 plan_courses，否则整班会被 continue 排除（新口径）
+    const planA = makePlan({ id: 100, name: '方案A', plan_courses: [makePlanCourse()] });
+    const planB = makePlan({ id: 200, name: '方案B', major_id: 11, plan_courses: [makePlanCourse()] });
     mocks.trainingPlansFindMany.mockResolvedValue([planA, planB]);
     mocks.calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 1 });
     mocks.findBestMatchPlan.mockImplementation((cls) => (cls.major_id === 10 ? planA : planB));

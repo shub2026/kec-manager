@@ -57,6 +57,8 @@ vi.mock('../../services/plan.service.js', () => ({
   findBestMatchPlan: vi.fn(),
   buildClassWithPlanFilter: vi.fn(),
   isClassMatchPlan: vi.fn(),
+  // 默认全部方案视为本学期有开课；个别用例可覆写以验证无课班级排除
+  planHasOfferedCourses: vi.fn().mockReturnValue(true),
   // 与真实实现同构的常量（归档排除条件）
   NOT_ARCHIVED_PLAN_WHERE: { status: { not: 'archived' } },
 }));
@@ -75,7 +77,7 @@ vi.mock('../../utils/logger.js', () => ({
 const { querySemester, queryCoursePlans, invalidateQueryFilterCache } = await import('../query.controller.js');
 const { getSemesterInfoFromRequest } = await import('../../services/settings.service.js');
 const { getActiveClassFilter } = await import('../../services/class.service.js');
-const { buildClassWithPlanFilter, findBestMatchPlan } = await import(
+const { buildClassWithPlanFilter, findBestMatchPlan, planHasOfferedCourses } = await import(
   '../../services/plan.service.js'
 );
 const { calcClassSemester } = await import('../../services/semester.service.js');
@@ -292,15 +294,16 @@ describe('querySemester — 筛选器单元测试', () => {
   // 5. 分页参数
   // ──────────────────────────────────────────────
   describe('分页参数', () => {
-    it('page=2, page_size=10 → skip=10, take=10', async () => {
+    // 新流程为 JS 侧 valid 集合切片 + id in 取数（无 DB skip/take），
+    // 分页参数正确性改由响应字段 page/pageSize 验证。
+    it('page=2, page_size=10 → 响应 page=2, pageSize=10', async () => {
       const req = mockReq({ semester: '2025-2026-2', page: '2', page_size: '10' });
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      // 第二次 findMany 是分页查询
-      const paginatedCall = mockPrisma.classes.findMany.mock.calls[1][0];
-      expect(paginatedCall.skip).toBe(10);
-      expect(paginatedCall.take).toBe(10);
+      const json = res.json.mock.calls[0][0];
+      expect(json.data.page).toBe(2);
+      expect(json.data.pageSize).toBe(10);
     });
 
     it('page_size 超过 100 应被限制为 100', async () => {
@@ -308,8 +311,8 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const paginatedCall = mockPrisma.classes.findMany.mock.calls[1][0];
-      expect(paginatedCall.take).toBeLessThanOrEqual(100);
+      const json = res.json.mock.calls[0][0];
+      expect(json.data.pageSize).toBeLessThanOrEqual(100);
     });
 
     it('默认 page=1, page_size=50', async () => {
@@ -317,9 +320,9 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const paginatedCall = mockPrisma.classes.findMany.mock.calls[1][0];
-      expect(paginatedCall.skip).toBe(0);
-      expect(paginatedCall.take).toBe(50);
+      const json = res.json.mock.calls[0][0];
+      expect(json.data.page).toBe(1);
+      expect(json.data.pageSize).toBe(50);
     });
   });
 
@@ -404,22 +407,24 @@ describe('querySemester — 筛选器单元测试', () => {
       mockPrisma.classes.findMany.mockImplementation((args) => {
         // 带 select 的是预筛/筛选选项轻量查询，直接返回候选数据
         if (args.select) return Promise.resolve(CANDIDATES);
-        // 全量取数：按预筛结果的 id in 条件裁剪返回顺序与主查询一致（入学年份降序）
-        const idCond = Array.isArray(args.where?.AND)
-          ? args.where.AND.find((c) => c?.id?.in)
-          : null;
-        const ids = idCond?.id?.in || [];
-        return Promise.resolve(
-          CANDIDATES.filter((c) => ids.includes(c.id)).map((c) => ({
-            ...c,
-            name: `班级${c.id}`,
-            student_count: 30,
-            majors: null,
-            colleges: null,
-            training_levels: null,
-            training_plans: null,
-          }))
-        );
+        // 全量取数：按 where.id.in 条件裁剪返回顺序与主查询一致（入学年份降序）
+        // 新流程（重构后）：当页取数 where 形如 { id: { in: pageIds } }，不再有 AND 包装
+        const idIn = args.where?.id?.in;
+        if (Array.isArray(idIn)) {
+          return Promise.resolve(
+            CANDIDATES.filter((c) => idIn.includes(c.id)).map((c) => ({
+              ...c,
+              name: `班级${c.id}`,
+              student_count: 30,
+              majors: null,
+              colleges: null,
+              training_levels: null,
+              training_plans: null,
+            }))
+          );
+        }
+        // 其他无 select 调用：返回空（兜底）
+        return Promise.resolve([]);
       });
       mockPrisma.training_plans.findMany.mockResolvedValue([
         { id: 7, major_id: 1, plan_courses: [] },
@@ -485,7 +490,73 @@ describe('querySemester — 筛选器单元测试', () => {
   });
 
   // ──────────────────────────────────────────────
-  // 8. 命名转换回归（模拟前端发 camelCase 被中间件转换后的效果）
+  // 9. 无课班级不展示（planHasOfferedCourses 谓词生效）
+  // ──────────────────────────────────────────────
+  describe('无课班级不展示', () => {
+    // 候选班级：11/13 有课方案（major_id=1 → 方案7），12 走方案9（本学期无开课）
+    const CANDIDATES = [
+      { id: 11, major_id: 1, training_level_id: null, custom_plan_id: null, enrollment_year: 2025, duration_years: 3, college_id: 1 },
+      { id: 12, major_id: 2, training_level_id: null, custom_plan_id: 9, enrollment_year: 2024, duration_years: 3, college_id: 1 },
+      { id: 13, major_id: 1, training_level_id: null, custom_plan_id: null, enrollment_year: 2024, duration_years: 3, college_id: 1 },
+    ];
+
+    beforeEach(() => {
+      calcClassSemester.mockReturnValue({ grade: 1, currentSemesterNum: 2 });
+      // 11/13 → 方案7（有课），12 → 方案9（无课，被谓词排除）
+      findBestMatchPlan.mockImplementation((cls) => {
+        if (cls.major_id === 1) return { id: 7, name: '方案A', plan_courses: [{ courses: { id: 1, name: '语文', type: 'public' }, start_semester: 1, end_semester: 4, weekly_hours: 4, plan_course_semesters: [{ semester: 2, weekly_hours: 4 }] }] };
+        if (cls.major_id === 2) return { id: 9, name: '方案B', plan_courses: [{ courses: { id: 2, name: '数学', type: 'public' }, start_semester: 1, end_semester: 4, weekly_hours: 0, plan_course_semesters: [{ semester: 2, weekly_hours: 0 }] }] };
+        return null;
+      });
+      // 谓词走真实实现语义：plan_courses 中是否有覆盖当前学期且 weekly_hours>0 的课
+      planHasOfferedCourses.mockImplementation((plan, currentSemesterNum) =>
+        (plan.plan_courses || []).some((pc) => {
+          if (pc.start_semester > currentSemesterNum || pc.end_semester < currentSemesterNum) return false;
+          const semRecord = (pc.plan_course_semesters || []).find((s) => s.semester === currentSemesterNum);
+          return (semRecord?.weekly_hours ?? pc.weekly_hours) > 0;
+        })
+      );
+
+      mockPrisma.classes.findMany.mockImplementation((args) => {
+        if (args.select) return Promise.resolve(CANDIDATES);
+        const idIn = args.where?.id?.in;
+        if (Array.isArray(idIn)) {
+          return Promise.resolve(
+            CANDIDATES.filter((c) => idIn.includes(c.id)).map((c) => ({
+              ...c,
+              name: `班级${c.id}`,
+              student_count: 30,
+              majors: null,
+              colleges: null,
+              training_levels: null,
+              training_plans: null,
+            }))
+          );
+        }
+        return Promise.resolve([]);
+      });
+      mockPrisma.training_plans.findMany.mockResolvedValue([
+        { id: 7, major_id: 1, plan_courses: [] },
+        { id: 9, major_id: 2, plan_courses: [] },
+      ]);
+    });
+
+    it('本学期无开课的班级不展示且 total 与明细口径一致', async () => {
+      const req = mockReq({ semester: '2025-2026-2' });
+      const res = mockRes();
+      await querySemester(req, res, vi.fn());
+
+      const json = res.json.mock.calls[0][0];
+      expect(json.success).toBe(true);
+      // 12 班方案本学期无开课 → 被排除；11/13 保留
+      expect(json.data.total).toBe(2);
+      expect(json.data.totalClasses).toBe(2);
+      expect(json.data.data.map((r) => r.classId).sort((a, b) => a - b)).toEqual([11, 13]);
+    });
+  });
+
+  // ──────────────────────────────────────────────
+  // 10. 命名转换回归（模拟前端发 camelCase 被中间件转换后的效果）
   // ──────────────────────────────────────────────
   describe('命名转换回归测试', () => {
     it('前端发 collegeId=35 经中间件转换后，req.query 中是 college_id=35', async () => {
@@ -505,8 +576,8 @@ describe('querySemester — 筛选器单元测试', () => {
       const res = mockRes();
       await querySemester(req, res, vi.fn());
 
-      const paginatedCall = mockPrisma.classes.findMany.mock.calls[1][0];
-      expect(paginatedCall.take).toBe(25);
+      const json = res.json.mock.calls[0][0];
+      expect(json.data.pageSize).toBe(25);
     });
 
     it('前端发 trainingLevelId=10 经中间件转换后，控制器正确读取', async () => {
@@ -821,9 +892,26 @@ describe('querySemester — 归档方案处理', () => {
   });
 
   it('班级自定义关联归档方案 → 不进入 classPlanMap，落入 unmatchedClasses', async () => {
-    // 全量取数：班级钉住归档方案（training_plans.status='archived'）
+    // 班级钉住归档方案（training_plans.status='archived'）；
+    // 新流程：归档方案在 matchingPlans 的 Prisma where 阶段就被过滤（NOT_ARCHIVED_PLAN_WHERE），
+    // 因此 classPlanMap 不会包含该班级，最终落入 unmatchedClasses。
     mockPrisma.classes.findMany.mockImplementation((args) => {
-      if (args.select) return Promise.resolve([]);
+      if (args.select) {
+        // candidates 阶段（轻量 select）：返回该自定义方案班级
+        return Promise.resolve([
+          {
+            id: 21,
+            name: '班级21',
+            major_id: null,
+            training_level_id: null,
+            custom_plan_id: 9,
+            enrollment_year: 2024,
+            duration_years: 3,
+            college_id: null,
+          },
+        ]);
+      }
+      // 当页全量取数（含 training_plans 关联）
       return Promise.resolve([
         {
           id: 21,
@@ -833,6 +921,7 @@ describe('querySemester — 归档方案处理', () => {
           custom_plan_id: 9,
           enrollment_year: 2024,
           duration_years: 3,
+          student_count: 30,
           majors: null,
           colleges: null,
           training_levels: null,
@@ -841,7 +930,7 @@ describe('querySemester — 归档方案处理', () => {
       ]);
     });
     calcClassSemester.mockReturnValue({ grade: 2, currentSemesterNum: 3 });
-    // 归档方案不在候选 → 无匹配
+    // 归档方案不在候选 → findBestMatchPlan 无解
     findBestMatchPlan.mockReturnValue(null);
 
     const req = mockReq({ semester: '2025-2026-2' });
@@ -860,8 +949,24 @@ describe('querySemester — 归档方案处理', () => {
   });
 
   it('班级自定义关联非归档方案 → 正常进入 classPlanMap', async () => {
+    // 让 matchingPlans 实际包含该非归档自定义方案（模拟 Prisma DB 层真实加载）
+    const activePlan = { id: 9, status: 'active', plan_courses: [] };
+    mockPrisma.training_plans.findMany.mockResolvedValue([activePlan]);
     mockPrisma.classes.findMany.mockImplementation((args) => {
-      if (args.select) return Promise.resolve([]);
+      if (args.select) {
+        return Promise.resolve([
+          {
+            id: 22,
+            name: '班级22',
+            major_id: null,
+            training_level_id: null,
+            custom_plan_id: 9,
+            enrollment_year: 2024,
+            duration_years: 3,
+            college_id: null,
+          },
+        ]);
+      }
       return Promise.resolve([
         {
           id: 22,
@@ -871,6 +976,7 @@ describe('querySemester — 归档方案处理', () => {
           custom_plan_id: 9,
           enrollment_year: 2024,
           duration_years: 3,
+          student_count: 30,
           majors: null,
           colleges: null,
           training_levels: null,
