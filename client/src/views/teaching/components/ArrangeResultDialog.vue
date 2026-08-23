@@ -202,7 +202,7 @@ const cohesionRateClass = computed(() => {
   padding: var(--space-3) 14px;
   background: var(--bg-subtle);
   border-radius: var(--radius-md);
-  border-left: 3px solid #8b5cf6;
+  border-left: 3px solid var(--brand-violet);
 }
 .continuity-title {
   display: flex;
@@ -231,7 +231,7 @@ const cohesionRateClass = computed(() => {
   font-variant-numeric: tabular-nums;
 }
 .continuity-num.text-brand {
-  color: #8b5cf6;
+  color: var(--brand-violet-text);
 }
 .continuity-num small {
   font-size: 12px;
@@ -285,8 +285,8 @@ const cohesionRateClass = computed(() => {
   margin-top: 2px;
 }
 .cohesion-hint {
-  font-size: 11px;
-  color: var(--text-placeholder);
+  font-size: var(--font-size-micro);
+  color: var(--text-secondary);
   margin-top: var(--space-1);
 }
 .arrange-warnings {

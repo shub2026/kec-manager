@@ -171,6 +171,6 @@ function courseTypeLabel(type) {
 }
 /* 固有班级延续：品牌紫，与锁定（绿）/未分配（红）区分开 */
 .stat-inherent {
-  color: #8b5cf6;
+  color: var(--brand-violet-text);
 }
 </style>

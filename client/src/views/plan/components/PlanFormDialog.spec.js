@@ -75,7 +75,6 @@ describe('PlanFormDialog（新增/编辑方案弹窗）', () => {
   });
 });
 
-
 // 取状态组（draft/active/archived）当前选中的值；关联方式组的 radio 值为 major/trainingLevel，需排除
 function getCheckedStatus() {
   const radios = document.querySelectorAll('.el-dialog input[type="radio"]:checked');

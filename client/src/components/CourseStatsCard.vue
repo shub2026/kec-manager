@@ -221,7 +221,7 @@ function barColor(idx) {
 .hours-delta {
   width: 42px;
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: var(--font-size-micro);
   font-weight: 600;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -259,7 +259,7 @@ function barColor(idx) {
 
 .meta-num::after {
   content: attr(data-unit);
-  font-size: 10px;
+  font-size: var(--font-size-micro);
   font-weight: 400;
   color: var(--text-secondary);
   margin-left: 2px;
@@ -296,7 +296,7 @@ function barColor(idx) {
 
   .hours-delta {
     width: 36px;
-    font-size: 10px;
+    font-size: var(--font-size-micro);
   }
 
   .meta-num {

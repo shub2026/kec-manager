@@ -275,8 +275,8 @@ function deltaArrow(val, inverse = false) {
 }
 
 .score-hint {
-  font-size: 10px;
-  color: var(--text-placeholder);
+  font-size: var(--font-size-micro);
+  color: var(--text-secondary);
   margin-left: 4px;
   font-weight: 400;
 }

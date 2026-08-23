@@ -121,7 +121,11 @@
                     </el-table-column>
                     <el-table-column label="状态" min-width="150">
                       <template #default="{ row: p }">
-                        <el-tag size="small" :type="statusTagType(p.planStatus)" disable-transitions>
+                        <el-tag
+                          size="small"
+                          :type="statusTagType(p.planStatus)"
+                          disable-transitions
+                        >
                           {{ statusLabel(p.planStatus) }}
                         </el-tag>
                         <el-tag
@@ -163,7 +167,11 @@
                                 {{ getSemesterHours(p, sem).weeksCount }} 周
                               </div>
                               <template v-if="getTextbooks(p, sem).length > 0">
-                                <div v-for="tb in getTextbooks(p, sem)" :key="tb.id" class="tooltip-textbook">
+                                <div
+                                  v-for="tb in getTextbooks(p, sem)"
+                                  :key="tb.id"
+                                  class="tooltip-textbook"
+                                >
                                   <div class="tooltip-title">{{ tb.title }}</div>
                                   <div v-if="tb.isbn" class="tooltip-row">
                                     <span class="tooltip-label">ISBN</span>
@@ -175,15 +183,22 @@
                                   </div>
                                   <div class="tooltip-row">
                                     <span class="tooltip-label">状态</span>
-                                    <span v-if="!tb.isActive" class="tooltip-status disabled">已停用</span>
-                                    <span v-else-if="tb.isRequired" class="tooltip-status required">必订</span>
+                                    <span v-if="!tb.isActive" class="tooltip-status disabled"
+                                      >已停用</span
+                                    >
+                                    <span v-else-if="tb.isRequired" class="tooltip-status required"
+                                      >必订</span
+                                    >
                                     <span v-else class="tooltip-status elective">选修</span>
                                   </div>
                                 </div>
                               </template>
                               <div v-else class="tooltip-no-textbook">未指定教材</div>
                             </template>
-                            <span class="hours-cell" :class="{ 'has-textbook': getTextbooks(p, sem).length > 0 }">
+                            <span
+                              class="hours-cell"
+                              :class="{ 'has-textbook': getTextbooks(p, sem).length > 0 }"
+                            >
                               {{ getSemesterHours(p, sem).weeklyHours }}
                             </span>
                           </el-tooltip>
@@ -201,7 +216,12 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="课程名称" prop="course.name" min-width="180" show-overflow-tooltip />
+          <el-table-column
+            label="课程名称"
+            prop="course.name"
+            min-width="180"
+            show-overflow-tooltip
+          />
           <el-table-column label="科目类型" min-width="100">
             <template #default="{ row }">
               <el-tag
@@ -219,7 +239,13 @@
           <el-table-column label="采用方案数" min-width="110" align="center">
             <template #default="{ row }">
               <span>{{ row.planCount }}</span>
-              <el-tag v-if="row.planCount > row.activePlanCount" size="small" type="info" class="status-tag" disable-transitions>
+              <el-tag
+                v-if="row.planCount > row.activePlanCount"
+                size="small"
+                type="info"
+                class="status-tag"
+                disable-transitions
+              >
                 含禁用{{ row.planCount - row.activePlanCount }}
               </el-tag>
             </template>
@@ -529,14 +555,14 @@ onMounted(() => {
 
 .textbook-tooltip .tooltip-no-textbook {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .textbook-tooltip .tooltip-status {
   font-weight: 600;
   padding: 0 6px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-micro);
 }
 
 .textbook-tooltip .tooltip-status.required {

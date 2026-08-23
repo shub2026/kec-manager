@@ -553,7 +553,7 @@ function handlePasswordChangeSuccess() {
 }
 
 .user-meta .user-role {
-  font-size: 11px;
+  font-size: var(--font-size-micro);
   color: var(--sidebar-text);
   line-height: 1.2;
 }

@@ -36,6 +36,12 @@
   --brand-mint-soft: #e6f5f0;
   --brand-mint-lighter: #bfdfd2;
 
+  /* —— 品牌紫:第三语义色相,固有班级延续专用(与锁定绿/未分配红区分) ——
+     登记于 TAG 用色规则的例外色板,禁止挪作他用;文字场景用 -text 深阶保对比度 —— */
+  --brand-violet: #8b5cf6;
+  --brand-violet-soft: #f3effe;
+  --brand-violet-text: #6d28d9; /* 深 violet,白底正文/数字对比度≈6.5:1 达标 */
+
   /* —— 图表单色阶:主色按透明度分级,多系列图表复用,避免引入新色相
      尾档下限 0.30:再低会与 --bg-subtle 轨道几乎无法区分(与 danger 色阶同规则) —— */
   --chart-1: var(--brand-primary);
@@ -147,6 +153,7 @@
   --font-size-body: 14px;
   --font-size-body-sm: 13px; /* 正文小字：时间/IP/表单提示等次要正文行 */
   --font-size-caption: 12px;
+  --font-size-micro: 11px; /* 极限紧凑场景专用(徽章/图例等),白底须配 ≥500 字重与深阶色 */
 
   /* —— 覆盖 ElementPlus 主题变量,影响所有 el-* 组件 —— */
   --el-color-primary: var(--brand-primary);

@@ -526,7 +526,7 @@ function cellAriaLabel(course, semester) {
 }
 
 .cell-textbook {
-  font-size: 11px;
+  font-size: var(--font-size-micro);
   color: var(--text-secondary);
   margin-top: 6px;
   width: 100%;
@@ -550,7 +550,7 @@ function cellAriaLabel(course, semester) {
 /* 无教材占位提示：橙色圆点 + "未指定"，观感与已指定教材完全一致（同字号/同色/左对齐） */
 .cell-no-textbook {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: var(--font-size-micro);
   color: var(--text-secondary);
   font-weight: 400;
   display: flex;
@@ -765,7 +765,7 @@ function cellAriaLabel(course, semester) {
 
   .matrix-semester-header {
     width: 64px;
-    font-size: 11px;
+    font-size: var(--font-size-micro);
   }
 
   .matrix-course-header {
@@ -820,7 +820,7 @@ function cellAriaLabel(course, semester) {
   /* 教材信息字号回调 */
   .cell-textbook,
   .cell-no-textbook {
-    font-size: 10px;
+    font-size: var(--font-size-micro);
     margin-top: var(--space-1);
   }
 
@@ -885,7 +885,7 @@ function cellAriaLabel(course, semester) {
   font-weight: 600;
   padding: 0 6px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-micro);
 }
 
 .textbook-tooltip .tooltip-status.required {

@@ -380,7 +380,7 @@ onMounted(() => {
 }
 
 .ov-value small {
-  font-size: 11px;
+  font-size: var(--font-size-micro);
   font-weight: 400;
   color: var(--text-secondary);
   margin-left: 1px;
@@ -467,7 +467,7 @@ onMounted(() => {
   }
 
   .ov-label {
-    font-size: 11px;
+    font-size: var(--font-size-micro);
   }
 }
 .confirm-text {

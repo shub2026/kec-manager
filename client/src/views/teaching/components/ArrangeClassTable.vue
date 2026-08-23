@@ -335,7 +335,7 @@ function tableRowClassName({ row }) {
 }
 /* 固有班级延续标记：品牌紫，与锁定（绿）区分 */
 .inherent-icon {
-  color: #8b5cf6;
+  color: var(--brand-violet);
   flex-shrink: 0;
 }
 .locked-hint {

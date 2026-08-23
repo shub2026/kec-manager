@@ -404,7 +404,7 @@ function courseRate(r) {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #8b5cf6;
+  color: var(--brand-violet-text);
   margin-bottom: var(--space-2);
 }
 .detail-continuity:last-child {

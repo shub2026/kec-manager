@@ -184,7 +184,7 @@ const donutBackground = computed(() => {
 
 .metric-total {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--font-size-micro);
   font-weight: 400;
   color: var(--text-secondary);
   margin-left: 4px;
@@ -219,7 +219,7 @@ const donutBackground = computed(() => {
 }
 
 .donut-unit {
-  font-size: 11px;
+  font-size: var(--font-size-micro);
   color: var(--text-secondary);
 }
 

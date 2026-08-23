@@ -107,7 +107,7 @@ function swatch(key) {
   align-items: center;
   padding: 1px var(--space-2);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--font-size-micro);
   font-weight: 600;
   line-height: 18px;
 }

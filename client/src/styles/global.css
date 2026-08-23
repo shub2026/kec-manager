@@ -208,7 +208,8 @@ a:focus-visible,
   width: 200px;
 }
 
-/* 通用宽度工具类（不在 page-toolbar 内时使用，如弹窗内、卡片头部） */
+/* 通用宽度工具类（不在 page-toolbar 内时使用，如弹窗内、卡片头部）
+   与 .page-toolbar 内档位保持一致，避免同名类双轨宽度造成跨场景错位 */
 .filter-xs {
   width: 80px;
 }
@@ -222,10 +223,10 @@ a:focus-visible,
   width: 140px;
 }
 .filter-xl {
-  width: 200px;
+  width: 160px;
 }
 .filter-2xl {
-  width: 240px;
+  width: 200px;
 }
 
 /* ================================================================

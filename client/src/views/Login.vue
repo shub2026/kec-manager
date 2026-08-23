@@ -803,7 +803,7 @@ onMounted(() => {
   padding: 44px;
   /* 三层阴影:贴边描边感 + 中景品牌色晕染 + 远景弥散,静止态保持轻盈 */
   box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.04),
+    var(--shadow-xs),
     0 10px 28px color-mix(in srgb, var(--brand-primary) 8%, transparent),
     0 24px 64px color-mix(in srgb, var(--brand-primary) 6%, transparent);
   transition:
@@ -812,7 +812,7 @@ onMounted(() => {
 }
 .login-card:hover {
   box-shadow:
-    0 1px 3px rgba(15, 23, 42, 0.05),
+    var(--shadow-sm),
     0 14px 34px color-mix(in srgb, var(--brand-primary) 12%, transparent),
     0 30px 76px color-mix(in srgb, var(--brand-primary) 9%, transparent);
   transform: translateY(-2px);
@@ -902,7 +902,7 @@ onMounted(() => {
   background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-hover));
   border: none;
   color: var(--bg-card);
-  box-shadow: 0 8px 20px rgba(28, 130, 245, 0.25);
+  box-shadow: var(--shadow-glow);
   transition:
     box-shadow var(--dur-base) var(--ease-out),
     transform var(--dur-fast) var(--ease-out);
@@ -962,7 +962,7 @@ onMounted(() => {
   background: var(--brand-primary-soft);
   padding: 2px 8px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: var(--font-size-micro);
   color: var(--brand-primary-active);
 }
 
