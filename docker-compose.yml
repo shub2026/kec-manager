@@ -14,6 +14,9 @@ services:
     image: ${IMAGE_REPO:-kec-manager}:${APP_VERSION:-latest}
     container_name: kec-manager
     restart: unless-stopped
+    # 优雅停止宽限：默认 10s 后 SIGKILL 会打断正在进行的 SQLite 写入，
+    # 延长到 30s 让事务正常提交/回滚，降低库损坏风险
+    stop_grace_period: 30s
     ports:
       - "3000:3000"
     # 使用 .env 文件加载环境变量（推荐生产环境使用）

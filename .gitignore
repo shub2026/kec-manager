@@ -2,6 +2,11 @@ node_modules/
 dist/
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
+# 生产数据目录（Docker 绑定挂载 ./data），禁止 git clean 误删运行中的
+# SQLite WAL/SHM 热文件，否则主库与 WAL 失联会导致 "database disk image is malformed"
+/data/
 uploads/*
 !uploads/.gitkeep
 .env

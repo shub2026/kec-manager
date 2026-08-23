@@ -57,8 +57,13 @@ fi
 log "检测到更新，开始部署..."
 git log --oneline "${LOCAL_COMMIT}..${REMOTE_COMMIT}" | head -20 || true
 
+# 关键：先停容器，避免 git 操作（reset/clean）期间数据库仍在被写入。
+# 防止 git clean 误删运行中的 SQLite WAL/SHM 热文件导致库损坏（曾引发反复 502）。
+docker compose stop kec-manager 2>/dev/null || true
+
 git reset --hard "origin/$BRANCH"
-git clean -fd
+# -e data：即便 .gitignore 漏配，也绝不清理数据目录（双保险）
+git clean -fd -e data
 
 # ---------- 环境变量文件检查 ----------
 if [ ! -f .env ]; then
