@@ -31,6 +31,22 @@
         <el-option label="兼职" value="part_time" />
         <el-option label="外聘" value="external" />
       </el-select>
+      <!-- 教材筛选：按教师已用教材过滤，选项从当前教师列表聚合去重，与表格「已用教材」列口径一致 -->
+      <el-select
+        v-model="textbookFilter"
+        placeholder="教材"
+        clearable
+        filterable
+        size="small"
+        class="textbook-select"
+      >
+        <el-option
+          v-for="tb in textbookOptions"
+          :key="tb.id"
+          :label="tb.title"
+          :value="tb.id"
+        />
+      </el-select>
       <span class="filter-count">共 {{ filteredList.length }} 位教师</span>
     </div>
 
@@ -208,16 +224,30 @@ const selectedTeacher = ref(null);
 // M-10：搜索与分页状态
 const searchKey = ref('');
 const personnelFilter = ref('');
+const textbookFilter = ref('');
 const currentPage = ref(1);
 const pageSize = 15;
 
-// M-10：按姓名 + 人员类别过滤（normalizePersonnelType 兼容后端驼峰变体）
+// 教材筛选选项：从教师列表的已用教材聚合去重，按标题排序
+const textbookOptions = computed(() => {
+  const map = new Map();
+  for (const t of props.teacherList) {
+    for (const tb of t.assignedTextbooks || []) {
+      if (!map.has(tb.id)) map.set(tb.id, tb);
+    }
+  }
+  return [...map.values()].sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'));
+});
+
+// M-10：按姓名 + 人员类别 + 教材过滤（normalizePersonnelType 兼容后端驼峰变体）
 const filteredList = computed(() => {
   const key = searchKey.value.trim().toLowerCase();
   const type = personnelFilter.value;
+  const tbId = textbookFilter.value;
   return props.teacherList.filter((t) => {
     if (key && !t.name?.toLowerCase().includes(key)) return false;
     if (type && normalizePersonnelType(t.personnelType) !== type) return false;
+    if (tbId && !(t.assignedTextbooks || []).some((tb) => tb.id === tbId)) return false;
     return true;
   });
 });
@@ -228,8 +258,8 @@ const pagedList = computed(() => {
   return filteredList.value.slice(start, start + pageSize);
 });
 
-// M-10：搜索词或人员类别变化时重置到第一页
-watch([searchKey, personnelFilter], () => {
+// M-10：搜索词或筛选器变化时重置到第一页
+watch([searchKey, personnelFilter, textbookFilter], () => {
   currentPage.value = 1;
 });
 
@@ -290,6 +320,7 @@ function open(row) {
   selectedTeacher.value = null;
   searchKey.value = '';
   personnelFilter.value = '';
+  textbookFilter.value = '';
   currentPage.value = 1;
   visible.value = true;
 }
@@ -313,6 +344,9 @@ defineExpose({ open, close });
 }
 .personnel-select {
   width: 120px;
+}
+.textbook-select {
+  width: 200px;
 }
 .filter-count {
   font-size: 13px;
