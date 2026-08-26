@@ -63,6 +63,12 @@
   font-size: var(--font-size-caption);
 }
 
+/* 内嵌表格(展开行嵌套/详情弹窗从属表格，模板需加 .nested-table 类)统一 12px，
+   低于页面主表格 14px 形成层级区分；表头由全局 .el-table th .cell 规则同样锁 12px */
+.nested-table .cell {
+  font-size: var(--font-size-caption);
+}
+
 /* 全局聚焦环:键盘可见性
    正向选择器：仅对需要自定义 focus ring 的元素生效，
    避免与 Element Plus 控件自身的 box-shadow 聚焦环冲突。 */

@@ -159,7 +159,14 @@
       </div>
       <!-- 表格视图 -->
       <div v-if="!showRawJson" class="details-table-wrap">
-        <el-table :data="parsedDetails" stripe size="small" border row-key="label">
+        <el-table
+          :data="parsedDetails"
+          stripe
+          size="small"
+          border
+          row-key="label"
+          class="nested-table"
+        >
           <el-table-column label="字段" prop="label" min-width="140" />
           <el-table-column label="值" prop="value" min-width="200">
             <template #default="{ row }">
