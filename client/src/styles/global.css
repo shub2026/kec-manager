@@ -63,10 +63,10 @@
   font-size: var(--font-size-caption);
 }
 
-/* 内嵌表格(展开行嵌套/详情弹窗从属表格，模板需加 .nested-table 类)统一 12px，
-   低于页面主表格 14px 形成层级区分；表头由全局 .el-table th .cell 规则同样锁 12px */
+/* 内嵌表格(展开行嵌套/弹窗从属表格，模板需加 .nested-table 类)统一 13px，
+   低于页面主表格 14px 形成层级区分；表头由全局 .el-table th .cell 规则锁 12px */
 .nested-table .cell {
-  font-size: var(--font-size-caption);
+  font-size: var(--font-size-body-sm);
 }
 
 /* 全局聚焦环:键盘可见性

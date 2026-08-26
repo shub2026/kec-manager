@@ -56,6 +56,7 @@
       stripe
       highlight-current-row
       size="small"
+      class="nested-table"
       @current-change="onTeacherSelect"
     >
       <!-- 手机端无弹性列，姓名改用 min-width 吸收剩余宽度，避免右侧留白 -->
