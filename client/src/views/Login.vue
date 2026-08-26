@@ -671,7 +671,7 @@ onMounted(() => {
 .brand-slogan {
   margin: 12px 0 0;
   color: var(--text-regular);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   line-height: 1.7;
   letter-spacing: 0.3px;
   max-width: 360px;
@@ -848,7 +848,7 @@ onMounted(() => {
 
 .form-subtitle {
   margin: 8px 0 0;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-regular);
   text-align: center;
 }
@@ -928,7 +928,7 @@ onMounted(() => {
 }
 
 .account-hint :deep(.el-collapse-item__header) {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-regular);
   border: none;
   height: 28px;
@@ -954,7 +954,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-regular);
 }
 
@@ -971,7 +971,7 @@ onMounted(() => {
   margin-top: 22px;
   text-align: center;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   letter-spacing: 0.02em;
 }
 

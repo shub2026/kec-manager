@@ -187,7 +187,7 @@ watch(
 
 .popover-title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-primary);
   margin-bottom: var(--space-3);
   padding-bottom: var(--space-2);
@@ -204,7 +204,7 @@ watch(
 }
 
 .textbook-disabled-tip {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--brand-danger-text);
   margin-top: var(--space-1);
 }

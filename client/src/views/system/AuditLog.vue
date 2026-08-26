@@ -460,14 +460,14 @@ onMounted(() => {
   white-space: pre-wrap;
   word-break: break-all;
   font-family: monospace;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-regular);
 }
 
 .confirm-text {
   margin: var(--space-4) 0 0;
   color: var(--text-regular);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   line-height: 1.6;
 }
 

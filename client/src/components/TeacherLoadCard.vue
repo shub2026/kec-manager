@@ -73,11 +73,12 @@ const props = defineProps({
 
 // 人员类别展示顺序：专职 → 兼职 → 外聘，未知类别排最后（按归一化后的键比较，兼容驼峰变体）
 const PERSONNEL_ORDER = ['full_time', 'part_time', 'external'];
-// 环状图用色：与全站人员类别 TAG 语义色一致（专职=绿、兼职=橙、外聘=灰）
+// 环状图用色：与全站人员类别 TAG 语义色同色相（专职=绿、兼职=橙、外聘=灰），
+// color-mix 混白 20% 降饱和:环图是大面积数据图形,全饱和语义色过于抢眼,色相不变故与 TAG 的颜色联想仍成立
 const PERSONNEL_COLORS = {
-  full_time: 'var(--brand-success)',
-  part_time: 'var(--brand-warning)',
-  external: 'var(--el-color-info)',
+  full_time: 'color-mix(in srgb, var(--brand-success) 80%, white)',
+  part_time: 'color-mix(in srgb, var(--brand-warning) 80%, white)',
+  external: 'color-mix(in srgb, var(--el-color-info) 80%, white)',
 };
 
 const personnelEntries = computed(() => {
@@ -92,7 +93,11 @@ const personnelEntries = computed(() => {
 const personnelTotal = computed(() => personnelEntries.value.reduce((s, [, c]) => s + c, 0));
 
 function personnelColor(type) {
-  return PERSONNEL_COLORS[normalizePersonnelType(type)] || '#c0c4cc';
+  // fallback 与 external 同阶:未知类别不出现未降饱和的突兀灰
+  return (
+    PERSONNEL_COLORS[normalizePersonnelType(type)] ||
+    'color-mix(in srgb, var(--el-color-info) 80%, white)'
+  );
 }
 
 function personnelPercent(count) {
@@ -120,7 +125,7 @@ const donutBackground = computed(() => {
   justify-content: center;
   padding: var(--space-6) 0;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 /* 上下两行：上部环图 + 图例，下部指标行；
@@ -170,7 +175,7 @@ const donutBackground = computed(() => {
 }
 
 .metric-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
 
@@ -203,7 +208,7 @@ const donutBackground = computed(() => {
   position: absolute;
   inset: 20px;
   border-radius: 50%;
-  background: var(--el-bg-color);
+  background: var(--bg-card);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -238,7 +243,7 @@ const donutBackground = computed(() => {
   grid-template-columns: auto 1fr 52px 44px;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 
 .legend-dot {

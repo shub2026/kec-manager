@@ -175,7 +175,7 @@ const totalCount = computed(() => {
   gap: var(--space-2);
   padding: var(--space-6) 0;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .empty-check-icon {
@@ -207,7 +207,7 @@ const totalCount = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 600;
   color: var(--text-primary);
   /* 不用负边距：.alert-list 开启纵向滚动后 overflow-x 会同步变为 auto，负边距溢出会带出横向滚动条 */
@@ -252,7 +252,7 @@ const totalCount = computed(() => {
 
 .alert-item {
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   margin-bottom: var(--space-1);
 }
 
@@ -303,7 +303,7 @@ const totalCount = computed(() => {
 /* 展开/收起按钮：居中文字链，低调但与分组标题区分 */
 .alert-toggle {
   text-align: center;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--el-color-primary);
   padding: 4px 0 2px;
   cursor: pointer;

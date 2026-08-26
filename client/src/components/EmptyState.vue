@@ -83,7 +83,7 @@ defineProps({
 
 .empty-description {
   margin: 0 0 var(--space-3);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
   line-height: 1.5;
 }

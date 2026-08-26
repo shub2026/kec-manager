@@ -135,7 +135,7 @@ watch(
 
 /* —— 标签 —— */
 .stat-label {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
   font-weight: 500;
   white-space: nowrap;
@@ -145,7 +145,7 @@ watch(
 
 .stat-core .stat-label {
   grid-area: label;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-regular);
 }
 

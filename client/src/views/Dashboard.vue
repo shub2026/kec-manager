@@ -34,8 +34,8 @@
               <circle cx="2" cy="2" r="2" class="decor-dot" />
             </pattern>
             <linearGradient id="welcomeDecorFade" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#fff" stop-opacity="1" />
-              <stop offset="1" stop-color="#fff" stop-opacity="0" />
+              <stop offset="0" class="decor-fade-stop" stop-opacity="1" />
+              <stop offset="1" class="decor-fade-stop" stop-opacity="0" />
             </linearGradient>
             <mask id="welcomeDecorMask">
               <rect x="104" y="16" width="80" height="80" fill="url(#welcomeDecorFade)" />
@@ -393,6 +393,11 @@ onMounted(async () => {
   opacity: 0.55;
 }
 
+/* 渐变遮罩色与页面背景一致:SVG presentation attribute 不接受 var(),走 class + CSS 消费令牌 */
+.decor-fade-stop {
+  stop-color: var(--bg-page);
+}
+
 /* 虚线环：圆点笔触 + 极缓自转，给静态页面一丝若有若无的生命力 */
 .decor-ring--dashed {
   stroke-dasharray: 1 8;
@@ -558,7 +563,7 @@ onMounted(async () => {
 
 /* 卡片标题：左侧圆点色块，去掉下边框 */
 .insights-grid :deep(.card-title) {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
   color: var(--text-primary);
   display: flex;

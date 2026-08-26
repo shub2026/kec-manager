@@ -145,7 +145,7 @@ function courseTypeLabel(type) {
   padding: var(--space-1) 0;
 }
 .stat-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
 .stat-value {
@@ -155,7 +155,7 @@ function courseTypeLabel(type) {
   font-variant-numeric: tabular-nums;
 }
 .stat-value small {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: normal;
   color: var(--text-secondary);
   margin-left: 2px;

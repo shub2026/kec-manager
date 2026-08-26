@@ -262,7 +262,7 @@ function tableRowClassName({ row }) {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   white-space: nowrap;
 }
@@ -270,7 +270,7 @@ function tableRowClassName({ row }) {
   display: none;
   align-items: center;
   gap: 2px;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--el-color-primary);
   white-space: nowrap;
 }
@@ -279,7 +279,7 @@ function tableRowClassName({ row }) {
 }
 .text-placeholder {
   color: var(--text-placeholder);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 .textbook-tags {
   display: flex;
@@ -341,7 +341,7 @@ function tableRowClassName({ row }) {
 .locked-hint {
   display: inline-flex;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--el-color-success);
   white-space: nowrap;
 }

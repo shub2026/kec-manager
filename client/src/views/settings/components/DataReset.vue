@@ -77,7 +77,7 @@ defineEmits(['reset']);
   background: var(--brand-danger-soft);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-6);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   line-height: 1.6;
   color: var(--text-regular);
 }
@@ -121,7 +121,7 @@ defineEmits(['reset']);
 
 .reset-item-desc {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-secondary);
   line-height: 1.7;
 }

@@ -241,7 +241,7 @@ function handleSave() {
   display: block;
   margin-bottom: var(--space-3);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-regular);
   letter-spacing: 0.01em;
 }
@@ -258,7 +258,7 @@ function handleSave() {
   align-items: center;
   gap: 6px;
   margin-top: var(--space-3);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-secondary);
   line-height: 1.6;
 }
@@ -293,7 +293,7 @@ function handleSave() {
   background: var(--brand-primary);
   color: var(--bg-card);
   border-radius: var(--radius-lg);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 500;
 }
 
@@ -322,7 +322,7 @@ function handleSave() {
   padding-top: var(--space-5);
   border-top: 1px solid var(--border-light);
   color: var(--text-regular);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 
@@ -350,7 +350,7 @@ function handleSave() {
 }
 
 .semester-preview.empty p {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   margin: 0;
 }
 
@@ -368,7 +368,7 @@ function handleSave() {
 }
 
 .option-year {
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 /* 响应式布局 */

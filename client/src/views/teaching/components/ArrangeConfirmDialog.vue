@@ -73,7 +73,7 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 }
 
 .info-title {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-primary);
   margin: 0 0 var(--space-3);
 }
@@ -85,13 +85,13 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 }
 
 .info-row {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-regular);
   margin: 0 0 var(--space-2);
 }
 
 .info-detail {
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-secondary);
   margin: 0;
 }

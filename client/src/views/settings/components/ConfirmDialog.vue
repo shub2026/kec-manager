@@ -197,7 +197,7 @@ function handleConfirm() {
 
 .confirm-description p {
   margin: 0 0 15px 0;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-regular);
   line-height: 1.6;
 }
@@ -209,13 +209,13 @@ function handleConfirm() {
 .confirm-input-area label {
   display: block;
   margin-bottom: 10px;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-primary);
 }
 
 .confirm-text {
   margin: 20px 0 0;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-regular);
   line-height: 1.6;
 }
@@ -227,7 +227,7 @@ function handleConfirm() {
 .reason-area label {
   display: block;
   margin-bottom: var(--space-2);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-regular);
 }
 </style>

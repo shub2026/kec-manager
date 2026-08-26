@@ -69,23 +69,23 @@
   --text-secondary: #64748b;
   --text-placeholder: #94a3b8;
 
-  /* —— 背景与边框 —— */
+  /* —— 背景与边框（中性色注入品牌蓝调:与主色 #1C82F5 建立色温关联,slate 蓝调增强肉眼可感知） —— */
   --bg-page: #f8fafc;
   --bg-card: #ffffff;
-  --bg-subtle: #f1f5f9;
-  --border-light: #e2e8f0;
-  --border-base: #cbd5e1;
+  --bg-subtle: #eff4fa; /* 表头/悬浮底,带蓝调浅灰 */
+  --border-light: #e3eaf3; /* 卡片/弹窗/输入框描边,蓝调增强 */
+  --border-base: #c9d7ea; /* 一档更深的蓝调边框 */
 
-  /* —— 侧边栏深色系（现代 Slate 渐变色板,独立色板便于将来暗色模式） —— */
-  --sidebar-bg: #1e293b; /* Slate-800,比旧 #304156 更深更现代 */
-  --sidebar-bg-deep: #0f172a; /* Slate-900,用于底部渐变 */
-  --sidebar-text: #94a3b8; /* Slate-400,与深色底对比更柔和 */
-  --sidebar-text-strong: #e2e8f0; /* Slate-200,深色底上的高层级文字(用户名等) */
-  --sidebar-active: #ffffff; /* 纯白活跃文字,搭配左侧色条指示器 */
-  --sidebar-active-bg: rgba(255, 255, 255, 0.06); /* 活跃菜单项微弱高亮背景 */
-  --sidebar-border: #334155; /* Slate-700 */
-  --sidebar-scrollbar: #475569; /* Slate-600 */
-  --sidebar-scrollbar-hover: #64748b; /* Slate-500 */
+  /* —— 侧边栏浅色系（"Quiet chrome" 安静外壳:与内容区同源中性色,品牌蓝激活态;保留深色值便于将来暗色模式切换） —— */
+  --sidebar-bg: #f7f9fc; /* 冷蓝白,与内容区 --bg-page 同族(消除暖白/冷白色温冲突),靠右侧细线分隔 */
+  --sidebar-bg-deep: #eff4fa; /* 滚动条轨道等低层级区域(与 --bg-subtle 同步) */
+  --sidebar-text: #64748b; /* 对应 --text-secondary,白底对比度 4.8:1 达标 AA */
+  --sidebar-text-strong: #1e293b; /* 对应 --text-primary,用户名等高层级文字 */
+  --sidebar-active: #1c82f5; /* 品牌蓝活跃文字,对齐 Ant Design light 选中态 */
+  --sidebar-active-bg: #e8f3fe; /* 对应 --brand-primary-soft,活跃菜单项浅蓝高亮背景 */
+  --sidebar-border: #e2e8f0; /* 对应 --border-light */
+  --sidebar-scrollbar: #cbd5e1; /* 对应 --border-base */
+  --sidebar-scrollbar-hover: #94a3b8; /* 对应 --text-placeholder */
 
   /* —— 间距基数 8px,统一节奏 —— */
   --space-1: 4px;

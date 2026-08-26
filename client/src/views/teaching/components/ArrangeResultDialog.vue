@@ -185,7 +185,7 @@ const cohesionRateClass = computed(() => {
   color: var(--brand-primary);
 }
 .arrange-stat-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   margin-top: var(--space-1);
 }
@@ -208,7 +208,7 @@ const cohesionRateClass = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: var(--space-2);
@@ -234,21 +234,21 @@ const cohesionRateClass = computed(() => {
   color: var(--brand-violet-text);
 }
 .continuity-num small {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 500;
   color: var(--text-secondary);
   margin-left: 1px;
 }
 .continuity-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
 .continuity-hint {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-placeholder);
 }
 .cohesion-title {
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: var(--space-2);
@@ -280,7 +280,7 @@ const cohesionRateClass = computed(() => {
   color: var(--brand-danger-text);
 }
 .cohesion-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   margin-top: 2px;
 }
@@ -302,7 +302,7 @@ const cohesionRateClass = computed(() => {
   border-left: 3px solid var(--brand-warning);
   border-radius: var(--radius-sm);
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
 }
 .arrange-unassigned {
   border: 1px solid var(--border-light);
@@ -313,7 +313,7 @@ const cohesionRateClass = computed(() => {
   overflow-y: auto;
 }
 .arrange-unassigned .arrange-section-title {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   font-weight: 600;
   margin-bottom: var(--space-2);
@@ -333,12 +333,12 @@ const cohesionRateClass = computed(() => {
   color: var(--text-primary);
 }
 .unassigned-hours {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   white-space: nowrap;
 }
 .unassigned-reason {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--brand-warning-text);
   margin-left: auto;
 }
@@ -350,7 +350,7 @@ const cohesionRateClass = computed(() => {
   gap: var(--space-2);
   padding: var(--space-5) 0 var(--space-4);
   color: var(--brand-success-text);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
 }
 .all-done-icon {

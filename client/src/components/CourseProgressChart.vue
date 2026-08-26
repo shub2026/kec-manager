@@ -143,7 +143,7 @@ const statusText = computed(() => {
   justify-content: center;
   padding: var(--space-6) 0;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .progress-chart {
@@ -163,8 +163,8 @@ const statusText = computed(() => {
 .summary-percent {
   font-size: var(--font-size-display-lg);
   font-weight: 700;
-  /* 白底大数字需 600 档语义色达标对比度(3:1)，400 档仅用于图形填充 */
-  color: var(--brand-success-text);
+  /* 大数字用深色中性:首屏最大视觉焦点不占色相,绿色语义仅保留在进度条/标签/状态条等小面积元素 */
+  color: var(--text-primary);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
@@ -177,7 +177,7 @@ const statusText = computed(() => {
 }
 
 .summary-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   margin-top: 4px;
 }
@@ -210,7 +210,7 @@ const statusText = computed(() => {
 .legend {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-secondary);
 }
 
@@ -255,7 +255,7 @@ const statusText = computed(() => {
   gap: 4px;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 500;
 }
 
@@ -283,7 +283,7 @@ const statusText = computed(() => {
   gap: 6px;
   padding: 10px var(--space-3);
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 500;
 }
 

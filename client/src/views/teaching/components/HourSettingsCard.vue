@@ -250,7 +250,7 @@ defineExpose({ hourSettings });
 .hour-summary {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -268,7 +268,7 @@ defineExpose({ hourSettings });
   gap: var(--space-3);
 }
 .hour-settings-title {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -286,7 +286,7 @@ defineExpose({ hourSettings });
 }
 .type-label {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-primary);
   white-space: nowrap;
 }
@@ -296,7 +296,7 @@ defineExpose({ hourSettings });
   gap: var(--space-2); /* 标准/最大两组间距加大，视觉更舒展 */
 }
 .field-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-regular);
   white-space: nowrap;
 }
@@ -308,7 +308,7 @@ defineExpose({ hourSettings });
 }
 .course-code-hint {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   margin-left: var(--space-2);
 }
 

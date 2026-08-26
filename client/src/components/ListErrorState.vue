@@ -112,7 +112,7 @@ defineEmits(['retry']);
 
 .error-description {
   margin: 0 0 var(--space-4);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
   line-height: 1.5;
   text-align: center;

@@ -282,7 +282,7 @@ defineExpose({ open, close });
 /* 只带一本教材开关说明文字：弱化提示，与开关同行展示 */
 .switch-hint {
   margin-left: 8px;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--el-text-color-secondary);
 }
 </style>

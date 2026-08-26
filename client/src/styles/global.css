@@ -48,13 +48,19 @@
   color: var(--text-primary);
 }
 
-/* F-12: 表格单元格 — 垂直居中 + 紧凑行高 */
+/* F-12: 表格单元格 — 垂直居中 + 紧凑行高;正文 14px 显式锁定(不依赖 EP 默认,防升级漂移) */
 .el-table .cell {
   display: flex;
   align-items: center;
   line-height: 1.5;
   min-height: 32px;
   padding: 4px 10px;
+  font-size: var(--font-size-body);
+}
+
+/* 表头 12px 显式锁定(特异度高于 .el-table .cell,回收表头不被抬到 14px) */
+.el-table th .cell {
+  font-size: var(--font-size-caption);
 }
 
 /* 全局聚焦环:键盘可见性
@@ -141,13 +147,17 @@ a:focus-visible,
    KEC 管理平台 — 全局共享样式
    ================================================================ */
 
-/* ----- 卡片头部（标题行） ----- */
+/* ----- 卡片头部（标题行）：标题统一 16px/600,与设置页 SettingsCardHeader 同规格;
+   el-button/el-tag 等组件自带字号不继承,仅裸文本标题生效 ----- */
 .card-header {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  font-size: var(--font-size-h3);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .card-header-actions {

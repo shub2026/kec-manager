@@ -183,12 +183,12 @@ defineExpose({ open, close });
 <style scoped>
 .role-hint {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   margin-left: 10px;
 }
 .role-hint-self {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   margin-top: 6px;
 }
 .role-alert {

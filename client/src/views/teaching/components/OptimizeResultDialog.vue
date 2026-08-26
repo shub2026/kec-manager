@@ -239,13 +239,13 @@ function deltaArrow(val, inverse = false) {
 }
 
 .optimize-stat-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   margin-top: var(--space-1);
 }
 
 .section-title {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--space-3);
@@ -269,7 +269,7 @@ function deltaArrow(val, inverse = false) {
 }
 
 .improvement-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   margin-bottom: var(--space-2);
 }
@@ -306,7 +306,7 @@ function deltaArrow(val, inverse = false) {
 }
 
 .improvement-delta {
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -366,7 +366,7 @@ function deltaArrow(val, inverse = false) {
   border-radius: 50%;
   background: var(--brand-primary-soft);
   color: var(--brand-primary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -380,7 +380,7 @@ function deltaArrow(val, inverse = false) {
 }
 
 .change-class {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 4px;
@@ -393,7 +393,7 @@ function deltaArrow(val, inverse = false) {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
 }
 
 .teacher-from {

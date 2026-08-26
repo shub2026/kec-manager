@@ -81,7 +81,7 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 }
 
 .confirm-description {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: var(--space-4);
@@ -105,7 +105,7 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-primary);
 }
 

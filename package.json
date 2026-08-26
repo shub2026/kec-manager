@@ -1,6 +1,6 @@
 {
   "name": "kec-manager",
-  "version": "1.17.1",
+  "version": "1.17.2",
   "private": true,
   "type": "module",
   "description": "KEC课程管理平台",

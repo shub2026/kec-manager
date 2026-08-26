@@ -116,7 +116,7 @@ function barColor(idx) {
   justify-content: center;
   padding: var(--space-6) 0;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .stats-table {
@@ -142,7 +142,7 @@ function barColor(idx) {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-regular);
   min-width: 0;
 }
@@ -210,7 +210,7 @@ function barColor(idx) {
 .hours-value {
   width: 40px;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 600;
   color: var(--text-primary);
   text-align: right;
@@ -249,7 +249,7 @@ function barColor(idx) {
 }
 
 .meta-num {
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 600;
   color: var(--text-regular);
   text-align: right;
@@ -272,7 +272,7 @@ function barColor(idx) {
   margin-top: var(--space-2);
   padding-top: var(--space-2);
   border-top: 1.5px solid var(--border-light);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
 

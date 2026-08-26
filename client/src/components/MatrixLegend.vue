@@ -75,7 +75,7 @@ function swatch(key) {
   background: var(--bg-subtle);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-regular);
   line-height: 1.4;
 }

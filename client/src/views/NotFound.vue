@@ -69,7 +69,7 @@ function goHome() {
   margin: var(--space-4) 0 var(--space-2);
 }
 .not-found-desc {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
   margin: 0 0 var(--space-6);
 }

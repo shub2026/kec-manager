@@ -456,7 +456,7 @@ onMounted(() => {
 .plan-version {
   margin-left: 6px;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 
 .status-tag {
@@ -517,7 +517,7 @@ onMounted(() => {
 }
 
 .textbook-tooltip .tooltip-hours {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: rgba(255, 255, 255, 0.7);
   margin-bottom: 6px;
 }
@@ -534,7 +534,7 @@ onMounted(() => {
 
 .textbook-tooltip .tooltip-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   margin-bottom: 6px;
   color: var(--bg-card);
   word-break: break-all;
@@ -543,7 +543,7 @@ onMounted(() => {
 .textbook-tooltip .tooltip-row {
   display: flex;
   gap: var(--space-2);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: rgba(255, 255, 255, 0.85);
 }
 
@@ -554,7 +554,7 @@ onMounted(() => {
 }
 
 .textbook-tooltip .tooltip-no-textbook {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: rgba(255, 255, 255, 0.7);
 }
 

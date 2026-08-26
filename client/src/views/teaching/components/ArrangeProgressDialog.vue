@@ -303,7 +303,7 @@ const progressStatus = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-secondary);
   padding: 6px 10px;
   border-radius: var(--radius-sm);
@@ -358,7 +358,7 @@ const progressStatus = computed(() => {
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   margin-bottom: var(--space-1);
 }
@@ -371,7 +371,7 @@ const progressStatus = computed(() => {
 }
 
 .stat-value .stat-sub {
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 500;
   color: var(--text-secondary);
 }
@@ -389,7 +389,7 @@ const progressStatus = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 500;
   color: var(--brand-primary);
   padding: var(--space-2) var(--space-3);

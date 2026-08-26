@@ -241,7 +241,7 @@ function courseRate(r) {
   color: var(--brand-danger-text);
 }
 .batch-stat-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   margin-top: var(--space-1);
 }
@@ -303,7 +303,7 @@ function courseRate(r) {
   transform: rotate(90deg);
 }
 .course-item-name {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
@@ -335,7 +335,7 @@ function courseRate(r) {
   background: var(--brand-warning);
 }
 .course-item-stat {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
@@ -343,7 +343,7 @@ function courseRate(r) {
   padding: var(--space-2) 14px var(--space-3) 34px;
   border-top: 1px dashed var(--border-light);
   background: var(--bg-subtle);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
 }
 .detail-error {
   color: var(--brand-danger-text);
@@ -366,7 +366,7 @@ function courseRate(r) {
   margin-top: var(--space-1);
 }
 .detail-section-title {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   margin-bottom: 6px;
   font-weight: 600;
@@ -386,24 +386,24 @@ function courseRate(r) {
   color: var(--text-primary);
 }
 .unassigned-hours {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   white-space: nowrap;
 }
 .unassigned-reason {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--brand-warning-text);
   margin-left: auto;
 }
 .detail-ok {
   color: var(--brand-success-text);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
 }
 .detail-continuity {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--brand-violet-text);
   margin-bottom: var(--space-2);
 }

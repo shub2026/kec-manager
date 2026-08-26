@@ -48,7 +48,7 @@ defineProps({
 .confirm-warning {
   margin: var(--space-2) 0 0;
   color: var(--brand-danger-text);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   line-height: 1.6;
 }
 .warning-inline {

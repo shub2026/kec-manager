@@ -342,7 +342,7 @@ function cellAriaLabel(course, semester) {
   table-layout: fixed;
   width: 100%;
   min-width: 100%;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
 }
 
 .matrix-table thead {
@@ -451,7 +451,7 @@ function cellAriaLabel(course, semester) {
 .matrix-group-cell {
   padding: 6px var(--space-4);
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   border: 1px solid var(--border-light);
 }
 
@@ -475,7 +475,7 @@ function cellAriaLabel(course, semester) {
 
 .group-count {
   font-weight: 400;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
 
@@ -597,7 +597,7 @@ function cellAriaLabel(course, semester) {
 /* 总课时列：中性底色，蓝色色带专用于课时热力，避免与 .cell-low 重复淡蓝 */
 .matrix-total-cell {
   background: var(--bg-subtle);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   cursor: default;
 }
 
@@ -680,12 +680,12 @@ function cellAriaLabel(course, semester) {
 
 .matrix-grand-total-label {
   padding: var(--space-2) var(--space-3);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   text-align: left;
 }
 
 .matrix-grand-total-cell {
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 /* 底部控制栏：统一年级周数设置卡片 */
@@ -710,12 +710,12 @@ function cellAriaLabel(course, semester) {
 
 .footer-label {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-primary);
 }
 
 .footer-hint {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
 
@@ -862,7 +862,7 @@ function cellAriaLabel(course, semester) {
 
 .textbook-tooltip .tooltip-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   margin-bottom: 6px;
   color: var(--bg-card);
   word-break: break-all;
@@ -871,7 +871,7 @@ function cellAriaLabel(course, semester) {
 .textbook-tooltip .tooltip-row {
   display: flex;
   gap: var(--space-2);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: rgba(255, 255, 255, 0.85);
 }
 

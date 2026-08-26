@@ -76,7 +76,7 @@ function barColor(item) {
   justify-content: center;
   padding: var(--space-6) 0;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .chart-container {
@@ -99,7 +99,7 @@ function barColor(item) {
 .chart-label {
   width: 88px;
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-regular);
   text-align: right;
   overflow: hidden;
@@ -145,7 +145,7 @@ function barColor(item) {
 .chart-value {
   width: 36px;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   font-weight: 600;
   color: var(--text-primary);
   text-align: right;
@@ -158,7 +158,7 @@ function barColor(item) {
   margin-top: var(--space-2);
   padding-top: var(--space-2);
   border-top: 1.5px solid var(--border-light);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
 </style>

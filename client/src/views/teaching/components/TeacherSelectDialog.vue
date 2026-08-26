@@ -349,7 +349,7 @@ defineExpose({ open, close });
   width: 200px;
 }
 .filter-count {
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--el-text-color-secondary);
   white-space: nowrap;
 }
@@ -373,7 +373,7 @@ defineExpose({ open, close });
 }
 .text-placeholder {
   color: var(--text-placeholder);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 /* 只带一本教材图标：警示色弱提示，紧跟姓名不独占列宽 */
 .single-tb-icon {

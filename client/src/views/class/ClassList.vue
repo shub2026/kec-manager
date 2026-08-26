@@ -205,7 +205,7 @@ const {
 }
 
 .progress-detail {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
 }
 
@@ -218,6 +218,6 @@ const {
   padding-top: var(--space-card);
   border-top: 1px solid var(--border-light);
   color: var(--brand-primary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 </style>

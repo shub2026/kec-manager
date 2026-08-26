@@ -133,7 +133,7 @@ function progressPercent(c) {
   color: var(--text-primary);
 }
 .overview-hint {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
   min-width: 0;
 }
@@ -206,7 +206,7 @@ function progressPercent(c) {
   gap: var(--space-2);
 }
 .progress-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
 .card-stats {
@@ -224,7 +224,7 @@ function progressPercent(c) {
   gap: 2px;
 }
 .stat-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
 .stat-value {
@@ -234,7 +234,7 @@ function progressPercent(c) {
   font-variant-numeric: tabular-nums;
 }
 .stat-value small {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: normal;
   color: var(--text-secondary);
   margin-left: 2px;

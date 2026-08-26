@@ -305,14 +305,14 @@ onMounted(() => {
   display: block;
   margin-bottom: var(--space-3);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-regular);
   letter-spacing: 0.01em;
 }
 
 .switch-desc {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   line-height: 1.7;
   color: var(--text-secondary);
 }
@@ -322,7 +322,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   margin-top: var(--space-4);
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   /* 白底小字需 -text 深阶达标对比度，400 档仅用于图形/图标 */
   color: var(--brand-success-text, #047857);
 }
@@ -343,7 +343,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--el-color-warning, #ff6b1a);
 }
 

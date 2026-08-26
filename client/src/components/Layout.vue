@@ -28,7 +28,7 @@
 
     <!-- 桌面侧边栏：固定 + 折叠模式 -->
     <el-aside v-if="!isMobile" :width="isCollapse ? '64px' : '220px'" class="layout-aside">
-      <div class="layout-logo">
+      <div class="layout-logo" :class="{ 'is-collapsed': isCollapse }">
         <img src="/icons.svg" alt="" class="logo-icon" />
         <span v-if="!isCollapse" class="logo-text">KEC课程管理平台</span>
         <el-icon
@@ -390,7 +390,7 @@ function handlePasswordChangeSuccess() {
   align-items: center;
   padding: 0 12px;
   gap: 10px;
-  color: var(--bg-card);
+  color: var(--text-primary);
   font-size: 15px;
   font-weight: bold;
   border-bottom: 1px solid var(--sidebar-border);
@@ -412,16 +412,34 @@ function handlePasswordChangeSuccess() {
   flex-shrink: 0;
 }
 
+/* 折叠/展开按钮:24×24 触达区 + hover 浅蓝底,替代纯图标低可发现性 */
 .collapse-btn {
   flex-shrink: 0;
-  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  opacity: 0.7;
-  transition: opacity var(--dur-fast) var(--ease-out);
+  color: var(--sidebar-text);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
 }
 
 .collapse-btn:hover {
-  opacity: 1;
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active);
+}
+
+/* 折叠态 logo 区竖排:64px 宽扣除 padding 仅剩 40px,容不下"图标+按钮"横排(60px),改为上下排布 */
+.layout-logo.is-collapsed {
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 8px;
 }
 .layout-aside :deep(.el-menu) {
   width: 100%;
@@ -449,10 +467,17 @@ function handlePasswordChangeSuccess() {
   background: var(--sidebar-scrollbar-hover);
 }
 
-/* 侧边栏渐变背景 */
+/* 侧边栏浅色背景 + 右侧细分隔线（quiet chrome：与内容区同源中性色） */
 .layout-aside {
-  background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-deep) 100%);
-  box-shadow: var(--shadow-sm);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  box-shadow: var(--shadow-xs);
+}
+
+/* 菜单项 hover 中性浅灰（低噪音），激活项除外保持浅蓝 */
+.layout-aside :deep(.el-menu-item:not(.is-active):hover),
+.layout-aside :deep(.el-sub-menu__title:hover) {
+  background: var(--bg-subtle);
 }
 
 /* 活跃菜单项左侧色条指示器 */
@@ -468,9 +493,10 @@ function handlePasswordChangeSuccess() {
   transition: height var(--dur-fast) var(--ease-out);
 }
 
-/* 活跃菜单项添加微弱背景（scoped 高特异性覆盖 EP 基础规则，无需 !important） */
+/* 活跃菜单项：满宽浅蓝底 + 品牌蓝字加粗（Ant Design Pro light 经典选中态） */
 .layout-aside :deep(.el-menu-item.is-active) {
   background: var(--sidebar-active-bg);
+  font-weight: 600;
 }
 
 /* 侧边栏底部 */
@@ -495,10 +521,10 @@ function handlePasswordChangeSuccess() {
 }
 
 .sidebar-semester :deep(.el-tag) {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--sidebar-text);
   border-color: var(--sidebar-border);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-subtle);
 }
 
 .sidebar-user {
@@ -512,7 +538,7 @@ function handlePasswordChangeSuccess() {
 }
 
 .sidebar-user:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-subtle);
 }
 
 .sidebar-user.is-collapse {
@@ -524,10 +550,10 @@ function handlePasswordChangeSuccess() {
   width: 34px;
   height: 34px;
   border-radius: var(--radius-sm);
-  /* 玻璃灰中性风：与侧边栏 hover/激活态同一白透明材质语言，白图标对比度≈13:1；细描边提轮廓防“禁用态”观感 */
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-  color: var(--sidebar-active);
+  /* 浅色侧边栏版：白底+细描边（与移动端顶栏头像镜像），深灰图标对比度≈7.9:1 */
+  background: var(--bg-card);
+  box-shadow: inset 0 0 0 1px var(--border-light);
+  color: var(--text-regular);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -544,7 +570,7 @@ function handlePasswordChangeSuccess() {
 }
 
 .user-meta .user-name {
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--sidebar-text-strong);
   line-height: 1.3;
   white-space: nowrap;
@@ -558,10 +584,12 @@ function handlePasswordChangeSuccess() {
   line-height: 1.2;
 }
 
-/* 确保菜单项占满宽度 */
+/* 菜单项:占满宽度 + 40px 紧凑行高(EP 默认 56px 在浅色侧边栏中偏空旷,对齐 shadcn/Ant Design 主流行高) */
 .layout-aside :deep(.el-menu-item),
 .layout-aside :deep(.el-sub-menu__title) {
   width: 100%;
+  height: 40px;
+  line-height: 40px;
 }
 
 /* 折叠时隐藏文字，只显示图标 */
@@ -617,7 +645,7 @@ function handlePasswordChangeSuccess() {
   padding: 4px 0;
 }
 .logout-title {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-primary);
   margin: 0 0 var(--space-2) 0;
 }
@@ -627,7 +655,7 @@ function handlePasswordChangeSuccess() {
   margin-right: 6px;
 }
 .logout-hint {
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-secondary);
   margin: 0;
 }
@@ -643,11 +671,11 @@ function handlePasswordChangeSuccess() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-deep) 100%);
+  background: var(--sidebar-bg);
 }
 
 .drawer-aside .layout-logo {
-  color: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .drawer-aside .el-menu {
@@ -656,6 +684,13 @@ function handlePasswordChangeSuccess() {
   overflow-y: auto;
   overflow-x: hidden;
   background: transparent;
+}
+
+/* 抽屉版菜单项与桌面侧边栏同 40px 行高(抽屉渲染在 body 下,需在非 scoped 块声明) */
+.drawer-aside .el-menu-item,
+.drawer-aside .el-sub-menu__title {
+  height: 40px;
+  line-height: 40px;
 }
 
 .drawer-aside .el-menu::-webkit-scrollbar {
@@ -678,8 +713,14 @@ function handlePasswordChangeSuccess() {
   background: var(--brand-primary);
 }
 
+.drawer-aside .el-menu-item:not(.is-active):hover,
+.drawer-aside .el-sub-menu__title:hover {
+  background: var(--bg-subtle);
+}
+
 .drawer-aside .el-menu-item.is-active {
   background: var(--sidebar-active-bg);
+  font-weight: 600;
 }
 
 .drawer-aside .sidebar-user {
@@ -688,5 +729,20 @@ function handlePasswordChangeSuccess() {
 
 .drawer-aside .sidebar-user:hover {
   background: transparent;
+}
+
+/* 折叠态弹出子菜单(popper 渲染在 body 下):与侧边栏 40px 行高及选中/hover 态视觉一致 */
+.el-menu--popup .el-menu-item {
+  height: 40px;
+  line-height: 40px;
+}
+
+.el-menu--popup .el-menu-item:not(.is-active):hover {
+  background: var(--bg-subtle);
+}
+
+.el-menu--popup .el-menu-item.is-active {
+  background: var(--sidebar-active-bg);
+  font-weight: 600;
 }
 </style>

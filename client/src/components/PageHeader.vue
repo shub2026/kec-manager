@@ -98,7 +98,7 @@ defineProps({
 }
 
 .page-header-subtitle {
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-secondary);
   background: var(--brand-primary-soft);
   padding: 2px var(--space-2);
@@ -121,7 +121,7 @@ defineProps({
   grid-column: 1;
   grid-row: 2;
   margin: 6px 0 0;
-  font-size: 13px;
+  font-size: var(--font-size-body-sm);
   color: var(--text-secondary);
   line-height: 1.5;
 }

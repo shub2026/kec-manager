@@ -626,7 +626,7 @@ onMounted(async () => {
 }
 .expand-content .no-textbook {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 .nested-table {
   margin: 4px 0;

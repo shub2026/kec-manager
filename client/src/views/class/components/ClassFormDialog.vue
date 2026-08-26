@@ -388,7 +388,7 @@ function handleBatchSave() {
 
 .form-hint {
   margin-top: var(--space-1);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
 
