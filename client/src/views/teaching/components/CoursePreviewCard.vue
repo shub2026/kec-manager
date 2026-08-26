@@ -104,27 +104,39 @@ function courseTypeLabel(type) {
   gap: 10px;
 }
 /* 返回按钮：无边框中深蓝底（color-mix 在极浅底与浅阶之间取中间色）+ 主色 active 文字，
-   默认尺寸 + 中粗字重承担存在感，仅 hover 时补投影，避免描边过于抢眼 */
+   默认尺寸 + 中粗字重承担存在感，避免描边过于抢眼；
+   hover 时背景加深一档、文字提亮一档、图标向左轻移 2px 暗示“返回”方向，
+   投影用中性浅影（--shadow-sm）而非主色光晕：有色光晕是主按钮专属语言，
+   次要按钮借中性投影形成“轻微浮起”即可，不抢层级（动效走全局令牌） */
 .back-btn {
   margin-right: var(--space-2);
   font-weight: 500;
   --el-button-bg-color: color-mix(in srgb, var(--brand-primary) 14%, white);
   --el-button-border-color: transparent;
   --el-button-text-color: var(--brand-primary-active);
-  --el-button-hover-bg-color: color-mix(in srgb, var(--brand-primary) 20%, white);
+  --el-button-hover-bg-color: color-mix(in srgb, var(--brand-primary) 22%, white);
   --el-button-hover-border-color: transparent;
-  --el-button-hover-text-color: var(--brand-primary-active);
-  --el-button-active-bg-color: color-mix(in srgb, var(--brand-primary) 24%, white);
+  --el-button-hover-text-color: var(--brand-primary);
+  --el-button-active-bg-color: color-mix(in srgb, var(--brand-primary) 26%, white);
   --el-button-active-border-color: transparent;
   --el-button-active-text-color: var(--brand-primary-active);
   border-radius: var(--radius-sm);
   transition:
-    background-color 0.2s,
-    color 0.2s,
-    box-shadow 0.2s;
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+.back-btn :deep(.el-icon) {
+  transition: transform var(--dur-fast) var(--ease-out);
 }
 .back-btn:hover {
-  box-shadow: 0 2px 8px var(--brand-primary-shadow);
+  box-shadow: var(--shadow-sm);
+}
+.back-btn:hover :deep(.el-icon) {
+  transform: translateX(-2px);
+}
+.back-btn:active :deep(.el-icon) {
+  transform: translateX(-1px);
 }
 .course-name {
   font-size: 16px;
