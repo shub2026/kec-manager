@@ -56,9 +56,6 @@
       <el-option label="禁用" value="disabled" />
     </el-select>
     <template #actions>
-      <el-button @click="$emit('export')"
-        ><el-icon><Download /></el-icon> 导出Excel</el-button
-      >
       <el-button @click="$emit('download-template')"
         ><el-icon><Document /></el-icon> 下载模板</el-button
       >
@@ -76,6 +73,9 @@
           ><el-icon><Upload /></el-icon> 导入Excel</el-button
         >
       </el-upload>
+      <el-button @click="$emit('export')"
+        ><el-icon><Download /></el-icon> 导出Excel</el-button
+      >
     </template>
   </FilterBar>
 </template>

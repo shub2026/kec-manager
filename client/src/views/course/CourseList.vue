@@ -15,9 +15,6 @@
       <div class="page-toolbar">
         <el-input v-model="filterName" clearable placeholder="搜索课程名称" class="filter-2xl" />
         <div class="action-buttons">
-          <el-button @click="exportData"
-            ><el-icon><Download /></el-icon> 导出Excel</el-button
-          >
           <el-button @click="downloadTemplate"
             ><el-icon><Document /></el-icon> 下载模板</el-button
           >
@@ -35,6 +32,9 @@
               ><el-icon><Upload /></el-icon> 导入Excel</el-button
             >
           </el-upload>
+          <el-button @click="exportData"
+            ><el-icon><Download /></el-icon> 导出Excel</el-button
+          >
         </div>
       </div>
 
