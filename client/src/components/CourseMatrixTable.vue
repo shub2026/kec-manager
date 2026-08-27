@@ -496,8 +496,10 @@ function cellAriaLabel(course, semester) {
   box-shadow: inset 0 0 0 2px var(--brand-primary);
 }
 
+/* 超范围：退到页面底色（白卡内最退阶），与零课时白、热力蓝形成递进；
+   不再与表头/小计等结构族同色，避免"无数据"带"结构强调"的视觉权重 */
 .cell-out-of-range {
-  background: var(--bg-subtle);
+  background: var(--bg-page);
   cursor: default;
 }
 
@@ -505,9 +507,11 @@ function cellAriaLabel(course, semester) {
   background: var(--bg-card);
 }
 
-/* 课时热力：品牌蓝 #1C82F5 由浅到深（light-9 → light-7 → light-5） */
+/* 课时热力：品牌蓝 #1C82F5 由浅到深（light-8 → light-7 → light-5）。
+   底档取 light-8 而非 light-9：light-9 #e8f3fe 与结构底色 #eff4fa 的
+   RGB 差仅 (7,1,4)，肉眼同阶，曾使最常见低档热力失效 */
 .cell-low {
-  background: var(--brand-primary-soft);
+  background: var(--el-color-primary-light-8);
 }
 
 .cell-mid {

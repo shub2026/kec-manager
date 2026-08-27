@@ -53,9 +53,9 @@
 <script setup>
 import { InfoFilled } from '@element-plus/icons-vue';
 
-// 与 CourseMatrixTable.vue 的课时热力配色保持一致
+// 与 CourseMatrixTable.vue 的课时热力配色保持一致（light-8 → light-7 → light-5）
 const heatColors = {
-  low: 'var(--brand-primary-soft)',
+  low: 'var(--el-color-primary-light-8)',
   mid: 'var(--brand-primary-lighter)',
   high: 'var(--el-color-primary-light-5)',
 };
@@ -139,7 +139,7 @@ function swatch(key) {
 }
 
 .legend-swatch--out {
-  background: var(--bg-subtle);
+  background: var(--bg-page);
 }
 
 /* 状态圆点 */
