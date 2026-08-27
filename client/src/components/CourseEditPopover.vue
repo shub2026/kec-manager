@@ -75,7 +75,7 @@
   <el-dialog
     :model-value="semesterDialogVisible"
     title="设置开课学期"
-    width="var(--dialog-width)"
+    width="var(--dialog-width-lg)"
     :fullscreen="isMobile"
     @update:model-value="$emit('update-semester-dialog-visible', $event)"
   >
@@ -87,28 +87,34 @@
         show-icon
         class="semester-alert"
       />
-      <el-form-item label="起始学期" required>
-        <el-input-number
-          :model-value="semesterForm?.startSemester"
-          :min="1"
-          :max="12"
-          class="full-width"
-          @update:model-value="
-            $emit('update-semester-form', { ...semesterForm, startSemester: $event })
-          "
-        />
-      </el-form-item>
-      <el-form-item label="结束学期" required>
-        <el-input-number
-          :model-value="semesterForm?.endSemester"
-          :min="1"
-          :max="12"
-          class="full-width"
-          @update:model-value="
-            $emit('update-semester-form', { ...semesterForm, endSemester: $event })
-          "
-        />
-      </el-form-item>
+      <el-row :gutter="16">
+        <el-col :xs="24" :sm="12">
+          <el-form-item label="起始学期" required>
+            <el-input-number
+              :model-value="semesterForm?.startSemester"
+              :min="1"
+              :max="12"
+              class="full-width"
+              @update:model-value="
+                $emit('update-semester-form', { ...semesterForm, startSemester: $event })
+              "
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :xs="24" :sm="12">
+          <el-form-item label="结束学期" required>
+            <el-input-number
+              :model-value="semesterForm?.endSemester"
+              :min="1"
+              :max="12"
+              class="full-width"
+              @update:model-value="
+                $emit('update-semester-form', { ...semesterForm, endSemester: $event })
+              "
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
       <el-alert
         title="提示：修改后将自动创建或删除对应的学期记录"
         type="warning"

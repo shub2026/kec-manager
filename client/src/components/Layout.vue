@@ -9,7 +9,12 @@
         <img src="/icons.svg" alt="" class="logo-icon" />
         <span class="mobile-title">KEC课程管理平台</span>
       </div>
-      <el-dropdown trigger="click" :teleported="true" @command="handleCommand">
+      <el-dropdown
+        trigger="click"
+        :teleported="true"
+        popper-class="user-menu-popper"
+        @command="handleCommand"
+      >
         <button type="button" class="mobile-avatar" aria-label="用户菜单">
           <el-icon :size="18"><UserFilled /></el-icon>
         </button>
@@ -64,6 +69,7 @@
           trigger="click"
           aria-haspopup="true"
           :teleported="true"
+          :popper-class="isCollapse ? 'user-menu-popper is-compact' : 'user-menu-popper'"
           @command="handleCommand"
         >
           <div class="sidebar-user" :class="{ 'is-collapse': isCollapse }" aria-label="用户菜单">
@@ -755,5 +761,35 @@ function handlePasswordChangeSuccess() {
   width: 3px;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--brand-primary);
+}
+
+/* ==================== 用户菜单弹窗（popper 渲染在 body 下，非 scoped） ====================
+   EP 默认 min-width 100px、32px 行高、图标间距 5px，贴边局促；
+   展开态与 220px 侧栏同宽，折叠态走 is-compact 窄版，行高/间距放宽到全站 8px 节奏 */
+.user-menu-popper.el-popper {
+  min-width: 220px; /* 与展开态侧边栏同宽，弹窗左右边缘与侧栏严丝合缝 */
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.user-menu-popper.is-compact.el-popper {
+  min-width: 160px; /* 折叠态 64px 窄轨，220px 会失衡，收到 160px 保持轻盈 */
+}
+
+.user-menu-popper .el-dropdown-menu {
+  padding: var(--space-2) 0; /* 上下 8px 留白，首尾项不再顶到圆角 */
+}
+
+.user-menu-popper .el-dropdown-menu__item {
+  padding: var(--space-2) var(--space-4); /* 8/16 → 约 38px 行高，比菜单 40px 略紧凑一档 */
+  font-size: var(--font-size-body);
+}
+
+.user-menu-popper .el-dropdown-menu__item .el-icon {
+  margin-right: var(--space-2); /* EP 默认 5px → 8px 间距节奏 */
+}
+
+.user-menu-popper .el-dropdown-menu__item--divided {
+  margin: var(--space-2) 0; /* 分割线上下留白放宽 */
 }
 </style>
