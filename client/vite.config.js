@@ -101,6 +101,13 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // 项目位于 Documents（OneDrive 同步盘），Windows 下 fs.watch 事件偶发丢失，
+    // 导致 dev server 的 transform 缓存不失效、文件修改不生效（表现为页面仍是旧样式）；
+    // 改用轮询监听（500ms），牺牲极少量 CPU 换取文件变更的可靠捕获
+    watch: {
+      usePolling: true,
+      interval: 500,
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3002',
