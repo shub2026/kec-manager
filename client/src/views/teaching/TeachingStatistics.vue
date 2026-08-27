@@ -606,7 +606,7 @@ onMounted(async () => {
 }
 /* 窄屏保持三列等分（避免纵向堆叠占满整屏），仅压缩内边距；
    竖线分隔保留，与 Dashboard 指标条移动端视觉一致 */
-@media (max-width: 576px) {
+@media (max-width: 480px) {
   .summary-item {
     padding: var(--space-1) 2px;
   }

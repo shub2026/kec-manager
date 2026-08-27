@@ -59,7 +59,7 @@ export function showImportResultCard({
 
   // 构建卡片 DOM
   const card = document.createElement('div');
-  card.style.cssText = `pointer-events:auto;width:360px;background:var(--bg-card);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);overflow:hidden;border-left:4px solid ${c.primary};animation:importToastSlideIn 0.3s ease;`;
+  card.style.cssText = `pointer-events:auto;width:min(360px, calc(100vw - 32px));background:var(--bg-card);border-radius:var(--radius-sm);box-shadow:var(--shadow-md);overflow:hidden;border-left:4px solid ${c.primary};animation:importToastSlideIn 0.3s ease;`;
 
   // 头部：图标 + 标题 + 关闭按钮
   const header = document.createElement('div');

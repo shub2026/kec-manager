@@ -95,6 +95,10 @@ defineProps({
   color: var(--text-primary);
   line-height: 1.3;
   white-space: nowrap;
+  /* 长标题（如完整方案名）窄屏防溢出容器 */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .page-header-subtitle {
@@ -105,6 +109,9 @@ defineProps({
   border-radius: var(--radius-sm);
   font-weight: var(--fw-medium);
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .page-header-right {

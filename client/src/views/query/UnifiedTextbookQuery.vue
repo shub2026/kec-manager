@@ -115,6 +115,7 @@
             class="alert-success"
           />
 
+          <div class="table-scroll-wrap">
           <el-table
             :data="paginatedClasses"
             stripe
@@ -172,6 +173,7 @@
               </template>
             </el-table-column>
           </el-table>
+          </div>
 
           <!-- 分页 -->
           <div class="pagination-container">

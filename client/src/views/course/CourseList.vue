@@ -39,7 +39,8 @@
       </div>
 
       <ListErrorState v-if="error" :message="error" @retry="load" />
-      <el-table v-else v-loading="loading" :data="pagedList" stripe row-key="id">
+      <div v-else class="table-scroll-wrap">
+      <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
         <template #empty>
           <EmptyState type="course" description="暂无课程数据" />
         </template>
@@ -111,6 +112,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <div class="pagination-container">
         <el-pagination

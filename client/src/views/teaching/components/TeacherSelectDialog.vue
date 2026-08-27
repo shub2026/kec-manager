@@ -1,8 +1,10 @@
 <template>
-  <!-- 宽度例外：此弹窗需全览多列教师信息，桌面端保持 80% / max 1400px，不使用 --dialog-width-* token -->
+  <!-- 宽度例外：此弹窗需全览多列教师信息，桌面端保持 80% / max 1400px，不使用 --dialog-width-* token；
+       移动端走全屏模式，与其他弹窗约定一致 -->
   <el-dialog
     v-model="visible"
     title="选择任课教师"
+    :fullscreen="isMobile"
     :width="isMobile ? '95%' : '80%'"
     :style="{ maxWidth: isMobile ? 'none' : '1400px' }"
     align-center

@@ -932,8 +932,9 @@ onMounted(() => {
   font-size: var(--font-size-caption);
   color: var(--text-regular);
   border: none;
-  height: 28px;
-  line-height: 28px;
+  /* 40px：移动端触控目标下限（与弹窗关闭钮同规格） */
+  height: 40px;
+  line-height: 40px;
   padding: 0;
 }
 

@@ -149,13 +149,14 @@ function progressPercent(c) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-/* ≤900px：2 列 */
-@media (max-width: 900px) {
+/* ≤992px：2 列 */
+@media (max-width: 992px) {
   .overview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-/* ≤560px：单列，避免卡片内容挤压 */
+/* ≤560px：单列。有意保留的非标档位——卡片含进度条与多段文字，
+   481~560px 区间双列会把内容挤压到不可读，不能并入 480 档 */
 @media (max-width: 560px) {
   .overview-grid {
     grid-template-columns: 1fr;
