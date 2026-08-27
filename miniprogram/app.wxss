@@ -68,7 +68,9 @@ page {
   --shadow-lg: 0 16rpx 40rpx rgba(15, 23, 42, 0.12), 0 6rpx 16rpx rgba(15, 23, 42, 0.06);
 
   background: var(--bg-page);
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Helvetica, sans-serif;
+  /* 与 Web 端 --el-font-family 同源；MiSans / HarmonyOS Sans SC 渐进增强，未安装落回雅黑 */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC",
+    "MiSans", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
   color: var(--text-1);
   font-size: 28rpx;
   line-height: 1.5;

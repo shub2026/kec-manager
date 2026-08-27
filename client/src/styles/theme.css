@@ -197,10 +197,11 @@
   --tracking-wide: 0.02em;
 
   /* —— 覆盖 ElementPlus 主题变量,影响所有 el-* 组件 —— */
-  /* 字体栈显式声明,防 EP 升级漂移；系统字体前置,拉丁字符在 Windows 端走 Segoe UI(优于 Helvetica Neue 回退到 Arial) */
+  /* 字体栈显式声明,防 EP 升级漂移；系统字体前置,拉丁字符在 Windows 端走 Segoe UI(优于 Helvetica Neue 回退到 Arial)。
+     MiSans / HarmonyOS Sans SC 为渐进增强：本机安装者获得优于雅黑的中文渲染,未安装自动落回雅黑 */
   --el-font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+    'Hiragino Sans GB', 'MiSans', 'HarmonyOS Sans SC', 'Microsoft YaHei', Arial, sans-serif;
   --el-color-primary: var(--brand-primary);
   --el-color-success: var(--brand-success);
   --el-color-warning: var(--brand-warning);
