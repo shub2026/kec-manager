@@ -50,7 +50,7 @@ const dotColor = computed(() => colorMap[props.dot] || colorMap.blue);
 }
 
 .card-title-text {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-size: 16px;
   color: var(--text-primary);
 }

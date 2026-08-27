@@ -327,8 +327,8 @@ function handlePasswordChangeSuccess() {
 }
 
 .mobile-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-subtitle);
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -349,7 +349,7 @@ function handlePasswordChangeSuccess() {
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   flex-shrink: 0;
   cursor: pointer;
   transition:
@@ -367,8 +367,8 @@ function handlePasswordChangeSuccess() {
 }
 
 .mobile-avatar:focus-visible {
-  outline: 2px solid var(--brand-primary);
-  outline-offset: 2px;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 /* ==================== 桌面侧边栏 ==================== */
@@ -391,8 +391,8 @@ function handlePasswordChangeSuccess() {
   padding: 0 12px;
   gap: 10px;
   color: var(--text-primary);
-  font-size: 15px;
-  font-weight: bold;
+  font-size: var(--font-size-subtitle);
+  font-weight: var(--fw-bold);
   border-bottom: 1px solid var(--sidebar-border);
   flex-shrink: 0;
   background: transparent;
@@ -496,7 +496,7 @@ function handlePasswordChangeSuccess() {
 /* 活跃菜单项：满宽浅蓝底 + 品牌蓝字加粗（Ant Design Pro light 经典选中态） */
 .layout-aside :deep(.el-menu-item.is-active) {
   background: var(--sidebar-active-bg);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 /* 侧边栏底部 */
@@ -558,7 +558,7 @@ function handlePasswordChangeSuccess() {
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   flex-shrink: 0;
 }
 
@@ -720,7 +720,7 @@ function handlePasswordChangeSuccess() {
 
 .drawer-aside .el-menu-item.is-active {
   background: var(--sidebar-active-bg);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .drawer-aside .sidebar-user {
@@ -743,6 +743,6 @@ function handlePasswordChangeSuccess() {
 
 .el-menu--popup .el-menu-item.is-active {
   background: var(--sidebar-active-bg);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 </style>

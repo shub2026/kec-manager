@@ -182,7 +182,7 @@ onMounted(() => {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  box-shadow: var(--el-box-shadow-light, 0 1px 2px rgba(0, 0, 0, 0.04));
+  box-shadow: var(--el-box-shadow-light);
 }
 
 /* 标题行：方案名 16px/600 + 版本小字 + 专业/层次 tag */
@@ -195,7 +195,7 @@ onMounted(() => {
 
 .ov-plan-name {
   font-size: var(--font-size-h3);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
 }
 
@@ -224,8 +224,8 @@ onMounted(() => {
 }
 
 .ov-value {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-h3);
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
@@ -241,7 +241,7 @@ onMounted(() => {
 }
 
 .matrix-container {
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 
 /* 图例间距 */

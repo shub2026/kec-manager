@@ -241,7 +241,7 @@ const progressStatus = computed(() => {
 }
 
 .progress-icon {
-  font-size: 22px;
+  font-size: 22px; /* 图标尺寸，非文字字阶 */
 }
 
 .progress-title-group {
@@ -253,8 +253,8 @@ const progressStatus = computed(() => {
 }
 
 .progress-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-h3);
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
 }
 
@@ -276,7 +276,7 @@ const progressStatus = computed(() => {
 
 .progress-percent {
   font-size: var(--font-size-display);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--brand-primary);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
@@ -314,7 +314,7 @@ const progressStatus = computed(() => {
 
 .phase-item.active {
   color: var(--brand-primary);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   background: var(--brand-primary-soft);
 }
 
@@ -365,14 +365,14 @@ const progressStatus = computed(() => {
 
 .stat-value {
   font-size: var(--font-size-h2);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .stat-value .stat-sub {
   font-size: var(--font-size-body-sm);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-secondary);
 }
 
@@ -390,7 +390,7 @@ const progressStatus = computed(() => {
   align-items: center;
   gap: var(--space-2);
   font-size: var(--font-size-body-sm);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--brand-primary);
   padding: var(--space-2) var(--space-3);
   background: var(--brand-primary-soft);

@@ -211,7 +211,7 @@ function barColor(idx) {
   width: 40px;
   flex-shrink: 0;
   font-size: var(--font-size-body-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -222,7 +222,7 @@ function barColor(idx) {
   width: 42px;
   flex-shrink: 0;
   font-size: var(--font-size-micro);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   text-align: right;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -238,7 +238,7 @@ function barColor(idx) {
 
 .hours-delta.delta-flat {
   color: var(--text-secondary);
-  font-weight: 400;
+  font-weight: var(--fw-regular);
 }
 
 /* 班级+教师列 */
@@ -250,7 +250,7 @@ function barColor(idx) {
 
 .meta-num {
   font-size: var(--font-size-body-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-regular);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -260,7 +260,7 @@ function barColor(idx) {
 .meta-num::after {
   content: attr(data-unit);
   font-size: var(--font-size-micro);
-  font-weight: 400;
+  font-weight: var(--fw-regular);
   color: var(--text-secondary);
   margin-left: 2px;
 }
@@ -278,7 +278,7 @@ function barColor(idx) {
 
 .table-footer strong {
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -300,16 +300,16 @@ function barColor(idx) {
   }
 
   .meta-num {
-    font-size: 12px;
+    font-size: var(--font-size-caption);
   }
 
   .meta-num::after {
-    font-size: 9px;
+    font-size: var(--font-size-micro); /* 单位角标：令牌下限 11px，不再低于此值 */
     margin-left: 1px;
   }
 
   .name-text {
-    font-size: 12px;
+    font-size: var(--font-size-caption);
   }
 }
 </style>

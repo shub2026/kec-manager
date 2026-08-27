@@ -180,9 +180,9 @@ defineExpose({ open, close });
   line-height: 1.8;
 }
 .preview-name {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 .preview-locked {
-  color: var(--brand-warning-text, #e6a23c);
+  color: var(--brand-warning-text);
 }
 </style>

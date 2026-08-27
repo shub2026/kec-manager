@@ -146,7 +146,7 @@ function barColor(item) {
   width: 36px;
   flex-shrink: 0;
   font-size: var(--font-size-body-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   text-align: right;
   font-variant-numeric: tabular-nums;

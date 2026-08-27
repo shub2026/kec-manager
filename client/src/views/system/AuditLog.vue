@@ -441,7 +441,7 @@ onMounted(() => {
 .ip-text {
   color: var(--text-secondary);
   font-size: var(--font-size-body-sm);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 .details-content {
@@ -453,9 +453,9 @@ onMounted(() => {
   overflow: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-body-sm);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 .details-table-wrap {
@@ -466,7 +466,7 @@ onMounted(() => {
 .nested-value {
   white-space: pre-wrap;
   word-break: break-all;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-caption);
   color: var(--text-regular);
 }

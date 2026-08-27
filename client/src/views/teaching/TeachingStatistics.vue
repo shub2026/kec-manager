@@ -626,7 +626,7 @@ onMounted(async () => {
   color: var(--text-secondary);
 }
 .hours-value {
-  font-weight: bold;
+  font-weight: var(--fw-bold);
   font-size: 16px;
 }
 .combined-tag {

@@ -8,6 +8,9 @@ import 'element-plus/es/components/notification/style/css';
 import 'element-plus/es/components/loading/style/css';
 import 'element-plus/es/components/message-box/style/css';
 // locale 中文配置在 App.vue 中通过 <el-config-provider> 提供
+// Archivo 展示数字字体（自托管，仅按需加载用到的拉丁子集；消费方见 --font-family-numbers）
+import '@fontsource/archivo/600.css';
+import '@fontsource/archivo/700.css';
 import './styles/theme.css';
 import './styles/global.css';
 import {

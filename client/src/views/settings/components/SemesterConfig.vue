@@ -240,7 +240,7 @@ function handleSave() {
 .field-label {
   display: block;
   margin-bottom: var(--space-3);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   font-size: var(--font-size-body);
   color: var(--text-regular);
   letter-spacing: 0.01em;
@@ -294,12 +294,12 @@ function handleSave() {
   color: var(--bg-card);
   border-radius: var(--radius-lg);
   font-size: var(--font-size-caption);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .preview-year {
   font-size: var(--font-size-display);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   margin-bottom: var(--space-5);
   font-variant-numeric: tabular-nums;
@@ -323,7 +323,7 @@ function handleSave() {
   border-top: 1px solid var(--border-light);
   color: var(--text-regular);
   font-size: var(--font-size-body);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .preview-footer.saved {

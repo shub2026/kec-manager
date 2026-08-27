@@ -438,7 +438,7 @@ onMounted(() => {
 
 <style scoped>
 .alert-success {
-  margin-bottom: var(--space-3, 12px);
+  margin-bottom: var(--space-3);
 }
 
 .table-scroll-wrap {
@@ -446,7 +446,7 @@ onMounted(() => {
 }
 
 .expand-content {
-  padding: var(--space-2, 8px) var(--space-4, 16px);
+  padding: var(--space-2) var(--space-4);
 }
 
 .nested-scroll {
@@ -481,7 +481,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 /* 有教材的课时数字显示帮助光标，提示可悬停查看教材 */
@@ -518,14 +518,14 @@ onMounted(() => {
 
 .textbook-tooltip .tooltip-hours {
   font-size: var(--font-size-caption);
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--overlay-white-mid);
   margin-bottom: 6px;
 }
 
 .textbook-tooltip .tooltip-textbook {
   padding-top: 6px;
   margin-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid var(--overlay-white-faint);
 }
 
 .textbook-tooltip .tooltip-textbook:first-of-type {
@@ -533,7 +533,7 @@ onMounted(() => {
 }
 
 .textbook-tooltip .tooltip-title {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-size: var(--font-size-body-sm);
   margin-bottom: 6px;
   color: var(--bg-card);
@@ -544,22 +544,22 @@ onMounted(() => {
   display: flex;
   gap: var(--space-2);
   font-size: var(--font-size-caption);
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--overlay-white-hi);
 }
 
 .textbook-tooltip .tooltip-label {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--overlay-white-mid);
   flex-shrink: 0;
   min-width: 36px;
 }
 
 .textbook-tooltip .tooltip-no-textbook {
   font-size: var(--font-size-caption);
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--overlay-white-mid);
 }
 
 .textbook-tooltip .tooltip-status {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   padding: 0 6px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-micro);
@@ -571,8 +571,8 @@ onMounted(() => {
 }
 
 .textbook-tooltip .tooltip-status.elective {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.7);
+  background: var(--overlay-white-faint);
+  color: var(--overlay-white-mid);
 }
 
 .textbook-tooltip .tooltip-status.disabled {

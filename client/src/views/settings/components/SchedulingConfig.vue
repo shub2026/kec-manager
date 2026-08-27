@@ -277,7 +277,7 @@ onMounted(() => {
 }
 
 .scheduling-body {
-  padding: var(--space-6, 24px) 0 var(--space-4, 16px);
+  padding: var(--space-6) 0 var(--space-4);
 }
 
 .config-item {
@@ -304,7 +304,7 @@ onMounted(() => {
 .field-label {
   display: block;
   margin-bottom: var(--space-3);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   font-size: var(--font-size-body);
   color: var(--text-regular);
   letter-spacing: 0.01em;
@@ -324,7 +324,7 @@ onMounted(() => {
   margin-top: var(--space-4);
   font-size: var(--font-size-body-sm);
   /* 白底小字需 -text 深阶达标对比度，400 档仅用于图形/图标 */
-  color: var(--brand-success-text, #047857);
+  color: var(--brand-success-text);
 }
 
 .enabled-hint.off {
@@ -335,8 +335,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  padding-top: var(--space-5, 20px);
-  border-top: 1px solid var(--border-light, #e2e8f0);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-light);
 }
 
 .dirty-hint {
@@ -344,7 +344,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: var(--font-size-body-sm);
-  color: var(--el-color-warning, #ff6b1a);
+  color: var(--el-color-warning);
 }
 
 .unsaved-tag {

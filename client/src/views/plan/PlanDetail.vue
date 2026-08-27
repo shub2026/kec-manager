@@ -358,7 +358,7 @@ onMounted(() => {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  box-shadow: var(--el-box-shadow-light, 0 1px 2px rgba(0, 0, 0, 0.04));
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .ov-item {
@@ -373,15 +373,15 @@ onMounted(() => {
 }
 
 .ov-value {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-h3);
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .ov-value small {
   font-size: var(--font-size-micro);
-  font-weight: 400;
+  font-weight: var(--fw-regular);
   color: var(--text-secondary);
   margin-left: 1px;
 }

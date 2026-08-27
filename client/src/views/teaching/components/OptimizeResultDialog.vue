@@ -223,7 +223,7 @@ function deltaArrow(val, inverse = false) {
 
 .optimize-stat-num {
   font-size: var(--font-size-display);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -246,7 +246,7 @@ function deltaArrow(val, inverse = false) {
 
 .section-title {
   font-size: var(--font-size-body);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   margin-bottom: var(--space-3);
 }
@@ -278,7 +278,7 @@ function deltaArrow(val, inverse = false) {
   font-size: var(--font-size-micro);
   color: var(--text-secondary);
   margin-left: 4px;
-  font-weight: 400;
+  font-weight: var(--fw-regular);
 }
 
 .improvement-values {
@@ -290,15 +290,16 @@ function deltaArrow(val, inverse = false) {
 }
 
 .value-before {
-  font-size: 16px;
+  font-size: var(--font-size-h3);
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
+/* 优化前后对比组：前 16 / 后 18 的刻意级差，展示例外 */
 .value-after {
   font-size: 18px;
   color: var(--text-primary);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
 }
 
 .arrow-icon {
@@ -307,7 +308,7 @@ function deltaArrow(val, inverse = false) {
 
 .improvement-delta {
   font-size: var(--font-size-body-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   display: inline-block;
@@ -367,7 +368,7 @@ function deltaArrow(val, inverse = false) {
   background: var(--brand-primary-soft);
   color: var(--brand-primary);
   font-size: var(--font-size-caption);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -381,7 +382,7 @@ function deltaArrow(val, inverse = false) {
 
 .change-class {
   font-size: var(--font-size-body);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-primary);
   margin-bottom: 4px;
   white-space: nowrap;
@@ -406,7 +407,7 @@ function deltaArrow(val, inverse = false) {
 
 .teacher-to {
   color: var(--brand-primary);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .dialog-footer {

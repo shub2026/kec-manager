@@ -222,7 +222,7 @@ function courseRate(r) {
 }
 .batch-stat-num {
   font-size: var(--font-size-display);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -282,8 +282,8 @@ function courseRate(r) {
 }
 
 .course-item-header:focus-visible {
-  outline: 2px solid var(--brand-primary);
-  outline-offset: -2px;
+  outline: var(--focus-ring);
+  outline-offset: -2px; /* 内收环：列表项内侧描边，避免超出卡片边界 */
 }
 .course-item-header:hover {
   background: var(--bg-subtle);
@@ -304,7 +304,7 @@ function courseRate(r) {
 }
 .course-item-name {
   font-size: var(--font-size-body);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -369,7 +369,7 @@ function courseRate(r) {
   font-size: var(--font-size-caption);
   color: var(--text-secondary);
   margin-bottom: 6px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 .detail-unassigned-item {
   display: flex;
@@ -382,7 +382,7 @@ function courseRate(r) {
   border-bottom: none;
 }
 .unassigned-class-name {
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-primary);
 }
 .unassigned-hours {

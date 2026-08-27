@@ -356,7 +356,7 @@ function cellAriaLabel(course, semester) {
   border: 1px solid var(--border-light);
   padding: var(--space-2) 6px;
   text-align: center;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   white-space: nowrap;
 }
@@ -405,7 +405,7 @@ function cellAriaLabel(course, semester) {
 }
 
 .course-name-text {
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -434,7 +434,7 @@ function cellAriaLabel(course, semester) {
 
 .matrix-course-row.row-disabled .cell-hours {
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .matrix-course-row.row-disabled .cell-textbook,
@@ -450,7 +450,7 @@ function cellAriaLabel(course, semester) {
 
 .matrix-group-cell {
   padding: 6px var(--space-4);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-size: var(--font-size-body);
   border: 1px solid var(--border-light);
 }
@@ -474,7 +474,7 @@ function cellAriaLabel(course, semester) {
 }
 
 .group-count {
-  font-weight: 400;
+  font-weight: var(--fw-regular);
   font-size: var(--font-size-caption);
   color: var(--text-secondary);
 }
@@ -507,11 +507,11 @@ function cellAriaLabel(course, semester) {
 
 /* 课时热力：品牌蓝 #1C82F5 由浅到深（light-9 → light-7 → light-5） */
 .cell-low {
-  background: var(--brand-primary-soft, #e8f3fe);
+  background: var(--brand-primary-soft);
 }
 
 .cell-mid {
-  background: var(--brand-primary-lighter, #b5d6fc);
+  background: var(--brand-primary-lighter);
 }
 
 .cell-high {
@@ -519,8 +519,8 @@ function cellAriaLabel(course, semester) {
 }
 
 .cell-hours {
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: var(--fw-bold);
+  font-size: var(--font-size-body);
   color: var(--text-primary);
   line-height: 1.2;
 }
@@ -552,7 +552,7 @@ function cellAriaLabel(course, semester) {
   margin-top: 6px;
   font-size: var(--font-size-micro);
   color: var(--text-secondary);
-  font-weight: 400;
+  font-weight: var(--fw-regular);
   display: flex;
   align-items: center;
   gap: 3px;
@@ -653,25 +653,26 @@ function cellAriaLabel(course, semester) {
 
 .matrix-subtotal-label {
   padding: 6px var(--space-3);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-regular);
   text-align: left;
   border: 1px solid var(--border-light);
 }
 
 .matrix-subtotal-cell {
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-regular);
   cursor: default;
 }
 
 /* 总计行（tfoot，与上方 tbody 共享列宽，天然对齐） */
 .matrix-grand-total-row td {
+  /* 一次性极浅品牌蓝底（总计行专属，不立令牌） */
   background: rgba(28, 130, 245, 0.04);
   border: 1px solid var(--border-light);
   border-top: 2px solid var(--el-color-primary-light-5);
   border-bottom: none;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   padding: 8px 6px 14px;
   text-align: center;
@@ -709,7 +710,7 @@ function cellAriaLabel(course, semester) {
 }
 
 .footer-label {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-size: var(--font-size-body-sm);
   color: var(--text-primary);
 }
@@ -850,7 +851,7 @@ function cellAriaLabel(course, semester) {
 <!--
   el-tooltip popper 渲染在 body 层，无法使用 scoped 样式。
   以下颜色用于深色 tooltip 背景（effect="dark"）上的白色文字/装饰，
-  rgba(255,255,255,x) 是刻意保持的——深色 popper 上无对应 CSS 变量可用。
+  统一消费 --overlay-white-* 令牌（深色块上叠白专用档位）。
 -->
 <style>
 .el-popper.textbook-tooltip {
@@ -861,7 +862,7 @@ function cellAriaLabel(course, semester) {
 }
 
 .textbook-tooltip .tooltip-title {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-size: var(--font-size-body-sm);
   margin-bottom: 6px;
   color: var(--bg-card);
@@ -872,17 +873,17 @@ function cellAriaLabel(course, semester) {
   display: flex;
   gap: var(--space-2);
   font-size: var(--font-size-caption);
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--overlay-white-hi);
 }
 
 .textbook-tooltip .tooltip-label {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--overlay-white-mid);
   flex-shrink: 0;
   min-width: 36px;
 }
 
 .textbook-tooltip .tooltip-status {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   padding: 0 6px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-micro);
@@ -894,8 +895,8 @@ function cellAriaLabel(course, semester) {
 }
 
 .textbook-tooltip .tooltip-status.elective {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.7);
+  background: var(--overlay-white-faint);
+  color: var(--overlay-white-mid);
 }
 
 .textbook-tooltip .tooltip-status.disabled {

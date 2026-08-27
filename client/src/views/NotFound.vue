@@ -55,6 +55,7 @@ function goHome() {
   margin-bottom: var(--space-4);
 }
 .not-found-code {
+  /* 404 展示数字：页面级 display 例外（72px/800），不入全站字阶令牌 */
   font-size: 72px;
   font-weight: 800;
   color: var(--text-placeholder);
@@ -63,8 +64,8 @@ function goHome() {
   letter-spacing: 4px;
 }
 .not-found-title {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: var(--font-size-display);
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   margin: var(--space-4) 0 var(--space-2);
 }

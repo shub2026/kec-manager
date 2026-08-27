@@ -74,8 +74,8 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 }
 
 .confirm-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--font-size-h2);
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   margin-bottom: var(--space-3);
 }
@@ -83,7 +83,7 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
 .confirm-description {
   font-size: var(--font-size-body);
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
   margin-bottom: var(--space-4);
   max-width: 480px;
   margin-left: auto;
@@ -133,12 +133,12 @@ const emit = defineEmits(['update:modelValue', 'confirm']);
   }
 
   .confirm-icon {
-    font-size: 36px;
+    font-size: 36px; /* 图标尺寸，非文字字阶 */
     margin-bottom: var(--space-2);
   }
 
   .confirm-title {
-    font-size: 16px;
+    font-size: var(--font-size-h3);
     margin-bottom: var(--space-2);
   }
 

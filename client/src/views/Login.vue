@@ -658,6 +658,7 @@ onMounted(() => {
 .brand-name {
   margin: 0;
   color: var(--text-primary);
+  /* 登录页品牌名：页面级 display 例外（26px/800），不入全站字阶令牌 */
   font-size: 26px;
   font-weight: 800;
   letter-spacing: 1px;
@@ -672,7 +673,7 @@ onMounted(() => {
   margin: 12px 0 0;
   color: var(--text-regular);
   font-size: var(--font-size-body);
-  line-height: 1.7;
+  line-height: var(--leading-relaxed);
   letter-spacing: 0.3px;
   max-width: 360px;
 }
@@ -698,13 +699,13 @@ onMounted(() => {
 
 /* 插画下方功能亮点：紧跟插画，与其整体居中 */
 .brand-features {
-  margin: 20px 0 0;
+  margin: var(--space-5) 0 0;
   text-align: center;
   color: var(--text-regular);
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--font-size-body);
+  font-weight: var(--fw-medium);
   letter-spacing: 1px;
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 /* 浮动微动效 */
@@ -800,7 +801,7 @@ onMounted(() => {
   background: color-mix(in srgb, var(--bg-card) 95%, transparent);
   border: 1px solid color-mix(in srgb, var(--brand-primary-soft) 80%, transparent);
   border-radius: 22px;
-  padding: 44px;
+  padding: var(--space-7);
   /* 三层阴影:贴边描边感 + 中景品牌色晕染 + 远景弥散,静止态保持轻盈 */
   box-shadow:
     var(--shadow-xs),
@@ -824,7 +825,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  padding: 0 0 36px;
+  padding: 0 0 var(--space-6);
 }
 
 /* 卡片LOGO：仅移动端显示，补位左侧隐藏后的品牌标识 */
@@ -834,13 +835,13 @@ onMounted(() => {
   height: 48px;
   border-radius: 9px;
   box-shadow: 0 8px 22px var(--brand-primary-shadow);
-  margin-bottom: 18px;
+  margin-bottom: var(--space-4);
 }
 
 .form-title {
   margin: 0;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--font-size-display);
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   text-align: center;
   letter-spacing: 0.01em;
@@ -855,12 +856,12 @@ onMounted(() => {
 
 .form-subtitle__logo {
   color: var(--brand-primary);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 /* ==================== 表单 ==================== */
 .login-form :deep(.el-form-item) {
-  margin-bottom: 26px;
+  margin-bottom: var(--space-5);
 }
 
 .login-form :deep(.el-input__wrapper) {
@@ -894,8 +895,8 @@ onMounted(() => {
   width: 100%;
   height: 50px;
   border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-body);
+  font-weight: var(--fw-semibold);
   letter-spacing: 4px;
   text-indent: 4px;
   margin-top: 4px;
@@ -962,13 +963,14 @@ onMounted(() => {
   background: var(--brand-primary-soft);
   padding: 2px 8px;
   border-radius: 4px;
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-micro);
   color: var(--brand-primary-active);
 }
 
 /* ==================== 底部 ==================== */
 .page-footer {
-  margin-top: 22px;
+  margin-top: var(--space-5);
   text-align: center;
   color: var(--text-secondary);
   font-size: var(--font-size-caption);
@@ -996,7 +998,7 @@ onMounted(() => {
     padding: 32px 20px;
   }
   .login-card {
-    padding: 32px 28px;
+    padding: var(--space-6) var(--space-5);
   }
   .card-logo {
     display: block;
@@ -1010,13 +1012,13 @@ onMounted(() => {
     padding-top: 8vh;
   }
   .login-card {
-    padding: 28px 22px;
+    padding: var(--space-5);
   }
   .form-title {
-    font-size: 21px;
+    font-size: var(--font-size-h2);
   }
   .form-subtitle {
-    font-size: 12px;
+    font-size: var(--font-size-caption);
   }
   .login-btn {
     height: 44px;

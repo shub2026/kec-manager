@@ -129,7 +129,7 @@ function progressPercent(c) {
 }
 .overview-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
 }
 .overview-hint {
@@ -167,9 +167,9 @@ function progressPercent(c) {
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
-  background: var(--el-bg-color, #fff);
-  border: 1px solid var(--el-border-color-lighter, #ebeef5);
-  border-radius: var(--radius-md, 10px);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     box-shadow 0.2s,
@@ -177,13 +177,13 @@ function progressPercent(c) {
     transform 0.2s;
 }
 .overview-card:hover {
-  border-color: var(--el-color-primary-light-5, #a0cfff);
-  box-shadow: var(--el-box-shadow-light, 0 4px 16px rgba(0, 0, 0, 0.08));
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: var(--el-box-shadow-light);
   transform: translateY(-2px);
 }
 .overview-card:focus-visible {
-  outline: 2px solid var(--el-color-primary, #409eff);
-  outline-offset: 2px;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 .card-title-row {
   display: flex;
@@ -192,8 +192,8 @@ function progressPercent(c) {
   gap: var(--space-2);
 }
 .card-course-name {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-h3);
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -212,7 +212,7 @@ function progressPercent(c) {
 .card-stats {
   display: flex;
   flex-wrap: wrap;
-  border-top: 1px solid var(--el-border-color-extra-light, #f2f6fc);
+  border-top: 1px solid var(--el-border-color-extra-light);
   padding-top: var(--space-3);
 }
 .card-stat-item {
@@ -228,14 +228,14 @@ function progressPercent(c) {
   color: var(--text-secondary);
 }
 .stat-value {
-  font-size: var(--font-size-h3, 18px);
-  font-weight: 600;
+  font-size: var(--font-size-h3);
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 .stat-value small {
   font-size: var(--font-size-caption);
-  font-weight: normal;
+  font-weight: var(--fw-regular);
   color: var(--text-secondary);
   margin-left: 2px;
 }

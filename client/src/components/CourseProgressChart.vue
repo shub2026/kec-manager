@@ -162,7 +162,7 @@ const statusText = computed(() => {
 
 .summary-percent {
   font-size: var(--font-size-display-lg);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   /* 大数字用深色中性:首屏最大视觉焦点不占色相,绿色语义仅保留在进度条/标签/状态条等小面积元素 */
   color: var(--text-primary);
   line-height: 1.1;
@@ -170,9 +170,10 @@ const statusText = computed(() => {
   letter-spacing: -0.03em;
 }
 
+/* 百分号伴随 display-lg 大数字的配套档，展示例外 */
 .percent-sign {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   margin-left: 2px;
 }
 
@@ -222,7 +223,7 @@ const statusText = computed(() => {
 
 .legend-item strong {
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -256,11 +257,11 @@ const statusText = computed(() => {
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-body-sm);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .hours-tag strong {
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -284,7 +285,7 @@ const statusText = computed(() => {
   padding: 10px var(--space-3);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-body-sm);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .status-hint.is-done {

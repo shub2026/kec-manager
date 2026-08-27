@@ -62,6 +62,13 @@
   --brand-warning-lighter: #ffd3ba; /* 活力橙 30% 混白(对应 light-7) */
   --brand-danger-lighter: #fecaca;
 
+  /* —— 深色块上白色叠加层：品牌色/深色卡片（统计卡、深色 popper 等）上的白字白线透明度档位。
+     深色 popper 无对应 --bg-* 令牌，此档位专为"深色块上叠白"场景设，勿挪用于浅色背景 —— */
+  --overlay-white-hi: rgba(255, 255, 255, 0.85); /* 深色块上主文字 */
+  --overlay-white-mid: rgba(255, 255, 255, 0.7); /* 深色块上次要文字 */
+  --overlay-white-stroke: rgba(255, 255, 255, 0.6); /* 深色块上内描边高光 */
+  --overlay-white-faint: rgba(255, 255, 255, 0.15); /* 深色块上极浅分隔线/徽章底 */
+
   /* —— 中性色阶(替换散落的 #303133 / #606266 / #909399) ——
      secondary 由 slate-400 下沉至 slate-500:12-13px 小字白底对比度 2.6→4.8:1 达标 AA */
   --text-primary: #1e293b;
@@ -99,11 +106,14 @@
   /* —— 语义间距别名（统一布局规范，替代散落硬编码；见前端体检报告第七章） —— */
   --space-page: var(--space-5) var(--space-6); /* 24/32，主内容区左右/上下 padding */
   --space-card: 20px; /* el-card body 内边距建议值 */
+  --space-card-insight: 18px; /* 首页洞察卡专用内边距：介于 --space-4(16) 与 --space-5(24) 的有意取值，显式立档 */
+  --space-card-lg: 28px; /* 设置页卡片呼吸内边距：介于 24 与 32 之间的有意取值，显式立档 */
   --space-block: var(--space-4); /* 16px：标题→卡片、工具栏→表格、分页上间距统一 */
   --space-toolbar: var(--space-3); /* 12px：工具条内控件 gap */
   --form-item-gap: 18px; /* .el-form-item 建议 margin-bottom */
   --form-col-gutter: 16; /* el-row :gutter 统一值（约定，非 CSS 消费） */
   --label-width: 100px; /* 表单 label-width 统一值（约定，模板 prop 使用） */
+  --content-max-width: 1440px; /* 看板类页面限宽上限，区别于全宽列表页 */
 
   /* —— 对话框宽度令牌:收敛散落的 width="min(Npx, 90vw)"（P1-1,见前端体检报告第八章） —— */
   --dialog-width: min(480px, 90vw); /* 确认 / 小型弹窗 */
@@ -133,6 +143,10 @@
   --z-toast: 9999; /* 浮层通知(toast) */
   --z-modal-fullscreen: 10000; /* 全屏遮罩 */
 
+  /* —— 聚焦环:键盘可访问性统一规格 —— */
+  --focus-ring: 2px solid var(--brand-primary);
+  --focus-ring-offset: 2px;
+
   /* —— 移动端布局尺寸:固定顶栏高度,Layout/global.css 避让 calc 共用 —— */
   --mobile-header-height: 56px;
 
@@ -154,8 +168,39 @@
   --font-size-body-sm: 13px; /* 正文小字：时间/IP/表单提示等次要正文行 */
   --font-size-caption: 12px;
   --font-size-micro: 11px; /* 极限紧凑场景专用(徽章/图例等),白底须配 ≥500 字重与深阶色 */
+  --font-size-subtitle: 15px; /* 次级展示标题：侧边栏品牌名/移动端顶栏标题等（body 与 h3 之间的独立档，显式立档防中间值蔓延） */
+
+  /* —— 字重：四档令牌，全站统一消费，禁止再自由书写数值/关键字 ——
+     regular: 正文  medium: 标签/指标名/选中态  semibold: 卡片标题/表头/弹窗标题/品牌名
+     bold: 展示大数字/页面级标题；800 仅 NotFound/Login 展示数字的页面级例外，不入令牌 —— */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* —— 专用字体栈 ——
+     numbers: 看板/统计展示数字的拉丁数字走 Archivo（@fontsource 自托管，构建打包、无外部依赖），
+              中文自动回退正文字体栈；主流数据看板惯例（数字与正文分字体）
+     mono: 日志/IP/代码片段，优先系统等宽字体 —— */
+  --font-family-numbers: 'Archivo', var(--el-font-family);
+  --font-family-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Consolas,
+    'Liberation Mono', monospace;
+
+  /* —— 行高：三档 —— tight: 展示标题/大数字  normal: 正文/UI  relaxed: 长文描述 —— */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  /* —— 字距：展示数字收紧 / 图例徽章等小字标签微扩 —— */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
 
   /* —— 覆盖 ElementPlus 主题变量,影响所有 el-* 组件 —— */
+  /* 字体栈显式声明,防 EP 升级漂移；系统字体前置,拉丁字符在 Windows 端走 Segoe UI(优于 Helvetica Neue 回退到 Arial) */
+  --el-font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
   --el-color-primary: var(--brand-primary);
   --el-color-success: var(--brand-success);
   --el-color-warning: var(--brand-warning);

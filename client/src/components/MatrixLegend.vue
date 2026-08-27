@@ -30,13 +30,13 @@
     <div class="legend-group">
       <span class="legend-group-label">教材状态</span>
       <span class="legend-item">
-        <i class="legend-dot" :style="{ background: 'var(--brand-success, #10B981)' }"></i>正常启用
+        <i class="legend-dot" :style="{ background: 'var(--brand-success)' }"></i>正常启用
       </span>
       <span class="legend-item">
-        <i class="legend-dot" :style="{ background: 'var(--brand-warning, #FF6B1A)' }"></i>未指定
+        <i class="legend-dot" :style="{ background: 'var(--brand-warning)' }"></i>未指定
       </span>
       <span class="legend-item">
-        <i class="legend-dot" :style="{ background: 'var(--brand-danger, #F87171)' }"></i>已停用
+        <i class="legend-dot" :style="{ background: 'var(--brand-danger)' }"></i>已停用
       </span>
     </div>
 
@@ -55,8 +55,8 @@ import { InfoFilled } from '@element-plus/icons-vue';
 
 // 与 CourseMatrixTable.vue 的课时热力配色保持一致
 const heatColors = {
-  low: 'var(--brand-primary-soft, #E8F3FE)',
-  mid: 'var(--brand-primary-lighter, #B5D6FC)',
+  low: 'var(--brand-primary-soft)',
+  mid: 'var(--brand-primary-lighter)',
   high: 'var(--el-color-primary-light-5)',
 };
 
@@ -84,7 +84,7 @@ function swatch(key) {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
 }
 
@@ -98,7 +98,7 @@ function swatch(key) {
 
 .legend-group-label {
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 /* 课程类别标签（复刻 el-tag 默认蓝 / success 绿 观感） */
@@ -108,18 +108,18 @@ function swatch(key) {
   padding: 1px var(--space-2);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-micro);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   line-height: 18px;
 }
 
 .legend-tag--public {
-  background: var(--brand-primary-soft, #e8f3fe);
-  color: var(--brand-primary-active, #1668c4);
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary-active);
 }
 
 .legend-tag--pro {
-  background: var(--brand-success-soft, #e7f8f2);
-  color: var(--brand-success-text, #047857);
+  background: var(--brand-success-soft);
+  color: var(--brand-success-text);
 }
 
 /* 课时热力色块 */

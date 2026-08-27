@@ -190,20 +190,20 @@ function handleConfirm() {
   background: var(--brand-danger-soft);
   border-left: 4px solid var(--brand-danger);
   border-radius: var(--radius-sm);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-block);
   color: var(--brand-danger-text);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 .confirm-description p {
-  margin: 0 0 15px 0;
+  margin: 0 0 var(--space-block) 0;
   font-size: var(--font-size-body);
   color: var(--text-regular);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 .confirm-input-area {
-  margin-top: 20px;
+  margin-top: var(--space-block);
 }
 
 .confirm-input-area label {
@@ -214,10 +214,10 @@ function handleConfirm() {
 }
 
 .confirm-text {
-  margin: 20px 0 0;
+  margin: var(--space-block) 0 0;
   font-size: var(--font-size-body);
   color: var(--text-regular);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 .reason-area {

@@ -105,9 +105,9 @@ defineEmits(['retry']);
 
 .error-illustration {
   margin-bottom: var(--space-4);
-  --illust-bg: var(--brand-danger-soft, #fee2e2);
-  --illust-main: var(--brand-danger, #f87171);
-  --illust-dot: var(--brand-danger-lighter, #fecaca);
+  --illust-bg: var(--brand-danger-soft);
+  --illust-main: var(--brand-danger);
+  --illust-dot: var(--brand-danger-lighter);
 }
 
 .error-description {

@@ -208,7 +208,7 @@ const totalCount = computed(() => {
   align-items: center;
   gap: 6px;
   font-size: var(--font-size-body-sm);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   /* 不用负边距：.alert-list 开启纵向滚动后 overflow-x 会同步变为 auto，负边距溢出会带出横向滚动条 */
   padding: 6px 8px;
@@ -295,7 +295,7 @@ const totalCount = computed(() => {
 .alert-item-detail {
   flex-shrink: 0;
   margin-left: var(--space-2);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }

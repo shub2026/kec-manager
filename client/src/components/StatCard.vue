@@ -113,7 +113,7 @@ watch(
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 0 0 1px var(--overlay-white-stroke);
 }
 
 .stat-core .stat-icon {
@@ -137,7 +137,7 @@ watch(
 .stat-label {
   font-size: var(--font-size-body);
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -149,12 +149,13 @@ watch(
   color: var(--text-regular);
 }
 
-/* —— 次要卡数值：右对齐 —— */
+/* —— 次要卡数值：右对齐 ——
+   统计卡数字双档：次要 22 / 核心 30（移动端 20/26），页面级展示例外，不入全站字阶令牌 */
 .stat-value {
   flex: 1;
   text-align: right;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -179,7 +180,7 @@ watch(
   }
 
   .stat-core {
-    padding: var(--space-4) 18px;
+    padding: var(--space-4);
     min-height: 0;
   }
 

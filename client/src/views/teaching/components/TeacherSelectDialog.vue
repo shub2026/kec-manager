@@ -370,7 +370,7 @@ defineExpose({ open, close });
 }
 .text-warning {
   color: var(--brand-warning-text);
-  font-weight: bold;
+  font-weight: var(--fw-bold);
 }
 .text-placeholder {
   color: var(--text-placeholder);

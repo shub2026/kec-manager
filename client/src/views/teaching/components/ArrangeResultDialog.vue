@@ -169,7 +169,7 @@ const cohesionRateClass = computed(() => {
 }
 .arrange-stat-num {
   font-size: var(--font-size-display);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -209,7 +209,7 @@ const cohesionRateClass = computed(() => {
   align-items: center;
   gap: 6px;
   font-size: var(--font-size-body-sm);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-primary);
   margin-bottom: var(--space-2);
 }
@@ -225,7 +225,7 @@ const cohesionRateClass = computed(() => {
 }
 .continuity-num {
   font-size: var(--font-size-h2);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -235,7 +235,7 @@ const cohesionRateClass = computed(() => {
 }
 .continuity-num small {
   font-size: var(--font-size-caption);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-secondary);
   margin-left: 1px;
 }
@@ -249,7 +249,7 @@ const cohesionRateClass = computed(() => {
 }
 .cohesion-title {
   font-size: var(--font-size-body-sm);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-primary);
   margin-bottom: var(--space-2);
 }
@@ -265,7 +265,7 @@ const cohesionRateClass = computed(() => {
 }
 .cohesion-num {
   font-size: var(--font-size-h2);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -315,7 +315,7 @@ const cohesionRateClass = computed(() => {
 .arrange-unassigned .arrange-section-title {
   font-size: var(--font-size-caption);
   color: var(--text-secondary);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   margin-bottom: var(--space-2);
 }
 .arrange-unassigned-item {
@@ -329,7 +329,7 @@ const cohesionRateClass = computed(() => {
   border-bottom: none;
 }
 .unassigned-class-name {
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-primary);
 }
 .unassigned-hours {
@@ -351,7 +351,7 @@ const cohesionRateClass = computed(() => {
   padding: var(--space-5) 0 var(--space-4);
   color: var(--brand-success-text);
   font-size: var(--font-size-body);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 .all-done-icon {
   width: 52px;

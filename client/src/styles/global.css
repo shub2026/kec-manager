@@ -8,6 +8,22 @@
    依赖 theme.css 中定义的令牌变量
    ================================================================ */
 
+/* 全局字体栈：显式锚定令牌，不依赖 EP 内部注入顺序；与 index.html 首屏加载态同栈防闪变 */
+body {
+  font-family: var(--el-font-family);
+  line-height: var(--leading-normal);
+}
+
+/* 展示大数字统一字体：拉丁数字走 Archivo，中文回退正文栈；
+   各消费处自有字号/字重，此处仅注入字体族（新增展示数字类名时同步纳入） */
+.metric-value,
+.stat-value,
+.donut-total,
+.summary-percent,
+.ov-value {
+  font-family: var(--font-family-numbers);
+}
+
 /* 全局卡片:统一圆角 + hover 阴影增强 */
 .el-card {
   border-radius: var(--radius-md);
@@ -44,7 +60,7 @@
 /* 表头增强:中性浅底 + 粗体,拉开与数据行的层次感（不依赖品牌色,换肤不受影响） */
 .el-table th.el-table__cell {
   background: var(--bg-subtle) !important;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
 }
 
@@ -52,7 +68,7 @@
 .el-table .cell {
   display: flex;
   align-items: center;
-  line-height: 1.5;
+  line-height: var(--leading-normal);
   min-height: 32px;
   padding: 4px 10px;
   font-size: var(--font-size-body);
@@ -78,8 +94,8 @@ a:focus-visible,
   ):focus-visible,
 [role='button']:focus-visible,
 .page-header-back:focus-visible {
-  outline: 2px solid var(--brand-primary);
-  outline-offset: 2px;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 /* ================================================================
@@ -100,7 +116,7 @@ a:focus-visible,
 
 .el-dialog__title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   letter-spacing: -0.01em;
 }
@@ -162,7 +178,7 @@ a:focus-visible,
   align-items: center;
   gap: 8px;
   font-size: var(--font-size-h3);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
 }
 
@@ -356,7 +372,7 @@ a:focus-visible,
 
 .selected-count {
   color: var(--brand-primary);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   margin-right: auto;
 }
 
@@ -393,7 +409,7 @@ a:focus-visible,
   color: var(--text-secondary);
   font-size: 12px;
   margin-top: 4px;
-  line-height: 1.5;
+  line-height: var(--leading-normal);
 }
 
 /* ----- 次要文字 ----- */

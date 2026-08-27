@@ -181,7 +181,7 @@ const donutBackground = computed(() => {
 
 .metric-value {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
@@ -190,7 +190,7 @@ const donutBackground = computed(() => {
 .metric-total {
   font-style: normal;
   font-size: var(--font-size-micro);
-  font-weight: 400;
+  font-weight: var(--fw-regular);
   color: var(--text-secondary);
   margin-left: 4px;
 }
@@ -215,9 +215,10 @@ const donutBackground = computed(() => {
   justify-content: center;
 }
 
+/* 环形图中心总人数：展示型数字（22/移动端 19），图表配套例外，不入全站字阶令牌 */
 .donut-total {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
@@ -265,7 +266,7 @@ const donutBackground = computed(() => {
 
 /* 占比右对齐加粗，突出构成比例这一核心信息 */
 .legend-percent {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -278,7 +279,7 @@ const donutBackground = computed(() => {
   }
 
   .metric-value {
-    font-size: 18px;
+    font-size: 18px; /* 移动端降档，展示例外 */
   }
 
   .donut {

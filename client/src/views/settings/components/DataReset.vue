@@ -109,8 +109,8 @@ defineEmits(['reset']);
 
 .reset-item-header h4 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-h3);
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   letter-spacing: 0.01em;
 }

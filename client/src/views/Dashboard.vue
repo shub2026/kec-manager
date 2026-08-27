@@ -311,7 +311,7 @@ onMounted(async () => {
 <style scoped>
 .dashboard {
   /* 首页看板有意限宽居中，区别于其他页面的全宽布局 */
-  max-width: 1440px;
+  max-width: var(--content-max-width);
   margin: 0 auto;
   /* layout-main 是 flex 拉伸的确定高度滚动容器，100% 自动扣除各端内边距；
      旧公式多减了不存在的 60px 顶栏，致页脚 margin-top:auto 只能推到“假底部” */
@@ -342,10 +342,10 @@ onMounted(async () => {
 .welcome-title {
   margin: 0 0 var(--space-2) 0;
   font-size: var(--font-size-display);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
-  letter-spacing: -0.02em;
-  line-height: 1.3;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
 }
 
 .welcome-subtitle {
@@ -372,7 +372,7 @@ onMounted(async () => {
 }
 
 .welcome-actions :deep(.el-button--primary) {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 /* ─── 欢迎区装饰图形：品牌蓝单色相几何组合，似有若无的背景层 ─── */
@@ -484,7 +484,7 @@ onMounted(async () => {
 
 .metric-value {
   font-size: var(--font-size-display);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -495,7 +495,7 @@ onMounted(async () => {
 .metric-label {
   font-size: var(--font-size-caption);
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   letter-spacing: 0.01em;
   display: inline-flex;
   align-items: center;
@@ -538,15 +538,15 @@ onMounted(async () => {
   box-shadow: var(--shadow-md);
 }
 
-/* 18px 为洞察卡内边距的有意取值，介于 --space-4(16) 与 --space-5(20) 之间，保持卡片呼吸感，不纳入 8px 栅格 */
+/* 洞察卡内边距：有意取值（介于 16/24 之间），已立档 --space-card-insight */
 .insights-grid :deep(.insight-card .el-card__header) {
-  padding: 12px 18px 8px;
+  padding: 12px var(--space-card-insight) 8px;
   border-bottom: none;
   flex-shrink: 0;
 }
 
 .insights-grid :deep(.insight-card .el-card__body) {
-  padding: 0 18px 16px;
+  padding: 0 var(--space-card-insight) 16px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -558,13 +558,13 @@ onMounted(async () => {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  padding: var(--space-4) 18px;
+  padding: var(--space-4) var(--space-card-insight);
 }
 
 /* 卡片标题：左侧圆点色块，去掉下边框 */
 .insights-grid :deep(.card-title) {
   font-size: var(--font-size-body);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   display: flex;
   align-items: center;
@@ -587,7 +587,7 @@ onMounted(async () => {
   font-size: var(--font-size-caption);
   color: var(--text-secondary);
   flex-shrink: 0;
-  letter-spacing: 0.02em;
+  letter-spacing: var(--tracking-wide);
 }
 
 .footer-sep {
@@ -608,7 +608,7 @@ onMounted(async () => {
 
 @media (max-width: 992px) {
   .metric-value {
-    font-size: 22px;
+    font-size: 22px; /* 窄屏自 display 24 降档，展示例外 */
   }
 
   /* 窄屏欢迎区转纵向排列，装饰会与文字/按钮打架 */
@@ -629,7 +629,7 @@ onMounted(async () => {
   }
 
   .welcome-title {
-    font-size: 19px;
+    font-size: 19px; /* 窄屏自 display 24 降档，展示例外 */
   }
 
   .welcome-actions {

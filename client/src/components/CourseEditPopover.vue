@@ -186,7 +186,7 @@ watch(
 }
 
 .popover-title {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-size: var(--font-size-body);
   color: var(--text-primary);
   margin-bottom: var(--space-3);

@@ -45,36 +45,36 @@ defineProps({
 
 .empty-illustration {
   margin-bottom: var(--space-4);
-  --illust-bg: var(--brand-primary-soft, #e8f3fe);
-  --illust-main: var(--brand-primary, #1c82f5);
-  --illust-dot: var(--brand-primary-lighter, #b5d6fc);
+  --illust-bg: var(--brand-primary-soft);
+  --illust-main: var(--brand-primary);
+  --illust-dot: var(--brand-primary-lighter);
 }
 
 /* 不同类型使用不同色调（CSS 变量级联进子组件 SVG） */
 .empty-class,
 .empty-college,
 .empty-major {
-  --illust-bg: var(--brand-warning-soft, #fff0e8);
-  --illust-main: var(--brand-warning, #ff6b1a);
+  --illust-bg: var(--brand-warning-soft);
+  --illust-main: var(--brand-warning);
   --illust-dot: var(--brand-warning-lighter);
 }
 
 .empty-teacher {
-  --illust-bg: var(--brand-success-soft, #e7f8f2);
-  --illust-main: var(--brand-success, #10b981);
+  --illust-bg: var(--brand-success-soft);
+  --illust-main: var(--brand-success);
   --illust-dot: var(--brand-success-lighter);
 }
 
 .empty-textbook {
-  --illust-bg: var(--brand-danger-soft, #fee2e2);
-  --illust-main: var(--brand-danger, #f87171);
+  --illust-bg: var(--brand-danger-soft);
+  --illust-main: var(--brand-danger);
   --illust-dot: var(--brand-danger-lighter);
 }
 
 .empty-plan {
-  --illust-bg: var(--brand-indigo-soft, #eef2ff);
-  --illust-main: var(--brand-indigo, #818cf8);
-  --illust-dot: var(--brand-indigo-lighter, #c7d2fe);
+  --illust-bg: var(--brand-indigo-soft);
+  --illust-main: var(--brand-indigo);
+  --illust-dot: var(--brand-indigo-lighter);
 }
 
 .empty-content {

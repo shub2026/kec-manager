@@ -110,7 +110,7 @@ function courseTypeLabel(type) {
    次要按钮借中性投影形成“轻微浮起”即可，不抢层级（动效走全局令牌） */
 .back-btn {
   margin-right: var(--space-2);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   --el-button-bg-color: color-mix(in srgb, var(--brand-primary) 14%, white);
   --el-button-border-color: transparent;
   --el-button-text-color: var(--brand-primary-active);
@@ -140,7 +140,7 @@ function courseTypeLabel(type) {
 }
 .course-name {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
 }
 .preview-stats {
@@ -162,13 +162,13 @@ function courseTypeLabel(type) {
 }
 .stat-value {
   font-size: var(--font-size-h2);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 .stat-value small {
   font-size: var(--font-size-caption);
-  font-weight: normal;
+  font-weight: var(--fw-regular);
   color: var(--text-secondary);
   margin-left: 2px;
 }

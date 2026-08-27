@@ -91,7 +91,7 @@ defineProps({
 .page-header-title {
   margin: 0;
   font-size: var(--font-size-display);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text-primary);
   line-height: 1.3;
   white-space: nowrap;
@@ -103,7 +103,7 @@ defineProps({
   background: var(--brand-primary-soft);
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   white-space: nowrap;
 }
 

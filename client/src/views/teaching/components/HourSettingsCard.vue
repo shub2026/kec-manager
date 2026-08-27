@@ -269,7 +269,7 @@ defineExpose({ hourSettings });
 }
 .hour-settings-title {
   font-size: var(--font-size-body);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--text-primary);
   white-space: nowrap;
 }
@@ -285,7 +285,7 @@ defineExpose({ hourSettings });
   border-radius: var(--radius-sm);
 }
 .type-label {
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-size: var(--font-size-body-sm);
   color: var(--text-primary);
   white-space: nowrap;
