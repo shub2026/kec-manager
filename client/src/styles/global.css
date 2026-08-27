@@ -371,7 +371,8 @@ a:focus-visible,
 }
 
 .selected-count {
-  color: var(--brand-primary);
+  /* 批量栏底色 --bg-subtle 上 brand-primary 仅 3.4:1，用深阶 active 达标 */
+  color: var(--brand-primary-active);
   font-weight: var(--fw-medium);
   margin-right: auto;
 }
