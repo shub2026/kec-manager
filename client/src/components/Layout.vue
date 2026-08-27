@@ -453,6 +453,9 @@ function handlePasswordChangeSuccess() {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  /* 二级缩进优化：EP 公式 = base(20) + level × level-padding；
+     默认 20×1 时二级仅与一级文字对齐、层级感弱，提到 28 后二级缩进 48px，明显退入一级之内 */
+  --el-menu-level-padding: 28px;
 }
 
 /* 自定义滚动条样式 - 只应用于菜单 */
@@ -480,10 +483,10 @@ function handlePasswordChangeSuccess() {
   box-shadow: var(--shadow-xs);
 }
 
-/* 菜单项 hover 中性浅灰（低噪音），激活项除外保持浅蓝 */
+/* 菜单项 hover 中性灰（专用令牌，比内容区 --bg-subtle 深一档），激活项除外保持浅蓝 */
 .layout-aside :deep(.el-menu-item:not(.is-active):hover),
 .layout-aside :deep(.el-sub-menu__title:hover) {
-  background: var(--bg-subtle);
+  background: var(--sidebar-hover);
 }
 
 /* 活跃菜单项左侧色条指示器：40px 行高上下各收 4px，指示条占 32px（80%），醒目且留呼吸 */
@@ -543,7 +546,7 @@ function handlePasswordChangeSuccess() {
 }
 
 .sidebar-user:hover {
-  background: var(--bg-subtle);
+  background: var(--sidebar-hover);
 }
 
 .sidebar-user.is-collapse {
@@ -689,6 +692,8 @@ function handlePasswordChangeSuccess() {
   overflow-y: auto;
   overflow-x: hidden;
   background: transparent;
+  /* 与桌面侧栏同缩进节奏（二级 48px） */
+  --el-menu-level-padding: 28px;
 }
 
 /* 抽屉版菜单项与桌面侧边栏同 40px 行高(抽屉渲染在 body 下,需在非 scoped 块声明) */
@@ -720,7 +725,7 @@ function handlePasswordChangeSuccess() {
 
 .drawer-aside .el-menu-item:not(.is-active):hover,
 .drawer-aside .el-sub-menu__title:hover {
-  background: var(--bg-subtle);
+  background: var(--sidebar-hover);
 }
 
 .drawer-aside .el-menu-item.is-active {
@@ -743,7 +748,7 @@ function handlePasswordChangeSuccess() {
 }
 
 .el-menu--popup .el-menu-item:not(.is-active):hover {
-  background: var(--bg-subtle);
+  background: var(--sidebar-hover);
 }
 
 .el-menu--popup .el-menu-item.is-active {

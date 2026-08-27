@@ -86,6 +86,7 @@
   /* —— 侧边栏浅色系（"Quiet chrome" 安静外壳:与内容区同源中性色,品牌蓝激活态;保留深色值便于将来暗色模式切换） —— */
   --sidebar-bg: #f7f9fc; /* 冷蓝白,与内容区 --bg-page 同族(消除暖白/冷白色温冲突),靠右侧细线分隔 */
   --sidebar-bg-deep: #eff4fa; /* 滚动条轨道等低层级区域(与 --bg-subtle 同步) */
+  --sidebar-hover: #e2e8f0; /* 菜单/用户区悬停底：比 --bg-subtle 深一档，浅侧栏上反馈可感知；与 --sidebar-border 同阶 */
   --sidebar-text: #64748b; /* 对应 --text-secondary,白底对比度 4.8:1 达标 AA */
   --sidebar-text-strong: #1e293b; /* 对应 --text-primary,用户名等高层级文字 */
   --sidebar-active: #1c82f5; /* 品牌蓝活跃文字,对齐 Ant Design light 选中态 */
@@ -113,7 +114,7 @@
   --form-item-gap: 18px; /* .el-form-item 建议 margin-bottom */
   --form-col-gutter: 16; /* el-row :gutter 统一值（约定，非 CSS 消费） */
   --label-width: 100px; /* 表单 label-width 统一值（约定，模板 prop 使用） */
-  --content-max-width: 1440px; /* 看板类页面限宽上限，区别于全宽列表页 */
+  --content-max-width: 1600px; /* 看板类页面限宽上限：贴近列表页实际内容宽(1920屏约1636)，超宽屏仍防图表摊空 */
 
   /* —— 对话框宽度令牌:收敛散落的 width="min(Npx, 90vw)"（P1-1,见前端体检报告第八章） —— */
   --dialog-width: min(480px, 90vw); /* 确认 / 小型弹窗 */
