@@ -67,7 +67,7 @@
 }
 .tag-full { color: #047857; background: rgba(16, 185, 129, 0.20); } /* 深绿文字 + 绿浅底，对齐环形色 */
 .tag-part { color: #c2410c; background: rgba(255, 107, 26, 0.20); }
-.tag-ext  { color: #334155; background: rgba(100, 116, 139, 0.20); }
+.tag-ext  { color: #475569; background: rgba(100, 116, 139, 0.20); }
 .tag-unk  { color: #4C515A; background: rgba(192, 196, 204, 0.7); }
 
 /* ===== 顶部教师情况环形图示（与首页同款） ===== */

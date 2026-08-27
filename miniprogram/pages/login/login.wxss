@@ -3,7 +3,7 @@
   box-sizing: border-box;
   /* 顶部 96rpx / 左右 48rpx / 底部 64rpx：略压缩上下留白，让品牌区与表单比例更紧致 */
   padding: 96rpx 48rpx 64rpx;
-  background: linear-gradient(180deg, #EEF4FB 0%, #F4F6FA 40%, #F2F4F7 100%);
+  background: linear-gradient(180deg, #EEF4FB 0%, #F4F6FA 40%, #f8fafc 100%);
   position: relative;
   overflow: hidden;
 }
@@ -86,8 +86,8 @@
   height: 108rpx;       /* 加大 100→108 */
   margin-bottom: 32rpx; /* 略缩 40→32 */
   padding: 0 32rpx;     /* 加大左右 28→32 */
-  background: #F8FAFC;  /* 微底色，与卡片底色形成层次 */
-  border: 1rpx solid #E5EAF0;
+  background: var(--bg-subtle);  /* 微底色，与卡片底色形成层次 */
+  border: 1rpx solid var(--border);
   border-radius: 22rpx; /* 加大圆角 14→22 */
   box-sizing: border-box;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;

@@ -127,7 +127,7 @@ Page({
 
       // 课时概览
       const courseStatsRaw = insightsRaw?.courseStats || [];
-      const coursePalette = ['#1C82F5', '#4B9BF5', '#7AB8F8', '#A8D0FA', '#6B7280'];
+      const coursePalette = ['#1c82f5', '#3d95f7', '#79b7fc', '#b5d6fc', '#64748b'];
       const courseStatsMax = courseStatsRaw.reduce((m, x) => Math.max(m, x.totalHours || 0), 0) || 1;
       // 较上学期课时差值文案：增加红 / 减少绿 / 持平与新增灰（上学期无该课程时 delta 为 null）
       const deltaText = (d) =>
