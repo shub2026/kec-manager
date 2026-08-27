@@ -480,17 +480,16 @@ function handlePasswordChangeSuccess() {
   background: var(--bg-subtle);
 }
 
-/* 活跃菜单项左侧色条指示器 */
+/* 活跃菜单项左侧色条指示器：40px 行高上下各收 4px，指示条占 32px（80%），醒目且留呼吸 */
 .layout-aside :deep(.el-menu-item.is-active::before) {
   content: '';
   position: absolute;
   left: 0;
-  top: var(--space-2);
-  bottom: var(--space-2);
+  top: var(--space-1);
+  bottom: var(--space-1);
   width: 3px;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--brand-primary);
-  transition: height var(--dur-fast) var(--ease-out);
 }
 
 /* 活跃菜单项：满宽浅蓝底 + 品牌蓝字加粗（Ant Design Pro light 经典选中态） */
@@ -706,8 +705,8 @@ function handlePasswordChangeSuccess() {
   content: '';
   position: absolute;
   left: 0;
-  top: var(--space-2);
-  bottom: var(--space-2);
+  top: var(--space-1);
+  bottom: var(--space-1);
   width: 3px;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: var(--brand-primary);
@@ -744,5 +743,17 @@ function handlePasswordChangeSuccess() {
 .el-menu--popup .el-menu-item.is-active {
   background: var(--sidebar-active-bg);
   font-weight: var(--fw-semibold);
+}
+
+/* 折叠态弹出子菜单的活跃指示条：与侧边栏同款几何，视觉身份一致 */
+.el-menu--popup .el-menu-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: var(--space-1);
+  bottom: var(--space-1);
+  width: 3px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--brand-primary);
 }
 </style>
