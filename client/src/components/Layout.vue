@@ -606,11 +606,6 @@ function handlePasswordChangeSuccess() {
   display: none;
 }
 
-.layout-aside :deep(.el-menu--collapse) .el-menu-item .el-sub-menu__icon-arrow,
-.layout-aside :deep(.el-menu--collapse) .el-sub-menu__title .el-sub-menu__icon-arrow {
-  display: none;
-}
-
 .layout-main {
   background: var(--bg-page);
   padding: var(--space-5) var(--space-6);
@@ -701,6 +696,30 @@ function handlePasswordChangeSuccess() {
 .drawer-aside .el-sub-menu__title {
   height: 40px;
   line-height: 40px;
+}
+
+/* 展开箭头增强（桌面侧栏 + 移动抽屉统一）：默认深灰对齐强调文字，hover/展开态变品牌主色，
+   14px 字号提升存在感（EP 默认 12px 在 40px 行高中过细），margin-top 校准垂直居中。
+   width:auto 是关键根因修复：EP 默认 `.el-sub-menu__icon-arrow{width:inherit}` 让 i 元素
+   宽=父 title 宽(~219px)，叠加 `position:absolute;right:20px` 导致 i 元素 left=-20px，
+   内部 SVG 因 flex 默认左对齐落在 i 最左=-20px 处，被桌面 .layout-aside 的 overflow:hidden
+   裁剪（移动 .drawer-aside 无 overflow 故可见）。改 width:auto 让 i shrink-to-fit 到 SVG
+   尺寸(14px)，i 元素 left=185px，SVG 落在 title 内右侧可视区。全局选择器确定性命中 EP 深层 DOM */
+.layout-aside .el-sub-menu .el-sub-menu__icon-arrow,
+.drawer-aside .el-sub-menu .el-sub-menu__icon-arrow {
+  width: auto;
+  color: var(--sidebar-text-strong);
+  font-size: var(--font-size-body);
+  margin-top: -7px;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    transform var(--el-transition-duration);
+}
+.layout-aside .el-sub-menu__title:hover .el-sub-menu__icon-arrow,
+.layout-aside .el-sub-menu.is-opened .el-sub-menu__icon-arrow,
+.drawer-aside .el-sub-menu__title:hover .el-sub-menu__icon-arrow,
+.drawer-aside .el-sub-menu.is-opened .el-sub-menu__icon-arrow {
+  color: var(--sidebar-active);
 }
 
 .drawer-aside .el-menu::-webkit-scrollbar {
