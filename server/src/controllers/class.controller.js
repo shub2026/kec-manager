@@ -9,6 +9,7 @@ import { findBestMatchPlan } from '../services/plan.service.js';
 import {
   applyCombination,
   buildCombinationMemberMap,
+  buildCombinationNoMap,
   formatPartnerNames,
   dissolveAfterClassDeletion,
 } from '../services/class-combination.service.js';
@@ -231,6 +232,9 @@ export async function listClasses(req, res, next) {
     // 预加载本页班级涉及的合班组合成员映射，用于展示合班伙伴
     const combinationIds = classes.map((c) => c.combination_id).filter((id) => id != null);
     const combinationMemberMap = await buildCombinationMemberMap(combinationIds);
+    // 全局合班组号（跨页面一致）；本页无合班班级时跳过查询
+    const combinationNoMap =
+      combinationIds.length > 0 ? await buildCombinationNoMap() : new Map();
 
     const classesWithDynamicStatus = classes.map((cls) => {
       let status;
@@ -318,6 +322,8 @@ export async function listClasses(req, res, next) {
         planMatchWarning, // 添加交叉匹配警告
         isCombinedClass: cls.combination_id != null, // 合班标记
         combinationId: cls.combination_id, // 合班组合 ID
+        combinationNo:
+          cls.combination_id != null ? combinationNoMap.get(cls.combination_id) ?? null : null, // 全局合班组号
         partnerClassNames: formatPartnerNames(partnerClasses), // 合班伙伴名称（顿号分隔）
         partnerClassIds: partnerClasses.map((m) => m.id), // 合班伙伴班级 ID 列表
       };

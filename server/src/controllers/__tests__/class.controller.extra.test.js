@@ -62,6 +62,7 @@ vi.mock('../../services/audit.service.js', () => ({
 vi.mock('../../services/class-combination.service.js', () => ({
   applyCombination: vi.fn(),
   buildCombinationMemberMap: vi.fn().mockResolvedValue(new Map()),
+  buildCombinationNoMap: vi.fn().mockResolvedValue(new Map()),
   formatPartnerNames: vi.fn().mockReturnValue(''),
   getPartnersOfClass: vi.fn().mockResolvedValue([]),
   dissolveAfterClassDeletion: vi.fn().mockResolvedValue(null),

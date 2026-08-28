@@ -188,6 +188,23 @@ export async function cleanupCombination(tx, combinationId, justRemovedClassIds 
 }
 
 /**
+ * 构建全局合班组号映射：现存合班组按 id 升序密集编号 1..N。
+ * 解散的组合记录已从表中删除，不参与编号；组合解散会导致后续组号前移（可接受）。
+ * 各列表接口共用同一映射，保证同一合班组在班级列表/教学安排等页面编号一致。
+ *
+ * @returns {Promise<Map<number, number>>} key=combinationId, value=组号（从 1 开始）
+ */
+export async function buildCombinationNoMap() {
+  const map = new Map();
+  const rows = await prisma.class_combinations.findMany({
+    select: { id: true },
+    orderBy: { id: 'asc' },
+  });
+  rows.forEach((r, i) => map.set(r.id, i + 1));
+  return map;
+}
+
+/**
  * 批量查询多个组合的成员班级名称映射，供列表展示用。
  *
  * @param {number[]} combinationIds - 组合 ID 列表（去重）

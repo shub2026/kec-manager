@@ -16,13 +16,16 @@
             <span>{{ row.className }}</span>
             <el-tooltip
               v-if="row.combinationId != null"
-              :content="
-                row.partnerClassNames ? `合班伙伴：${row.partnerClassNames}` : '已标记合班教学'
-              "
+              :content="combinedTooltip(row)"
               placement="top"
               effect="light"
             >
-              <el-icon class="combined-icon" :size="16"><Connection /></el-icon>
+              <span class="combined-mark">
+                <el-icon class="combined-icon" :size="16"><Connection /></el-icon>
+                <span v-if="row.combinationNo" class="combined-group-no">{{
+                  row.combinationNo
+                }}</span>
+              </span>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -224,14 +227,43 @@ watch(
 function tableRowClassName({ row }) {
   return row.assignment ? '' : 'unassigned-row';
 }
+
+// 合班 tooltip：有全局组号时以"合班 N 组"为前缀，便于与列表其他同组班级对照
+function combinedTooltip(row) {
+  if (row.partnerClassNames) {
+    return row.combinationNo
+      ? `合班 ${row.combinationNo} 组｜伙伴：${row.partnerClassNames}`
+      : `合班伙伴：${row.partnerClassNames}`;
+  }
+  return row.combinationNo ? `合班 ${row.combinationNo} 组` : '已标记合班教学';
+}
 </script>
 
 <style scoped>
-.combined-icon {
+/* 合班标记整体（图标+组号角标）：左间距与悬停手势放在包裹层，避免角标脱出悬停区 */
+.combined-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   margin-left: var(--space-1);
   vertical-align: middle;
-  color: var(--brand-indigo);
   cursor: help;
+}
+.combined-icon {
+  color: var(--brand-indigo);
+}
+/* 合班组号角标 — 实心紫色小圆标，同组班级编号一致，便于识别谁和谁合班 */
+.combined-group-no {
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--brand-indigo);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
 }
 .teacher-cell {
   cursor: pointer;

@@ -48,20 +48,19 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column v-if="!isMobile" label="合班教学" min-width="95">
+        <el-table-column v-if="!isMobile" label="合班教学" min-width="110">
           <template #default="{ row }">
             <el-tooltip
               v-if="row.isCombinedClass"
-              :content="
-                row.partnerClassNames
-                  ? `合班伙伴：${row.partnerClassNames}`
-                  : '已标记合班（暂无伙伴）'
-              "
+              :content="combinedTooltip(row)"
               placement="top"
               effect="light"
             >
               <el-tag class="combined-tag" size="small" disable-transitions>
                 <el-icon class="combined-tag-icon"><Connection /></el-icon>
+                <span v-if="row.combinationNo" class="combined-group-no">{{
+                  row.combinationNo
+                }}</span>
                 {{ row.partnerClassNames ? '合班' : '合班(无伙伴)' }}
               </el-tag>
             </el-tooltip>
@@ -202,6 +201,16 @@ function calcGrade(row) {
   return row.grade ?? null;
 }
 
+// 合班 tooltip：有全局组号时以"合班 N 组"为前缀，便于与列表其他同组班级对照
+function combinedTooltip(row) {
+  if (row.partnerClassNames) {
+    return row.combinationNo
+      ? `合班 ${row.combinationNo} 组｜伙伴：${row.partnerClassNames}`
+      : `合班伙伴：${row.partnerClassNames}`;
+  }
+  return row.combinationNo ? `合班 ${row.combinationNo} 组（暂无伙伴）` : '已标记合班（暂无伙伴）';
+}
+
 function getStatusType(status) {
   if (status === 'left_school') return 'danger';
   if (status === 'active') return 'success';
@@ -269,5 +278,19 @@ function getCurrentPlanName(row) {
 
 .combined-tag-icon {
   vertical-align: middle;
+}
+
+/* 合班组号角标 — 实心紫色小圆标，同组班级编号一致，便于识别谁和谁合班 */
+.combined-group-no {
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--brand-indigo);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
 }
 </style>

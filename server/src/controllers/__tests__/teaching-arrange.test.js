@@ -49,6 +49,9 @@ const mockPrisma = {
   system_settings: {
     findUnique: vi.fn(),
   },
+  class_combinations: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
 };
 
 vi.mock('../../lib/prisma.js', () => ({

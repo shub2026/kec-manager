@@ -129,9 +129,11 @@
                               v-if="cls.isCombined"
                               size="small"
                               effect="plain"
-                              class="tag-item"
+                              class="tag-item combined-tag"
                               disable-transitions
-                              >合班</el-tag
+                              >合班<span v-if="cls.combinationNo" class="combined-group-no">{{
+                                cls.combinationNo
+                              }}</span></el-tag
                             >
                           </template>
                         </el-table-column>
@@ -633,6 +635,22 @@ onMounted(async () => {
   margin-left: var(--space-1);
   vertical-align: middle;
   cursor: default;
+}
+/* 合班组号角标 — 实心紫色小圆标，同组班级编号一致，便于识别谁和谁合班 */
+.combined-group-no {
+  display: inline-block;
+  min-width: 14px;
+  height: 14px;
+  margin-left: 3px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--brand-indigo);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+  vertical-align: middle;
 }
 .textbook-count {
   cursor: default;

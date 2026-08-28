@@ -61,6 +61,7 @@ vi.mock('../../services/semester.service.js', () => ({
 // 合班伙伴映射（合班用例需避免真实 DB 查询）
 vi.mock('../../services/class-combination.service.js', () => ({
   buildCombinationMemberMap: vi.fn().mockResolvedValue(new Map()),
+  buildCombinationNoMap: vi.fn().mockResolvedValue(new Map()),
   formatPartnerNames: vi.fn().mockReturnValue(''),
 }));
 

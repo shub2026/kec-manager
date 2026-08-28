@@ -23,6 +23,7 @@ import {
 import { initSSE, sendSSEEvent, isSSERequest } from '../utils/sse.js';
 import {
   buildCombinationMemberMap,
+  buildCombinationNoMap,
   formatPartnerNames,
 } from '../services/class-combination.service.js';
 
@@ -77,6 +78,9 @@ export async function getCourseClasses(req, res, next) {
     // 预加载合班成员映射，用于展示合班伙伴
     const combinationIds = classes.map((c) => c.combinationId).filter((id) => id != null);
     const combinationMemberMap = await buildCombinationMemberMap(combinationIds);
+    // 全局合班组号（跨页面一致）；本页无合班班级时跳过查询
+    const combinationNoMap =
+      combinationIds.length > 0 ? await buildCombinationNoMap() : new Map();
 
     // 合并安排信息到班级列表
     const classList = classes.map((c) => {
@@ -86,6 +90,8 @@ export async function getCourseClasses(req, res, next) {
       return {
         ...c,
         isCombinedClass: c.combinationId != null,
+        combinationNo:
+          c.combinationId != null ? combinationNoMap.get(c.combinationId) ?? null : null,
         partnerClassNames: formatPartnerNames(partnerClasses),
         assignment: a
           ? {
@@ -941,6 +947,10 @@ export async function getStatistics(req, res, next) {
     // 归并为逻辑教学单元（同组合 + 同课程 + 同教师 → 1 个单元，课时仅计 1 次）
     const allUnits = dedupeTeachingUnits(rawAssignments);
 
+    // 全局合班组号（跨页面一致）；本学期无合班安排时跳过查询
+    const hasCombinedAssignment = rawAssignments.some((a) => a.class?.combination_id != null);
+    const combinationNoMap = hasCombinedAssignment ? await buildCombinationNoMap() : new Map();
+
     // 涉及的教师（按单元代表行去重）
     const teacherIds = [...new Set(allUnits.map((u) => u.representative.teacher_id))];
 
@@ -1055,6 +1065,9 @@ export async function getStatistics(req, res, next) {
                 .join('、')
             : u.representative.class.name,
           isCombined: combined,
+          combinationNo: combined
+            ? combinationNoMap.get(u.representative.class.combination_id) ?? null
+            : null,
           memberClassIds: u.memberClassIds,
           collegeName: u.representative.class.colleges?.name || null,
           trainingLevelName:
