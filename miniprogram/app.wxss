@@ -1,23 +1,23 @@
 /* ============================================================
    设计系统（全局 Design Tokens）
    风格：扁平克制（对齐腾讯云控制台）——浅灰底 + 无边框白卡片 + 实色点缀
-   主色：品牌蓝；辅色：青绿(teal)，用于入口与指标区分
+   主色：品牌蓝；辅色：青色(teal/cyan)，用于入口与指标区分
    ============================================================ */
 
 page {
   /* —— 品牌色 —— */
-  --brand: #1C82F5;
-  --brand-dark: #1668c4;
-  --brand-light: #3d95f7;
-  --brand-soft: #e8f3fe;
-  --brand-soft2: #b5d6fc;
-  --brand-border: #c9d7ea;
+  --brand: #3283ff;
+  --brand-dark: #1f6fe0;
+  --brand-light: #5b9bff;
+  --brand-soft: #e8f1ff;
+  --brand-soft2: #b8d8ff;
+  --brand-border: #c8d9f2;
 
-  /* —— 辅助色：青绿（教材/课程） —— */
-  --teal: #5eba9a;
-  --teal-dark: #4a9b7e;
-  --teal-soft: #e6f5f0;
-  --teal-border: #bfdfd2;
+  /* —— 辅助色：青色（教材/课程，与 success 绿拉出色相，避免混淆） —— */
+  --teal: #3aa6b9;
+  --teal-dark: #2d8499;
+  --teal-soft: #e3f4f8;
+  --teal-border: #bce4ec;
 
   /* —— 语义色（降低饱和度） —— */
   --success: #10b981;
@@ -43,8 +43,8 @@ page {
   /* —— 背景 —— */
   --bg-page: #f5f7fa;
   --bg-card: #FFFFFF;
-  --bg-subtle: #ebedf0;
-  --bg-hover: #e8eaed;
+  --bg-subtle: #eaeef3;
+  --bg-hover: #e6eaf0;
   --bg-mask: rgba(15, 23, 42, 0.45);
 
   /* —— 边框 —— */
@@ -107,7 +107,7 @@ page {
 .search-box:focus-within,
 .search-input:focus-within {
   background: var(--bg-card);
-  box-shadow: 0 0 0 4rpx rgba(28, 130, 245, 0.15);
+  box-shadow: 0 0 0 4rpx rgba(50, 131, 255, 0.15);
 }
 .search-icon,
 .search-ico {
@@ -304,7 +304,7 @@ page {
   gap: 22rpx;
 }
 .stat-num { font-size: 38rpx; font-weight: 700; color: var(--text-1); line-height: 1.2; letter-spacing: -0.5rpx; }
-.stat-label { font-size: 24rpx; color: var(--text-4); margin-top: 4rpx; }
+.stat-label { font-size: 24rpx; color: var(--text-3); margin-top: 4rpx; }
 
 /* ===== 列表 / 行 ===== */
 .list { background: var(--bg-card); border-radius: var(--radius-lg); overflow: hidden; }
@@ -360,7 +360,7 @@ page {
   color: #fff;
   border-radius: var(--radius-md);
   font-size: 30rpx;
-  font-weight: 500;
+  font-weight: 600;   /* 品牌色提亮至 #3283ff 后，白字对比度约 3.55:1，加粗到 600 以满足大字号 3:1 阈值 */
 }
 .btn-ghost {
   background: var(--bg-card);
@@ -415,15 +415,15 @@ page {
 }
 .ei-course {
   background-color: var(--brand-soft);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='17' rx='2'/%3E%3Cpath d='M3 9h18M8 2v4M16 2v4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233283ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='17' rx='2'/%3E%3Cpath d='M3 9h18M8 2v4M16 2v4'/%3E%3C/svg%3E");
 }
 .ei-textbook {
   background-color: var(--teal-soft);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235eba9a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233aa6b9' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3C/svg%3E");
 }
 .ei-plan {
   background-color: var(--brand-soft);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2 2 7l10 5 10-5-10-5z'/%3E%3Cpath d='m2 17 10 5 10-5'/%3E%3Cpath d='m2 12 10 5 10-5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233283ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2 2 7l10 5 10-5-10-5z'/%3E%3Cpath d='m2 17 10 5 10-5'/%3E%3Cpath d='m2 12 10 5 10-5'/%3E%3C/svg%3E");
 }
 .ei-teacher {
   background-color: var(--warning-soft);

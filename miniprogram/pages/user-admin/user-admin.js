@@ -312,7 +312,7 @@ Page({
     wx.showModal({
       title: next ? '启用账号' : '禁用账号',
       content: `确定要${next ? '启用' : '禁用'}用户「${u.username}」吗？`,
-      confirmColor: '#1C82F5',
+      confirmColor: '#3283ff',
       success: async (res) => {
         if (!res.confirm) return;
         try {
@@ -337,7 +337,7 @@ Page({
       content: u
         ? `为「${u.username}」设置新密码：重置后该用户其他设备将被强制下线，下次登录须修改密码。`
         : '设置新密码',
-      confirmColor: '#1C82F5',
+      confirmColor: '#3283ff',
       success: async (res) => {
         if (!res.confirm) return;
         const pw = (res.content || '').trim();

@@ -18,7 +18,7 @@
 }
 .search-box:focus-within {
   background: var(--bg-card);
-  box-shadow: 0 0 0 4rpx rgba(28, 130, 245, 0.15);
+  box-shadow: 0 0 0 4rpx rgba(50, 131, 255, 0.15);
 }
 .search-ico {
   width: 32rpx;
