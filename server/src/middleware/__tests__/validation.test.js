@@ -36,14 +36,45 @@ const {
   handleValidationErrors,
   validateLogin,
   validateClass,
+  validateClassUpdate,
   validateChangePassword,
+  validateResetPassword,
   validateIdParam,
   validatePagination,
   validateSemesterQuery,
   validateTeacherCreate,
+  validateTeacherUpdate,
   validateAutoArrange,
+  validateBatchAutoArrange,
+  validateAssignTeacher,
+  validateSwapTeachers,
+  validateResetAuto,
+  validateHourSettings,
+  validateBatchUpdateHours,
   validateReset,
+  validateUser,
+  validateUserUpdate,
+  validateUserStatus,
+  validateMajor,
+  validateMajorCreate,
+  validateCollege,
+  validateCollegeCreate,
+  validateCourse,
+  validateCourseCreate,
+  validateTrainingLevel,
+  validateTrainingLevelCreate,
+  validateTextbook,
+  validateTextbookCreate,
+  validateTextbookStatus,
+  validatePlan,
+  validatePlanCreate,
+  validatePlanCourse,
+  validatePlanTextbook,
+  validateSemester,
+  validateSortOrder,
 } = await import('../validation.js');
+
+const { log } = await import('../../utils/logger.js');
 
 // ──────────────────────────────────────────────
 // 辅助：运行验证链
@@ -454,5 +485,458 @@ describe('validateReset', () => {
       body: { confirm: 'DELETE', reason: '短' },
     });
     expect(res.statusCode).toBe(422);
+  });
+});
+
+// ──────────────────────────────────────────────
+// handleValidationErrors 错误路径与日志脱敏
+// ──────────────────────────────────────────────
+describe('handleValidationErrors — 错误路径与脱敏', () => {
+  it('422 响应包含 VALIDATION_ERROR 与逐字段 details', async () => {
+    const { res } = await runValidation(validateLogin, {
+      body: { username: '', password: '123' },
+    });
+    expect(res.statusCode).toBe(422);
+    expect(res._jsonCall.success).toBe(false);
+    expect(res._jsonCall.data.code).toBe('VALIDATION_ERROR');
+    const fields = res._jsonCall.data.details.map((d) => d.field);
+    expect(fields).toContain('username');
+    expect(fields).toContain('password');
+    expect(res._jsonCall.data.details[0]).toHaveProperty('message');
+    expect(res._jsonCall.data.details[0]).toHaveProperty('location');
+  });
+
+  it('调试日志剔除密码类敏感字段', async () => {
+    log.warn.mockClear();
+    await runValidation(validateChangePassword, {
+      body: { old_password: 'OldPass1!', new_password: 'weakweak', note: 'visible' },
+    });
+    const call = log.warn.mock.calls.at(-1);
+    expect(call[0]).toBe('验证参数失败');
+    expect(call[1].body).not.toHaveProperty('old_password');
+    expect(call[1].body).not.toHaveProperty('new_password');
+    expect(call[1].body).not.toHaveProperty('password');
+    expect(call[1].body).toHaveProperty('note', 'visible');
+  });
+});
+
+// ──────────────────────────────────────────────
+// validateClass — 合班伙伴数组校验
+// ──────────────────────────────────────────────
+describe('validateClass — combination_class_ids', () => {
+  const base = { name: '一班', enrollment_year: 2025, duration_years: 3 };
+
+  it('合法合班伙伴 ID 列表应通过', async () => {
+    const { nextCalled } = await runValidation(validateClass, {
+      body: { ...base, combination_class_ids: [2, 3] },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('伙伴 ID 含非正整数应返回 422', async () => {
+    const { res } = await runValidation(validateClass, {
+      body: { ...base, combination_class_ids: [2, 0] },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('伙伴列表超过 50 个应返回 422', async () => {
+    const { res } = await runValidation(validateClass, {
+      body: { ...base, combination_class_ids: Array.from({ length: 51 }, (_, i) => i + 1) },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+});
+
+// ──────────────────────────────────────────────
+// validateClassUpdate
+// ──────────────────────────────────────────────
+describe('validateClassUpdate', () => {
+  it('空 body（全字段可选）应通过', async () => {
+    const { nextCalled } = await runValidation(validateClassUpdate, { body: {} });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('major_id/college_id 为 null 应通过（可清空关联）', async () => {
+    const { nextCalled } = await runValidation(validateClassUpdate, {
+      body: { major_id: null, college_id: null },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('name 为空字符串应返回 422', async () => {
+    const { res } = await runValidation(validateClassUpdate, { body: { name: '' } });
+    expect(res.statusCode).toBe(422);
+  });
+});
+
+// ──────────────────────────────────────────────
+// validateResetPassword
+// ──────────────────────────────────────────────
+describe('validateResetPassword', () => {
+  it('符合复杂度要求应通过', async () => {
+    const { nextCalled } = await runValidation(validateResetPassword, {
+      body: { new_password: 'Abcd1234' },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('单一字符类型应返回 422', async () => {
+    const { res } = await runValidation(validateResetPassword, {
+      body: { new_password: 'abcdefgh' },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('新密码过短应返回 422', async () => {
+    const { res } = await runValidation(validateResetPassword, {
+      body: { new_password: 'Ab1!' },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+});
+
+// ──────────────────────────────────────────────
+// validateUser / validateUserUpdate / validateUserStatus
+// ──────────────────────────────────────────────
+describe('validateUser', () => {
+  it('合法完整用户数据应通过', async () => {
+    const { nextCalled } = await runValidation(validateUser, {
+      body: {
+        username: 'teacher01',
+        password: 'Abcd1234',
+        email: 't@example.com',
+        role: 'admin',
+        real_name: '测试用户',
+      },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('密码可选：不传密码仅用户名应通过', async () => {
+    const { nextCalled } = await runValidation(validateUser, {
+      body: { username: 'teacher01' },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('邮箱格式错误应返回 422', async () => {
+    const { res } = await runValidation(validateUser, {
+      body: { username: 'teacher01', email: 'not-an-email' },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('角色不在枚举内应返回 422', async () => {
+    const { res } = await runValidation(validateUser, {
+      body: { username: 'teacher01', role: 'superuser' },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('弱密码（单一字符类型）应返回 422', async () => {
+    const { res } = await runValidation(validateUser, {
+      body: { username: 'teacher01', password: 'abcdefgh' },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+});
+
+describe('validateUserUpdate / validateUserStatus', () => {
+  it('用户更新合法字段应通过', async () => {
+    const { nextCalled } = await runValidation(validateUserUpdate, {
+      body: { email: 'a@b.com', role: 'viewer', real_name: '新名字' },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('用户更新角色非法应返回 422', async () => {
+    const { res } = await runValidation(validateUserUpdate, { body: { role: 'root' } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('激活状态为布尔值应通过', async () => {
+    const { nextCalled } = await runValidation(validateUserStatus, { body: { is_active: true } });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('激活状态非布尔应返回 422', async () => {
+    const { res } = await runValidation(validateUserStatus, { body: { is_active: 'yes' } });
+    expect(res.statusCode).toBe(422);
+  });
+});
+
+// ──────────────────────────────────────────────
+// 基础数据创建/更新（专业/学院/课程/培养层次）
+// ──────────────────────────────────────────────
+describe('基础数据规则链', () => {
+  it.each([
+    ['validateMajorCreate', validateMajorCreate],
+    ['validateCollegeCreate', validateCollegeCreate],
+    ['validateCourseCreate', validateCourseCreate],
+    ['validateTrainingLevelCreate', validateTrainingLevelCreate],
+  ])('%s 缺 name 应返回 422', async (_name, chain) => {
+    const { res } = await runValidation(chain, { body: {} });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it.each([
+    ['validateMajor', validateMajor],
+    ['validateCollege', validateCollege],
+    ['validateCourse', validateCourse],
+    ['validateTrainingLevel', validateTrainingLevel],
+  ])('%s 空 body（全可选）应通过', async (_name, chain) => {
+    const { nextCalled } = await runValidation(chain, { body: {} });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('名称超长（>100）应返回 422', async () => {
+    const { res } = await runValidation(validateMajor, { body: { name: 'x'.repeat(101) } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('课程类型不在枚举内应返回 422', async () => {
+    const { res } = await runValidation(validateCourse, { body: { type: 'unknown' } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('排序值为负应返回 422', async () => {
+    const { res } = await runValidation(validateCollege, { body: { sort_order: -1 } });
+    expect(res.statusCode).toBe(422);
+  });
+});
+
+// ──────────────────────────────────────────────
+// 教材规则链
+// ──────────────────────────────────────────────
+describe('教材规则链', () => {
+  it('validateTextbookCreate 缺 title 应返回 422', async () => {
+    const { res } = await runValidation(validateTextbookCreate, { body: {} });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validateTextbookCreate 合法数据（含 YYYY-MM 出版日期）应通过', async () => {
+    const { nextCalled } = await runValidation(validateTextbookCreate, {
+      body: { title: '高等数学', isbn: '978-7-04-023896-5', price: 49.9, publish_date: '2024-05' },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('出版日期格式错误应返回 422', async () => {
+    const { res } = await runValidation(validateTextbook, { body: { publish_date: '2024/05/01' } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('定价为负应返回 422', async () => {
+    const { res } = await runValidation(validateTextbook, { body: { price: -1 } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validateTextbookStatus 省略 is_active 应通过', async () => {
+    const { nextCalled } = await runValidation(validateTextbookStatus, { body: {} });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('validateTextbookStatus 非布尔应返回 422', async () => {
+    const { res } = await runValidation(validateTextbookStatus, { body: { is_active: 'no' } });
+    expect(res.statusCode).toBe(422);
+  });
+});
+
+// ──────────────────────────────────────────────
+// 培养方案规则链
+// ──────────────────────────────────────────────
+describe('培养方案规则链', () => {
+  it('validatePlanCreate 合法数据应通过', async () => {
+    const { nextCalled } = await runValidation(validatePlanCreate, {
+      body: {
+        name: '计算机应用人才培养方案',
+        major_id: 1,
+        training_level_id: 2,
+        apply_from_year: 2024,
+        apply_to_year: 2026,
+        status: 'active',
+      },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('validatePlanCreate 缺 name 应返回 422', async () => {
+    const { res } = await runValidation(validatePlanCreate, { body: {} });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('方案状态不在枚举内应返回 422', async () => {
+    const { res } = await runValidation(validatePlan, { body: { status: 'published' } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('适用年份越界应返回 422', async () => {
+    const { res } = await runValidation(validatePlan, { body: { apply_from_year: 1999 } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validatePlanCourse 周课时超上限应返回 422', async () => {
+    const { res } = await runValidation(validatePlanCourse, { body: { weekly_hours: 21 } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validatePlanCourse 合法学期明细应通过', async () => {
+    const { nextCalled } = await runValidation(validatePlanCourse, {
+      body: { course_id: 1, start_semester: 1, end_semester: 4, weekly_hours: 4, weeks_per_semester: 18 },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('validateSemester 周数超上限应返回 422', async () => {
+    const { res } = await runValidation(validateSemester, { body: { weeks_count: 31 } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validatePlanTextbook 缺教材 ID 应返回 422', async () => {
+    const { res } = await runValidation(validatePlanTextbook, { body: {} });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validatePlanTextbook 合法数据应通过', async () => {
+    const { nextCalled } = await runValidation(validatePlanTextbook, {
+      body: { textbook_id: 3, is_required: true },
+    });
+    expect(nextCalled).toBe(true);
+  });
+});
+
+// ──────────────────────────────────────────────
+// 教师更新
+// ──────────────────────────────────────────────
+describe('validateTeacherUpdate', () => {
+  it('空 body（全字段可选）应通过', async () => {
+    const { nextCalled } = await runValidation(validateTeacherUpdate, { body: {} });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('name 为空字符串应返回 422', async () => {
+    const { res } = await runValidation(validateTeacherUpdate, { body: { name: '' } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('自定义课时超上限应返回 422', async () => {
+    const { res } = await runValidation(validateTeacherUpdate, {
+      body: { default_weekly_hours: 41 },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+});
+
+// ──────────────────────────────────────────────
+// 教学安排规则链
+// ──────────────────────────────────────────────
+describe('教学安排规则链', () => {
+  it('validateAssignTeacher 合法请求应通过', async () => {
+    const { nextCalled } = await runValidation(validateAssignTeacher, {
+      body: { class_id: 1, course_id: 2, teacher_id: 3, semester: '2025-2026-1', weekly_hours: 4 },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('validateAssignTeacher 学期格式错误应返回 422', async () => {
+    const { res } = await runValidation(validateAssignTeacher, {
+      body: { class_id: 1, course_id: 2, teacher_id: 3, semester: '2025-2026-3' },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validateAssignTeacher 周课时超上限应返回 422', async () => {
+    const { res } = await runValidation(validateAssignTeacher, {
+      body: { class_id: 1, course_id: 2, teacher_id: 3, semester: '2025-2026-1', weekly_hours: 41 },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validateSwapTeachers 两位不同教师应通过', async () => {
+    const { nextCalled } = await runValidation(validateSwapTeachers, {
+      body: { course_id: 1, semester: '2025-2026-1', teacher_id_a: 1, teacher_id_b: 2 },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('validateSwapTeachers 两位教师相同应返回 422 并提示', async () => {
+    const { res } = await runValidation(validateSwapTeachers, {
+      body: { course_id: 1, semester: '2025-2026-1', teacher_id_a: 5, teacher_id_b: '5' },
+    });
+    expect(res.statusCode).toBe(422);
+    const messages = res._jsonCall.data.details.map((d) => d.message);
+    expect(messages).toContain('两位教师不能相同');
+  });
+
+  it('validateBatchAutoArrange 合法请求应通过', async () => {
+    const { nextCalled } = await runValidation(validateBatchAutoArrange, {
+      body: { semester: '2025-2026-1', mode: 'full' },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('validateBatchAutoArrange 缺学期应返回 422', async () => {
+    const { res } = await runValidation(validateBatchAutoArrange, { body: { mode: 'full' } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validateResetAuto course_id 为 falsy 应跳过校验', async () => {
+    const { nextCalled } = await runValidation(validateResetAuto, {
+      body: { semester: '2025-2026-1', course_id: '' },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('validateResetAuto course_id 非整数应返回 422', async () => {
+    const { res } = await runValidation(validateResetAuto, {
+      body: { semester: '2025-2026-1', course_id: 'abc' },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validateHourSettings 对象设置应通过', async () => {
+    const { nextCalled } = await runValidation(validateHourSettings, {
+      body: { hour_settings: { full_time: { standard: 12 } }, course_id: 1 },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('validateHourSettings 非对象设置应返回 422', async () => {
+    const { res } = await runValidation(validateHourSettings, {
+      body: { hour_settings: 'invalid' },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validateBatchUpdateHours 合法请求应通过', async () => {
+    const { nextCalled } = await runValidation(validateBatchUpdateHours, {
+      body: { teacher_ids: [1, 2, 3], default_weekly_hours: 12 },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('validateBatchUpdateHours 空数组应返回 422', async () => {
+    const { res } = await runValidation(validateBatchUpdateHours, {
+      body: { teacher_ids: [] },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validateBatchUpdateHours 教师 ID 非正整数应返回 422', async () => {
+    const { res } = await runValidation(validateBatchUpdateHours, {
+      body: { teacher_ids: [1, 'x'] },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validateSortOrder 排序值为负应返回 422', async () => {
+    const { res } = await runValidation(validateSortOrder, { body: { sort_order: -5 } });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('validateSortOrder 省略字段应通过', async () => {
+    const { nextCalled } = await runValidation(validateSortOrder, { body: {} });
+    expect(nextCalled).toBe(true);
   });
 });

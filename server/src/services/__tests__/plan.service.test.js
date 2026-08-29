@@ -9,12 +9,22 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-// Mock prisma（模块加载依赖）
-vi.mock('../lib/prisma.js', () => ({ prisma: {} }));
+// Mock prisma（buildClassWithPlanFilter 需要 training_plans.findMany）
+const mockPrisma = {
+  training_plans: {
+    findMany: vi.fn().mockResolvedValue([]),
+  },
+};
+vi.mock('../../lib/prisma.js', () => ({ prisma: mockPrisma }));
 
-const { isClassMatchPlan, findBestMatchPlan, isPlanApplicableToYear } = await import(
-  '../plan.service.js'
-);
+const {
+  isClassMatchPlan,
+  findBestMatchPlan,
+  isPlanApplicableToYear,
+  buildClassWithPlanFilter,
+  planHasOfferedCourses,
+  NOT_ARCHIVED_PLAN_WHERE,
+} = await import('../plan.service.js');
 
 // ──────────────────────────────────────────────
 // isClassMatchPlan
@@ -310,5 +320,122 @@ describe('年份范围参与匹配 —— 多版本方案按年级区分', () =>
     const cls = { id: 7, custom_plan_id: null, major_id: null, training_level_id: 2 };
     // 无 enrollment_year 时两版本均可匹配，按 created_at 取最新（V2）
     expect(findBestMatchPlan(cls, plans)?.id).toBe(2);
+  });
+});
+
+// ──────────────────────────────────────────────
+// findBestMatchPlan — 排序决胜（M-3/B-3 修复）
+// ──────────────────────────────────────────────
+describe('findBestMatchPlan — 多候选决胜', () => {
+  it('同专业多方案取 created_at 最新', () => {
+    const older = { id: 1, major_id: 5, training_level_id: null, created_at: '2025-01-01T00:00:00Z' };
+    const newer = { id: 2, major_id: 5, training_level_id: null, created_at: '2026-01-01T00:00:00Z' };
+    const cls = { custom_plan_id: null, major_id: 5, training_level_id: null };
+    expect(findBestMatchPlan(cls, [older, newer])?.id).toBe(2);
+    expect(findBestMatchPlan(cls, [newer, older])?.id).toBe(2);
+  });
+
+  it('同秒创建时取 id 大者（次级排序键）', () => {
+    const a = { id: 3, major_id: 5, training_level_id: null, created_at: '2026-01-01T00:00:00Z' };
+    const b = { id: 9, major_id: 5, training_level_id: null, created_at: '2026-01-01T00:00:00Z' };
+    const cls = { custom_plan_id: null, major_id: 5, training_level_id: null };
+    expect(findBestMatchPlan(cls, [a, b])?.id).toBe(9);
+    expect(findBestMatchPlan(cls, [b, a])?.id).toBe(9);
+  });
+
+  it('created_at 缺失视为 0，仍按 id 决胜', () => {
+    const a = { id: 1, major_id: 5, training_level_id: null };
+    const b = { id: 4, major_id: 5, training_level_id: null };
+    const cls = { custom_plan_id: null, major_id: 5, training_level_id: null };
+    expect(findBestMatchPlan(cls, [a, b])?.id).toBe(4);
+  });
+});
+
+// ──────────────────────────────────────────────
+// buildClassWithPlanFilter — 粗筛条件构建（M-6）
+// ──────────────────────────────────────────────
+describe('buildClassWithPlanFilter', () => {
+  it('始终包含自定义方案条件，且查询排除归档方案', async () => {
+    mockPrisma.training_plans.findMany.mockResolvedValue([]);
+    const filter = await buildClassWithPlanFilter();
+    expect(mockPrisma.training_plans.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: NOT_ARCHIVED_PLAN_WHERE })
+    );
+    expect(NOT_ARCHIVED_PLAN_WHERE).toEqual({ status: { not: 'archived' } });
+    expect(filter.OR).toContainEqual({ custom_plan_id: { not: null } });
+  });
+
+  it('按方案收集专业/层次 ID 并去重', async () => {
+    mockPrisma.training_plans.findMany.mockResolvedValue([
+      { id: 1, major_id: 5, college_id: 1, training_level_id: null },
+      { id: 2, major_id: 5, college_id: 1, training_level_id: null }, // 重复专业
+      { id: 3, major_id: null, college_id: null, training_level_id: 10 },
+      { id: 4, major_id: null, college_id: null, training_level_id: null }, // 无维度
+    ]);
+    const filter = await buildClassWithPlanFilter();
+    expect(filter.OR).toHaveLength(3);
+    expect(filter.OR).toContainEqual({ major_id: { in: [5] } });
+    expect(filter.OR).toContainEqual({ training_level_id: { in: [10] } });
+  });
+
+  it('无方案时仅剩自定义方案条件', async () => {
+    mockPrisma.training_plans.findMany.mockResolvedValue([]);
+    const filter = await buildClassWithPlanFilter();
+    expect(filter.OR).toEqual([{ custom_plan_id: { not: null } }]);
+  });
+});
+
+// ──────────────────────────────────────────────
+// planHasOfferedCourses — 开课判定统一口径
+// ──────────────────────────────────────────────
+describe('planHasOfferedCourses', () => {
+  it('学期在开课区间且周课时>0 → true', () => {
+    const plan = {
+      plan_courses: [{ start_semester: 1, end_semester: 4, weekly_hours: 4, plan_course_semesters: [] }],
+    };
+    expect(planHasOfferedCourses(plan, 2)).toBe(true);
+  });
+
+  it('当前学期不在开课区间 → false', () => {
+    const plan = {
+      plan_courses: [{ start_semester: 1, end_semester: 2, weekly_hours: 4, plan_course_semesters: [] }],
+    };
+    expect(planHasOfferedCourses(plan, 3)).toBe(false);
+    expect(planHasOfferedCourses(plan, 0)).toBe(false);
+  });
+
+  it('学期明细覆盖默认课时：该学期 0 课时 → false', () => {
+    const plan = {
+      plan_courses: [
+        {
+          start_semester: 1,
+          end_semester: 4,
+          weekly_hours: 4,
+          plan_course_semesters: [{ semester: 3, weekly_hours: 0 }],
+        },
+      ],
+    };
+    expect(planHasOfferedCourses(plan, 3)).toBe(false);
+    expect(planHasOfferedCourses(plan, 2)).toBe(true); // 其他学期仍走默认 4
+  });
+
+  it('学期明细覆盖默认课时：默认 0 但明细>0 → true', () => {
+    const plan = {
+      plan_courses: [
+        {
+          start_semester: 1,
+          end_semester: 4,
+          weekly_hours: 0,
+          plan_course_semesters: [{ semester: 2, weekly_hours: 2 }],
+        },
+      ],
+    };
+    expect(planHasOfferedCourses(plan, 2)).toBe(true);
+    expect(planHasOfferedCourses(plan, 1)).toBe(false);
+  });
+
+  it('无课程明细 → false', () => {
+    expect(planHasOfferedCourses({ plan_courses: [] }, 1)).toBe(false);
+    expect(planHasOfferedCourses({}, 1)).toBe(false);
   });
 });
