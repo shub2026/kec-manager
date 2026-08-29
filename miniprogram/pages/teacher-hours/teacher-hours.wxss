@@ -9,14 +9,15 @@
   flex: 1;
   display: flex;
   align-items: center;
-  background: var(--bg-card);
-  border: 1rpx solid var(--border);
-  border-radius: var(--radius-pill);
+  background: var(--bg-subtle);
+  border: none;
+  border-radius: var(--radius-md);
   padding: 0 20rpx;
   height: 72rpx;
 }
 .search-box:focus-within {
-  border-color: var(--brand-border);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 4rpx rgba(28, 130, 245, 0.15);
 }
 .search-icon {
   width: 30rpx;
@@ -36,9 +37,9 @@
 .filter-picker {
   display: inline-flex;
   align-items: center;
-  background: var(--bg-card);
-  border: 1rpx solid var(--border);
-  border-radius: var(--radius-pill);
+  background: var(--bg-subtle);
+  border: none;
+  border-radius: var(--radius-md);
   padding: 0 22rpx;
   height: 72rpx;
   font-size: 26rpx;
@@ -46,7 +47,6 @@
 }
 .filter-picker.active {
   color: var(--brand);
-  border-color: var(--brand-border);
   background: var(--brand-soft);
 }
 .filter-clear {
@@ -84,21 +84,20 @@
   font-size: 20rpx;
   padding: 2rpx 10rpx;
   border-radius: var(--radius-sm);
-  border: 1rpx solid var(--border);
   background: var(--bg-subtle);
   color: var(--text-3);
   font-weight: 500;
   flex-shrink: 0;
 }
 /* 人员类别：与 WEB 端语义一致（专职=绿 / 兼职=橙 / 外聘=灰） */
-.pt-success { color: var(--success); background: var(--success-soft); border-color: var(--success-border); }
-.pt-warning { color: var(--warning); background: var(--warning-soft); border-color: var(--warning-border); }
-.pt-info { color: var(--text-2); background: var(--bg-subtle); border-color: var(--border); }
+.pt-success { color: var(--success-dark); background: var(--success-soft); }
+.pt-warning { color: var(--warning-dark); background: var(--warning-soft); }
+.pt-info { color: var(--text-2); background: var(--bg-subtle); }
 
-/* 明细区标签：层次=紫 / 学院=蓝 / 教材=青绿，便于区分 */
-.tag-level { color: var(--violet); background: var(--violet-soft); border-color: var(--violet-border); }
-.tag-college { color: var(--brand); background: var(--brand-soft); border-color: var(--brand-border); }
-.tag-book { color: var(--teal); background: var(--teal-soft); border-color: var(--teal-border); }
+/* 明细区标签：层次=蓝 / 学院=蓝 / 教材=青绿，便于区分 */
+.tag-level { color: var(--brand); background: var(--brand-soft); }
+.tag-college { color: var(--brand); background: var(--brand-soft); }
+.tag-book { color: var(--teal-dark); background: var(--teal-soft); }
 .tc-right {
   display: flex;
   flex-direction: column;
@@ -127,8 +126,9 @@
   gap: 10rpx;
   margin-bottom: 20rpx;
   padding-bottom: 16rpx;
-  border-bottom: 1rpx solid var(--border);
+  border-bottom: 1rpx solid var(--border-light);
 }
+.td-meta .tag { margin: 0; }
 .course-block {
   margin-bottom: 20rpx;
 }
@@ -156,19 +156,18 @@
   gap: 10rpx;
   padding: 14rpx 18rpx;
   margin-bottom: 10rpx;
-  background: var(--bg-subtle);
+  background: var(--bg-page);
   border-radius: var(--radius-md);
   font-size: 24rpx;
 }
 .cb-cname {
-  color: var(--text-2);
+  color: var(--text-1);
   font-weight: 500;
 }
 .cb-comb {
   font-size: 20rpx;
-  color: var(--warning);
+  color: var(--warning-dark);
   background: var(--warning-soft);
-  border: 1rpx solid var(--warning-border);
   padding: 2rpx 8rpx;
   border-radius: var(--radius-sm);
 }
@@ -176,7 +175,6 @@
   font-size: 20rpx;
   color: var(--brand);
   background: var(--brand-soft);
-  border: 1rpx solid var(--brand-border);
   padding: 2rpx 8rpx;
   border-radius: var(--radius-sm);
 }

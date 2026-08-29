@@ -17,11 +17,11 @@
     "navigationBarTitleText": "教务排课助手",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F3F4F6"
+    "backgroundColor": "#f5f7fa"
   },
   "tabBar": {
     "color": "#64748b",
-    "selectedColor": "#1C6FF0",
+    "selectedColor": "#1C82F5",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [

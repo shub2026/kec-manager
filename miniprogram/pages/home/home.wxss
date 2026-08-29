@@ -3,21 +3,17 @@
 .hero-subtitle.is-org {
   display: inline-flex;
   align-items: center;
-  gap: 8rpx;
+  gap: 10rpx;
   align-self: flex-start;
-  margin-bottom: 4rpx;
-  padding: 9rpx 20rpx;
-  font-size: 24rpx;
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
   font-weight: 600;
   letter-spacing: 0.5rpx;
   color: var(--brand);
-  background: rgba(28, 130, 245, 0.10);
-  border: 1rpx solid var(--brand-border);
-  border-radius: var(--radius-pill);
 }
 .org-ico {
-  width: 26rpx;
-  height: 26rpx;
+  width: 30rpx;
+  height: 30rpx;
   flex-shrink: 0;
   background-repeat: no-repeat;
   background-position: center;
@@ -136,7 +132,6 @@
   padding: 18rpx 12rpx;
   border-radius: var(--radius-md);
   font-size: 24rpx;
-  border: 1rpx solid var(--border);
   background: var(--bg-subtle);
   color: var(--text-2);
 }
@@ -152,7 +147,6 @@
   margin-top: 24rpx;
   padding: 18rpx;
   background: var(--success-soft);
-  border: 1rpx solid var(--success-border);
   border-radius: var(--radius-md);
   font-size: 24rpx;
   color: var(--success);
@@ -339,10 +333,10 @@
   margin-left: 8rpx;
 }
 .cs-delta-up {
-  color: #dc2626;
+  color: var(--danger-dark);
 }
 .cs-delta-down {
-  color: #047857;
+  color: var(--success-dark);
 }
 .cs-delta-flat {
   color: var(--text-3);
@@ -423,17 +417,13 @@
   display: flex;
   align-items: center;
   background: var(--bg-card);
-  border: 1rpx solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: 26rpx 22rpx;
   box-sizing: border-box;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: background 0.18s ease;
 }
 .entry-card-hover {
-  background: var(--bg-subtle);
-  transform: translateY(-2rpx);
-  box-shadow: var(--shadow-md);
+  background: var(--bg-hover);
 }
 .entry-body {
   flex: 1;
@@ -466,8 +456,8 @@
   flex-shrink: 0;
   font-size: 20rpx;
   font-weight: 600;
-  color: #E11D48;
-  background: rgba(225, 29, 72, 0.12);
+  color: var(--danger-dark);
+  background: var(--danger-soft);
   padding: 4rpx 14rpx;
   border-radius: 999rpx;
   margin-left: 8rpx;

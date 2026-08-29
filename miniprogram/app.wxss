@@ -1,18 +1,17 @@
 /* ============================================================
    设计系统（全局 Design Tokens）
-   风格：克制留白 + 品牌渐变点缀 + 精致层级（微立体）
-   主色：品牌蓝；辅色：青绿(teal) / 紫(violet)，用于入口与指标区分
+   风格：扁平克制（对齐腾讯云控制台）——浅灰底 + 无边框白卡片 + 实色点缀
+   主色：品牌蓝；辅色：青绿(teal)，用于入口与指标区分
    ============================================================ */
 
 page {
-  /* —— 品牌色（含渐变） —— */
+  /* —— 品牌色 —— */
   --brand: #1C82F5;
   --brand-dark: #1668c4;
   --brand-light: #3d95f7;
   --brand-soft: #e8f3fe;
   --brand-soft2: #b5d6fc;
   --brand-border: #c9d7ea;
-  --brand-grad: linear-gradient(135deg, #3d95f7 0%, #1c82f5 100%);
 
   /* —— 辅助色：青绿（教材/课程） —— */
   --teal: #5eba9a;
@@ -20,20 +19,17 @@ page {
   --teal-soft: #e6f5f0;
   --teal-border: #bfdfd2;
 
-  /* —— 辅助色：紫（方案/专业） —— */
-  --violet: #8b5cf6;
-  --violet-dark: #6d28d9;
-  --violet-soft: #f3effe;
-  --violet-border: #ddd6fe;
-
   /* —— 语义色（降低饱和度） —— */
   --success: #10b981;
+  --success-dark: #047857;
   --success-soft: #e7f8f2;
   --success-border: #b7ead9;
   --warning: #ff6b1a;
+  --warning-dark: #c2410c;
   --warning-soft: #fff0e8;
   --warning-border: #ffd3ba;
   --danger: #f87171;
+  --danger-dark: #dc2626;
   --danger-soft: #fee2e2;
   --danger-border: #fecaca;
 
@@ -45,10 +41,10 @@ page {
   --text-5: #cbd5e1;
 
   /* —— 背景 —— */
-  --bg-page: #f8fafc;
+  --bg-page: #f5f7fa;
   --bg-card: #FFFFFF;
-  --bg-subtle: #eff4fa;
-  --bg-hover: #f1f5f9;
+  --bg-subtle: #ebedf0;
+  --bg-hover: #e8eaed;
   --bg-mask: rgba(15, 23, 42, 0.45);
 
   /* —— 边框 —— */
@@ -56,16 +52,16 @@ page {
   --border-light: #eef2f7;
 
   /* —— 圆角 —— */
-  --radius-sm: 10rpx;
-  --radius-md: 14rpx;
-  --radius-lg: 18rpx;
-  --radius-xl: 28rpx;
+  --radius-sm: 8rpx;
+  --radius-md: 16rpx;
+  --radius-lg: 24rpx;
+  --radius-xl: 32rpx;
   --radius-pill: 9999rpx;
 
-  /* —— 阴影（精致微立体，三层叠加提升质感） —— */
-  --shadow-sm: 0 1rpx 2rpx rgba(15, 23, 42, 0.04), 0 3rpx 8rpx rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 6rpx 16rpx rgba(15, 23, 42, 0.07), 0 2rpx 6rpx rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 16rpx 40rpx rgba(15, 23, 42, 0.12), 0 6rpx 16rpx rgba(15, 23, 42, 0.06);
+  /* —— 阴影（扁平化：仅 FAB / sheet 等浮层使用，卡片不挂阴影） —— */
+  --shadow-sm: 0 2rpx 8rpx rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4rpx 16rpx rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 8rpx 32rpx rgba(15, 23, 42, 0.10);
 
   background: var(--bg-page);
   /* 与 Web 端 --el-font-family 同源；MiSans / HarmonyOS Sans SC 渐进增强，未安装落回雅黑 */
@@ -80,14 +76,120 @@ page {
 /* ===== 页面容器 ===== */
 .page { padding: 24rpx; box-sizing: border-box; }
 
+/* ============================================================
+   搜索 / 筛选组件（全站唯一规范）
+   统一 textbook / plan-query(.search-bar)、teacher 系 / semester / user-admin(.filter-bar)
+   以及 teaching-arrange(.search-box) 多套方言为同一视觉语言。
+   注意：页面 wxss 不可再重复定义以下类，否则覆盖本规范。
+   ============================================================ */
+.filter-bar,
+.search-bar,
+.filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;            /* 窄屏自动换行，避免 3 个控件挤压截断 */
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+.search-box,
+.search-input {
+  flex: 1 1 220rpx;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 76rpx;
+  padding: 0 22rpx;
+  background: var(--bg-subtle);
+  border: none;
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+}
+.search-box:focus-within,
+.search-input:focus-within {
+  background: var(--bg-card);
+  box-shadow: 0 0 0 4rpx rgba(28, 130, 245, 0.15);
+}
+.search-icon,
+.search-ico {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 14rpx;
+  flex-shrink: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.filter-input,
+.search-field {
+  flex: 1;
+  height: 100%;
+  font-size: 28rpx;
+  color: var(--text-1);
+  min-width: 0;
+}
+/* 占位符与次要小标签统一提升到 text-3，保证白底小字可读（品牌色不变） */
+.placeholder,
+.ph {
+  color: var(--text-3);
+}
+.filter-picker,
+.filter-chip,
+.type-picker-inner {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 76rpx;
+  padding: 0 22rpx;
+  background: var(--bg-subtle);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 26rpx;
+  color: var(--text-2);
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.filter-picker.active,
+.filter-chip.active {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+.filter-caret,
+.caret {
+  margin-left: 8rpx;
+  font-size: 20rpx;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+.filter-clear,
+.search-clear {
+  font-size: 28rpx;
+  color: var(--text-3);
+  padding: 0 8rpx;
+  flex-shrink: 0;
+}
+.search-btn {
+  height: 76rpx;
+  line-height: 76rpx;
+  padding: 0 32rpx;
+  background: var(--brand);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: 28rpx;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.filter-reset,
+.alert-reset {
+  font-size: 26rpx;
+  color: var(--text-3);
+  padding: 0 8rpx;
+  flex-shrink: 0;
+}
+
 /* ===== 卡片 ===== */
 .card {
   background: var(--bg-card);
-  border: 1rpx solid var(--border);
   border-radius: var(--radius-lg);
   padding: 24rpx 24rpx;
   margin-bottom: 16rpx;
-  box-shadow: var(--shadow-sm);
 }
 .card-title {
   font-size: 30rpx;
@@ -99,57 +201,37 @@ page {
   justify-content: space-between;
   gap: 10rpx;
   position: relative;
-  padding-left: 18rpx;
-}
-/* 全局：卡片标题左侧品牌 accent 条，强化层级与设计感（绝对定位，不挤占标题） */
-.card-title::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 6rpx;
-  height: 28rpx;
-  border-radius: 3rpx;
-  background: var(--brand-grad);
 }
 .card-title .more { font-size: 24rpx; color: var(--brand); font-weight: 500; }
 
 /* ===== 页面顶部 Hero 卡片 ===== */
 .hero { padding: 8rpx 0 24rpx; }
 .hero-card {
-  background: linear-gradient(135deg, #e8f3fe 0%, #d6e9fd 55%, #c6defb 100%);
-  border: 1rpx solid var(--brand-border);
-  border-left: 6rpx solid var(--brand);
+  background: var(--brand-soft);
   border-radius: var(--radius-lg);
   padding: 36rpx 32rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
 }
-/* 角落柔光，增加层次但不加重底色 */
-.hero-card::after {
-  content: "";
-  position: absolute;
-  top: -60rpx;
-  right: -30rpx;
-  width: 220rpx;
-  height: 220rpx;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 70%);
-  pointer-events: none;
+.hero-text {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
-.hero-text { flex: 1; min-width: 0; position: relative; z-index: 1; }
 .hero-badge {
   display: inline-flex;
   align-items: center;
   background: var(--bg-card);
   border: 1rpx solid var(--brand-border);
   border-radius: var(--radius-pill);
-  padding: 8rpx 20rpx;
-  margin-top: 16rpx;
+  padding: 10rpx 24rpx;
 }
 .hero-badge::before {
   content: "";
@@ -159,7 +241,7 @@ page {
   border-radius: 50%;
   margin-right: 10rpx;
 }
-.hero-badge-text { font-size: 24rpx; color: var(--text-2); font-weight: 500; }
+.hero-badge-text { font-size: 26rpx; color: var(--text-2); font-weight: 500; }
 .hero-title { font-size: 40rpx; font-weight: 700; color: var(--text-1); margin-bottom: 10rpx; letter-spacing: -0.5rpx; }
 .hero-subtitle { font-size: 24rpx; color: var(--text-3); }
 /* Hero 徽标容器 */
@@ -178,7 +260,24 @@ page {
   height: 100rpx;
   border-radius: 24rpx;
   background: var(--bg-card);
-  box-shadow: 0 8rpx 24rpx rgba(28, 130, 245, 0.18), 0 2rpx 6rpx rgba(15, 23, 42, 0.06);
+}
+
+/* ===== Web 式素页头（非首页，.hero--plain 修饰）：对齐 Web PageHeader 语言 ===== */
+.hero--plain .hero-card {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+.hero--plain .hero-decor { display: none; }
+/* 强调竖线挂在文本容器上，标题+副标题整体包裹 */
+.hero--plain .hero-text {
+  border-left: 6rpx solid var(--brand);
+  padding-left: 20rpx;
+}
+.hero--plain .hero-title {
+  font-size: 36rpx;
+  margin-bottom: 8rpx;
 }
 
 /* ===== 指标网格 ===== */
@@ -211,10 +310,10 @@ page {
   flex-shrink: 0;
 }
 .si-students { background-color: var(--brand-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87'/%3E%3Cpath d='M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E"); }
-.si-classes { background-color: var(--violet-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b5cf6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1.5'/%3E%3C/svg%3E"); }
+.si-classes { background-color: var(--brand-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1.5'/%3E%3C/svg%3E"); }
 .si-courses { background-color: var(--teal-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235eba9a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3C/svg%3E"); }
 .si-teachers { background-color: var(--brand-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E"); }
-.si-majors { background-color: var(--violet-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b5cf6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 10 12 5 2 10l10 5 10-5z'/%3E%3Cpath d='M6 12v5c0 1 2.5 2 6 2s6-1 6-2v-5'/%3E%3C/svg%3E"); }
+.si-majors { background-color: var(--brand-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 10 12 5 2 10l10 5 10-5z'/%3E%3Cpath d='M6 12v5c0 1 2.5 2 6 2s6-1 6-2v-5'/%3E%3C/svg%3E"); }
 .si-textbooks { background-color: var(--teal-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235eba9a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z'/%3E%3Cpath d='M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z'/%3E%3C/svg%3E"); }
 .stat-num { font-size: 38rpx; font-weight: 700; color: var(--text-1); line-height: 1.2; letter-spacing: -0.5rpx; }
 .stat-num.small { font-size: 30rpx; }
@@ -223,7 +322,7 @@ page {
 .stat-data { flex: 1; min-width: 0; }
 
 /* ===== 列表 / 行 ===== */
-.list { background: var(--bg-card); border-radius: var(--radius-lg); border: 1rpx solid var(--border); overflow: hidden; }
+.list { background: var(--bg-card); border-radius: var(--radius-lg); overflow: hidden; }
 .row {
   display: flex;
   align-items: center;
@@ -255,7 +354,6 @@ page {
   font-size: 22rpx;
   color: var(--text-3);
   background: var(--bg-subtle);
-  border: 1rpx solid var(--border);
   border-radius: var(--radius-sm);
   padding: 4rpx 14rpx;
   margin-right: 10rpx;
@@ -273,17 +371,16 @@ page {
   box-sizing: border-box;
 }
 .btn-primary {
-  background: var(--brand-grad);
+  background: var(--brand);
   color: #fff;
   border-radius: var(--radius-md);
   font-size: 30rpx;
   font-weight: 500;
-  box-shadow: 0 8rpx 18rpx rgba(28, 111, 240, 0.22);
 }
 .btn-ghost {
   background: var(--bg-card);
   color: var(--brand);
-  border: 1rpx solid var(--brand-border);
+  border: 1rpx solid var(--border);
   border-radius: var(--radius-md);
   font-size: 28rpx;
 }
@@ -299,7 +396,6 @@ page {
 .errbox {
   background: var(--danger-soft);
   color: var(--danger);
-  border: 1rpx solid var(--danger-border);
   border-radius: var(--radius-md);
   padding: 20rpx 24rpx;
   font-size: 26rpx;
@@ -315,14 +411,14 @@ page {
   content: "";
   position: absolute;
   left: 0; top: 0; bottom: 0;
-  width: 6rpx;
+  width: 4rpx;
 }
 .card-left-bar.success::before { background: var(--success); }
 .card-left-bar.warning::before { background: var(--warning); }
 .card-left-bar.danger::before { background: var(--danger); }
 .card-left-bar.brand::before { background: var(--brand); }
 
-/* ===== 渐变方块图标（入口/强调） ===== */
+/* ===== 软底方块图标（入口/强调） ===== */
 .ei {
   width: 72rpx; height: 72rpx;
   border-radius: 18rpx;
@@ -331,7 +427,6 @@ page {
   background-repeat: no-repeat;
   background-position: center;
   background-size: 40rpx 40rpx;
-  box-shadow: 0 6rpx 14rpx rgba(15, 23, 42, 0.10);
 }
 .ei-course {
   background-color: var(--brand-soft);
@@ -342,8 +437,8 @@ page {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235eba9a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3C/svg%3E");
 }
 .ei-plan {
-  background-color: var(--violet-soft);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b5cf6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2 2 7l10 5 10-5-10-5z'/%3E%3Cpath d='m2 17 10 5 10-5'/%3E%3Cpath d='m2 12 10 5 10-5'/%3E%3C/svg%3E");
+  background-color: var(--brand-soft);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C82F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2 2 7l10 5 10-5-10-5z'/%3E%3Cpath d='m2 17 10 5 10-5'/%3E%3Cpath d='m2 12 10 5 10-5'/%3E%3C/svg%3E");
 }
 .ei-teacher {
   background-color: var(--warning-soft);

@@ -9,14 +9,15 @@
   flex: 1;
   display: flex;
   align-items: center;
-  background: var(--bg-card);
-  border: 1rpx solid var(--border);
-  border-radius: var(--radius-pill);
+  background: var(--bg-subtle);
+  border: none;
+  border-radius: var(--radius-md);
   padding: 0 20rpx;
   height: 72rpx;
 }
 .search-box:focus-within {
-  border-color: var(--brand-border);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 4rpx rgba(28, 130, 245, 0.15);
 }
 .search-icon {
   width: 30rpx;
@@ -36,9 +37,9 @@
 .filter-picker {
   display: inline-flex;
   align-items: center;
-  background: var(--bg-card);
-  border: 1rpx solid var(--border);
-  border-radius: var(--radius-pill);
+  background: var(--bg-subtle);
+  border: none;
+  border-radius: var(--radius-md);
   padding: 0 22rpx;
   height: 72rpx;
   font-size: 26rpx;
@@ -46,7 +47,6 @@
 }
 .filter-picker.active {
   color: var(--brand);
-  border-color: var(--brand-border);
   background: var(--brand-soft);
 }
 .filter-clear {
@@ -61,7 +61,7 @@
   overflow: hidden;
 }
 .teacher-card.disabled {
-  border-left: 6rpx solid var(--danger);
+  border-left: 4rpx solid var(--danger);
 }
 .tc-head {
   display: flex;
@@ -93,14 +93,13 @@
   font-size: 20rpx;
   padding: 2rpx 10rpx;
   border-radius: var(--radius-sm);
-  border: 1rpx solid var(--border);
   background: var(--bg-subtle);
   color: var(--text-3);
   font-weight: 500;
 }
-.pt-internal { color: var(--brand); background: var(--brand-soft); border-color: var(--brand-border); }
-.pt-external { color: var(--success); background: var(--success-soft); border-color: var(--success-border); }
-.pt-disabled { color: var(--danger); background: var(--danger-soft); border-color: var(--danger-border); }
+.pt-internal { color: var(--brand); background: var(--brand-soft); }
+.pt-external { color: var(--success-dark); background: var(--success-soft); }
+.pt-disabled { color: var(--danger-dark); background: var(--danger-soft); }
 .tc-right {
   display: flex;
   flex-direction: column;
@@ -111,16 +110,16 @@
 .tc-edit {
   font-size: 24rpx;
   color: var(--brand);
+  background: var(--brand-soft);
   padding: 6rpx 16rpx;
-  border: 1rpx solid var(--brand-border);
   border-radius: var(--radius-sm);
   text-align: center;
 }
 .tc-del {
   font-size: 24rpx;
-  color: var(--danger);
+  color: var(--danger-dark);
+  background: var(--danger-soft);
   padding: 6rpx 16rpx;
-  border: 1rpx solid var(--danger-border);
   border-radius: var(--radius-sm);
   text-align: center;
 }
@@ -135,12 +134,10 @@
 .tag-blue {
   color: var(--brand);
   background: var(--brand-soft);
-  border-color: var(--brand-border);
 }
 .tag-more {
   color: var(--text-4);
   background: transparent;
-  border-color: var(--border-light);
 }
 
 /* ===== 顶部加载 / 列表底部 ===== */
@@ -189,7 +186,7 @@
 .mask {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.40);
+  background: var(--bg-mask);
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -202,7 +199,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 -12rpx 48rpx rgba(15, 23, 42, 0.14);
+  box-shadow: var(--shadow-lg);
 }
 .sheet-header {
   padding: 28rpx 32rpx 20rpx;
@@ -242,20 +239,7 @@
   font-weight: 600;
   color: var(--text-1);
   margin-bottom: 18rpx;
-  padding-left: 16rpx;
-  position: relative;
   letter-spacing: -0.2rpx;
-}
-.form-section-title::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 5rpx;
-  height: 24rpx;
-  border-radius: 3rpx;
-  background: var(--brand);
 }
 /* 表单行：细线 + 圆角 + 聚焦品牌蓝边 */
 .form-row {
@@ -344,7 +328,6 @@
   font-size: 24rpx;
   color: var(--text-2);
   background: var(--bg-subtle);
-  border: 1rpx solid var(--border);
   border-radius: var(--radius-pill);
   padding: 12rpx 22rpx;
   transition: all 0.15s ease;
@@ -352,7 +335,6 @@
 .course-chip-selected {
   color: #fff;
   background: var(--brand);
-  border-color: var(--brand);
 }
 
 .sheet-actions {
@@ -379,5 +361,5 @@
 .sheet-btn.btn-ghost {
   color: var(--text-2);
   background: var(--bg-subtle);
-  border: 1rpx solid var(--border) !important;
+  border: none !important;
 }

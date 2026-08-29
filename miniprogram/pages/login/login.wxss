@@ -3,35 +3,9 @@
   box-sizing: border-box;
   /* 顶部 96rpx / 左右 48rpx / 底部 64rpx：略压缩上下留白，让品牌区与表单比例更紧致 */
   padding: 96rpx 48rpx 64rpx;
-  background: linear-gradient(180deg, #EEF4FB 0%, #F4F6FA 40%, #f8fafc 100%);
+  background: var(--bg-page);
   position: relative;
   overflow: hidden;
-}
-
-/* 顶部品牌色柔光（保留并加大） */
-.login::before {
-  content: "";
-  position: absolute;
-  top: -180rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 760rpx;
-  height: 560rpx;
-  background: radial-gradient(circle, rgba(28, 130, 245, 0.14) 0%, rgba(28, 130, 245, 0) 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-/* 右下青色柔光增加层次 */
-.login::after {
-  content: "";
-  position: absolute;
-  bottom: -260rpx;
-  right: -220rpx;
-  width: 560rpx;
-  height: 560rpx;
-  background: radial-gradient(circle, rgba(124, 174, 255, 0.12) 0%, rgba(124, 174, 255, 0) 70%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .brand {
@@ -44,13 +18,8 @@
   width: 144rpx;        /* 略加大 132→144 */
   height: 144rpx;
   margin-bottom: 32rpx;
-  border-radius: 36rpx; /* 加大圆角 32→36 */
+  border-radius: var(--radius-xl);
   background: var(--bg-card);
-  /* 多层柔光：主彩色阴影 + 中性阴影 + 内圈白边（无 logo 玻璃感） */
-  box-shadow:
-    0 14rpx 36rpx rgba(28, 130, 245, 0.28),
-    0 4rpx 12rpx rgba(15, 23, 42, 0.08),
-    inset 0 0 0 1rpx rgba(255, 255, 255, 0.6);
 }
 .title {
   font-size: 44rpx;     /* 略加大 40→44 */
@@ -67,14 +36,8 @@
 
 .form {
   background: var(--bg-card);
-  border: 1rpx solid rgba(230, 233, 239, 0.7);
-  border-radius: 36rpx;  /* 加大圆角 28→36 */
+  border-radius: var(--radius-xl);
   padding: 56rpx 40rpx 52rpx;  /* 内边距加大 48/36/44→56/40/52 */
-  /* 多层柔光阴影：主阴影 + 中层 + 顶部内高光（增强卡片浮起感） */
-  box-shadow:
-    0 24rpx 60rpx rgba(15, 23, 42, 0.06),
-    0 6rpx 14rpx rgba(15, 23, 42, 0.04),
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.9);
   position: relative;
   z-index: 1;
 }
@@ -86,16 +49,15 @@
   height: 108rpx;       /* 加大 100→108 */
   margin-bottom: 32rpx; /* 略缩 40→32 */
   padding: 0 32rpx;     /* 加大左右 28→32 */
-  background: var(--bg-subtle);  /* 微底色，与卡片底色形成层次 */
-  border: 1rpx solid var(--border);
-  border-radius: 22rpx; /* 加大圆角 14→22 */
+  background: var(--bg-subtle);  /* 灰底，与卡片底色形成层次 */
+  border: none;
+  border-radius: var(--radius-md);
   box-sizing: border-box;
-  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 .field:focus-within {
-  border-color: var(--brand);
   background: var(--bg-card);
-  box-shadow: 0 0 0 6rpx rgba(28, 130, 245, 0.10);  /* 6rpx 品牌色光环 */
+  box-shadow: 0 0 0 6rpx rgba(28, 130, 245, 0.12);  /* 品牌色光环 */
 }
 .field-ico {
   width: 40rpx;
@@ -154,15 +116,13 @@
   height: 108rpx;  /* 与输入框同高 100→108 */
   padding: 0 !important;
   border: none;
-  border-radius: 24rpx;  /* 加大圆角 14→24 */
+  border-radius: var(--radius-md);
   font-size: 34rpx;       /* 加大 33→34 */
   font-weight: 600;       /* 加粗 500→600 */
-  letter-spacing: 3rpx;   /* 字距撑开高级感 */
+  letter-spacing: 1rpx;
   box-sizing: border-box;
-  /* 多层柔光：主彩色投影 + 顶部内高光（按钮立体感） */
-  box-shadow:
-    0 12rpx 24rpx rgba(28, 130, 245, 0.22),
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.22);
+  background: var(--brand);
+  color: #fff;
 }
 /* loading 中：禁用点击 + 半透明 */
 .submit.is-loading {
@@ -172,9 +132,6 @@
 /* 按下态：模拟 button hover */
 .submit-hover {
   opacity: 0.88;
-  box-shadow:
-    0 8rpx 16rpx rgba(28, 130, 245, 0.18),
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.18);
 }
 
 .tip {
@@ -185,15 +142,4 @@
   position: relative;
   z-index: 1;
   letter-spacing: 1rpx;
-}
-/* 左右细线装饰：提升精致细节感 */
-.tip::before,
-.tip::after {
-  content: "";
-  display: inline-block;
-  width: 28rpx;
-  height: 1rpx;
-  background: rgba(148, 163, 184, 0.4);
-  vertical-align: middle;
-  margin: 0 16rpx;
 }

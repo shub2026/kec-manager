@@ -11,8 +11,10 @@ Page({
     filteredTeachers: [],
     activeDetails: [],
     subjectOptions: [],
+    personnelOptions: [],
     filterName: '',
     filterSubject: '',
+    filterPersonnel: '',
     semester: '',
     loading: true,
     error: '',
@@ -74,11 +76,19 @@ Page({
       }
       const subjectOptions = [...subjectSet].sort();
 
+      // 收集本学期所有人员类别去重，用于人员类别筛选下拉
+      const personnelSet = new Set();
+      for (const t of teachers) {
+        if (t.personnelType) personnelSet.add(t.personnelType);
+      }
+      const personnelOptions = [...personnelSet];
+
       const app = getApp();
       this.setData(
         {
           teachers,
           subjectOptions,
+          personnelOptions,
           semester: (app && app.globalData.currentSemester) || '',
           loading: false,
         },
@@ -111,14 +121,21 @@ Page({
     this.setData({ filterSubject: subject }, () => this.applyFilter());
   },
 
+  onPersonnelChange(e) {
+    const idx = e.detail.value;
+    const personnel = this.data.personnelOptions[idx] || '';
+    this.setData({ filterPersonnel: personnel }, () => this.applyFilter());
+  },
+
   clearFilters() {
-    this.setData({ filterName: '', filterSubject: '' }, () => this.applyFilter());
+    this.setData({ filterName: '', filterSubject: '', filterPersonnel: '' }, () => this.applyFilter());
   },
 
   applyFilter() {
-    const { teachers, filterName, filterSubject } = this.data;
+    const { teachers, filterName, filterSubject, filterPersonnel } = this.data;
     const filtered = teachers.filter((t) => {
       if (filterName && !t.teacherName.includes(filterName)) return false;
+      if (filterPersonnel && t.personnelType !== filterPersonnel) return false;
       if (filterSubject) {
         const ds = (this._detailsMap && this._detailsMap[t.teacherId]) || [];
         if (!ds.some((d) => d.courseName === filterSubject)) return false;
@@ -130,7 +147,7 @@ Page({
 
   // 切走 tab 时重置筛选
   onHide() {
-    this.setData({ filterName: '', filterSubject: '' }, () => this.applyFilter());
+    this.setData({ filterName: '', filterSubject: '', filterPersonnel: '' }, () => this.applyFilter());
   },
 
   onPullDownRefresh() {

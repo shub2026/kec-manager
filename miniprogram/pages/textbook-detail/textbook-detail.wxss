@@ -34,7 +34,7 @@
   flex-wrap: wrap;
   gap: 12rpx;
   padding-top: 20rpx;
-  border-top: 1rpx solid var(--border);
+  border-top: 1rpx solid var(--border-light);
 }
 
 /* ===== 使用班级 ===== */
@@ -67,7 +67,6 @@
   font-size: 20rpx;
   color: var(--brand);
   background: var(--brand-soft);
-  border: 1rpx solid var(--brand-border);
   padding: 2rpx 8rpx;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
@@ -75,9 +74,8 @@
 .con {
   margin-left: 10rpx;
   font-size: 20rpx;
-  color: var(--success);
+  color: var(--success-dark);
   background: var(--success-soft);
-  border: 1rpx solid var(--success-border);
   padding: 2rpx 8rpx;
   border-radius: var(--radius-sm);
   flex-shrink: 0;

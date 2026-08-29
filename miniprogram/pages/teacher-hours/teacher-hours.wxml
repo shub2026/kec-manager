@@ -1,10 +1,9 @@
 <view class="page">
-  <view class="hero">
+  <view class="hero hero--plain">
     <view class="hero-card">
       <view class="hero-text">
         <view class="hero-title">教师课时</view>
         <view class="hero-subtitle">查看教师周课时与任教明细</view>
-        <view class="hero-badge"><text class="hero-badge-text">当前学期：{{semester || '未设置'}}</text></view>
       </view>
       <view class="hero-decor"><view class="hero-ring"></view></view>
     </view>
@@ -24,7 +23,12 @@
           {{filterSubject || '选择科目'}} ›
         </view>
       </picker>
-      <text wx:if="{{filterName || filterSubject}}" class="filter-clear" bindtap="clearFilters">重置</text>
+      <picker mode="selector" range="{{personnelOptions}}" bindchange="onPersonnelChange">
+        <view class="filter-picker {{filterPersonnel ? 'active' : ''}}">
+          {{filterPersonnel || '人员类别'}} ›
+        </view>
+      </picker>
+      <text wx:if="{{filterName || filterSubject || filterPersonnel}}" class="filter-clear" bindtap="clearFilters">重置</text>
     </view>
 
     <view wx:if="{{filteredTeachers.length}}">
@@ -80,6 +84,6 @@
       </view>
     </view>
 
-    <view wx:else class="empty">{{filterName || filterSubject ? '未找到匹配的教师' : '本学期暂无教师课时数据'}}</view>
+    <view wx:else class="empty">{{filterName || filterSubject || filterPersonnel ? '未找到匹配的教师' : '本学期暂无教师课时数据'}}</view>
   </block>
 </view>

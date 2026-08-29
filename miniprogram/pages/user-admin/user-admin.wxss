@@ -9,14 +9,15 @@
   flex: 1;
   display: flex;
   align-items: center;
-  background: var(--bg-card);
-  border: 1rpx solid var(--border);
-  border-radius: var(--radius-pill);
+  background: var(--bg-subtle);
+  border: none;
+  border-radius: var(--radius-md);
   padding: 0 20rpx;
   height: 72rpx;
 }
 .search-box:focus-within {
-  border-color: var(--brand-border);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 4rpx rgba(28, 130, 245, 0.15);
 }
 .search-icon {
   width: 30rpx;
@@ -45,7 +46,7 @@
   overflow: hidden;
 }
 .user-card.disabled {
-  border-left: 6rpx solid var(--danger);
+  border-left: 4rpx solid var(--danger);
 }
 .uc-head {
   display: flex;
@@ -88,14 +89,13 @@
   font-size: 20rpx;
   padding: 2rpx 10rpx;
   border-radius: var(--radius-sm);
-  border: 1rpx solid var(--border);
   background: var(--bg-subtle);
   color: var(--text-3);
   font-weight: 500;
 }
-.pt-admin { color: var(--danger); background: var(--danger-soft); border-color: var(--danger-border); }
-.pt-teacher { color: var(--brand); background: var(--brand-soft); border-color: var(--brand-border); }
-.pt-disabled { color: var(--danger); background: var(--danger-soft); border-color: var(--danger-border); }
+.pt-admin { color: var(--danger-dark); background: var(--danger-soft); }
+.pt-teacher { color: var(--brand); background: var(--brand-soft); }
+.pt-disabled { color: var(--danger-dark); background: var(--danger-soft); }
 
 /* ===== 操作区 ===== */
 .uc-actions {
@@ -110,24 +110,20 @@
   font-size: 24rpx;
   color: var(--brand);
   padding: 8rpx 18rpx;
-  border: 1rpx solid var(--brand-border);
   border-radius: var(--radius-sm);
   background: var(--brand-soft);
 }
 .uc-act-warn {
-  color: var(--warning);
+  color: var(--warning-dark);
   background: var(--warning-soft);
-  border-color: var(--warning-border);
 }
 .uc-act-ok {
-  color: var(--success);
+  color: var(--success-dark);
   background: var(--success-soft);
-  border-color: var(--success-border);
 }
 .uc-act-danger {
-  color: var(--danger);
+  color: var(--danger-dark);
   background: var(--danger-soft);
-  border-color: var(--danger-border);
 }
 .uc-protected {
   padding: 0 28rpx 24rpx;

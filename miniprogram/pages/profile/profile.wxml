@@ -41,10 +41,7 @@
       <view class="row"><text class="label">小程序版本</text><text class="value">{{appEnv}} v{{appVersion}}</text></view>
       <view class="row"><text class="label">主体类型</text><text class="value">个人主体</text></view>
       <view class="row" bindtap="copyDesktopUrl"><text class="label">桌面端地址</text><text class="value value-link">https://kec.sntip.cn</text></view>
-    </view>
-
-    <view class="logout-wrap">
-      <button class="btn-ghost logout-btn" bindtap="onLogout">退出登录</button>
+      <view class="row" bindtap="onLogout"><text class="label">退出登录</text><text class="value muted">退出当前账号</text></view>
     </view>
   </block>
 </view>

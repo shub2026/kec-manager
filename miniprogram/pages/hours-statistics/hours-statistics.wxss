@@ -40,17 +40,17 @@
   display: flex;
   gap: 4rpx;
   height: 12rpx;
-  border-radius: 6rpx;
+  border-radius: var(--radius-sm);
   overflow: hidden;
-  background: #F4F5F8;
+  background: var(--bg-subtle);
 }
 .ct-seg {
   height: 100%;
 }
-.seg-full { background: #10b981; } /* 专（与环形图 WEB 配色一致） */
-.seg-part { background: #ff6b1a; }
-.seg-ext  { background: #64748b; }
-.seg-unk  { background: #c0c4cc; }
+.seg-full { background: var(--success); } /* 专（与环形图 WEB 配色一致） */
+.seg-part { background: var(--warning); }
+.seg-ext  { background: var(--text-3); }
+.seg-unk  { background: var(--text-5); }
 
 .ct-legend {
   display: flex;
@@ -62,13 +62,13 @@
   font-size: 22rpx;
   font-weight: 600;
   padding: 4rpx 16rpx;
-  border-radius: 20rpx;
+  border-radius: var(--radius-sm);
   line-height: 1.4;
 }
-.tag-full { color: #047857; background: rgba(16, 185, 129, 0.20); } /* 深绿文字 + 绿浅底，对齐环形色 */
-.tag-part { color: #c2410c; background: rgba(255, 107, 26, 0.20); }
-.tag-ext  { color: #475569; background: rgba(100, 116, 139, 0.20); }
-.tag-unk  { color: #4C515A; background: rgba(192, 196, 204, 0.7); }
+.tag-full { color: var(--success-dark); background: var(--success-soft); } /* 深绿文字 + 绿浅底，对齐环形色 */
+.tag-part { color: var(--warning-dark); background: var(--warning-soft); }
+.tag-ext  { color: var(--text-2); background: var(--bg-subtle); }
+.tag-unk  { color: var(--text-2); background: var(--bg-hover); }
 
 /* ===== 顶部教师情况环形图示（与首页同款） ===== */
 .card-empty {

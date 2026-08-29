@@ -11,14 +11,14 @@
   align-items: center;
   height: 80rpx;
   padding: 0 24rpx;
-  background: var(--bg-card);
-  border: 1rpx solid var(--border);
+  background: var(--bg-subtle);
+  border: none;
   border-radius: var(--radius-md);
   box-sizing: border-box;
 }
 .search-box:focus-within {
-  border-color: var(--brand-border);
-  background: var(--brand-soft);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 4rpx rgba(28, 130, 245, 0.15);
 }
 .search-ico {
   width: 32rpx;
@@ -53,8 +53,8 @@
   align-items: center;
   height: 80rpx;
   padding: 0 24rpx;
-  background: var(--bg-card);
-  border: 1rpx solid var(--border);
+  background: var(--bg-subtle);
+  border: none;
   border-radius: var(--radius-md);
   font-size: 28rpx;
   color: var(--text-2);
@@ -72,7 +72,6 @@
   align-items: center;
   justify-content: space-between;
   background: var(--success-soft);
-  border: 1rpx solid var(--success-border);
   border-radius: var(--radius-md);
   padding: 20rpx 24rpx;
   margin-bottom: 20rpx;
@@ -95,11 +94,9 @@
 /* ===== 课程卡片 ===== */
 .course-card {
   background: var(--bg-card);
-  border: 1rpx solid var(--border);
   border-radius: var(--radius-lg);
   padding: 28rpx;
   margin-bottom: 20rpx;
-  box-shadow: var(--shadow-sm);
 }
 .course-head {
   display: flex;
@@ -133,12 +130,11 @@
   font-size: 22rpx;
   padding: 4rpx 14rpx;
   border-radius: var(--radius-sm);
-  border: 1rpx solid var(--border);
   color: var(--text-3);
   background: var(--bg-subtle);
 }
-.course-type.blue { color: var(--brand); background: var(--brand-soft); border-color: var(--brand-border); }
-.course-type.green { color: var(--success); background: var(--success-soft); border-color: var(--success-border); }
+.course-type.blue { color: var(--brand); background: var(--brand-soft); }
+.course-type.green { color: var(--success-dark); background: var(--success-soft); }
 
 .course-meta {
   display: flex;
@@ -164,12 +160,12 @@
 .plan-list {
   margin-top: 24rpx;
   padding-top: 24rpx;
-  border-top: 1rpx solid var(--border);
+  border-top: 1rpx solid var(--border-light);
 }
 .plan-row {
   padding: 20rpx;
   margin-bottom: 16rpx;
-  background: var(--bg-subtle);
+  background: var(--bg-page);
   border-radius: var(--radius-md);
 }
 .plan-row:last-child { margin-bottom: 0; }
@@ -201,15 +197,14 @@
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
-.plan-status.success { color: var(--success); background: var(--success-soft); border: 1rpx solid var(--success-border); }
-.plan-status.warning { color: var(--warning); background: var(--warning-soft); border: 1rpx solid var(--warning-border); }
-.plan-status.info { color: var(--text-3); background: var(--bg-subtle); border: 1rpx solid var(--border); }
+.plan-status.success { color: var(--success-dark); background: var(--success-soft); }
+.plan-status.warning { color: var(--warning-dark); background: var(--warning-soft); }
+.plan-status.info { color: var(--text-3); background: var(--bg-subtle); }
 .plan-disabled {
   margin-left: 10rpx;
   font-size: 20rpx;
-  color: var(--danger);
+  color: var(--danger-dark);
   background: var(--danger-soft);
-  border: 1rpx solid var(--danger-border);
   padding: 3rpx 10rpx;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
@@ -224,7 +219,6 @@
   font-size: 22rpx;
   color: var(--text-3);
   background: var(--bg-card);
-  border: 1rpx solid var(--border);
   border-radius: var(--radius-sm);
   padding: 4rpx 12rpx;
 }
@@ -241,7 +235,6 @@
   min-width: 150rpx;
   padding: 14rpx 16rpx;
   background: var(--bg-card);
-  border: 1rpx solid var(--border);
   border-radius: var(--radius-md);
 }
 .sem-label {
