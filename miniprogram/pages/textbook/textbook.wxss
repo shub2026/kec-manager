@@ -38,6 +38,6 @@
 }
 .tb-isbn {
   font-size: 22rpx;
-  color: var(--text-4);
+  color: var(--text-3);   /* P0：原 text-4 在白卡仅 2.56:1，提至 text-3 满足 4.5:1 */
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", monospace;
 }
