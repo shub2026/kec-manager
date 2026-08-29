@@ -115,7 +115,7 @@
           :step="1"
           placeholder="不填使用课时要求"
           controls-position="right"
-          class="filter-xl"
+          class="hours-input"
         />
       </el-form-item>
       <el-form-item label="只带一本教材">
@@ -284,5 +284,10 @@ defineExpose({ open, close });
   margin-left: 8px;
   font-size: var(--font-size-caption);
   color: var(--el-text-color-secondary);
+}
+/* 自定义课时：EP 按需样式晚于全局工具类加载，.el-input-number 的 150px 会同优先级覆盖
+   filter-* 档位；scoped 提升优先级并加宽到能完整显示占位提示 */
+.hours-input {
+  width: 240px;
 }
 </style>
