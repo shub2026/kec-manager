@@ -31,13 +31,11 @@
       <text wx:if="{{filterName || filterSubject || filterPersonnel}}" class="filter-clear" bindtap="clearFilters">重置</text>
     </view>
 
-    <view class="zone-band" wx:if="{{teachers.length}}">本学期共 {{teachers.length}} 位教师</view>
-
     <view wx:if="{{filteredTeachers.length}}">
       <view
         wx:for="{{filteredTeachers}}"
         wx:key="teacherId"
-        class="card teacher-card card-left-bar brand"
+        class="card teacher-card"
       >
         <view class="tc-head" data-id="{{item.teacherId}}" bindtap="toggle">
           <view class="tc-left">

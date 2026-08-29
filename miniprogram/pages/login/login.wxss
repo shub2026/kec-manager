@@ -57,7 +57,7 @@
 }
 .field:focus-within {
   background: var(--bg-card);
-  box-shadow: 0 0 0 6rpx rgba(50, 131, 255, 0.12);  /* 品牌色光环 */
+  box-shadow: 0 0 0 6rpx rgba(28, 130, 245, 0.12);  /* 品牌色光环 */
 }
 .field-ico {
   width: 40rpx;

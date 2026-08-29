@@ -87,7 +87,7 @@ Page({
       };
       const PERSONNEL_ORDER = ['fullTime', 'partTime', 'external'];
       const PERSONNEL_LABEL = { fullTime: '专职', partTime: '兼职', external: '外聘', unknown: '未分类' };
-      // 教师构成：暖橘 + 湖绿 + 雾蓝灰，与品牌冷蓝 #3283ff 形成冷暖对比，整体克制不抢眼
+      // 教师构成：暖橘 + 湖绿 + 雾蓝灰，与品牌冷蓝 #1C82F5 形成冷暖对比，整体克制不抢眼
       const PERSONNEL_COLOR = {
         fullTime: '#10b981',  // 专职 翡翠绿（WEB --brand-success）
         partTime: '#ff6b1a',  // 兼职 活力橙（WEB --brand-warning）

@@ -33,7 +33,7 @@
             </view>
           </view>
         </view>
-        <view class="tl-metrics hl-success">
+        <view class="tl-metrics">
           <view class="tl-metric">
             <text class="tl-m-label">参与排课教师</text>
             <text class="tl-m-value">{{teacherLoadCard.assignedTeachers}}<text class="tl-m-sub">/{{teacherLoadCard.totalTeachers}} 在职</text></text>
@@ -47,7 +47,7 @@
     </view>
 
     <!-- 整体汇总 -->
-    <view class="card card-left-bar brand" wx:if="{{summary}}">
+    <view class="card" wx:if="{{summary}}">
       <view class="card-title">整体汇总</view>
       <view class="stat-grid">
         <view class="stat-cell"><view class="stat-inner">
@@ -70,7 +70,7 @@
     </view>
 
     <!-- 各科教师分布 -->
-    <view class="card card-left-bar brand">
+    <view class="card">
       <view class="card-title">各科分布<text class="card-sub">（本学期任课）</text></view>
       <view class="college-tt" wx:for="{{subjectTeacherStat}}" wx:key="name">
         <view class="ct-head">

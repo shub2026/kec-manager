@@ -9,7 +9,7 @@
     </view>
   </view>
 
-  <!-- 搜索 + 筛选同行：复用全局 .search-bar 规范，搜索框 flex:1 撑开，picker 不收缩 -->
+  <!-- 搜索栏 -->
   <view class="search-bar">
     <view class="search-input">
       <view class="search-ico"></view>
@@ -25,6 +25,10 @@
       />
       <text wx:if="{{keyword}}" class="search-clear" bindtap="onClearKeyword">✕</text>
     </view>
+  </view>
+
+  <!-- 筛选行 -->
+  <view class="filter-row">
     <picker class="filter-picker" range="{{collegePickerRange}}" value="{{collegeIndex}}" bindchange="onCollegeChange">
       <view class="filter-chip"><text class="filter-chip-text">{{collegeLabel}}</text><text class="filter-caret">▾</text></view>
     </picker>

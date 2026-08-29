@@ -46,7 +46,7 @@
     <view
       wx:for="{{courses}}"
       wx:key="id"
-      class="course-card card-left-bar brand"
+      class="course-card"
       bindtap="toggle"
       data-id="{{item.id}}"
     >
@@ -67,7 +67,7 @@
 
       <!-- 展开方案明细 -->
       <view wx:if="{{item.expanded}}" class="plan-list">
-        <view wx:for="{{item.plans}}" wx:for-item="p" wx:key="planId" class="plan-row card-left-bar {{p.statusClass}}">
+        <view wx:for="{{item.plans}}" wx:for-item="p" wx:key="planId" class="plan-row">
           <view class="plan-top">
             <text class="plan-name">{{p.planName}}</text>
             <text wx:if="{{p.version}}" class="plan-version">{{p.version}}</text>
