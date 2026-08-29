@@ -63,8 +63,10 @@
           class="alert-toggle"
           role="button"
           tabindex="0"
+          :aria-expanded="expandedGroups.has(group.key)"
           @click="toggleExpand(group.key)"
           @keydown.enter="toggleExpand(group.key)"
+          @keydown.space.prevent="toggleExpand(group.key)"
         >
           {{ expandedGroups.has(group.key) ? '收起' : `展开 ${group.hiddenCount} 条更多` }}
         </div>
@@ -302,6 +304,7 @@ const totalCount = computed(() => {
 
 /* 展开/收起按钮：居中文字链，低调但与分组标题区分 */
 .alert-toggle {
+  position: relative;
   text-align: center;
   font-size: var(--font-size-caption);
   color: var(--el-color-primary);
@@ -311,7 +314,23 @@ const totalCount = computed(() => {
   transition: opacity 0.2s;
 }
 
+/* 命中区外扩：视觉保持紧凑，实际可点高度 ≥44px（a11y 触摸目标标准） */
+.alert-toggle::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -12px;
+  bottom: -12px;
+}
+
 .alert-toggle:hover {
   opacity: 0.7;
+}
+
+.alert-toggle:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 </style>

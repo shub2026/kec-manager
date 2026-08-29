@@ -11,7 +11,7 @@
       <span>暂无计划课时数据</span>
     </div>
 
-    <div v-else class="chart-container">
+    <div v-else class="chart-container" role="img" :aria-label="chartSummary">
       <div v-for="item in data" :key="item.name" class="chart-row">
         <div class="chart-label" :title="item.name">{{ item.name }}</div>
         <div class="chart-bar-wrap">
@@ -50,6 +50,10 @@ const totalHours = computed(() => {
   // 保留一位小数，与 CourseStatsCard / 后端 distribution.hours 精度对齐，避免浮点尾差
   return Math.round(props.data.reduce((sum, d) => sum + d.hours, 0) * 10) / 10;
 });
+
+const chartSummary = computed(
+  () => `计划课时分布：${props.data.length} 门课程，共 ${totalHours.value} 课时每周`
+);
 
 function barWidth(hours) {
   return Math.max(2, (hours / maxHours.value) * 100);
