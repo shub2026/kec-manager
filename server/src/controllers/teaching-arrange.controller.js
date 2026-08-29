@@ -41,6 +41,38 @@ function safeParseJSON(str, fallback = null) {
 }
 
 /**
+ * 单教材开关硬拦截校验：交换后任一教师持有教材种类 > 1 时返回拦截文案
+ * @param {number} courseId 课程 ID
+ * @param {string} semester 学期
+ * @param {Array<{teacher: Object, kept: Array, incoming: Array}>} checks
+ *   kept=交换后保留的安排，incoming=换入的安排
+ * @returns {Promise<string|null>} 拦截文案；null 表示通过
+ */
+async function checkSingleTextbookAfterSwap(courseId, semester, checks) {
+  if (!checks.some((c) => c.teacher.single_textbook_only)) return null;
+  const courseClasses = await getClassesWithCourse(courseId, semester);
+  const clsTextbookIds = new Map(
+    courseClasses.map((c) => [c.classId, (c.textbooks || []).map((tb) => tb.id)])
+  );
+  const tbTitleById = new Map();
+  for (const c of courseClasses) {
+    for (const tb of c.textbooks || []) tbTitleById.set(tb.id, tb.title);
+  }
+  for (const { teacher, kept, incoming } of checks) {
+    if (!teacher.single_textbook_only) continue;
+    const heldIds = new Set();
+    for (const a of [...kept, ...incoming]) {
+      for (const tid of clsTextbookIds.get(a.class_id) || []) heldIds.add(tid);
+    }
+    if (heldIds.size > 1) {
+      const titles = [...heldIds].map((id) => `《${tbTitleById.get(id) || `教材${id}`}》`).join('、');
+      return `教师${teacher.name}已开启“只带一本教材”，交换后将持有 ${titles}，无法交换`;
+    }
+  }
+  return null;
+}
+
+/**
  * 读取系统设置中的"自定义课时硬保障"开关（默认关闭）
  * 读取失败时降级为关闭，不阻断排课流程
  */
@@ -472,17 +504,129 @@ export async function assignTeacher(req, res, next) {
 }
 
 /**
- * POST /swap-teachers - 一键交换两位教师在本课程学期内的全部班级安排
- * 锁定记录跳过并在结果中报告；单教材开关教师交换后将持多本教材时硬拦截
+ * GET /compare-teachers - 对比同科目两位教师在本学期的任课班级
+ * 返回双方逐班清单（合班标记/组号、锁定状态、学院/专业、教材）与课时汇总（合班按逻辑单元去重）
  */
-export async function swapTeacherAssignments(req, res, next) {
+export async function compareTeacherAssignments(req, res, next) {
+  try {
+    const { course_id, semester, teacher_id_a, teacher_id_b } = req.query;
+    if (!course_id) return fail(res, '请选择课程');
+    if (!semester) return fail(res, '请选择学期');
+    if (!teacher_id_a || !teacher_id_b) return fail(res, '请选择两位要对比的教师');
+    const courseId = Number(course_id);
+    const tidA = Number(teacher_id_a);
+    const tidB = Number(teacher_id_b);
+    if (![courseId, tidA, tidB].every((n) => Number.isInteger(n) && n > 0)) {
+      return fail(res, '参数格式错误');
+    }
+    if (tidA === tidB) return fail(res, '两位教师不能相同');
+
+    const [teacherA, teacherB] = await Promise.all([
+      prisma.teachers.findUnique({ where: { id: tidA } }),
+      prisma.teachers.findUnique({ where: { id: tidB } }),
+    ]);
+    if (!teacherA || !teacherB) return fail(res, '教师不存在', 404);
+
+    const [canTeachA, canTeachB] = await Promise.all([
+      prisma.teacher_courses.findUnique({
+        where: { teacher_id_course_id: { teacher_id: tidA, course_id: courseId } },
+      }),
+      prisma.teacher_courses.findUnique({
+        where: { teacher_id_course_id: { teacher_id: tidB, course_id: courseId } },
+      }),
+    ]);
+    if (!canTeachA || !canTeachB) {
+      return fail(res, '其中存在未关联此课程的教师，无法对比', 400);
+    }
+
+    const [assignments, courseClasses] = await Promise.all([
+      prisma.teaching_assignments.findMany({
+        where: { course_id: courseId, semester, teacher_id: { in: [tidA, tidB] } },
+        include: { class: { select: { id: true, name: true, combination_id: true } } },
+      }),
+      getClassesWithCourse(courseId, semester),
+    ]);
+    const classInfoMap = new Map(courseClasses.map((c) => [c.classId, c]));
+
+    // 合班成员/全局组号映射（与矩阵表口径一致）
+    const combinationIds = [
+      ...new Set(
+        assignments.map((a) => a.class?.combination_id).filter((id) => id != null)
+      ),
+    ];
+    const combinationMemberMap =
+      combinationIds.length > 0 ? await buildCombinationMemberMap(combinationIds) : new Map();
+    const combinationNoMap =
+      combinationIds.length > 0 ? await buildCombinationNoMap() : new Map();
+
+    const buildSide = (teacher) => {
+      const own = assignments.filter((a) => a.teacher_id === teacher.id);
+      const classes = own
+        .map((a) => {
+          const info = classInfoMap.get(a.class_id);
+          const combId = a.class?.combination_id ?? null;
+          const members = combId != null ? combinationMemberMap.get(combId) || [] : [];
+          const partnerClasses = members.filter((m) => m.id !== a.class_id);
+          return {
+            assignmentId: a.id,
+            classId: a.class_id,
+            className: a.class?.name,
+            weeklyHours: a.weekly_hours,
+            isLocked: a.is_locked,
+            isCombined: combId != null,
+            combinationNo: combId != null ? combinationNoMap.get(combId) ?? null : null,
+            partnerClassNames: formatPartnerNames(partnerClasses),
+            collegeName: info?.collegeName || null,
+            majorName: info?.majorName || null,
+            grade: info?.grade ?? null,
+            textbookTitles: (info?.textbooks || []).map((tb) => tb.title),
+          };
+        })
+        .sort((x, y) => String(x.className || '').localeCompare(String(y.className || ''), 'zh-CN'));
+      // 课时汇总按逻辑教学单元去重，与课时统计页口径一致
+      const totalHours = dedupeTeachingUnits(own).reduce(
+        (sum, u) => sum + (u.weeklyHours || 0),
+        0
+      );
+      return {
+        id: teacher.id,
+        name: teacher.name,
+        classes,
+        classCount: classes.length,
+        lockedCount: classes.filter((c) => c.isLocked).length,
+        totalHours,
+      };
+    };
+
+    success(res, {
+      courseId,
+      semester,
+      teacherA: buildSide(teacherA),
+      teacherB: buildSide(teacherB),
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
+ * POST /swap-teachers-selective - 按名单互换两位教师在同课程学期内的指定班级
+ * 选中合班成员班时整组联动换出；锁定记录（含组内锁定伙伴班）跳过并报告；
+ * 单教材开关教师交换后将持多本教材时硬拦截；交换后视为手动安排
+ */
+export async function swapSelectiveClasses(req, res, next) {
   try {
     const { course_id, semester, teacher_id_a, teacher_id_b } = req.body;
     const courseId = Number(course_id);
     const tidA = Number(teacher_id_a);
     const tidB = Number(teacher_id_b);
+    const classIdsA = [...new Set((req.body.class_ids_a || []).map(Number))];
+    const classIdsB = [...new Set((req.body.class_ids_b || []).map(Number))];
+    if (classIdsA.length === 0 && classIdsB.length === 0) {
+      return fail(res, '请至少选择一个要互换的班级', 400);
+    }
 
-    // 1. 两教师存在且启用
+    // 1. 两教师存在且启用（与全量交换同口径）
     const [teacherA, teacherB] = await Promise.all([
       prisma.teachers.findUnique({ where: { id: tidA } }),
       prisma.teachers.findUnique({ where: { id: tidB } }),
@@ -505,69 +649,99 @@ export async function swapTeacherAssignments(req, res, next) {
       return fail(res, '其中存在未关联此课程的教师，无法交换', 400);
     }
 
-    // 3. 查询双方在本课程学期内的全部安排；锁定记录不参与交换
+    // 3. 查询双方在本课程学期内的全部安排
     const assignments = await prisma.teaching_assignments.findMany({
       where: { course_id: courseId, semester, teacher_id: { in: [tidA, tidB] } },
-      include: { class: { select: { id: true, name: true } } },
+      include: { class: { select: { id: true, name: true, combination_id: true } } },
     });
     const ownA = assignments.filter((a) => a.teacher_id === tidA);
     const ownB = assignments.filter((a) => a.teacher_id === tidB);
-    const swapA = ownA.filter((a) => !a.is_locked);
-    const swapB = ownB.filter((a) => !a.is_locked);
-    const skippedLocked = assignments
-      .filter((a) => a.is_locked)
-      .map((a) => ({ classId: a.class_id, className: a.class?.name }));
+    const byClassA = new Map(ownA.map((a) => [a.class_id, a]));
+    const byClassB = new Map(ownB.map((a) => [a.class_id, a]));
 
-    // 4. 单教材开关硬拦截（与 assignTeacher 口径一致）：
-    // 交换后某方在本课程持有的教材集合（本人锁定保留的班 + 未锁定的班换出 + 对方换入）> 1 本 → 拒绝
-    if (teacherA.single_textbook_only || teacherB.single_textbook_only) {
-      const courseClasses = await getClassesWithCourse(courseId, semester);
-      const clsTextbookIds = new Map(
-        courseClasses.map((c) => [c.classId, (c.textbooks || []).map((tb) => tb.id)])
-      );
-      const tbTitleById = new Map();
-      for (const c of courseClasses) {
-        for (const tb of c.textbooks || []) tbTitleById.set(tb.id, tb.title);
-      }
-      const checkOne = (teacher, mineKept, incoming) => {
-        if (!teacher.single_textbook_only) return null;
-        const heldIds = new Set();
-        for (const a of [...mineKept, ...incoming]) {
-          for (const tid of clsTextbookIds.get(a.class_id) || []) heldIds.add(tid);
-        }
-        // 未锁定的班已全部换出，最终集合 = 锁定保留的班 + 换入的班；> 1 本即拦截
-        if (heldIds.size > 1) {
-          const titles = [...heldIds].map((id) => `《${tbTitleById.get(id) || `教材${id}`}》`).join('、');
-          return `教师${teacher.name}已开启“只带一本教材”，交换后将持有 ${titles}，无法交换`;
-        }
-        return null;
-      };
-      const errA = checkOne(teacherA, ownA.filter((a) => a.is_locked), swapB);
-      if (errA) return fail(res, errA, 400);
-      const errB = checkOne(teacherB, ownB.filter((a) => a.is_locked), swapA);
-      if (errB) return fail(res, errB, 400);
+    // 4. 所选班级必须确实归属对应教师（防止前端传脏数据越权改动他人安排）
+    const invalidA = classIdsA.filter((id) => !byClassA.has(id));
+    if (invalidA.length > 0) {
+      const names = invalidA
+        .map((id) => assignments.find((a) => a.class_id === id)?.class?.name || `班级${id}`)
+        .join('、');
+      return fail(res, `以下班级当前未安排给${teacherA.name}：${names}`, 400);
+    }
+    const invalidB = classIdsB.filter((id) => !byClassB.has(id));
+    if (invalidB.length > 0) {
+      const names = invalidB
+        .map((id) => assignments.find((a) => a.class_id === id)?.class?.name || `班级${id}`)
+        .join('、');
+      return fail(res, `以下班级当前未安排给${teacherB.name}：${names}`, 400);
     }
 
-    // 5. 事务内按记录 id 双向互换（先收集 ids，避免顺序 update 互相命中）；
-    // 交换后视为手动安排：is_auto/is_inherent 归零
-    const idsA = swapA.map((a) => a.id);
-    const idsB = swapB.map((a) => a.id);
+    // 5. 展开选中名单为待换出的安排 id：
+    // 合班成员班选中时整组联动（保持合班教师一致，与指派/删除口径相同）；
+    // 组内任一成员锁定则整组跳过并报告
+    const skippedLocked = [];
+    const expandSelected = (own, byClass, selectedIds) => {
+      const ids = new Set();
+      const handledCombs = new Set();
+      for (const classId of selectedIds) {
+        const a = byClass.get(classId);
+        const combId = a.class?.combination_id ?? null;
+        if (combId != null) {
+          if (handledCombs.has(combId)) continue;
+          handledCombs.add(combId);
+          const group = own.filter((x) => x.class?.combination_id === combId);
+          if (group.some((x) => x.is_locked)) {
+            for (const g of group) {
+              skippedLocked.push({ classId: g.class_id, className: g.class?.name });
+            }
+            continue;
+          }
+          for (const g of group) ids.add(g.id);
+        } else if (a.is_locked) {
+          skippedLocked.push({ classId: a.class_id, className: a.class?.name });
+        } else {
+          ids.add(a.id);
+        }
+      }
+      return ids;
+    };
+    const idsA = expandSelected(ownA, byClassA, classIdsA); // A 选中 → 换给 B
+    const idsB = expandSelected(ownB, byClassB, classIdsB); // B 选中 → 换给 A
+    if (idsA.size === 0 && idsB.size === 0) {
+      return fail(res, '所选班级均已锁定，无法互换', 400);
+    }
+
+    // 6. 单教材开关硬拦截：交换后持有 = 己方未换出 + 对方换入
+    const tbErr = await checkSingleTextbookAfterSwap(courseId, semester, [
+      {
+        teacher: teacherA,
+        kept: ownA.filter((a) => !idsA.has(a.id)),
+        incoming: ownB.filter((a) => idsB.has(a.id)),
+      },
+      {
+        teacher: teacherB,
+        kept: ownB.filter((a) => !idsB.has(a.id)),
+        incoming: ownA.filter((a) => idsA.has(a.id)),
+      },
+    ]);
+    if (tbErr) return fail(res, tbErr, 400);
+
+    // 7. 事务内双向互换；交换后视为手动安排：is_auto/is_inherent 归零
     await prisma.$transaction(async (tx) => {
-      if (idsA.length > 0) {
+      if (idsA.size > 0) {
         await tx.teaching_assignments.updateMany({
-          where: { id: { in: idsA } },
+          where: { id: { in: [...idsA] } },
           data: { teacher_id: tidB, is_auto: false, is_inherent: false },
         });
       }
-      if (idsB.length > 0) {
+      if (idsB.size > 0) {
         await tx.teaching_assignments.updateMany({
-          where: { id: { in: idsB } },
+          where: { id: { in: [...idsB] } },
           data: { teacher_id: tidA, is_auto: false, is_inherent: false },
         });
       }
     });
 
-    // 6. 交换后工作量软警告（口径与 assignTeacher M5 一致：合班去重 + 自定义课时优先）
+    // 8. 交换后工作量软警告（口径与全量交换一致：合班去重 + 自定义课时优先）
     const warnings = [];
     try {
       const globalSettings = await prisma.system_settings.findUnique({
@@ -617,23 +791,25 @@ export async function swapTeacherAssignments(req, res, next) {
         semester,
         teacher_id_a: tidA,
         teacher_id_b: tidB,
-        swappedA: idsA.length,
-        swappedB: idsB.length,
+        class_ids_a: classIdsA,
+        class_ids_b: classIdsB,
+        swappedA: idsA.size,
+        swappedB: idsB.size,
         skippedLocked: skippedLocked.length,
       },
       result: 'success',
-      message: `交换教师班级：${teacherA.name}(${idsA.length}班) ↔ ${teacherB.name}(${idsB.length}班)`,
+      message: `按名单互换班级：${teacherA.name}(${idsA.size}班) ↔ ${teacherB.name}(${idsB.size}班)`,
     });
 
     success(
       res,
       {
-        swappedCountA: idsA.length,
-        swappedCountB: idsB.length,
+        swappedCountA: idsA.size,
+        swappedCountB: idsB.size,
         skippedLocked,
         warnings,
       },
-      '交换成功'
+      '互换成功'
     );
   } catch (e) {
     const {
@@ -655,7 +831,7 @@ export async function swapTeacherAssignments(req, res, next) {
         error: e.message,
       },
       result: 'failed',
-      message: `交换教师班级失败：${e.message}`,
+      message: `按名单互换班级失败：${e.message}`,
     }).catch(() => {});
     next(e);
   }

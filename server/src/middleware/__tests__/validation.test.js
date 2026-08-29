@@ -47,7 +47,7 @@ const {
   validateAutoArrange,
   validateBatchAutoArrange,
   validateAssignTeacher,
-  validateSwapTeachers,
+  validateSwapTeachersSelective,
   validateResetAuto,
   validateHourSettings,
   validateBatchUpdateHours,
@@ -853,15 +853,22 @@ describe('教学安排规则链', () => {
     expect(res.statusCode).toBe(422);
   });
 
-  it('validateSwapTeachers 两位不同教师应通过', async () => {
-    const { nextCalled } = await runValidation(validateSwapTeachers, {
-      body: { course_id: 1, semester: '2025-2026-1', teacher_id_a: 1, teacher_id_b: 2 },
+  it('validateSwapTeachersSelective 合法请求应通过', async () => {
+    const { nextCalled } = await runValidation(validateSwapTeachersSelective, {
+      body: {
+        course_id: 1,
+        semester: '2025-2026-1',
+        teacher_id_a: 1,
+        teacher_id_b: 2,
+        class_ids_a: [3],
+        class_ids_b: [4],
+      },
     });
     expect(nextCalled).toBe(true);
   });
 
-  it('validateSwapTeachers 两位教师相同应返回 422 并提示', async () => {
-    const { res } = await runValidation(validateSwapTeachers, {
+  it('validateSwapTeachersSelective 两位教师相同应返回 422 并提示', async () => {
+    const { res } = await runValidation(validateSwapTeachersSelective, {
       body: { course_id: 1, semester: '2025-2026-1', teacher_id_a: 5, teacher_id_b: '5' },
     });
     expect(res.statusCode).toBe(422);

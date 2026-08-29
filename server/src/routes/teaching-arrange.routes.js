@@ -4,7 +4,7 @@ import { sanitizeBody } from '../middleware/xss.js';
 import {
   validateIdParam,
   validateAssignTeacher,
-  validateSwapTeachers,
+  validateSwapTeachersSelective,
   validateAutoArrange,
   validateBatchAutoArrange,
   validateResetAuto,
@@ -15,7 +15,8 @@ import {
   getCourseOverview,
   getCourseTeachers,
   assignTeacher,
-  swapTeacherAssignments,
+  swapSelectiveClasses,
+  compareTeacherAssignments,
   deleteAssignment,
   runAutoArrange,
   runBatchAutoArrange,
@@ -35,6 +36,7 @@ const router = Router();
 router.get('/classes', getCourseClasses);
 router.get('/course-overview', getCourseOverview);
 router.get('/teachers', getCourseTeachers);
+router.get('/compare-teachers', compareTeacherAssignments);
 router.get('/statistics', getStatistics);
 router.get('/hour-settings', getHourSettings);
 
@@ -46,13 +48,13 @@ router.post(
   sanitizeBody,
   assignTeacher
 );
-// POST /swap-teachers - 一键交换两位教师在本课程的全部班级
+// POST /swap-teachers-selective - 按名单互换两位教师在本课程的指定班级（含全选整换）
 router.post(
-  '/swap-teachers',
+  '/swap-teachers-selective',
   roleMiddleware('admin', 'super_admin'),
-  validateSwapTeachers,
+  validateSwapTeachersSelective,
   sanitizeBody,
-  swapTeacherAssignments
+  swapSelectiveClasses
 );
 router.post(
   '/auto-arrange',

@@ -180,13 +180,21 @@ export const getCourseOverview = (params) =>
 export const assignTeacher = (data) => request.post('/teaching-arrange/assign', data);
 
 /**
- * 一键交换两位教师在同课程同学期的全部班级安排
- * 锁定班级跳过并在返回中报告；单教材开关冲突时后端 400 拦截
- * @param {object} data - { courseId, semester, teacherIdA, teacherIdB }
+ * 对比同科目两位教师在本学期的任课班级（逐班清单 + 课时汇总）
+ * @param {object} params - { courseId, semester, teacherIdA, teacherIdB }
  * @returns {Promise<import('./types').ApiResponse<Object>>}
  */
-export const swapTeacherAssignments = (data) =>
-  request.post('/teaching-arrange/swap-teachers', data);
+export const compareTeacherAssignments = (params) =>
+  request.get('/teaching-arrange/compare-teachers', { params });
+
+/**
+ * 按名单互换两位教师在同课程同学期的指定班级
+ * 合班成员班整组联动；锁定班级跳过并在返回中报告；单教材开关冲突时后端 400 拦截
+ * @param {object} data - { courseId, semester, teacherIdA, teacherIdB, classIdsA, classIdsB }
+ * @returns {Promise<import('./types').ApiResponse<Object>>}
+ */
+export const swapSelectiveClasses = (data) =>
+  request.post('/teaching-arrange/swap-teachers-selective', data);
 
 /**
  * 删除教学安排

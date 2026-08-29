@@ -107,7 +107,7 @@
             @reset="handleResetCommand"
             @lock-all="handleBatchLockAll"
             @unlock-all="handleBatchUnlockAll"
-            @swap-teachers="handleOpenSwapDialog"
+            @compare-teachers="handleOpenCompareDialog"
           />
         </div>
       </template>
@@ -132,13 +132,12 @@
       @confirm="onTeacherConfirm"
     />
 
-    <!-- 交换教师班级弹窗 -->
-    <SwapTeachersDialog
-      ref="swapDialogRef"
+    <!-- 教师任课对比弹窗（按名单互换个别班级，含全选） -->
+    <CompareTeachersDialog
+      ref="compareDialogRef"
       :teacher-list="teacherList"
-      :class-list="classList"
-      :loading="swapping"
-      @confirm="handleSwapConfirm"
+      :loading="selectiveSwapping"
+      @confirm="handleCompareConfirm"
     />
 
     <!-- 单课程排课结果弹窗 -->
@@ -243,7 +242,7 @@ import {
   getCourseClasses,
   getCourseTeachers,
   getCourseOverview,
-  swapTeacherAssignments,
+  swapSelectiveClasses,
 } from '../../api/teachingArrange';
 import { useArrangeAssign } from './composables/useArrangeAssign';
 import { useAutoArrange } from './composables/useAutoArrange';
@@ -269,8 +268,8 @@ const { isMobile } = useResponsive();
 const TeacherSelectDialog = defineAsyncComponent(
   () => import('./components/TeacherSelectDialog.vue')
 );
-const SwapTeachersDialog = defineAsyncComponent(
-  () => import('./components/SwapTeachersDialog.vue')
+const CompareTeachersDialog = defineAsyncComponent(
+  () => import('./components/CompareTeachersDialog.vue')
 );
 const ArrangeResultDialog = defineAsyncComponent(
   () => import('./components/ArrangeResultDialog.vue')
@@ -637,26 +636,30 @@ async function loadData() {
 
 // 教师指派/移除/锁定/批量锁定/重置逻辑已迁至 useArrangeAssign
 
-// --- 交换教师班级 ---
-const swapDialogRef = ref(null);
-const swapping = ref(false);
+// --- 教师任课对比（按名单互换班级，支持全选） ---
+const compareDialogRef = ref(null);
+const selectiveSwapping = ref(false);
 
-// 入口：更多操作下拉 → 交换教师班级（历史学期需二次确认，只读模式由工具栏禁用拦截）
-async function handleOpenSwapDialog() {
+// 入口：更多操作下拉 → 教师任课对比（历史学期需二次确认，只读模式由工具栏禁用拦截）
+async function handleOpenCompareDialog() {
   if (!(await confirmHistoricalEdit())) return;
-  swapDialogRef.value?.open();
+  compareDialogRef.value?.open({
+    courseId: selectedCourseId.value,
+    semester: selectedSemester.value,
+  });
 }
 
-async function handleSwapConfirm({ teacherIdA, teacherIdB }) {
-  swapping.value = true;
+async function handleCompareConfirm({ teacherIdA, teacherIdB, classIdsA, classIdsB }) {
+  selectiveSwapping.value = true;
   try {
-    const res = await swapTeacherAssignments({
+    const res = await swapSelectiveClasses({
       courseId: selectedCourseId.value,
       semester: selectedSemester.value,
       teacherIdA,
       teacherIdB,
+      classIdsA,
+      classIdsB,
     });
-    swapDialogRef.value?.close();
     const {
       swappedCountA = 0,
       swappedCountB = 0,
@@ -664,18 +667,18 @@ async function handleSwapConfirm({ teacherIdA, teacherIdB }) {
       warnings = [],
     } = res.data || {};
     ElMessage.success(
-      `交换完成：互换 ${swappedCountA} / ${swappedCountB} 班` +
+      `互换完成：换出 ${swappedCountA} / ${swappedCountB} 班` +
         (skippedLocked.length ? `，跳过已锁定 ${skippedLocked.length} 班` : '')
     );
     for (const w of warnings) {
       ElMessage.warning(w);
     }
+    compareDialogRef.value?.close();
     await loadData();
   } catch (e) {
-    // 后端业务拦截（单教材开关/教师未关联课程等）携带具体原因，优先展示
-    ElMessage.error(e?.response?.data?.message || '交换失败');
+    ElMessage.error(e?.response?.data?.message || '互换失败');
   } finally {
-    swapping.value = false;
+    selectiveSwapping.value = false;
   }
 }
 

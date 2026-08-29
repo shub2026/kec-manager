@@ -114,8 +114,8 @@
             <el-dropdown-item command="unlock">
               <el-icon><Unlock /></el-icon>解锁全部
             </el-dropdown-item>
-            <el-dropdown-item command="swap" divided>
-              <el-icon><SwitchButton /></el-icon>交换教师班级
+            <el-dropdown-item command="compare" divided>
+              <el-icon><Switch /></el-icon>教师任课对比
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -126,8 +126,8 @@
 
 <script setup>
 import { computed } from 'vue';
-// Lock 已全局注册，Unlock/SwitchButton 未注册需显式导入
-import { Lock, Unlock, SwitchButton } from '@element-plus/icons-vue';
+// Lock 已全局注册，Unlock/Switch 未注册需显式导入
+import { Lock, Unlock, Switch } from '@element-plus/icons-vue';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import FilterBar from '@/components/filter/FilterBar.vue';
 
@@ -163,14 +163,14 @@ const emit = defineEmits([
   'reset',
   'lock-all',
   'unlock-all',
-  'swap-teachers',
+  'compare-teachers',
 ]);
 
 // 更多操作下拉命令分发：保持对外 lock-all / unlock-all 事件语义不变
 function handleMoreCommand(command) {
   if (command === 'lock') emit('lock-all');
   else if (command === 'unlock') emit('unlock-all');
-  else if (command === 'swap') emit('swap-teachers');
+  else if (command === 'compare') emit('compare-teachers');
 }
 
 // 与父页面通过 v-model:filters 通信；直接修改属性可触发父级 deep watch

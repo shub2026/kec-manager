@@ -633,9 +633,9 @@ export const validateAssignTeacher = [
 ];
 
 /**
- * 教学安排 - 交换两位教师班级验证规则
+ * 教学安排 - 按名单选择性交换验证规则
  */
-export const validateSwapTeachers = [
+export const validateSwapTeachersSelective = [
   body('course_id').isInt({ min: 1 }).withMessage('课程ID必须为正整数'),
   body('semester')
     .matches(/^\d{4}-\d{4}-[12]$/)
@@ -648,6 +648,10 @@ export const validateSwapTeachers = [
     }
     return true;
   }),
+  body('class_ids_a').optional().isArray().withMessage('教师A班级名单必须为数组'),
+  body('class_ids_a.*').isInt({ min: 1 }).withMessage('班级ID必须为正整数'),
+  body('class_ids_b').optional().isArray().withMessage('教师B班级名单必须为数组'),
+  body('class_ids_b.*').isInt({ min: 1 }).withMessage('班级ID必须为正整数'),
   handleValidationErrors,
 ];
 
