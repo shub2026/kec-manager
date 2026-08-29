@@ -170,22 +170,47 @@ async function openAndLoad(wrapper) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  compareTeacherAssignments.mockResolvedValue({ data: COMPARE_DATA });
+  compareTeacherAssignments.mockImplementation(async (params) => ({
+    data: {
+      courseId: 3,
+      semester: SCOPE.semester,
+      teacherA: params.teacherIdA != null ? COMPARE_DATA.teacherA : null,
+      teacherB: params.teacherIdB != null ? COMPARE_DATA.teacherB : null,
+    },
+  }));
 });
 
 describe('CompareTeachersDialog', () => {
-  it('选齐两位教师后拉取对比数据并展示双方清单与课时汇总', async () => {
+  it('选教师 A 即展示 A 栏；选齐后双方清单与课时汇总完整', async () => {
     const wrapper = mountDialog();
     expect(wrapper.find('.stub-dialog').exists()).toBe(false);
 
-    await openAndLoad(wrapper);
+    wrapper.vm.open(SCOPE);
+    await wrapper.vm.$nextTick();
 
-    expect(compareTeacherAssignments).toHaveBeenCalledWith({
+    // 只选教师 A → 仅请求 A 侧，A 栏渲染、B 栏占位
+    await selectTeacher(wrapper, 0, 1);
+    await flushPromises();
+    expect(compareTeacherAssignments).toHaveBeenCalledTimes(1);
+    expect(compareTeacherAssignments).toHaveBeenLastCalledWith({
       courseId: 3,
       semester: SCOPE.semester,
       teacherIdA: 1,
+    });
+    let cols = wrapper.findAll('.compare-col');
+    expect(cols[0].text()).toContain('教师 A：张老师');
+    expect(cols[1].text()).toContain('请选择教师 B');
+
+    // 再选教师 B → 仅追加 B 侧请求
+    await selectTeacher(wrapper, 1, 2);
+    await flushPromises();
+    expect(compareTeacherAssignments).toHaveBeenCalledTimes(2);
+    expect(compareTeacherAssignments).toHaveBeenLastCalledWith({
+      courseId: 3,
+      semester: SCOPE.semester,
       teacherIdB: 2,
     });
+
     const text = wrapper
       .findAll('.compare-col')
       .map((c) => c.text())
@@ -231,7 +256,7 @@ describe('CompareTeachersDialog', () => {
     });
   });
 
-  it('切换教师时清空已勾选并重新拉取；加载失败展示错误提示', async () => {
+  it('切换教师仅重载该栏；另一栏数据与勾选保留；加载失败栏内报错', async () => {
     const wrapper = mountDialog();
     await openAndLoad(wrapper);
     wrapper.vm.selections[0] = [102];
@@ -239,13 +264,16 @@ describe('CompareTeachersDialog', () => {
     compareTeacherAssignments.mockRejectedValueOnce({
       response: { data: { message: '教师不存在' } },
     });
-    // 改选教师 B 触发重新加载
+    // 改选教师 B 只触发 B 侧加载（A、B、B' 共 3 次请求）
     await selectTeacher(wrapper, 1, 3);
     await flushPromises();
 
-    expect(compareTeacherAssignments).toHaveBeenCalledTimes(2);
-    expect(wrapper.vm.selections).toEqual([[], []]);
-    expect(wrapper.find('.compare-error').text()).toContain('教师不存在');
+    expect(compareTeacherAssignments).toHaveBeenCalledTimes(3);
+    // A 栏勾选保留，B 栏勾选清空
+    expect(wrapper.vm.selections).toEqual([[102], []]);
+    expect(wrapper.findAll('.compare-col')[0].text()).toContain('教师 A：张老师');
+    // B 栏栏内报错，可重试
+    expect(wrapper.find('.col-error').text()).toContain('教师不存在');
   });
 
   it('全选只勾选未锁定班级；再点清空；部分勾选呈半选态', async () => {

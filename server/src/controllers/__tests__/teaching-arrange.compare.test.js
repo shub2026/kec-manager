@@ -187,6 +187,32 @@ describe('compareTeacherAssignments', () => {
     );
   });
 
+  it('未选教师 → 400；仅查教师 A 时只返回 A 侧', async () => {
+    const resNone = mockRes();
+    await compareTeacherAssignments(
+      mockReq({ course_id: '3', semester: SEMESTER }),
+      resNone,
+      vi.fn()
+    );
+    expect(resNone.status).toHaveBeenCalledWith(400);
+    expect(resNone.json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('至少选择一位') })
+    );
+
+    setupTeachers();
+    mockPrisma.teaching_assignments.findMany.mockResolvedValue([makeAssignment(11, 5, 101, 4)]);
+    const res = mockRes();
+    await compareTeacherAssignments(
+      mockReq({ course_id: '3', semester: SEMESTER, teacher_id_a: '5' }),
+      res,
+      vi.fn()
+    );
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.teacherA.name).toBe('张老师');
+    expect(data.teacherA.classCount).toBe(1);
+    expect(data.teacherB).toBeNull();
+  });
+
   it('两位教师相同 → 400', async () => {
     const res = mockRes();
     await compareTeacherAssignments(

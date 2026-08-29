@@ -512,36 +512,44 @@ export async function compareTeacherAssignments(req, res, next) {
     const { course_id, semester, teacher_id_a, teacher_id_b } = req.query;
     if (!course_id) return fail(res, '请选择课程');
     if (!semester) return fail(res, '请选择学期');
-    if (!teacher_id_a || !teacher_id_b) return fail(res, '请选择两位要对比的教师');
+    // 支持只查一侧：对比弹窗按栏独立加载，未传的一侧返回 null
+    const hasA = teacher_id_a != null && teacher_id_a !== '';
+    const hasB = teacher_id_b != null && teacher_id_b !== '';
+    if (!hasA && !hasB) return fail(res, '请至少选择一位要对比的教师');
     const courseId = Number(course_id);
-    const tidA = Number(teacher_id_a);
-    const tidB = Number(teacher_id_b);
-    if (![courseId, tidA, tidB].every((n) => Number.isInteger(n) && n > 0)) {
+    const tidA = hasA ? Number(teacher_id_a) : null;
+    const tidB = hasB ? Number(teacher_id_b) : null;
+    const requestedIds = [tidA, tidB].filter((id) => id != null);
+    if (![courseId, ...requestedIds].every((n) => Number.isInteger(n) && n > 0)) {
       return fail(res, '参数格式错误');
     }
-    if (tidA === tidB) return fail(res, '两位教师不能相同');
+    if (hasA && hasB && tidA === tidB) return fail(res, '两位教师不能相同');
 
     const [teacherA, teacherB] = await Promise.all([
-      prisma.teachers.findUnique({ where: { id: tidA } }),
-      prisma.teachers.findUnique({ where: { id: tidB } }),
+      hasA ? prisma.teachers.findUnique({ where: { id: tidA } }) : null,
+      hasB ? prisma.teachers.findUnique({ where: { id: tidB } }) : null,
     ]);
-    if (!teacherA || !teacherB) return fail(res, '教师不存在', 404);
+    if ((hasA && !teacherA) || (hasB && !teacherB)) return fail(res, '教师不存在', 404);
 
     const [canTeachA, canTeachB] = await Promise.all([
-      prisma.teacher_courses.findUnique({
-        where: { teacher_id_course_id: { teacher_id: tidA, course_id: courseId } },
-      }),
-      prisma.teacher_courses.findUnique({
-        where: { teacher_id_course_id: { teacher_id: tidB, course_id: courseId } },
-      }),
+      hasA
+        ? prisma.teacher_courses.findUnique({
+            where: { teacher_id_course_id: { teacher_id: tidA, course_id: courseId } },
+          })
+        : null,
+      hasB
+        ? prisma.teacher_courses.findUnique({
+            where: { teacher_id_course_id: { teacher_id: tidB, course_id: courseId } },
+          })
+        : null,
     ]);
-    if (!canTeachA || !canTeachB) {
+    if ((hasA && !canTeachA) || (hasB && !canTeachB)) {
       return fail(res, '其中存在未关联此课程的教师，无法对比', 400);
     }
 
     const [assignments, courseClasses] = await Promise.all([
       prisma.teaching_assignments.findMany({
-        where: { course_id: courseId, semester, teacher_id: { in: [tidA, tidB] } },
+        where: { course_id: courseId, semester, teacher_id: { in: requestedIds } },
         include: { class: { select: { id: true, name: true, combination_id: true } } },
       }),
       getClassesWithCourse(courseId, semester),
@@ -602,8 +610,8 @@ export async function compareTeacherAssignments(req, res, next) {
     success(res, {
       courseId,
       semester,
-      teacherA: buildSide(teacherA),
-      teacherB: buildSide(teacherB),
+      teacherA: teacherA ? buildSide(teacherA) : null,
+      teacherB: teacherB ? buildSide(teacherB) : null,
     });
   } catch (e) {
     next(e);

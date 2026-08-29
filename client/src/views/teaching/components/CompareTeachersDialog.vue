@@ -54,14 +54,9 @@
       </el-form-item>
     </el-form>
 
-    <div v-if="loadError" class="compare-error">
-      <el-alert type="error" :closable="false" :title="loadError" />
-      <el-button size="small" class="retry-btn" @click="loadCompare">重试</el-button>
-    </div>
-
-    <div v-else-if="bothSelected" v-loading="loadingData" class="compare-columns">
-      <template v-if="compareData">
-        <div v-for="(side, idx) in sides" :key="side.id" class="compare-col">
+    <div v-if="anySelected" class="compare-columns">
+      <div v-for="(side, idx) in sides" :key="idx" v-loading="sideLoading[idx]" class="compare-col">
+        <template v-if="side">
           <div class="col-header">
             <span class="col-title">
               {{ idx === 0 ? '教师 A' : '教师 B' }}：{{ side.name }}
@@ -120,11 +115,20 @@
           <div v-if="side.classes.length" class="col-footer">
             已勾选 {{ selections[idx].length }} / {{ side.classCount }} 班
           </div>
+        </template>
+        <div v-else-if="sideError[idx]" class="col-error">
+          <el-alert type="error" :closable="false" :title="sideError[idx]" />
+          <el-button size="small" class="retry-btn" @click="loadSide(idx)">重试</el-button>
         </div>
-      </template>
+        <el-empty
+          v-else-if="(idx === 0 ? teacherIdA : teacherIdB) == null"
+          :description="idx === 0 ? '请选择教师 A' : '请选择教师 B'"
+          :image-size="60"
+        />
+      </div>
     </div>
 
-    <el-empty v-else description="请选择两位教师开始对比" :image-size="80" />
+    <el-empty v-else description="请选择教师开始对比" :image-size="80" />
 
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
@@ -162,24 +166,25 @@ const { isMobile } = useResponsive();
 const visible = ref(false);
 const teacherIdA = ref(null);
 const teacherIdB = ref(null);
-const compareData = ref(null);
-const loadingData = ref(false);
-const loadError = ref('');
+// 按侧独立状态：选一位教师即加载对应栏；切换教师只重载该栏，
+// 另一栏数据与勾选保留，弹窗不整体跳闪
+const sideState = ref([null, null]);
+const sideLoading = ref([false, false]);
+const sideError = ref(['', '']);
 const selections = ref([[], []]);
 
-// 请求序列号：教师快速切换时丢弃过期响应
-let loadSeq = 0;
+// 每侧独立请求序列号：快速切换时丢弃过期响应
+const sideSeq = [0, 0];
 
 const scope = ref({ courseId: null, semester: null });
 
-const bothSelected = computed(() => teacherIdA.value != null && teacherIdB.value != null);
-const sides = computed(() =>
-  compareData.value ? [compareData.value.teacherA, compareData.value.teacherB] : []
-);
+const anySelected = computed(() => teacherIdA.value != null || teacherIdB.value != null);
+const sides = computed(() => [sideState.value[0], sideState.value[1]]);
 const canConfirm = computed(
   () =>
-    bothSelected.value &&
-    !loadingData.value &&
+    anySelected.value &&
+    !sideLoading.value[0] &&
+    !sideLoading.value[1] &&
     (selections.value[0].length > 0 || selections.value[1].length > 0)
 );
 
@@ -205,42 +210,49 @@ function toggleAll(idx, val) {
   selections.value[idx] = val ? unlockedIds(side) : [];
 }
 
-watch([teacherIdA, teacherIdB], () => {
-  selections.value = [[], []];
-  compareData.value = null;
-  loadError.value = '';
-  if (bothSelected.value) loadCompare();
-});
+watch(teacherIdA, () => loadSide(0));
+watch(teacherIdB, () => loadSide(1));
 
-async function loadCompare() {
-  const seq = ++loadSeq;
-  loadingData.value = true;
-  loadError.value = '';
-  try {
-    const res = await compareTeacherAssignments({
-      courseId: scope.value.courseId,
-      semester: scope.value.semester,
-      teacherIdA: teacherIdA.value,
-      teacherIdB: teacherIdB.value,
-    });
-    if (seq !== loadSeq) return;
-    compareData.value = res.data || null;
-  } catch (e) {
-    if (seq !== loadSeq) return;
-    compareData.value = null;
-    loadError.value = e?.response?.data?.message || '加载对比数据失败，请稍后重试';
-  } finally {
-    if (seq === loadSeq) loadingData.value = false;
+async function loadSide(idx) {
+  const teacherId = idx === 0 ? teacherIdA.value : teacherIdB.value;
+  if (teacherId == null) {
+    sideState.value[idx] = null;
+    sideError.value[idx] = '';
+    selections.value[idx] = [];
+    return;
   }
+  selections.value[idx] = [];
+  const seq = ++sideSeq[idx];
+  sideLoading.value[idx] = true;
+  sideError.value[idx] = '';
+  try {
+    const params = { courseId: scope.value.courseId, semester: scope.value.semester };
+    if (idx === 0) params.teacherIdA = teacherId;
+    else params.teacherIdB = teacherId;
+    const res = await compareTeacherAssignments(params);
+    if (seq !== sideSeq[idx]) return;
+    sideState.value[idx] = (idx === 0 ? res.data?.teacherA : res.data?.teacherB) || null;
+  } catch (e) {
+    if (seq !== sideSeq[idx]) return;
+    sideState.value[idx] = null;
+    sideError.value[idx] = e?.response?.data?.message || '加载对比数据失败，请稍后重试';
+  } finally {
+    if (seq === sideSeq[idx]) sideLoading.value[idx] = false;
+  }
+}
+
+function resetAll() {
+  teacherIdA.value = null;
+  teacherIdB.value = null;
+  sideState.value = [null, null];
+  sideLoading.value = [false, false];
+  sideError.value = ['', ''];
+  selections.value = [[], []];
 }
 
 function open({ courseId, semester } = {}) {
   scope.value = { courseId, semester };
-  teacherIdA.value = null;
-  teacherIdB.value = null;
-  compareData.value = null;
-  loadError.value = '';
-  selections.value = [[], []];
+  resetAll();
   visible.value = true;
 }
 
@@ -249,11 +261,7 @@ function close() {
 }
 
 function handleClosed() {
-  teacherIdA.value = null;
-  teacherIdB.value = null;
-  compareData.value = null;
-  loadError.value = '';
-  selections.value = [[], []];
+  resetAll();
 }
 
 function handleConfirm() {
@@ -287,11 +295,12 @@ defineExpose({ open, close });
   width: 100%;
   max-width: 420px;
 }
-.compare-error {
+.col-error {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   align-items: flex-start;
+  padding: var(--space-3);
 }
 .retry-btn {
   align-self: flex-start;
@@ -300,7 +309,7 @@ defineExpose({ open, close });
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
-  min-height: 200px;
+  min-height: 420px;
 }
 .compare-col {
   display: flex;
