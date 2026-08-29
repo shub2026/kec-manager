@@ -264,10 +264,11 @@ page {
 
 /* ===== Web 式素页头（非首页，.hero--plain 修饰）：对齐 Web PageHeader 语言 ===== */
 .hero--plain .hero-card {
-  background: transparent;
-  padding: 0;
-  border-radius: 0;
-  overflow: visible;
+  background: var(--brand-soft);
+  border: 1rpx solid var(--brand-border);
+  border-radius: var(--radius-lg);
+  padding: 28rpx 28rpx;
+  overflow: hidden;
 }
 .hero--plain .hero-decor { display: none; }
 /* 强调竖线挂在文本容器上，标题+副标题整体包裹 */
@@ -402,6 +403,26 @@ page {
 .card-left-bar.warning::before { background: var(--warning); }
 .card-left-bar.danger::before { background: var(--danger); }
 .card-left-bar.brand::before { background: var(--brand); }
+
+/* ===== 中性灰分区带（B）：列表/统计上方的结构分区，打破白卡长列 ===== */
+.zone-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  padding: 16rpx 22rpx;
+  font-size: 24rpx;
+  color: var(--text-2);
+  margin: 4rpx 0 20rpx;
+}
+/* ===== 浅绿正向面板（C）：健康 / 达标 / 正常区高亮 ===== */
+.hl-success {
+  background: var(--success-soft);
+  border-left: 6rpx solid var(--success);
+  border-radius: var(--radius-md);
+  padding: 16rpx 20rpx;
+}
 
 /* ===== 软底方块图标（入口/强调） ===== */
 .ei {

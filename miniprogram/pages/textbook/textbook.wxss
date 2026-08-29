@@ -1,6 +1,12 @@
 .count-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  padding: 14rpx 22rpx;
   font-size: 24rpx;
-  color: var(--text-3);
+  color: var(--text-2);
   margin: 4rpx 0 20rpx;
 }
 

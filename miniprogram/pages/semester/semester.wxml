@@ -34,7 +34,7 @@
     <view
       wx:for="{{list}}"
       wx:key="classId"
-      class="class-card"
+      class="class-card card-left-bar brand"
       bindtap="toggle"
       data-id="{{item.classId}}"
     >
