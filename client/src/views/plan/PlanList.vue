@@ -26,146 +26,146 @@
       </div>
       <ListErrorState v-if="error" :message="error" @retry="load" />
       <div v-else class="table-scroll-wrap">
-      <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
-        <template #empty>
-          <EmptyState type="plan" description="暂无培养方案" />
-        </template>
-        <el-table-column
-          type="index"
-          label="序号"
-          width="55"
-          :index="(i) => (currentPage - 1) * pageSize + i + 1"
-        />
-        <el-table-column prop="name" label="方案名称" min-width="200" />
-        <el-table-column v-if="!isMobile" label="使用部门" min-width="120">
-          <template #default="{ row }">{{ row.colleges?.name || '-' }}</template>
-        </el-table-column>
-        <el-table-column v-if="!isMobile" label="关联类型" min-width="90">
-          <template #default="{ row }">
-            <el-tag v-if="row.majorId" type="success" size="small" disable-transitions
-              >按专业</el-tag
-            >
-            <el-tag
-              v-else-if="row.trainingLevelId"
-              size="small"
-              class="tag-indigo"
-              disable-transitions
-              >按层次</el-tag
-            >
+        <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
+          <template #empty>
+            <EmptyState type="plan" description="暂无培养方案" />
           </template>
-        </el-table-column>
-        <el-table-column v-if="!isMobile" label="专业" min-width="120">
-          <template #default="{ row }">{{ row.majors?.name || '-' }}</template>
-        </el-table-column>
-        <el-table-column v-if="!isMobile" label="培养层次" min-width="100">
-          <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
-        </el-table-column>
-        <el-table-column v-if="!isMobile" label="状态" min-width="100" align="center">
-          <template #default="{ row }">
-            <el-dropdown trigger="click" @command="(cmd) => handleStatusCommand(cmd, row)">
-              <el-tag
-                :type="statusTagType(row.status)"
-                size="small"
-                class="status-tag-clickable"
-                disable-transitions
-                title="点击切换状态"
+          <el-table-column
+            type="index"
+            label="序号"
+            width="55"
+            :index="(i) => (currentPage - 1) * pageSize + i + 1"
+          />
+          <el-table-column prop="name" label="方案名称" min-width="200" />
+          <el-table-column v-if="!isMobile" label="使用部门" min-width="120">
+            <template #default="{ row }">{{ row.colleges?.name || '-' }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="关联类型" min-width="90">
+            <template #default="{ row }">
+              <el-tag v-if="row.majorId" type="success" size="small" disable-transitions
+                >按专业</el-tag
               >
-                {{ statusLabel(row.status) }}
-              </el-tag>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="active" :disabled="row.status === 'active'">
-                    生效
-                  </el-dropdown-item>
-                  <el-dropdown-item command="draft" :disabled="row.status === 'draft'">
-                    草稿
-                  </el-dropdown-item>
-                  <el-dropdown-item command="archived" :disabled="row.status === 'archived'">
-                    归档
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </template>
-        </el-table-column>
-        <el-table-column
-          v-if="!isMobile"
-          prop="version"
-          label="版本"
-          min-width="70"
-          align="center"
-        />
-        <el-table-column v-if="!isMobile" label="适用年级" min-width="110" align="center">
-          <template #default="{ row }">{{ formatApplyYears(row) }}</template>
-        </el-table-column>
-        <el-table-column v-if="!isMobile" label="课程数" min-width="75" align="center">
-          <template #default="{ row }">{{ row.courseCount || 0 }}</template>
-        </el-table-column>
-        <el-table-column v-if="!isMobile" label="使用班级" min-width="85" align="center">
-          <template #default="{ row }">{{ row.classCount || 0 }}</template>
-        </el-table-column>
-        <el-table-column v-if="!isMobile" label="排序" min-width="105" align="center">
-          <template #default="{ row }">
-            <div class="sort-buttons">
+              <el-tag
+                v-else-if="row.trainingLevelId"
+                size="small"
+                class="tag-indigo"
+                disable-transitions
+                >按层次</el-tag
+              >
+            </template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="专业" min-width="120">
+            <template #default="{ row }">{{ row.majors?.name || '-' }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="培养层次" min-width="100">
+            <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="状态" min-width="100" align="center">
+            <template #default="{ row }">
+              <el-dropdown trigger="click" @command="(cmd) => handleStatusCommand(cmd, row)">
+                <el-tag
+                  :type="statusTagType(row.status)"
+                  size="small"
+                  class="status-tag-clickable"
+                  disable-transitions
+                  title="点击切换状态"
+                >
+                  {{ statusLabel(row.status) }}
+                </el-tag>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="active" :disabled="row.status === 'active'">
+                      生效
+                    </el-dropdown-item>
+                    <el-dropdown-item command="draft" :disabled="row.status === 'draft'">
+                      草稿
+                    </el-dropdown-item>
+                    <el-dropdown-item command="archived" :disabled="row.status === 'archived'">
+                      归档
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </template>
+          </el-table-column>
+          <el-table-column
+            v-if="!isMobile"
+            prop="version"
+            label="版本"
+            min-width="70"
+            align="center"
+          />
+          <el-table-column v-if="!isMobile" label="适用年级" min-width="110" align="center">
+            <template #default="{ row }">{{ formatApplyYears(row) }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="课程数" min-width="75" align="center">
+            <template #default="{ row }">{{ row.courseCount || 0 }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="使用班级" min-width="85" align="center">
+            <template #default="{ row }">{{ row.classCount || 0 }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="排序" min-width="105" align="center">
+            <template #default="{ row }">
+              <div class="sort-buttons">
+                <el-button
+                  size="small"
+                  :icon="ArrowUp"
+                  :disabled="realIndex(row) === 0"
+                  circle
+                  title="上移"
+                  aria-label="上移"
+                  @click="handleMoveUp(row, realIndex(row))"
+                />
+                <el-button
+                  size="small"
+                  :icon="ArrowDown"
+                  :disabled="realIndex(row) === filteredList.length - 1"
+                  circle
+                  title="下移"
+                  aria-label="下移"
+                  @click="handleMoveDown(row, realIndex(row))"
+                />
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="250" align="center">
+            <template #default="{ row }">
               <el-button
                 size="small"
-                :icon="ArrowUp"
-                :disabled="realIndex(row) === 0"
+                type="primary"
+                title="编辑明细"
+                @click="$router.push(`/plans/${row.id}`)"
+              >
+                <el-icon><Edit /></el-icon>编辑明细
+              </el-button>
+              <el-button
+                size="small"
+                :icon="Edit"
                 circle
-                title="上移"
-                aria-label="上移"
-                @click="handleMoveUp(row, realIndex(row))"
+                title="编辑信息"
+                aria-label="编辑信息"
+                @click="openDialog(row)"
               />
               <el-button
                 size="small"
-                :icon="ArrowDown"
-                :disabled="realIndex(row) === filteredList.length - 1"
+                :icon="CopyDocument"
                 circle
-                title="下移"
-                aria-label="下移"
-                @click="handleMoveDown(row, realIndex(row))"
+                title="派生新版本（修订培养方案时，新年级使用新版本）"
+                aria-label="派生新版本"
+                @click="openNewVersionDialog(row)"
               />
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="250" align="center">
-          <template #default="{ row }">
-            <el-button
-              size="small"
-              type="primary"
-              title="编辑明细"
-              @click="$router.push(`/plans/${row.id}`)"
-            >
-              <el-icon><Edit /></el-icon>编辑明细
-            </el-button>
-            <el-button
-              size="small"
-              :icon="Edit"
-              circle
-              title="编辑信息"
-              aria-label="编辑信息"
-              @click="openDialog(row)"
-            />
-            <el-button
-              size="small"
-              :icon="CopyDocument"
-              circle
-              title="派生新版本（修订培养方案时，新年级使用新版本）"
-              aria-label="派生新版本"
-              @click="openNewVersionDialog(row)"
-            />
-            <el-button
-              size="small"
-              type="danger"
-              :icon="Delete"
-              circle
-              title="删除"
-              aria-label="删除"
-              @click="handleDelete(row)"
-            />
-          </template>
-        </el-table-column>
-      </el-table>
+              <el-button
+                size="small"
+                type="danger"
+                :icon="Delete"
+                circle
+                title="删除"
+                aria-label="删除"
+                @click="handleDelete(row)"
+              />
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
 
       <div class="pagination-container">

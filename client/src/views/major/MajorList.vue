@@ -13,74 +13,74 @@
       </div>
       <ListErrorState v-if="error" :message="error" @retry="load" />
       <div v-else class="table-scroll-wrap">
-      <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
-        <template #empty>
-          <EmptyState type="major" description="暂无专业数据" />
-        </template>
-        <el-table-column
-          type="index"
-          label="序号"
-          width="60"
-          :index="(i) => (currentPage - 1) * pageSize + i + 1"
-        />
-        <el-table-column prop="name" label="专业名称" min-width="150" />
-        <el-table-column prop="code" label="编码" min-width="120" />
-        <el-table-column
-          v-if="!isMobile"
-          prop="description"
-          label="描述"
-          min-width="200"
-          show-overflow-tooltip
-        />
-        <el-table-column label="班级数" min-width="80">
-          <template #default="{ row }">{{ row.classCount || 0 }}</template>
-        </el-table-column>
-        <el-table-column v-if="!isMobile" label="排序" min-width="120" align="center">
-          <template #default="{ row }">
-            <div class="sort-buttons">
+        <el-table v-loading="loading" :data="pagedList" stripe row-key="id">
+          <template #empty>
+            <EmptyState type="major" description="暂无专业数据" />
+          </template>
+          <el-table-column
+            type="index"
+            label="序号"
+            width="60"
+            :index="(i) => (currentPage - 1) * pageSize + i + 1"
+          />
+          <el-table-column prop="name" label="专业名称" min-width="150" />
+          <el-table-column prop="code" label="编码" min-width="120" />
+          <el-table-column
+            v-if="!isMobile"
+            prop="description"
+            label="描述"
+            min-width="200"
+            show-overflow-tooltip
+          />
+          <el-table-column label="班级数" min-width="80">
+            <template #default="{ row }">{{ row.classCount || 0 }}</template>
+          </el-table-column>
+          <el-table-column v-if="!isMobile" label="排序" min-width="120" align="center">
+            <template #default="{ row }">
+              <div class="sort-buttons">
+                <el-button
+                  size="small"
+                  :icon="ArrowUp"
+                  :disabled="realIndex(row) === 0"
+                  circle
+                  title="上移"
+                  aria-label="上移"
+                  @click="handleMoveUp(row, realIndex(row))"
+                />
+                <el-button
+                  size="small"
+                  :icon="ArrowDown"
+                  :disabled="realIndex(row) === filteredList.length - 1"
+                  circle
+                  title="下移"
+                  aria-label="下移"
+                  @click="handleMoveDown(row, realIndex(row))"
+                />
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" align="center">
+            <template #default="{ row }">
               <el-button
                 size="small"
-                :icon="ArrowUp"
-                :disabled="realIndex(row) === 0"
+                :icon="Edit"
                 circle
-                title="上移"
-                aria-label="上移"
-                @click="handleMoveUp(row, realIndex(row))"
+                title="编辑"
+                aria-label="编辑"
+                @click="openDialog(row)"
               />
               <el-button
                 size="small"
-                :icon="ArrowDown"
-                :disabled="realIndex(row) === filteredList.length - 1"
+                type="danger"
+                :icon="Delete"
                 circle
-                title="下移"
-                aria-label="下移"
-                @click="handleMoveDown(row, realIndex(row))"
+                title="删除"
+                aria-label="删除"
+                @click="handleDelete(row.id)"
               />
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100" align="center">
-          <template #default="{ row }">
-            <el-button
-              size="small"
-              :icon="Edit"
-              circle
-              title="编辑"
-              aria-label="编辑"
-              @click="openDialog(row)"
-            />
-            <el-button
-              size="small"
-              type="danger"
-              :icon="Delete"
-              circle
-              title="删除"
-              aria-label="删除"
-              @click="handleDelete(row.id)"
-            />
-          </template>
-        </el-table-column>
-      </el-table>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
 
       <div class="pagination-container">
