@@ -83,7 +83,7 @@ vi.mock('../utils/error.js', () => ({
 // ──────────────────────────────────────────────
 // Mock logger（避免 winston 在测试时输出）
 // ──────────────────────────────────────────────
-vi.mock('../utils/logger.js', () => ({
+vi.mock('../../utils/logger.js', () => ({
   default: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -102,6 +102,7 @@ vi.mock('../utils/logger.js', () => ({
 // 动态 import（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
 const { AuthService } = await import('../auth.service.js');
+const { log } = await import('../../utils/logger.js');
 
 // ──────────────────────────────────────────────
 // verifyToken / generateToken
@@ -295,6 +296,78 @@ describe('AuthService.login', () => {
     expect(result.refreshToken).toBeTruthy();
     expect(mockPrismaUsers.update).toHaveBeenCalled();
   });
+
+  it('登录成功应重置失败计数与锁定状态（SEC-M4）', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      id: 1,
+      username: 'admin',
+      password: await bcrypt.hash('pass', 10),
+      is_active: true,
+      role: 'super_admin',
+      failed_login_count: 3,
+      locked_until: null,
+    });
+    mockPrismaUsers.update.mockResolvedValue({});
+
+    await AuthService.login('admin', 'pass', ip);
+    const updateCall = mockPrismaUsers.update.mock.calls[0][0];
+    expect(updateCall.data.failed_login_count).toBe(0);
+    expect(updateCall.data.locked_until).toBeNull();
+    expect(updateCall.data.last_login_at).toBeInstanceOf(Date);
+  });
+
+  it('账号处于锁定期内应拒绝登录并提示剩余分钟（SEC-M4）', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      id: 1,
+      username: 'admin',
+      password: await bcrypt.hash('pass', 10),
+      is_active: true,
+      role: 'super_admin',
+      locked_until: new Date(Date.now() + 5 * 60 * 1000), // 5 分钟后
+    });
+
+    await expect(AuthService.login('admin', 'pass', ip)).rejects.toThrow(/账号已锁定/);
+    // 锁定期间不做密码校验，不应触发 users.update
+    expect(mockPrismaUsers.update).not.toHaveBeenCalled();
+  });
+
+  it('密码错误达 5 次应锁定账号 15 分钟（SEC-M4）', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      id: 1,
+      username: 'admin',
+      password: await bcrypt.hash('rightpass', 10),
+      is_active: true,
+      role: 'super_admin',
+      failed_login_count: 4, // 再错一次即达阈值 5
+      locked_until: null,
+    });
+    mockPrismaUsers.update.mockResolvedValue({});
+
+    await expect(AuthService.login('admin', 'wrongpass', ip)).rejects.toThrow(
+      '密码错误次数过多，账号已被锁定 15 分钟'
+    );
+    const updateCall = mockPrismaUsers.update.mock.calls[0][0];
+    expect(updateCall.data.failed_login_count).toBe(5);
+    expect(updateCall.data.locked_until).toBeInstanceOf(Date);
+  });
+
+  it('密码错误未达阈值仅累计失败次数，不锁定', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      id: 1,
+      username: 'admin',
+      password: await bcrypt.hash('rightpass', 10),
+      is_active: true,
+      role: 'super_admin',
+      failed_login_count: 1,
+      locked_until: null,
+    });
+    mockPrismaUsers.update.mockResolvedValue({});
+
+    await expect(AuthService.login('admin', 'wrongpass', ip)).rejects.toThrow('用户名或密码错误');
+    const updateCall = mockPrismaUsers.update.mock.calls[0][0];
+    expect(updateCall.data.failed_login_count).toBe(2);
+    expect(updateCall.data.locked_until).toBeNull();
+  });
 });
 
 // ──────────────────────────────────────────────
@@ -343,6 +416,64 @@ describe('AuthService.refreshToken', () => {
     mockPrismaUsers.findUnique.mockResolvedValue({ ...user, is_active: false });
     await expect(AuthService.refreshToken(refreshToken)).rejects.toThrow('用户不存在或已被禁用');
   });
+
+  it('重用已加入黑名单的 refreshToken 应吊销全部会话并拒绝（SEC-M1）', async () => {
+    const user = {
+      id: 7,
+      username: 'admin',
+      role: 'super_admin',
+      is_active: true,
+      token_version: 0,
+      must_change_password: false,
+    };
+    const refreshToken = AuthService.generateRefreshToken(user);
+    const { jti } = jwt.verify(refreshToken, TEST_REFRESH_SECRET);
+
+    // 模拟该 refresh token 已被登出/轮换加入黑名单
+    mockTokenBlacklist.upsert.mockResolvedValue({});
+    await AuthService.addToBlacklist(jti, Date.now() + 60000);
+
+    mockPrismaUsers.update.mockResolvedValue({});
+    await expect(AuthService.refreshToken(refreshToken)).rejects.toThrow(
+      '检测到凭证异常，请重新登录'
+    );
+    // 重用检测应递增 token_version 吊销该用户全部会话
+    expect(mockPrismaUsers.update).toHaveBeenCalledWith({
+      where: { id: 7 },
+      data: { token_version: { increment: 1 } },
+    });
+  });
+
+  it('token_version 不匹配应拒绝刷新（SEC-H1 密码重置后旧令牌失效）', async () => {
+    // 令牌签发时 token_version=0，但库中已递增到 5（改密/吊销）
+    const staleUser = { id: 1, username: 'admin', role: 'super_admin', token_version: 0 };
+    const refreshToken = AuthService.generateRefreshToken(staleUser);
+    mockTokenBlacklist.findUnique.mockResolvedValue(null); // 未黑名单
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      ...staleUser,
+      is_active: true,
+      token_version: 5,
+      must_change_password: false,
+    });
+
+    await expect(AuthService.refreshToken(refreshToken)).rejects.toThrow('凭证已失效，请重新登录');
+  });
+
+  it('强制改密期间应拒绝刷新，要求重新登录（SEC-H2）', async () => {
+    const user = {
+      id: 1,
+      username: 'admin',
+      role: 'super_admin',
+      is_active: true,
+      token_version: 0,
+      must_change_password: true,
+    };
+    const refreshToken = AuthService.generateRefreshToken(user);
+    mockTokenBlacklist.findUnique.mockResolvedValue(null);
+    mockPrismaUsers.findUnique.mockResolvedValue(user);
+
+    await expect(AuthService.refreshToken(refreshToken)).rejects.toThrow('请先修改初始密码');
+  });
 });
 
 // ──────────────────────────────────────────────
@@ -380,5 +511,93 @@ describe('AuthService.changePassword', () => {
     const newHashed = updateCall.data.password;
     expect(newHashed).not.toBe('newpass');
     expect(await bcrypt.compare('newpass', newHashed)).toBe(true);
+  });
+
+  it('用户不存在时应抛 AuthenticationError', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue(null);
+    await expect(AuthService.changePassword(999, 'old', 'new', ip)).rejects.toThrow('用户不存在');
+  });
+
+  it('改密成功应递增 token_version 并解除强制改密标记（SEC-H1）', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      id: 1,
+      username: 'admin',
+      password: await bcrypt.hash('oldpass', 10),
+      must_change_password: true,
+      failed_login_count: 2,
+    });
+    mockPrismaUsers.update.mockResolvedValue({});
+
+    await AuthService.changePassword(1, 'oldpass', 'newpass', ip);
+    const updateCall = mockPrismaUsers.update.mock.calls[0][0];
+    expect(updateCall.data).toMatchObject({
+      must_change_password: false,
+      token_version: { increment: 1 },
+      failed_login_count: 0,
+      locked_until: null,
+    });
+  });
+});
+
+// ──────────────────────────────────────────────
+// 黑名单容错与降级（H2/S-03）
+// ──────────────────────────────────────────────
+describe('AuthService 黑名单容错降级', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('addToBlacklist 写库失败不阻断主流程，仅记录错误日志', async () => {
+    mockTokenBlacklist.upsert.mockRejectedValue(new Error('db down'));
+    await expect(AuthService.addToBlacklist('jti-w', Date.now() + 1000)).resolves.toBeUndefined();
+    expect(log.error).toHaveBeenCalledWith(
+      'Token黑名单写入失败',
+      expect.objectContaining({ error: 'db down' })
+    );
+  });
+
+  it('isBlacklisted 内存缓存过期后回落数据库查询', async () => {
+    const jti = 'jti-expired-mem';
+    // 写入一条已过期的内存正缓存
+    mockTokenBlacklist.upsert.mockResolvedValue({});
+    await AuthService.addToBlacklist(jti, Date.now() - 1000);
+
+    // DB 中已无记录（过期被清理）→ 返回 false 并查库
+    mockTokenBlacklist.findUnique.mockResolvedValue(null);
+    const result = await AuthService.isBlacklisted(jti);
+    expect(result).toBe(false);
+    expect(mockTokenBlacklist.findUnique).toHaveBeenCalledWith({ where: { jti } });
+  });
+
+  it('DB 查询失败且内存缓存未命中时默认拒绝（fail-close）', async () => {
+    mockTokenBlacklist.findUnique.mockRejectedValue(new Error('db down'));
+    const result = await AuthService.isBlacklisted('jti-unknown-state');
+    expect(result).toBe(true);
+    expect(log.warn).toHaveBeenCalledWith(
+      'Token黑名单DB查询失败，默认拒绝（fail-close策略）',
+      expect.objectContaining({ jti: 'jti-unknown-state' })
+    );
+  });
+
+  it('DB 查询失败但内存正缓存有效时仍判定为黑名单', async () => {
+    const jti = 'jti-mem-fallback';
+    mockTokenBlacklist.upsert.mockResolvedValue({});
+    await AuthService.addToBlacklist(jti, Date.now() + 60000); // 内存正缓存
+
+    mockTokenBlacklist.findUnique.mockRejectedValue(new Error('db down'));
+    expect(await AuthService.isBlacklisted(jti)).toBe(true);
+  });
+
+  it('cleanExpiredBlacklist 失败时记录日志不抛出', async () => {
+    mockTokenBlacklist.deleteMany.mockRejectedValue(new Error('db down'));
+    await expect(AuthService.cleanExpiredBlacklist()).resolves.toBeUndefined();
+    expect(log.error).toHaveBeenCalledWith(
+      '清理过期黑名单失败',
+      expect.objectContaining({ error: 'db down' })
+    );
+  });
+
+  it('cleanExpiredBlacklist 无过期记录时不输出清理日志', async () => {
+    mockTokenBlacklist.deleteMany.mockResolvedValue({ count: 0 });
+    await AuthService.cleanExpiredBlacklist();
+    expect(log.info).not.toHaveBeenCalled();
   });
 });

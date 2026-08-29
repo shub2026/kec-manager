@@ -22,12 +22,12 @@ export default defineConfig({
       include: ['src/**/*.{js,vue}'],
       exclude: ['src/**/*.{test,spec}.{js,ts}', 'src/main.js'],
       // 覆盖率门槛：以当前基线设地板值，低于即失败
-      // 2026-07 基线 11.58/8.42/7.33/12.08，前端测试尚在起步阶段，随测试补强逐步抬升
+      // 2026-08-29 基线（P0-P2 补测后）31.93/26.5/20.56/33.21，留少量余量防抖动，随测试补强逐步抬升
       thresholds: {
-        statements: 10,
-        branches: 7,
-        functions: 6,
-        lines: 10,
+        statements: 29,
+        branches: 24,
+        functions: 18,
+        lines: 31,
       },
     },
   },
