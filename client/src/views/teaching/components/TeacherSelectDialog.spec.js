@@ -5,6 +5,7 @@
  * - 教材筛选：按教师已用教材（assignedTextbooks）过滤列表
  * - 清除教材筛选后恢复全量
  * - 重新 open() 时重置教材筛选状态
+ * - 头部上下文栏：展示当前班级、教材、任课教师；未安排/无教材时展示占位
  */
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
@@ -52,7 +53,8 @@ const TEACHERS = [
 const STUBS = {
   ElDialog: {
     props: ['modelValue'],
-    template: '<div v-if="modelValue" class="stub-dialog"><slot /><slot name="footer" /></div>',
+    template:
+      '<div v-if="modelValue" class="stub-dialog"><slot name="header" /><slot /><slot name="footer" /></div>',
   },
   ElInput: { props: ['modelValue', 'size'], template: '<input :value="modelValue" />' },
   ElSelect: {
@@ -139,5 +141,41 @@ describe('TeacherSelectDialog 教材筛选', () => {
     openDialog(wrapper);
     await wrapper.vm.$nextTick();
     expect(wrapper.find('.filter-count').text()).toContain('共 3 位教师');
+  });
+});
+
+describe('TeacherSelectDialog 头部班级上下文', () => {
+  it('展示当前班级、教材与任课教师', async () => {
+    const wrapper = mountDialog();
+    wrapper.vm.open({
+      classId: 1,
+      className: '2024级计算机1班',
+      weeklyHours: 2,
+      textbooks: [
+        { id: 11, title: '高等数学' },
+        { id: 12, title: '线性代数' },
+      ],
+      assignment: { teacherName: '张老师', isLocked: false, isAuto: false },
+    });
+    await wrapper.vm.$nextTick();
+
+    const header = wrapper.find('.dialog-header');
+    expect(header.text()).toContain('选择任课教师');
+    expect(header.text()).toContain('2024级计算机1班');
+    // 教材标题以顿号连接为纯文本
+    expect(header.text()).toContain('高等数学、线性代数');
+    expect(header.text()).toContain('张老师');
+  });
+
+  it('未安排教师且无教材时展示占位', async () => {
+    const wrapper = mountDialog();
+    wrapper.vm.open({ classId: 2, className: '2024级软件2班', weeklyHours: 4 });
+    await wrapper.vm.$nextTick();
+
+    const header = wrapper.find('.dialog-header');
+    expect(header.text()).toContain('2024级软件2班');
+    expect(header.text()).toContain('未安排');
+    // 教材为空展示占位符
+    expect(header.findAll('.context-value')[1].text()).toBe('-');
   });
 });

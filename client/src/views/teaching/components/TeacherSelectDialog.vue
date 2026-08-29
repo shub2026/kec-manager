@@ -3,7 +3,6 @@
        移动端走全屏模式，与其他弹窗约定一致 -->
   <el-dialog
     v-model="visible"
-    title="选择任课教师"
     :fullscreen="isMobile"
     :width="isMobile ? '95%' : '80%'"
     :style="{ maxWidth: isMobile ? 'none' : '1400px' }"
@@ -11,6 +10,30 @@
     destroy-on-close
     class="teacher-dialog"
   >
+    <!-- 自定义头部：标题 + 当前班级上下文（班级/教材/任课教师）。
+         上下文是选教师的决策依据，放头部随标题固定，列表滚动时不丢失 -->
+    <template #header>
+      <div class="dialog-header">
+        <span class="dialog-title">选择任课教师</span>
+        <div v-if="currentClass" class="class-context">
+          <span class="context-item">
+            <span class="context-label">班级</span>
+            <span class="context-value">{{ currentClass.className || '-' }}</span>
+          </span>
+          <span class="context-item">
+            <span class="context-label">教材</span>
+            <span class="context-value">{{ contextTextbookTitles || '-' }}</span>
+          </span>
+          <span class="context-item">
+            <span class="context-label">任课教师</span>
+            <span class="context-value" :class="{ 'text-placeholder': !currentClass.assignment }">
+              {{ currentClass.assignment?.teacherName || '未安排' }}
+            </span>
+          </span>
+        </div>
+      </div>
+    </template>
+
     <!-- M-10：搜索过滤栏 -->
     <div class="filter-bar">
       <el-input
@@ -42,12 +65,7 @@
         size="small"
         class="textbook-select"
       >
-        <el-option
-          v-for="tb in textbookOptions"
-          :key="tb.id"
-          :label="tb.title"
-          :value="tb.id"
-        />
+        <el-option v-for="tb in textbookOptions" :key="tb.id" :label="tb.title" :value="tb.id" />
       </el-select>
       <span class="filter-count">共 {{ filteredList.length }} 位教师</span>
     </div>
@@ -224,6 +242,11 @@ const visible = ref(false);
 const currentClass = ref(null);
 const selectedTeacher = ref(null);
 
+// 头部上下文：教材标题以顿号连接为纯文本，避免多本教材 tag 占用过多头部高度
+const contextTextbookTitles = computed(() =>
+  (currentClass.value?.textbooks || []).map((tb) => tb.title).join('、')
+);
+
 // M-10：搜索与分页状态
 const searchKey = ref('');
 const personnelFilter = ref('');
@@ -336,6 +359,43 @@ defineExpose({ open, close });
 </script>
 
 <style scoped>
+/* 弹窗头部：标题与班级上下文同行基线对齐；窄屏整体换行，头部高度随内容自然撑开 */
+.dialog-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3) var(--space-4);
+  flex-wrap: wrap;
+}
+.dialog-title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--fw-semibold);
+  color: var(--el-text-color-primary);
+  line-height: 24px;
+}
+.class-context {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  flex-wrap: wrap;
+  min-width: 0;
+  font-size: var(--font-size-body-sm);
+}
+.context-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.context-label {
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+.context-value {
+  color: var(--el-text-color-primary);
+  font-weight: var(--fw-medium);
+  word-break: break-all;
+}
+
 .filter-bar {
   display: flex;
   align-items: center;
