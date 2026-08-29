@@ -9,6 +9,9 @@ import xss from 'xss';
 const EXCEL_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
   'application/vnd.ms-excel', // .xls
+  // Windows 下 .xls 常以 octet-stream 上报，放行避免误杀合法文件；
+  // 该层仅为上传前粗筛，真实判定靠 controller 的文件头魔数校验
+  'application/octet-stream',
 ];
 
 // 文件大小上限：支持通过 MAX_FILE_SIZE 环境变量配置（单位 MB，默认 10MB）

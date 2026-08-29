@@ -268,6 +268,28 @@ function hideImportProgressOverlay() {
 }
 
 /**
+ * Excel 导入前置校验：扩展名 + 大小（10MB，与后端 multer/Nginx 上限一致）
+ * 校验失败直接提示并返回 false，通过返回 true
+ * @param {File} file - 待校验文件
+ * @returns {boolean}
+ */
+export function validateExcelFile(file) {
+  const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+  if (!isExcel) {
+    ElMessage.error('请上传Excel文件');
+    return false;
+  }
+  // 前端文件大小校验（10MB），与生产环境 Nginx client_max_body_size 一致，
+  // 避免开发环境测试通过但生产环境返回 413 Request Entity Too Large
+  const MAX_SIZE = 10 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    ElMessage.error(`文件大小 ${(file.size / 1024 / 1024).toFixed(1)}MB 超过限制（最大 10MB）`);
+    return false;
+  }
+  return true;
+}
+
+/**
  * 通用导入 Composable
  * 封装 Excel 导入的完整流程：文件校验 → 确认弹窗 → 上传 → 结果反馈
  * @param {string} endpoint - 导入 API 路径（如 '/import/teachers'）
@@ -293,18 +315,7 @@ export function useImport(endpoint, confirmMessage, onSuccess) {
   });
 
   async function beforeImport(file) {
-    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-    if (!isExcel) {
-      ElMessage.error('请上传Excel文件');
-      return false;
-    }
-    // M-7 修复：前端文件大小校验（10MB），与生产环境 Nginx client_max_body_size 一致
-    // 避免开发环境测试通过但生产环境返回 413 Request Entity Too Large
-    const MAX_SIZE = 10 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      ElMessage.error(`文件大小 ${(file.size / 1024 / 1024).toFixed(1)}MB 超过限制（最大 10MB）`);
-      return false;
-    }
+    if (!validateExcelFile(file)) return false;
     pendingFile.value = file;
     importConfirmVisible.value = true;
     return false;

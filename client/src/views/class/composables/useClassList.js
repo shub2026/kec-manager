@@ -12,7 +12,7 @@ import {
 import { useSettingsStore } from '../../../stores/settings';
 import { useClassDataStore } from '../../../stores/classData';
 import { useExport } from '../../../composables/useExport';
-import { showImportResultCard } from '../../../composables/useImport';
+import { showImportResultCard, validateExcelFile } from '../../../composables/useImport';
 import { useDebounceFn } from '../../../composables/useDebounce';
 
 /**
@@ -505,7 +505,8 @@ export function useClassList() {
     }
   }
 
-  function beforeImport() {
+  function beforeImport(file) {
+    if (!validateExcelFile(file)) return false;
     progressDialogVisible.value = true;
     progressPercent.value = 0;
     progressStatus.value = '';

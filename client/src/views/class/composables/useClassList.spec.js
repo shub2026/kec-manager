@@ -41,6 +41,7 @@ vi.mock('../../../composables/useExport', () => ({
 
 vi.mock('../../../composables/useImport', () => ({
   showImportResultCard: mocks.showImportResultCard,
+  validateExcelFile: (file) => file.name.endsWith('.xlsx') || file.name.endsWith('.xls'),
 }));
 
 const mockElMessage = vi.hoisted(() => {
@@ -535,17 +536,25 @@ describe('批量设置', () => {
 });
 
 describe('导入与导出', () => {
-  it('beforeImport 打开进度弹窗', async () => {
+  const xlsxFile = { name: 'classes.xlsx', size: 1024 };
+
+  it('beforeImport 校验通过后打开进度弹窗', async () => {
     const { c } = await setup();
-    expect(c.beforeImport()).toBe(true);
+    expect(c.beforeImport(xlsxFile)).toBe(true);
     expect(c.progressDialogVisible.value).toBe(true);
     expect(c.progressText.value).toBe('正在上传文件...');
+  });
+
+  it('beforeImport 非 Excel 文件前置拦截，不打开进度弹窗', async () => {
+    const { c } = await setup();
+    expect(c.beforeImport({ name: 'a.txt', size: 1024 })).toBe(false);
+    expect(c.progressDialogVisible.value).toBe(false);
   });
 
   it('导入成功：进度完成后展示结果卡片并刷新', async () => {
     vi.useFakeTimers();
     const { c } = await setup();
-    c.beforeImport();
+    c.beforeImport(xlsxFile);
 
     c.onImportSuccess({
       data: { total: 10, imported: 9, overwritten: 0, failed: 1, errors: ['第3行错'] },
@@ -565,7 +574,7 @@ describe('导入与导出', () => {
   it('导入全部失败：状态为 exception', async () => {
     vi.useFakeTimers();
     const { c } = await setup();
-    c.beforeImport();
+    c.beforeImport(xlsxFile);
 
     c.onImportSuccess({ data: { total: 2, imported: 0, overwritten: 0, failed: 2, errors: [] } });
     expect(c.progressStatus.value).toBe('exception');
@@ -575,7 +584,7 @@ describe('导入与导出', () => {
   it('导入异常：延迟后提示错误', async () => {
     vi.useFakeTimers();
     const { c } = await setup();
-    c.beforeImport();
+    c.beforeImport(xlsxFile);
 
     c.onImportError(new Error('格式错误'));
     expect(c.progressStatus.value).toBe('exception');
