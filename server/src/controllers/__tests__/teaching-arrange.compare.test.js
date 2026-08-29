@@ -84,8 +84,8 @@ const QUERY = {
   teacher_id_b: '6',
 };
 
-const TEACHER_A = { id: 5, name: '张老师', status: 'active' };
-const TEACHER_B = { id: 6, name: '李老师', status: 'active' };
+const TEACHER_A = { id: 5, name: '张老师', status: 'active', personnel_type: 'full_time' };
+const TEACHER_B = { id: 6, name: '李老师', status: 'active', personnel_type: 'part_time' };
 
 function makeAssignment(id, teacherId, classId, hours, overrides = {}) {
   return {
@@ -155,6 +155,8 @@ describe('compareTeacherAssignments', () => {
 
     // 张老师：3 班（含合班2行），课时 = 合班单元4 + 锁定班2 = 6（合班不重复计数）
     expect(teacherA.name).toBe('张老师');
+    expect(teacherA.personnelType).toBe('full_time');
+    expect(teacherB.personnelType).toBe('part_time');
     expect(teacherA.classCount).toBe(3);
     expect(teacherA.totalHours).toBe(6);
     expect(teacherA.lockedCount).toBe(1);

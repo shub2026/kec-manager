@@ -30,6 +30,7 @@ const COMPARE_DATA = {
   teacherA: {
     id: 1,
     name: '张老师',
+    personnelType: 'full_time',
     classCount: 3,
     lockedCount: 1,
     totalHours: 12,
@@ -81,6 +82,7 @@ const COMPARE_DATA = {
   teacherB: {
     id: 2,
     name: '李老师',
+    personnelType: 'part_time',
     classCount: 1,
     lockedCount: 0,
     totalHours: 4,
@@ -189,9 +191,11 @@ describe('CompareTeachersDialog', () => {
       .map((c) => c.text())
       .join(' ');
     expect(text).toContain('教师 A：张老师');
+    expect(text).toContain('专职');
     expect(text).toContain('3 班 / 12 课时');
     expect(text).toContain('1 班已锁定');
     expect(text).toContain('教师 B：李老师');
+    expect(text).toContain('兼职');
     expect(text).toContain('一班');
     expect(text).toContain('合班 1 组');
     expect(text).toContain('四班');

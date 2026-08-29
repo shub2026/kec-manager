@@ -63,7 +63,12 @@
       <template v-if="compareData">
         <div v-for="(side, idx) in sides" :key="side.id" class="compare-col">
           <div class="col-header">
-            <span class="col-title">{{ idx === 0 ? '教师 A' : '教师 B' }}：{{ side.name }}</span>
+            <span class="col-title">
+              {{ idx === 0 ? '教师 A' : '教师 B' }}：{{ side.name }}
+              <el-tag :type="personnelTagType(side.personnelType)" size="small" disable-transitions>
+                {{ personnelLabel(side.personnelType) }}
+              </el-tag>
+            </span>
             <span class="col-stat">
               {{ side.classCount }} 班 / {{ side.totalHours }} 课时
               <template v-if="side.lockedCount">（{{ side.lockedCount }} 班已锁定）</template>
@@ -135,6 +140,7 @@ import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useResponsive } from '../../../composables/useResponsive';
 import { compareTeacherAssignments } from '../../../api/teachingArrange';
+import { personnelLabel, personnelTagType } from '../../../utils/personnel';
 
 defineProps({
   /** 本课程教师列表（getCourseTeachers 数据） */
@@ -310,8 +316,12 @@ defineExpose({ open, close });
   padding: var(--space-2) var(--space-3);
   background: var(--el-fill-color-light);
   font-size: var(--font-size-body-sm);
+  align-items: center;
 }
 .col-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   font-weight: var(--fw-semibold);
 }
 .col-stat {

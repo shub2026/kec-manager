@@ -591,6 +591,7 @@ export async function compareTeacherAssignments(req, res, next) {
       return {
         id: teacher.id,
         name: teacher.name,
+        personnelType: teacher.personnel_type || 'full_time',
         classes,
         classCount: classes.length,
         lockedCount: classes.filter((c) => c.isLocked).length,
