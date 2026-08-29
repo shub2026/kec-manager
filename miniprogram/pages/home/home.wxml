@@ -70,58 +70,30 @@
     <!-- 本学期概览 -->
     <view class="card">
       <view class="card-title">本学期概览</view>
-      <view class="stat-grid">
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-ico si-students"></view>
-          <view class="stat-data">
-            <view class="stat-num">{{stats.totalStudents}}</view>
-            <view class="stat-label">在读学生</view>
-          </view>
-        </view></view>
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-ico si-classes"></view>
-          <view class="stat-data">
-            <view class="stat-num">{{stats.classes}}</view>
-            <view class="stat-label">在读班级</view>
-          </view>
-        </view></view>
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-ico si-courses"></view>
-          <view class="stat-data">
-            <view class="stat-num">{{stats.courses}}</view>
-            <view class="stat-label">开设课程</view>
-          </view>
-        </view></view>
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-ico si-teachers"></view>
-          <view class="stat-data">
-            <view class="stat-num">{{stats.teachingTeachers}}</view>
-            <view class="stat-label">任课教师</view>
-          </view>
-        </view></view>
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-ico si-majors"></view>
-          <view class="stat-data">
-            <view class="stat-num">{{stats.majors}}</view>
-            <view class="stat-label">专业数</view>
-          </view>
-        </view></view>
-        <view class="stat-cell"><view class="stat-inner">
-          <view class="stat-ico si-textbooks"></view>
-          <view class="stat-data">
-            <view class="stat-num">{{stats.textbooks}}</view>
-            <view class="stat-label">教材数</view>
-          </view>
-        </view></view>
-      </view>
-      <view class="hours-row">
-        <view class="hours-item">
-          <text class="h-num">{{stats.assignedWeeklyHours}}</text>
-          <text class="h-label">已排周课时</text>
+      <view class="ov-grid">
+        <view class="ov-cell">
+          <view class="ov-num">{{stats.totalWeeklyHours}}</view>
+          <view class="ov-label"><text class="ov-ico ov-ico-clock"></text>总周课时</view>
         </view>
-        <view class="hours-item">
-          <text class="h-num">{{stats.plannedWeeklyHours}}</text>
-          <text class="h-label">计划周课时</text>
+        <view class="ov-cell">
+          <view class="ov-num">{{stats.teachingTeachers}}</view>
+          <view class="ov-label"><text class="ov-ico ov-ico-user"></text>参与教师</view>
+        </view>
+        <view class="ov-cell">
+          <view class="ov-num">{{stats.courses}}</view>
+          <view class="ov-label"><text class="ov-ico ov-ico-book"></text>课程数量</view>
+        </view>
+        <view class="ov-cell">
+          <view class="ov-num">{{stats.classes}}</view>
+          <view class="ov-label"><text class="ov-ico ov-ico-grid"></text>班级数量</view>
+        </view>
+        <view class="ov-cell">
+          <view class="ov-num">{{stats.totalStudents}}</view>
+          <view class="ov-label"><text class="ov-ico ov-ico-users"></text>在读学生</view>
+        </view>
+        <view class="ov-cell">
+          <view class="ov-num">{{stats.plans}}</view>
+          <view class="ov-label"><text class="ov-ico ov-ico-doc"></text>培养方案</view>
         </view>
       </view>
     </view>
