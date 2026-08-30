@@ -1,8 +1,26 @@
-/* ===== 筛选栏 ===== */
+/* ===== 页面颜色分层：素页头 + 筛选条 = 全宽白色工具层，列表区灰底白卡 ===== */
+.hero--plain {
+  margin: -24rpx -24rpx 0;
+  padding: 24rpx 24rpx 16rpx;
+  background: var(--bg-card);
+}
 .filter-bar {
   display: flex;
   align-items: center;
-  margin-bottom: 24rpx;
+  margin: 0 -24rpx 20rpx;
+  padding: 16rpx 24rpx;
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1rpx solid var(--border-light);
+}
+/* 筛选器撑满整行：flex 子级是 picker 组件，内部视图取满宽 */
+.filter-bar picker {
+  flex: 1;
+}
+.filter-bar .filter-picker {
+  width: 100%;
 }
 .filter-clear {
   margin-left: 20rpx;
