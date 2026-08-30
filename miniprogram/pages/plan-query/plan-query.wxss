@@ -4,10 +4,15 @@
   padding: 24rpx 24rpx 16rpx;
   background: var(--bg-card);
 }
+/* ===== 搜索+筛选同行，全宽白底吸顶工具层 ===== */
 .search-bar {
-  margin: 0 -24rpx;
-  padding: 8rpx 24rpx 0;
+  margin: 0 -24rpx 20rpx;
+  padding: 8rpx 24rpx 16rpx;
   background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1rpx solid var(--border-light);
 }
 .search-ico {
   width: 32rpx;
@@ -23,29 +28,8 @@
   color: var(--text-1);
   min-width: 0;
 }
-.search-clear {
-  width: 44rpx;
-  height: 44rpx;
-  line-height: 44rpx;
-  text-align: center;
-  color: var(--text-4);
-  font-size: 24rpx;
-  flex-shrink: 0;
-}
 
-/* ===== 筛选行（吸顶工具层） ===== */
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin: 0 -24rpx 20rpx;
-  padding: 12rpx 24rpx 16rpx;
-  background: var(--bg-card);
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  border-bottom: 1rpx solid var(--border-light);
-}
+/* ===== 筛选重置 ===== */
 .filter-reset {
   font-size: 26rpx;
   color: var(--text-3);
