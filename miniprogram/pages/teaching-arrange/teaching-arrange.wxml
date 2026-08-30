@@ -22,7 +22,7 @@
         bindinput="onKeywordInput"
         confirm-type="search"
       />
-      <text wx:if="{{keyword}}" class="search-clear" catchtap="resetFilters">✕</text>
+      <view wx:if="{{keyword}}" class="search-clear clear-ico" hover-class="tap-hover" role="button" aria-label="清除关键词" catchtap="resetFilters"></view>
     </view>
     <picker class="type-picker" range="{{typeOptions}}" range-key="label" value="{{typeIndex}}" bindchange="onTypeChange">
       <view class="type-picker-inner">{{typeLabel}}<text class="caret">▾</text></view>
@@ -38,7 +38,7 @@
     <!-- 统计条：共 X 门课程，被 Y 条培养方案引用 -->
     <view class="alert-bar">
       <text class="alert-text">共 <text class="alert-num">{{totalCourses}}</text> 门课程，被 <text class="alert-num">{{totalPlans}}</text> 条培养方案引用</text>
-      <text wx:if="{{keyword || courseType}}" class="alert-reset" bindtap="resetFilters">重置</text>
+      <text wx:if="{{keyword || courseType}}" class="alert-reset" hover-class="tap-hover" bindtap="resetFilters">重置</text>
     </view>
 
     <view wx:if="{{!courses.length}}" class="empty">没有符合筛选条件的课程</view>
@@ -47,6 +47,7 @@
       wx:for="{{courses}}"
       wx:key="id"
       class="course-card"
+      hover-class="tap-hover"
       bindtap="toggle"
       data-id="{{item.id}}"
     >

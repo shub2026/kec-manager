@@ -28,7 +28,7 @@
           {{filterPersonnel || '人员类别'}} ›
         </view>
       </picker>
-      <text wx:if="{{filterName || filterSubject || filterPersonnel}}" class="filter-clear" bindtap="clearFilters">重置</text>
+      <text wx:if="{{filterName || filterSubject || filterPersonnel}}" class="filter-clear" hover-class="tap-hover" bindtap="clearFilters">重置</text>
     </view>
 
     <view wx:if="{{filteredTeachers.length}}">
@@ -37,7 +37,7 @@
         wx:key="teacherId"
         class="card teacher-card"
       >
-        <view class="tc-head" data-id="{{item.teacherId}}" bindtap="toggle">
+        <view class="tc-head" hover-class="tap-hover" data-id="{{item.teacherId}}" bindtap="toggle">
           <view class="tc-left">
             <view class="tc-name">
               {{item.teacherName}}

@@ -23,7 +23,7 @@
         bindinput="onKeywordInput"
         bindconfirm="onSearch"
       />
-      <text wx:if="{{keyword}}" class="search-clear" bindtap="onClearKeyword">✕</text>
+      <view wx:if="{{keyword}}" class="search-clear clear-ico" hover-class="tap-hover" role="button" aria-label="清除关键词" bindtap="onClearKeyword"></view>
     </view>
     <picker class="filter-picker" range="{{collegePickerRange}}" value="{{collegeIndex}}" bindchange="onCollegeChange">
       <view class="filter-chip"><text class="filter-chip-text">{{collegeLabel}}</text><text class="filter-caret">▾</text></view>
@@ -31,7 +31,7 @@
     <picker class="filter-picker" range="{{statusPickerRange}}" value="{{statusIndex}}" bindchange="onStatusChange">
       <view class="filter-chip"><text class="filter-chip-text">{{statusLabel}}</text><text class="filter-caret">▾</text></view>
     </picker>
-    <view wx:if="{{keyword || collegeFilter || statusFilter}}" class="filter-reset" bindtap="resetFilter">重置</view>
+    <view wx:if="{{keyword || collegeFilter || statusFilter}}" class="filter-reset" hover-class="tap-hover" bindtap="resetFilter">重置</view>
   </view>
 
   <view class="count-line" wx:if="{{!loading && !error}}">共 {{list.length}} 个方案</view>
@@ -45,6 +45,7 @@
       wx:for="{{list}}"
       wx:key="id"
       class="plan-card pc-{{item.status}}"
+      hover-class="tap-hover"
       bindtap="toggle"
       data-id="{{item.id}}"
     >

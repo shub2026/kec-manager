@@ -25,11 +25,11 @@
     <!-- 管理（仅管理员可见） -->
     <view wx:if="{{canManage}}" class="card">
       <view class="card-title">管理</view>
-      <view class="row arrow" bindtap="goTeacherAdmin">
+      <view class="row arrow" hover-class="tap-hover" bindtap="goTeacherAdmin">
         <text class="label">教师管理</text>
         <text class="value">查询 / 新增</text>
       </view>
-      <view wx:if="{{canUserManage}}" class="row arrow" bindtap="goUserAdmin">
+      <view wx:if="{{canUserManage}}" class="row arrow" hover-class="tap-hover" bindtap="goUserAdmin">
         <text class="label">用户管理</text>
         <text class="value">账号 / 权限</text>
       </view>
@@ -40,8 +40,8 @@
       <view class="card-title">关于</view>
       <view class="row"><text class="label">小程序版本</text><text class="value">{{appEnv}} v{{appVersion}}</text></view>
       <view class="row"><text class="label">主体类型</text><text class="value">个人主体</text></view>
-      <view class="row" bindtap="copyDesktopUrl"><text class="label">桌面端地址</text><text class="value value-link">https://kec.sntip.cn</text></view>
-      <view class="row" bindtap="onLogout"><text class="label">退出登录</text><text class="value muted">退出当前账号</text></view>
+      <view class="row" hover-class="tap-hover" bindtap="copyDesktopUrl"><text class="label">桌面端地址</text><text class="value value-link">https://kec.sntip.cn</text></view>
+      <view class="row" hover-class="tap-hover" bindtap="onLogout"><text class="label">退出登录</text><text class="value muted">退出当前账号</text></view>
     </view>
   </block>
 </view>

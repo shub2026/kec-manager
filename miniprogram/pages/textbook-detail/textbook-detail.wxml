@@ -27,7 +27,7 @@
           wx:key="key"
           class="cls-item"
         >
-          <view class="cls-head" data-key="{{item.key}}" bindtap="toggle">
+          <view class="cls-head" hover-class="tap-hover" data-key="{{item.key}}" bindtap="toggle">
             <view class="cls-name">
               <text>{{item.className}}</text>
               <text wx:if="{{item.isRequired}}" class="req">必修</text>

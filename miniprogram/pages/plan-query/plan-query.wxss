@@ -2,19 +2,6 @@
 .search-bar {
   margin-bottom: 20rpx;
 }
-.search-input {
-  display: flex;
-  align-items: center;
-  background: var(--bg-subtle);
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 0 20rpx;
-  height: 76rpx;
-}
-.search-input:focus-within {
-  background: var(--bg-card);
-  box-shadow: 0 0 0 4rpx rgba(50, 131, 255, 0.15);
-}
 .search-ico {
   width: 32rpx;
   height: 32rpx;
@@ -45,21 +32,6 @@
   align-items: center;
   gap: 12rpx;
   margin-bottom: 20rpx;
-}
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  background: var(--bg-subtle);
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 12rpx 22rpx;
-  font-size: 26rpx;
-  color: var(--text-2);
-}
-.filter-caret {
-  margin-left: 8rpx;
-  font-size: 20rpx;
-  color: var(--text-4);
 }
 .filter-reset {
   font-size: 26rpx;

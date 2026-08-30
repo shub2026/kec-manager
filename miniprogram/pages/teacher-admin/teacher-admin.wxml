@@ -25,7 +25,7 @@
           {{filterPersonnelLabel ? filterPersonnelLabel : '人员类别'}} ›
         </view>
       </picker>
-        <text wx:if="{{searchName || filterPersonnel}}" class="filter-clear" bindtap="clearFilters">重置</text>
+        <text wx:if="{{searchName || filterPersonnel}}" class="filter-clear" hover-class="tap-hover" bindtap="clearFilters">重置</text>
       </view>
 
       <!-- 局部刷新提示（输入/筛选时显示，不遮挡列表） -->
@@ -79,7 +79,7 @@
   </block>
 
   <!-- 管理员：悬浮新增按钮 -->
-  <view wx:if="{{canManage}}" class="fab" bindtap="openAdd">＋ 新增教师</view>
+  <view wx:if="{{canManage}}" class="fab" hover-class="tap-hover" bindtap="openAdd">＋ 新增教师</view>
 </view>
 
 <!-- 新增 / 编辑 教师弹层 -->

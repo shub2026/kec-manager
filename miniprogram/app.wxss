@@ -97,7 +97,7 @@ page {
   min-width: 0;
   display: flex;
   align-items: center;
-  height: 76rpx;
+  height: 84rpx;
   padding: 0 22rpx;
   background: var(--bg-subtle);
   border: none;
@@ -136,7 +136,7 @@ page {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  height: 76rpx;
+  height: 84rpx;
   padding: 0 22rpx;
   background: var(--bg-subtle);
   border: none;
@@ -166,8 +166,8 @@ page {
   flex-shrink: 0;
 }
 .search-btn {
-  height: 76rpx;
-  line-height: 76rpx;
+  height: 84rpx;
+  line-height: 84rpx;
   padding: 0 32rpx;
   background: var(--brand);
   color: #fff;
@@ -333,6 +333,17 @@ page {
 .mb { margin-bottom: 20rpx; }
 .arrow { color: var(--text-5); font-size: 36rpx; margin-left: 12rpx; flex-shrink: 0; }
 
+/* 通用按压反馈：挂 hover-class 使用，仅透明度变化不位移 */
+.tap-hover { opacity: 0.75; }
+
+/* 搜索清除图标（SVG 线性 X，替代文本 ✕） */
+.clear-ico {
+  width: 32rpx;
+  height: 32rpx;
+  padding: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
 /* ===== 标签 chip ===== */
 .tag {
   display: inline-block;
@@ -376,8 +387,8 @@ page {
 .bar-in { height: 100%; background: var(--brand); border-radius: 7rpx; }
 
 /* ===== 状态 ===== */
-.empty { text-align: center; color: var(--text-4); padding: 80rpx 0; font-size: 26rpx; }
-.loading { text-align: center; color: var(--text-4); padding: 40rpx 0; font-size: 26rpx; }
+.empty { text-align: center; color: var(--text-3); padding: 80rpx 0; font-size: 26rpx; }
+.loading { text-align: center; color: var(--text-3); padding: 40rpx 0; font-size: 26rpx; }
 .errbox {
   background: var(--danger-soft);
   color: var(--danger);

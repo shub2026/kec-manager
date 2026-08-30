@@ -372,7 +372,7 @@
 .cs-meta-num {
   font-size: 22rpx;
   font-weight: 500;
-  color: var(--text-4);
+  color: var(--text-3);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

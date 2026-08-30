@@ -2,7 +2,7 @@
 .card-sub {
   font-size: 22rpx;
   font-weight: 400;
-  color: var(--text-4);
+  color: var(--text-3);
   margin-left: 8rpx;
 }
 

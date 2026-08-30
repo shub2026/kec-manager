@@ -16,7 +16,7 @@
         {{grade ? grade + '年级' : '全部年级'}} ›
       </view>
     </picker>
-    <text wx:if="{{grade}}" class="filter-clear" bindtap="clearFilters">重置</text>
+    <text wx:if="{{grade}}" class="filter-clear" hover-class="tap-hover" bindtap="clearFilters">重置</text>
   </view>
 
   <view wx:if="{{loading && list.length === 0}}" class="loading">加载中…</view>
@@ -35,6 +35,7 @@
       wx:for="{{list}}"
       wx:key="classId"
       class="class-card"
+      hover-class="tap-hover"
       bindtap="toggle"
       data-id="{{item.classId}}"
     >

@@ -20,7 +20,7 @@
         <view class="search-icon"></view>
         <input class="filter-input" value="{{keyword}}" placeholder="搜索用户名 / 姓名 / 邮箱" placeholder-class="placeholder" confirm-type="search" cursor-spacing="20" adjust-position bindinput="onKeywordInput" bindconfirm="onKeywordInput" />
       </view>
-      <text wx:if="{{keyword}}" class="filter-clear" bindtap="clearFilters">重置</text>
+      <text wx:if="{{keyword}}" class="filter-clear" hover-class="tap-hover" bindtap="clearFilters">重置</text>
     </view>
 
     <!-- 局部刷新提示（输入/筛选时显示，不遮挡列表） -->
@@ -70,7 +70,7 @@
   </block>
 
   <!-- 悬浮新增按钮 -->
-  <view class="fab" bindtap="openAdd">＋ 新增用户</view>
+  <view class="fab" hover-class="tap-hover" bindtap="openAdd">＋ 新增用户</view>
 </view>
 
 <!-- 新增 / 编辑 用户弹层 -->

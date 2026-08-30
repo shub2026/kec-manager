@@ -36,7 +36,7 @@
         bindinput="onPassword"
         bindconfirm="onSubmit"
       />
-      <view class="eye {{showPassword ? 'eye-on' : ''}}" bindtap="togglePassword">
+      <view class="eye {{showPassword ? 'eye-on' : ''}}" hover-class="tap-hover" role="button" aria-label="显示或隐藏密码" bindtap="togglePassword">
         <view class="eye-ico"></view>
       </view>
     </view>

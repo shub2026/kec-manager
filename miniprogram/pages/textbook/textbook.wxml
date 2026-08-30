@@ -23,9 +23,9 @@
         bindinput="onKeywordInput"
         bindconfirm="onSearch"
       />
-      <text wx:if="{{keyword}}" class="search-clear" bindtap="onClearKeyword">✕</text>
+      <view wx:if="{{keyword}}" class="search-clear clear-ico" hover-class="tap-hover" role="button" aria-label="清除关键词" bindtap="onClearKeyword"></view>
     </view>
-    <view class="search-btn" bindtap="onSearch">搜索</view>
+    <view class="search-btn" hover-class="tap-hover" bindtap="onSearch">搜索</view>
   </view>
 
   <view class="count-line" wx:if="{{(!loading || refreshing) && !error}}">共 {{total}} 种教材</view>
@@ -39,6 +39,7 @@
       wx:for="{{list}}"
       wx:key="id"
       class="row textbook-row"
+      hover-class="tap-hover"
       data-id="{{item.id}}"
       bindtap="goDetail"
     >

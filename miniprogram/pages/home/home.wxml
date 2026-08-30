@@ -141,7 +141,7 @@
     <!-- 教师情况（对照 web 端 TeacherLoadCard，环形图示） -->
     <view class="card">
       <view class="card-title">教师情况
-        <text class="more" bindtap="goStatistics">更多 ›</text>
+        <text class="more" hover-class="tap-hover" bindtap="goStatistics">更多 ›</text>
       </view>
 
       <view wx:if="{{!insights.teacherLoad.hasData}}" class="card-empty">暂无排课教师</view>
