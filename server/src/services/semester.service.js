@@ -231,6 +231,10 @@ export async function getActiveClassFilter(semesterInfo) {
     semesterInfo = await getCurrentSemesterInfo();
   }
   if (!semesterInfo) {
+    // P2-3：降级过滤会纳入已毕业班级，统计可能虚高。
+    // 现有调用方（开课查询/首页/导出/排课）入口均已守卫学期，此分支不应被命中；
+    // 留 warn 便于发现未来新增调用方遗漏前置校验。
+    log.warn('getActiveClassFilter 未获得有效学期，降级为仅按离校状态过滤');
     return { is_left_school: false };
   }
 

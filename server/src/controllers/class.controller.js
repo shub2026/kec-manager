@@ -962,6 +962,12 @@ export async function batchUpdateClasses(req, res, next) {
     });
     const classMap = new Map(classes.map((c) => [c.id, c]));
 
+    // P1修复：批量标记离校须与单条 updateClass 同口径级联删除当前及未来学期排课，
+    // 否则教师课时容量不释放（前端确认文案已承诺该行为）
+    const markingLeftSchool = updateData.is_left_school === true;
+    const semesterInfo = markingLeftSchool ? await getCurrentSemesterInfo() : null;
+    let deletedAssignmentCount = 0;
+
     // 在单个事务中执行所有更新
     const succeeded = [];
     const failed = [];
@@ -973,6 +979,12 @@ export async function batchUpdateClasses(req, res, next) {
             where: { id },
             data: updateData,
           });
+          if (markingLeftSchool && semesterInfo) {
+            const result = await tx.teaching_assignments.deleteMany({
+              where: { class_id: id, semester: { gte: semesterInfo.raw } },
+            });
+            deletedAssignmentCount += result.count;
+          }
           const cls = classMap.get(id);
           succeeded.push({ id, name: cls?.name || `ID:${id}` });
         } catch (e) {
@@ -997,9 +1009,12 @@ export async function batchUpdateClasses(req, res, next) {
         succeeded: succeeded.length,
         failed: failed.length,
         fields: Object.keys(updateData),
+        deletedAssignmentCount,
       },
       result: succeeded.length > 0 ? 'success' : 'failed',
-      message: `批量更新班级：成功 ${succeeded.length} 个，失败 ${failed.length} 个`,
+      message: `批量更新班级：成功 ${succeeded.length} 个，失败 ${failed.length} 个${
+        deletedAssignmentCount > 0 ? `，级联删除排课 ${deletedAssignmentCount} 条` : ''
+      }`,
     });
 
     if (updateData.duration_years !== undefined) invalidateDurationCache();
@@ -1010,6 +1025,7 @@ export async function batchUpdateClasses(req, res, next) {
       total: classIds.length,
       succeeded,
       failed,
+      deletedAssignmentCount,
     });
   } catch (e) {
     next(e);

@@ -1,5 +1,6 @@
 import { body, param, query, validationResult } from 'express-validator';
 import { log } from '../utils/logger.js';
+import { MAX_PLAN_SEMESTER } from '../constants/index.js';
 
 /**
  * 验证结果处理中间件
@@ -387,9 +388,12 @@ export const validatePlanCourse = [
   body('course_id').optional().isInt({ min: 1 }).withMessage('课程ID必须为正整数'),
   body('start_semester')
     .optional()
-    .isInt({ min: 1, max: 10 })
-    .withMessage('开始学期必须在1-10之间'),
-  body('end_semester').optional().isInt({ min: 1, max: 10 }).withMessage('结束学期必须在1-10之间'),
+    .isInt({ min: 1, max: MAX_PLAN_SEMESTER })
+    .withMessage(`开始学期必须在1-${MAX_PLAN_SEMESTER}之间`),
+  body('end_semester')
+    .optional()
+    .isInt({ min: 1, max: MAX_PLAN_SEMESTER })
+    .withMessage(`结束学期必须在1-${MAX_PLAN_SEMESTER}之间`),
   body('weekly_hours').optional().isInt({ min: 0, max: 20 }).withMessage('周课时必须在0-20之间'),
   body('weeks_per_semester')
     .optional()

@@ -32,6 +32,7 @@ const mockPrisma = {
     findFirst: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    count: vi.fn(),
   },
   plan_course_semesters: {
     create: vi.fn(),
@@ -41,6 +42,7 @@ const mockPrisma = {
     findFirst: vi.fn(),
     findMany: vi.fn(),
     update: vi.fn(),
+    count: vi.fn(),
   },
   textbooks: {
     findUnique: vi.fn(),
@@ -1001,7 +1003,8 @@ describe('plan-matrix.controller', () => {
   // ════════════════════════════════════════════
   describe('batchUpdateSemesterWeeks', () => {
     it('正常流程：应在单事务中更新所有学期记录', async () => {
-      const req = mockReq({ ids: [1, 2, 3], weeks_count: 16 });
+      mockPrisma.plan_course_semesters.count.mockResolvedValue(3);
+      const req = mockReq({ ids: [1, 2, 3], weeks_count: 16, plan_id: 9 });
       const res = mockRes();
       const next = vi.fn();
 
@@ -1023,10 +1026,40 @@ describe('plan-matrix.controller', () => {
       expect(mockCreateAuditLog).toHaveBeenCalledWith(
         expect.objectContaining({
           result: 'success',
-          message: '批量更新学期周数：3条记录',
+          message: '批量更新学期周数：方案9，3条记录',
         })
       );
       expect(next).not.toHaveBeenCalled();
+    });
+
+    it('缺少 plan_id 应返回 400（P2）', async () => {
+      const req = mockReq({ ids: [1], weeks_count: 16 });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateSemesterWeeks(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, message: 'plan_id 必须为正整数' })
+      );
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('ids 混入其他方案的学期记录应返回 403（P2）', async () => {
+      // 归属计数 2 < 请求 3，说明混入了非本方案记录
+      mockPrisma.plan_course_semesters.count.mockResolvedValue(2);
+      const req = mockReq({ ids: [1, 2, 999], weeks_count: 16, plan_id: 9 });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateSemesterWeeks(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, message: '存在不属于该培养方案的学期记录' })
+      );
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
     it('ids 为空数组应返回 400', async () => {
@@ -1094,12 +1127,13 @@ describe('plan-matrix.controller', () => {
   // ════════════════════════════════════════════
   describe('batchUpdateCourseSortOrder', () => {
     it('正常流程：应在单事务中更新所有排序', async () => {
+      mockPrisma.plan_courses.count.mockResolvedValue(3);
       const items = [
         { id: 1, sort_order: 0 },
         { id: 2, sort_order: 1 },
         { id: 3, sort_order: 2 },
       ];
-      const req = mockReq({ items });
+      const req = mockReq({ items, plan_id: 9 });
       const res = mockRes();
       const next = vi.fn();
 
@@ -1119,6 +1153,42 @@ describe('plan-matrix.controller', () => {
         })
       );
       expect(next).not.toHaveBeenCalled();
+    });
+
+    it('缺少 plan_id 应返回 400（P2）', async () => {
+      const req = mockReq({ items: [{ id: 1, sort_order: 0 }] });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateCourseSortOrder(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, message: 'plan_id 必须为正整数' })
+      );
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('items 混入其他方案的课程记录应返回 403（P2）', async () => {
+      // 归属计数 1 < 请求 2，说明混入了非本方案记录
+      mockPrisma.plan_courses.count.mockResolvedValue(1);
+      const req = mockReq({
+        items: [
+          { id: 1, sort_order: 0 },
+          { id: 888, sort_order: 1 },
+        ],
+        plan_id: 9,
+      });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateCourseSortOrder(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: false, message: '存在不属于该培养方案的课程记录' })
+      );
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
     it('items 为空数组应返回 400', async () => {
@@ -1147,7 +1217,8 @@ describe('plan-matrix.controller', () => {
     });
 
     it('单条排序也应成功', async () => {
-      const req = mockReq({ items: [{ id: 5, sort_order: 0 }] });
+      mockPrisma.plan_courses.count.mockResolvedValue(1);
+      const req = mockReq({ items: [{ id: 5, sort_order: 0 }], plan_id: 9 });
       const res = mockRes();
       const next = vi.fn();
 

@@ -726,18 +726,34 @@ export async function removeSemesterTextbooks(req, res, next) {
  */
 export async function batchUpdateSemesterWeeks(req, res, next) {
   try {
-    const { ids, weeks_count } = req.body;
+    const { ids, weeks_count, plan_id } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) {
       return fail(res, 'ids 必须为非空数组', 400);
     }
     if (weeks_count == null || weeks_count < 1 || weeks_count > 52) {
       return fail(res, 'weeks_count 必须在 1-52 之间', 400);
     }
+    // P2修复：归属校验——必须声明 plan_id 且所有学期记录均属于该方案，防止跨方案修改
+    const planId = Number(plan_id);
+    if (!Number.isInteger(planId) || planId < 1) {
+      return fail(res, 'plan_id 必须为正整数', 400);
+    }
 
-    const numericIds = ids.map(Number);
+    const uniqueIds = [
+      ...new Set(ids.map(Number).filter((n) => Number.isInteger(n) && n > 0)),
+    ];
+    if (uniqueIds.length === 0) {
+      return fail(res, 'ids 中没有有效的学期记录', 400);
+    }
+    const ownedCount = await prisma.plan_course_semesters.count({
+      where: { id: { in: uniqueIds }, plan_courses: { plan_id: planId } },
+    });
+    if (ownedCount !== uniqueIds.length) {
+      return fail(res, '存在不属于该培养方案的学期记录', 403);
+    }
 
     await prisma.$transaction(
-      numericIds.map((id) =>
+      uniqueIds.map((id) =>
         prisma.plan_course_semesters.update({
           where: { id },
           data: { weeks_count: Number(weeks_count) },
@@ -751,11 +767,11 @@ export async function batchUpdateSemesterWeeks(req, res, next) {
       userId: req.user?.id,
       ip: req.ip,
       result: 'success',
-      message: `批量更新学期周数：${numericIds.length}条记录`,
-      details: { count: numericIds.length, weeks_count: Number(weeks_count) },
+      message: `批量更新学期周数：方案${planId}，${uniqueIds.length}条记录`,
+      details: { planId, count: uniqueIds.length, weeks_count: Number(weeks_count) },
     });
 
-    success(res, { updated: numericIds.length }, '批量更新成功');
+    success(res, { updated: uniqueIds.length }, '批量更新成功');
   } catch (e) {
     next(e);
   }
@@ -768,9 +784,29 @@ export async function batchUpdateSemesterWeeks(req, res, next) {
  */
 export async function batchUpdateCourseSortOrder(req, res, next) {
   try {
-    const { items } = req.body;
+    const { items, plan_id } = req.body;
     if (!Array.isArray(items) || items.length === 0) {
       return fail(res, 'items 必须为非空数组', 400);
+    }
+    // P2修复：归属校验——必须声明 plan_id 且所有课程记录均属于该方案，防止跨方案修改
+    const planId = Number(plan_id);
+    if (!Number.isInteger(planId) || planId < 1) {
+      return fail(res, 'plan_id 必须为正整数', 400);
+    }
+
+    const itemIds = [
+      ...new Set(
+        items.map((item) => Number(item?.id)).filter((n) => Number.isInteger(n) && n > 0)
+      ),
+    ];
+    if (itemIds.length === 0) {
+      return fail(res, 'items 中没有有效的课程记录', 400);
+    }
+    const ownedCount = await prisma.plan_courses.count({
+      where: { id: { in: itemIds }, plan_id: planId },
+    });
+    if (ownedCount !== itemIds.length) {
+      return fail(res, '存在不属于该培养方案的课程记录', 403);
     }
 
     await prisma.$transaction(

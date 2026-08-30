@@ -13,6 +13,9 @@ const mockTx = {
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     update: vi.fn(),
   },
+  teaching_assignments: {
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
 };
 
 const mockPrisma = {
@@ -80,6 +83,7 @@ const { getActiveClassFilter, invalidateDurationCache } =
   await import('../../services/class.service.js');
 const { createAuditLog } = await import('../../services/audit.service.js');
 const { dissolveAfterClassDeletion } = await import('../../services/class-combination.service.js');
+const { getCurrentSemesterInfo } = await import('../../services/settings.service.js');
 
 // ──────────────────────────────────────────────
 // 工具函数
@@ -669,6 +673,69 @@ describe('batchUpdateClasses', () => {
       await batchUpdateClasses(req, res, next);
 
       expect(next).toHaveBeenCalledWith(error);
+    });
+  });
+
+  // ── 批量离校级联删除排课（P1）──
+  describe('批量离校级联删除排课（P1）', () => {
+    it('is_left_school=true 时应级联删除当前及未来学期排课并汇报数量', async () => {
+      getCurrentSemesterInfo.mockResolvedValue({ raw: '2025-2026-2' });
+      mockPrisma.classes.findMany.mockResolvedValue([
+        { id: 1, name: '班级A' },
+        { id: 2, name: '班级B' },
+      ]);
+      mockTx.classes.update.mockResolvedValue({});
+      mockTx.teaching_assignments.deleteMany
+        .mockResolvedValueOnce({ count: 3 })
+        .mockResolvedValueOnce({ count: 2 });
+
+      const req = mockReq({ ids: [1, 2], updates: { is_left_school: true } });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateClasses(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(mockTx.teaching_assignments.deleteMany).toHaveBeenCalledTimes(2);
+      expect(mockTx.teaching_assignments.deleteMany).toHaveBeenCalledWith({
+        where: { class_id: 1, semester: { gte: '2025-2026-2' } },
+      });
+      const data = res.json.mock.calls[0][0].data;
+      expect(data.deletedAssignmentCount).toBe(5);
+    });
+
+    it('非离校更新不应触发排课级联删除', async () => {
+      getCurrentSemesterInfo.mockResolvedValue(null);
+      mockPrisma.classes.findMany.mockResolvedValue([{ id: 1, name: '班级A' }]);
+      mockTx.classes.update.mockResolvedValue({});
+
+      const req = mockReq({ ids: [1], updates: { major_id: 3 } });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateClasses(req, res, next);
+
+      expect(mockTx.teaching_assignments.deleteMany).not.toHaveBeenCalled();
+      const data = res.json.mock.calls[0][0].data;
+      expect(data.deletedAssignmentCount).toBe(0);
+    });
+
+    it('学期信息缺失时应跳过级联但仍完成离校标记', async () => {
+      getCurrentSemesterInfo.mockResolvedValue(null);
+      mockPrisma.classes.findMany.mockResolvedValue([{ id: 1, name: '班级A' }]);
+      mockTx.classes.update.mockResolvedValue({});
+
+      const req = mockReq({ ids: [1], updates: { is_left_school: true } });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await batchUpdateClasses(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(mockTx.teaching_assignments.deleteMany).not.toHaveBeenCalled();
+      const data = res.json.mock.calls[0][0].data;
+      expect(data.succeeded).toHaveLength(1);
+      expect(data.deletedAssignmentCount).toBe(0);
     });
   });
 });

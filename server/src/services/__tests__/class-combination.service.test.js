@@ -178,6 +178,27 @@ describe('validateSameCollege', () => {
     expect(result.ok).toBe(false);
     expect(result.message).toContain('X班');
   });
+
+  it('有班级已离校时应返回错误并列出名称（P2-2）', async () => {
+    mockClassesFindMany.mockResolvedValue([
+      { id: 10, name: 'A班', college_id: 5, is_left_school: false },
+      { id: 11, name: 'B班', college_id: 5, is_left_school: true },
+    ]);
+    const result = await validateSameCollege([10, 11], 5);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('已离校');
+    expect(result.message).toContain('B班');
+    expect(result.message).not.toContain('A班');
+  });
+
+  it('is_left_school 缺省（undefined）时应视为未离校正常通过（P2-2 向后兼容）', async () => {
+    mockClassesFindMany.mockResolvedValue([
+      { id: 10, name: 'A班', college_id: 5 },
+      { id: 11, name: 'B班', college_id: 5 },
+    ]);
+    const result = await validateSameCollege([10, 11], 5);
+    expect(result).toEqual({ ok: true });
+  });
 });
 
 // ══════════════════════════════════════════════

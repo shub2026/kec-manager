@@ -318,7 +318,8 @@ export async function batchUpdateTextbooks(req, res, next) {
     }
 
     // 只允许更新安全字段，防止前端传入不允许修改的字段
-    const safeFields = ['status', 'sort_order', 'category', 'publisher', 'author'];
+    // 注意：教材启停状态为 is_active，走独立的单条切换接口，不在批量更新范围内
+    const safeFields = ['sort_order', 'category', 'publisher', 'author'];
     const updateData = {};
     for (const field of safeFields) {
       if (updates[field] !== undefined) {

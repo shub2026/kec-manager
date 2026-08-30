@@ -202,7 +202,7 @@ describe('applyGlobalWeeks', () => {
 
     await editing.applyGlobalWeeks();
 
-    expect(batchUpdateSemesterWeeks).toHaveBeenCalledWith([11, 21], 18);
+    expect(batchUpdateSemesterWeeks).toHaveBeenCalledWith([11, 21], 18, 1);
     expect(mockElMessage.success).toHaveBeenCalledWith('已应用周数');
     expect(loadData).toHaveBeenCalled();
   });
@@ -280,11 +280,14 @@ describe('排序移动', () => {
 
     await editing.handleMoveDown(group.courses[0], group);
 
-    expect(batchUpdateCourseSortOrder).toHaveBeenCalledWith([
-      { id: 2, sortOrder: 0 },
-      { id: 1, sortOrder: 1 },
-      { id: 3, sortOrder: 2 },
-    ]);
+    expect(batchUpdateCourseSortOrder).toHaveBeenCalledWith(
+      [
+        { id: 2, sortOrder: 0 },
+        { id: 1, sortOrder: 1 },
+        { id: 3, sortOrder: 2 },
+      ],
+      1
+    );
     expect(mockElMessage.success).toHaveBeenCalledWith('排序已更新');
     expect(loadData).toHaveBeenCalled();
   });
@@ -295,11 +298,14 @@ describe('排序移动', () => {
 
     await editing.handleMoveUp(group.courses[2], group);
 
-    expect(batchUpdateCourseSortOrder).toHaveBeenCalledWith([
-      { id: 1, sortOrder: 0 },
-      { id: 3, sortOrder: 1 },
-      { id: 2, sortOrder: 2 },
-    ]);
+    expect(batchUpdateCourseSortOrder).toHaveBeenCalledWith(
+      [
+        { id: 1, sortOrder: 0 },
+        { id: 3, sortOrder: 1 },
+        { id: 2, sortOrder: 2 },
+      ],
+      1
+    );
   });
 
   it('边界：首个上移 / 末个下移不触发接口', async () => {

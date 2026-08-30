@@ -482,16 +482,19 @@ export function useClassList() {
 
       const ids = selectedClasses.value.map((cls) => cls.id);
       const { data } = await batchUpdateClasses(ids, updates);
-      const { succeeded = [], failed = [] } = data || {};
+      const { succeeded = [], failed = [], deletedAssignmentCount = 0 } = data || {};
       if (succeeded.length > 0) invalidateClassOptions();
 
+      // 批量离校会级联删除当前及未来学期排课，提示删除数量形成闭环
+      const cascadeNote =
+        deletedAssignmentCount > 0 ? `，已同步删除 ${deletedAssignmentCount} 条排课记录` : '';
       if (failed.length === 0) {
-        ElMessage.success(`批量设置成功，已更新 ${succeeded.length} 个班级`);
+        ElMessage.success(`批量设置成功，已更新 ${succeeded.length} 个班级${cascadeNote}`);
       } else if (succeeded.length === 0) {
         ElMessage.error(`批量设置失败：${failed[0]?.reason || '未知错误'}`);
       } else {
         ElMessage.warning(
-          `批量设置部分成功：成功 ${succeeded.length} 个，失败 ${failed.length} 个`
+          `批量设置部分成功：成功 ${succeeded.length} 个，失败 ${failed.length} 个${cascadeNote}`
         );
       }
 

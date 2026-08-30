@@ -198,7 +198,7 @@ const {
 }
 
 .progress-text {
-  font-size: 16px;
+  font-size: var(--font-size-h3);
   font-weight: var(--fw-medium);
   color: var(--text-primary);
   margin-bottom: var(--space-2);

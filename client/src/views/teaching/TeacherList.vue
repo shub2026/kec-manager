@@ -375,7 +375,22 @@ async function handleSave({ id, data }) {
   saving.value = true;
   try {
     if (id) {
-      await updateTeacher(id, data);
+      const res = await updateTeacher(id, data);
+      const removed = res?.data?.removedAssignments;
+      if (removed?.length) {
+        const preview = removed
+          .slice(0, 3)
+          .map((a) => `${a.className || '-'}《${a.courseName || '-'}》(${a.semester})`)
+          .join('、');
+        ElMessage({
+          type: 'warning',
+          duration: 6000,
+          showClose: true,
+          message: `已同步移除 ${removed.length} 条相关排课：${preview}${
+            removed.length > 3 ? ' 等' : ''
+          }`,
+        });
+      }
     } else {
       await createTeacher(data);
     }

@@ -239,6 +239,10 @@ export async function updateTeacher(req, res, next) {
     }
 
     try {
+      // P3-1：移除课程资格会级联删除对应排课，删除前收集明细随响应返回，
+      // 供操作端提示"哪些排课被同步移除"，避免静默数据变更
+      let removedAssignmentDetails = [];
+
       // 关联表重建与主表更新置于同一事务，避免中途失败导致关联丢失
       const updated = await prisma.$transaction(async (tx) => {
         // 更新主表
@@ -272,6 +276,25 @@ export async function updateTeacher(req, res, next) {
             .filter((cid) => !newCourseIdSet.has(cid));
 
           if (removedCourseIds.length > 0) {
+            // 删除前记录受影响排课的班级/课程/学期，供响应警告使用
+            const affected = await tx.teaching_assignments.findMany({
+              where: {
+                teacher_id: Number(id),
+                course_id: { in: removedCourseIds },
+              },
+              select: {
+                semester: true,
+                course: { select: { name: true } },
+                class: { select: { name: true } },
+              },
+              orderBy: { semester: 'asc' },
+            });
+            removedAssignmentDetails = affected.map((a) => ({
+              semester: a.semester,
+              course_name: a.course?.name ?? '',
+              class_name: a.class?.name ?? '',
+            }));
+
             await tx.teaching_assignments.deleteMany({
               where: {
                 teacher_id: Number(id),
@@ -331,9 +354,17 @@ export async function updateTeacher(req, res, next) {
         module: 'teacher',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: updated.id, name: data.name || updated.name },
+        details: {
+          id: updated.id,
+          name: data.name || updated.name,
+          removed_assignment_count: removedAssignmentDetails.length,
+        },
         result: 'success',
-        message: `更新教师：${data.name || updated.name}`,
+        message: `更新教师：${data.name || updated.name}${
+          removedAssignmentDetails.length
+            ? `（同步移除 ${removedAssignmentDetails.length} 条相关排课）`
+            : ''
+        }`,
       });
 
       invalidateSortOrderCache('teachers');
@@ -346,6 +377,7 @@ export async function updateTeacher(req, res, next) {
           collegeList: updated.scheduling_colleges.map((sc) => sc.college),
           trainingLevelList: updated.scheduling_levels.map((sl) => sl.training_level),
           assignmentCount: updated._count?.assignments || 0,
+          removed_assignments: removedAssignmentDetails,
         },
         '更新成功'
       );

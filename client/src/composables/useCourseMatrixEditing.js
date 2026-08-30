@@ -134,7 +134,7 @@ export function useCourseMatrixEditing({
 
     if (semesterIds.length > 0) {
       try {
-        await batchUpdateSemesterWeeks(semesterIds, weeks);
+        await batchUpdateSemesterWeeks(semesterIds, weeks, getPlanId());
         await loadData();
         ElMessage.success('已应用周数');
       } catch (e) {
@@ -189,6 +189,9 @@ export function useCourseMatrixEditing({
 
   // ==================== 排序 ====================
 
+  // 快修4：排序防连点守卫——快速连击会并发多个批量排序请求，串行化处理
+  const sorting = ref(false);
+
   /** 通用排序交换（批量接口，单事务原子更新） */
   async function swapSortOrder(group, indexA, indexB) {
     const courses = [...group.courses];
@@ -197,14 +200,15 @@ export function useCourseMatrixEditing({
     courses[indexB] = tmp;
 
     const items = courses.map((c, i) => ({ id: c.id, sortOrder: i }));
-    await batchUpdateCourseSortOrder(items);
+    await batchUpdateCourseSortOrder(items, getPlanId());
   }
 
   /** 上移课程 */
   async function handleMoveUp(course, group) {
     const index = group.courses.findIndex((c) => c.id === course.id);
-    if (index <= 0) return;
+    if (index <= 0 || sorting.value) return;
 
+    sorting.value = true;
     try {
       await swapSortOrder(group, index, index - 1);
       ElMessage.success('排序已更新');
@@ -214,14 +218,17 @@ export function useCourseMatrixEditing({
         console.error('排序更新失败:', e);
       }
       ElMessage.error('排序更新失败');
+    } finally {
+      sorting.value = false;
     }
   }
 
   /** 下移课程 */
   async function handleMoveDown(course, group) {
     const index = group.courses.findIndex((c) => c.id === course.id);
-    if (index >= group.courses.length - 1) return;
+    if (index >= group.courses.length - 1 || sorting.value) return;
 
+    sorting.value = true;
     try {
       await swapSortOrder(group, index, index + 1);
       ElMessage.success('排序已更新');
@@ -231,6 +238,8 @@ export function useCourseMatrixEditing({
         console.error('排序更新失败:', e);
       }
       ElMessage.error('排序更新失败');
+    } finally {
+      sorting.value = false;
     }
   }
 
@@ -265,5 +274,7 @@ export function useCourseMatrixEditing({
     saveSemesterSettings,
     handleMoveUp,
     handleMoveDown,
+    // 状态
+    sorting,
   };
 }

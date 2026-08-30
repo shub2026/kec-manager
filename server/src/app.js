@@ -177,7 +177,7 @@ app.get('/api/health', async (req, res) => {
 // 查询接口 - 所有登录用户可访问
 app.use('/api/query', authMiddleware, queryRoutes);
 
-// 导出接口 - 所有登录用户可访问
+// 导出接口 - 登录用户可达，但各导出端点在路由内限定 admin+（见 export.routes.js）
 app.use('/api/export', authMiddleware, exportRoutes);
 
 // 用户管理 - 仅super_admin可访问（系统管理模块整体收归超级管理员）

@@ -110,16 +110,18 @@ export const getPlanSemesters = (id) => request.get(`/plans/${id}/semesters`);
  * H-3 修复：批量更新学期周数（单事务）
  * @param {number[]} ids - 学期记录 ID 数组
  * @param {number} weeksCount - 统一周数
+ * @param {number} planId - 当前方案 ID，后端据此校验记录归属（P2 修复）
  */
-export const batchUpdateSemesterWeeks = (ids, weeksCount) =>
-  request.patch('/plans/semesters/batch-weeks', { ids, weeksCount });
+export const batchUpdateSemesterWeeks = (ids, weeksCount, planId) =>
+  request.patch('/plans/semesters/batch-weeks', { ids, weeksCount, planId });
 
 /**
  * H-7 修复：批量更新课程排序（单事务）
  * @param {Array<{id: number, sortOrder: number}>} items - 载荷 camelCase，由后端命名中间件转 snake_case
+ * @param {number} planId - 当前方案 ID，后端据此校验记录归属（P2 修复）
  */
-export const batchUpdateCourseSortOrder = (items) =>
-  request.patch('/plans/courses/batch-sort', { items });
+export const batchUpdateCourseSortOrder = (items, planId) =>
+  request.patch('/plans/courses/batch-sort', { items, planId });
 
 // 教材关联（关联到学期）
 

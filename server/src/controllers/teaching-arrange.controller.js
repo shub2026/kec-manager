@@ -41,6 +41,25 @@ function safeParseJSON(str, fallback = null) {
 }
 
 /**
+ * P3-2：批量排课部分成功口径——单课程失败不回滚前序课程（有意设计），
+ * 但完成消息与审计日志须如实反映失败数，避免"全部成功"的误导提示。
+ * 全部课程失败时审计结果记为 failed。
+ */
+function buildBatchOutcome(result) {
+  const { totalCourses, totalAssigned, errorCount = 0 } = result.summary;
+  const failNote = errorCount > 0 ? `，${errorCount}门课程失败` : '';
+  const allFailed = totalCourses > 0 && errorCount === totalCourses;
+  const modeLabel = result.mode === 'full' ? '全量' : '标准';
+  return {
+    errorCount,
+    allFailed,
+    auditResult: allFailed ? 'failed' : 'success',
+    auditMessage: `批量排课(${modeLabel})：${totalCourses}门课程，安排${totalAssigned}个班级${failNote}`,
+    completeMessage: `批量排课完成：安排${totalAssigned}个班级${failNote}`,
+  };
+}
+
+/**
  * 单教材开关硬拦截校验：交换后任一教师持有教材种类 > 1 时返回拦截文案
  * @param {number} courseId 课程 ID
  * @param {string} semester 学期
@@ -1521,6 +1540,7 @@ export async function runBatchAutoArrange(req, res, next) {
           customHoursGuarantee,
         });
 
+        const outcome = buildBatchOutcome(result);
         await createAuditLog({
           action: 'update',
           module: 'teachingArrange',
@@ -1531,15 +1551,16 @@ export async function runBatchAutoArrange(req, res, next) {
             mode,
             totalAssigned: result.summary.totalAssigned,
             totalUnassigned: result.summary.totalUnassigned,
+            errorCount: outcome.errorCount,
           },
-          result: 'success',
-          message: `批量排课(${mode === 'full' ? '全量' : '标准'})：${result.summary.totalCourses}门课程，安排${result.summary.totalAssigned}个班级`,
+          result: outcome.auditResult,
+          message: outcome.auditMessage,
         });
 
         sendSSEEvent(res, 'complete', {
           success: true,
           data: result,
-          message: `批量排课完成：安排${result.summary.totalAssigned}个班级`,
+          message: outcome.completeMessage,
         });
         res.end();
       } catch (e) {
@@ -1556,6 +1577,7 @@ export async function runBatchAutoArrange(req, res, next) {
       customHoursGuarantee,
     });
 
+    const outcome = buildBatchOutcome(result);
     await createAuditLog({
       action: 'update',
       module: 'teachingArrange',
@@ -1566,12 +1588,13 @@ export async function runBatchAutoArrange(req, res, next) {
         mode,
         totalAssigned: result.summary.totalAssigned,
         totalUnassigned: result.summary.totalUnassigned,
+        errorCount: outcome.errorCount,
       },
-      result: 'success',
-      message: `批量排课(${mode === 'full' ? '全量' : '标准'})：${result.summary.totalCourses}门课程，安排${result.summary.totalAssigned}个班级`,
+      result: outcome.auditResult,
+      message: outcome.auditMessage,
     });
 
-    success(res, result, `批量排课完成：安排${result.summary.totalAssigned}个班级`);
+    success(res, result, outcome.completeMessage);
   } catch (e) {
     // H-2 修复：补 .catch(() => {})，与其他端点（assignTeacher/deleteAssignment/runAutoArrange）保持一致
     // 避免审计日志写入失败时覆盖原始排课错误信息

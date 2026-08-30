@@ -402,6 +402,14 @@ async function load() {
 
 // 学期变化时处理
 function handleSemesterChange() {
+  // 学期切换后选项集按新学期实际开课数据重建，旧筛选值会掉出选项显示为原始 ID，
+  // 且可能在新学期已无意义，与「当前学期」按钮同口径清空（不重置学期本身）
+  filterCollege.value = null;
+  filterMajor.value = null;
+  filterLevel.value = null;
+  filterPlan.value = null;
+  filterEnrollmentYear.value = null;
+  filterGrade.value = null;
   resetPaginationAndLoad();
 }
 

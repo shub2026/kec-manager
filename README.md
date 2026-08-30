@@ -2,7 +2,7 @@
 
 面向大中专职业院校教学管理人员的轻量级教学管理系统，涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心业务。
 
-**版本** v1.17.2 · **架构** 前后端分离 · **部署** Docker / PM2 + Nginx
+**版本** v1.19.1 · **架构** 前后端分离 + 微信小程序 · **部署** Docker / PM2 + Nginx
 
 ---
 
@@ -21,6 +21,7 @@
 | 用户管理 | 用户 CRUD、禁用/激活、密码重置（重置后强制改密），仅超级管理员可用 |
 | 审计日志 | 增删改全量记录，按模块/操作员/时间筛选 |
 | 权限控制 | 三级角色（super_admin / admin / viewer），路由守卫 + API 鉴权双重校验 |
+| 微信小程序 | 移动端开课/教材/方案查询、教师课时统计、教师与用户轻量管理（12 页，复用同一套后端 API），详见 [miniprogram/README.md](miniprogram/README.md) |
 
 ---
 
@@ -33,7 +34,8 @@
 | 数据库 | SQLite（WAL 模式，单实例部署） |
 | 认证 | JWT 双令牌（Access 15min + Refresh 7d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt |
 | 安全 | Helmet + 速率限制 + XSS 清洗 + 输入校验 + 审计日志 |
-| 测试 | Vitest + Supertest（后端 1690 用例 / 前端 286 用例） |
+| 小程序 | 微信原生小程序（体验版只读查询 + 轻量管理，独立于 Web 端） |
+| 测试 | Vitest + Supertest（后端 77 文件 / 1829 用例，前端 46 文件 / 476 用例） |
 | 部署 | Docker（推荐）/ PM2 进程管理 + Nginx 反向代理 + 一键部署脚本 |
 
 ---
@@ -120,7 +122,7 @@ npm run db:seed:dev      # 含开发测试数据
 npm run db:seed:reset    # 强制重置 + 重新 seed
 npm run db:reset         # 重建数据库
 npm run init:settings    # 初始化系统设置
-npm test                 # Vitest（75 个测试文件 / 1690 用例）
+npm test                 # Vitest（77 个测试文件 / 1829 用例）
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化
@@ -133,7 +135,7 @@ npm run dev              # Vite 开发服务器（:5173）
 npm run build            # 生产构建
 npm run preview          # 预览构建产物
 npm run analyze          # 包体积分析
-npm test                 # Vitest（33 个测试文件 / 286 用例）
+npm test                 # Vitest（46 个测试文件 / 476 用例）
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化
@@ -148,13 +150,13 @@ kec-manager/
 ├── client/                          # 前端 Vue 3 + Element Plus
 │   ├── src/
 │   │   ├── api/                     # API 接口层（17 个模块）
-│   │   ├── components/              # 公共组件（21 个）
-│   │   ├── composables/             # 组合式函数（12 个）
+│   │   ├── components/              # 公共组件（22 个，含 filter/ 筛选条组件）
+│   │   ├── composables/             # 组合式函数（11 个）
 │   │   ├── router/                  # 路由 + 三级权限守卫
 │   │   ├── stores/                  # Pinia 状态（auth / settings / classData）
 │   │   ├── styles/                  # 全局样式 + 设计令牌
 │   │   ├── utils/                   # 工具（axios 封装、缓存、Cookie、下载）
-│   │   └── views/                   # 页面视图（14 个模块目录）
+│   │   └── views/                   # 页面视图（11 个模块目录）
 │   └── vite.config.js               # 构建配置 + 分包策略
 ├── server/                          # 后端 Express + Prisma
 │   ├── src/
@@ -167,9 +169,13 @@ kec-manager/
 │   │   └── utils/                   # Excel / SSE / 排序 / 日志
 │   ├── prisma/
 │   │   ├── schema.prisma            # 21 个数据模型
-│   │   ├── migrations/              # 迁移文件（21 次迭代）
+│   │   ├── migrations/              # 迁移文件（23 次迭代）
 │   │   └── seed.js                  # 种子数据
 │   └── scripts/                     # 运维脚本（密码重置、数据库重建）
+├── miniprogram/                     # 微信小程序（原生，独立于 client，复用后端 API）
+│   ├── pages/                       # 12 个页面（查询/统计/教师与用户管理）
+│   ├── utils/                       # 请求封装、认证、学期工具
+│   └── app.json                     # 页面与 tabBar 注册
 ├── docs/                            # 项目文档
 ├── scripts/version.js               # 版本管理脚本
 ├── deploy.sh                        # 一键部署（本地/远程，PM2 方案）
@@ -295,6 +301,16 @@ PROJECT_DIR=/your/custom/path bash deploy.sh root@your-server.com
 
 详细部署与运维指南见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) 与 [docs/DOCKER_DEPLOYMENT.md](docs/DOCKER_DEPLOYMENT.md)。
 
+### 微信小程序上线
+
+小程序无需独立服务端，复用已部署的后端：
+
+1. 修改 `miniprogram/config.js` 中的 `API_BASE` 为已备案的 HTTPS 后端域名（不带 `/api` 后缀）
+2. 微信公众平台配置该域名为小程序合法请求域名
+3. 微信开发者工具导入 `miniprogram/` 目录，上传为体验版/提审
+
+详见 [miniprogram/README.md](miniprogram/README.md)。
+
 ### 服务器最低要求
 
 | 项目 | 配置 |
@@ -337,7 +353,7 @@ PROJECT_DIR=/your/custom/path bash deploy.sh root@your-server.com
 | [Docker 部署检查清单](docs/DOCKER_CHECKLIST.md) | Docker 部署验证、故障排查、安全加固 |
 | [排课算法说明](docs/SCHEDULING_ALGORITHM.md) | 五阶段算法、评分机制、教材内聚策略 |
 | [排课算法审计](docs/SCHEDULING_ALGORITHM_AUDIT.md) | 算法审计发现与修复跟踪 |
-| [学期计算说明](docs/semester-calculation.md) | 学期状态计算逻辑 |
+| [学期计算说明](docs/SEMESTER-CALCULATION.md) | 学期状态计算逻辑 |
 | [代码格式化指南](docs/CODE_FORMATTING.md) | Prettier + ESLint 配置 |
 | [命名规范迁移](docs/NAMING_CONVENTION_MIGRATION.md) | 前后端命名规范 |
 | [版本管理指南](docs/VERSION_MANAGEMENT.md) | 语义化版本与自动化脚本 |

@@ -344,6 +344,51 @@ describe('updateTeacher', () => {
       });
     });
 
+    it('移除课程且有受影响排课时，响应应携带 removed_assignments 明细（P3-1）', async () => {
+      mockTx.teacher_courses.findMany.mockResolvedValue([
+        { course_id: 1 },
+        { course_id: 2 },
+      ]);
+      mockTx.teaching_assignments.findMany.mockResolvedValue([
+        {
+          semester: '2025-2026-2',
+          course: { name: '教育学' },
+          class: { name: '护理1班' },
+        },
+      ]);
+
+      const req = mockReq({ id: TEACHER_ID }, { course_ids: [1] }); // 移除课程 2
+      const res = mockRes();
+      const next = vi.fn();
+
+      await updateTeacher(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      const payload = res.json.mock.calls[0][0];
+      expect(payload.data.removed_assignments).toEqual([
+        { semester: '2025-2026-2', course_name: '教育学', class_name: '护理1班' },
+      ]);
+    });
+
+    it('移除课程但无受影响排课时，removed_assignments 应为空数组（P3-1）', async () => {
+      mockTx.teacher_courses.findMany.mockResolvedValue([
+        { course_id: 1 },
+        { course_id: 2 },
+      ]);
+      // clearAllMocks 不清除上一用例的 mockResolvedValue 实现，显式重置为空
+      mockTx.teaching_assignments.findMany.mockResolvedValue([]);
+
+      const req = mockReq({ id: TEACHER_ID }, { course_ids: [1] });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await updateTeacher(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      const payload = res.json.mock.calls[0][0];
+      expect(payload.data.removed_assignments).toEqual([]);
+    });
+
     it('course_ids 变更时应重建 teacher_courses 关联', async () => {
       mockTx.teacher_courses.findMany.mockResolvedValue([{ course_id: 1 }]);
 

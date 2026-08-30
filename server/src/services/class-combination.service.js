@@ -11,9 +11,10 @@ import { log } from '../utils/logger.js';
  */
 
 /**
- * 校验候选班级列表是否全部同学院（合班业务约束）。
+ * 校验候选班级列表是否全部同学院且均未离校（合班业务约束）。
  * BIZ-M4修复：增加事务客户端参数 txClient，避免 TOCTOU——并发场景下校验通过后
  * 伙伴班级学院可能被另一事务修改，导致合班伙伴最终不同学院。
+ * P2-2修复：补充离校状态校验——已离校班级不参与开课/统计推导，纳入合班组会产生无效成员。
  * 优先使用传入的事务客户端查询；若未传入则降级使用全局 prisma（向后兼容）。
  * @param {number[]} classIds - 班级 ID 列表（不含当前班级自身）
  * @param {number} collegeId - 当前班级所属学院 ID
@@ -28,10 +29,15 @@ export async function validateSameCollege(classIds, collegeId, txClient) {
   const client = txClient || prisma;
   const classes = await client.classes.findMany({
     where: { id: { in: classIds } },
-    select: { id: true, name: true, college_id: true },
+    select: { id: true, name: true, college_id: true, is_left_school: true },
   });
   if (classes.length !== classIds.length) {
     return { ok: false, message: '部分合班伙伴班级不存在' };
+  }
+  const leftSchool = classes.filter((c) => c.is_left_school === true);
+  if (leftSchool.length > 0) {
+    const names = leftSchool.map((c) => c.name).join('、');
+    return { ok: false, message: `以下班级已离校，不能作为合班伙伴：${names}` };
   }
   const diff = classes.filter((c) => c.college_id !== collegeId);
   if (diff.length > 0) {

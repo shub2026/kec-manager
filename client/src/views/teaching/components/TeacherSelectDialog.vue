@@ -289,14 +289,21 @@ watch([searchKey, personnelFilter, textbookFilter], () => {
   currentPage.value = 1;
 });
 
+// 模板内同一行会调用两次（v-if 判空 + v-for 渲染），按数组引用记忆避免重复去重；
+// 数据重载产生新数组引用，旧条目由 WeakMap 随 GC 自动回收
+const uniqueTextbooksCache = new WeakMap();
 function uniqueTextbooks(textbooks) {
   if (!textbooks) return [];
+  const cached = uniqueTextbooksCache.get(textbooks);
+  if (cached) return cached;
   const seen = new Set();
-  return textbooks.filter((tb) => {
+  const result = textbooks.filter((tb) => {
     if (seen.has(tb.id)) return false;
     seen.add(tb.id);
     return true;
   });
+  uniqueTextbooksCache.set(textbooks, result);
+  return result;
 }
 
 function onTeacherSelect(teacher) {

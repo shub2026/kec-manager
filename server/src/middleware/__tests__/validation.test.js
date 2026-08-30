@@ -75,6 +75,7 @@ const {
 } = await import('../validation.js');
 
 const { log } = await import('../../utils/logger.js');
+const { MAX_PLAN_SEMESTER } = await import('../../constants/index.js');
 
 // ──────────────────────────────────────────────
 // 辅助：运行验证链
@@ -786,6 +787,20 @@ describe('培养方案规则链', () => {
       body: { course_id: 1, start_semester: 1, end_semester: 4, weekly_hours: 4, weeks_per_semester: 18 },
     });
     expect(nextCalled).toBe(true);
+  });
+
+  it('validatePlanCourse 学期达上限（MAX_PLAN_SEMESTER）应通过', async () => {
+    const { nextCalled } = await runValidation(validatePlanCourse, {
+      body: { course_id: 1, start_semester: 1, end_semester: MAX_PLAN_SEMESTER },
+    });
+    expect(nextCalled).toBe(true);
+  });
+
+  it('validatePlanCourse 学期超上限应返回 422', async () => {
+    const { res } = await runValidation(validatePlanCourse, {
+      body: { course_id: 1, start_semester: 1, end_semester: MAX_PLAN_SEMESTER + 1 },
+    });
+    expect(res.statusCode).toBe(422);
   });
 
   it('validateSemester 周数超上限应返回 422', async () => {
