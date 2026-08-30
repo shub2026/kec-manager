@@ -1,9 +1,20 @@
-/* ===== 筛选栏 ===== */
+/* ===== 页面颜色分层：素页头 + 筛选条 = 全宽白色工具层（对齐开课查询页） ===== */
+.hero--plain {
+  margin: -24rpx -24rpx 0;
+  padding: 24rpx 24rpx 16rpx;
+  background: var(--bg-card);
+}
 .filter-bar {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  margin: 8rpx 0 20rpx;
+  margin: 0 -24rpx 20rpx;
+  padding: 16rpx 24rpx;
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1rpx solid var(--border-light);
 }
 .search-box {
   flex: 1;
