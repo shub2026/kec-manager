@@ -1,6 +1,13 @@
-/* ===== 搜索栏 ===== */
+/* ===== 页面颜色分层：素页头 + 搜索栏 + 筛选行 = 全宽白色工具层（对齐开课查询页） ===== */
+.hero--plain {
+  margin: -24rpx -24rpx 0;
+  padding: 24rpx 24rpx 16rpx;
+  background: var(--bg-card);
+}
 .search-bar {
-  margin-bottom: 20rpx;
+  margin: 0 -24rpx;
+  padding: 8rpx 24rpx 0;
+  background: var(--bg-card);
 }
 .search-ico {
   width: 32rpx;
@@ -26,12 +33,18 @@
   flex-shrink: 0;
 }
 
-/* ===== 筛选行 ===== */
+/* ===== 筛选行（吸顶工具层） ===== */
 .filter-row {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-bottom: 20rpx;
+  margin: 0 -24rpx 20rpx;
+  padding: 12rpx 24rpx 16rpx;
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1rpx solid var(--border-light);
 }
 .filter-reset {
   font-size: 26rpx;
