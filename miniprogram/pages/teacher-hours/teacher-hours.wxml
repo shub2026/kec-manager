@@ -68,16 +68,18 @@
               <text class="cb-name">{{d.courseName}}</text>
               <text class="cb-hours">{{d.weeklyHours}} 课时/周</text>
             </view>
-            <view
-              wx:for="{{d.classes}}"
-              wx:for-item="c"
-              wx:key="className"
-              class="cb-class"
-            >
-              <text class="cb-cname">{{c.className}}</text>
-              <text wx:if="{{c.isCombined}}" class="cb-comb">合班</text>
-              <text wx:if="{{c.isAuto}}" class="cb-auto">自动</text>
-              <text class="cb-extra">{{c.collegeName}}·{{c.trainingLevelName}}｜教材：{{c.textbookName}}</text>
+            <view class="cb-classes">
+              <view
+                wx:for="{{d.classes}}"
+                wx:for-item="c"
+                wx:key="className"
+                class="cb-class"
+              >
+                <text class="cb-cname">{{c.className}}</text>
+                <text wx:if="{{c.isCombined}}" class="cb-comb">合班</text>
+                <text wx:if="{{c.isAuto}}" class="cb-auto">自动</text>
+                <text class="cb-extra">{{c.collegeName}}·{{c.trainingLevelName}}｜教材：{{c.textbookName}}</text>
+              </view>
             </view>
           </view>
         </view>

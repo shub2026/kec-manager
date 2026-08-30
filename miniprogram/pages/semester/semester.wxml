@@ -47,12 +47,14 @@
       <view class="class-plan">方案：{{item.planName || '—'}} · 开课 {{item.courseCount}} 门</view>
 
       <view wx:if="{{expandedId === item.classId}}" class="course-list">
-        <view wx:for="{{item.courses}}" wx:for-item="co" wx:key="courseName" class="course">
-          <view class="course-top">
-            <text class="course-name">{{co.courseName}}</text>
-            <text class="course-hours">{{co.weeklyHours}} 节/周</text>
+        <view class="course-items">
+          <view wx:for="{{item.courses}}" wx:for-item="co" wx:key="courseName" class="course">
+            <view class="course-top">
+              <text class="course-name">{{co.courseName}}</text>
+              <text class="course-hours">{{co.weeklyHours}} 节/周</text>
+            </view>
+            <view class="course-book">教材：{{co.textbooks}}</view>
           </view>
-          <view class="course-book">教材：{{co.textbooks}}</view>
         </view>
         <view wx:if="{{!item.courses.length}}" class="empty">本学期无开课</view>
       </view>

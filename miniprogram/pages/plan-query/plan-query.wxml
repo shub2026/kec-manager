@@ -109,33 +109,35 @@
               </view>
 
               <!-- 课程卡片 -->
-              <view wx:for="{{group.courses}}" wx:key="id" wx:for-item="course"
-                class="crs {{course.isActive === false ? 'crs-off' : ''}}">
-                <view class="crs-head">
-                  <text class="crs-name {{course.isActive === false ? 'name-off' : ''}}">{{course.name}}</text>
-                  <text class="crs-type t-{{course.type || 'public'}}">{{course.type === 'professional' ? '专业' : '公共'}}</text>
-                  <text wx:if="{{course.isActive === false}}" class="crs-stop">停用</text>
-                  <text class="crs-total">{{course.totalHours}}课时</text>
-                </view>
+              <view class="crs-list">
+                <view wx:for="{{group.courses}}" wx:key="id" wx:for-item="course"
+                  class="crs {{course.isActive === false ? 'crs-off' : ''}}">
+                  <view class="crs-head">
+                    <text class="crs-name {{course.isActive === false ? 'name-off' : ''}}">{{course.name}}</text>
+                    <text class="crs-type t-{{course.type || 'public'}}">{{course.type === 'professional' ? '专业' : '公共'}}</text>
+                    <text wx:if="{{course.isActive === false}}" class="crs-stop">停用</text>
+                    <text class="crs-total">{{course.totalHours}}课时</text>
+                  </view>
 
-                <!-- 学期明细（纵向） -->
-                <view class="crs-sems">
-                  <view wx:for="{{course.semesterItems}}" wx:key="semester" wx:for-item="sem" class="sem-row">
-                    <view class="sem-info">
-                      <text class="sem-idx">第{{sem.semester}}学期</text>
-                      <text class="sem-hours h-{{sem.heatClass}}">{{sem.weeklyHours}}课时/周</text>
-                      <text class="sem-weeks">{{sem.weeks}}周</text>
-                      <text class="sem-hours-total">{{sem.hours}}课时</text>
-                    </view>
-                    <!-- 教材 -->
-                    <view class="sem-books">
-                      <block wx:if="{{sem.textbooks.length > 0}}">
-                        <view wx:for="{{sem.textbooks}}" wx:key="title" wx:for-item="bk" class="bk-line">
-                          <text class="bk-dot {{bk.isRequired ? 'bk-req' : 'bk-opt'}}">{{bk.isRequired ? '●' : '○'}}</text>
-                          <text class="bk-title {{bk.isActive === false ? 'bk-off' : ''}}">{{bk.title}}</text>
-                        </view>
-                      </block>
-                      <text wx:else class="bk-none">未指定教材</text>
+                  <!-- 学期明细（纵向） -->
+                  <view class="crs-sems">
+                    <view wx:for="{{course.semesterItems}}" wx:key="semester" wx:for-item="sem" class="sem-row">
+                      <view class="sem-info">
+                        <text class="sem-idx">第{{sem.semester}}学期</text>
+                        <text class="sem-hours h-{{sem.heatClass}}">{{sem.weeklyHours}}课时/周</text>
+                        <text class="sem-weeks">{{sem.weeks}}周</text>
+                        <text class="sem-hours-total">{{sem.hours}}课时</text>
+                      </view>
+                      <!-- 教材 -->
+                      <view class="sem-books">
+                        <block wx:if="{{sem.textbooks.length > 0}}">
+                          <view wx:for="{{sem.textbooks}}" wx:key="title" wx:for-item="bk" class="bk-line">
+                            <text class="bk-dot {{bk.isRequired ? 'bk-req' : 'bk-opt'}}">{{bk.isRequired ? '●' : '○'}}</text>
+                            <text class="bk-title {{bk.isActive === false ? 'bk-off' : ''}}">{{bk.title}}</text>
+                          </view>
+                        </block>
+                        <text wx:else class="bk-none">未指定教材</text>
+                      </view>
                     </view>
                   </view>
                 </view>

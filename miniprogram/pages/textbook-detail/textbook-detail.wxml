@@ -1,4 +1,13 @@
 <view class="page">
+  <view class="hero hero--plain">
+    <view class="hero-card">
+      <view class="hero-text">
+        <view class="hero-title">教材详情</view>
+        <view class="hero-subtitle">查看教材选用与班级覆盖</view>
+      </view>
+    </view>
+  </view>
+
   <view wx:if="{{loading && !textbook}}" class="loading">加载中…</view>
   <view wx:elif="{{error && !textbook}}" class="errbox">{{error}}</view>
 

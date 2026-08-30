@@ -15,7 +15,7 @@
     <view class="search-box">
       <view class="search-ico"></view>
       <input
-        class="search-input"
+        class="search-field"
         placeholder="搜索课程名称"
         placeholder-class="ph"
         value="{{keyword}}"
@@ -68,28 +68,30 @@
 
       <!-- 展开方案明细 -->
       <view wx:if="{{item.expanded}}" class="plan-list">
-        <view wx:for="{{item.plans}}" wx:for-item="p" wx:key="planId" class="plan-row">
-          <view class="plan-top">
-            <text class="plan-name">{{p.planName}}</text>
-            <text wx:if="{{p.version}}" class="plan-version">{{p.version}}</text>
-            <text class="plan-status {{p.statusClass}}">{{p.statusLabel}}</text>
-            <text wx:if="{{!p.isActive}}" class="plan-disabled">已禁用</text>
-          </view>
-          <view class="plan-info">
-            <text class="info-tag">专业 {{p.majorName}}</text>
-            <text class="info-tag">层次 {{p.trainingLevelName}}</text>
-            <text class="info-tag">学院 {{p.collegeName}}</text>
-            <text class="info-tag" wx:if="{{p.startSemester}}">开课 第{{p.startSemester}}-{{p.endSemester}}学期</text>
-          </view>
-          <!-- 各学期周课时 -->
-          <view wx:if="{{p.semesters.length}}" class="sem-row">
-            <view wx:for="{{p.semesters}}" wx:for-item="s" wx:key="semester" class="sem-cell">
-              <text class="sem-label">第{{s.semester}}学期</text>
-              <text class="sem-hours">{{s.weeklyHours}}<text class="sem-unit">课时/周</text></text>
-              <text wx:if="{{s.textbooks}}" class="sem-tb">{{s.textbooks}}</text>
+        <view class="plan-rows">
+          <view wx:for="{{item.plans}}" wx:for-item="p" wx:key="planId" class="plan-row">
+            <view class="plan-top">
+              <text class="plan-name">{{p.planName}}</text>
+              <text wx:if="{{p.version}}" class="plan-version">{{p.version}}</text>
+              <text class="plan-status {{p.statusClass}}">{{p.statusLabel}}</text>
+              <text wx:if="{{!p.isActive}}" class="plan-disabled">已禁用</text>
             </view>
+            <view class="plan-info">
+              <text class="info-tag it-major">专业 {{p.majorName}}</text>
+              <text class="info-tag it-level">层次 {{p.trainingLevelName}}</text>
+              <text class="info-tag it-college">学院 {{p.collegeName}}</text>
+              <text class="info-tag it-sem" wx:if="{{p.startSemester}}">开课 第{{p.startSemester}}-{{p.endSemester}}学期</text>
+            </view>
+            <!-- 各学期周课时 -->
+            <view wx:if="{{p.semesters.length}}" class="sem-row">
+              <view wx:for="{{p.semesters}}" wx:for-item="s" wx:key="semester" class="sem-cell">
+                <text class="sem-label">第{{s.semester}}学期</text>
+                <text class="sem-hours">{{s.weeklyHours}}<text class="sem-unit">课时/周</text></text>
+                <text wx:if="{{s.textbooks}}" class="sem-tb">{{s.textbooks}}</text>
+              </view>
+            </view>
+            <view class="plan-total">总课时：<text class="plan-total-num">{{p.totalHours}}</text></view>
           </view>
-          <view class="plan-total">总课时：<text class="plan-total-num">{{p.totalHours}}</text></view>
         </view>
         <view wx:if="{{!item.plans.length}}" class="empty">该课程暂无采用方案</view>
       </view>

@@ -126,11 +126,11 @@
         </view>
 
         <view class="hours-summary">
-          <view class="hs-tag hs-filled">
-            <text class="hs-text">已排 <text class="hs-num">{{insights.progress.assignedHours}}</text> 课时</text>
+          <view class="hs-tag">
+            <text>已排 <text class="hs-num">{{insights.progress.assignedHours}}</text> 课时</text>
           </view>
-          <view class="hs-tag hs-remaining">
-            <text class="hs-text">剩余 <text class="hs-num">{{insights.progress.remainingHours}}</text> 课时</text>
+          <view class="hs-tag">
+            <text>剩余 <text class="hs-num">{{insights.progress.remainingHours}}</text> 课时</text>
           </view>
         </view>
 

@@ -1,80 +1,5 @@
-/* ===== 页面颜色分层：素页头 + 筛选条 = 全宽白色工具层（对齐开课查询页） ===== */
-.hero--plain {
-  margin: -24rpx -24rpx 0;
-  padding: 24rpx 24rpx 16rpx;
-  background: var(--bg-card);
-}
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  margin: 0 -24rpx 20rpx;
-  padding: 16rpx 24rpx;
-  background: var(--bg-card);
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  border-bottom: 1rpx solid var(--border-light);
-}
-.search-box {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  height: 84rpx;
-  padding: 0 24rpx;
-  background: var(--bg-subtle);
-  border: none;
-  border-radius: var(--radius-md);
-  box-sizing: border-box;
-}
-.search-box:focus-within {
-  background: var(--bg-card);
-  box-shadow: 0 0 0 4rpx rgba(50, 131, 255, 0.15);
-}
-.search-ico {
-  width: 32rpx;
-  height: 32rpx;
-  margin-right: 14rpx;
-  flex-shrink: 0;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  opacity: 0.5;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
-}
-.search-input {
-  flex: 1;
-  height: 100%;
-  font-size: 28rpx;
-  color: var(--text-1);
-  min-width: 0;
-}
-.ph { color: var(--text-4); }
-.search-clear {
-  font-size: 28rpx;
-  color: var(--text-4);
-  padding: 0 8rpx;
-  flex-shrink: 0;
-}
 .type-picker {
   flex-shrink: 0;
-}
-.type-picker-inner {
-  display: flex;
-  align-items: center;
-  height: 84rpx;
-  padding: 0 24rpx;
-  background: var(--bg-subtle);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 28rpx;
-  color: var(--text-2);
-  box-sizing: border-box;
-}
-.caret {
-  margin-left: 10rpx;
-  font-size: 22rpx;
-  color: var(--text-4);
 }
 
 /* ===== 统计条 ===== */
@@ -173,13 +98,17 @@
   padding-top: 24rpx;
   border-top: 1rpx solid var(--border-light);
 }
-.plan-row {
-  padding: 20rpx;
-  margin-bottom: 16rpx;
+.plan-rows {
   background: var(--bg-page);
   border-radius: var(--radius-md);
+  overflow: hidden;
 }
-.plan-row:last-child { margin-bottom: 0; }
+.plan-row {
+  padding: 20rpx;
+}
+.plan-row + .plan-row {
+  border-top: 1rpx solid var(--border);
+}
 .plan-top {
   display: flex;
   align-items: center;
@@ -233,6 +162,10 @@
   border-radius: var(--radius-sm);
   padding: 4rpx 12rpx;
 }
+.it-major { color: var(--teal-dark); background: var(--teal-soft); }
+.it-level { color: var(--brand); background: var(--brand-soft); }
+.it-college { color: var(--brand); background: var(--brand-soft); }
+.it-sem { color: var(--text-2); }
 .sem-row {
   display: flex;
   flex-wrap: wrap;

@@ -5,8 +5,8 @@
   <block wx:else>
     <view wx:if="{{refreshing}}" class="loading">刷新中…</view>
 
-    <!-- 用户卡 -->
-    <view class="user-card">
+    <!-- 用户页头：复用素页头规范，头像行挂入 -->
+    <view class="hero hero--plain user-hero">
       <view class="avatar"></view>
       <view class="user-info">
         <view class="user-name">{{me.realName}}</view>

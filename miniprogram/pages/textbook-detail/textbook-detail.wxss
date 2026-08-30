@@ -83,7 +83,7 @@
 .cls-detail {
   margin-top: 16rpx;
   padding: 16rpx 20rpx;
-  background: var(--bg-subtle);
+  background: var(--bg-page);
   border-radius: var(--radius-md);
 }
 .cd-row {

@@ -1,13 +1,7 @@
-/* 用户卡：与首页 Hero 卡统一样式（扁平实色浅蓝底，无边框无阴影） */
-.user-card {
+/* 用户页头：复用 .hero--plain 规范（出血/浅蓝表面/最小高度），仅加垂直居中 */
+.user-hero {
   display: flex;
   align-items: center;
-  background: var(--brand-soft);
-  border-radius: var(--radius-lg);
-  padding: 44rpx 32rpx;
-  margin-bottom: 20rpx;
-  position: relative;
-  overflow: hidden;
 }
 .avatar {
   width: 104rpx;

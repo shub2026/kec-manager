@@ -83,8 +83,6 @@
   min-width: 0;
   letter-spacing: 0.5rpx;
 }
-.ph { color: var(--text-4); }
-
 .eye {
   width: 44rpx;
   height: 44rpx;
@@ -138,7 +136,7 @@
   text-align: center;
   margin-top: 48rpx;       /* 加大与卡片距离 44→48 */
   font-size: 22rpx;
-  color: var(--text-4);
+  color: var(--text-3);
   position: relative;
   z-index: 1;
   letter-spacing: 1rpx;
