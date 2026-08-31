@@ -1,28 +1,21 @@
-.login {
+/* pages/register/register.wxss —— 与登录页同规格表单 */
+.register {
   min-height: 100vh;
   box-sizing: border-box;
-  /* 顶部 96rpx / 左右 48rpx / 底部 64rpx：略压缩上下留白，让品牌区与表单比例更紧致 */
-  padding: 96rpx 48rpx 64rpx;
+  padding: 64rpx 48rpx 64rpx;
   background: var(--bg-page);
   position: relative;
   overflow: hidden;
 }
 
-.brand {
+.head {
   text-align: center;
-  margin-bottom: 56rpx;
+  margin-bottom: 48rpx;
   position: relative;
   z-index: 1;
 }
-.logo {
-  width: 144rpx;        /* 略加大 132→144 */
-  height: 144rpx;
-  margin-bottom: 32rpx;
-  border-radius: var(--radius-xl);
-  background: var(--bg-card);
-}
 .title {
-  font-size: 44rpx;     /* 略加大 40→44 */
+  font-size: 40rpx;
   font-weight: 700;
   color: var(--text-1);
   margin-bottom: 12rpx;
@@ -31,13 +24,13 @@
 .subtitle {
   font-size: 26rpx;
   color: var(--text-3);
-  letter-spacing: 1rpx;  /* 字距撑开高级感 */
+  letter-spacing: 1rpx;
 }
 
 .form {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
-  padding: 56rpx 40rpx 52rpx;  /* 内边距加大 48/36/44→56/40/52 */
+  padding: 48rpx 40rpx 48rpx;
   position: relative;
   z-index: 1;
 }
@@ -46,10 +39,10 @@
   position: relative;
   display: flex;
   align-items: center;
-  height: 108rpx;       /* 加大 100→108 */
-  margin-bottom: 32rpx; /* 略缩 40→32 */
-  padding: 0 32rpx;     /* 加大左右 28→32 */
-  background: var(--bg-subtle);  /* 灰底，与卡片底色形成层次 */
+  height: 108rpx;
+  margin-bottom: 28rpx;
+  padding: 0 32rpx;
+  background: var(--bg-subtle);
   border: none;
   border-radius: var(--radius-md);
   box-sizing: border-box;
@@ -57,12 +50,12 @@
 }
 .field:focus-within {
   background: var(--bg-card);
-  box-shadow: 0 0 0 6rpx rgba(50, 131, 255, 0.12);  /* 品牌色光环 */
+  box-shadow: 0 0 0 6rpx rgba(50, 131, 255, 0.12);
 }
 .field-ico {
   width: 40rpx;
   height: 40rpx;
-  margin-right: 20rpx;  /* 略加大 18→20 */
+  margin-right: 20rpx;
   flex-shrink: 0;
   background-repeat: no-repeat;
   background-position: center;
@@ -71,6 +64,12 @@
 }
 .ico-user {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
+}
+.ico-name {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2'/%3E%3Ccircle cx='9' cy='10' r='2'/%3E%3Cpath d='M15 8h3M15 12h3M6 16c.5-1.5 1.5-2 3-2s2.5.5 3 2'/%3E%3C/svg%3E");
+}
+.ico-mail {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='4' width='20' height='16' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/svg%3E");
 }
 .ico-lock {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='11' width='18' height='11' rx='2' ry='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E");
@@ -105,47 +104,33 @@
 }
 
 .submit {
-  margin-top: 32rpx;
-  /* view 上 flex 居中必胜 <button> reset，按钮必 100% 撑满 .form 内容区与输入框同宽 */
+  margin-top: 24rpx;
   display: flex !important;
   align-items: center;
   justify-content: center;
   width: 100% !important;
-  height: 108rpx;  /* 与输入框同高 100→108 */
+  height: 108rpx;
   padding: 0 !important;
   border: none;
   border-radius: var(--radius-md);
-  font-size: 34rpx;       /* 加大 33→34 */
-  font-weight: 600;       /* 加粗 500→600 */
+  font-size: 34rpx;
+  font-weight: 600;
   letter-spacing: 1rpx;
   box-sizing: border-box;
   background: var(--brand);
   color: #fff;
 }
-/* loading 中：禁用点击 + 半透明 */
 .submit.is-loading {
   opacity: 0.78;
   pointer-events: none;
 }
-/* 按下态：模拟 button hover */
 .submit-hover {
   opacity: 0.88;
 }
 
-.go-register {
-  margin-top: 32rpx;
-  text-align: center;
-  font-size: 26rpx;
-  color: var(--text-3);
-}
-.go-register-link {
-  color: var(--brand);
-  font-weight: 500;
-}
-
 .tip {
   text-align: center;
-  margin-top: 48rpx;       /* 加大与卡片距离 44→48 */
+  margin-top: 40rpx;
   font-size: 22rpx;
   color: var(--text-3);
   position: relative;

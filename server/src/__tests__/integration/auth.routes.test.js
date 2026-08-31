@@ -25,6 +25,7 @@ process.env.JWT_DOWNLOAD_SECRET = 'test-download-secret-that-is-long-enough-for-
 const mockPrismaUsers = {
   findUnique: vi.fn(),
   update: vi.fn(),
+  create: vi.fn(),
 };
 const mockPrismaAuditLogs = {
   create: vi.fn(),
@@ -533,5 +534,76 @@ describe('SEC-H2: 首次登录强制改密', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+  });
+});
+
+// ════════════════════════════════════════════════
+// POST /api/auth/register（访客自助注册）
+// ════════════════════════════════════════════════
+describe('POST /api/auth/register', () => {
+  it('合法请求应创建待激活访客账号并返回 200', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue(null);
+    mockPrismaUsers.create.mockResolvedValue({ id: 9, username: 'newbie' });
+
+    const res = await withCsrf(request(app).post('/api/auth/register')).send({
+      username: 'newbie',
+      password: 'Passw0rd',
+      realName: '李四',
+      email: 'a@b.com',
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    // 命名中间件：realName → real_name
+    const createCall = mockPrismaUsers.create.mock.calls[0][0];
+    expect(createCall.data).toMatchObject({
+      username: 'newbie',
+      real_name: '李四',
+      email: 'a@b.com',
+      role: 'viewer',
+      is_active: false,
+      must_change_password: false,
+    });
+  });
+
+  it('用户名已存在应返回 422', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue({ id: 1, username: 'dup' });
+
+    const res = await withCsrf(request(app).post('/api/auth/register')).send({
+      username: 'dup',
+      password: 'Passw0rd',
+    });
+
+    expect(res.status).toBe(422);
+    expect(res.body.message).toBe('用户名已存在');
+    expect(mockPrismaUsers.create).not.toHaveBeenCalled();
+  });
+
+  it('密码强度不足应返回 422 验证错误', async () => {
+    const res = await withCsrf(request(app).post('/api/auth/register')).send({
+      username: 'weakpwd',
+      password: 'alllowercase',
+    });
+
+    expect(res.status).toBe(422);
+    expect(mockPrismaUsers.create).not.toHaveBeenCalled();
+  });
+
+  it('缺少必填字段应返回 422', async () => {
+    const res = await withCsrf(request(app).post('/api/auth/register')).send({
+      username: 'nopwd',
+    });
+
+    expect(res.status).toBe(422);
+    expect(mockPrismaUsers.create).not.toHaveBeenCalled();
+  });
+
+  it('未携带 CSRF Token 应返回 403', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ username: 'nocsrf', password: 'Passw0rd' });
+
+    expect(res.status).toBe(403);
+    expect(mockPrismaUsers.create).not.toHaveBeenCalled();
   });
 });

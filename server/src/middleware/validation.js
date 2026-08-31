@@ -119,6 +119,34 @@ export const validateLogin = [
 ];
 
 /**
+ * 访客自助注册验证规则
+ * 密码强度与 validateUser 保持一致；注册场景密码必填
+ */
+export const validateRegister = [
+  body('username')
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('用户名不能为空且不超过50个字符'),
+  body('password')
+    .isLength({ min: 8, max: 128 })
+    .withMessage('密码长度必须在8-128位之间')
+    .custom((value) => {
+      let types = 0;
+      if (/[a-z]/.test(value)) types++;
+      if (/[A-Z]/.test(value)) types++;
+      if (/\d/.test(value)) types++;
+      if (/[^a-zA-Z\d]/.test(value)) types++;
+      if (types < 2) {
+        throw new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符中的两种）');
+      }
+      return true;
+    }),
+  body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
+  body('real_name').optional().trim().isLength({ max: 100 }).withMessage('真实姓名不超过100个字符'),
+  handleValidationErrors,
+];
+
+/**
  * 修改密码验证规则
  * H-2修复：与 validateUser 的密码正则保持一致，严格限制字符集
  */

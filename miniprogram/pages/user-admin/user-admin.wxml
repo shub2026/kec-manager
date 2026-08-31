@@ -40,7 +40,7 @@
             <view class="uc-name">
               {{item.username}}
               <text class="pt {{item.roleClass}}">{{item.roleLabel}}</text>
-              <text wx:if="{{!item.isActive}}" class="pt pt-disabled">已禁用</text>
+              <text wx:if="{{!item.isActive}}" class="pt {{item.pending ? 'pt-pending' : 'pt-disabled'}}">{{item.statusLabel}}</text>
             </view>
             <view class="uc-sub">
               <text wx:if="{{item.realName}}">{{item.realName}}</text>
@@ -55,7 +55,7 @@
         <!-- 操作区：超级管理员账号受后端保护，隐藏写操作 -->
         <view wx:if="{{item.canEdit || item.canStatus || item.canReset || item.canDelete}}" class="uc-actions">
           <view wx:if="{{item.canEdit}}" class="uc-act" catchtap="openEdit" data-id="{{item.id}}">编辑</view>
-          <view wx:if="{{item.canStatus}}" class="uc-act {{item.isActive ? 'uc-act-warn' : 'uc-act-ok'}}" catchtap="toggleStatus" data-id="{{item.id}}">{{item.isActive ? '禁用' : '启用'}}</view>
+          <view wx:if="{{item.canStatus}}" class="uc-act {{item.isActive ? 'uc-act-warn' : 'uc-act-ok'}}" catchtap="toggleStatus" data-id="{{item.id}}">{{item.enableLabel}}</view>
           <view wx:if="{{item.canReset}}" class="uc-act" catchtap="resetPassword" data-id="{{item.id}}">重置密码</view>
           <view wx:if="{{item.canDelete}}" class="uc-act uc-act-danger" catchtap="deleteUser" data-id="{{item.id}}">删除</view>
         </view>

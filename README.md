@@ -2,7 +2,7 @@
 
 面向大中专职业院校教学管理人员的轻量级教学管理系统，涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心业务。
 
-**版本** v1.19.1 · **架构** 前后端分离 + 微信小程序 · **部署** Docker / PM2 + Nginx
+**版本** v1.20.0 · **架构** 前后端分离 + 微信小程序 · **部署** Docker / PM2 + Nginx
 
 ---
 
@@ -18,10 +18,10 @@
 | 数据导入导出 | Excel 批量导入（班级/课程/教材/教师）、模板下载、多维度数据导出；教师导入兼容旧版“教师资格类型”列名（已更名为“备注”） |
 | 统一查询 | 开课查询、教材查询、方案查询、课程查询（按课程聚合各培养方案采用情况与各学期课时，含 Excel 导出），多维度筛选与级联联动 |
 | 课时统计 | 教师/班级/课程多维统计、图表可视化、Excel 导出（含教师备注） |
-| 用户管理 | 用户 CRUD、禁用/激活、密码重置（重置后强制改密），仅超级管理员可用 |
+| 用户管理 | 用户 CRUD、禁用/激活、密码重置（重置后强制改密）；访客自助注册（注册后待管理员激活方可登录），管理操作仅超级管理员可用 |
 | 审计日志 | 增删改全量记录，按模块/操作员/时间筛选 |
 | 权限控制 | 三级角色（super_admin / admin / viewer），路由守卫 + API 鉴权双重校验 |
-| 微信小程序 | 移动端开课/教材/方案查询、教师课时统计、教师与用户轻量管理（12 页，复用同一套后端 API），详见 [miniprogram/README.md](miniprogram/README.md) |
+| 微信小程序 | 移动端开课/教材/方案查询、教师课时统计、教师与用户轻量管理、访客自助注册（13 页，复用同一套后端 API），详见 [miniprogram/README.md](miniprogram/README.md) |
 
 ---
 
@@ -35,7 +35,7 @@
 | 认证 | JWT 双令牌（Access 15min + Refresh 7d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt |
 | 安全 | Helmet + 速率限制 + XSS 清洗 + 输入校验 + 审计日志 |
 | 小程序 | 微信原生小程序（体验版只读查询 + 轻量管理，独立于 Web 端） |
-| 测试 | Vitest + Supertest（后端 77 文件 / 1829 用例，前端 46 文件 / 476 用例） |
+| 测试 | Vitest + Supertest（后端 77 文件 / 1838 用例，前端 46 文件 / 476 用例） |
 | 部署 | Docker（推荐）/ PM2 进程管理 + Nginx 反向代理 + 一键部署脚本 |
 
 ---
@@ -122,7 +122,7 @@ npm run db:seed:dev      # 含开发测试数据
 npm run db:seed:reset    # 强制重置 + 重新 seed
 npm run db:reset         # 重建数据库
 npm run init:settings    # 初始化系统设置
-npm test                 # Vitest（77 个测试文件 / 1829 用例）
+npm test                 # Vitest（77 个测试文件 / 1838 用例）
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化
@@ -173,7 +173,7 @@ kec-manager/
 │   │   └── seed.js                  # 种子数据
 │   └── scripts/                     # 运维脚本（密码重置、数据库重建）
 ├── miniprogram/                     # 微信小程序（原生，独立于 client，复用后端 API）
-│   ├── pages/                       # 12 个页面（查询/统计/教师与用户管理）
+│   ├── pages/                       # 13 个页面（查询/统计/教师与用户管理/访客注册）
 │   ├── utils/                       # 请求封装、认证、学期工具
 │   └── app.json                     # 页面与 tabBar 注册
 ├── docs/                            # 项目文档
@@ -219,12 +219,12 @@ kec-manager/
 
 ## API 概览
 
-所有接口以 `/api` 为前缀，除登录和健康检查外均需 JWT 认证。
+所有接口以 `/api` 为前缀，除登录、注册和健康检查外均需 JWT 认证。
 
 | 模块 | 路径 | 说明 |
 | --- | --- | --- |
 | 健康检查 | `/api/health` | 服务状态（公开） |
-| 认证 | `/api/auth` | 登录 / 刷新令牌 / 修改密码 / CSRF 令牌 |
+| 认证 | `/api/auth` | 登录 / 访客注册（待管理员激活） / 刷新令牌 / 修改密码 / CSRF 令牌 |
 | 学院 | `/api/colleges` | CRUD |
 | 专业 | `/api/majors` | CRUD |
 | 培养层次 | `/api/training-levels` | CRUD |

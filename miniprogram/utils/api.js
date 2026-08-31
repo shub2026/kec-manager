@@ -41,6 +41,11 @@ const api = {
   getSettings: () => request({ url: '/api/settings' }),
   getMe: () => request({ url: '/api/auth/me' }),
 
+  // 访客自助注册（创建待激活账号，需管理员激活后登录）
+  register(payload) {
+    return request({ url: '/api/auth/register', method: 'POST', data: payload });
+  },
+
   // 首页概览（指标条）
   async getStats() {
     const semester = await ensureSemester();

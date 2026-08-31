@@ -371,11 +371,15 @@
             <img src="/icons.svg" class="card-logo" alt="" aria-hidden="true" />
             <h2 class="form-title">{{ organizationName }}</h2>
             <p class="form-subtitle">
-              登录进入 <span class="form-subtitle__logo">KEC</span> 课程管理平台
+              <template v-if="mode === 'login'">
+                登录进入 <span class="form-subtitle__logo">KEC</span> 课程管理平台
+              </template>
+              <template v-else>注册访客账号，管理员激活后即可登录</template>
             </p>
           </div>
 
           <el-form
+            v-if="mode === 'login'"
             ref="formRef"
             :model="loginForm"
             :rules="rules"
@@ -423,6 +427,105 @@
             </el-form-item>
           </el-form>
 
+          <el-form
+            v-else
+            ref="registerFormRef"
+            :model="registerForm"
+            :rules="registerRules"
+            class="login-form"
+            aria-label="访客注册表单"
+          >
+            <el-form-item prop="username">
+              <el-input
+                v-model="registerForm.username"
+                placeholder="请输入账号（用户名）"
+                size="large"
+                clearable
+                autocomplete="username"
+                aria-label="用户名"
+                :prefix-icon="User"
+              />
+            </el-form-item>
+
+            <el-form-item prop="realName">
+              <el-input
+                v-model="registerForm.realName"
+                placeholder="真实姓名（选填）"
+                size="large"
+                clearable
+                aria-label="真实姓名"
+                :prefix-icon="Postcard"
+              />
+            </el-form-item>
+
+            <el-form-item prop="email">
+              <el-input
+                v-model="registerForm.email"
+                placeholder="邮箱（选填）"
+                size="large"
+                clearable
+                autocomplete="email"
+                aria-label="邮箱"
+                :prefix-icon="Message"
+              />
+            </el-form-item>
+
+            <el-form-item prop="password">
+              <el-input
+                v-model="registerForm.password"
+                type="password"
+                placeholder="请设置密码（至少8位，含两种字符类型）"
+                size="large"
+                show-password
+                autocomplete="new-password"
+                aria-label="密码"
+                :prefix-icon="Key"
+              />
+            </el-form-item>
+
+            <el-form-item prop="confirmPassword">
+              <el-input
+                v-model="registerForm.confirmPassword"
+                type="password"
+                placeholder="请再次输入密码"
+                size="large"
+                show-password
+                autocomplete="new-password"
+                aria-label="确认密码"
+                :prefix-icon="Key"
+                @keyup.enter="handleRegister"
+              />
+            </el-form-item>
+
+            <el-form-item>
+              <el-button
+                type="primary"
+                size="large"
+                :loading="registerLoading"
+                class="login-btn"
+                aria-label="注册"
+                @click="handleRegister"
+              >
+                {{ registerLoading ? '提交中...' : '注 册' }}
+              </el-button>
+            </el-form-item>
+          </el-form>
+
+          <div class="mode-switch">
+            <template v-if="mode === 'login'">
+              还没有账号？
+              <el-link type="primary" underline="never" @click="switchMode('register')">
+                注册访客账号
+              </el-link>
+            </template>
+            <template v-else>
+              已有账号？
+              <el-link type="primary" underline="never" @click="switchMode('login')">
+                返回登录
+              </el-link>
+            </template>
+          </div>
+
           <!-- 账号提示（仅开发环境显示，凭据从本地环境变量读取） -->
           <div v-if="showTestAccounts && devAccountHint" class="account-hint">
             <el-collapse>
@@ -450,8 +553,9 @@ import { ref, reactive, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
-import { User, Key } from '@element-plus/icons-vue';
+import { User, Key, Postcard, Message } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import { register as apiRegister, fetchCsrfToken } from '@/api/auth';
 
 const router = useRouter();
 const route = useRoute();
@@ -459,7 +563,10 @@ const authStore = useAuthStore();
 const settingsStore = useSettingsStore();
 
 const formRef = ref(null);
+const registerFormRef = ref(null);
 const loading = ref(false);
+const registerLoading = ref(false);
+const mode = ref('login'); // 'login' | 'register'
 const organizationName = ref('欢迎回来');
 const showTestAccounts = import.meta.env.DEV;
 const devAccountHint = import.meta.env.VITE_DEV_ACCOUNT_HINT || '';
@@ -470,6 +577,14 @@ const loginForm = reactive({
   password: '',
 });
 
+const registerForm = reactive({
+  username: '',
+  realName: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+});
+
 const rules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [
@@ -477,6 +592,51 @@ const rules = {
     { min: 8, message: '密码长度至少8位', trigger: 'blur' },
   ],
 };
+
+// 密码强度校验与后端 validateRegister 保持一致：至少两种字符类型
+const passwordStrengthValidator = (_rule, value, callback) => {
+  if (!value) return callback();
+  let types = 0;
+  if (/[a-z]/.test(value)) types++;
+  if (/[A-Z]/.test(value)) types++;
+  if (/\d/.test(value)) types++;
+  if (/[^a-zA-Z\d]/.test(value)) types++;
+  if (types < 2) {
+    return callback(new Error('密码须至少包含两种字符类型（小写字母、大写字母、数字、特殊字符）'));
+  }
+  callback();
+};
+
+const registerRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { max: 50, message: '用户名不超过50个字符', trigger: 'blur' },
+  ],
+  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
+  password: [
+    { required: true, message: '请设置密码', trigger: 'blur' },
+    { min: 8, max: 128, message: '密码长度须在8-128位之间', trigger: 'blur' },
+    { validator: passwordStrengthValidator, trigger: 'blur' },
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入密码', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value && value !== registerForm.password) {
+          return callback(new Error('两次输入的密码不一致'));
+        }
+        callback();
+      },
+      trigger: 'blur',
+    },
+  ],
+};
+
+function switchMode(next) {
+  mode.value = next;
+  registerFormRef.value?.clearValidate();
+  formRef.value?.clearValidate();
+}
 
 async function handleLogin() {
   if (!formRef.value) return;
@@ -510,6 +670,46 @@ async function handleLogin() {
     ElMessage.error(msg);
   } finally {
     loading.value = false;
+  }
+}
+
+async function handleRegister() {
+  if (!registerFormRef.value) return;
+
+  try {
+    await registerFormRef.value.validate();
+  } catch {
+    return;
+  }
+
+  registerLoading.value = true;
+  try {
+    await fetchCsrfToken();
+    await apiRegister({
+      username: registerForm.username.trim(),
+      password: registerForm.password,
+      realName: registerForm.realName.trim() || undefined,
+      email: registerForm.email.trim() || undefined,
+    });
+    ElMessage.success('注册成功，请联系管理员激活账号');
+    loginForm.username = registerForm.username.trim();
+    loginForm.password = '';
+    Object.assign(registerForm, {
+      username: '',
+      realName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    });
+    switchMode('login');
+  } catch (error) {
+    const details = error.response?.data?.data?.details;
+    const msg = Array.isArray(details)
+      ? details.map((d) => d.message).join('；')
+      : error.response?.data?.message || error?.message || '注册失败，请稍后重试';
+    ElMessage.error(msg);
+  } finally {
+    registerLoading.value = false;
   }
 }
 
@@ -915,6 +1115,21 @@ onMounted(() => {
 }
 .login-btn:active {
   transform: translateY(0) scale(0.985);
+}
+
+/* ==================== 登录/注册切换 ==================== */
+.mode-switch {
+  margin-top: 2px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: var(--font-size-body-sm);
+  color: var(--text-regular);
+}
+
+.mode-switch :deep(.el-link) {
+  font-size: var(--font-size-body-sm);
+  margin-left: 2px;
 }
 
 /* ==================== 账号提示 ==================== */

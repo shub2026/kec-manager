@@ -9,7 +9,7 @@ import { authConfig } from '../config/auth.config.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { ValidationError } from '../utils/error.js';
 import { sanitizeBody } from '../middleware/xss.js'; // H7修复：XSS防护中间件
-import { validateChangePassword, validateLogin } from '../middleware/validation.js';
+import { validateChangePassword, validateLogin, validateRegister } from '../middleware/validation.js';
 import { generateSignedCsrfToken } from '../utils/csrf.js';
 
 const router = express.Router();
@@ -98,6 +98,17 @@ const usernameLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// 公开注册限流：防止批量注册未激活账号占用用户名
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分钟
+  max: 5, // 每个IP最多5次
+  skip: () => isDev, // 开发环境跳过限流
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: xffKeyGenerator,
+  message: { success: false, message: '注册请求过于频繁，请15分钟后再试' },
+});
+
 const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
@@ -168,6 +179,18 @@ router.post('/login', loginLimiter, usernameLimiter, validateLogin, async (req, 
     });
 
     success(res, { ...result, csrfToken }, '登录成功');
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/register', registerLimiter, validateRegister, async (req, res, next) => {
+  try {
+    const { username, password, real_name, email } = req.body;
+
+    await AuthService.register(username, password, real_name, email, req.ip);
+
+    success(res, null, '注册成功，请联系管理员激活账号');
   } catch (error) {
     next(error);
   }

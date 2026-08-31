@@ -129,6 +129,8 @@ Page({
     const myId = this.data.myId;
     const isSuper = u.role === 'super_admin';
     const isSelf = u.id === myId;
+    // 未激活且从未登录 → 待激活（自助注册待管理员激活）；未激活但登录过 → 已禁用
+    const pending = !u.isActive && !u.lastLoginAt;
     return {
       id: u.id,
       username: u.username,
@@ -138,6 +140,9 @@ Page({
       roleLabel: roleLabel(u.role),
       roleClass: roleClass(u.role),
       isActive: u.isActive,
+      pending,
+      statusLabel: u.isActive ? '' : pending ? '待激活' : '已禁用',
+      enableLabel: u.isActive ? '禁用' : pending ? '激活' : '启用',
       lastLoginText: u.lastLoginAt ? formatTime(u.lastLoginAt) : '从未登录',
       // 权限：超级管理员账号受后端保护（除自己外不可改）；自己不可禁用/重置/删除
       canEdit: !isSuper || isSelf,
@@ -303,21 +308,22 @@ Page({
     }
   },
 
-  // 启用 / 禁用
+  // 启用 / 禁用（待激活账号文案为"激活"）
   toggleStatus(e) {
     const id = e.currentTarget.dataset.id;
     const u = this.data.users.find((x) => x.id === id);
     if (!u) return;
     const next = !u.isActive;
+    const action = next ? u.enableLabel : '禁用';
     wx.showModal({
-      title: next ? '启用账号' : '禁用账号',
-      content: `确定要${next ? '启用' : '禁用'}用户「${u.username}」吗？`,
+      title: `${action}账号`,
+      content: `确定要${action}用户「${u.username}」吗？`,
       confirmColor: '#3283ff',
       success: async (res) => {
         if (!res.confirm) return;
         try {
           await api.updateUserStatus(id, next);
-          wx.showToast({ title: next ? '已启用' : '已禁用', icon: 'success' });
+          wx.showToast({ title: `已${action}`, icon: 'success' });
           this.reload();
         } catch (err) {
           wx.showToast({ title: (err && err.message) || '操作失败', icon: 'none' });

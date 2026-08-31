@@ -51,8 +51,8 @@
           </el-table-column>
           <el-table-column label="状态" min-width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="row.isActive ? 'success' : 'danger'" size="small" disable-transitions>
-                {{ row.isActive ? '激活' : '禁用' }}
+              <el-tag :type="getStatusType(row)" size="small" disable-transitions>
+                {{ getStatusLabel(row) }}
               </el-tag>
             </template>
           </el-table-column>
@@ -386,6 +386,21 @@ function getRoleLabel(role) {
     viewer: '访客',
   };
   return labels[role] || role;
+}
+
+// 未激活且从未登录 → 待激活（自助注册待管理员激活）；未激活但登录过 → 被禁用
+function isPendingActivation(row) {
+  return !row.isActive && !row.lastLoginAt;
+}
+
+function getStatusType(row) {
+  if (row.isActive) return 'success';
+  return isPendingActivation(row) ? 'warning' : 'danger';
+}
+
+function getStatusLabel(row) {
+  if (row.isActive) return '激活';
+  return isPendingActivation(row) ? '待激活' : '禁用';
 }
 
 function formatTime(date) {

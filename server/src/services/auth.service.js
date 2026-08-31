@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma.js';
 import { authConfig } from '../config/auth.config.js';
 import { createAuditLog } from './audit.service.js';
-import { AuthenticationError } from '../utils/error.js';
+import { AuthenticationError, ValidationError } from '../utils/error.js';
 import { invalidateUserStatusCache } from '../middleware/auth.middleware.js';
 import { log } from '../utils/logger.js';
 
@@ -117,9 +117,9 @@ export class AuthService {
         ip,
         details: { username },
         result: 'failed',
-        message: `登录失败：账号已被禁用`,
+        message: `登录失败：账号未激活或已被禁用`,
       });
-      throw new AuthenticationError('账号已被禁用');
+      throw new AuthenticationError('账号待激活或已被禁用，请联系管理员');
     }
 
     const token = this.generateToken(user);
@@ -157,6 +157,51 @@ export class AuthService {
       token,
       refreshToken,
     };
+  }
+
+  /**
+   * 访客自助注册：创建待激活的访客账号（role=viewer, is_active=false），
+   * 须由超级管理员在用户管理中激活后方可登录。
+   */
+  static async register(username, password, realName, email, ip) {
+    const existing = await prisma.users.findUnique({ where: { username } });
+    if (existing) {
+      await createAuditLog({
+        action: 'create',
+        module: 'auth',
+        ip,
+        details: { username },
+        result: 'failed',
+        message: `注册失败：用户名 ${username} 已存在`,
+      });
+      throw new ValidationError('用户名已存在');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, authConfig.bcryptRounds);
+    const user = await prisma.users.create({
+      data: {
+        username,
+        password: hashedPassword,
+        real_name: realName || null,
+        email: email || null,
+        role: 'viewer',
+        is_active: false,
+        must_change_password: false,
+      },
+      select: { id: true, username: true },
+    });
+
+    await createAuditLog({
+      action: 'create',
+      module: 'auth',
+      userId: user.id,
+      ip,
+      details: { id: user.id, username, role: 'viewer', pending_activation: true },
+      result: 'success',
+      message: `访客注册：${username}（待管理员激活）`,
+    });
+
+    return user;
   }
 
   static async refreshToken(refreshTokenValue) {
@@ -201,7 +246,7 @@ export class AuthService {
     });
 
     if (!user || !user.is_active) {
-      throw new AuthenticationError('用户不存在或已被禁用');
+      throw new AuthenticationError('账号待激活或已被禁用，请联系管理员');
     }
 
     // SEC-H1: 校验 token_version，密码重置/会话吊销后旧令牌立即失效

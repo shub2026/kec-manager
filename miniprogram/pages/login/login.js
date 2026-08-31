@@ -34,6 +34,10 @@ Page({
     this.setData({ showPassword: !this.data.showPassword });
   },
 
+  onGoRegister() {
+    wx.navigateTo({ url: '/pages/register/register' });
+  },
+
   async onSubmit() {
     const { username, password } = this.data;
     if (!username || !password) {

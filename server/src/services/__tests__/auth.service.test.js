@@ -39,6 +39,7 @@ vi.mock('../config/auth.config.js', () => ({
 const mockPrismaUsers = {
   findUnique: vi.fn(),
   update: vi.fn(),
+  create: vi.fn(),
 };
 
 const mockTokenBlacklist = {
@@ -265,7 +266,7 @@ describe('AuthService.login', () => {
     await expect(AuthService.login('admin', 'wrongpass', ip)).rejects.toThrow('用户名或密码错误');
   });
 
-  it('账号被禁用时应抛 AuthenticationError', async () => {
+  it('账号未激活/被禁用时应抛 AuthenticationError', async () => {
     mockPrismaUsers.findUnique.mockResolvedValue({
       id: 1,
       username: 'admin',
@@ -274,7 +275,9 @@ describe('AuthService.login', () => {
       role: 'super_admin',
     });
 
-    await expect(AuthService.login('admin', 'pass', ip)).rejects.toThrow('账号已被禁用');
+    await expect(AuthService.login('admin', 'pass', ip)).rejects.toThrow(
+      '账号待激活或已被禁用，请联系管理员'
+    );
   });
 
   it('合法凭证应返回 token + refreshToken + user 信息', async () => {
@@ -371,6 +374,77 @@ describe('AuthService.login', () => {
 });
 
 // ──────────────────────────────────────────────
+// register（访客自助注册）
+// ──────────────────────────────────────────────
+describe('AuthService.register', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const ip = '127.0.0.1';
+
+  it('用户名已存在时应抛 ValidationError 且不创建用户', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue({ id: 1, username: 'dup' });
+
+    await expect(AuthService.register('dup', 'Passw0rd', '张三', null, ip)).rejects.toThrow(
+      '用户名已存在'
+    );
+    expect(mockPrismaUsers.create).not.toHaveBeenCalled();
+    expect(mockCreateAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'create', result: 'failed' })
+    );
+  });
+
+  it('成功注册应创建待激活的访客账号', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue(null);
+    mockPrismaUsers.create.mockResolvedValue({ id: 9, username: 'newbie' });
+
+    const result = await AuthService.register('newbie', 'Passw0rd', '李四', 'a@b.com', ip);
+    expect(result).toEqual({ id: 9, username: 'newbie' });
+
+    const createCall = mockPrismaUsers.create.mock.calls[0][0];
+    expect(createCall.data).toMatchObject({
+      username: 'newbie',
+      real_name: '李四',
+      email: 'a@b.com',
+      role: 'viewer',
+      is_active: false,
+      must_change_password: false,
+    });
+    // 密码必须哈希存储
+    expect(createCall.data.password).not.toBe('Passw0rd');
+    expect(await bcrypt.compare('Passw0rd', createCall.data.password)).toBe(true);
+
+    expect(mockCreateAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'create', module: 'auth', result: 'success' })
+    );
+  });
+
+  it('选填字段缺省时应落 null', async () => {
+    mockPrismaUsers.findUnique.mockResolvedValue(null);
+    mockPrismaUsers.create.mockResolvedValue({ id: 10, username: 'minimal' });
+
+    await AuthService.register('minimal', 'Passw0rd', '', '', ip);
+    const createCall = mockPrismaUsers.create.mock.calls[0][0];
+    expect(createCall.data.real_name).toBeNull();
+    expect(createCall.data.email).toBeNull();
+  });
+
+  it('注册成功的账号未激活前应无法登录', async () => {
+    const password = await bcrypt.hash('Passw0rd', 10);
+    mockPrismaUsers.findUnique.mockResolvedValue({
+      id: 9,
+      username: 'newbie',
+      password,
+      is_active: false,
+      role: 'viewer',
+    });
+
+    await expect(AuthService.login('newbie', 'Passw0rd', ip)).rejects.toThrow(
+      '账号待激活或已被禁用，请联系管理员'
+    );
+  });
+});
+
+// ──────────────────────────────────────────────
 // refreshToken
 // ──────────────────────────────────────────────
 describe('AuthService.refreshToken', () => {
@@ -411,10 +485,14 @@ describe('AuthService.refreshToken', () => {
     const refreshToken = AuthService.generateRefreshToken(user);
 
     mockPrismaUsers.findUnique.mockResolvedValue(null);
-    await expect(AuthService.refreshToken(refreshToken)).rejects.toThrow('用户不存在或已被禁用');
+    await expect(AuthService.refreshToken(refreshToken)).rejects.toThrow(
+      '账号待激活或已被禁用，请联系管理员'
+    );
 
     mockPrismaUsers.findUnique.mockResolvedValue({ ...user, is_active: false });
-    await expect(AuthService.refreshToken(refreshToken)).rejects.toThrow('用户不存在或已被禁用');
+    await expect(AuthService.refreshToken(refreshToken)).rejects.toThrow(
+      '账号待激活或已被禁用，请联系管理员'
+    );
   });
 
   it('重用已加入黑名单的 refreshToken 应吊销全部会话并拒绝（SEC-M1）', async () => {

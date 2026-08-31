@@ -44,7 +44,10 @@ export function validateCsrf(req, res, next) {
   // 来自 GET /api/auth/csrf-token，是服务端 HMAC 签名的、攻击者无法伪造，仅校验头签名即等价安全。
   // WEB 端浏览器登录仍走完整 Double Submit，行为不变。
   const url = req.originalUrl || req.url || '';
-  const isBootstrap = url.startsWith('/api/auth/login') || url.startsWith('/api/auth/refresh');
+  const isBootstrap =
+    url.startsWith('/api/auth/login') ||
+    url.startsWith('/api/auth/register') ||
+    url.startsWith('/api/auth/refresh');
   if (isBootstrap) {
     const headerOk = !!headerToken && verifyCsrfSignature(headerToken);
     const doubleOk =

@@ -3,17 +3,22 @@
 零侵入现有 `client/`(Web) 与 `server/`(后端) 的微信小程序，仅做**体验版**只读查询工具。
 原生于 `miniprogram/` 目录，与 `client`、`server` 平级。
 
-## 页面清单（8 页）
+## 页面清单（13 页）
 
 | 页面 | 路由 | 类型 | 数据源 |
 |------|------|------|--------|
 | 登录 | `pages/login` | 普通 | `POST /api/auth/login` |
+| 注册 | `pages/register` | 普通 | `POST /api/auth/register`（访客自助注册，待管理员激活） |
 | 首页概览 | `pages/home` | tabBar | `GET /api/dashboard/stats` + `insights` |
+| 学期选择 | `pages/semester` | navigateTo | `GET /api/teaching-arrange/classes` |
 | 课程查询 | `pages/teaching-arrange` | tabBar | `GET /api/query/course`（按课程聚合各培养方案采用情况，对标 WEB 端课程查询页） |
 | 教材查询 | `pages/textbook` | tabBar | `GET /api/textbooks`（搜索+分页） |
 | 教材详情 | `pages/textbook-detail` | navigateTo | `GET /api/query/textbook/:id` |
 | 教师课时 | `pages/teacher-hours` | tabBar | `GET /api/teaching-arrange/statistics` |
 | 课时统计 | `pages/hours-statistics` | navigateTo（用户新增页） | `GET /api/teaching-arrange/statistics` |
+| 方案查询 | `pages/plan-query` | navigateTo | `GET /api/plans` + `GET /api/plans/:id/courses` |
+| 教师管理 | `pages/teacher-admin` | navigateTo | `/api/teachers` CRUD（super_admin） |
+| 用户管理 | `pages/user-admin` | navigateTo | `/api/users` CRUD + 激活/禁用 + 密码重置（super_admin，含"待激活"状态展示） |
 | 我的 | `pages/profile` | tabBar | `GET /api/auth/me` |
 
 ## 与后端对齐的关键约定
@@ -39,7 +44,7 @@
 
 ## 验证状态
 
-- ✅ 13 个 JS 全部通过 `node --check` 语法校验
-- ✅ 11 个 JSON 全部通过 JSON.parse 校验
-- ✅ app.json 8 个 page 路由均存在对应 `.js`
+- ✅ 21 个 JS 全部通过 `node --check` 语法校验
+- ✅ 17 个 JSON 全部通过 JSON.parse 校验
+- ✅ app.json 13 个 page 路由均存在对应 `.js`
 - ⏳ 三端实机登录链路（依赖真实域名 + AppID）

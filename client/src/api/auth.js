@@ -17,6 +17,17 @@ export const fetchCsrfToken = () => request.get('/auth/csrf-token');
 export const login = (data) => request.post('/auth/login', data);
 
 /**
+ * 访客自助注册（创建待激活账号，需管理员激活后登录）
+ * @param {Object} data
+ * @param {string} data.username
+ * @param {string} data.password
+ * @param {string} [data.realName]
+ * @param {string} [data.email]
+ * @returns {Promise<import('./types').ApiResponse<void>>}
+ */
+export const register = (data) => request.post('/auth/register', data, { silentError: true });
+
+/**
  * 退出登录
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */

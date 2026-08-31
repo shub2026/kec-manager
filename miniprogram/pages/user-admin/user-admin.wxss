@@ -54,6 +54,7 @@
 .pt-admin { color: var(--danger-dark); background: var(--danger-soft); }
 .pt-teacher { color: var(--brand); background: var(--brand-soft); }
 .pt-disabled { color: var(--danger-dark); background: var(--danger-soft); }
+.pt-pending { color: var(--warning-dark); background: var(--warning-soft); }
 
 /* ===== 操作区 ===== */
 .uc-actions {
