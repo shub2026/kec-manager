@@ -151,7 +151,7 @@ export class AuthService {
         username: user.username,
         role: user.role,
         real_name: user.real_name,
-        email: user.email,
+        phone: user.phone,
         must_change_password: user.must_change_password,
       },
       token,
@@ -163,7 +163,7 @@ export class AuthService {
    * 访客自助注册：创建待激活的访客账号（role=viewer, is_active=false），
    * 须由超级管理员在用户管理中激活后方可登录。
    */
-  static async register(username, password, realName, email, ip) {
+  static async register(username, password, realName, phone, ip) {
     const existing = await prisma.users.findUnique({ where: { username } });
     if (existing) {
       await createAuditLog({
@@ -183,7 +183,7 @@ export class AuthService {
         username,
         password: hashedPassword,
         real_name: realName || null,
-        email: email || null,
+        phone: phone || null,
         role: 'viewer',
         is_active: false,
         must_change_password: false,

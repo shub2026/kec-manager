@@ -105,7 +105,7 @@ describe('createUser', () => {
       id: 10,
       username: 'newuser',
       real_name: '新用户',
-      email: 'new@test.com',
+      phone: '13812345678',
       role: 'viewer',
       is_active: true,
     });
@@ -303,7 +303,7 @@ describe('updateUser', () => {
     id: 10,
     username: 'viewer1',
     real_name: '访客一',
-    email: 'v1@test.com',
+    phone: '13800000001',
     role: 'viewer',
     is_active: true,
   };
@@ -312,7 +312,7 @@ describe('updateUser', () => {
     id: 20,
     username: 'admin1',
     real_name: '管理员一',
-    email: 'a1@test.com',
+    phone: '13800000002',
     role: 'admin',
     is_active: true,
   };
@@ -321,7 +321,7 @@ describe('updateUser', () => {
     id: 30,
     username: 'superadmin',
     real_name: '超管',
-    email: 'sa@test.com',
+    phone: '13800000003',
     role: 'super_admin',
     is_active: true,
   };
@@ -333,7 +333,7 @@ describe('updateUser', () => {
       id: 10,
       username: 'viewer1',
       real_name: '更新后',
-      email: 'updated@test.com',
+      phone: '13812345678',
       role: 'viewer',
     });
   });
@@ -343,7 +343,7 @@ describe('updateUser', () => {
       id: 1,
       username: 'me',
       real_name: '我',
-      email: 'me@test.com',
+      phone: '13800000009',
       role: 'viewer',
       is_active: true,
     });
@@ -351,7 +351,7 @@ describe('updateUser', () => {
       id: 1,
       username: 'me',
       real_name: '更新后',
-      email: 'me@test.com',
+      phone: '13800000009',
       role: 'viewer',
     });
 
@@ -376,7 +376,7 @@ describe('updateUser', () => {
       id: 1,
       username: 'me',
       real_name: '我',
-      email: 'me@test.com',
+      phone: '13800000009',
       role: 'viewer',
       is_active: true,
     });
@@ -530,7 +530,7 @@ describe('updateUserStatus', () => {
     id: 10,
     username: 'viewer1',
     real_name: '访客一',
-    email: 'v1@test.com',
+    phone: '13800000001',
     role: 'viewer',
     is_active: true,
   };
@@ -539,7 +539,7 @@ describe('updateUserStatus', () => {
     id: 20,
     username: 'admin1',
     real_name: '管理员一',
-    email: 'a1@test.com',
+    phone: '13800000002',
     role: 'admin',
     is_active: true,
   };
@@ -548,7 +548,7 @@ describe('updateUserStatus', () => {
     id: 30,
     username: 'superadmin',
     real_name: '超管',
-    email: 'sa@test.com',
+    phone: '13800000003',
     role: 'super_admin',
     is_active: true,
   };
@@ -715,7 +715,7 @@ describe('deleteUser', () => {
     id: 10,
     username: 'viewer1',
     real_name: '访客一',
-    email: 'v1@test.com',
+    phone: '13800000001',
     role: 'viewer',
     is_active: true,
   };
@@ -724,7 +724,7 @@ describe('deleteUser', () => {
     id: 20,
     username: 'admin1',
     real_name: '管理员一',
-    email: 'a1@test.com',
+    phone: '13800000002',
     role: 'admin',
     is_active: true,
   };
@@ -733,7 +733,7 @@ describe('deleteUser', () => {
     id: 30,
     username: 'superadmin',
     real_name: '超管',
-    email: 'sa@test.com',
+    phone: '13800000003',
     role: 'super_admin',
     is_active: true,
   };
@@ -894,7 +894,7 @@ describe('resetUserPassword', () => {
     id: 10,
     username: 'viewer1',
     real_name: '访客一',
-    email: 'v1@test.com',
+    phone: '13800000001',
     role: 'viewer',
     is_active: true,
   };
@@ -903,7 +903,7 @@ describe('resetUserPassword', () => {
     id: 20,
     username: 'admin1',
     real_name: '管理员一',
-    email: 'a1@test.com',
+    phone: '13800000002',
     role: 'admin',
     is_active: true,
   };
@@ -912,7 +912,7 @@ describe('resetUserPassword', () => {
     id: 30,
     username: 'superadmin',
     real_name: '超管',
-    email: 'sa@test.com',
+    phone: '13800000003',
     role: 'super_admin',
     is_active: true,
   };
@@ -1096,7 +1096,7 @@ describe('listUsers', () => {
       OR: [
         { username: { contains: '张三' } },
         { real_name: { contains: '张三' } },
-        { email: { contains: '张三' } },
+        { phone: { contains: '张三' } },
       ],
     };
     expect(mockPrisma.users.findMany).toHaveBeenCalledWith(
@@ -1135,7 +1135,7 @@ describe('listUsers', () => {
     expect(where.OR).toEqual([
       { username: { contains: 'test' } },
       { real_name: { contains: 'test' } },
-      { email: { contains: 'test' } },
+      { phone: { contains: 'test' } },
     ]);
   });
 

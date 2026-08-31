@@ -42,7 +42,7 @@ Page({
       username: '',
       password: '',
       realName: '',
-      email: '',
+      phone: '',
       roleIndex: 1,       // 默认 访客
     },
     focusedField: '',
@@ -135,7 +135,7 @@ Page({
       id: u.id,
       username: u.username,
       realName: u.realName || '',
-      email: u.email || '—',
+      phone: u.phone || '—',
       role: u.role,
       roleLabel: roleLabel(u.role),
       roleClass: roleClass(u.role),
@@ -190,7 +190,7 @@ Page({
         username: '',
         password: '',
         realName: '',
-        email: '',
+        phone: '',
         roleIndex: 1, // 默认 访客
       },
       focusedField: '',
@@ -215,7 +215,7 @@ Page({
         username: u.username,
         password: '',
         realName: u.realName || '',
-        email: u.email && u.email !== '—' ? u.email : '',
+        phone: u.phone && u.phone !== '—' ? u.phone : '',
         roleIndex: roleIndex < 0 ? 0 : roleIndex,
       },
       focusedField: '',
@@ -268,7 +268,7 @@ Page({
       payload.username = username;
       payload.password = password;
       if (f.realName && f.realName.trim()) payload.realName = f.realName.trim();
-      if (f.email && f.email.trim()) payload.email = f.email.trim();
+      if (f.phone && f.phone.trim()) payload.phone = f.phone.trim();
       payload.role = ROLE_OPTIONS[f.roleIndex] ? ROLE_OPTIONS[f.roleIndex].value : 'viewer';
 
       this.setData({ submitting: true });
@@ -283,9 +283,9 @@ Page({
         this.setData({ submitting: false });
       }
     } else {
-      // 编辑：realName / email 始终提交（已预填）；role 仅非自己时提交
+      // 编辑：realName / phone 始终提交（已预填）；role 仅非自己时提交
       payload.realName = (f.realName || '').trim();
-      payload.email = (f.email || '').trim();
+      payload.phone = (f.phone || '').trim();
       if (!isSelf && ROLE_OPTIONS[f.roleIndex]) {
         payload.role = ROLE_OPTIONS[f.roleIndex].value;
       }

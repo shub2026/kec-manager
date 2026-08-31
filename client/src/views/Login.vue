@@ -458,15 +458,16 @@
               />
             </el-form-item>
 
-            <el-form-item prop="email">
+            <el-form-item prop="phone">
               <el-input
-                v-model="registerForm.email"
-                placeholder="邮箱（选填）"
+                v-model="registerForm.phone"
+                placeholder="联系电话（选填，11位手机号）"
                 size="large"
                 clearable
-                autocomplete="email"
-                aria-label="邮箱"
-                :prefix-icon="Message"
+                maxlength="11"
+                autocomplete="tel"
+                aria-label="联系电话"
+                :prefix-icon="Phone"
               />
             </el-form-item>
 
@@ -553,7 +554,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
-import { User, Key, Postcard, Message } from '@element-plus/icons-vue';
+import { User, Key, Postcard, Phone } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { register as apiRegister, fetchCsrfToken } from '@/api/auth';
 
@@ -580,7 +581,7 @@ const loginForm = reactive({
 const registerForm = reactive({
   username: '',
   realName: '',
-  email: '',
+  phone: '',
   password: '',
   confirmPassword: '',
 });
@@ -612,7 +613,7 @@ const registerRules = {
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { max: 50, message: '用户名不超过50个字符', trigger: 'blur' },
   ],
-  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
+  phone: [{ pattern: /^1[3-9]\d{9}$/, message: '联系电话须为11位大陆手机号', trigger: 'blur' }],
   password: [
     { required: true, message: '请设置密码', trigger: 'blur' },
     { min: 8, max: 128, message: '密码长度须在8-128位之间', trigger: 'blur' },
@@ -689,7 +690,7 @@ async function handleRegister() {
       username: registerForm.username.trim(),
       password: registerForm.password,
       realName: registerForm.realName.trim() || undefined,
-      email: registerForm.email.trim() || undefined,
+      phone: registerForm.phone.trim() || undefined,
     });
     ElMessage.success('注册成功，请联系管理员激活账号');
     loginForm.username = registerForm.username.trim();
@@ -697,7 +698,7 @@ async function handleRegister() {
     Object.assign(registerForm, {
       username: '',
       realName: '',
-      email: '',
+      phone: '',
       password: '',
       confirmPassword: '',
     });

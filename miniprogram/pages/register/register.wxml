@@ -38,17 +38,18 @@
     </view>
 
     <view class="field">
-      <view class="field-ico ico-mail"></view>
+      <view class="field-ico ico-phone"></view>
       <input
         class="input"
-        placeholder="邮箱（选填）"
+        placeholder="联系电话（选填，11位手机号）"
         placeholder-class="ph"
-        value="{{email}}"
-        type="text"
+        value="{{phone}}"
+        type="number"
+        maxlength="11"
         confirm-type="next"
         cursor-spacing="20"
         adjust-position
-        data-field="email"
+        data-field="phone"
         bindinput="onField"
       />
     </view>

@@ -46,7 +46,7 @@ Page({
           realName: me.realName || me.username,
           avatar: (me.realName || me.username || '?').charAt(0).toUpperCase(),
           role: roleLabel(me.role),
-          email: me.email || '—',
+          phone: me.phone || '—',
           lastLoginAt: formatTime(me.lastLoginAt),
         },
         semester: (app && app.globalData.currentSemester) || '',

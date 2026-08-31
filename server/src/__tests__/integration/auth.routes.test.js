@@ -75,7 +75,7 @@ const TEST_USER = {
   role: 'super_admin',
   is_active: true,
   real_name: '管理员',
-  email: 'admin@test.com',
+  phone: '13800000000',
 };
 
 // 全局 beforeEach：清理 mock 和 auth middleware 缓存
@@ -124,7 +124,7 @@ describe('POST /api/auth/login', () => {
       is_active: true,
       role: 'super_admin',
       real_name: '管理员',
-      email: 'admin@test.com',
+      phone: '13800000000',
     });
 
     const res = await withCsrf(request(app).post('/api/auth/login')).send({
@@ -277,7 +277,7 @@ describe('GET /api/auth/me', () => {
       must_change_password: false,
       token_version: 0,
       real_name: '管理员',
-      email: 'admin@test.com',
+      phone: '13800000000',
       last_login_at: null,
       created_at: new Date(),
     });
@@ -441,7 +441,7 @@ describe('SEC-H2: 首次登录强制改密', () => {
     username: 'newuser',
     role: 'admin',
     real_name: '新用户',
-    email: 'new@test.com',
+    phone: '13800000001',
     is_active: true,
     must_change_password: true,
     token_version: 0,
@@ -549,7 +549,7 @@ describe('POST /api/auth/register', () => {
       username: 'newbie',
       password: 'Passw0rd',
       realName: '李四',
-      email: 'a@b.com',
+      phone: '13812345678',
     });
 
     expect(res.status).toBe(200);
@@ -559,7 +559,7 @@ describe('POST /api/auth/register', () => {
     expect(createCall.data).toMatchObject({
       username: 'newbie',
       real_name: '李四',
-      email: 'a@b.com',
+      phone: '13812345678',
       role: 'viewer',
       is_active: false,
       must_change_password: false,

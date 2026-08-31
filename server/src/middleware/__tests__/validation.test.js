@@ -606,7 +606,7 @@ describe('validateUser', () => {
       body: {
         username: 'teacher01',
         password: 'Abcd1234',
-        email: 't@example.com',
+        phone: '13812345678',
         role: 'admin',
         real_name: '测试用户',
       },
@@ -621,9 +621,9 @@ describe('validateUser', () => {
     expect(nextCalled).toBe(true);
   });
 
-  it('邮箱格式错误应返回 422', async () => {
+  it('联系电话格式错误应返回 422', async () => {
     const { res } = await runValidation(validateUser, {
-      body: { username: 'teacher01', email: 'not-an-email' },
+      body: { username: 'teacher01', phone: 'not-a-phone' },
     });
     expect(res.statusCode).toBe(422);
   });
@@ -646,7 +646,7 @@ describe('validateUser', () => {
 describe('validateUserUpdate / validateUserStatus', () => {
   it('用户更新合法字段应通过', async () => {
     const { nextCalled } = await runValidation(validateUserUpdate, {
-      body: { email: 'a@b.com', role: 'viewer', real_name: '新名字' },
+      body: { phone: '13812345678', role: 'viewer', real_name: '新名字' },
     });
     expect(nextCalled).toBe(true);
   });

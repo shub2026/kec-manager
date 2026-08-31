@@ -244,7 +244,7 @@ model users {
   password             String
   role                 String       @default("viewer")
   real_name            String?
-  email                String?
+  phone                String?
   is_active            Boolean      @default(true)
   must_change_password Boolean      @default(false)
   // SEC-H1: 令牌版本号，重置密码/吊销会话时自增，使所有已签发令牌失效

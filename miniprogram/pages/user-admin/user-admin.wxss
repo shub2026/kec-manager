@@ -32,7 +32,7 @@
   margin-bottom: 8rpx;
 }
 .uc-divider { color: var(--text-5); }
-.uc-email {
+.uc-phone {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

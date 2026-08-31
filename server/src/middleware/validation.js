@@ -141,7 +141,7 @@ export const validateRegister = [
       }
       return true;
     }),
-  body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
+  body('phone').optional({ values: 'falsy' }).matches(/^1[3-9]\d{9}$/).withMessage('联系电话须为11位大陆手机号'),
   body('real_name').optional().trim().isLength({ max: 100 }).withMessage('真实姓名不超过100个字符'),
   handleValidationErrors,
 ];
@@ -308,7 +308,7 @@ export const validateUser = [
       }
       return true;
     }),
-  body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
+  body('phone').optional({ values: 'falsy' }).matches(/^1[3-9]\d{9}$/).withMessage('联系电话须为11位大陆手机号'),
   body('role')
     .optional()
     .isIn(['super_admin', 'admin', 'viewer'])
@@ -321,7 +321,7 @@ export const validateUser = [
  * 用户更新验证规则（编辑时不传 username/password）
  */
 export const validateUserUpdate = [
-  body('email').optional({ nullable: true }).isEmail().withMessage('邮箱格式不正确'),
+  body('phone').optional({ values: 'falsy' }).matches(/^1[3-9]\d{9}$/).withMessage('联系电话须为11位大陆手机号'),
   body('role')
     .optional()
     .isIn(['super_admin', 'admin', 'viewer'])

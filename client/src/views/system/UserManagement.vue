@@ -13,7 +13,7 @@
         <el-input
           v-model="keyword"
           clearable
-          placeholder="搜索用户名 / 姓名 / 邮箱"
+          placeholder="搜索用户名 / 姓名 / 联系电话"
           class="filter-2xl"
           :prefix-icon="Search"
         />
@@ -31,9 +31,9 @@
           <el-table-column prop="realName" label="姓名" min-width="100" />
           <el-table-column
             v-if="!isMobile"
-            prop="email"
-            label="邮箱"
-            min-width="180"
+            prop="phone"
+            label="联系电话"
+            min-width="140"
             show-overflow-tooltip
           />
           <el-table-column label="角色" min-width="120" align="center">

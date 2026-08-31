@@ -21,13 +21,13 @@ export async function listUsers(req, res, next) {
       where.role = 'viewer';
     }
     // 审计修复：前端一直传 keyword 但后端未读取，跨页搜索失效；
-    // 对用户名/姓名/邮箱做 contains 模糊匹配（SQLite 无 mode 参数，默认大小写不敏感）
+    // 对用户名/姓名/联系电话做 contains 模糊匹配（SQLite 无 mode 参数，默认大小写不敏感）
     const kw = typeof keyword === 'string' ? keyword.trim() : '';
     if (kw) {
       where.OR = [
         { username: { contains: kw } },
         { real_name: { contains: kw } },
-        { email: { contains: kw } },
+        { phone: { contains: kw } },
       ];
     }
 
@@ -35,7 +35,7 @@ export async function listUsers(req, res, next) {
       id: true,
       username: true,
       real_name: true,
-      email: true,
+      phone: true,
       role: true,
       is_active: true,
       last_login_at: true,
@@ -64,7 +64,7 @@ export async function listUsers(req, res, next) {
  */
 export async function createUser(req, res, next) {
   try {
-    const { username, password, real_name, email, role } = req.body;
+    const { username, password, real_name, phone, role } = req.body;
 
     if (!username || !password) {
       throw new ValidationError('用户名和密码为必填项');
@@ -90,7 +90,7 @@ export async function createUser(req, res, next) {
         username,
         password: hashedPassword,
         real_name,
-        email,
+        phone: phone || null,
         role,
         must_change_password: true,
       },
@@ -98,7 +98,7 @@ export async function createUser(req, res, next) {
         id: true,
         username: true,
         real_name: true,
-        email: true,
+        phone: true,
         role: true,
         is_active: true,
       },
@@ -135,7 +135,7 @@ export async function createUser(req, res, next) {
 export async function updateUser(req, res, next) {
   try {
     const { id } = req.params;
-    const { real_name, email, role } = req.body;
+    const { real_name, phone, role } = req.body;
 
     if (parseInt(id) === req.user.id && role) {
       throw new AuthorizationError('不能修改自己的角色');
@@ -157,7 +157,7 @@ export async function updateUser(req, res, next) {
 
     const updateData = {};
     if (real_name !== undefined) updateData.real_name = real_name;
-    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone || null;
 
     if (req.user.role === 'super_admin' && role !== undefined) {
       updateData.role = role;
@@ -170,7 +170,7 @@ export async function updateUser(req, res, next) {
         id: true,
         username: true,
         real_name: true,
-        email: true,
+        phone: true,
         role: true,
       },
     });

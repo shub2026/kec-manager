@@ -186,9 +186,9 @@ router.post('/login', loginLimiter, usernameLimiter, validateLogin, async (req, 
 
 router.post('/register', registerLimiter, validateRegister, async (req, res, next) => {
   try {
-    const { username, password, real_name, email } = req.body;
+    const { username, password, real_name, phone } = req.body;
 
-    await AuthService.register(username, password, real_name, email, req.ip);
+    await AuthService.register(username, password, real_name, phone, req.ip);
 
     success(res, null, '注册成功，请联系管理员激活账号');
   } catch (error) {
@@ -285,7 +285,7 @@ router.get('/me', authMiddleware, async (req, res, next) => {
         username: true,
         role: true,
         real_name: true,
-        email: true,
+        phone: true,
         must_change_password: true,
         last_login_at: true,
         created_at: true,

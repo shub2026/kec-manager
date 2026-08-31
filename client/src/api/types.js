@@ -37,7 +37,7 @@
  * @property {number} id
  * @property {string} username
  * @property {string} [realName]
- * @property {string} [email]
+ * @property {string} [phone]
  * @property {UserRole} role
  * @property {boolean} isActive
  * @property {string} [lastLoginAt]
@@ -48,7 +48,7 @@
  * @property {string} [username] - 创建时必填
  * @property {string} [password] - 创建时必填，至少 8 位
  * @property {string} [realName]
- * @property {string} [email]
+ * @property {string} [phone]
  * @property {UserRole} [role]
  */
 

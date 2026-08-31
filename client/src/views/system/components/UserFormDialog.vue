@@ -25,8 +25,12 @@
         <el-input v-model="formData.realName" placeholder="请输入姓名" />
       </el-form-item>
 
-      <el-form-item label="邮箱" prop="email">
-        <el-input v-model="formData.email" placeholder="请输入邮箱" />
+      <el-form-item label="联系电话" prop="phone">
+        <el-input
+          v-model="formData.phone"
+          placeholder="请输入联系电话（11位手机号）"
+          maxlength="11"
+        />
       </el-form-item>
 
       <el-form-item label="角色" prop="role">
@@ -99,7 +103,7 @@ const formData = ref({
   username: '',
   password: '',
   realName: '',
-  email: '',
+  phone: '',
   role: 'admin',
 });
 
@@ -112,7 +116,7 @@ const rules = {
     { required: true, message: '请输入密码', trigger: 'blur' },
     ...createPasswordRules({ required: false }),
   ],
-  email: [{ type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }],
+  phone: [{ pattern: /^1[3-9]\d{9}$/, message: '联系电话须为11位大陆手机号', trigger: 'blur' }],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
 };
 
@@ -123,7 +127,7 @@ function open(user) {
       id: user.id,
       username: user.username,
       realName: user.realName,
-      email: user.email,
+      phone: user.phone,
       role: user.role,
       isActive: user.isActive,
     };
@@ -133,7 +137,7 @@ function open(user) {
       username: '',
       password: '',
       realName: '',
-      email: '',
+      phone: '',
       role: 'admin',
     };
   }
@@ -160,18 +164,18 @@ async function handleSubmit() {
       ? formData.value.role === 'super_admin'
         ? {
             realName: formData.value.realName,
-            email: formData.value.email,
+            phone: formData.value.phone,
           }
         : {
             realName: formData.value.realName,
-            email: formData.value.email,
+            phone: formData.value.phone,
             role: formData.value.role,
           }
       : {
           username: formData.value.username,
           password: formData.value.password,
           realName: formData.value.realName || undefined,
-          email: formData.value.email || undefined,
+          phone: formData.value.phone || undefined,
           role: formData.value.role,
         },
   });

@@ -18,7 +18,7 @@
     <view class="card">
       <view class="card-title">账户信息</view>
       <view class="row"><text class="label">当前学期</text><text class="value">{{semester || '未设置'}}</text></view>
-      <view class="row"><text class="label">邮箱</text><text class="value">{{me.email}}</text></view>
+      <view class="row"><text class="label">联系电话</text><text class="value">{{me.phone}}</text></view>
       <view class="row"><text class="label">最近登录</text><text class="value">{{me.lastLoginAt}}</text></view>
     </view>
 

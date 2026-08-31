@@ -50,7 +50,6 @@ async function resetDatabase() {
           password: hashedPassword,
           role: 'super_admin',
           real_name: '系统管理员',
-          email: 'admin@example.com',
           is_active: true,
         },
       });

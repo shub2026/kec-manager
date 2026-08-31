@@ -289,7 +289,7 @@ describe('AuthService.login', () => {
       is_active: true,
       role: 'super_admin',
       real_name: 'Admin',
-      email: 'a@b.com',
+      phone: '13812345678',
     });
     mockPrismaUsers.update.mockResolvedValue({});
 
@@ -397,14 +397,14 @@ describe('AuthService.register', () => {
     mockPrismaUsers.findUnique.mockResolvedValue(null);
     mockPrismaUsers.create.mockResolvedValue({ id: 9, username: 'newbie' });
 
-    const result = await AuthService.register('newbie', 'Passw0rd', '李四', 'a@b.com', ip);
+    const result = await AuthService.register('newbie', 'Passw0rd', '李四', '13812345678', ip);
     expect(result).toEqual({ id: 9, username: 'newbie' });
 
     const createCall = mockPrismaUsers.create.mock.calls[0][0];
     expect(createCall.data).toMatchObject({
       username: 'newbie',
       real_name: '李四',
-      email: 'a@b.com',
+      phone: '13812345678',
       role: 'viewer',
       is_active: false,
       must_change_password: false,
@@ -425,7 +425,7 @@ describe('AuthService.register', () => {
     await AuthService.register('minimal', 'Passw0rd', '', '', ip);
     const createCall = mockPrismaUsers.create.mock.calls[0][0];
     expect(createCall.data.real_name).toBeNull();
-    expect(createCall.data.email).toBeNull();
+    expect(createCall.data.phone).toBeNull();
   });
 
   it('注册成功的账号未激活前应无法登录', async () => {

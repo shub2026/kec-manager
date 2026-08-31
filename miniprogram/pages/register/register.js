@@ -17,7 +17,7 @@ Page({
   data: {
     username: '',
     realName: '',
-    email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     showPassword: false,
@@ -35,7 +35,7 @@ Page({
   },
 
   async onSubmit() {
-    const { username, realName, email, password, confirmPassword } = this.data;
+    const { username, realName, phone, password, confirmPassword } = this.data;
 
     const name = (username || '').trim();
     if (!name) {
@@ -62,9 +62,9 @@ Page({
       this.setData({ error: '两次输入的密码不一致' });
       return;
     }
-    const mail = (email || '').trim();
-    if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
-      this.setData({ error: '邮箱格式不正确' });
+    const tel = (phone || '').trim();
+    if (tel && !/^1[3-9]\d{9}$/.test(tel)) {
+      this.setData({ error: '联系电话须为11位大陆手机号' });
       return;
     }
 
@@ -72,7 +72,7 @@ Page({
     try {
       const payload = { username: name, password };
       if ((realName || '').trim()) payload.realName = realName.trim();
-      if (mail) payload.email = mail;
+      if (tel) payload.phone = tel;
       await api.register(payload);
       wx.showToast({ title: '注册成功，请联系管理员激活账号', icon: 'none', duration: 2500 });
       setTimeout(() => wx.navigateBack(), 2500);

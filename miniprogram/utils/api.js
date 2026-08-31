@@ -171,7 +171,7 @@ const api = {
   },
 
   // ===== 用户管理（仅超级管理员，后端 roleMiddleware('super_admin') 守门） =====
-  // 列表：分页 + keyword 模糊（用户名 / 姓名 / 邮箱）。
+  // 列表：分页 + keyword 模糊（用户名 / 姓名 / 联系电话）。
   // 按项目约定发 camelCase 参数（pageSize / keyword），后端中间件会自动转 snake。
   listUsers(params = {}) {
     const data = { page: params.page || 1, pageSize: params.pageSize || 20 };
@@ -179,14 +179,14 @@ const api = {
     return request({ url: '/api/users', data });
   },
 
-  // 创建用户：username / password 必填，realName / email / role 选填。
+  // 创建用户：username / password 必填，realName / phone / role 选填。
   // CSRF 双提交由 request.js 统一处理（自动带 X-CSRF-Token 头 + cookie）。
   // 后端 convertRequestNaming 会把 realName → real_name。
   createUser(payload) {
     return request({ url: '/api/users', method: 'POST', data: payload });
   },
 
-  // 更新用户（仅 super_admin）：realName / email / role。
+  // 更新用户（仅 super_admin）：realName / phone / role。
   updateUser(id, payload) {
     return request({ url: `/api/users/${id}`, method: 'PUT', data: payload });
   },

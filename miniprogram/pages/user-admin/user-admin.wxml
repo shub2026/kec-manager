@@ -18,7 +18,7 @@
     <view class="filter-bar">
       <view class="search-box">
         <view class="search-icon"></view>
-        <input class="filter-input" value="{{keyword}}" placeholder="搜索用户名 / 姓名 / 邮箱" placeholder-class="placeholder" confirm-type="search" cursor-spacing="20" adjust-position bindinput="onKeywordInput" bindconfirm="onKeywordInput" />
+        <input class="filter-input" value="{{keyword}}" placeholder="搜索用户名 / 姓名 / 联系电话" placeholder-class="placeholder" confirm-type="search" cursor-spacing="20" adjust-position bindinput="onKeywordInput" bindconfirm="onKeywordInput" />
       </view>
       <text wx:if="{{keyword}}" class="filter-clear" hover-class="tap-hover" bindtap="clearFilters">重置</text>
     </view>
@@ -46,7 +46,7 @@
               <text wx:if="{{item.realName}}">{{item.realName}}</text>
               <text wx:else class="uc-muted">未设置姓名</text>
               <text class="uc-divider">|</text>
-              <text class="uc-email">{{item.email}}</text>
+              <text class="uc-phone">{{item.phone}}</text>
             </view>
             <view class="uc-foot">最近登录 {{item.lastLoginText}}</view>
           </view>
@@ -104,9 +104,9 @@
             <input class="form-row-input {{focusedField === 'realName' ? 'form-row-input-focus' : ''}}" value="{{form.realName}}" data-field="realName" placeholder="真实姓名（选填）" placeholder-class="placeholder" confirm-type="next" cursor-spacing="20" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
 
-          <view class="form-row {{focusedField === 'email' ? 'form-row-focus' : ''}}">
-            <text class="form-row-label">邮箱</text>
-            <input class="form-row-input {{focusedField === 'email' ? 'form-row-input-focus' : ''}}" type="email" value="{{form.email}}" data-field="email" placeholder="邮箱（选填）" placeholder-class="placeholder" confirm-type="done" cursor-spacing="20" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
+          <view class="form-row {{focusedField === 'phone' ? 'form-row-focus' : ''}}">
+            <text class="form-row-label">联系电话</text>
+            <input class="form-row-input {{focusedField === 'phone' ? 'form-row-input-focus' : ''}}" type="number" maxlength="11" value="{{form.phone}}" data-field="phone" placeholder="11位手机号（选填）" placeholder-class="placeholder" confirm-type="done" cursor-spacing="20" adjust-position bindinput="onFormInput" bindfocus="onFormFocus" bindblur="onFormBlur" />
           </view>
 
           <!-- 角色：编辑自己时隐藏（后端禁止自改角色） -->

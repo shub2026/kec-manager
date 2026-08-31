@@ -22,7 +22,7 @@ export const login = (data) => request.post('/auth/login', data);
  * @param {string} data.username
  * @param {string} data.password
  * @param {string} [data.realName]
- * @param {string} [data.email]
+ * @param {string} [data.phone]
  * @returns {Promise<import('./types').ApiResponse<void>>}
  */
 export const register = (data) => request.post('/auth/register', data, { silentError: true });
