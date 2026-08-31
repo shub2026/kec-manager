@@ -30,11 +30,16 @@ const mockPrismaUsers = {
 const mockPrismaAuditLogs = {
   create: vi.fn(),
 };
+const mockPrismaSettings = {
+  findUnique: vi.fn(),
+  findMany: vi.fn(),
+};
 
 vi.mock('../../lib/prisma.js', () => ({
   prisma: {
     users: mockPrismaUsers,
     audit_logs: mockPrismaAuditLogs,
+    system_settings: mockPrismaSettings,
     $queryRaw: vi.fn().mockResolvedValue([{ 1: 1 }]),
   },
 }));
@@ -541,7 +546,21 @@ describe('SEC-H2: 首次登录强制改密', () => {
 // POST /api/auth/register（访客自助注册）
 // ════════════════════════════════════════════════
 describe('POST /api/auth/register', () => {
-  it('合法请求应创建待激活访客账号并返回 200', async () => {
+  beforeEach(() => {
+    // 默认开启注册开关
+    mockPrismaSettings.findUnique.mockResolvedValue({
+      key: 'register_enabled',
+      value: 'true',
+    });
+  });
+
+  function openSwitch(value) {
+    mockPrismaSettings.findUnique.mockResolvedValue(
+      value === null ? null : { key: 'register_enabled', value }
+    );
+  }
+
+  it('合法请求应创建直接激活的访客账号并返回 200', async () => {
     mockPrismaUsers.findUnique.mockResolvedValue(null);
     mockPrismaUsers.create.mockResolvedValue({ id: 9, username: 'newbie' });
 
@@ -554,6 +573,7 @@ describe('POST /api/auth/register', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+    expect(res.body.message).toBe('注册成功，可直接登录使用');
     // 命名中间件：realName → real_name
     const createCall = mockPrismaUsers.create.mock.calls[0][0];
     expect(createCall.data).toMatchObject({
@@ -561,9 +581,34 @@ describe('POST /api/auth/register', () => {
       real_name: '李四',
       phone: '13812345678',
       role: 'viewer',
-      is_active: false,
+      is_active: true,
       must_change_password: false,
     });
+  });
+
+  it('注册开关关闭时应返回 403 且不创建用户', async () => {
+    openSwitch('false');
+
+    const res = await withCsrf(request(app).post('/api/auth/register')).send({
+      username: 'newbie',
+      password: 'Passw0rd',
+    });
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toBe('注册功能暂未开放，请联系管理员');
+    expect(mockPrismaUsers.create).not.toHaveBeenCalled();
+  });
+
+  it('开关键未配置（缺失）时应视为关闭并返回 403', async () => {
+    openSwitch(null);
+
+    const res = await withCsrf(request(app).post('/api/auth/register')).send({
+      username: 'newbie',
+      password: 'Passw0rd',
+    });
+
+    expect(res.status).toBe(403);
+    expect(mockPrismaUsers.create).not.toHaveBeenCalled();
   });
 
   it('用户名已存在应返回 422', async () => {

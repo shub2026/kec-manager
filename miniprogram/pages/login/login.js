@@ -1,4 +1,5 @@
 const { login } = require('../../utils/auth.js');
+const api = require('../../utils/api.js');
 
 Page({
   data: {
@@ -8,12 +9,25 @@ Page({
     error: '',
     showPassword: false,
     pwdFocus: false,
+    // 注册开放开关：默认关闭，设置加载失败时保持隐藏（与后端 fail-close 一致）
+    registerEnabled: false,
   },
 
   onLoad() {
     const app = getApp();
     if (app && app.globalData.token) {
       wx.reLaunch({ url: '/pages/home/home' });
+    }
+    this.loadRegisterFlag();
+  },
+
+  async loadRegisterFlag() {
+    try {
+      const data = await api.getSettings();
+      const item = (data && (data.registerEnabled || data.register_enabled)) || null;
+      this.setData({ registerEnabled: !!item && item.value === 'true' });
+    } catch {
+      this.setData({ registerEnabled: false });
     }
   },
 

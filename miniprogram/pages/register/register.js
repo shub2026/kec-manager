@@ -1,6 +1,6 @@
 // pages/register/register.js
-// 访客自助注册：创建待激活账号（role=viewer, is_active=false），
-// 须由超级管理员在用户管理中激活后方可登录。
+// 访客自助注册：仅在系统设置「开放注册」（register_enabled）开启时受理，
+// 注册账号直接激活（role=viewer, is_active=true），可立即登录使用。
 const api = require('../../utils/api.js');
 
 // 与后端 validateRegister 保持一致：至少两种字符类型
@@ -23,6 +23,22 @@ Page({
     showPassword: false,
     loading: false,
     error: '',
+    // 注册开放开关：默认关闭；登录页已隐藏入口，此处为深链/转发兜底
+    registerOpen: false,
+  },
+
+  onLoad() {
+    this.checkRegisterOpen();
+  },
+
+  async checkRegisterOpen() {
+    try {
+      const data = await api.getSettings();
+      const item = (data && (data.registerEnabled || data.register_enabled)) || null;
+      this.setData({ registerOpen: !!item && item.value === 'true' });
+    } catch {
+      this.setData({ registerOpen: false });
+    }
   },
 
   onField(e) {
@@ -35,6 +51,11 @@ Page({
   },
 
   async onSubmit() {
+    if (!this.data.registerOpen) {
+      this.setData({ error: '注册功能暂未开放，请联系管理员' });
+      return;
+    }
+
     const { username, realName, phone, password, confirmPassword } = this.data;
 
     const name = (username || '').trim();
@@ -73,8 +94,12 @@ Page({
       const payload = { username: name, password };
       if ((realName || '').trim()) payload.realName = realName.trim();
       if (tel) payload.phone = tel;
-      await api.register(payload);
-      wx.showToast({ title: '注册成功，请联系管理员激活账号', icon: 'none', duration: 2500 });
+      const result = await api.register(payload);
+      wx.showToast({
+        title: (result && result.message) || '注册成功，可直接登录使用',
+        icon: 'none',
+        duration: 2500,
+      });
       setTimeout(() => wx.navigateBack(), 2500);
     } catch (e) {
       this.setData({ error: (e && e.message) || '注册失败，请重试' });

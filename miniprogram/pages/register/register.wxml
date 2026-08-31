@@ -1,10 +1,14 @@
 <view class="register">
   <view class="head">
     <view class="title">注册访客账号</view>
-    <view class="subtitle">注册后由管理员激活，即可登录使用</view>
+    <view class="subtitle">注册成功后即可直接登录使用</view>
   </view>
 
-  <view class="form card">
+  <view wx:if="{{!registerOpen}}" class="form card closed-tip">
+    注册功能暂未开放，请联系管理员
+  </view>
+
+  <view wx:else class="form card">
     <view class="field">
       <view class="field-ico ico-user"></view>
       <input
@@ -101,5 +105,5 @@
     >注册</view>
   </view>
 
-  <view class="tip">注册账号为访客角色，需管理员激活后登录</view>
+  <view wx:if="{{registerOpen}}" class="tip">注册账号为访客角色，仅可查看数据</view>
 </view>

@@ -206,6 +206,45 @@ describe('updateSettings — 更新系统设置', () => {
   });
 
   // ──────────────────────────────────────────────
+  // 2c. register_enabled 注册开放开关
+  // ──────────────────────────────────────────────
+  it('更新 register_enabled=true 应成功（白名单已注册该 key）', async () => {
+    const req = makeReq({ register_enabled: 'true' });
+    const res = makeRes();
+    const next = vi.fn();
+
+    await updateSettings(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(mockTx.system_settings.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { key: 'register_enabled' },
+        update: { value: 'true' },
+        create: expect.objectContaining({ key: 'register_enabled', value: 'true' }),
+      })
+    );
+  });
+
+  it('更新 register_enabled=false 也应被接受', async () => {
+    const req = makeReq({ register_enabled: 'false' });
+    const res = makeRes();
+    const next = vi.fn();
+
+    await updateSettings(req, res, next);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(mockTx.system_settings.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { key: 'register_enabled' },
+        update: { value: 'false' },
+      })
+    );
+  });
+
+  // ──────────────────────────────────────────────
   // 3. current_semester 格式正确 → 成功
   // ──────────────────────────────────────────────
   it('current_semester 格式正确应成功更新', async () => {

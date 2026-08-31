@@ -22,6 +22,10 @@
           <SchedulingConfig />
         </el-tab-pane>
 
+        <el-tab-pane label="注册设置" name="registration">
+          <RegistrationConfig />
+        </el-tab-pane>
+
         <el-tab-pane label="数据管理" name="data">
           <DataReset :resetting="resetting" @reset="showResetDialog" />
         </el-tab-pane>
@@ -53,6 +57,7 @@ import { resetAuditLogs, resetSettings } from '../../api/settings';
 import PageHeader from '../../components/PageHeader.vue';
 import SemesterConfig from './components/SemesterConfig.vue';
 import SchedulingConfig from './components/SchedulingConfig.vue';
+import RegistrationConfig from './components/RegistrationConfig.vue';
 import DataReset from './components/DataReset.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 

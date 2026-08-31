@@ -20,6 +20,10 @@ const DEFAULT_SETTINGS = {
     value: 'false',
     description: '自定义课时硬保障：开启后保障目标取自定义课时值而非与类别标准取严',
   },
+  register_enabled: {
+    value: 'false',
+    description: '开放访客自助注册：开启后注册账号直接激活可用，关闭则隐藏并拒绝注册',
+  },
 };
 
 /**
@@ -79,11 +83,13 @@ export async function getSettings(req, res, next) {
       }
     }
 
-    // 尝试识别登录用户：无有效 token（匿名，登录页）只返回非敏感的系统标识
+    // 尝试识别登录用户：无有效 token（匿名，登录页）只返回非敏感字段
+    // （系统标识 + 注册开放开关——登录页需据此决定是否显示注册入口）
     const authUser = await tryGetAuthUser(req);
     if (!authUser) {
       const publicMap = {};
       if (map.organization_name) publicMap.organization_name = map.organization_name;
+      if (map.register_enabled) publicMap.register_enabled = map.register_enabled;
       return success(res, publicMap);
     }
 
@@ -99,6 +105,8 @@ export async function getSettings(req, res, next) {
     const publicDefault = {};
     if (defaultMap.organization_name)
       publicDefault.organization_name = defaultMap.organization_name;
+    // 注册开关降级为默认值（'false'），DB 异常时注册入口隐藏、注册请求被拒（fail-close）
+    if (defaultMap.register_enabled) publicDefault.register_enabled = defaultMap.register_enabled;
     return success(res, publicDefault, '使用默认设置');
   }
 }

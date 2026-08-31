@@ -134,7 +134,9 @@ async function request(options) {
     enableCookie: true,
   });
 
-  if (res.statusCode >= 200 && res.statusCode < 300) return normalize(res);
+  // rawBody：成功时返回完整响应体（{ success, message, data }），供调用方读取服务端消息
+  if (res.statusCode >= 200 && res.statusCode < 300)
+    return options.rawBody ? res.data || {} : normalize(res);
 
   if (res.statusCode === 401) {
     // 仅 GET 触发静默刷新；登录/刷新等鉴权 POST 的 401 视为凭据错误，直接抛给调用方

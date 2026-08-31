@@ -49,7 +49,12 @@
       bindtap="onSubmit"
     >登录</view>
 
-    <view class="go-register" hover-class="tap-hover" bindtap="onGoRegister">
+    <view
+      wx:if="{{registerEnabled}}"
+      class="go-register"
+      hover-class="tap-hover"
+      bindtap="onGoRegister"
+    >
       还没有账号？<text class="go-register-link">注册访客账号</text>
     </view>
   </view>

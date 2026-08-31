@@ -5,15 +5,17 @@
  * - parseSemesterString（学期参数校验，修过 S-04）
  * - formatSemesterLabel（学期显示格式化）
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Mock prisma + logger（模块加载时依赖）
-vi.mock('../lib/prisma.js', () => ({ prisma: {} }));
-vi.mock('../utils/logger.js', () => ({
+// Mock prisma + logger（模块加载时依赖；路径相对测试文件，须 ../../ 才能命中 src/lib 与 src/utils）
+const mockSystemSettings = { findUnique: vi.fn() };
+vi.mock('../../lib/prisma.js', () => ({ prisma: { system_settings: mockSystemSettings } }));
+vi.mock('../../utils/logger.js', () => ({
   log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
-const { parseSemesterString, formatSemesterLabel } = await import('../settings.service.js');
+const { parseSemesterString, formatSemesterLabel, getSettingValue, isRegisterEnabled } =
+  await import('../settings.service.js');
 
 // ──────────────────────────────────────────────
 // parseSemesterString
@@ -84,5 +86,50 @@ describe('formatSemesterLabel', () => {
 
   it('春季应显示结束年', () => {
     expect(formatSemesterLabel(2024, 2025, 2)).toBe('2025年春季(第2学期)');
+  });
+});
+
+// ──────────────────────────────────────────────
+// getSettingValue
+// ──────────────────────────────────────────────
+describe('getSettingValue', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('键存在时应返回存储值', async () => {
+    mockSystemSettings.findUnique.mockResolvedValue({ key: 'register_enabled', value: 'true' });
+    await expect(getSettingValue('register_enabled')).resolves.toBe('true');
+  });
+
+  it('键缺失时应返回默认值', async () => {
+    mockSystemSettings.findUnique.mockResolvedValue(null);
+    await expect(getSettingValue('register_enabled', 'false')).resolves.toBe('false');
+    await expect(getSettingValue('missing_key')).resolves.toBeNull();
+  });
+});
+
+// ──────────────────────────────────────────────
+// isRegisterEnabled（注册开放开关）
+// ──────────────────────────────────────────────
+describe('isRegisterEnabled', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("值为 'true' 时应返回 true", async () => {
+    mockSystemSettings.findUnique.mockResolvedValue({ key: 'register_enabled', value: 'true' });
+    await expect(isRegisterEnabled()).resolves.toBe(true);
+  });
+
+  it("值为 'false' 时应返回 false", async () => {
+    mockSystemSettings.findUnique.mockResolvedValue({ key: 'register_enabled', value: 'false' });
+    await expect(isRegisterEnabled()).resolves.toBe(false);
+  });
+
+  it('键未配置时应视为关闭（默认关闭）', async () => {
+    mockSystemSettings.findUnique.mockResolvedValue(null);
+    await expect(isRegisterEnabled()).resolves.toBe(false);
+  });
+
+  it('DB 异常时应 fail-close（视为关闭）且不抛出', async () => {
+    mockSystemSettings.findUnique.mockRejectedValue(new Error('database is locked'));
+    await expect(isRegisterEnabled()).resolves.toBe(false);
   });
 });

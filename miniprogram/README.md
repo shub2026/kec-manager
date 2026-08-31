@@ -7,8 +7,8 @@
 
 | 页面 | 路由 | 类型 | 数据源 |
 |------|------|------|--------|
-| 登录 | `pages/login` | 普通 | `POST /api/auth/login` |
-| 注册 | `pages/register` | 普通 | `POST /api/auth/register`（访客自助注册，待管理员激活） |
+| 登录 | `pages/login` | 普通 | `POST /api/auth/login`（注册入口按「开放注册」开关联动显隐） |
+| 注册 | `pages/register` | 普通 | `POST /api/auth/register`（访客自助注册，仅在「开放注册」开关开启时受理，注册账号直接激活） |
 | 首页概览 | `pages/home` | tabBar | `GET /api/dashboard/stats` + `insights` |
 | 学期选择 | `pages/semester` | navigateTo | `GET /api/teaching-arrange/classes` |
 | 课程查询 | `pages/teaching-arrange` | tabBar | `GET /api/query/course`（按课程聚合各培养方案采用情况，对标 WEB 端课程查询页） |

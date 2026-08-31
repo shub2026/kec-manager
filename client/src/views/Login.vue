@@ -374,7 +374,7 @@
               <template v-if="mode === 'login'">
                 登录进入 <span class="form-subtitle__logo">KEC</span> 课程管理平台
               </template>
-              <template v-else>注册访客账号，管理员激活后即可登录</template>
+              <template v-else>注册访客账号，注册成功后即可直接登录</template>
             </p>
           </div>
 
@@ -512,7 +512,7 @@
             </el-form-item>
           </el-form>
 
-          <div class="mode-switch">
+          <div v-if="mode === 'register' || registerEnabled" class="mode-switch">
             <template v-if="mode === 'login'">
               还没有账号？
               <el-link type="primary" underline="never" @click="switchMode('register')">
@@ -569,6 +569,8 @@ const loading = ref(false);
 const registerLoading = ref(false);
 const mode = ref('login'); // 'login' | 'register'
 const organizationName = ref('欢迎回来');
+// 注册开放开关（公开设置）：默认关闭——加载失败或未配置时隐藏注册入口，与后端 fail-close 一致
+const registerEnabled = ref(false);
 const showTestAccounts = import.meta.env.DEV;
 const devAccountHint = import.meta.env.VITE_DEV_ACCOUNT_HINT || '';
 const appVersion = ref(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev');
@@ -686,13 +688,13 @@ async function handleRegister() {
   registerLoading.value = true;
   try {
     await fetchCsrfToken();
-    await apiRegister({
+    const result = await apiRegister({
       username: registerForm.username.trim(),
       password: registerForm.password,
       realName: registerForm.realName.trim() || undefined,
       phone: registerForm.phone.trim() || undefined,
     });
-    ElMessage.success('注册成功，请联系管理员激活账号');
+    ElMessage.success(result?.message || '注册成功');
     loginForm.username = registerForm.username.trim();
     loginForm.password = '';
     Object.assign(registerForm, {
@@ -714,7 +716,7 @@ async function handleRegister() {
   }
 }
 
-async function loadOrganizationName() {
+async function loadPublicSettings() {
   try {
     await settingsStore.load();
     const orgName = settingsStore.settings.organizationName?.value;
@@ -723,16 +725,18 @@ async function loadOrganizationName() {
     } else {
       organizationName.value = '欢迎回来';
     }
+    registerEnabled.value = settingsStore.settings.registerEnabled?.value === 'true';
   } catch (e) {
     if (import.meta.env.DEV) {
-      console.error('加载系统标识失败:', e);
+      console.error('加载公开设置失败:', e);
     }
     organizationName.value = '欢迎回来';
+    registerEnabled.value = false;
   }
 }
 
 onMounted(() => {
-  loadOrganizationName();
+  loadPublicSettings();
 });
 </script>
 

@@ -98,7 +98,7 @@ const usernameLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// 公开注册限流：防止批量注册未激活账号占用用户名
+// 公开注册限流：防止批量注册账号占用用户名
 const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分钟
   max: 5, // 每个IP最多5次
@@ -190,7 +190,7 @@ router.post('/register', registerLimiter, validateRegister, async (req, res, nex
 
     await AuthService.register(username, password, real_name, phone, req.ip);
 
-    success(res, null, '注册成功，请联系管理员激活账号');
+    success(res, null, '注册成功，可直接登录使用');
   } catch (error) {
     next(error);
   }

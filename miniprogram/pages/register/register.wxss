@@ -35,6 +35,15 @@
   z-index: 1;
 }
 
+/* 注册关闭态提示卡片 */
+.closed-tip {
+  text-align: center;
+  font-size: 28rpx;
+  color: var(--text-3);
+  letter-spacing: 1rpx;
+  line-height: 1.6;
+}
+
 .field {
   position: relative;
   display: flex;

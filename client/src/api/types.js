@@ -329,8 +329,9 @@
  * @typedef {Object} SystemSettings
  * @property {{value: string}} [currentSemester] - 如 { value: '2025-2026-2' }
  * @property {{value: string}} [organizationName] - 如 { value: '某某学院' }
+ * @property {{value: string}} [registerEnabled] - 注册开放开关，'true'/'false'
  */
-/** @typedef {Object} SystemSettingsInput @property {string} [currentSemester] @property {string} [organizationName] } */
+/** @typedef {Object} SystemSettingsInput @property {string} [currentSemester] @property {string} [organizationName] @property {boolean} [registerEnabled] } */
 /** @typedef {Object} ResetInput @property {string} [confirm] @property {string} [reason] } */
 
 /**

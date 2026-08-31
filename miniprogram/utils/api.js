@@ -41,9 +41,10 @@ const api = {
   getSettings: () => request({ url: '/api/settings' }),
   getMe: () => request({ url: '/api/auth/me' }),
 
-  // 访客自助注册（创建待激活账号，需管理员激活后登录）
+  // 访客自助注册（仅在系统设置「开放注册」开启时受理，注册账号直接激活；
+  // rawBody 返回完整响应体，便于展示服务端成功/失败消息）
   register(payload) {
-    return request({ url: '/api/auth/register', method: 'POST', data: payload });
+    return request({ url: '/api/auth/register', method: 'POST', data: payload, rawBody: true });
   },
 
   // 首页概览（指标条）

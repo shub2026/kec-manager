@@ -8,6 +8,8 @@
  * 而底层 semester.service.js#parseSemester 返回 null 或对象。
  */
 import { parseSemester } from './semester.service.js';
+import { prisma } from '../lib/prisma.js';
+import { log } from '../utils/logger.js';
 
 // 重新导出学期相关函数，保持向后兼容
 export {
@@ -34,4 +36,30 @@ export function parseSemesterString(semester) {
     return { success: false, error: '学期格式错误，应为 YYYY-YYYY-N' };
   }
   return { success: true, data: result };
+}
+
+/**
+ * 读取单个系统设置值
+ * @param {string} key - 设置键
+ * @param {string|null} defaultValue - 未配置时的默认值
+ * @returns {Promise<string|null>}
+ */
+export async function getSettingValue(key, defaultValue = null) {
+  const row = await prisma.system_settings.findUnique({ where: { key } });
+  return row ? row.value : defaultValue;
+}
+
+/**
+ * 注册开放开关：仅当 register_enabled 显式为 'true' 时返回 true。
+ * 键缺失或 DB 异常时 fail-close（视为关闭），避免数据库故障期间注册被意外放行。
+ * 与 settings.controller.js DEFAULT_SETTINGS.register_enabled 默认值 'false' 保持一致。
+ * @returns {Promise<boolean>}
+ */
+export async function isRegisterEnabled() {
+  try {
+    return (await getSettingValue('register_enabled', 'false')) === 'true';
+  } catch (e) {
+    log.warn('读取注册开放开关失败，按关闭处理（fail-close）', { error: e.message });
+    return false;
+  }
 }

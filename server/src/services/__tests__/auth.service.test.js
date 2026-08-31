@@ -79,6 +79,12 @@ vi.mock('../utils/error.js', () => ({
       this.name = 'ValidationError';
     }
   },
+  AuthorizationError: class AuthorizationError extends Error {
+    constructor(msg) {
+      super(msg);
+      this.name = 'AuthorizationError';
+    }
+  },
 }));
 
 // ──────────────────────────────────────────────
@@ -97,6 +103,14 @@ vi.mock('../../utils/logger.js', () => ({
     info: vi.fn(),
     debug: vi.fn(),
   },
+}));
+
+// ──────────────────────────────────────────────
+// Mock settings.service（注册开放开关）
+// ──────────────────────────────────────────────
+const mockIsRegisterEnabled = vi.fn();
+vi.mock('../settings.service.js', () => ({
+  isRegisterEnabled: mockIsRegisterEnabled,
 }));
 
 // ──────────────────────────────────────────────
@@ -377,9 +391,25 @@ describe('AuthService.login', () => {
 // register（访客自助注册）
 // ──────────────────────────────────────────────
 describe('AuthService.register', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockIsRegisterEnabled.mockResolvedValue(true); // 默认注册开放
+  });
 
   const ip = '127.0.0.1';
+
+  it('注册开关关闭时应抛 AuthorizationError 且不创建用户', async () => {
+    mockIsRegisterEnabled.mockResolvedValue(false);
+
+    await expect(AuthService.register('newbie', 'Passw0rd', '张三', null, ip)).rejects.toThrow(
+      '注册功能暂未开放，请联系管理员'
+    );
+    expect(mockPrismaUsers.findUnique).not.toHaveBeenCalled();
+    expect(mockPrismaUsers.create).not.toHaveBeenCalled();
+    expect(mockCreateAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'create', result: 'failed' })
+    );
+  });
 
   it('用户名已存在时应抛 ValidationError 且不创建用户', async () => {
     mockPrismaUsers.findUnique.mockResolvedValue({ id: 1, username: 'dup' });
@@ -393,7 +423,7 @@ describe('AuthService.register', () => {
     );
   });
 
-  it('成功注册应创建待激活的访客账号', async () => {
+  it('成功注册应创建直接激活的访客账号（开放注册免激活）', async () => {
     mockPrismaUsers.findUnique.mockResolvedValue(null);
     mockPrismaUsers.create.mockResolvedValue({ id: 9, username: 'newbie' });
 
@@ -406,7 +436,7 @@ describe('AuthService.register', () => {
       real_name: '李四',
       phone: '13812345678',
       role: 'viewer',
-      is_active: false,
+      is_active: true,
       must_change_password: false,
     });
     // 密码必须哈希存储
@@ -428,17 +458,17 @@ describe('AuthService.register', () => {
     expect(createCall.data.phone).toBeNull();
   });
 
-  it('注册成功的账号未激活前应无法登录', async () => {
+  it('被管理员禁用的账号（is_active=false）应无法登录', async () => {
     const password = await bcrypt.hash('Passw0rd', 10);
     mockPrismaUsers.findUnique.mockResolvedValue({
       id: 9,
-      username: 'newbie',
+      username: 'disabled_user',
       password,
       is_active: false,
       role: 'viewer',
     });
 
-    await expect(AuthService.login('newbie', 'Passw0rd', ip)).rejects.toThrow(
+    await expect(AuthService.login('disabled_user', 'Passw0rd', ip)).rejects.toThrow(
       '账号待激活或已被禁用，请联系管理员'
     );
   });

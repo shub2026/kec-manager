@@ -113,6 +113,7 @@ describe('getSettings — 获取系统设置', () => {
   const dbSettings = [
     { key: 'current_semester', value: '2026-2027-1', description: '当前学期' },
     { key: 'organization_name', value: '测试学院', description: '系统标识' },
+    { key: 'register_enabled', value: 'true', description: '开放访客自助注册' },
   ];
 
   const activeUser = { id: 1, role: 'super_admin', is_active: true };
@@ -140,6 +141,9 @@ describe('getSettings — 获取系统设置', () => {
       const data = res.body.data;
       expect(data.organization_name).toBeDefined();
       expect(data.organization_name.value).toBe('测试学院');
+      // 注册开放开关属公开字段（登录页据此决定是否显示注册入口）
+      expect(data.register_enabled).toBeDefined();
+      expect(data.register_enabled.value).toBe('true');
       // currentSemester 不应出现在匿名响应中
       expect(data.current_semester).toBeUndefined();
     });
@@ -354,6 +358,9 @@ describe('getSettings — 获取系统设置', () => {
       // M-9 修复：降级路径也只返回公开字段
       expect(res.body.data.current_semester).toBeUndefined();
       expect(res.body.data.organization_name).toBeDefined();
+      // 注册开关降级为默认关闭（fail-close），登录页隐藏注册入口
+      expect(res.body.data.register_enabled).toBeDefined();
+      expect(res.body.data.register_enabled.value).toBe('false');
     });
   });
 

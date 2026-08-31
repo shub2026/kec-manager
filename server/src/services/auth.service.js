@@ -4,8 +4,9 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma.js';
 import { authConfig } from '../config/auth.config.js';
 import { createAuditLog } from './audit.service.js';
-import { AuthenticationError, ValidationError } from '../utils/error.js';
+import { AuthenticationError, ValidationError, AuthorizationError } from '../utils/error.js';
 import { invalidateUserStatusCache } from '../middleware/auth.middleware.js';
+import { isRegisterEnabled } from './settings.service.js';
 import { log } from '../utils/logger.js';
 
 // H2修复：Token黑名单负缓存，减少DB查询频率（10s TTL）
@@ -160,10 +161,24 @@ export class AuthService {
   }
 
   /**
-   * 访客自助注册：创建待激活的访客账号（role=viewer, is_active=false），
-   * 须由超级管理员在用户管理中激活后方可登录。
+   * 访客自助注册：仅当系统设置「开放注册」（register_enabled）开启时受理。
+   * 开放注册的账号直接激活（role=viewer, is_active=true），可立即登录使用；
+   * 开关关闭时入口隐藏，且服务端兜底拒绝（403）。
    */
   static async register(username, password, realName, phone, ip) {
+    const registerOpen = await isRegisterEnabled();
+    if (!registerOpen) {
+      await createAuditLog({
+        action: 'create',
+        module: 'auth',
+        ip,
+        details: { username },
+        result: 'failed',
+        message: `注册失败：注册功能未开放（${username}）`,
+      });
+      throw new AuthorizationError('注册功能暂未开放，请联系管理员');
+    }
+
     const existing = await prisma.users.findUnique({ where: { username } });
     if (existing) {
       await createAuditLog({
@@ -185,7 +200,7 @@ export class AuthService {
         real_name: realName || null,
         phone: phone || null,
         role: 'viewer',
-        is_active: false,
+        is_active: true,
         must_change_password: false,
       },
       select: { id: true, username: true },
@@ -196,9 +211,9 @@ export class AuthService {
       module: 'auth',
       userId: user.id,
       ip,
-      details: { id: user.id, username, role: 'viewer', pending_activation: true },
+      details: { id: user.id, username, role: 'viewer', auto_activated: true },
       result: 'success',
-      message: `访客注册：${username}（待管理员激活）`,
+      message: `访客注册：${username}（注册开放，已直接激活）`,
     });
 
     return user;
