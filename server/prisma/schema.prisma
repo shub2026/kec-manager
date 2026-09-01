@@ -256,6 +256,7 @@ model users {
   created_at           DateTime     @default(now())
   updated_at           DateTime     @updatedAt
   audit_logs           audit_logs[]
+  documents            documents[]
 
   @@index([role])
   @@index([locked_until])
@@ -353,6 +354,24 @@ model token_blacklist {
   created_at DateTime @default(now())
 
   @@index([expires_at])
+}
+
+// 文档资料：仅存元数据，文件二进制存于磁盘 UPLOAD_DIR/documents/
+model documents {
+  id            Int      @id @default(autoincrement())
+  original_name String // 原始文件名（含扩展名）
+  stored_name   String   @unique // 磁盘存储名，防冲突与路径穿越
+  file_ext      String // 扩展名（小写，不含点）
+  file_size     Int // 字节
+  mime_type     String
+  file_hash     String? // 内容 SHA-256，上传去重
+  uploader_id   Int?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  users         users?   @relation(fields: [uploader_id], references: [id], onDelete: SetNull)
+
+  @@index([created_at(sort: Desc)])
+  @@index([file_hash])
 }
 
 // B-01 修复：排课并发锁表，支持多进程/多实例部署的跨进程互斥

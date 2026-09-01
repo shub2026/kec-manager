@@ -137,6 +137,12 @@ const routes = [
         component: () => import('../views/system/UserManagement.vue'),
         meta: { title: '用户管理', requiresSuperAdmin: true },
       },
+      {
+        path: 'documents',
+        name: 'Documents',
+        component: () => import('../views/system/DocumentList.vue'),
+        meta: { title: '文档资料', requiresSuperAdmin: true },
+      },
     ],
   },
   // 404 路由 - 必须放在最后

@@ -16,6 +16,7 @@ import settingsRoutes from './routes/settings.routes.js';
 import trainingLevelRoutes from './routes/trainingLevel.routes.js';
 import collegeRoutes from './routes/college.routes.js';
 import auditRoutes from './routes/audit.routes.js';
+import documentRoutes from './routes/documents.routes.js';
 import teacherRoutes from './routes/teacher.routes.js';
 import teachingArrangeRoutes from './routes/teaching-arrange.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
@@ -210,6 +211,9 @@ app.use('/api/teaching-arrange', authMiddleware, teachingArrangeRoutes);
 
 // 审计日志 - 仅超级管理员可访问
 app.use('/api/audit', authMiddleware, roleMiddleware('super_admin'), auditRoutes);
+
+// 文档资料 - 仅超级管理员可访问
+app.use('/api/documents', authMiddleware, roleMiddleware('super_admin'), documentRoutes);
 
 // 首页概览 - 所有登录用户可访问
 app.use('/api/dashboard', authMiddleware, dashboardRoutes);

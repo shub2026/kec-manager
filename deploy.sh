@@ -236,8 +236,14 @@ CORS_ORIGINS=https://kec.sntip.cn
 # 日志级别
 LOG_LEVEL=info
 
-# 文件上传大小限制（MB）
+# 文件上传大小限制（MB，数据导入接口）
 MAX_FILE_SIZE=10
+
+# 文档资料单文件大小上限（MB）
+DOCUMENT_MAX_SIZE=50
+
+# 上传目录：文档资料存于该目录的 documents/ 子目录，指向站点内持久化路径
+UPLOAD_DIR=${PROJECT_DIR}/server/uploads
 EOF
 
     copy_file /tmp/kec-env "${PROJECT_DIR}/server/.env"

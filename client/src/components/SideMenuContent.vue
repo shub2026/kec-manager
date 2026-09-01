@@ -46,6 +46,7 @@
         <el-menu-item index="/settings">系统设置</el-menu-item>
         <el-menu-item index="/users">用户管理</el-menu-item>
         <el-menu-item index="/audit-logs">操作日志</el-menu-item>
+        <el-menu-item index="/documents">文档资料</el-menu-item>
       </el-sub-menu>
     </template>
   </template>

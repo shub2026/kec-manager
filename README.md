@@ -2,7 +2,7 @@
 
 面向大中专职业院校教学管理人员的轻量级教学管理系统，涵盖培养方案、班级管理、教师排课、教材协调和数据导入导出等核心业务。
 
-**版本** v1.20.0 · **架构** 前后端分离 + 微信小程序 · **部署** Docker / PM2 + Nginx
+**版本** v1.22.0 · **架构** 前后端分离 + 微信小程序 · **部署** Docker / PM2 + Nginx
 
 ---
 
@@ -35,7 +35,7 @@
 | 认证 | JWT 双令牌（Access 15min + Refresh 7d）+ HttpOnly Cookie + CSRF 双重提交 + bcrypt |
 | 安全 | Helmet + 速率限制 + XSS 清洗 + 输入校验 + 审计日志 |
 | 小程序 | 微信原生小程序（体验版只读查询 + 轻量管理，独立于 Web 端） |
-| 测试 | Vitest + Supertest（后端 77 文件 / 1849 用例，前端 46 文件 / 476 用例） |
+| 测试 | Vitest + Supertest（后端 79 文件 / 1899 用例，前端 47 文件 / 490 用例） |
 | 部署 | Docker（推荐）/ PM2 进程管理 + Nginx 反向代理 + 一键部署脚本 |
 
 ---
@@ -122,7 +122,7 @@ npm run db:seed:dev      # 含开发测试数据
 npm run db:seed:reset    # 强制重置 + 重新 seed
 npm run db:reset         # 重建数据库
 npm run init:settings    # 初始化系统设置
-npm test                 # Vitest（77 个测试文件 / 1849 用例）
+npm test                 # Vitest（79 个测试文件 / 1899 用例）
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化
@@ -135,7 +135,7 @@ npm run dev              # Vite 开发服务器（:5173）
 npm run build            # 生产构建
 npm run preview          # 预览构建产物
 npm run analyze          # 包体积分析
-npm test                 # Vitest（46 个测试文件 / 476 用例）
+npm test                 # Vitest（47 个测试文件 / 490 用例）
 npm run test:coverage    # 覆盖率报告
 npm run lint             # ESLint 检查并修复
 npm run format           # Prettier 格式化
