@@ -6,16 +6,18 @@ import { ref, watch, onUnmounted } from 'vue';
  * @param {Object} options - 配置项
  * @param {number} options.duration - 动画时长（ms），默认 800
  * @param {string} options.easing - 缓动函数名，默认 'easeOutCubic'
+ * @param {number} options.delay - 首次触发延迟（ms），默认 0；用于多数字瀑布式入场
  * @returns {{ displayValue: import('vue').Ref<number> }}
  */
 export function useCountUp(targetRef, options = {}) {
-  const { duration = 800, easing = 'easeOutCubic' } = options;
+  const { duration = 800, easing = 'easeOutCubic', delay = 0 } = options;
   const displayValue = ref(0);
   let rafId = null;
+  let timeoutId = null;
   let startTime = null;
   let fromValue = 0;
 
-  // 系统开启“减弱动态效果”时跳过动画，直接落到目标值（a11y 降级）
+  // 系统开启"减弱动态效果"时跳过动画，直接落到目标值（a11y 降级）
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -49,10 +51,20 @@ export function useCountUp(targetRef, options = {}) {
       displayValue.value = targetRef.value;
       return;
     }
-    rafId = requestAnimationFrame(animate);
+    if (delay > 0) {
+      timeoutId = setTimeout(() => {
+        rafId = requestAnimationFrame(animate);
+      }, delay);
+    } else {
+      rafId = requestAnimationFrame(animate);
+    }
   }
 
   function cancel() {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
     if (rafId) {
       cancelAnimationFrame(rafId);
       rafId = null;

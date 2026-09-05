@@ -92,11 +92,20 @@
   flex-shrink: 0;
 }
 
-/* ===== 展开方案明细 ===== */
+/* ===== 展开方案明细：max-height 过渡 ===== */
 .plan-list {
+  max-height: 0;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 1rpx solid transparent;
+  overflow: hidden;
+  transition: max-height 0.35s ease-out, margin-top 0.25s ease-out, padding-top 0.25s ease-out, border-color 0.25s ease-out;
+}
+.plan-list.open {
+  max-height: 2400rpx;     /* 兜底值，容纳最多 5 个方案 × 4 学期 */
   margin-top: 24rpx;
   padding-top: 24rpx;
-  border-top: 1rpx solid var(--border-light);
+  border-top-color: var(--border-light);
 }
 .plan-rows {
   background: var(--bg-page);

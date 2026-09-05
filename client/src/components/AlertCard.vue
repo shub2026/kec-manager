@@ -3,7 +3,7 @@
     <template #header>
       <div class="alert-header">
         <span class="card-title" role="heading" aria-level="2">
-          <el-icon><Warning /></el-icon>
+          <el-icon style="color: var(--brand-warning)"><Warning /></el-icon>
           待办提醒
         </span>
         <el-tag v-if="totalCount > 0" type="warning" size="small" round disable-transitions>{{

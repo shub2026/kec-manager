@@ -1,11 +1,3 @@
-/* ===== 各科分布副标题 ===== */
-.card-sub {
-  font-size: 22rpx;
-  font-weight: 400;
-  color: var(--text-3);
-  margin-left: 8rpx;
-}
-
 /* ===== 各科分布 ===== */
 .college-tt {
   padding: 18rpx 0;

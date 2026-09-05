@@ -90,26 +90,7 @@
   color: var(--text-3);
 }
 
-/* ===== 顶部加载 / 列表底部 ===== */
-.top-loading { margin-bottom: 16rpx; }
-.top-loading-bar {
-  height: 4rpx;
-  background: var(--brand);
-  border-radius: 2rpx;
-  margin-bottom: 8rpx;
-  animation: shimmer 1s infinite;
-}
-.top-loading-text {
-  font-size: 22rpx;
-  color: var(--text-4);
-  text-align: center;
-  display: block;
-}
-@keyframes shimmer {
-  0% { opacity: 0.5; }
-  50% { opacity: 1; }
-  100% { opacity: 0.5; }
-}
+
 .list-end {
   text-align: center;
   color: var(--text-4);

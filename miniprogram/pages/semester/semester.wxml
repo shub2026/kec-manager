@@ -5,7 +5,6 @@
         <view class="hero-title">开课查询</view>
         <view class="hero-subtitle">按年级查看本学期开课与教材安排</view>
       </view>
-      <view class="hero-decor"><view class="hero-ring"></view></view>
     </view>
   </view>
 
@@ -46,7 +45,7 @@
       <view class="class-sub">{{item.majorName || '—'}} / {{item.collegeName || '—'}}</view>
       <view class="class-plan">方案：{{item.planName || '—'}} · 开课 {{item.courseCount}} 门</view>
 
-      <view wx:if="{{expandedId === item.classId}}" class="course-list">
+      <view class="course-list {{expandedId === item.classId ? 'open' : ''}}">
         <view class="course-items">
           <view wx:for="{{item.courses}}" wx:for-item="co" wx:key="courseName" class="course">
             <view class="course-top">

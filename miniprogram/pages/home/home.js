@@ -56,11 +56,13 @@ Page({
         return;
       }
 
-      // 学院课时分布
+      // 学院课时分布：按蓝色阶同色序着色（与课时概览同源，第 1 档最深）
       const dist = insightsRaw ? (insightsRaw.distribution || []).slice() : [];
+      const distPalette = ['#1c82f5', '#3d95f7', '#5b9bff', '#79b7fc', '#a3ccfd', '#b5d6fc', '#cfe4fd'];
       const maxH = dist.reduce((m, d) => Math.max(m, d.hours), 0) || 1;
-      dist.forEach((d) => {
+      dist.forEach((d, i) => {
         d._pct = Math.round((d.hours / maxH) * 100);
+        d._color = distPalette[i % distPalette.length];
       });
 
       // 排课进度（rate 为后端课时口径：已排课时 ÷ 总课时）

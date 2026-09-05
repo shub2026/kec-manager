@@ -6,7 +6,6 @@
         <view class="hero-title">课程查询</view>
         <view class="hero-subtitle">按课程查看各培养方案采用情况</view>
       </view>
-      <view class="hero-decor"><view class="hero-ring"></view></view>
     </view>
   </view>
 
@@ -67,7 +66,7 @@
       </view>
 
       <!-- 展开方案明细 -->
-      <view wx:if="{{item.expanded}}" class="plan-list">
+      <view class="plan-list {{item.expanded ? 'open' : ''}}">
         <view class="plan-rows">
           <view wx:for="{{item.plans}}" wx:for-item="p" wx:key="planId" class="plan-row">
             <view class="plan-top">

@@ -44,7 +44,7 @@
             </view>
             <text class="arrow">{{expandedId === item.key ? '∨' : '›'}}</text>
           </view>
-          <view wx:if="{{expandedId === item.key}}" class="cls-detail">
+          <view class="cls-detail {{expandedId === item.key ? 'open' : ''}}">
             <view class="cd-row"><text class="label">课程</text><text class="value">{{item.courseName}}</text></view>
             <view class="cd-row"><text class="label">学院</text><text class="value">{{item.collegeName}}</text></view>
             <view class="cd-row"><text class="label">专业</text><text class="value">{{item.majorName}}</text></view>

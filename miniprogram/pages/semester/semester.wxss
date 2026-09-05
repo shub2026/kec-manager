@@ -53,11 +53,20 @@
   color: var(--text-3);
 }
 
-/* ===== 展开课程列表 ===== */
+/* ===== 展开课程列表：max-height 过渡替代 wx:if 瞬切 ===== */
 .course-list {
+  max-height: 0;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 1rpx solid transparent;
+  overflow: hidden;
+  transition: max-height 0.35s ease-out, margin-top 0.25s ease-out, padding-top 0.25s ease-out, border-color 0.25s ease-out;
+}
+.course-list.open {
+  max-height: 1600rpx;     /* 兜底值，容纳最多 8 门课程 */
   margin-top: 24rpx;
   padding-top: 24rpx;
-  border-top: 1rpx solid var(--border-light);
+  border-top-color: var(--border-light);
 }
 .course-items {
   background: var(--bg-page);
@@ -92,25 +101,4 @@
   line-height: 1.5;
 }
 
-/* ===== 顶部加载提示 ===== */
-.top-loading {
-  margin-bottom: 16rpx;
-}
-.top-loading-bar {
-  height: 4rpx;
-  background: var(--brand);
-  border-radius: 2rpx;
-  margin-bottom: 8rpx;
-  animation: shimmer 1s infinite;
-}
-.top-loading-text {
-  font-size: 22rpx;
-  color: var(--text-4);
-  text-align: center;
-  display: block;
-}
-@keyframes shimmer {
-  0% { opacity: 0.5; }
-  50% { opacity: 1; }
-  100% { opacity: 0.5; }
-}
+

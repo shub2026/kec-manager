@@ -2,7 +2,7 @@
   <el-card class="insight-card">
     <template #header>
       <span class="card-title" role="heading" aria-level="2">
-        <el-icon><TrendCharts /></el-icon>
+        <el-icon style="color: var(--brand-success)"><TrendCharts /></el-icon>
         排课进度
       </span>
     </template>
@@ -196,7 +196,7 @@ const statusText = computed(() => {
   width: 100%;
   transform-origin: left;
   transform: scaleX(0);
-  background: linear-gradient(90deg, var(--brand-success) 0%, var(--el-color-success-light-5) 100%);
+  background: linear-gradient(90deg, var(--brand-success) 0%, var(--brand-success-lighter) 100%);
   border-radius: var(--radius-sm);
   transition: transform var(--dur-slow) var(--ease-out);
 }

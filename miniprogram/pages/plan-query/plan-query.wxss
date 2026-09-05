@@ -17,8 +17,13 @@
   align-items: stretch;
 }
 .pc-accent {
-  display: none;
+  width: 8rpx;
+  flex-shrink: 0;
+  background: var(--text-5);          /* 默认：归档灰 */
 }
+.pc-active .pc-accent { background: var(--success); }    /* 生效：翡翠绿 */
+.pc-draft .pc-accent { background: var(--warning); }     /* 草稿：活力橙 */
+.pc-archived .pc-accent { background: var(--text-5); }  /* 归档：中性灰 */
 
 .pc-body {
   flex: 1;
@@ -57,7 +62,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10rpx;
-  margin-bottom: 12rpx;
+  margin-bottom: 16rpx;
 }
 .pc-tag {
   font-size: 22rpx;
@@ -65,11 +70,6 @@
   background: var(--bg-subtle);
   padding: 3rpx 12rpx;
   border-radius: var(--radius-sm);
-}
-.pc-apply {
-  font-size: 24rpx;
-  color: var(--text-3);
-  margin-bottom: 16rpx;
 }
 .pc-stats {
   display: flex;
@@ -99,10 +99,18 @@
   font-size: 20rpx;
 }
 
-/* ===== 展开明细 ===== */
+/* ===== 展开明细：max-height 过渡（容纳分组课程卡列表） ===== */
 .pc-detail {
+  max-height: 0;
+  padding: 0 28rpx;
+  border-top: 1rpx solid transparent;
+  overflow: hidden;
+  transition: max-height 0.35s ease-out, padding 0.25s ease-out, border-color 0.25s ease-out;
+}
+.pc-detail.open {
+  max-height: 4000rpx;   /* 兜底值，容纳所有分组 + 课程 + 学期 */
   padding: 0 28rpx 28rpx;
-  border-top: 1rpx solid var(--border-light);
+  border-top-color: var(--border-light);
 }
 .detail-loading {
   text-align: center;
@@ -168,10 +176,10 @@
   border-radius: 5rpx;
   margin-right: 6rpx;
 }
-.lg-d0 { background: var(--border); }
-.lg-d1 { background: var(--brand-border); }
-.lg-d2 { background: var(--brand-light); }
-.lg-d3 { background: var(--brand); }
+.lg-d0 { background: var(--bg-subtle); }   /* 对齐 .h-zero */
+.lg-d1 { background: var(--brand-soft); }  /* 对齐 .h-low 浅蓝底 */
+.lg-d2 { background: var(--brand-light); }  /* 对齐 .h-mid */
+.lg-d3 { background: var(--brand); }       /* 对齐 .h-high */
 
 /* 分组 */
 .grp {

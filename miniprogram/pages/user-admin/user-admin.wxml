@@ -6,7 +6,6 @@
         <view class="hero-title">用户管理</view>
         <view class="hero-subtitle">管理系统账号、角色与状态</view>
       </view>
-      <view class="hero-decor"><view class="hero-ring"></view></view>
     </view>
   </view>
 

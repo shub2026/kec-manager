@@ -189,10 +189,10 @@ const stats = ref({
   assignedWeeklyHours: null,
 });
 
-// 为每个指标创建独立 ref 和 countup
+// 为每个指标创建独立 ref 和 countup；每项递增 60ms 延迟形成瀑布式入场节奏
 const metricRefs = metricConfigs.map(() => ref(0));
-const metricCountups = metricRefs.map((r) => {
-  const { displayValue } = useCountUp(r, { duration: 900 });
+const metricCountups = metricRefs.map((r, i) => {
+  const { displayValue } = useCountUp(r, { duration: 900, delay: i * 60 });
   return displayValue;
 });
 
@@ -391,6 +391,10 @@ onMounted(async () => {
   stroke: var(--brand-primary-lighter);
   stroke-width: 1.5;
   opacity: 0.55;
+  transform-box: fill-box;
+  transform-origin: center;
+  /* 外环反向自转：180s 一圈，与内环 90s 正向形成 2:1 反向轨道交会 */
+  animation: decor-spin-reverse 180s linear infinite;
 }
 
 /* 渐变遮罩色与页面背景一致:SVG presentation attribute 不接受 var(),走 class + CSS 消费令牌 */
@@ -398,7 +402,7 @@ onMounted(async () => {
   stop-color: var(--bg-page);
 }
 
-/* 虚线环：圆点笔触 + 极缓自转，给静态页面一丝若有若无的生命力 */
+/* 虚线环：圆点笔触 + 正向极缓自转，外环反向形成轨道交会感 */
 .decor-ring--dashed {
   stroke-dasharray: 1 8;
   stroke-linecap: round;
@@ -415,7 +419,14 @@ onMounted(async () => {
   }
 }
 
+@keyframes decor-spin-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .decor-ring,
   .decor-ring--dashed {
     animation: none;
   }

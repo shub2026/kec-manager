@@ -43,19 +43,24 @@
   --brand-violet-text: #6d28d9; /* 深 violet,白底正文/数字对比度≈6.5:1 达标 */
 
   /* —— 图表单色阶:主色按透明度分级,多系列图表复用,避免引入新色相
-     尾档下限 0.30:再低会与 --bg-subtle 轨道几乎无法区分(与 danger 色阶同规则) —— */
+     扩展至 7 档覆盖 Dashboard 最多 8 条数据的场景（slate-5 循环时仅最后 1 条重复）
+     尾档下限 0.15:在 --bg-subtle 轨道上仍可感知（比 danger 档低 0.13 兜底） —— */
   --chart-1: var(--brand-primary);
   --chart-2: rgba(28, 130, 245, 0.78);
   --chart-3: rgba(28, 130, 245, 0.58);
   --chart-4: rgba(28, 130, 245, 0.42);
   --chart-5: rgba(28, 130, 245, 0.3);
+  --chart-6: rgba(28, 130, 245, 0.22);
+  --chart-7: rgba(28, 130, 245, 0.15);
 
   /* —— 图表语义色阶(danger):暖珊瑚红单色阶,与主蓝互补,用于对比型图表 —— */
   --chart-danger-1: var(--brand-danger);
   --chart-danger-2: rgba(248, 113, 113, 0.78);
   --chart-danger-3: rgba(248, 113, 113, 0.58);
   --chart-danger-4: rgba(248, 113, 113, 0.42);
-  --chart-danger-5: rgba(248, 113, 113, 0.28);
+  --chart-danger-5: rgba(248, 113, 113, 0.3);
+  --chart-danger-6: rgba(248, 113, 113, 0.22);
+  --chart-danger-7: rgba(248, 113, 113, 0.15);
 
   /* —— 语义色浅阶(lighter):第三档浅色,用于空状态插画点缀等场景 —— */
   --brand-success-lighter: #b7ead9; /* 翡翠绿 30% 混白(对应 light-7) */

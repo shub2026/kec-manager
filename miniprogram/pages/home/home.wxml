@@ -135,6 +135,7 @@
         </view>
 
         <view wx:if="{{insights.progress.complete}}" class="complete-hint">全部课程已排课完成</view>
+        <view wx:else class="pending-hint">剩余 {{insights.progress.remaining}} 门课程待排课</view>
       </block>
     </view>
 
@@ -213,10 +214,10 @@
     <view class="card">
       <view class="card-title">学院课时分布</view>
       <view wx:for="{{insights.distribution}}" wx:key="name" class="dist-row">
-        <text class="dist-name">{{item.name}}</text>
-        <view class="bar dist-bar"><view class="bar-in" style="width:{{item._pct}}%"></view></view>
-        <text class="dist-num">{{item.hours}}</text>
-      </view>
+          <text class="dist-name">{{item.name}}</text>
+          <view class="bar dist-bar"><view class="bar-in" style="width:{{item._pct}}%;background:{{item._color}}"></view></view>
+          <text class="dist-num">{{item.hours}}</text>
+        </view>
       <view wx:if="{{!insights.distribution.length}}" class="empty">暂无分布数据</view>
     </view>
 

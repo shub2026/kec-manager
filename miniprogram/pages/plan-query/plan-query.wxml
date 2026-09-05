@@ -5,7 +5,6 @@
         <view class="hero-title">方案查询</view>
         <view class="hero-subtitle">检索培养方案与课程安排</view>
       </view>
-      <view class="hero-decor"><view class="hero-ring"></view></view>
     </view>
   </view>
 
@@ -62,10 +61,7 @@
             <text wx:if="{{item.colleges}}" class="pc-tag">{{item.colleges.name}}</text>
             <text wx:if="{{item.majors}}" class="pc-tag">{{item.majors.name}}</text>
             <text wx:if="{{item.trainingLevels}}" class="pc-tag">{{item.trainingLevels.name}}</text>
-          </view>
-
-          <view class="pc-apply" wx:if="{{item.applyFromYear || item.applyToYear}}">
-            适用年级：{{item.applyFromYear || '不限'}} ~ {{item.applyToYear || '不限'}}
+            <text wx:if="{{item.applyFromYear || item.applyToYear}}" class="pc-tag">年级 {{item.applyFromYear || '不限'}}~{{item.applyToYear || '不限'}}</text>
           </view>
 
           <view class="pc-stats">
@@ -81,9 +77,20 @@
       </view>
 
       <!-- 展开区：纵向课程卡片流（全宽，位于正文下方） -->
-      <view wx:if="{{item.expanded}}" class="pc-detail" catchtap="noop">
+      <view class="pc-detail {{item.expanded ? 'open' : ''}}" catchtap="noop">
         <view wx:if="{{item.detailLoading}}" class="detail-loading">加载课程数据…</view>
         <block wx:elif="{{item.detail}}">
+          <!-- 课时热度图例（4 档同色阶，帮助理解 sem-hours h-* 色标含义） -->
+          <view class="dt-legend">
+            <text class="lg-t">课时颜色含义</text>
+            <view class="lg-items">
+              <text class="lg-i"><text class="lg-d lg-d0"></text>0</text>
+              <text class="lg-i"><text class="lg-d lg-d1"></text>轻</text>
+              <text class="lg-i"><text class="lg-d lg-d2"></text>中</text>
+              <text class="lg-i"><text class="lg-d lg-d3"></text>重</text>
+            </view>
+          </view>
+
           <!-- 概览条 -->
           <view class="ov-bar">
             <view class="ov-item">

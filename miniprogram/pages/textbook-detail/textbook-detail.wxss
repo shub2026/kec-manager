@@ -81,10 +81,18 @@
   flex-shrink: 0;
 }
 .cls-detail {
-  margin-top: 16rpx;
-  padding: 16rpx 20rpx;
+  max-height: 0;
+  margin-top: 0;
+  padding: 0 20rpx;
   background: var(--bg-page);
   border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, margin-top 0.25s ease-out, padding 0.25s ease-out;
+}
+.cls-detail.open {
+  max-height: 1000rpx;
+  margin-top: 16rpx;
+  padding: 16rpx 20rpx;
 }
 .cd-row {
   display: flex;

@@ -84,7 +84,7 @@ Page({
     wx.showModal({
       title: '退出登录',
       content: '确定要退出当前账号吗？',
-      confirmColor: '#3283ff',
+      confirmColor: '#1c82f5',
       success: (res) => {
         if (res.confirm) logout();
       },

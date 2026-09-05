@@ -12,14 +12,14 @@
     </div>
 
     <div v-else class="chart-container" role="img" :aria-label="chartSummary">
-      <div v-for="item in data" :key="item.name" class="chart-row">
+      <div v-for="(item, idx) in data" :key="item.name" class="chart-row">
         <div class="chart-label" :title="item.name">{{ item.name }}</div>
         <div class="chart-bar-wrap">
           <div
             class="chart-bar"
             :style="{
               transform: `scaleX(${barWidth(item.hours) / 100})`,
-              backgroundColor: barColor(item),
+              backgroundColor: barColor(idx),
             }"
           />
         </div>
@@ -65,11 +65,12 @@ const palette = [
   'var(--chart-3)',
   'var(--chart-4)',
   'var(--chart-5)',
+  'var(--chart-6)',
+  'var(--chart-7)',
 ];
 
-function barColor(item) {
-  const idx = props.data.indexOf(item) % palette.length;
-  return palette[idx];
+function barColor(idx) {
+  return palette[idx % palette.length];
 }
 </script>
 

@@ -5,7 +5,6 @@
         <view class="hero-title">教师情况</view>
         <view class="hero-subtitle">本学期课时分布与工作量排行</view>
       </view>
-      <view class="hero-decor"><view class="hero-ring"></view></view>
     </view>
   </view>
 
