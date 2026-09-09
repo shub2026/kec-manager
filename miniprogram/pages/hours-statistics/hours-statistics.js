@@ -14,9 +14,17 @@ Page({
     error: '',
   },
 
-  onShow() {
+  async onShow() {
     if (!guard()) return;
-    if (!this.data.summary) this.load();
+    // 页面显示时按需刷新学期（内部 60s 节流）；学期变化则重新加载，保证展示最新学期的统计口径
+    const app = getApp();
+    await app.refreshSemester();
+    if (this._shownSemester !== app.globalData.currentSemester) {
+      this._shownSemester = app.globalData.currentSemester;
+      this.load();
+    } else if (!this.data.summary) {
+      this.load();
+    }
   },
 
   async load() {

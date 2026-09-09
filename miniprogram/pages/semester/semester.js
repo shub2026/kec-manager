@@ -18,9 +18,15 @@ Page({
     expandedId: null,
   },
 
-  onShow() {
+  async onShow() {
     if (!guard()) return;
-    if (!this.data.list.length) {
+    // 页面显示时按需刷新学期（内部 60s 节流）；学期变化则重新加载，保证展示最新学期的开课数据
+    const app = getApp();
+    await app.refreshSemester();
+    if (this._shownSemester !== app.globalData.currentSemester) {
+      this._shownSemester = app.globalData.currentSemester;
+      this.reload({ showOverlay: true });
+    } else if (!this.data.list.length) {
       this.reload({ showOverlay: true });
     }
   },

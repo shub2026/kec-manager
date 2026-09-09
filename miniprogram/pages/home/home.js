@@ -13,11 +13,19 @@ Page({
     isAdmin: false,
   },
 
-  onShow() {
+  async onShow() {
     if (!guard()) return;
     this.setData({ isAdmin: isAdmin() });
     this.loadOrgName();
-    if (!this.data.stats) this.load();
+    // 页面显示时按需刷新学期（内部 60s 节流）；学期变化则重新拉取数据，保证展示最新学期
+    const app = getApp();
+    await app.refreshSemester();
+    if (this._shownSemester !== app.globalData.currentSemester) {
+      this._shownSemester = app.globalData.currentSemester;
+      this.load(true);
+    } else if (!this.data.stats) {
+      this.load();
+    }
   },
 
   // 副标题调用 WEB 端系统标识（organizationName 设置，默认「欢迎回来」）

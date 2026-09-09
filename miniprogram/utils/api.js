@@ -10,10 +10,18 @@ function getAppSemester() {
 
 // 学期拉取单例：并发调用时复用同一 Promise，避免重复请求
 let _semesterPromise = null;
+// 最近一次成功/尝试拉取学期的时间戳，用于缓存时效判断
+let _semesterFetchedAt = 0;
+// 学期缓存时效：此时长内复用内存值，超时后强制重新拉取 /api/settings，
+// 使 Web 端切换学期后小程序的数据接口能及时拿到最新学期，而非长期命中旧缓存。
+const SEMESTER_TTL_MS = 60 * 1000;
 
 async function ensureSemester() {
   let sem = getAppSemester();
-  if (sem) return sem;
+  const now = Date.now();
+  const fresh = _semesterFetchedAt > 0 && now - _semesterFetchedAt < SEMESTER_TTL_MS;
+  // 内存已有值且仍处于有效期内才直接复用；否则无论是否有值都重新拉取
+  if (sem && fresh) return sem;
   if (_semesterPromise) return _semesterPromise;
   _semesterPromise = (async () => {
     try {
@@ -27,6 +35,7 @@ async function ensureSemester() {
         if (app) app.globalData.currentSemester = sem;
         wx.setStorageSync('currentSemester', sem);
       }
+      _semesterFetchedAt = Date.now();
       return sem;
     } catch (e) {
       return '';
