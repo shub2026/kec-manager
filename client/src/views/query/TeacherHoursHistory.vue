@@ -52,25 +52,21 @@
         description="该教师暂无排课记录"
       />
 
-      <!-- 教师信息摘要 -->
-      <div v-if="historyData" class="teacher-info-section">
-        <el-descriptions :column="4" border>
-          <el-descriptions-item label="教师姓名">{{
-            historyData.teacherInfo.name
-          }}</el-descriptions-item>
-          <el-descriptions-item label="归属学院">
-            {{ historyData.teacherInfo.affiliatedCollege || '-' }}
-          </el-descriptions-item>
-          <el-descriptions-item label="人员类别">
-            <el-tag
-              :type="personnelTagType(historyData.teacherInfo.personnelType)"
-              size="small"
-              disable-transitions
-            >
-              {{ personnelLabel(historyData.teacherInfo.personnelType) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="任教科目" :span="1">
+      <!-- 概览卡：教师身份 + 统计汇总（合并原 descriptions 与汇总卡片，减少视觉层级） -->
+      <div v-if="historyData" class="overview-card">
+        <div class="overview-head">
+          <span class="teacher-name">{{ historyData.teacherInfo.name }}</span>
+          <el-tag
+            :type="personnelTagType(historyData.teacherInfo.personnelType)"
+            size="small"
+            disable-transitions
+          >
+            {{ personnelLabel(historyData.teacherInfo.personnelType) }}
+          </el-tag>
+          <span class="overview-college">{{
+            historyData.teacherInfo.affiliatedCollege || '-'
+          }}</span>
+          <div class="overview-subjects">
             <el-tag
               v-for="sub in historyData.teacherInfo.subjectList.slice(0, 5)"
               :key="sub"
@@ -90,8 +86,19 @@
                 >+{{ historyData.teacherInfo.subjectList.length - 5 }}</el-tag
               >
             </el-tooltip>
-          </el-descriptions-item>
-        </el-descriptions>
+          </div>
+        </div>
+        <div v-if="filteredSemesters.length > 0" class="summary-grid">
+          <div class="summary-item">
+            <el-statistic title="涉及学期数" :value="summary.totalSemesters" suffix="学期" />
+          </div>
+          <div class="summary-item">
+            <el-statistic title="历年总周课时" :value="summary.totalWeeklyHours" suffix="课时" />
+          </div>
+          <div class="summary-item">
+            <el-statistic title="总安排班级数" :value="summary.totalClasses" suffix="个" />
+          </div>
+        </div>
       </div>
 
       <!-- 学期课时汇总 -->
@@ -245,22 +252,6 @@
           </el-table>
         </div>
       </div>
-
-      <!-- 底部总计 -->
-      <div v-if="historyData && filteredSemesters.length > 0" class="footer-summary">
-        <el-divider content-position="center">统计汇总</el-divider>
-        <div class="summary-grid">
-          <div class="summary-item">
-            <el-statistic title="涉及学期数" :value="summary.totalSemesters" suffix="学期" />
-          </div>
-          <div class="summary-item">
-            <el-statistic title="历年总周课时" :value="summary.totalWeeklyHours" suffix="课时" />
-          </div>
-          <div class="summary-item">
-            <el-statistic title="总安排班级数" :value="summary.totalClasses" suffix="个" />
-          </div>
-        </div>
-      </div>
     </el-card>
   </div>
 </template>
@@ -410,11 +401,35 @@ onMounted(async () => {
   font-weight: var(--fw-bold);
   color: var(--text-primary);
 }
-.teacher-info-section {
-  margin-bottom: var(--space-2);
-}
 .history-section {
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* 概览卡：教师身份行 + 统计网格，单一浅色表面减少视觉层级 */
+.overview-card {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-color);
+  border-radius: var(--radius-lg);
+}
+.overview-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.teacher-name {
+  font-size: var(--font-size-subtitle);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+}
+.overview-college {
+  font-size: var(--font-size-body-sm);
+  color: var(--text-secondary);
+}
+.overview-subjects {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: auto;
 }
 
 /* 外层滚动容器 - 与 CourseQuery 一致 */
@@ -481,24 +496,20 @@ onMounted(async () => {
   color: var(--brand-indigo);
 }
 
-/* 底部统计 */
-.footer-summary {
-  margin-top: var(--space-3);
-  padding-bottom: var(--space-4);
-}
+/* 统计网格（概览卡内，分隔线代替独立底色） */
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-2);
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-light);
 }
 .summary-item {
   position: relative;
   display: flex;
   justify-content: center;
-  padding: var(--space-3);
-  background: var(--bg-color);
-  border-radius: var(--radius-lg);
+  padding: var(--space-2);
 }
 .summary-item + .summary-item::before {
   content: '';
@@ -541,6 +552,10 @@ onMounted(async () => {
 @media (max-width: 480px) {
   .summary-grid {
     grid-template-columns: repeat(1, 1fr);
+  }
+  .overview-subjects {
+    margin-left: 0;
+    width: 100%;
   }
 }
 </style>
