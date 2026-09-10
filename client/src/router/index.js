@@ -126,6 +126,12 @@ const routes = [
         meta: { title: '任课查询' },
       },
       {
+        path: 'query/teacher-hours-history',
+        name: 'TeacherHoursHistory',
+        component: () => import('../views/query/TeacherHoursHistory.vue'),
+        meta: { title: '课时查询' },
+      },
+      {
         path: 'settings',
         name: 'Settings',
         component: () => import('../views/settings/SystemSettings.vue'),

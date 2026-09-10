@@ -65,3 +65,11 @@ export const exportTeacherLoad = (params = {}) =>
  */
 export const exportTextbookLoad = (params = {}) =>
   request.get('/export/textbook-load', { params, responseType: 'blob' });
+
+/**
+ * 导出课时查询（教师历年课时统计）
+ * @param {{ teacher_id?: number, start_semester?: string, end_semester?: string }} [params]
+ * @returns {Promise<Blob>}
+ */
+export const exportHistoricalHours = (params = {}) =>
+  request.post('/export/historical-hours', params, { responseType: 'blob' });

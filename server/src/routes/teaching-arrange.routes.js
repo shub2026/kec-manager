@@ -22,6 +22,7 @@ import {
   runBatchAutoArrange,
   resetAutoAssignments,
   getStatistics,
+  getHistoricalStatistics,
   getHourSettings,
   saveHourSettings,
   toggleLock,
@@ -40,7 +41,7 @@ router.get('/compare-teachers', compareTeacherAssignments);
 router.get('/statistics', getStatistics);
 router.get('/hour-settings', getHourSettings);
 
-// POST/PUT/DELETE - 需要admin权限
+// POST/PUT/DELETE - 需要 admin 权限
 router.post(
   '/assign',
   roleMiddleware('admin', 'super_admin'),
@@ -117,6 +118,14 @@ router.post(
   roleMiddleware('admin', 'super_admin'),
   sanitizeBody,
   applyOptimizeResult
+);
+
+// POST /history-statistics - 查询教师历年课时统计（管理员）
+router.post(
+  '/history-statistics',
+  roleMiddleware('admin', 'super_admin'),
+  sanitizeBody,
+  getHistoricalStatistics
 );
 
 export default router;

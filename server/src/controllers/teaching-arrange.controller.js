@@ -1726,3 +1726,194 @@ export async function applyOptimizeResult(req, res, next) {
     next(e);
   }
 }
+
+/**
+ * 构建教师历年课时统计数据（页面查询与导出接口共用口径）
+ * @returns {Promise<Object|null>} 教师不存在时返回 null
+ */
+export async function buildHistoricalStatisticsData(teacherId, startSemester, endSemester) {
+  // 预取本学期全部相关安排（含班级 combination_id），用于按单元归并
+  const where = {
+    teacher_id: teacherId,
+    weekly_hours: { gt: 0 },
+  };
+
+  // 可选学期范围筛选
+  if (startSemester && endSemester) {
+    where.semester = { gte: startSemester, lte: endSemester };
+  } else if (startSemester) {
+    where.semester = { gte: startSemester };
+  } else if (endSemester) {
+    where.semester = { lte: endSemester };
+  }
+
+  const rawAssignments = await prisma.teaching_assignments.findMany({
+    where,
+    include: {
+      class: {
+        select: {
+          id: true,
+          name: true,
+          college_id: true,
+          training_level_id: true,
+          custom_plan_id: true,
+          major_id: true,
+          enrollment_year: true,
+          duration_years: true,
+          is_left_school: true,
+          colleges: { select: { id: true, name: true } },
+          training_levels: { select: { id: true, name: true } },
+        },
+      },
+      course: { select: { id: true, name: true } },
+    },
+    orderBy: [{ semester: 'desc' }, { course_id: 'asc' }, { class_id: 'asc' }],
+  });
+
+  // 归并为逻辑教学单元（同组合 + 同课程 + 同教师 → 1 个单元，课时仅计 1 次）
+  const allUnits = dedupeTeachingUnits(rawAssignments);
+
+  // 全局合班组号（跨页面一致）；本学期无合班安排时跳过查询
+  const hasCombinedAssignment = allUnits.some((u) => u.combinationId != null);
+  const combinationNoMap = hasCombinedAssignment ? await buildCombinationNoMap() : new Map();
+
+  // 获取教师详细信息
+  const teacher = await prisma.teachers.findUnique({
+    where: { id: teacherId },
+    include: {
+      affiliated_college: { select: { id: true, name: true } },
+      courses: { include: { course: { select: { id: true, name: true } } } },
+    },
+  });
+
+  if (!teacher) return null;
+
+  // 教材解析：批量查询培养方案教材
+  const semesterInfo = rawAssignments.length > 0 ? parseSemester(rawAssignments[0].semester) : null;
+  const { idsMap: classCourseTextbookIdsMap, titleMap: textbookTitleMap } =
+    await resolveClassCourseTextbooks(rawAssignments, semesterInfo);
+
+  // 按学期分组
+  const semesterMap = new Map();
+  for (const u of allUnits) {
+    const sem = u.representative.semester;
+    if (!semesterMap.has(sem)) {
+      semesterMap.set(sem, {
+        semester: sem,
+        totalWeeklyHours: 0,
+        courseList: new Map(),
+        classCount: 0,
+      });
+    }
+
+    const semData = semesterMap.get(sem);
+    semData.totalWeeklyHours += u.weeklyHours;
+    semData.classCount++;
+
+    // 按课程分组
+    const courseId = u.representative.course_id;
+    if (!semData.courseList.has(courseId)) {
+      semData.courseList.set(courseId, {
+        courseId: courseId,
+        courseName: u.representative.course.name,
+        classes: [],
+        weeklyHours: 0,
+      });
+    }
+
+    const courseData = semData.courseList.get(courseId);
+    const combined = u.combinationId != null;
+
+    // 构建班级信息
+    const unitKey = `${u.representative.class_id}:${u.representative.course_id}`;
+    const clsTextbookIds = classCourseTextbookIdsMap.get(unitKey) || [];
+    const textbookNames = clsTextbookIds.map((id) => textbookTitleMap.get(id)).filter(Boolean);
+
+    courseData.classes.push({
+      unitKey: u.key,
+      classId: u.representative.class_id,
+      className: combined
+        ? u.memberClasses
+            .map((c) => c?.name)
+            .filter(Boolean)
+            .join('、')
+        : u.representative.class.name,
+      isCombined: combined,
+      combinationNo: combined
+        ? (combinationNoMap.get(u.representative.class.combination_id) ?? null)
+        : null,
+      memberClassIds: u.memberClassIds,
+      collegeName: u.representative.class.colleges?.name || null,
+      trainingLevelName: u.representative.class.training_levels?.name || null,
+      classStatus: u.representative.class.is_left_school === true ? '已离校' : '在籍',
+      weeklyHours: u.weeklyHours,
+      isAuto: u.representative.is_auto,
+      textbookNames,
+    });
+
+    courseData.weeklyHours += u.weeklyHours;
+  }
+
+  // 构建结果：转换 Map 为 Array
+  const semesters = [];
+  for (const [semesterStr, semData] of semesterMap) {
+    const courses = [];
+    for (const [courseId, courseData] of semData.courseList) {
+      courses.push({
+        courseId: courseData.courseId,
+        courseName: courseData.courseName,
+        weeklyHours: courseData.weeklyHours,
+        classes: courseData.classes,
+      });
+    }
+
+    semesters.push({
+      semester: semesterStr,
+      totalWeeklyHours: semData.totalWeeklyHours,
+      classCount: semData.classCount,
+      courses,
+    });
+  }
+
+  // 提取教师任教的科目列表
+  const subjectSet = new Set();
+  for (const u of allUnits) {
+    subjectSet.add(u.representative.course.name);
+  }
+  const subjectList = [...subjectSet];
+
+  return {
+    teacherInfo: {
+      id: teacher.id,
+      name: teacher.name,
+      affiliatedCollege: teacher.affiliated_college?.name || null,
+      personnelType: teacher.personnel_type || null,
+      subjectList,
+    },
+    summary: {
+      totalSemesters: semesters.length,
+      totalWeeklyHours: semesters.reduce((sum, s) => sum + s.totalWeeklyHours, 0),
+      totalClasses: semesters.reduce((sum, s) => sum + s.classCount, 0),
+    },
+    semesters,
+  };
+}
+
+/**
+ * POST /history-statistics - 查询教师历年课时统计（按学期/课程/班级展开）
+ */
+export async function getHistoricalStatistics(req, res, next) {
+  try {
+    const { teacher_id, start_semester, end_semester } = req.body;
+    if (!teacher_id) return fail(res, '请选择教师');
+    const data = await buildHistoricalStatisticsData(
+      Number(teacher_id),
+      start_semester,
+      end_semester
+    );
+    if (!data) return fail(res, '教师不存在', 404);
+    success(res, data);
+  } catch (e) {
+    next(e);
+  }
+}

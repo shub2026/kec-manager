@@ -18,6 +18,7 @@ import {
   exportCoursePlans,
   exportTeacherLoad,
   exportTextbookLoad,
+  exportHistoricalHours,
 } from '../controllers/export/data-export.controller.js';
 import { issueDownloadTicket } from '../services/download-ticket.service.js'; // SEC-M2修复
 import { success } from '../utils/response.js';
@@ -102,6 +103,11 @@ router.get('/teacher-load', roleMiddleware('admin', 'super_admin'), exportTeache
 
 // GET /api/export/textbook-load - 导出任课查询·教材视图（与页面接口同口径；限 admin+）
 router.get('/textbook-load', roleMiddleware('admin', 'super_admin'), exportTextbookLoad);
+
+// ==================== 课时查询导出 ====================
+
+// POST /api/export/historical-hours - 导出课时查询·教师历年课时（与页面接口同口径；限 admin+）
+router.post('/historical-hours', roleMiddleware('admin', 'super_admin'), exportHistoricalHours);
 
 // GET /api/export/textbook/:id - 导出教材使用情况（M-12修复：限制为admin+）
 router.get(

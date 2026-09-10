@@ -32,6 +32,7 @@ import {
   aggregateByTextbook,
   buildLoadSummary,
 } from '../../services/teaching-query.service.js';
+import { buildHistoricalStatisticsData } from '../teaching-arrange.controller.js';
 
 /**
  * 导出课程数据
@@ -1416,6 +1417,92 @@ export async function exportTextbookLoad(req, res, next) {
       ip: req.ip,
       result: 'failed',
       message: `导出任课查询-教材视图失败: ${e.message}`,
+    });
+    next(e);
+  }
+}
+
+/**
+ * 导出课时查询（教师历年课时）：每个教学单元一行，与页面接口同口径
+ */
+export async function exportHistoricalHours(req, res, next) {
+  try {
+    const { teacher_id, start_semester, end_semester } = req.body;
+    if (!teacher_id) return res.status(400).json({ success: false, message: '请选择教师' });
+    const data = await buildHistoricalStatisticsData(
+      Number(teacher_id),
+      start_semester,
+      end_semester
+    );
+    if (!data) return res.status(404).json({ success: false, message: '教师不存在' });
+
+    const teacherCols = {
+      教师姓名: data.teacherInfo.name,
+      类别: LOAD_PERSONNEL_MAP[data.teacherInfo.personnelType] || '-',
+      归属学院: data.teacherInfo.affiliatedCollege || '-',
+    };
+    const rows = [];
+    for (const sem of data.semesters) {
+      for (const course of sem.courses) {
+        for (const cls of course.classes) {
+          rows.push({
+            ...teacherCols,
+            学期: sem.semester,
+            课程: course.courseName,
+            任课班级: cls.isCombined
+              ? `${cls.className}(合班${cls.combinationNo ?? ''})`
+              : cls.className,
+            班级学院: cls.collegeName || '-',
+            班级层次: cls.trainingLevelName || '-',
+            班级状态: cls.classStatus,
+            周课时: cls.weeklyHours,
+            安排方式: cls.isAuto ? '自动' : '手动',
+            当前教材: cls.textbookNames?.length ? cls.textbookNames.join('、') : '未指定',
+          });
+        }
+      }
+    }
+
+    const headers = [
+      { label: '教师姓名', key: '教师姓名', width: 12 },
+      { label: '类别', key: '类别', width: 10 },
+      { label: '归属学院', key: '归属学院', width: 18 },
+      { label: '学期', key: '学期', width: 16 },
+      { label: '课程', key: '课程', width: 20 },
+      { label: '任课班级', key: '任课班级', width: 30 },
+      { label: '班级学院', key: '班级学院', width: 18 },
+      { label: '班级层次', key: '班级层次', width: 12 },
+      { label: '班级状态', key: '班级状态', width: 10 },
+      { label: '周课时', key: '周课时', width: 10 },
+      { label: '安排方式', key: '安排方式', width: 10 },
+      { label: '当前教材', key: '当前教材', width: 35 },
+    ];
+
+    const workbook = await createWorkbook(headers, rows);
+    await createAuditLog({
+      action: 'export',
+      module: 'query',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: {
+        teacherId: data.teacherInfo.id,
+        semesterCount: data.semesters.length,
+        rowCount: rows.length,
+        summary: data.summary,
+      },
+      result: 'success',
+      message: `导出课时查询(${data.teacherInfo.name})，共${data.semesters.length}个学期${rows.length}条记录`,
+    });
+
+    sendWorkbook(res, await workbookToBuffer(workbook), `课时查询_${data.teacherInfo.name}.xlsx`);
+  } catch (e) {
+    await createAuditLog({
+      action: 'export',
+      module: 'query',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `导出课时查询失败: ${e.message}`,
     });
     next(e);
   }

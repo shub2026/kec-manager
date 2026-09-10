@@ -298,3 +298,14 @@ export const runOptimizeScheduleWithProgress = (data, onProgress) =>
  * @returns {Promise<import('./types').ApiResponse<Object>>}
  */
 export const applyOptimizeResult = (data) => request.post('/teaching-arrange/apply-optimize', data);
+
+/**
+ * 查询教师历年课时统计（按学期/课程/班级展开）
+ * @param {Object} data
+ * @param {number} data.teacher_id - 教师 ID
+ * @param {string} [data.start_semester] - 开始学期，不传则从最早开始
+ * @param {string} [data.end_semester] - 结束学期，不传则到当前学期
+ * @returns {Promise<import('./types').ApiResponse<Object>>}
+ */
+export const getHistoricalHoursStatistics = (data) =>
+  request.post('/teaching-arrange/history-statistics', data);
