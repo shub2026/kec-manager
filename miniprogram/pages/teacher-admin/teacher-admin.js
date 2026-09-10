@@ -378,14 +378,18 @@ Page({
       return;
     }
     const payload = { name: f.name.trim() };
+    const isEdit = this.data.mode === 'edit';
     if (f.genderIndex >= 0) payload.gender = GENDER_OPTIONS[f.genderIndex].value;
     if (f.personnelIndex >= 0) payload.personnel_type = PERSONNEL_OPTIONS[f.personnelIndex].value;
     if (f.collegeIndex >= 0 && this.data.colleges[f.collegeIndex]) {
       payload.affiliated_college_id = this.data.colleges[f.collegeIndex].id;
     }
     payload.status = STATUS_OPTIONS[f.statusIndex].value;
+    // 编辑态清空要显式发 null：键缺席会被后端视为"本次不修改"，删掉的内容仍会保留
     if (f.birthDate && f.birthDate.trim()) payload.birth_date = f.birthDate.trim();
+    else if (isEdit) payload.birth_date = null;
     if (f.qualification && f.qualification.trim()) payload.remark = f.qualification.trim();
+    else if (isEdit) payload.remark = null;
 
     // 学科（课程）多选
     const courseIds = this.data.courseOptions.filter((c) => c.selected).map((c) => c.id);

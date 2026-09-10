@@ -8,6 +8,24 @@ import {
   buildUpdateData,
 } from '../utils/sort.js';
 
+// 可空文本字段清空后统一落 null（口径对齐 import/textbooks.js）：
+// 前端发 null 表达清空，但 express-validator 的 .trim() 会把 null 转成 ''，
+// 不归一会让同一条记录里 isbn 存 ''、description 存 null，
+// 且列表接口按 publisher: { not: null } 聚合下拉时会混入空串行
+const NULLABLE_TEXT_FIELDS = ['isbn', 'publisher', 'author', 'edition', 'category', 'description'];
+
+function normalizeNullableText(data) {
+  for (const field of NULLABLE_TEXT_FIELDS) {
+    if (data[field] === '') data[field] = null;
+  }
+  return data;
+}
+
+// 定价为 0 是合法值，不能用真值判断（否则填 0 会被存成 null）
+function normalizePrice(price) {
+  return price === null || price === undefined || price === '' ? null : Number(price);
+}
+
 export async function listTextbooks(req, res, next) {
   try {
     await autoFixSortOrder('textbooks');
@@ -101,19 +119,19 @@ export async function createTextbook(req, res, next) {
     const newSortOrder = await getNextSortOrder('textbooks');
     const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const textbook = await prisma.textbooks.create({
-      data: {
+      data: normalizeNullableText({
         title,
         isbn,
         publisher,
         author,
         edition,
         publish_date: publish_date || null,
-        price: price ? Number(price) : null,
+        price: normalizePrice(price),
         category: category || null,
         description,
         is_active: is_active !== undefined ? is_active : true,
         sort_order: finalSortOrder,
-      },
+      }),
     });
 
     await createAuditLog({
@@ -159,9 +177,10 @@ export async function updateTextbook(req, res, next) {
       'is_active',
       'sort_order',
     ]);
-    // 特殊处理：确保 price 和 publish_date 的正确转换
-    if (req.body.price !== undefined)
-      updateData.price = req.body.price ? Number(req.body.price) : null;
+    // 清空口径归一：'' → null（详见 normalizeNullableText 注释）
+    normalizeNullableText(updateData);
+    // 特殊处理：确保 price 和 publish_date 的正确转换（保留 !== undefined 守卫，缺席=不修改）
+    if (req.body.price !== undefined) updateData.price = normalizePrice(req.body.price);
     if (req.body.publish_date !== undefined)
       updateData.publish_date = req.body.publish_date || null;
 

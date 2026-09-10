@@ -296,6 +296,43 @@ describe('保存', () => {
     expect(mockElMessage.success).toHaveBeenCalledWith('更新成功');
   });
 
+  // 回归：清空字段若发 undefined 会被丢键，后端视为"本次不修改"，旧值残留
+  it('编辑时清空专业类别/二级学院应显式发 null', async () => {
+    const { c } = await setup();
+    await c.openDialog({
+      id: 7,
+      name: '旧名',
+      majorId: 3,
+      collegeId: 5,
+      isCombinedClass: false,
+    });
+    c.form.value.trainingLevelId = 2;
+    c.form.value.enrollmentYear = 2026;
+    c.form.value.durationYears = 3;
+    c.form.value.majorId = null;
+    c.form.value.collegeId = null;
+
+    await c.handleSave();
+
+    const payload = updateClass.mock.calls[0][1];
+    expect(payload).toHaveProperty('majorId', null);
+    expect(payload).toHaveProperty('collegeId', null);
+  });
+
+  it('编辑时清空学生人数应归零而非丢字段', async () => {
+    const { c } = await setup();
+    await c.openDialog({ id: 7, name: '旧名', studentCount: 45, isCombinedClass: false });
+    c.form.value.trainingLevelId = 2;
+    c.form.value.enrollmentYear = 2026;
+    c.form.value.durationYears = 3;
+    c.form.value.studentCount = null;
+
+    await c.handleSave();
+
+    const payload = updateClass.mock.calls[0][1];
+    expect(payload.studentCount).toBe(0);
+  });
+
   it('合班开关控制伙伴提交口径：关闭时提交空数组', async () => {
     const { c } = await setup();
     await openNewForm(c);

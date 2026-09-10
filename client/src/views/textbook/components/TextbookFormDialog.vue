@@ -128,19 +128,21 @@ async function handleSave() {
     return;
   }
   // 前端统一使用 camelCase，由 naming 中间件自动转换为 snake_case 给后端
+  // 清空一律发 null 而非 undefined：undefined 会被 JSON.stringify 丢键，
+  // 后端将缺失字段视为"本次不修改"，导致删掉的内容保存后仍然存在
+  const { price } = form.value;
   emit('save', {
     id: form.value.id,
     data: {
       title: form.value.title,
-      isbn: form.value.isbn || undefined,
-      publisher: form.value.publisher || undefined,
-      author: form.value.author || undefined,
-      edition: form.value.edition || undefined,
-      publishDate: form.value.publishDate || undefined,
-      price:
-        form.value.price !== null && form.value.price !== '' ? Number(form.value.price) : undefined,
-      category: form.value.category || undefined,
-      description: form.value.description || undefined,
+      isbn: form.value.isbn || null,
+      publisher: form.value.publisher || null,
+      author: form.value.author || null,
+      edition: form.value.edition || null,
+      publishDate: form.value.publishDate || null,
+      price: price === null || price === undefined || price === '' ? null : Number(price),
+      category: form.value.category || null,
+      description: form.value.description || null,
       isActive: form.value.isActive,
       sortOrder: form.value.sortOrder,
     },

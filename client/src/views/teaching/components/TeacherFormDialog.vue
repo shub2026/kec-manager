@@ -253,12 +253,14 @@ async function handleSave() {
     id: form.value.id,
     data: {
       name: form.value.name,
-      gender: form.value.gender,
-      birthDate: form.value.birthDate,
+      // 可空字段显式发 null：清空时若为 undefined 会被 JSON.stringify 丢键，
+      // 后端视为"本次不修改"，导致删掉的内容保存后仍然存在
+      gender: form.value.gender ?? null,
+      birthDate: form.value.birthDate ?? null,
       personnelType: form.value.personnelType,
-      remark: form.value.remark,
-      affiliatedCollegeId: form.value.affiliatedCollegeId,
-      defaultWeeklyHours: form.value.defaultWeeklyHours,
+      remark: form.value.remark ?? null,
+      affiliatedCollegeId: form.value.affiliatedCollegeId ?? null,
+      defaultWeeklyHours: form.value.defaultWeeklyHours ?? null,
       singleTextbookOnly: !!form.value.singleTextbookOnly,
       status: form.value.status || 'active',
       courseIds: form.value.courseIds,

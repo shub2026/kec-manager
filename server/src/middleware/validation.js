@@ -253,7 +253,7 @@ export const validateTextbook = [
   body('publisher').optional().trim().isLength({ max: 100 }).withMessage('出版社不超过100个字符'),
   body('author').optional().trim().isLength({ max: 100 }).withMessage('作者不超过100个字符'),
   body('price')
-    .optional()
+    .optional({ nullable: true })
     .isFloat({ min: 0, max: 100000 })
     .withMessage('定价必须为0-100000之间的非负数'),
   body('publish_date')
@@ -273,7 +273,7 @@ export const validateTextbookCreate = [
   body('publisher').optional().trim().isLength({ max: 100 }).withMessage('出版社不超过100个字符'),
   body('author').optional().trim().isLength({ max: 100 }).withMessage('作者不超过100个字符'),
   body('price')
-    .optional()
+    .optional({ nullable: true })
     .isFloat({ min: 0, max: 100000 })
     .withMessage('定价必须为0-100000之间的非负数'),
   body('publish_date')

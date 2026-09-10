@@ -252,13 +252,12 @@ export function useClassList() {
         name: form.value.name,
         enrollmentYear: form.value.enrollmentYear,
         durationYears: form.value.durationYears,
-        majorId: form.value.majorId || undefined,
-        collegeId: form.value.collegeId || undefined,
+        majorId: form.value.majorId ?? null,
+        collegeId: form.value.collegeId ?? null,
         trainingLevelId: form.value.trainingLevelId,
-        studentCount:
-          form.value.studentCount !== null && form.value.studentCount !== undefined
-            ? Number(form.value.studentCount)
-            : undefined,
+        // student_count 为非空 Int（校验也不接受 null），清空按 0 处理；
+        // 不可转成 undefined，否则键被丢弃、后端视为"本次不修改"而保留旧值
+        studentCount: Number(form.value.studentCount ?? 0),
         customPlanId: form.value.customPlanId ?? null,
         isLeftSchool: form.value.isLeftSchool,
         combinationClassIds: form.value.isCombinedClass

@@ -366,6 +366,35 @@ describe('createTextbook', () => {
       const createData = mockPrisma.textbooks.create.mock.calls[0][0].data;
       expect(createData.category).toBeNull();
     });
+
+    it('isbn/publisher/author/edition/description 为空时应归一为 null', async () => {
+      const req = mockReq(
+        {},
+        { title: '新教材', isbn: '', publisher: '', author: '', edition: '', description: '' }
+      );
+      const res = mockRes();
+      const next = vi.fn();
+
+      await createTextbook(req, res, next);
+
+      const createData = mockPrisma.textbooks.create.mock.calls[0][0].data;
+      expect(createData.isbn).toBeNull();
+      expect(createData.publisher).toBeNull();
+      expect(createData.author).toBeNull();
+      expect(createData.edition).toBeNull();
+      expect(createData.description).toBeNull();
+    });
+
+    it('price 为 0 时应写入 0 而非 null', async () => {
+      const req = mockReq({}, { title: '新教材', price: 0 });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await createTextbook(req, res, next);
+
+      const createData = mockPrisma.textbooks.create.mock.calls[0][0].data;
+      expect(createData.price).toBe(0);
+    });
   });
 
   describe('验证', () => {
@@ -571,6 +600,60 @@ describe('updateTextbook', () => {
 
       const updateData = mockPrisma.textbooks.update.mock.calls[0][0].data;
       expect(updateData.publish_date).toBe('2024-01-15');
+    });
+  });
+
+  // 回归：删掉已填内容后提示保存成功、但旧值仍残留的缺陷
+  describe('清空字段', () => {
+    async function run(body) {
+      const req = mockReq({ id: TEXTBOOK_ID }, body);
+      const res = mockRes();
+      const next = vi.fn();
+      await updateTextbook(req, res, next);
+      expect(next).not.toHaveBeenCalled();
+      return mockPrisma.textbooks.update.mock.calls[0][0].data;
+    }
+
+    it('publisher 传 null 应写入 null（键不可缺失）', async () => {
+      const updateData = await run({ publisher: null });
+      expect(updateData).toHaveProperty('publisher', null);
+    });
+
+    it('publisher 被 .trim() 转成空串时应归一为 null', async () => {
+      const updateData = await run({ publisher: '' });
+      expect(updateData.publisher).toBeNull();
+    });
+
+    it('isbn/author/edition/category/description 空串统一归一为 null', async () => {
+      const updateData = await run({
+        isbn: '',
+        author: '',
+        edition: '',
+        category: '',
+        description: '',
+      });
+      expect(updateData.isbn).toBeNull();
+      expect(updateData.author).toBeNull();
+      expect(updateData.edition).toBeNull();
+      expect(updateData.category).toBeNull();
+      expect(updateData.description).toBeNull();
+    });
+
+    it('字段缺席时不应出现在 update data 中（保留部分更新语义）', async () => {
+      const updateData = await run({ title: '只改标题' });
+      expect(updateData).not.toHaveProperty('publisher');
+      expect(updateData).not.toHaveProperty('isbn');
+      expect(updateData).not.toHaveProperty('price');
+    });
+
+    it('price 传 0 应写入 0 而非 null', async () => {
+      const updateData = await run({ price: 0 });
+      expect(updateData.price).toBe(0);
+    });
+
+    it('price 传 null 应写入 null', async () => {
+      const updateData = await run({ price: null });
+      expect(updateData.price).toBeNull();
     });
   });
 
