@@ -25,26 +25,13 @@ import {
   isCombinedUnit,
   resolveClassCourseTextbooks,
 } from '../../services/teaching-statistics.service.js';
-
-/**
- * 分批查询防止 OOM：每批 500 条用 skip/take 分页累积到数组
- * 不改变查询结果内容，仅拆分加载过程
- * @param {object} model - Prisma 模型（如 prisma.classes）
- * @param {object} args - findMany 参数（where/include/orderBy 等）
- * @returns {Promise<Array>}
- */
-async function batchFindMany(model, args) {
-  const BATCH_SIZE = 500;
-  const results = [];
-  let skip = 0;
-  let batch;
-  do {
-    batch = await model.findMany({ ...args, skip, take: BATCH_SIZE });
-    results.push(...batch);
-    skip += BATCH_SIZE;
-  } while (batch.length === BATCH_SIZE);
-  return results;
-}
+import {
+  batchFindMany,
+  buildTeachingLoadSnapshot,
+  aggregateByTeacher,
+  aggregateByTextbook,
+  buildLoadSummary,
+} from '../../services/teaching-query.service.js';
 
 /**
  * 导出课程数据
@@ -1241,6 +1228,194 @@ export async function exportCoursePlans(req, res, next) {
       ip: req.ip,
       result: 'failed',
       message: `导出课程方案查询失败: ${e.message}`,
+    });
+    next(e);
+  }
+}
+
+// ── 任课查询导出（教师视图 / 教材视图）──
+// 两个导出与页面接口 GET /api/query/teacher-load 共用 teaching-query.service 的
+// 同一套快照与聚合函数，避免另写取数逻辑导致页面与导出数值分歧。
+
+const LOAD_PERSONNEL_MAP = { full_time: '专职', part_time: '兼职', external: '外聘' };
+
+const XLSX_CONTENT_TYPE =
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+function sendWorkbook(res, buffer, filename) {
+  res.setHeader('Content-Type', XLSX_CONTENT_TYPE);
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+  );
+  res.send(buffer);
+}
+
+/**
+ * 解析导出学期并构建任课查询快照
+ * @returns {Promise<{snapshot?: Object, semesterInfo?: Object, error?: string}>}
+ */
+async function buildLoadExportContext(req) {
+  const semesterInfo = await getSemesterInfoFromRequest(req);
+  if (!semesterInfo) {
+    return {
+      error: req.query.semester ? '学期格式错误，应为 YYYY-YYYY-N' : '请先设置当前学期',
+    };
+  }
+  const snapshot = await buildTeachingLoadSnapshot(semesterInfo.raw);
+  return { snapshot, semesterInfo };
+}
+
+/**
+ * 导出任课查询（教师视图）：每个任课班级一行，教师维度信息重复填充
+ */
+export async function exportTeacherLoad(req, res, next) {
+  try {
+    const ctx = await buildLoadExportContext(req);
+    if (ctx.error) return res.status(400).json({ success: false, message: ctx.error });
+    const { snapshot, semesterInfo } = ctx;
+    const semester = semesterInfo.raw;
+
+    const teachers = aggregateByTeacher(snapshot);
+    const rows = [];
+    for (const t of teachers) {
+      const teacherCols = {
+        学期: semester,
+        教师姓名: t.teacherName,
+        类别: LOAD_PERSONNEL_MAP[t.personnelType] || '-',
+        学科: t.courseList.map((c) => c.name).join('、') || '-',
+        归属学院: t.affiliatedCollege?.name || '-',
+        任课学院: t.collegeList.map((c) => c.name).join('、') || '-',
+        层次: t.trainingLevelList.map((l) => l?.name).filter(Boolean).join('、') || '-',
+        教材数量: t.textbookCount,
+      };
+      for (const d of t.details) {
+        rows.push({
+          ...teacherCols,
+          课程: d.courseName,
+          任课班级: d.isCombined ? `${d.className}(合班)` : d.className,
+          班级学院: d.collegeName || '-',
+          班级层次: d.trainingLevelName || '-',
+          教材名称: d.textbookName || '未指定',
+        });
+      }
+    }
+
+    const headers = [
+      { label: '学期', key: '学期', width: 16 },
+      { label: '教师姓名', key: '教师姓名', width: 12 },
+      { label: '类别', key: '类别', width: 10 },
+      { label: '学科', key: '学科', width: 25 },
+      { label: '归属学院', key: '归属学院', width: 18 },
+      { label: '任课学院', key: '任课学院', width: 25 },
+      { label: '层次', key: '层次', width: 15 },
+      { label: '教材数量', key: '教材数量', width: 10 },
+      { label: '课程', key: '课程', width: 20 },
+      { label: '任课班级', key: '任课班级', width: 30 },
+      { label: '班级学院', key: '班级学院', width: 18 },
+      { label: '班级层次', key: '班级层次', width: 12 },
+      { label: '教材名称', key: '教材名称', width: 35 },
+    ];
+
+    const workbook = await createWorkbook(headers, rows);
+    const summary = buildLoadSummary(snapshot, teachers, []);
+    await createAuditLog({
+      action: 'export',
+      module: 'query',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { semester, teacherCount: teachers.length, rowCount: rows.length, summary },
+      result: 'success',
+      message: `导出任课查询-教师视图(${semester})，共${teachers.length}位教师${rows.length}条记录`,
+    });
+
+    sendWorkbook(res, await workbookToBuffer(workbook), `任课查询_教师_${semester}.xlsx`);
+  } catch (e) {
+    await createAuditLog({
+      action: 'export',
+      module: 'query',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `导出任课查询-教师视图失败: ${e.message}`,
+    });
+    next(e);
+  }
+}
+
+/**
+ * 导出任课查询（教材视图）：每个"教材 × 层次专业"分组一行
+ */
+export async function exportTextbookLoad(req, res, next) {
+  try {
+    const ctx = await buildLoadExportContext(req);
+    if (ctx.error) return res.status(400).json({ success: false, message: ctx.error });
+    const { snapshot, semesterInfo } = ctx;
+    const semester = semesterInfo.raw;
+
+    const textbooks = aggregateByTextbook(snapshot);
+    const rows = [];
+    for (const tb of textbooks) {
+      const courseNames =
+        [tb.primaryCourse?.name, ...tb.extraCourses.map((c) => c.name)].filter(Boolean).join('、') ||
+        '-';
+      const textbookCols = {
+        学期: semester,
+        学科: courseNames,
+        教材名称: tb.title,
+        书号: tb.isbn || '-',
+        出版社: tb.publisher || '-',
+        班级数合计: tb.classCount,
+        学生人数合计: tb.studentCount,
+      };
+      for (const g of tb.groups) {
+        rows.push({
+          ...textbookCols,
+          层次: g.levelName || '-',
+          专业: g.majorName || '-',
+          班级数: g.classCount,
+          学生人数: g.studentCount,
+          任课教师: g.teachers.map((t) => t.name).join('、') || '-',
+        });
+      }
+    }
+
+    const headers = [
+      { label: '学期', key: '学期', width: 16 },
+      { label: '学科', key: '学科', width: 20 },
+      { label: '教材名称', key: '教材名称', width: 35 },
+      { label: '书号', key: '书号', width: 20 },
+      { label: '出版社', key: '出版社', width: 22 },
+      { label: '层次', key: '层次', width: 12 },
+      { label: '专业', key: '专业', width: 20 },
+      { label: '班级数', key: '班级数', width: 10 },
+      { label: '学生人数', key: '学生人数', width: 10 },
+      { label: '任课教师', key: '任课教师', width: 25 },
+      { label: '班级数合计', key: '班级数合计', width: 12 },
+      { label: '学生人数合计', key: '学生人数合计', width: 14 },
+    ];
+
+    const workbook = await createWorkbook(headers, rows);
+    const summary = buildLoadSummary(snapshot, [], textbooks);
+    await createAuditLog({
+      action: 'export',
+      module: 'query',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { semester, textbookCount: textbooks.length, rowCount: rows.length, summary },
+      result: 'success',
+      message: `导出任课查询-教材视图(${semester})，共${textbooks.length}本教材${rows.length}条记录`,
+    });
+
+    sendWorkbook(res, await workbookToBuffer(workbook), `任课查询_教材_${semester}.xlsx`);
+  } catch (e) {
+    await createAuditLog({
+      action: 'export',
+      module: 'query',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `导出任课查询-教材视图失败: ${e.message}`,
     });
     next(e);
   }

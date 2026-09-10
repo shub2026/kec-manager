@@ -29,3 +29,10 @@ export const getTextbookQuery = (id, params = {}) =>
  * @returns {Promise<import('./types').ApiResponse<Object>>}
  */
 export const getCourseQuery = (params = {}) => request.get('/query/course', { params });
+
+/**
+ * 任课查询：一次返回「按教师」与「按教材」两个视图（同一次排课取数，切 TAB 无需重新请求）
+ * @param {import('./types').TeacherLoadQueryParams} params
+ * @returns {Promise<import('./types').ApiResponse<import('./types').TeacherLoadResult>>}
+ */
+export const getTeacherLoadQuery = (params) => request.get('/query/teacher-load', { params });

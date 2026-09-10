@@ -9,6 +9,12 @@ import {
   planHasOfferedCourses,
   NOT_ARCHIVED_PLAN_WHERE,
 } from '../services/plan.service.js';
+import {
+  buildTeachingLoadSnapshot,
+  aggregateByTeacher,
+  aggregateByTextbook,
+  buildLoadSummary,
+} from '../services/teaching-query.service.js';
 import { log } from '../utils/logger.js';
 
 // ── 开课查询筛选器选项缓存（优化2）──
@@ -634,6 +640,41 @@ export async function queryTextbookUsage(req, res, next) {
       classes: classResults,
       totalClasses: classResults.length,
       totalStudents,
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
+ * GET /api/query/teacher-load - 任课查询
+ *
+ * 单接口同时返回两个视图（按教师 / 按教材）：二者源自同一次排课取数，
+ * 拆成两个端点会让前端切 TAB 时重复执行整套重查询。
+ *
+ * 学期：?semester=YYYY-YYYY-N，缺省回退全局当前学期。
+ * 两个视图的合班口径刻意不同（教师视图按逻辑教学单元归并、教材视图按自然班计），
+ * 详见 services/teaching-query.service.js 头部注释。
+ */
+export async function queryTeacherLoad(req, res, next) {
+  try {
+    const semesterInfo = await getSemesterInfoFromRequest(req);
+    if (!semesterInfo) {
+      return req.query.semester
+        ? fail(res, '学期格式错误，应为 YYYY-YYYY-N')
+        : fail(res, '请先设置当前学期');
+    }
+
+    const snapshot = await buildTeachingLoadSnapshot(semesterInfo.raw);
+    const teachers = aggregateByTeacher(snapshot);
+    const textbooks = aggregateByTextbook(snapshot);
+
+    success(res, {
+      semester: semesterInfo.raw,
+      semesterLabel: semesterInfo.label,
+      teachers,
+      textbooks,
+      summary: buildLoadSummary(snapshot, teachers, textbooks),
     });
   } catch (e) {
     next(e);

@@ -61,6 +61,7 @@
     <el-menu-item index="/query/course">课程查询</el-menu-item>
     <el-menu-item index="/query/semester">开课查询</el-menu-item>
     <el-menu-item index="/query/textbook">教材查询</el-menu-item>
+    <el-menu-item index="/query/teacher-load">任课查询</el-menu-item>
   </el-sub-menu>
 </template>
 

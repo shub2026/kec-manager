@@ -49,3 +49,19 @@ export const exportAllTextbookUsage = (params) =>
  */
 export const exportCoursePlans = (params = {}) =>
   request.get('/export/course-plans', { params, responseType: 'blob' });
+
+/**
+ * 导出任课查询·教师视图（每个任课班级一行）
+ * @param {{ semester?: string }} [params]
+ * @returns {Promise<Blob>}
+ */
+export const exportTeacherLoad = (params = {}) =>
+  request.get('/export/teacher-load', { params, responseType: 'blob' });
+
+/**
+ * 导出任课查询·教材视图（每个「教材 × 层次专业」分组一行）
+ * @param {{ semester?: string }} [params]
+ * @returns {Promise<Blob>}
+ */
+export const exportTextbookLoad = (params = {}) =>
+  request.get('/export/textbook-load', { params, responseType: 'blob' });

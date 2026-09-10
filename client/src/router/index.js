@@ -120,6 +120,12 @@ const routes = [
       },
       { path: 'query/historical-textbook', redirect: '/query/textbook' },
       {
+        path: 'query/teacher-load',
+        name: 'TeacherLoadQuery',
+        component: () => import('../views/query/TeacherLoadQuery.vue'),
+        meta: { title: '任课查询' },
+      },
+      {
         path: 'settings',
         name: 'Settings',
         component: () => import('../views/settings/SystemSettings.vue'),

@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { validateIdParam } from '../middleware/validation.js';
-import { querySemester, queryTextbookUsage, queryCoursePlans } from '../controllers/query.controller.js';
+import {
+  querySemester,
+  queryTextbookUsage,
+  queryCoursePlans,
+  queryTeacherLoad,
+} from '../controllers/query.controller.js';
 
 const router = Router();
 
@@ -22,5 +27,10 @@ router.get('/course', queryCoursePlans);
  * GET /api/query/textbook/:id - 教材使用情况查询
  */
 router.get('/textbook/:id', validateIdParam, queryTextbookUsage);
+
+/**
+ * GET /api/query/teacher-load - 任课查询（按教师 / 按教材两个视图）
+ */
+router.get('/teacher-load', queryTeacherLoad);
 
 export default router;

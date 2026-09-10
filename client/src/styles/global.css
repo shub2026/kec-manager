@@ -623,11 +623,34 @@ a:focus-visible,
     width: 100%;
   }
 
+  /* 主筛选器一行放下：按钮定宽 + 选择器弹性占满剩余宽度，避免竖排两行浪费首屏高度 */
+  .filter-bar-mobile__primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .filter-bar-mobile__primary .el-button {
+    flex: none;
+  }
+
+  .filter-bar-mobile__primary .el-select {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
+
   .filter-bar-mobile__row {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+  }
+
+  /* 覆盖上方 .action-buttons 全宽规则：移动端操作按钮与“更多筛选”同行右对齐 */
+  .filter-bar-mobile__row .action-buttons {
+    width: auto;
+    margin-left: auto;
   }
 
   /* 分页居中 + 窄屏防溢出：允许换行并隐藏每页条数选择器 */

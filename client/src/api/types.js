@@ -350,6 +350,81 @@
 /** @typedef {Object} TextbooksOverviewParams @property {string} [category] @property {boolean} [isActive] @property {string} [publisher] } */
 
 /**
+ * 任课查询参数
+ * @typedef {Object} TeacherLoadQueryParams
+ * @property {string} [semester] - 缺省时后端回退全局当前学期
+ */
+
+/**
+ * 任课查询·教师视图内嵌明细行（一个逻辑教学单元 = 一门课 × 一个班/合班组）
+ * @typedef {Object} TeacherLoadDetail
+ * @property {string} unitKey
+ * @property {?number} courseId
+ * @property {string} courseName
+ * @property {number} classId
+ * @property {string} className - 合班时为成员班名「、」拼接
+ * @property {boolean} isCombined
+ * @property {?number} combinationNo
+ * @property {?string} collegeName
+ * @property {?string} trainingLevelName
+ * @property {?string} textbookName
+ */
+
+/**
+ * 任课查询·教师视图行
+ * @typedef {Object} TeacherLoadRow
+ * @property {number} teacherId
+ * @property {string} teacherName
+ * @property {?string} personnelType - full_time | part_time | external
+ * @property {?{id: number, name: string}} affiliatedCollege - 归属学院
+ * @property {Array<{id: number, name: string}>} collegeList - 任课学院（实际授课班级去重）
+ * @property {Array<{id: number, name: string}>} trainingLevelList - 层次（实际授课优先，空则回退意向）
+ * @property {Array<{id: number, name: string}>} courseList - 学科（本学期实际任教课程）
+ * @property {number} textbookCount
+ * @property {string[]} textbookNames
+ * @property {number} classCount
+ * @property {TeacherLoadDetail[]} details
+ */
+
+/**
+ * 任课查询·教材视图内嵌行（一个「层次 × 专业」分组）
+ * @typedef {Object} TextbookLoadGroup
+ * @property {?number} levelId
+ * @property {?string} levelName
+ * @property {?number} majorId
+ * @property {?string} majorName
+ * @property {number} classCount - 自然班数（合班成员班各计 1）
+ * @property {number} studentCount
+ * @property {Array<{id: number, name: string}>} teachers
+ */
+
+/**
+ * 任课查询·教材视图行
+ * @typedef {Object} TextbookLoadRow
+ * @property {number} textbookId
+ * @property {string} title
+ * @property {?string} isbn
+ * @property {?string} publisher
+ * @property {?{id: number, name: string}} primaryCourse - 主学科（覆盖班级数最多者）
+ * @property {Array<{id: number, name: string}>} extraCourses - 其余学科
+ * @property {number} classCount
+ * @property {number} studentCount
+ * @property {number} teacherCount
+ * @property {Array<{id: number, name: string}>} teachers
+ * @property {TextbookLoadGroup[]} groups
+ */
+
+/**
+ * 任课查询接口返回
+ * @typedef {Object} TeacherLoadResult
+ * @property {string} semester
+ * @property {string} semesterLabel
+ * @property {TeacherLoadRow[]} teachers
+ * @property {TextbookLoadRow[]} textbooks
+ * @property {{totalTeachers: number, totalTextbooks: number, totalClasses: number, totalStudents: number}} summary
+ */
+
+/**
  * 导出参数
  * @typedef {Object} ExportStatisticsParams
  * @property {string} semester

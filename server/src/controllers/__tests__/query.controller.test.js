@@ -67,6 +67,15 @@ vi.mock('../../services/audit.service.js', () => ({
   createAuditLog: vi.fn().mockResolvedValue({}),
 }));
 
+// 聚合逻辑已在 services/__tests__/teaching-query.service.test.js 用真实合班去重覆盖，
+// 控制器测试只验证学期校验与装配，故整体 mock
+vi.mock('../../services/teaching-query.service.js', () => ({
+  buildTeachingLoadSnapshot: vi.fn(),
+  aggregateByTeacher: vi.fn(),
+  aggregateByTextbook: vi.fn(),
+  buildLoadSummary: vi.fn(),
+}));
+
 vi.mock('../../utils/logger.js', () => ({
   log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
@@ -74,7 +83,14 @@ vi.mock('../../utils/logger.js', () => ({
 // ──────────────────────────────────────────────
 // 导入被测模块（必须在所有 vi.mock 之后）
 // ──────────────────────────────────────────────
-const { querySemester, queryCoursePlans, invalidateQueryFilterCache } = await import('../query.controller.js');
+const { querySemester, queryCoursePlans, queryTeacherLoad, invalidateQueryFilterCache } =
+  await import('../query.controller.js');
+const {
+  buildTeachingLoadSnapshot,
+  aggregateByTeacher,
+  aggregateByTextbook,
+  buildLoadSummary,
+} = await import('../../services/teaching-query.service.js');
 const { getSemesterInfoFromRequest } = await import('../../services/settings.service.js');
 const { getActiveClassFilter } = await import('../../services/class.service.js');
 const { buildClassWithPlanFilter, findBestMatchPlan, planHasOfferedCourses } = await import(
@@ -999,5 +1015,90 @@ describe('querySemester — 归档方案处理', () => {
     // 班级正常进入结果（不在 unmatchedClasses）
     const json = res.json.mock.calls[0][0];
     expect(json.data.unmatchedClasses).toHaveLength(0);
+  });
+});
+
+// ──────────────────────────────────────────────
+// 任课查询 queryTeacherLoad
+// ──────────────────────────────────────────────
+describe('queryTeacherLoad - 任课查询', () => {
+  const SNAPSHOT = { semester: '2025-2026-2', rawAssignments: [] };
+  const TEACHERS = [{ teacherId: 1, teacherName: '张三' }];
+  const TEXTBOOKS = [{ textbookId: 100, title: '高等数学' }];
+  const SUMMARY = { totalTeachers: 1, totalTextbooks: 1, totalClasses: 2, totalStudents: 75 };
+
+  beforeEach(() => {
+    buildTeachingLoadSnapshot.mockReset().mockResolvedValue(SNAPSHOT);
+    aggregateByTeacher.mockReset().mockReturnValue(TEACHERS);
+    aggregateByTextbook.mockReset().mockReturnValue(TEXTBOOKS);
+    buildLoadSummary.mockReset().mockReturnValue(SUMMARY);
+  });
+
+  it('未传 semester 且全局未设当前学期 → 提示先设置学期，且不构建快照', async () => {
+    getSemesterInfoFromRequest.mockResolvedValue(null);
+
+    const res = mockRes();
+    await queryTeacherLoad(mockReq({}), res, vi.fn());
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, message: expect.stringContaining('请先设置当前学期') })
+    );
+    expect(buildTeachingLoadSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('传入非法学期格式 → 提示格式错误', async () => {
+    getSemesterInfoFromRequest.mockResolvedValue(null);
+
+    const res = mockRes();
+    await queryTeacherLoad(mockReq({ semester: '2025/2026' }), res, vi.fn());
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, message: expect.stringContaining('学期格式错误') })
+    );
+    expect(buildTeachingLoadSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('缺省 semester 时回退全局当前学期', async () => {
+    getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
+
+    const res = mockRes();
+    await queryTeacherLoad(mockReq({}), res, vi.fn());
+
+    expect(buildTeachingLoadSnapshot).toHaveBeenCalledWith('2025-2026-2');
+    expect(res.json.mock.calls[0][0].data.semester).toBe('2025-2026-2');
+  });
+
+  it('一次返回教师视图与教材视图，且两者共用同一快照', async () => {
+    getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
+
+    const res = mockRes();
+    await queryTeacherLoad(mockReq({ semester: '2025-2026-2' }), res, vi.fn());
+
+    // 关键：两个聚合函数收到的是同一个 snapshot 对象（同一次取数，保证口径一致）
+    expect(aggregateByTeacher).toHaveBeenCalledWith(SNAPSHOT);
+    expect(aggregateByTextbook).toHaveBeenCalledWith(SNAPSHOT);
+
+    const json = res.json.mock.calls[0][0];
+    expect(json.success).toBe(true);
+    expect(json.data).toMatchObject({
+      semester: '2025-2026-2',
+      semesterLabel: '2026年春季(第2学期)',
+      teachers: TEACHERS,
+      textbooks: TEXTBOOKS,
+      summary: SUMMARY,
+    });
+  });
+
+  it('聚合抛错时透传 next，不吞异常', async () => {
+    getSemesterInfoFromRequest.mockResolvedValue(SEMESTER_INFO);
+    const boom = new Error('aggregate failed');
+    aggregateByTeacher.mockImplementation(() => {
+      throw boom;
+    });
+
+    const next = vi.fn();
+    await queryTeacherLoad(mockReq({ semester: '2025-2026-2' }), mockRes(), next);
+
+    expect(next).toHaveBeenCalledWith(boom);
   });
 });
