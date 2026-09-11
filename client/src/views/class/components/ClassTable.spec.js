@@ -6,17 +6,19 @@
  * - 无伙伴的合班班级仍显示组号角标，文案为"合班(无伙伴)"
  * - 非合班班级不渲染角标
  * - combinationNo 缺失（旧数据）时不渲染角标但保留合班标签
+ * - 默认「只看在读」过滤下的空态文案与「查看已毕业/离校班级」出口
  */
 import { describe, it, expect } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import ClassTable from './ClassTable.vue';
 
-function mountTable(classes) {
+function mountTable(classes, extraProps = {}) {
   return mount(ClassTable, {
     props: {
       classes,
       loading: false,
       pagination: { page: 1, pageSize: 20, total: classes.length },
+      ...extraProps,
     },
   });
 }
@@ -91,5 +93,29 @@ describe('ClassTable — 合班组号角标', () => {
 
     expect(wrapper.find('.combined-tag').exists()).toBe(true);
     expect(wrapper.find('.combined-group-no').exists()).toBe(false);
+  });
+});
+
+describe('ClassTable — 状态过滤下的空态', () => {
+  it('只看在读时空态提示并给出查看全部状态入口', async () => {
+    const wrapper = mountTable([], { statusFiltered: true });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('暂无在读班级数据');
+    const action = wrapper.find('.empty-content .el-button');
+    expect(action.exists()).toBe(true);
+    expect(action.text()).toContain('查看已毕业/离校班级');
+
+    await action.trigger('click');
+    expect(wrapper.emitted('clear-status-filter')).toHaveLength(1);
+  });
+
+  it('未过滤状态时保持通用空态文案且不渲染入口', async () => {
+    const wrapper = mountTable([]);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('暂无班级数据');
+    expect(wrapper.text()).not.toContain('查看已毕业/离校班级');
+    expect(wrapper.emitted('clear-status-filter')).toBeUndefined();
   });
 });

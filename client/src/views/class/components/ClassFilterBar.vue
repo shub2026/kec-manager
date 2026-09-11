@@ -65,7 +65,7 @@
     <el-select
       v-model="localFilters.status"
       clearable
-      placeholder="状态"
+      placeholder="全部状态"
       class="filter-sm"
       @change="$emit('change')"
     >
@@ -131,6 +131,7 @@ import { useClassDataStore } from '@/stores/classData';
 import { getCookie } from '@/utils/cookies';
 import { useFilterLinkage } from '@/components/filter/composables/useFilterLinkage';
 import FilterBar from '@/components/filter/FilterBar.vue';
+import { DEFAULT_CLASS_FILTERS } from '../composables/useClassList';
 
 const props = defineProps({
   filters: {
@@ -192,11 +193,9 @@ const activeFilterCount = computed(
       .length
 );
 
-// 移动端抽屉“重置”：清空全部筛选条件后重新加载
+// 移动端抽屉“重置”：恢复页面默认筛选口径（含状态=在读）后重新加载
 function resetFilters() {
-  for (const key of Object.keys(localFilters.value)) {
-    localFilters.value[key] = key === 'name' ? '' : null;
-  }
+  Object.assign(localFilters.value, DEFAULT_CLASS_FILTERS);
   emit('change');
 }
 

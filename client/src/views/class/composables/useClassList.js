@@ -16,6 +16,22 @@ import { showImportResultCard, validateExcelFile } from '../../../composables/us
 import { useDebounceFn } from '../../../composables/useDebounce';
 
 /**
+ * 班级列表筛选默认值：默认只看在读班级。
+ * 已毕业/离校班级不参与排课与统计，但因关联历史排课不可删除，每年约 100 个新增班级会让列表持续膨胀；
+ * 需查看时把状态筛选切到「全部状态」。ClassFilterBar 的「重置」复用此常量，避免两处默认值漂移。
+ */
+export const DEFAULT_CLASS_FILTERS = {
+  name: '',
+  majorId: null,
+  collegeId: null,
+  trainingLevelId: null,
+  enrollmentYear: null,
+  status: 'active',
+  planId: null,
+  isCombined: null,
+};
+
+/**
  * 班级列表页业务逻辑：查询/分页/表单弹窗/删除/批量操作/导入导出。
  * 须在组件 setup 上下文中调用（内部注册生命周期钩子与 watch）。
  */
@@ -37,16 +53,7 @@ export function useClassList() {
   // 使用 classDataStore 管理共享参考数据（消除向 ClassFilterBar / ClassFormDialog 传递 15+ props）
   const classDataStore = useClassDataStore();
 
-  const filters = ref({
-    name: '',
-    majorId: null,
-    collegeId: null,
-    trainingLevelId: null,
-    enrollmentYear: null,
-    status: null,
-    planId: null,
-    isCombined: null,
-  });
+  const filters = ref({ ...DEFAULT_CLASS_FILTERS });
 
   const pagination = ref({
     page: 1,
@@ -167,6 +174,12 @@ export function useClassList() {
   function resetPaginationAndLoad() {
     pagination.value.page = 1;
     load();
+  }
+
+  // 空态快捷出口：默认只看在读，搜不到旧班级时一键切到全部状态
+  function showAllStatuses() {
+    filters.value.status = null;
+    resetPaginationAndLoad();
   }
 
   // 名称输入防抖搜索：输入停顿 300ms 后自动触发查询，无需按回车
@@ -613,6 +626,7 @@ export function useClassList() {
     selectedClasses,
     load,
     resetPaginationAndLoad,
+    showAllStatuses,
     handlePageChange,
     handleSizeChange,
     handleSelectionChange,

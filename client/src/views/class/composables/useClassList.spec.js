@@ -164,6 +164,26 @@ describe('加载与分页', () => {
     await flushPromises();
     expect(c.pagination.value.page).toBe(1);
   });
+
+  it('默认只查在读班级：首次加载即带 status=active', async () => {
+    const { c } = await setup();
+
+    expect(c.filters.value.status).toBe('active');
+    expect(getClasses).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'active' }));
+  });
+
+  it('showAllStatuses 清空状态筛选、回到第一页并重载', async () => {
+    const { c } = await setup();
+    c.filters.value.status = 'graduated';
+    c.pagination.value.page = 4;
+
+    c.showAllStatuses();
+    await flushPromises();
+
+    expect(c.filters.value.status).toBeNull();
+    expect(c.pagination.value.page).toBe(1);
+    expect(getClasses).toHaveBeenLastCalledWith(expect.objectContaining({ status: null, page: 1 }));
+  });
 });
 
 describe('基础数据与学期信息', () => {
@@ -631,18 +651,29 @@ describe('导入与导出', () => {
     expect(mockElMessage.error).toHaveBeenCalledWith('导入失败');
   });
 
-  it('导出透传当前筛选条件', async () => {
+  it('导出透传当前筛选条件（含默认状态口径）', async () => {
     const { c } = await setup();
     c.filters.value.name = '计算机';
     c.filters.value.majorId = 3;
 
     await c.handleExport();
 
-    expect(mocks.exportData).toHaveBeenCalledWith({ name: '计算机', majorId: 3 });
+    expect(mocks.exportData).toHaveBeenCalledWith({
+      name: '计算机',
+      majorId: 3,
+      status: 'active',
+    });
   });
 
-  it('无筛选条件时导出参数为空对象', async () => {
+  it('默认口径导出仅带 status=active（只导出在读班级）', async () => {
     const { c } = await setup();
+    await c.handleExport();
+    expect(mocks.exportData).toHaveBeenCalledWith({ status: 'active' });
+  });
+
+  it('切到全部状态后导出参数为空对象', async () => {
+    const { c } = await setup();
+    c.filters.value.status = null;
     await c.handleExport();
     expect(mocks.exportData).toHaveBeenCalledWith({});
   });

@@ -10,7 +10,16 @@
         @selection-change="$emit('selection-change', $event)"
       >
         <template #empty>
-          <EmptyState type="class" description="暂无班级数据" />
+          <EmptyState
+            type="class"
+            :description="statusFiltered ? '暂无在读班级数据' : '暂无班级数据'"
+          >
+            <template v-if="statusFiltered" #action>
+              <el-button link type="primary" @click="$emit('clear-status-filter')">
+                查看已毕业/离校班级
+              </el-button>
+            </template>
+          </EmptyState>
         </template>
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" align="center" />
@@ -184,6 +193,11 @@ defineProps({
     type: Object,
     default: null,
   },
+  // 当前是否处于「只看在读」的状态过滤下（空态据此提示可查看已毕业/离校班级）
+  statusFiltered: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 defineEmits([
@@ -194,6 +208,7 @@ defineEmits([
   'batch-set',
   'size-change',
   'page-change',
+  'clear-status-filter',
 ]);
 
 // FR3修复：直接使用后端计算的 grade 字段，消除重复公式和硬编码边界月

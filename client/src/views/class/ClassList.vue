@@ -30,6 +30,7 @@
         :selected-classes="selectedClasses"
         :pagination="pagination"
         :semester-info="currentSemesterInfo"
+        :status-filtered="filters.status === 'active'"
         @selection-change="handleSelectionChange"
         @edit="openDialog"
         @delete="handleDelete"
@@ -37,6 +38,7 @@
         @batch-set="openBatchSetDialog"
         @size-change="handleSizeChange"
         @page-change="handlePageChange"
+        @clear-status-filter="showAllStatuses"
       />
     </el-card>
 
@@ -143,6 +145,7 @@ const {
   selectedClasses,
   load,
   resetPaginationAndLoad,
+  showAllStatuses,
   handlePageChange,
   handleSizeChange,
   handleSelectionChange,
