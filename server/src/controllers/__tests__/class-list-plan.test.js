@@ -434,3 +434,111 @@ describe('listClasses — 培养方案匹配逻辑', () => {
     expect(data.items[0].status).toBe('left_school');
   });
 });
+
+// ════════════════════════════════════════════════
+// 「在读 N / 全部 M」口径计数
+// ════════════════════════════════════════════════
+describe('listClasses — 「在读 / 全部」口径计数', () => {
+  // 三种 where 各自可辨识，便于断言 count 落在哪个维度上
+  const WHERE_ACTIVE = { tag: 'active' };
+  const WHERE_SCOPE = { tag: 'scope' };
+
+  function mockFilters() {
+    buildClassFilter.mockImplementation(async (query) => ({
+      where: query.status === 'active' ? WHERE_ACTIVE : WHERE_SCOPE,
+      planNotFound: false,
+    }));
+  }
+
+  function mockCounts({ active, scope }) {
+    mockPrisma.classes.count.mockImplementation(async ({ where }) =>
+      where === WHERE_ACTIVE ? active : scope
+    );
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    getCurrentSemesterInfo.mockResolvedValue(SEMESTER_INFO);
+    mockFilters();
+    mockCounts({ active: 607, scope: 1200 });
+    mockPrisma.classes.findMany.mockResolvedValue([]);
+    mockPrisma.training_plans.findMany.mockResolvedValue([]);
+    mockFindBestMatchPlan.mockReturnValue(null);
+  });
+
+  it('默认只看在读：在读数复用 total，只为全部状态多发一次 COUNT', async () => {
+    const res = mockRes();
+    await listClasses(mockReq({ status: 'active' }), res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.total).toBe(607);
+    expect(data.activeTotal).toBe(607);
+    expect(data.allStatusTotal).toBe(1200);
+    expect(mockPrisma.classes.count).toHaveBeenCalledTimes(2);
+  });
+
+  it('全部状态视图：全部数复用 total，只为在读多发一次 COUNT', async () => {
+    const res = mockRes();
+    await listClasses(mockReq({}), res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.total).toBe(1200);
+    expect(data.allStatusTotal).toBe(1200);
+    expect(data.activeTotal).toBe(607);
+    expect(mockPrisma.classes.count).toHaveBeenCalledTimes(2);
+  });
+
+  it('已毕业视图：两个计数都独立于 total 计算', async () => {
+    buildClassFilter.mockImplementation(async (query) => ({
+      where:
+        query.status === 'active'
+          ? WHERE_ACTIVE
+          : query.status === 'graduated'
+            ? { tag: 'graduated' }
+            : WHERE_SCOPE,
+      planNotFound: false,
+    }));
+    mockPrisma.classes.count.mockImplementation(async ({ where }) => {
+      if (where === WHERE_ACTIVE) return 607;
+      if (where.tag === 'graduated') return 500;
+      return 1200;
+    });
+
+    const res = mockRes();
+    await listClasses(mockReq({ status: 'graduated' }), res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data.total).toBe(500);
+    expect(data.activeTotal).toBe(607);
+    expect(data.allStatusTotal).toBe(1200);
+    expect(mockPrisma.classes.count).toHaveBeenCalledTimes(3);
+  });
+
+  it('重建计数范围时保留其余筛选，只去掉 status 维度', async () => {
+    const res = mockRes();
+    await listClasses(mockReq({ status: 'active', college_id: '3', name: '计算机' }), res, vi.fn());
+
+    expect(buildClassFilter).toHaveBeenCalledWith({
+      status: '',
+      college_id: '3',
+      name: '计算机',
+    });
+    expect(buildClassFilter).toHaveBeenCalledWith({
+      status: 'active',
+      college_id: '3',
+      name: '计算机',
+    });
+  });
+
+  it('planNotFound 早退也带上两个计数，保持响应结构一致', async () => {
+    buildClassFilter.mockResolvedValue({ where: null, planNotFound: true });
+
+    const res = mockRes();
+    await listClasses(mockReq({ plan_id: '999' }), res, vi.fn());
+
+    const data = res.json.mock.calls[0][0].data;
+    expect(data).toMatchObject({ items: [], total: 0, activeTotal: 0, allStatusTotal: 0 });
+    expect(mockPrisma.classes.count).not.toHaveBeenCalled();
+  });
+});

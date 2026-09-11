@@ -5,6 +5,7 @@
  * - 候选加载改用全量轻量接口 getClassOptions（不再用分页 getClasses 取前 100 条）
  * - 候选映射为轻量对象（id/name/collegeId/combinationId/matchedPlanId，缺省补 null）
  * - 候选缓存：第二次打开弹窗不再重复请求
+ * - 页头「在读 N / 全部 M」口径摘要标签的渲染与未加载时不渲染
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { nextTick } from 'vue';
@@ -49,7 +50,7 @@ import { getClasses, getClassOptions } from '@/api/class';
 
 // 子组件 stub —— 避免复杂子组件在 jsdom 中渲染干扰
 const STUBS = {
-  PageHeader: { template: '<div class="stub-page-header" />' },
+  PageHeader: { template: '<div class="stub-page-header"><slot name="tags" /></div>' },
   ClassFilterBar: {
     emits: ['add'],
     template:
@@ -146,5 +147,33 @@ describe('ClassList — 合班伙伴候选加载', () => {
     // 缓存数据仍保留
     const dialog = wrapper.findComponent({ name: 'ClassFormDialog' });
     expect(dialog.props('classes')).toHaveLength(OPTIONS_ITEMS.length);
+  });
+});
+
+describe('ClassList — 页头「在读 / 全部」口径摘要标签', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getClassOptions.mockResolvedValue({ data: { items: OPTIONS_ITEMS } });
+  });
+
+  it('按接口返回的 activeTotal / allStatusTotal 渲染摘要标签', async () => {
+    getClasses.mockResolvedValue({
+      data: { items: [], total: 215, activeTotal: 215, allStatusTotal: 218 },
+    });
+
+    const wrapper = await mountList();
+
+    const tag = wrapper.find('.scope-tag');
+    expect(tag.exists()).toBe(true);
+    expect(tag.text().replace(/\s+/g, ' ')).toBe('在读 215 / 全部 218');
+  });
+
+  it('列表尚未加载完成时不渲染摘要标签', async () => {
+    // 请求悬挂不返回，statusSummary 保持 null
+    getClasses.mockReturnValue(new Promise(() => {}));
+
+    const wrapper = await mountList();
+
+    expect(wrapper.find('.scope-tag').exists()).toBe(false);
   });
 });

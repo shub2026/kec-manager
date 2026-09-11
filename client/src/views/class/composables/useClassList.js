@@ -61,6 +61,11 @@ export function useClassList() {
     total: 0,
   });
 
+  // 「在读 N / 全部 M」：pagination.total 只反映当前状态筛选下的数量，
+  // 默认只看在读时被隐藏的已毕业/离校规模不可见，此摘要让默认口径可感知。
+  // 首次加载前为 null，表格据此不渲染该行。
+  const statusSummary = ref(null);
+
   const dialogVisible = ref(false);
   const batchDialogVisible = ref(false);
   const progressDialogVisible = ref(false);
@@ -132,6 +137,10 @@ export function useClassList() {
       const res = await getClasses(params);
       list.value = res?.data?.items || [];
       pagination.value.total = res?.data?.total || 0;
+      statusSummary.value = {
+        active: res?.data?.activeTotal ?? 0,
+        all: res?.data?.allStatusTotal ?? 0,
+      };
 
       // 关联关系数据由 store 统一管理（首次加载后不再重复赋值）
       classDataStore.ingestRelations(res?.data);
@@ -622,6 +631,7 @@ export function useClassList() {
     error,
     filters,
     pagination,
+    statusSummary,
     currentSemesterInfo,
     selectedClasses,
     load,

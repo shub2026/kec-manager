@@ -189,11 +189,24 @@ export async function listClasses(req, res, next) {
 
     const filterResult = await buildClassFilter(req.query);
     if (filterResult.planNotFound) {
-      return success(res, { items: [], total: 0 });
+      return success(res, { items: [], total: 0, activeTotal: 0, allStatusTotal: 0 });
     }
     const finalWhere = filterResult.where;
 
     const total = await prisma.classes.count({ where: finalWhere });
+
+    // 「在读 N / 全部 M」：列表默认只看在读，total 仅反映在读数量，被隐藏的已毕业/离校规模不可见。
+    // 两个计数都在「去掉 status 维度、保留其余筛选」的同一范围上得出，复用 buildClassFilter 与列表口径同源；
+    // status 已是目标维度时直接复用 total，省掉一次重复 COUNT。
+    const statusParam = req.query.status;
+    const [scopeFilter, activeFilter] = await Promise.all([
+      statusParam ? buildClassFilter({ ...req.query, status: '' }) : null,
+      statusParam === 'active' ? null : buildClassFilter({ ...req.query, status: 'active' }),
+    ]);
+    const [activeTotal, allStatusTotal] = await Promise.all([
+      statusParam === 'active' ? total : prisma.classes.count({ where: activeFilter.where }),
+      statusParam ? prisma.classes.count({ where: scopeFilter.where }) : total,
+    ]);
 
     const classes = await prisma.classes.findMany({
       where: finalWhere,
@@ -348,6 +361,8 @@ export async function listClasses(req, res, next) {
     success(res, {
       items: classesWithDynamicStatus,
       total,
+      activeTotal, // 当前筛选范围（忽略状态）下的在读班级数
+      allStatusTotal, // 当前筛选范围（忽略状态）下的全部班级数
       allEnrollmentYears,
       collegeMajorRelation, // 学院-专业关联
       collegeLevelRelation, // 学院-层次关联

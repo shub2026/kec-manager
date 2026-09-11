@@ -1,6 +1,18 @@
 <template>
   <div class="class-list">
     <PageHeader title="班级管理" subtitle="基础数据" description="管理各专业的教学班级信息">
+      <template #tags>
+        <!-- 口径摘要：列表默认只看在读，分页总数不反映被隐藏的已毕业/离校规模 -->
+        <el-tag
+          v-if="statusSummary"
+          class="scope-tag"
+          type="success"
+          size="small"
+          disable-transitions
+        >
+          在读 {{ statusSummary.active }} / 全部 {{ statusSummary.all }}
+        </el-tag>
+      </template>
       <template #extra>
         <el-button type="primary" @click="openDialog()">
           <el-icon><Plus /></el-icon> 新增班级
@@ -141,6 +153,7 @@ const {
   error,
   filters,
   pagination,
+  statusSummary,
   currentSemesterInfo,
   selectedClasses,
   load,
@@ -191,6 +204,11 @@ const {
 </script>
 
 <style scoped>
+/* 页头左侧为「标题 + 副标题 + 标签」的 flex 行，摘要标签不参与压缩，防止窄屏截断数字 */
+.scope-tag {
+  flex-shrink: 0;
+}
+
 .progress-container {
   padding: var(--space-card) 0;
 }

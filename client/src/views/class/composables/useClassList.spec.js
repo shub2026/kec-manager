@@ -129,6 +129,17 @@ describe('加载与分页', () => {
     expect(mocks.classDataStore.ingestRelations).toHaveBeenCalled();
   });
 
+  it('加载成功写入「在读 / 全部」口径摘要', async () => {
+    getClasses.mockResolvedValue({
+      data: { items: [], total: 607, activeTotal: 607, allStatusTotal: 1200 },
+    });
+    const { c } = await setup();
+
+    await c.load();
+
+    expect(c.statusSummary.value).toEqual({ active: 607, all: 1200 });
+  });
+
   it('加载失败写入错误消息（含后端消息）', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     getClasses.mockRejectedValue({ response: { data: { message: '服务异常' } } });
