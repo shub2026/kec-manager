@@ -224,7 +224,19 @@
                 <span class="semester-total">{{ row.totalWeeklyHours }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="courses.length" label="门数" min-width="70" align="center" />
+            <el-table-column v-if="!isMobile" label="课时占比" min-width="130" align="center">
+              <template #default="{ row }">
+                <div
+                  class="ratio-cell"
+                  :title="`${row.totalWeeklyHours} / ${summary.totalWeeklyHours} 周课时`"
+                >
+                  <span class="ratio-track">
+                    <span class="ratio-fill" :style="{ width: `${hoursRatio(row)}%` }" />
+                  </span>
+                  <span class="ratio-text">{{ hoursRatio(row) }}%</span>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column prop="classCount" label="班级数" min-width="80" align="center" />
             <el-table-column label="合班数" min-width="80" align="center">
               <template #default="{ row }">
@@ -358,6 +370,12 @@ function textbookWithCount(row) {
   return unitClasses(row).filter((c) => c.textbookNames?.length).length;
 }
 
+// 课时占比：该学期周课时占历年总周课时的份额（份额之和为 100%，可横向比较各学期负荷）
+function hoursRatio(row) {
+  const total = summary.value.totalWeeklyHours;
+  return total ? Math.round((row.totalWeeklyHours / total) * 100) : 0;
+}
+
 function courseNames(row) {
   return row.courses.map((c) => c.courseName).join('、');
 }
@@ -408,7 +426,7 @@ onMounted(async () => {
 /* 概览卡：教师身份行 + 统计网格，单一浅色表面减少视觉层级 */
 .overview-card {
   padding: var(--space-3) var(--space-4);
-  background: var(--bg-color);
+  background: var(--bg-subtle);
   border-radius: var(--radius-lg);
 }
 .overview-head {
@@ -462,7 +480,7 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: var(--bg-color);
+  background: var(--bg-subtle);
   border-bottom: 1px solid var(--border-light);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
@@ -494,6 +512,32 @@ onMounted(async () => {
 .combined-count {
   font-weight: var(--fw-medium);
   color: var(--brand-indigo);
+}
+
+/* 课时占比：条形按份额渲染，右侧数字兜底精确值 */
+.ratio-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ratio-track {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--bg-subtle);
+}
+.ratio-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand-indigo);
+}
+.ratio-text {
+  min-width: 34px;
+  font-size: var(--font-size-caption);
+  color: var(--text-secondary);
+  text-align: right;
 }
 
 /* 统计网格（概览卡内，分隔线代替独立底色） */
